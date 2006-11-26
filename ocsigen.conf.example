@@ -1,0 +1,16 @@
+<!--
+Edit the lines below and place them into the "server" section 
+of your ocsigen.conf file.
+-->
+    <!-- Ocsidable -->
+    <dynlink>/OCAML-LIB-PATH/calendar/calendar.cma</dynlink>
+    <dynlink>/OCAML-LIB-PATH/unix.cma</dynlink>
+    <dynlink>/OCAML-LIB-PATH/extlib/extLib.cma</dynlink>
+    <dynlink>/OCAML-LIB-PATH/pcre/pcre.cma</dynlink>
+    <dynlink>/OCAML-LIB-PATH/str.cma</dynlink>
+    <dynlink>/OCAML-LIB-PATH/pgocaml/pgocaml.cma</dynlink>
+    <site>
+       <url>BASE-URL</url>
+       <module>/YOUR-PATH-TO/ocsidable.cma</module>
+       <staticdir>/YOUR-PATH-TO/ocsidable/static</staticdir>    
+    </site>
