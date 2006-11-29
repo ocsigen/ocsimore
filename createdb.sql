@@ -2,26 +2,15 @@
 -- PostgreSQL database dump
 --
 
-SET client_encoding = 'LATIN9';
-SET check_function_bodies = false;
-SET client_min_messages = warning;
-
---
--- Name: ocsigen; Type: DATABASE; Schema: -; Owner: ocsigen
---
-
-CREATE DATABASE ocsigen WITH TEMPLATE = template0 ENCODING = 'LATIN9';
-
-
-ALTER DATABASE ocsigen OWNER TO ocsigen;
-
-\connect ocsigen
+-- Started on 2006-11-29 19:13:52 CET
 
 SET client_encoding = 'LATIN9';
 SET check_function_bodies = false;
 SET client_min_messages = warning;
 
 --
+-- TOC entry 1580 (class 0 OID 0)
+-- Dependencies: 5
 -- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: postgres
 --
 
@@ -35,6 +24,8 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
+-- TOC entry 1201 (class 1259 OID 25974)
+-- Dependencies: 1535 1536 1537 5
 -- Name: forums; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -49,13 +40,8 @@ CREATE TABLE forums (
 ALTER TABLE public.forums OWNER TO ocsigen;
 
 --
--- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
---
-
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('forums', 'id'), 16, true);
-
-
---
+-- TOC entry 1202 (class 1259 OID 25983)
+-- Dependencies: 5
 -- Name: globalstore; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -68,6 +54,8 @@ CREATE TABLE globalstore (
 ALTER TABLE public.globalstore OWNER TO ocsigen;
 
 --
+-- TOC entry 1204 (class 1259 OID 25990)
+-- Dependencies: 1539 1540 1541 5
 -- Name: messages; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -84,6 +72,8 @@ CREATE TABLE messages (
 ALTER TABLE public.messages OWNER TO ocsigen;
 
 --
+-- TOC entry 1582 (class 0 OID 0)
+-- Dependencies: 1204
 -- Name: COLUMN messages.thr_id; Type: COMMENT; Schema: public; Owner: ocsigen
 --
 
@@ -91,6 +81,8 @@ COMMENT ON COLUMN messages.thr_id IS 'thread';
 
 
 --
+-- TOC entry 1583 (class 0 OID 0)
+-- Dependencies: 1204
 -- Name: COLUMN messages.txt_id; Type: COMMENT; Schema: public; Owner: ocsigen
 --
 
@@ -98,6 +90,8 @@ COMMENT ON COLUMN messages.txt_id IS 'text';
 
 
 --
+-- TOC entry 1584 (class 0 OID 0)
+-- Dependencies: 1204
 -- Name: COLUMN messages.hidden; Type: COMMENT; Schema: public; Owner: ocsigen
 --
 
@@ -105,13 +99,8 @@ COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 
 
 --
--- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
---
-
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('messages', 'id'), 12, true);
-
-
---
+-- TOC entry 1206 (class 1259 OID 26001)
+-- Dependencies: 1543 5
 -- Name: textdata; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -124,13 +113,8 @@ CREATE TABLE textdata (
 ALTER TABLE public.textdata OWNER TO ocsigen;
 
 --
--- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
---
-
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('textdata', 'id'), 25, true);
-
-
---
+-- TOC entry 1208 (class 1259 OID 26010)
+-- Dependencies: 1545 1546 1547 1548 5
 -- Name: threads; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -147,6 +131,8 @@ CREATE TABLE threads (
 ALTER TABLE public.threads OWNER TO ocsigen;
 
 --
+-- TOC entry 1585 (class 0 OID 0)
+-- Dependencies: 1208
 -- Name: COLUMN threads.frm_id; Type: COMMENT; Schema: public; Owner: ocsigen
 --
 
@@ -154,13 +140,8 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 --
--- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
---
-
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('threads', 'id'), 3, true);
-
-
---
+-- TOC entry 1210 (class 1259 OID 26022)
+-- Dependencies: 1550 1551 1552 1553 5
 -- Name: wikipages; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -178,6 +159,8 @@ CREATE TABLE wikipages (
 ALTER TABLE public.wikipages OWNER TO ocsigen;
 
 --
+-- TOC entry 1586 (class 0 OID 0)
+-- Dependencies: 1210
 -- Name: COLUMN wikipages.wik_id; Type: COMMENT; Schema: public; Owner: ocsigen
 --
 
@@ -185,6 +168,8 @@ COMMENT ON COLUMN wikipages.wik_id IS 'wiki';
 
 
 --
+-- TOC entry 1587 (class 0 OID 0)
+-- Dependencies: 1210
 -- Name: COLUMN wikipages.txt_id; Type: COMMENT; Schema: public; Owner: ocsigen
 --
 
@@ -192,13 +177,8 @@ COMMENT ON COLUMN wikipages.txt_id IS 'text';
 
 
 --
--- Name: wikipages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
---
-
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('wikipages', 'id'), 4, true);
-
-
---
+-- TOC entry 1212 (class 1259 OID 26034)
+-- Dependencies: 1555 1556 5
 -- Name: wikis; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -212,110 +192,8 @@ CREATE TABLE wikis (
 ALTER TABLE public.wikis OWNER TO ocsigen;
 
 --
--- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
---
-
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('wikis', 'id'), 2, true);
-
-
---
--- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY forums (id, title, descr, moderated) FROM stdin;
-15	OCaml	Discussions about the OCaml language	t
-16	Meta-Forum	The Forum module of this site	f
-\.
-
-
---
--- Data for Name: globalstore; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY globalstore ("key", value) FROM stdin;
-forum1_mod	\\204\\225\\246\\276\\000\\000\\000B\\000\\000\\000\\013\\000\\000\\000,\\000\\000\\000&\\240\\300*forum1_mod@9Moderators group - Forum1 \\300@\\240\\300 @.Anonymous user @@A
-developers	\\204\\225\\246\\276\\000\\000\\0009\\000\\000\\000\\013\\000\\000\\000*\\000\\000\\000%\\240\\300*developers@0Developers group \\300@\\240\\300 @.Anonymous user @@A
-FORUM1	\\204\\225\\246\\276\\000\\000\\000\\010\\000\\000\\000\\001\\000\\000\\000\\003\\000\\000\\000\\003\\022_i\\000\\000\\000\\000\\017
-FORUM2	\\204\\225\\246\\276\\000\\000\\000\\010\\000\\000\\000\\001\\000\\000\\000\\003\\000\\000\\000\\003\\022_i\\000\\000\\000\\000\\020
-global_users_container	\\204\\225\\246\\276\\000\\000\\0020\\000\\000\\000Q\\000\\000\\001Y\\000\\000\\001"\\240\\300$root\\220$root-Administrator;piero@localhost.localdomain\\300\\300@\\240\\300 @.Anonymous user @\\300@\\240\\300*developers@0Developers group \\300@\\004\\014@A@AB\\240\\300*forum1_mod@9Moderators group - Forum1 \\300@\\004\\022@A\\300\\300@\\240\\300%piero\\220%piero-Piero Furiesi;piero@localhost.localdomain\\300@\\004\\034@A@A\\240\\300&piero3\\220(oJAASEfV-Piero Furiesi/piero@localhost\\300@\\004$@A\\300\\300@\\240\\300&piero4\\220(fRqXofrw%piero;piero@localhost.localdomain\\300@\\004.@A\\300@\\240\\300&piero5\\220(9jbSS5wH%piero;piero@localhost.localdomain\\300@\\0047@A@AB\\240\\300&piero7\\220(DslXDhDK-Piero Furiesi;piero@localhost.localdomain\\300@\\004?@A\\300@\\240\\300'piero78\\220(x3SY63lv-Piero Furiesi;piero@localhost.localdomain\\300@\\004H@A@ACDE
-\.
-
-
---
--- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY messages (id, author, datetime, thr_id, txt_id, hidden) FROM stdin;
-2	root	2006-11-25 18:34:37.794117	1	15	f
-3	root	2006-11-25 18:37:13.362613	1	16	f
-4	root	2006-11-25 18:37:23.509493	1	17	f
-5	<anonymous>	2006-11-25 18:37:47.991547	2	18	f
-6	<anonymous>	2006-11-26 10:31:38.049602	3	19	f
-7	<anonymous>	2006-11-26 18:17:27.892339	3	20	f
-10	<anonymous>	2006-11-26 18:58:52.347353	3	23	f
-9	<anonymous>	2006-11-26 18:58:46.247199	3	22	f
-8	<anonymous>	2006-11-26 18:58:37.994509	3	21	f
-12	<anonymous>	2006-11-26 18:59:57.689928	3	25	f
-11	<anonymous>	2006-11-26 18:59:50.290033	3	24	f
-\.
-
-
---
--- Data for Name: textdata; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY textdata (id, txt) FROM stdin;
-6	adsfadsf
-7	fsadads
-8	fdsasad
-9	fdsfsad
-10	fsadsdf
-11	fdgshdfhd
-12	hgjkghjhgjdg
-13	jdjdghfhdfh
-14	hsfhsdfhfhsrthrth
-15	primo messaggio del nuovo thread
-16	secondo messaggio
-17	altro messaggio
-18	nuovo messaggio
-19	primo msg thread #2
-20	secondo messaggio\r\n
-21	gadsfgag qrgrecgfwqcef
-22	vqwvfqewfvecfqcwfqxrqwzqwrzqzr\r\n
-23	cqwrxwxrqewztxzqzegfzqtrxzqrqr
-24	fxqwxfqwxfqwefxqwxfwerqxf
-25	settmio
-\.
-
-
---
--- Data for Name: threads; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY threads (id, subject, frm_id, hidden, datetime, author) FROM stdin;
-1	nuovo thread	16	f	2006-11-25 18:34:37.794117	root
-2	primo thread	15	f	2006-11-25 18:37:47.991547	<anonymous user>
-3	thread #2	15	f	2006-11-26 10:31:38.049602	<anonymous user>
-\.
-
-
---
--- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdin;
-\.
-
-
---
--- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: ocsigen
---
-
-COPY wikis (id, title, descr) FROM stdin;
-\.
-
-
---
+-- TOC entry 1558 (class 2606 OID 26043)
+-- Dependencies: 1201 1201
 -- Name: forums_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -324,6 +202,8 @@ ALTER TABLE ONLY forums
 
 
 --
+-- TOC entry 1560 (class 2606 OID 26045)
+-- Dependencies: 1202 1202
 -- Name: globalstore_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -332,6 +212,8 @@ ALTER TABLE ONLY globalstore
 
 
 --
+-- TOC entry 1562 (class 2606 OID 26047)
+-- Dependencies: 1204 1204
 -- Name: messages_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -340,6 +222,8 @@ ALTER TABLE ONLY messages
 
 
 --
+-- TOC entry 1564 (class 2606 OID 26049)
+-- Dependencies: 1206 1206
 -- Name: textdata_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -348,6 +232,8 @@ ALTER TABLE ONLY textdata
 
 
 --
+-- TOC entry 1566 (class 2606 OID 26051)
+-- Dependencies: 1208 1208
 -- Name: threads_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -356,6 +242,8 @@ ALTER TABLE ONLY threads
 
 
 --
+-- TOC entry 1568 (class 2606 OID 26053)
+-- Dependencies: 1210 1210
 -- Name: wikipages_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -364,6 +252,8 @@ ALTER TABLE ONLY wikipages
 
 
 --
+-- TOC entry 1570 (class 2606 OID 26055)
+-- Dependencies: 1210 1210 1210
 -- Name: wikipages_wik_id_suffix_key; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -372,6 +262,8 @@ ALTER TABLE ONLY wikipages
 
 
 --
+-- TOC entry 1572 (class 2606 OID 26057)
+-- Dependencies: 1212 1212
 -- Name: wikis_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -380,6 +272,8 @@ ALTER TABLE ONLY wikis
 
 
 --
+-- TOC entry 1573 (class 2606 OID 26058)
+-- Dependencies: 1204 1208 1565
 -- Name: messages_thr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
@@ -388,6 +282,8 @@ ALTER TABLE ONLY messages
 
 
 --
+-- TOC entry 1574 (class 2606 OID 26063)
+-- Dependencies: 1204 1206 1563
 -- Name: messages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
@@ -396,6 +292,8 @@ ALTER TABLE ONLY messages
 
 
 --
+-- TOC entry 1575 (class 2606 OID 26068)
+-- Dependencies: 1208 1201 1557
 -- Name: threads_frm_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
@@ -404,6 +302,8 @@ ALTER TABLE ONLY threads
 
 
 --
+-- TOC entry 1576 (class 2606 OID 26073)
+-- Dependencies: 1210 1206 1563
 -- Name: wikipages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
@@ -412,6 +312,8 @@ ALTER TABLE ONLY wikipages
 
 
 --
+-- TOC entry 1577 (class 2606 OID 26078)
+-- Dependencies: 1210 1212 1571
 -- Name: wikipages_wik_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
@@ -420,6 +322,8 @@ ALTER TABLE ONLY wikipages
 
 
 --
+-- TOC entry 1581 (class 0 OID 0)
+-- Dependencies: 5
 -- Name: public; Type: ACL; Schema: -; Owner: postgres
 --
 
@@ -428,6 +332,8 @@ REVOKE ALL ON SCHEMA public FROM postgres;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
+
+-- Completed on 2006-11-29 19:13:53 CET
 
 --
 -- PostgreSQL database dump complete
