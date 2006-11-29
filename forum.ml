@@ -5,8 +5,6 @@ open Ocsigen
 open Ocsigen.Xhtml
 open MoreXhtml
 open Lwt
-open Sql
-open Users
 
 module type IN = sig
   val identifier: string
@@ -35,12 +33,12 @@ end
 module Make (A: IN) = struct
 
   (* creates the new forum once and gets its id *)
-  let frm_id = Persist.get (Persist.create 
-                              A.identifier 
-                              (fun () -> new_forum 
-                                 ~title:A.title 
-                                 ~descr:A.descr 
-                                 ~moderated:A.moderated))
+  let frm_id = Sql.Persist.get (Sql.Persist.create 
+				  A.identifier 
+				  (fun () -> Sql.new_forum 
+                                     ~title:A.title 
+                                     ~descr:A.descr 
+                                     ~moderated:A.moderated))
  
   (* SERVICES *)
 
@@ -109,37 +107,40 @@ module Make (A: IN) = struct
 
   (* true if user is logged on *)
   let l = function
-    | Some (Authenticated _) -> true
+    | Some (Users.Authenticated _) -> true
     | _ -> false
 
   (* true if user can read messages *)
   let r = function
-    | Some (Authenticated user) -> in_group ~user ~group:A.readable_by
-    | _ -> A.readable_by = anonymous()
+    | Some (Users.Authenticated user) -> 
+	Users.in_group ~user ~group:A.readable_by
+    | _ -> A.readable_by = Users.anonymous()
 
   (* true if user can write messages *)
   let w = function
-    | Some (Authenticated user) -> in_group ~user ~group:A.writable_by
-    | _ -> A.writable_by = anonymous()
+    | Some (Users.Authenticated user) -> 
+	Users.in_group ~user ~group:A.writable_by
+    | _ -> A.writable_by = Users.anonymous()
 
   (* true if user is a moderator *)
   let m = function
-    | Some (Authenticated user) -> in_group ~user ~group:A.moderators
+    | Some (Users.Authenticated user) -> 
+	Users.in_group ~user ~group:A.moderators
     | _ -> false (* no anonymous moderators *)
 
   (* gets login name *)
   let name = function
-    | Some (Authenticated user) -> 
-        let (n, _, _, _) = get_user_data ~user in n
+    | Some (Users.Authenticated user) -> 
+        let (n, _, _, _) = Users.get_user_data ~user in n
     | _ -> "<anonymous>"
 
   (* for Sql module calls *)
   let kindof sess = 
     if m sess 
-    then Moderator
+    then Sql.Moderator
     else (if w sess && l sess
-	  then Author (name sess)
-	  else Unknown)
+	  then Sql.Author (name sess)
+	  else Sql.Unknown)
 
   (* these operators allow to write something like this:
      list_item_1 ^:  
@@ -340,17 +341,16 @@ module Make (A: IN) = struct
 
   let lwt_page_with_exception_handling sp failmsg f1 f2 =
   catch      
-    (fun () -> f1 () >>= f2)
+    (fun () -> Preemptive.detach f1 () >>= fun x -> return (f2 x))
     (fun exc -> return (mk_exception_page sp failmsg exc))
 
   let page_newthread sess = fun sp () (subject,txt) ->
     let whoami = kindof sess in
     let author = name sess in
     let db_interact () = 
-      return (ignore(new_thread_and_message ~frm_id ~author ~subject ~txt);
-              (forum_get_data ~frm_id ~whoami,
-               forum_get_threads_list 
-		 ~frm_id ~offset:0l ~limit:A.max_rows ~whoami))
+      ignore(Sql.new_thread_and_message ~frm_id ~author ~subject ~txt);
+      (Sql.forum_get_data ~frm_id ~whoami,
+       Sql.forum_get_threads_list ~frm_id ~offset:0l ~limit:A.max_rows ~whoami)
     and gen_html = fun (frm_data,thr_l) ->
       let feedback = "Your message has been " ^
         (match frm_data with (* get moderation status *)
@@ -359,24 +359,24 @@ module Make (A: IN) = struct
                 approvation. Should it not appear in the list, please \
                 do not send it again."
            | (_,_,_,false,_,_,_,_) -> "published.") in
-        return (mk_forum_page sp sess feedback frm_data thr_l)
-    in (lwt_page_with_exception_handling 
-          sp "page_newthread" db_interact gen_html)
+         (mk_forum_page sp sess feedback frm_data thr_l)
+    in lwt_page_with_exception_handling 
+	 sp "page_newthread" db_interact gen_html
 
 
   let page_newmessage sess thr_id = fun sp () (txt) ->
     let whoami = kindof sess in
     let author = name sess in
     let db_interact () = 
-      return (ignore(new_message ~thr_id ~author ~txt);
-              (forum_get_data ~frm_id ~whoami,
-               thread_get_data ~thr_id ~whoami,
+      ignore(Sql.new_message ~thr_id ~author ~txt);
+      (Sql.forum_get_data ~frm_id ~whoami,
+       Sql.thread_get_data ~thr_id ~whoami,
 (*---
-	       thread_get_messages_list 
+	   Sql.thread_get_messages_list 
                  ~thr_id ~offset:0l ~limit:A.max_rows ~whoami 
   ---*)
-               thread_get_messages_with_text_list 
-		 ~thr_id ~offset:0l ~limit:A.max_rows ~whoami))
+       Sql.thread_get_messages_with_text_list 
+	 ~thr_id ~offset:0l ~limit:A.max_rows ~whoami)
     and gen_html = fun (frm_data,thr_data,msg_l) ->
       let feedback = "Your message has been " ^
         (match frm_data with (* get moderation status *)
@@ -385,9 +385,9 @@ module Make (A: IN) = struct
                 approvation. Should it not appear in the list, please \
                 do not send it again."
            | (_,_,_,false,_,_,_,_) -> "published.") in
-      return (mk_thread_page sp sess feedback thr_data msg_l)
-    in (lwt_page_with_exception_handling 
-          sp "page_newmessage" db_interact gen_html)
+	mk_thread_page sp sess feedback thr_data msg_l
+    in lwt_page_with_exception_handling 
+         sp "page_newmessage" db_interact gen_html
 
 
   let page_forum' sess = fun sp (offset,limit) () -> 
@@ -397,17 +397,17 @@ module Make (A: IN) = struct
 	 logged user with permission to write, but ONLY IF
 	 A.writable_by <> anonymous(): if everyone can write, service
 	 has been registered once in the global table. *)
-      if w sess && A.writable_by <> anonymous()
+      if w sess && A.writable_by <> Users.anonymous()
       then register_service_for_session sp srv_newthread (page_newthread sess)
       else () in
     let db_interact () = 
-      return (register_aux();
-              (forum_get_data ~frm_id ~whoami,
-               forum_get_threads_list ~frm_id ~offset ~limit ~whoami))
+      register_aux();
+      (Sql.forum_get_data ~frm_id ~whoami,
+       Sql.forum_get_threads_list ~frm_id ~offset ~limit ~whoami)
     and gen_html = fun (frm_data,thr_l) -> 
-      return (mk_forum_page sp sess "" frm_data thr_l)
-    in (lwt_page_with_exception_handling 
-          sp "page_forum" db_interact gen_html)
+      mk_forum_page sp sess "" frm_data thr_l
+    in lwt_page_with_exception_handling 
+         sp "page_forum" db_interact gen_html
 
   let page_forum sess = fun sp () () -> 
     page_forum' sess sp (0l, A.max_rows) ()
@@ -424,16 +424,16 @@ module Make (A: IN) = struct
 							     sess thr_id)
       else () in
     let db_interact () = 
-      return (register_aux ();
-              (thread_get_data ~thr_id ~whoami,
-             (*thread_get_messages_list 
-		 ~thr_id ~offset:0l ~limit:A.max_rows ~whoami*)
-               thread_get_messages_with_text_list 
-		 ~thr_id ~offset ~limit ~whoami))
+      register_aux ();
+      (Sql.thread_get_data ~thr_id ~whoami,
+       (*Sql.thread_get_messages_list 
+	 ~thr_id ~offset:0l ~limit:A.max_rows ~whoami*)
+       Sql.thread_get_messages_with_text_list 
+	 ~thr_id ~offset ~limit ~whoami)
     and gen_html = fun (thr_data,msg_l) ->
-      return (mk_thread_page sp sess "" thr_data msg_l)
-    in (lwt_page_with_exception_handling 
-          sp "page_thread" db_interact gen_html)
+      mk_thread_page sp sess "" thr_data msg_l
+    in lwt_page_with_exception_handling 
+         sp "page_thread" db_interact gen_html
 
   let page_thread sess = fun sp thr_id () ->
     page_thread' sess sp (thr_id,(0l,A.max_rows)) ()
@@ -441,10 +441,9 @@ module Make (A: IN) = struct
 (*---
   let page_message sess = fun sp msg_id () ->
     let whoami = kindof sess in
-    let db_interact () =
-      return (message_get_data ~msg_id)
+    let db_interact () = Sql.message_get_data ~msg_id
     and gen_html = fun (msg_data) ->
-      return (mk_message_page sp sess msg_data)
+       (mk_message_page sp sess msg_data)
     in (lwt_page_with_exception_handling 
           sp "page_message" db_interact gen_html)
   ---*)
@@ -459,11 +458,20 @@ module Make (A: IN) = struct
   ---*)
     if m sess then (
       register_action_for_session sp act_forumtoggle 
-	(fun sp _ -> return (forum_toggle_moderated ~frm_id)); 
+	(fun sp _ -> 
+	   Preemptive.detach 
+	     (fun i -> Sql.forum_toggle_moderated ~frm_id:i) 
+	     frm_id); 
       register_action_for_session sp act_threadtoggle 
-	(fun sp thr_id -> return (thread_toggle_hidden ~thr_id)); 
+	(fun sp thr_id -> 
+	   Preemptive.detach 
+	     (fun i -> Sql.thread_toggle_hidden ~thr_id:i) 
+	     thr_id);
       register_action_for_session sp act_messagetoggle 
-	(fun sp msg_id -> return (message_toggle_hidden ~msg_id))
+	(fun sp msg_id -> 
+	   Preemptive.detach 
+	     (fun i -> Sql.message_toggle_hidden ~msg_id:i) 
+	     msg_id)
     )
       
   let logout_actions sp = ()
@@ -476,7 +484,7 @@ module Make (A: IN) = struct
 (*---
     register_service srv_message (page_message None);
   ---*)
-    if A.writable_by = anonymous() then (
+    if A.writable_by = Users.anonymous() then (
       (* see comment to register_aux in page_thread' *)
       register_service srv_newthread (page_newthread None)
     )

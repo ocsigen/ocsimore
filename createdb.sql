@@ -108,7 +108,7 @@ COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 -- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
 --
 
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('messages', 'id'), 5, true);
+SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('messages', 'id'), 12, true);
 
 
 --
@@ -127,7 +127,7 @@ ALTER TABLE public.textdata OWNER TO ocsigen;
 -- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
 --
 
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('textdata', 'id'), 18, true);
+SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('textdata', 'id'), 25, true);
 
 
 --
@@ -157,7 +157,7 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 -- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
 --
 
-SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('threads', 'id'), 2, true);
+SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('threads', 'id'), 3, true);
 
 
 --
@@ -223,8 +223,8 @@ SELECT pg_catalog.setval(pg_catalog.pg_get_serial_sequence('wikis', 'id'), 2, tr
 --
 
 COPY forums (id, title, descr, moderated) FROM stdin;
-16	Meta-Forum	The Forum module of this site	f
 15	OCaml	Discussions about the OCaml language	t
+16	Meta-Forum	The Forum module of this site	f
 \.
 
 
@@ -234,10 +234,10 @@ COPY forums (id, title, descr, moderated) FROM stdin;
 
 COPY globalstore ("key", value) FROM stdin;
 forum1_mod	\\204\\225\\246\\276\\000\\000\\000B\\000\\000\\000\\013\\000\\000\\000,\\000\\000\\000&\\240\\300*forum1_mod@9Moderators group - Forum1 \\300@\\240\\300 @.Anonymous user @@A
-global_users_container	\\204\\225\\246\\276\\000\\000\\000\\244\\000\\000\\000\\033\\000\\000\\000p\\000\\000\\000`\\240\\300$root\\220$root-Administrator4p.furiesi@tiscali.it\\300@\\240\\300 @.Anonymous user @\\300\\300@\\240\\300*developers@0Developers group \\300@\\004\\015@A@A\\240\\300*forum1_mod@9Moderators group - Forum1 \\300@\\004\\023@A@BC
 developers	\\204\\225\\246\\276\\000\\000\\0009\\000\\000\\000\\013\\000\\000\\000*\\000\\000\\000%\\240\\300*developers@0Developers group \\300@\\240\\300 @.Anonymous user @@A
 FORUM1	\\204\\225\\246\\276\\000\\000\\000\\010\\000\\000\\000\\001\\000\\000\\000\\003\\000\\000\\000\\003\\022_i\\000\\000\\000\\000\\017
 FORUM2	\\204\\225\\246\\276\\000\\000\\000\\010\\000\\000\\000\\001\\000\\000\\000\\003\\000\\000\\000\\003\\022_i\\000\\000\\000\\000\\020
+global_users_container	\\204\\225\\246\\276\\000\\000\\0020\\000\\000\\000Q\\000\\000\\001Y\\000\\000\\001"\\240\\300$root\\220$root-Administrator;piero@localhost.localdomain\\300\\300@\\240\\300 @.Anonymous user @\\300@\\240\\300*developers@0Developers group \\300@\\004\\014@A@AB\\240\\300*forum1_mod@9Moderators group - Forum1 \\300@\\004\\022@A\\300\\300@\\240\\300%piero\\220%piero-Piero Furiesi;piero@localhost.localdomain\\300@\\004\\034@A@A\\240\\300&piero3\\220(oJAASEfV-Piero Furiesi/piero@localhost\\300@\\004$@A\\300\\300@\\240\\300&piero4\\220(fRqXofrw%piero;piero@localhost.localdomain\\300@\\004.@A\\300@\\240\\300&piero5\\220(9jbSS5wH%piero;piero@localhost.localdomain\\300@\\0047@A@AB\\240\\300&piero7\\220(DslXDhDK-Piero Furiesi;piero@localhost.localdomain\\300@\\004?@A\\300@\\240\\300'piero78\\220(x3SY63lv-Piero Furiesi;piero@localhost.localdomain\\300@\\004H@A@ACDE
 \.
 
 
@@ -249,7 +249,14 @@ COPY messages (id, author, datetime, thr_id, txt_id, hidden) FROM stdin;
 2	root	2006-11-25 18:34:37.794117	1	15	f
 3	root	2006-11-25 18:37:13.362613	1	16	f
 4	root	2006-11-25 18:37:23.509493	1	17	f
-5	<anonymous user>	2006-11-25 18:37:47.991547	2	18	f
+5	<anonymous>	2006-11-25 18:37:47.991547	2	18	f
+6	<anonymous>	2006-11-26 10:31:38.049602	3	19	f
+7	<anonymous>	2006-11-26 18:17:27.892339	3	20	f
+10	<anonymous>	2006-11-26 18:58:52.347353	3	23	f
+9	<anonymous>	2006-11-26 18:58:46.247199	3	22	f
+8	<anonymous>	2006-11-26 18:58:37.994509	3	21	f
+12	<anonymous>	2006-11-26 18:59:57.689928	3	25	f
+11	<anonymous>	2006-11-26 18:59:50.290033	3	24	f
 \.
 
 
@@ -271,6 +278,13 @@ COPY textdata (id, txt) FROM stdin;
 16	secondo messaggio
 17	altro messaggio
 18	nuovo messaggio
+19	primo msg thread #2
+20	secondo messaggio\r\n
+21	gadsfgag qrgrecgfwqcef
+22	vqwvfqewfvecfqcwfqxrqwzqwrzqzr\r\n
+23	cqwrxwxrqewztxzqzegfzqtrxzqrqr
+24	fxqwxfqwxfqwefxqwxfwerqxf
+25	settmio
 \.
 
 
@@ -279,8 +293,9 @@ COPY textdata (id, txt) FROM stdin;
 --
 
 COPY threads (id, subject, frm_id, hidden, datetime, author) FROM stdin;
-2	primo thread	15	f	2006-11-25 18:37:47.991547	<anonymous user>
 1	nuovo thread	16	f	2006-11-25 18:34:37.794117	root
+2	primo thread	15	f	2006-11-25 18:37:47.991547	<anonymous user>
+3	thread #2	15	f	2006-11-26 10:31:38.049602	<anonymous user>
 \.
 
 
