@@ -26,7 +26,7 @@ module type OUT = sig
 		  [ `WithoutSuffix ], unit Ocsigen.param_name,
 		  unit Ocsigen.param_name) Ocsigen.service
   val login_actions : Ocsigen.server_params -> Users.auth option -> unit
-  val logout_actions : 'a -> unit
+  val logout_actions : Ocsigen.server_params -> unit
 end
 
 

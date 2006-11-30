@@ -210,10 +210,9 @@ let mail_password ~name ~from_addr ~subject = match getbyname name with
 	      ^ "Please do not reply to it.\n"
 	      ^ "\n"
 	      ^ "Your account is:\n"
-	      ^ "\tUsername: '" ^ name ^ "'\n"
-	      ^ "\tPassword: "
-	      ^ (match pwd with Some p -> "'" ^ p ^ "'" | _ -> "(NONE)")
-	      ^ "\n")); 
+	      ^ "\tUsername:\t" ^ name ^ "\n"
+	      ^ "\tPassword:\t" ^ (match pwd with Some p -> p | _ -> "(NONE)")
+	      ^ "\n"));
 	true
       with _ -> false
 	  
