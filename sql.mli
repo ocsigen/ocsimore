@@ -38,7 +38,7 @@ end
 
 (** {4 Forums} *)
 
-(** type of [~whoami] labelled parameter *)
+(** type of [~role] labelled parameter *)
 type role = Moderator | Author of string | Unknown
 
 (** inserts a new forum *)
@@ -70,7 +70,7 @@ val message_toggle_hidden : msg_id:int32 -> unit
     - its hidden status is true, or 
     - it's in a hidden thread. *)
 val forum_get_data: 
-  frm_id:int32 -> whoami:role -> 
+  frm_id:int32 -> role:role -> 
   int32 * string * string * bool * int64 * int64 * int64 * int64
   
 (** returns id, subject, author, datetime, hidden status, number of shown/hidden
@@ -79,7 +79,7 @@ val forum_get_data:
     - its hidden status is true, or 
     - it's in a hidden thread. *)
 val thread_get_data : 
-  thr_id:int32 -> whoami:role -> 
+  thr_id:int32 -> role:role -> 
   int32 * string * string * Calendar.t * bool * int64 * int64
   
 (** returns id, text, author, datetime, hidden status of a message *)
@@ -87,11 +87,11 @@ val message_get_data : msg_id:int32 -> int32 * string * string * Calendar.t * bo
   
 (** returns None|Some id of prev & next thread in the same forum *)
 val thread_get_neighbours :
-  thr_id:int32 -> whoami:role -> int32 option * int32 option
+  thr_id:int32 -> role:role -> int32 option * int32 option
 
 (** returns None|Some id of prev & next message in the same thread *)
 val message_get_neighbours :
-  msg_id:int32 -> whoami:role -> int32 option * int32 option
+  msg_id:int32 -> role:role -> int32 option * int32 option
 
 (** returns the threads list of a forum, ordered cronologycally
     (latest first), with max [~limit] items and skipping first
@@ -101,7 +101,7 @@ val forum_get_threads_list :
   frm_id:int32 ->
   offset:int32 ->
   limit:int32 ->
-  whoami:role -> (int32 * string * string * Calendar.t * bool) list
+  role:role -> (int32 * string * string * Calendar.t * bool) list
 
 (** returns the messages list of a thread, ordered cronologycally
     (latest first), with max [~limit] items and skipping first
@@ -110,7 +110,7 @@ val forum_get_threads_list :
 val thread_get_messages_list :
   thr_id:int32 ->
   offset:int32 ->
-  limit:int32 -> whoami:role -> (int32 * string * Calendar.t * bool)
+  limit:int32 -> role:role -> (int32 * string * Calendar.t * bool)
   list
 
 (** as above, but returns the text of each message too.
@@ -118,7 +118,7 @@ val thread_get_messages_list :
 val thread_get_messages_with_text_list :
   thr_id:int32 ->
   offset:int32 ->
-  limit:int32 -> whoami:role -> (int32 * string * string * Calendar.t * bool)
+  limit:int32 -> role:role -> (int32 * string * string * Calendar.t * bool)
   list
 
 

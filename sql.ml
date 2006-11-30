@@ -49,6 +49,7 @@ end
 
 (* FORUMS *)
 
+(* Used to restrict the recordsets *)
 type role = Moderator | Author of string | Unknown
 
 let new_forum ~title ~descr ~moderated =
@@ -115,7 +116,7 @@ let message_toggle_hidden ~msg_id =
   (* hides/shows a message *)
   PGSQL(db) "UPDATE messages SET hidden = NOT hidden WHERE id = $msg_id"
 
-let forum_get_data ~frm_id ~whoami =
+let forum_get_data ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
      threads and messages of a forum.  NB: a message is counted as
      hidden if: 1) its hidden status is true, or 2) it is in a hidden
@@ -138,7 +139,7 @@ let forum_get_data ~frm_id ~whoami =
                    AND NOT (messages.hidden OR threads.hidden)"
       with [Some x] -> x | _ -> assert false)) in
   let (n_hidden_thr, n_hidden_msg) =
-    (match whoami with
+    (match role with
        | Moderator -> (* counts all hidden stuff *)
 	   ((match
 	       PGSQL(db) "SELECT COUNT(*) FROM threads \
@@ -170,7 +171,7 @@ let forum_get_data ~frm_id ~whoami =
      n_shown_thr, n_hidden_thr,
      n_shown_msg, n_hidden_msg)
       
-let thread_get_data ~thr_id ~whoami =
+let thread_get_data ~thr_id ~role =
   (* returns id, subject, author, datetime, hidden status, number of
      shown/hidden messages of a thread.  NB: a message is counted as
      hidden if: 1) its hidden status is true, or 2) it is in a hidden
@@ -187,7 +188,7 @@ let thread_get_data ~thr_id ~whoami =
                   WHERE thr_id = $thr_id AND (NOT hidden)"
      with [Some x] -> x | _ -> assert false) in
   let n_hidden_msg =
-    (match whoami with
+    (match role with
        | Moderator -> (* counts all hidden messages *)
 	   (match PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
                              WHERE messages.thr_id = $thr_id \
@@ -216,7 +217,7 @@ let message_get_data ~msg_id =
      with [x] -> x | _ -> assert false) in
     (id, text, author, datetime, hidden)
       
-let thread_get_neighbours ~thr_id ~whoami =
+let thread_get_neighbours ~thr_id ~role =
   (* returns None|Some id of prev & next thread in the same forum. *)
   begin_work db;
   let (frm_id, datetime) = 
@@ -224,7 +225,7 @@ let thread_get_neighbours ~thr_id ~whoami =
        PGSQL(db) "SELECT frm_id, datetime FROM threads WHERE id = $thr_id"
      with [x] -> x | _ -> assert false) in
   let (prev, next) = 
-    (match whoami with
+    (match role with
        | Moderator -> (* all kinds of threads *)
 	   (PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
                        AND datetime < $datetime \
@@ -260,7 +261,7 @@ let thread_get_neighbours ~thr_id ~whoami =
     ((match prev with [x] -> Some x | _ -> None),
      (match next with [x] -> Some x | _ -> None))
 
-let message_get_neighbours ~msg_id ~whoami =
+let message_get_neighbours ~msg_id ~role =
   (* returns None|Some id of prev & next message in the same
      thread. *)
   begin_work db;
@@ -269,7 +270,7 @@ let message_get_neighbours ~msg_id ~whoami =
        PGSQL(db) "SELECT thr_id, datetime FROM messages WHERE id = $msg_id"
      with [x] -> x | _ -> assert false) in
   let (prev, next) = 
-    (match whoami with
+    (match role with
        | Moderator -> (* all kinds of messages *)
 	   (PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
                        AND datetime < $datetime \
@@ -305,12 +306,12 @@ let message_get_neighbours ~msg_id ~whoami =
     ((match prev with [x] -> Some x | _ -> None),
      (match next with [x] -> Some x | _ -> None))
 
-let forum_get_threads_list ~frm_id ~offset ~limit ~whoami =
+let forum_get_threads_list ~frm_id ~offset ~limit ~role =
   (* returns the threads list of a forum, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
   let thr_l = 
-    (match whoami with
+    (match role with
        | Moderator ->
 	   PGSQL(db) "SELECT id, subject, author, datetime, hidden \
                       FROM threads \
@@ -333,12 +334,12 @@ let forum_get_threads_list ~frm_id ~offset ~limit ~whoami =
                       LIMIT $limit OFFSET $offset") in
     thr_l
 
-let thread_get_messages_list ~thr_id ~offset ~limit ~whoami =
+let thread_get_messages_list ~thr_id ~offset ~limit ~role =
   (* returns the messages list of a thread, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
   let msg_l = 
-    (match whoami with
+    (match role with
        | Moderator ->
 	   PGSQL(db) "SELECT id, author, datetime, hidden \
                       FROM messages \
@@ -359,10 +360,10 @@ let thread_get_messages_list ~thr_id ~offset ~limit ~whoami =
                       LIMIT $limit OFFSET $offset") in
     msg_l
 
-let thread_get_messages_with_text_list ~thr_id ~offset ~limit ~whoami =
+let thread_get_messages_with_text_list ~thr_id ~offset ~limit ~role =
   (* as above, but gets message texts too. *)
   let msg_l = 
-    (match whoami with
+    (match role with
        | Moderator ->
 	   PGSQL(db) "SELECT messages.id, txt, author, datetime, hidden \
                       FROM messages, textdata \
