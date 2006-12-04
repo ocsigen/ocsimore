@@ -133,8 +133,15 @@ val new_wiki : title:string -> descr:string -> int32
 val new_wikipage : wik_id:int32 -> suffix:string -> author:string ->
   subject:string -> txt:string -> int32 option  
 
+(** updates or inserts a wikipage. *) 
+val add_or_change_wikipage : wik_id:int32 -> suffix:string -> author:string ->
+  subject:string -> txt:string -> unit
+
 (** returns title, description, number of wikipages of a wiki. *)
 val wiki_get_data : wik_id:int32 -> string * string * int64  
+
+(** returns the list of subject, suffix, author, datetime of wikipages, sorted by subject *)
+val wiki_get_pages_list : wik_id:int32 -> (string * string * string * Calendar.t) list
 
 (** look for a wikipage and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)

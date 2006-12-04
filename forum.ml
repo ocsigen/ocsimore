@@ -3,7 +3,6 @@
 open XHTML.M
 open Ocsigen
 open Ocsigen.Xhtml
-open MoreXhtml
 open Lwt
 
 module type IN = sig
@@ -234,7 +233,7 @@ module Make (A: IN) = struct
              pcdata (sod datetime)] ^: 
          (m sess || w sess) % 
          p  [pcdata("Hidden message: " ^ if hidden then "YES" else "NO")] ^?
-         p  [pcdata text] ^: 
+         pre[pcdata text] ^: 
          (m sess) % 
          action_form act_messagetoggle sp (msg_toggle_form id) ^? 
          [])

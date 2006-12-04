@@ -34,7 +34,8 @@ endif
 
 OCAMLC = ocamlfind ocamlc $(PKG) $(FLAGS)
 
-IMPLEM = sql.ml setOfSets.ml users.ml moreXhtml.ml sessionManager.ml forum.ml ocsidable.ml
+IMPLEM = sql.ml setOfSets.ml users.ml moreXhtml.ml sessionManager.ml \
+	 wikiparser.ml wiki.ml forum.ml ocsidable.ml
 
 INTERF = $(IMPLEM:.ml=.mli)
 OBJECT = $(IMPLEM:.ml=.cmo)

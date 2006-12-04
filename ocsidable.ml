@@ -3,7 +3,9 @@
     Here is a small example of use: we define two forums, the former
     is moderated by users of group "forum1_mod", readable by everyone,
     and writable by registered users; the latter is not moderated and
-    only users of group "developers" can read and post messages.
+    only users of group "developers" can read and post messages.  We
+    also define a Wiki, readable by everyone and writable by
+    registered users only.
 
     Please look at the code and read comments. *)
 
@@ -71,8 +73,13 @@ end = struct
                          post messages.";
 		 br();
 		 a Forum2.srv_forum sp [pcdata "ENTER FORUM 2"] ()];
-	      p [pcdata "--- user 'moder' Password '' is in 'forum1_mod' \
-                         and in 'ocsigen_dev' groups."]]))
+	      p [pcdata "A simple Wiki:";
+		 br();
+		 pcdata "readable by everyone, writable by registered users.";
+		 br();
+		 a MyWiki.srv_main sp [pcdata "ENTER WIKI"] ()];
+	      p [pcdata "--- User 'moder' Password '' is in 'forum1_mod', \
+                         'ocsigen_dev', 'registered_users' groups."]]))
   let login_actions sp sess = 
     register_service_for_session sp srv_main (page_main sess)
   let logout_actions sp = ()
@@ -113,6 +120,19 @@ and Forum2: Forum.OUT = Forum.Make
      let max_rows = 5l
    end: Forum.IN) 
 
+(* THE WIKI *)
+and MyWiki: Wiki.OUT = Wiki.Make
+  (struct
+     let identifier = "WIKI"
+     let title = "My pretty Wiki"
+     let descr = "Create your wikipages here"
+     let readable_by = Users.anonymous()
+     let writable_by = registered_users
+     let url = ["mywiki"]
+     let exit_link = Main.get_back
+     let mk_log_form = S.mk_log_form
+   end: Wiki.IN) 
+
 (* THE UNIFIED SESSION MANAGEMENT *)
 and S: SessionManager.OUT = SessionManager.Make
   (struct
@@ -122,11 +142,13 @@ and S: SessionManager.OUT = SessionManager.Make
      let login_actions sp sess = 
        Main.login_actions sp sess;
        Forum1.login_actions sp sess;
-       Forum2.login_actions sp sess
+       Forum2.login_actions sp sess;
+       MyWiki.login_actions sp sess
      let logout_actions sp = 
        Main.logout_actions sp;
        Forum1.logout_actions sp;
-       Forum2.logout_actions sp
+       Forum2.logout_actions sp;
+       MyWiki.logout_actions sp
      let registration_mail_from = ("Ocsigen","NO_REPLY@ocsigen.org")
      let registration_mail_subject = "Registration service"
    end)

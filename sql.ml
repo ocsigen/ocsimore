@@ -416,6 +416,27 @@ let new_wikipage ~wik_id ~suffix ~author ~subject ~txt =
     commit db;
     wpg_id
 
+let add_or_change_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
+  (* updates, or inserts, a wikipage. *)
+  begin_work db;
+  (match
+     PGSQL(db) "SELECT id, txt_id FROM wikipages \
+                WHERE wik_id = $wik_id AND suffix = $suffix" 
+   with
+     | [(wpg_id,txt_id)] ->
+	 PGSQL(db) "UPDATE textdata SET txt = $txt WHERE id = $txt_id";
+	 PGSQL(db) "UPDATE wikipages \
+                    SET suffix = $suffix, author = $author, \
+                        subject = $subject \
+                    WHERE id = $wpg_id"
+     | _ ->
+	 PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)";
+	 let txt_id = serial4 db "textdata_id_seq" in
+	   PGSQL(db) "INSERT INTO wikipages \
+                      (wik_id, suffix, author, subject, txt_id) \
+                      VALUES ($wik_id,$suffix,$author,$subject,$txt_id)");
+  commit db
+
 let wiki_get_data ~wik_id = 
   (* returns title, description, number of wikipages of a wiki. *)
   begin_work db;
@@ -428,6 +449,17 @@ let wiki_get_data ~wik_id =
     commit db;
     (title, description, n_pages)
 
+let wiki_get_pages_list ~wik_id =
+  (* returns the list of wikipages *)
+  begin_work db;
+  let wpg_l = PGSQL(db) "SELECT subject, suffix, author, datetime \
+                         FROM wikipages \
+                         WHERE wik_id = $wik_id \
+                         ORDER BY subject ASC" in
+    commit db;
+    wpg_l
+    
+
 let wikipage_get_data ~wik_id ~suffix =
   (* returns subject, text, author, datetime of a wikipage; None if
      non-existant *)
@@ -439,4 +471,3 @@ let wikipage_get_data ~wik_id ~suffix =
                   AND txt_id = textdata.id"
      with [x] -> Some x | _ -> None) in
     wpg_data
-                  
