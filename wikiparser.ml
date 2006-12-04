@@ -53,6 +53,7 @@ let rec parse_inl_cmd a_args = function
 		  let (srv,sp) = a_args in
 		  let sfx = fold_left (^) "" args in 
       a srv sp [pcdata sfx] sfx :: parse_inl_cmd a_args rest
+  | "\\%"::toks -> pcdata "%" :: parse_inl_cmd a_args toks
   | tok::toks -> pcdata tok :: parse_inl_cmd a_args toks
   | [] -> [] 
 
