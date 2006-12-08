@@ -392,15 +392,15 @@ module Make (A: IN) = struct
       else
 	let role = kindof sess in
 	let author = name sess in
-	  Sql.new_message ~thr_id ~author ~txt;
+	  Sql.new_message ~frm_id ~thr_id ~author ~txt;
 	  (Sql.forum_get_data ~frm_id ~role,
-	   Sql.thread_get_data ~thr_id ~role,
+	   Sql.thread_get_data ~frm_id ~thr_id ~role,
 (*---
            Sql.thread_get_messages_list 
-             ~thr_id ~offset:0l ~limit:A.max_rows ~role
+             ~frm_id ~thr_id ~offset:0l ~limit:A.max_rows ~role
   ---*)
 	   Sql.thread_get_messages_with_text_list 
-	     ~thr_id ~offset:0l ~limit:A.max_rows ~role)
+	     ~frm_id ~thr_id ~offset:0l ~limit:A.max_rows ~role)
     and gen_html = fun (frm_data,thr_data,msg_l) ->
       let feedback = "Your message has been " ^
         (match frm_data with (* get moderation status *)
@@ -443,13 +443,13 @@ module Make (A: IN) = struct
 	  then register_service_for_session sp srv_newmessage (page_newmessage 
 								 sess thr_id)
 	  else ();
-	  match (Sql.thread_get_data ~thr_id ~role,
+	  match (Sql.thread_get_data ~frm_id ~thr_id ~role,
 (*---
                  Sql.thread_get_messages_list 
-		   ~thr_id ~offset:0l ~limit:A.max_rows ~role,
+		   ~frm_id ~thr_id ~offset:0l ~limit:A.max_rows ~role,
   ---*)
 		 Sql.thread_get_messages_with_text_list 
-		   ~thr_id ~offset ~limit ~role) with
+		   ~frm_id ~thr_id ~offset ~limit ~role) with
 	    | ((_,_,_,_,true,_,_),[]) -> 
 		(* Raises an exc if someone's trying to see a hidden thread 
 		   with no messages by herself *)
@@ -467,7 +467,7 @@ module Make (A: IN) = struct
 (*---
   let page_message sess = fun sp msg_id () ->
     let role = kindof sess in
-    let prepare () = Sql.message_get_data ~msg_id
+    let prepare () = Sql.message_get_data ~frm_id ~msg_id
     and gen_html = fun (msg_data) ->
        (mk_message_page sp sess msg_data)
     in (lwt_page_with_exception_handling 
@@ -478,10 +478,12 @@ module Make (A: IN) = struct
     Preemptive.detach (fun i -> Sql.forum_toggle_moderated ~frm_id:i) frm_id
 
   let thread_toggle = fun sp thr_id -> 
-    Preemptive.detach (fun i -> Sql.thread_toggle_hidden ~thr_id:i) thr_id
+    Preemptive.detach (fun i -> Sql.thread_toggle_hidden 
+			 ~frm_id ~thr_id:i) thr_id
 
   let message_toggle = fun sp msg_id -> 
-    Preemptive.detach (fun i -> Sql.message_toggle_hidden ~msg_id:i) msg_id
+    Preemptive.detach (fun i -> Sql.message_toggle_hidden 
+			 ~frm_id ~msg_id:i) msg_id
 
   let login_actions sp sess =
     register_service_for_session sp srv_forum (page_forum sess);

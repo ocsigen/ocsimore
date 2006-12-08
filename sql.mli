@@ -53,16 +53,16 @@ val new_thread_and_message :
 (** inserts a message for an existing thread; message will be hidden
     if forum is moderated *)
 val new_message :
-  thr_id:int32 -> author:string -> txt:string -> int32
+  frm_id:int32 ->  thr_id:int32 -> author:string -> txt:string -> int32
 
 (** toggle moderation status of a forum *)
 val forum_toggle_moderated : frm_id:int32 -> unit
   
 (** hides/shows a thread *)
-val thread_toggle_hidden : thr_id:int32 -> unit
+val thread_toggle_hidden : frm_id:int32 -> thr_id:int32 -> unit
   
 (** hides/shows a message *)
-val message_toggle_hidden : msg_id:int32 -> unit
+val message_toggle_hidden : frm_id:int32 -> msg_id:int32 -> unit
 
 (** returns id, title, description, moderation status, number of shown/hidden
     threads and messages of a forum.  
@@ -79,19 +79,19 @@ val forum_get_data:
     - its hidden status is true, or 
     - it's in a hidden thread. *)
 val thread_get_data : 
-  thr_id:int32 -> role:role -> 
+  frm_id:int32 -> thr_id:int32 -> role:role -> 
   int32 * string * string * Calendar.t * bool * int64 * int64
   
 (** returns id, text, author, datetime, hidden status of a message *)
-val message_get_data : msg_id:int32 -> int32 * string * string * Calendar.t * bool
+val message_get_data : frm_id:int32 -> msg_id:int32 -> int32 * string * string * Calendar.t * bool
   
 (** returns None|Some id of prev & next thread in the same forum *)
 val thread_get_neighbours :
-  thr_id:int32 -> role:role -> int32 option * int32 option
+  frm_id:int32 ->  thr_id:int32 -> role:role -> int32 option * int32 option
 
 (** returns None|Some id of prev & next message in the same thread *)
 val message_get_neighbours :
-  msg_id:int32 -> role:role -> int32 option * int32 option
+  frm_id:int32 ->  msg_id:int32 -> role:role -> int32 option * int32 option
 
 (** returns the threads list of a forum, ordered cronologycally
     (latest first), with max [~limit] items and skipping first
@@ -108,7 +108,7 @@ val forum_get_threads_list :
     [~offset] rows.  A list elt is (msg_id, author, datetime, hidden
     status). *)
 val thread_get_messages_list :
-  thr_id:int32 ->
+  frm_id:int32 ->  thr_id:int32 ->
   offset:int32 ->
   limit:int32 -> role:role -> (int32 * string * Calendar.t * bool)
   list
@@ -116,7 +116,7 @@ val thread_get_messages_list :
 (** as above, but returns the text of each message too.
     A list elt is (msg_id, text, author, datetime, hidden status). *)
 val thread_get_messages_with_text_list :
-  thr_id:int32 ->
+  frm_id:int32 ->  thr_id:int32 ->
   offset:int32 ->
   limit:int32 -> role:role -> (int32 * string * string * Calendar.t * bool)
   list

@@ -49,6 +49,12 @@ end
 
 (* FORUMS *)
 
+  (* Lots of queries here take a ~frm_id parameter, even if other ones
+     should be enough to determinate a primary key.  This has been
+     done because of the need to match every query request against a
+     forum's ACL.  TO BE DONE: A LAYER FOR ACCESS CONTROL *)
+
+
 (* Used to restrict the recordsets *)
 type role = Moderator | Author of string | Unknown
 
@@ -84,7 +90,7 @@ let new_thread_and_message ~frm_id ~author ~subject ~txt =
     commit db;
     (thr_id, msg_id)
 
-let new_message ~thr_id ~author ~txt = 
+let new_message ~frm_id ~thr_id ~author ~txt = 
   (* inserts a message in an existing thread; message will be hidden
      if forum is moderated *)
   begin_work db;
@@ -92,8 +98,9 @@ let new_message ~thr_id ~author ~txt =
     (match 
        PGSQL(db) "SELECT moderated FROM forums,threads \
                   WHERE threads.frm_id = forums.id \
-                  AND threads.id = $thr_id"
-     with [x] -> x | _ -> assert false) in
+                  AND threads.id = $thr_id \
+                  AND forums.id = $frm_id"
+     with [x] -> x | _ -> raise Not_found) in
   let txt_id = 
     (PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)";
      serial4 db "textdata_id_seq") in
@@ -107,14 +114,20 @@ let new_message ~thr_id ~author ~txt =
 let forum_toggle_moderated ~frm_id =
   (* toggle moderation status of a forum *)
   PGSQL(db) "UPDATE forums SET moderated = NOT moderated WHERE id = $frm_id"
-
-let thread_toggle_hidden ~thr_id =
+    
+let thread_toggle_hidden ~frm_id ~thr_id =
   (* hides/shows a thread *)
-  PGSQL(db) "UPDATE threads SET hidden = NOT hidden WHERE id = $thr_id"
+  PGSQL(db) "UPDATE threads SET hidden = NOT hidden \
+             WHERE id = $thr_id AND frm_id = $frm_id"
 
-let message_toggle_hidden ~msg_id =
+let message_toggle_hidden ~frm_id ~msg_id =
   (* hides/shows a message *)
-  PGSQL(db) "UPDATE messages SET hidden = NOT hidden WHERE id = $msg_id"
+  PGSQL(db) "UPDATE messages \
+             SET hidden = NOT messages.hidden \
+             FROM threads \
+             WHERE messages.id = $msg_id \
+             AND messages.thr_id = threads.id \
+             AND threads.frm_id = $frm_id"
 
 let forum_get_data ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
@@ -170,8 +183,8 @@ let forum_get_data ~frm_id ~role =
     (id, title, description, moderated,
      n_shown_thr, n_hidden_thr,
      n_shown_msg, n_hidden_msg)
-      
-let thread_get_data ~thr_id ~role =
+
+let thread_get_data ~frm_id ~thr_id ~role =
   (* returns id, subject, author, datetime, hidden status, number of
      shown/hidden messages of a thread.  NB: a message is counted as
      hidden if: 1) its hidden status is true, or 2) it is in a hidden
@@ -180,7 +193,7 @@ let thread_get_data ~thr_id ~role =
   let (id, subject, author, datetime, hidden) =
     (match
        PGSQL(db) "SELECT id, subject, author, datetime, hidden \
-                  FROM threads WHERE id = $thr_id"
+                  FROM threads WHERE id = $thr_id AND frm_id = $frm_id"
      with [x] -> x | _ -> raise Not_found) in
   let n_shown_msg = 
     (match 
@@ -205,25 +218,29 @@ let thread_get_data ~thr_id ~role =
        | Unknown -> (* nothing to be counted *) 0L) in
     commit db;
     (id, subject, author, datetime, hidden, n_shown_msg, n_hidden_msg)
-      
-let message_get_data ~msg_id =
+
+let message_get_data ~frm_id ~msg_id =
   (* returns id, text, author, datetime, hidden status of a message *)
   let (id, text, author, datetime, hidden) =
     (match
-       PGSQL(db) "SELECT messages.id, txt, author, datetime, hidden \
-                  FROM messages, textdata \
+       PGSQL(db) "SELECT messages.id, textdata.txt, messages.author, \
+                         messages.datetime, messages.hidden \
+                  FROM messages, textdata, threads \
                   WHERE messages.id = $msg_id \
-                  AND messages.txt_id = textdata.id" 
-     with [x] -> x | _ -> assert false) in
+                  AND messages.txt_id = textdata.id \
+                  AND messages.thr_id = threads.id \
+                  AND threads.frm_id = $frm_id" 
+     with [x] -> x | _ -> raise Not_found) in
     (id, text, author, datetime, hidden)
       
-let thread_get_neighbours ~thr_id ~role =
+let thread_get_neighbours ~frm_id ~thr_id ~role =
   (* returns None|Some id of prev & next thread in the same forum. *)
   begin_work db;
-  let (frm_id, datetime) = 
+  let datetime = 
     (match 
-       PGSQL(db) "SELECT frm_id, datetime FROM threads WHERE id = $thr_id"
-     with [x] -> x | _ -> assert false) in
+       PGSQL(db) "SELECT datetime FROM threads \
+                  WHERE id = $thr_id AND frm_id = $frm_id"
+     with [x] -> x | _ -> raise Not_found) in
   let (prev, next) = 
     (match role with
        | Moderator -> (* all kinds of threads *)
@@ -261,14 +278,18 @@ let thread_get_neighbours ~thr_id ~role =
     ((match prev with [x] -> Some x | _ -> None),
      (match next with [x] -> Some x | _ -> None))
 
-let message_get_neighbours ~msg_id ~role =
+let message_get_neighbours ~frm_id ~msg_id ~role =
   (* returns None|Some id of prev & next message in the same
      thread. *)
   begin_work db;
   let (thr_id, datetime) = 
     (match
-       PGSQL(db) "SELECT thr_id, datetime FROM messages WHERE id = $msg_id"
-     with [x] -> x | _ -> assert false) in
+       PGSQL(db) "SELECT messages.thr_id, messages.datetime \
+                  FROM messages, threads \
+                  WHERE messages.id = $msg_id \
+                  AND messages.thr_id = threads.id \
+                  AND threads.frm_id = $frm_id"
+     with [x] -> x | _ -> raise Not_found) in
   let (prev, next) = 
     (match role with
        | Moderator -> (* all kinds of messages *)
@@ -334,10 +355,15 @@ let forum_get_threads_list ~frm_id ~offset ~limit ~role =
                       LIMIT $limit OFFSET $offset") in
     thr_l
 
-let thread_get_messages_list ~thr_id ~offset ~limit ~role =
+let thread_get_messages_list ~frm_id ~thr_id ~offset ~limit ~role =
   (* returns the messages list of a thread, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
+  begin_work db;
+  let _ = 
+    (match PGSQL(db) "SELECT frm_id FROM threads \
+                      WHERE frm_id = $frm_id AND id = $thr_id"
+     with [x] -> x | _ -> raise Not_found) in
   let msg_l = 
     (match role with
        | Moderator ->
@@ -358,10 +384,16 @@ let thread_get_messages_list ~thr_id ~offset ~limit ~role =
                       WHERE thr_id = $thr_id AND NOT hidden \
                       ORDER BY datetime DESC \
                       LIMIT $limit OFFSET $offset") in
+    commit db;
     msg_l
 
-let thread_get_messages_with_text_list ~thr_id ~offset ~limit ~role =
+let thread_get_messages_with_text_list ~frm_id ~thr_id ~offset ~limit ~role =
   (* as above, but gets message texts too. *)
+  begin_work db;
+  let _ = 
+    (match PGSQL(db) "SELECT frm_id FROM threads \
+                      WHERE frm_id = $frm_id AND id = $thr_id"
+     with [x] -> x | _ -> raise Not_found) in
   let msg_l = 
     (match role with
        | Moderator ->
