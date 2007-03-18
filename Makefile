@@ -35,11 +35,11 @@ endif
 OCAMLC = ocamlfind ocamlc $(PKG) $(FLAGS)
 
 IMPLEM = sql.ml setOfSets.ml users.ml moreXhtml.ml sessionManager.ml \
-	 wikiparser.ml wiki.ml forum.ml ocsidable.ml
+	 wikiparser.ml wiki.ml forum.ml ocsimore.ml
 
 INTERF = $(IMPLEM:.ml=.mli)
 OBJECT = $(IMPLEM:.ml=.cmo)
-TARGET = ocsidable.cma
+TARGET = ocsimore.cma
 
 DOC = ./html
 
