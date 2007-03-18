@@ -11,7 +11,7 @@ let string_of_param_name (p:'b param_name) = ((Obj.magic p):string)
 
 let reset_input ?(a=[]) v =
   input ~a:((a_input_type `Reset) :: (a_value v) :: a) ()
-    
+
 let select_option ?(a=[]) ?default val_opt_list string_of param = 
   let opttag ?(a=[]) (v,o) =
     let attr = (a_value (string_of v)) :: a in
@@ -21,8 +21,7 @@ let select_option ?(a=[]) ?default val_opt_list string_of param =
 	option ~a:attr (pcdata o) 
   in match val_opt_list with
     | hd::tl -> 
-        select ~a:((a_name (string_of_param_name param)) :: a)
+        XHTML.M.select ~a:((a_name (string_of_param_name param)) :: a)
           (opttag hd) 
           (List.map opttag tl)
     | [] -> failwith "Empty options list"
-
