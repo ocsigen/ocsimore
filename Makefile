@@ -24,7 +24,7 @@ PGSQL_EXT = ./pa_pgsql.cma
 XHTML_EXT = $(shell ocamlfind query ocsigen)/xhtmlsyntax.cma
 PP = -pp "camlp4o $(PGSQL_EXT) $(XHTML_EXT) -loc loc"
 
-PKG = -package calendar,pgocaml,lwt,ocsigen,str
+PKG = -package calendar,pgocaml,ocsigen,str
 
 ifeq "$(DEBUG)" "YES"
 FLAGS = -w Aelty -dtypes -g -thread
