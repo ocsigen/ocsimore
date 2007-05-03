@@ -2,8 +2,8 @@
    To be extended and rewritten with ad-hoc tools (ocamllex, ocamlyacc). *)
 
 open XHTML.M
-open Ocsigen
-open Ocsigen.Xhtml
+open Eliom
+open Eliom.Xhtml
 open List
 open String
 open Str

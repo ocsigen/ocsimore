@@ -1,8 +1,8 @@
 (** Tool for forum creation. *)
 
 open XHTML.M
-open Ocsigen
-open Ocsigen.Xhtml
+open Eliom
+open Eliom.Xhtml
 open Lwt
 
 module type IN = sig
@@ -14,18 +14,21 @@ module type IN = sig
   val writable_by: Users.user
   val moderators: Users.user
   val url: string list
-  val exit_link: Ocsigen.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
-  val mk_log_form : Ocsigen.server_params -> Users.auth option -> 
+  val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
+  val mk_log_form : Eliom.server_params -> Users.auth option -> 
     [> Xhtmltypes.form ] XHTML.M.elt
   val max_rows: int32
 end
 
 module type OUT = sig
-  val srv_forum: (unit, unit, [ `Internal_Service of [ `Public_Service ] ],
-		  [ `WithoutSuffix ], unit Ocsigen.param_name,
-		  unit Ocsigen.param_name) Ocsigen.service
-  val login_actions : Ocsigen.server_params -> Users.auth option -> unit
-  val logout_actions : Ocsigen.server_params -> unit
+  val srv_forum :
+    (unit, unit,
+     [> `Attached of [> `Internal of [> `Service ] * [> `Get ] ] Eliom.a_s ],
+     [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
+     [> `Registrable ])
+    Eliom.service
+  val login_actions : Eliom.server_params -> Users.auth option -> unit
+  val logout_actions : Eliom.server_params -> unit
 end
 
 
@@ -80,30 +83,34 @@ module Make (A: IN) = struct
   ---*)
 
   (* inserts the new thread and redisplays the threads list *)
-  let srv_newthread = new_post_auxiliary_service 
-    ~fallback:srv_forum
-    ~post_params:(string "subject" ** string "text")
+  let srv_newthread = new_post_coservice 
+      ~fallback:srv_forum
+      ~post_params:(string "subject" ** string "text")
+      ()
 
   (* inserts the new message and redisplays the messages list *)
-  let srv_newmessage = new_post_auxiliary_service 
-    ~fallback:srv_forum
-    ~post_params:(string "text")
+  let srv_newmessage = new_post_coservice
+      ~fallback:srv_forum
+      ~post_params:(string "text")
+      ()
 
 
   (* ACTIONS *)
 
   (* toggle the forum moderation status *)
-  let act_forumtoggle = new_action
-    ~post_params:unit
+  let act_forumtoggle = new_post_coservice'
+      ~post_params:unit
+      ()
 
   (* toggle the hidden flag of a thread *)
-  let act_threadtoggle = new_action
-    ~post_params:(int32 "thr_id")
+  let act_threadtoggle = new_post_coservice'
+      ~post_params:(int32 "thr_id")
+      ()
 
   (* toggle the hidden flag of a message *)
-  let act_messagetoggle = new_action
-    ~post_params:(int32 "msg_id")
-
+  let act_messagetoggle = new_post_coservice'
+      ~post_params:(int32 "msg_id")
+      ()
 
   (* USEFUL STUFF *)
 
@@ -206,7 +213,7 @@ module Make (A: IN) = struct
             pcdata (" Moderated: " ^ if moder then "YES" else "NO") ^:
             []) ^:
          (m sess) %
-         action_form act_forumtoggle sp forumtoggle_form ^?
+         post_form act_forumtoggle sp forumtoggle_form () ^?
          [])
 
   let thread_data_box sp sess data =
@@ -223,7 +230,7 @@ module Make (A: IN) = struct
             pcdata (" Hidden thread: " ^ if hidden then "YES" else "NO") ^?
             []) ^:
          (m sess) % 
-         action_form act_threadtoggle sp (thr_toggle_form id)^?
+         post_form act_threadtoggle sp (thr_toggle_form id) () ^?
          [])
 
   let message_data_box sp sess data =
@@ -235,7 +242,7 @@ module Make (A: IN) = struct
          p  [pcdata("Hidden message: " ^ if hidden then "YES" else "NO")] ^?
          pre[pcdata text] ^: 
          (m sess) % 
-         action_form act_messagetoggle sp (msg_toggle_form id) ^? 
+         post_form act_messagetoggle sp (msg_toggle_form id) () ^? 
          [])
 
   let forum_threads_list_box sp sess thr_l =
@@ -250,7 +257,7 @@ module Make (A: IN) = struct
          (m sess || w sess) % 
          td (pcdata (if hidden then "YES" else "NO") ^:
              (m sess) %
-             action_form act_threadtoggle sp (thr_toggle_form id) ^?
+             post_form act_threadtoggle sp (thr_toggle_form id) () ^?
              []) ^?
          [])
       thr_l in
@@ -269,7 +276,7 @@ module Make (A: IN) = struct
          td [a srv_message sp [pcdata author] id] ^:
          (m sess) % 
          td [pcdata (if hidden then "YES" else "NO");
-             action_form act_messagetoggle sp (msg_toggle_form id)] ^?
+             post_form act_messagetoggle sp (msg_toggle_form id) ()] ^?
          [])
       msg_l in
     let tr' = function (x::xs) -> tr x xs | [] -> assert false in
@@ -420,7 +427,7 @@ module Make (A: IN) = struct
       else
 	let role = kindof sess in
 	  if w sess && A.writable_by <> Users.anonymous() then
-	    register_service_for_session sp srv_newthread (page_newthread sess)
+	    register_for_session sp srv_newthread (page_newthread sess)
 	  else (); (* user can't write, OR service is public because
 		      everyone can write *)
 	  (Sql.forum_get_data ~frm_id ~role,
@@ -440,7 +447,7 @@ module Make (A: IN) = struct
       else
 	let role = kindof sess in
 	  if w sess
-	  then register_service_for_session sp srv_newmessage (page_newmessage 
+	  then register_for_session sp srv_newmessage (page_newmessage 
 								 sess thr_id)
 	  else ();
 	  match (Sql.thread_get_data ~frm_id ~thr_id ~role,
@@ -474,44 +481,61 @@ module Make (A: IN) = struct
           sp sess "page_message" prepare gen_html)
   ---*)
 
-  let forum_toggle = fun sp _ -> 
+  let forum_toggle = fun sp () _ -> 
     Preemptive.detach (fun i -> Sql.forum_toggle_moderated ~frm_id:i) frm_id
+      >>= (fun () -> return [])
 
-  let thread_toggle = fun sp thr_id -> 
+  let thread_toggle = fun sp () thr_id -> 
     Preemptive.detach (fun i -> Sql.thread_toggle_hidden 
 			 ~frm_id ~thr_id:i) thr_id
+      >>= (fun () -> return [])
 
-  let message_toggle = fun sp msg_id -> 
+  let message_toggle = fun sp () msg_id -> 
     Preemptive.detach (fun i -> Sql.message_toggle_hidden 
 			 ~frm_id ~msg_id:i) msg_id
+      >>= (fun () -> return [])
 
   let login_actions sp sess =
-    register_service_for_session sp srv_forum (page_forum sess);
-    register_service_for_session sp srv_forum' (page_forum' sess);
-    register_service_for_session sp srv_thread (page_thread sess);
-    register_service_for_session sp srv_thread' (page_thread' sess);
+    register_for_session sp srv_forum (page_forum sess);
+    register_for_session sp srv_forum' (page_forum' sess);
+    register_for_session sp srv_thread (page_thread sess);
+    register_for_session sp srv_thread' (page_thread' sess);
 (*---
     register_service_for_session sp srv_message (page_message sess);
   ---*)
     if m sess then (
-      register_action_for_session sp act_forumtoggle forum_toggle;
-      register_action_for_session sp act_threadtoggle thread_toggle;
-      register_action_for_session sp act_messagetoggle message_toggle
+      Actions.register_for_session sp act_forumtoggle forum_toggle;
+      Actions.register_for_session sp act_threadtoggle thread_toggle;
+      Actions.register_for_session sp act_messagetoggle message_toggle
     )
       
   let logout_actions sp = ()
     
   let _ =
-    register_service srv_forum (page_forum None);
-    register_service srv_forum' (page_forum' None);
-    register_service srv_thread (page_thread None);
-    register_service srv_thread' (page_thread' None);
+    register srv_forum (page_forum None);
+    register srv_forum' (page_forum' None);
+    register srv_thread (page_thread None);
+    register srv_thread' (page_thread' None);
 (*---
-    register_service srv_message (page_message None);
+    register srv_message (page_message None);
   ---*)
     if A.writable_by = Users.anonymous() then (
       (* see comment to register_aux in page_forum' *)
-      register_service srv_newthread (page_newthread None)
-    )
+      register srv_newthread (page_newthread None)
+    );
+
+
+    (* Vincent: I add: *)
+    register srv_newthread (fun _ _ _ -> 
+      return 
+        (html 
+           (head (title (pcdata "Error")) []) 
+           (body [h1 [pcdata "Please connect"]])));
+    register srv_newmessage  (fun _ _ _ -> 
+      return 
+        (html 
+           (head (title (pcdata "Error")) []) 
+           (body [h1 [pcdata "Please connect"]])))
+      (* must be done better!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 
 end

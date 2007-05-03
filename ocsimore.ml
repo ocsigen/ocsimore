@@ -11,8 +11,8 @@
 
 (* STANDARD MODULES TO BE OPENED FOR OCSIGEN *)
 open XHTML.M
-open Ocsigen
-open Ocsigen.Xhtml
+open Eliom
+open Eliom.Xhtml
 open Lwt
 
 (* USERS AND GROUPS CREATION *)
@@ -50,9 +50,9 @@ let (forum1_mod, ocsigen_dev, registered_users, nobody) =
 (* A MAIN PAGE FOR OUR SITE *)
 module rec Main: sig 
   (* this is a safe module for a recursive module definition *)
-  val login_actions: Ocsigen.server_params -> Users.auth option -> unit
-  val logout_actions: Ocsigen.server_params -> unit
-  val get_back: Ocsigen.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
+  val login_actions: Eliom.server_params -> Users.auth option -> unit
+  val logout_actions: Eliom.server_params -> unit
+  val get_back: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
 end = struct
   let srv_main = new_service ~url:[""] ~get_params:unit ()
   let page_main sess = fun sp () () -> return 
@@ -81,11 +81,11 @@ end = struct
 	      p [pcdata "--- User 'moder' Password '' is in 'forum1_mod', \
                          'ocsigen_dev', 'registered_users' groups."]]))
   let login_actions sp sess = 
-    register_service_for_session sp srv_main (page_main sess)
+    register_for_session sp srv_main (page_main sess)
   let logout_actions sp = ()
   let get_back sp = a srv_main sp [pcdata "RETURN TO MAIN PAGE"] ()
   (* REGISTRATION OF MAIN PAGE *)
-  let _ = register_service srv_main (page_main None)
+  let _ = register srv_main (page_main None)
 end
 
 (* DEFINITION AND REGISTRATION OF FIRST FORUM *)
@@ -128,7 +128,7 @@ and MyWiki: Wiki.OUT = Wiki.Make
      let descr = "Create your wikipages here"
      let readable_by = Users.anonymous()
      let writable_by = registered_users
-     let url = ["mywiki"]
+     let url = ["mywiki";""]
      let exit_link = Main.get_back
      let mk_log_form = S.mk_log_form
    end: Wiki.IN) 

@@ -80,7 +80,7 @@ $(PGSQL_EXT): $(PGSQL_EXT:.cma=.ml4)
 		-o $@ -a -impl $<
 
 $(PGSQL_EXT:.cma=.ml4):
-	ln -s $(PGOCAML_SRC)/$@
+	-ln -s $(PGOCAML_SRC)/$@
 
 -include .depend
 

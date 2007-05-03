@@ -28,4 +28,10 @@
 
     {b Escape:} to include a literal [%] in text affected by an inline command, use the escaped form [\%].
  *)
-val parse: (string, unit, 'a, [< `WithSuffix ], 'b, unit Ocsigen.param_name) Ocsigen.service * Ocsigen.server_params -> string -> [> `H1 | `H2 | `H3 | `P | `Pre ] XHTML.M.elt list
+
+val parse :
+    (string, unit, [< Eliom.get_service_kind ], [< Eliom.suff ], 'a,
+     unit Eliom.param_name, [< Eliom.registrable ])
+    Eliom.service * Eliom.server_params ->
+    string -> [> `H1 | `H2 | `H3 | `P | `Pre ] XHTML.M.elt list
+

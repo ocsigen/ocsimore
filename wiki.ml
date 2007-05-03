@@ -1,8 +1,8 @@
 (** Tool for wiki creation. *)
 
 open XHTML.M
-open Ocsigen
-open Ocsigen.Xhtml
+open Eliom
+open Eliom.Xhtml
 open Lwt
 
 module type IN = sig
@@ -12,17 +12,20 @@ module type IN = sig
   val readable_by: Users.user
   val writable_by: Users.user
   val url: string list
-  val exit_link: Ocsigen.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
-  val mk_log_form : Ocsigen.server_params -> Users.auth option -> 
+  val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
+  val mk_log_form : Eliom.server_params -> Users.auth option -> 
     [> Xhtmltypes.form ] XHTML.M.elt
 end
 
 module type OUT = sig
-  val srv_main: (unit, unit, [ `Internal_Service of [ `Public_Service ] ],
-                 [ `WithoutSuffix ], unit Ocsigen.param_name,
-                 unit Ocsigen.param_name) Ocsigen.service
-  val login_actions : Ocsigen.server_params -> Users.auth option -> unit
-  val logout_actions : Ocsigen.server_params -> unit
+  val srv_main :
+    (unit, unit,
+     [> `Attached of [> `Internal of [> `Service ] * [> `Get ] ] Eliom.a_s ],
+     [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
+     [> `Registrable ])
+    Eliom.service
+  val login_actions : Eliom.server_params -> Users.auth option -> unit
+  val logout_actions : Eliom.server_params -> unit
 end
 
 
@@ -44,7 +47,6 @@ module Make (A: IN) = struct
    l'elenco alfabetico delle wikipages definite (Sql.wiki_get_pages_list) *)
   let srv_main = new_service
     ~url:A.url
-    ~prefix:false
     ~get_params:unit
     ()
 
@@ -53,15 +55,15 @@ module Make (A: IN) = struct
    Scrittura -> se c'è, la mostra + form modifica precompilato; se no, form inserimento *)
   let srv_wikipage = new_service
     ~url:A.url
-    ~prefix:true
-    ~get_params:suffix_only
+    ~get_params:(suffix (string "page"))
     ()
 
 
   (* ACTIONS *)
 
-  let act_edit = new_action
-    ~post_params:(string "sfx" ** (string "subj" ** string "txt"))
+  let act_edit = new_post_coservice'
+      ~post_params:(string "sfx" ** (string "subj" ** string "txt"))
+      ()
 
 
   (* USEFUL STUFF *)
@@ -216,8 +218,8 @@ module Make (A: IN) = struct
                  main_link_box sp ^:
                  wikipage_data_box sp wpg_data ^:
                  (w sess) % wikipage_howto_box ^?
-                 (w sess) % (action_form act_edit sp 
-		               (edit_wikipage_form sfx subj txt)) ^?
+                 (w sess) % (post_form act_edit sp 
+		               (edit_wikipage_form sfx subj txt) ()) ^?
                  []))
 
   (* code for a blank Wikipage *)
@@ -228,8 +230,8 @@ module Make (A: IN) = struct
              blank_wikipage_box ^:
              main_link_box sp ^:
              (w sess) % wikipage_howto_box ^?
-             (w sess) % (action_form act_edit sp
-			   (edit_wikipage_form sfx "" ""))^? 
+             (w sess) % (post_form act_edit sp
+			   (edit_wikipage_form sfx "" "") ())^? 
              []))
 
   (* code for a failsafe page *)
@@ -283,26 +285,27 @@ module Make (A: IN) = struct
     in lwt_page_with_exception_handling 
          sp sess "page_wikipage" prepare gen_html
 
-  let edit_action sess = fun sp (suffix,(subject,txt)) ->
+  let edit_action sess = fun sp () (suffix,(subject,txt)) ->
     Preemptive.detach 
       (fun a -> 
-         Sql.add_or_change_wikipage ~wik_id ~suffix ~subject ~txt ~author:a) 
-      (name sess)
+         Sql.add_or_change_wikipage ~wik_id ~suffix ~subject ~txt ~author:a)
+      (name sess) >>=
+    (fun () -> return [])
 
   let login_actions sp sess =
-    register_service_for_session sp srv_main (page_main sess);
-    register_service_for_session sp srv_wikipage (page_wikipage sess);
+    register_for_session sp srv_main (page_main sess);
+    register_for_session sp srv_wikipage (page_wikipage sess);
     if (w sess)
-    then register_action_for_session sp act_edit (edit_action sess)
+    then Actions.register_for_session sp act_edit (edit_action sess)
     else ()
       
   let logout_actions sp = ()
     
   let _ =
-    register_service srv_main (page_main None);
-    register_service srv_wikipage (page_wikipage None);
+    register srv_main (page_main None);
+    register srv_wikipage (page_wikipage None);
     if A.writable_by = Users.anonymous()
-    then register_action act_edit (edit_action None)
+    then Actions.register act_edit (edit_action None)
     else ()
 
 end

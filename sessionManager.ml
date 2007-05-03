@@ -1,57 +1,64 @@
 open XHTML.M
-open Ocsigen
-open Ocsigen.Xhtml
+open Eliom
+open Eliom.Xhtml
 open Lwt
 open Users
 
 module type IN = sig
   val url: string list
-  val exit_link: Ocsigen.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
+  val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
   val default_groups: Users.user list
-  val login_actions: Ocsigen.server_params -> Users.auth option -> unit
-  val logout_actions: Ocsigen.server_params -> unit
+  val login_actions: Eliom.server_params -> Users.auth option -> unit
+  val logout_actions: Eliom.server_params -> unit
   val registration_mail_from: string * string
   val registration_mail_subject: string
 end
 
 module type OUT = sig
-  val mk_log_form: Ocsigen.server_params -> Users.auth option -> 
+  val mk_log_form: Eliom.server_params -> Users.auth option -> 
     [> Xhtmltypes.form ] XHTML.M.elt
 end
 
 module Make (A: IN) = struct
 
-  let act_login = new_action 
+  let act_login = new_post_coservice'
     ~post_params:(string "usr" ** string "pwd")
+    ()
 
-  let act_logout = new_action 
+  let act_logout = new_post_coservice'
     ~post_params:unit
+    ()
 
   let srv_register = new_service 
     ~url:(A.url @ ["register"])
     ~get_params:unit
     ()
 
-  let srv_register_done = new_post_auxiliary_service
+  let srv_register_done = new_post_coservice
     ~fallback:srv_register
     ~post_params:(string "usr" ** (string "descr" ** string "email"))
+    ()
 
-  let srv_reminder = new_service 
+  let srv_reminder = new_service
     ~url:(A.url @ ["reminder"])
     ~get_params:unit
     ()
 
-  let srv_reminder_done = new_post_auxiliary_service
+  let srv_reminder_done = new_post_coservice
     ~fallback:srv_register
     ~post_params:(string "usr")
+    ()
 
-  let srv_edit = new_auxiliary_service
-    ~fallback:srv_register
+  let srv_edit = new_coservice
+      ~fallback:srv_register
+      ~get_params:unit
+      ()
 
-  let srv_edit_done = new_post_auxiliary_service
-    ~fallback:srv_register
-    ~post_params:(string "pwd" ** (string "pwd2" ** (string "descr" ** 
-						       string "email")))
+  let srv_edit_done = new_post_coservice
+      ~fallback:srv_register
+      ~post_params:(string "pwd" ** (string "pwd2" ** (string "descr" ** 
+						         string "email")))
+      ()
 
 
   let valid_username usr =
@@ -89,15 +96,15 @@ module Make (A: IN) = struct
       
   let mk_log_form sp sess = match sess with
     | Some (Authenticated user) -> (* user is logged in *)
-	action_form ~a:[a_class ["logbox";"logged"]] 
-	  act_logout sp (fun _ -> logout_box sp user)
+	post_form ~a:[a_class ["logbox";"logged"]] 
+	  act_logout sp (fun _ -> logout_box sp user) ()
     | Some BadPassword 
     | Some NoSuchUser -> (* unsuccessful attempt *)
-	action_form ~a:[a_class ["logbox";"error"]] 
-	  act_login sp (fun (usr,pwd) -> (login_box sp true usr pwd))
+	post_form ~a:[a_class ["logbox";"error"]] 
+	  act_login sp (fun (usr,pwd) -> (login_box sp true usr pwd)) ()
     | None -> (* no login attempt yet *)
-	action_form ~a:[a_class ["logbox";"notlogged"]] 
-	  act_login sp (fun (usr,pwd) -> (login_box sp false usr pwd))
+	post_form ~a:[a_class ["logbox";"notlogged"]] 
+	  act_login sp (fun (usr,pwd) -> (login_box sp false usr pwd)) ()
 	  
   let page_register err = fun sp () ()-> 
     return 
@@ -254,25 +261,46 @@ module Make (A: IN) = struct
 	   (body [h1 [pcdata "Personal information updated."];
 		  p [A.exit_link sp]]))
 
-  let mk_act_login sp (usr,pwd) = 
+  let mk_act_login sp () (usr,pwd) = 
     return (authenticate usr pwd) >>= 
       (fun a -> let sess = Some a in return (
 	 A.login_actions sp sess;
 	 match a with
 	   | Authenticated u -> 
-	       register_service_for_session sp srv_edit (page_edit u "");
-	       register_service_for_session sp srv_edit_done (page_edit_done u)
-	   | _ -> ()))
+	       register_for_session sp srv_edit (page_edit u "");
+	       register_for_session sp srv_edit_done (page_edit_done u);
+               []
+	   | _ -> []))
 
 	
-  let mk_act_logout sp () = return (A.logout_actions sp; close_session sp)
+  let mk_act_logout sp () () = 
+    A.logout_actions sp; 
+    close_session sp >>= (fun () -> return [])
     
   let _ = 
-    register_action act_login mk_act_login;
-    register_action act_logout mk_act_logout;
-    register_service srv_register (page_register "");
-    register_service srv_register_done page_register_done;
-    register_service srv_reminder (page_reminder "");
-    register_service srv_reminder_done page_reminder_done
+    Actions.register act_login mk_act_login;
+    Actions.register act_logout mk_act_logout;
+    register srv_register (page_register "");
+    register srv_register_done page_register_done;
+    register srv_reminder (page_reminder "");
+    register srv_reminder_done page_reminder_done;
+
+
+
+
+
+
+    (* Vincent: I add: *)
+    register srv_edit (fun _ _ _ -> 
+      return 
+        (html 
+           (head (title (pcdata "Error")) []) 
+           (body [h1 [pcdata "Please connect"]])));
+    register srv_edit_done  (fun _ _ _ -> 
+      return 
+        (html 
+           (head (title (pcdata "Error")) []) 
+           (body [h1 [pcdata "Please connect"]])))
+      (* must be done better!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 
 end

@@ -8,7 +8,7 @@ open PGOCaml
      'int64 option' and not 'int64', as expected. *)
 
 
-let db = connect ~database:"ocsigen" ()
+let db = connect ~database:"balat" ()
 
 module Persist = struct
   (* This is, mutatis mutandis, Vincent's Ocsipersist
