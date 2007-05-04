@@ -10,7 +10,7 @@ module type IN = sig
   val exit_link : Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
   val mk_log_form :
     Eliom.server_params ->
-    Users.auth option -> [> Xhtmltypes.form ] XHTML.M.elt
+    Users.user option -> [> Xhtmltypes.form ] XHTML.M.elt
   val max_rows : int32
 end
 
@@ -21,7 +21,7 @@ module type OUT = sig
      [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
      [> `Registrable ])
     Eliom.service
-  val login_actions : Eliom.server_params -> Users.auth option -> unit
+  val login_actions : Eliom.server_params -> Users.user option -> unit
   val logout_actions : Eliom.server_params -> unit
 end
 

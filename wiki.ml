@@ -13,7 +13,7 @@ module type IN = sig
   val writable_by: Users.user
   val url: string list
   val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
-  val mk_log_form : Eliom.server_params -> Users.auth option -> 
+  val mk_log_form : Eliom.server_params -> Users.user option -> 
     [> Xhtmltypes.form ] XHTML.M.elt
 end
 
@@ -24,7 +24,7 @@ module type OUT = sig
      [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
      [> `Registrable ])
     Eliom.service
-  val login_actions : Eliom.server_params -> Users.auth option -> unit
+  val login_actions : Eliom.server_params -> Users.user option -> unit
   val logout_actions : Eliom.server_params -> unit
 end
 
@@ -70,24 +70,24 @@ module Make (A: IN) = struct
 
   (* true if user is logged on *)
   let l = function
-    | Some (Users.Authenticated _) -> true
+    | Some _ -> true
     | _ -> false
 
   (* true if user can read wikipages *)
   let r = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
         Users.in_group ~user ~group:A.readable_by
     | _ -> A.readable_by = Users.anonymous()
 
   (* true if user can write wikipages *)
   let w = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
         Users.in_group ~user ~group:A.writable_by
     | _ -> A.writable_by = Users.anonymous()
 
   (* gets login name *)
   let name = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
         let (n, _, _, _) = Users.get_user_data ~user in n
     | _ -> "<anonymous>"
 
@@ -265,47 +265,52 @@ module Make (A: IN) = struct
       | Unauthorized -> return (mk_unauthorized_page sp sess)
       | exc -> return (mk_exception_page sp failmsg exc))
 
-  let page_main sess = fun sp () () ->
-    let prepare () = 
-      (Sql.wiki_get_data ~wik_id, 
-       Sql.wiki_get_pages_list ~wik_id)
-    and gen_html (wik_data, wpg_l) = 
-      mk_main_page sp sess wik_data wpg_l
-    in lwt_page_with_exception_handling 
-         sp sess "page_main" prepare gen_html
+  let page_main = fun sp () () ->
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      let prepare () = 
+        (Sql.wiki_get_data ~wik_id, 
+         Sql.wiki_get_pages_list ~wik_id)
+      and gen_html (wik_data, wpg_l) = 
+        mk_main_page sp sess wik_data wpg_l
+      in 
+      lwt_page_with_exception_handling 
+        sp sess "page_main" prepare gen_html)
 
-  let page_wikipage sess = fun sp sfx () ->
-    let prepare () = 
-      if (r sess) 
-      then Sql.wikipage_get_data ~wik_id ~suffix:sfx 
-      else raise Unauthorized
-    and gen_html = function
-      | Some wpg_data -> mk_existing_wikipage sp sess sfx wpg_data
-      | None -> mk_blank_wikipage sp sess sfx
-    in lwt_page_with_exception_handling 
-         sp sess "page_wikipage" prepare gen_html
+  let page_wikipage = fun sp sfx () ->
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      let prepare () = 
+        if (r sess) 
+        then Sql.wikipage_get_data ~wik_id ~suffix:sfx 
+        else raise Unauthorized
+      and gen_html = function
+        | Some wpg_data -> mk_existing_wikipage sp sess sfx wpg_data
+        | None -> mk_blank_wikipage sp sess sfx
+      in lwt_page_with_exception_handling 
+        sp sess "page_wikipage" prepare gen_html)
 
-  let edit_action sess = fun sp () (suffix,(subject,txt)) ->
-    Preemptive.detach 
-      (fun a -> 
-         Sql.add_or_change_wikipage ~wik_id ~suffix ~subject ~txt ~author:a)
-      (name sess) >>=
-    (fun () -> return [])
+  let edit_action = fun sp () (suffix,(subject,txt)) ->
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      Preemptive.detach 
+        (fun a -> 
+          Sql.add_or_change_wikipage ~wik_id ~suffix ~subject ~txt ~author:a)
+        (name sess) >>=
+      (fun () -> return []))
 
   let login_actions sp sess =
-    register_for_session sp srv_main (page_main sess);
-    register_for_session sp srv_wikipage (page_wikipage sess);
     if (w sess)
-    then Actions.register_for_session sp act_edit (edit_action sess)
+    then Actions.register_for_session sp act_edit edit_action
     else ()
       
   let logout_actions sp = ()
     
   let _ =
-    register srv_main (page_main None);
-    register srv_wikipage (page_wikipage None);
+    register srv_main page_main;
+    register srv_wikipage page_wikipage;
     if A.writable_by = Users.anonymous()
-    then Actions.register act_edit (edit_action None)
+    then Actions.register act_edit edit_action
     else ()
 
 end

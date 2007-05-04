@@ -10,6 +10,8 @@
    that there are some U1, U2, ..., Un such that U contains U1 and U1
    contains U2 and ... and Un contains V. *)
 
+open Lwt
+
 type userdata = 
     {name: string;
      mutable pwd: string option;
@@ -29,6 +31,8 @@ open Sql
 exception Loop
 exception UserExists
 exception NotAllowed
+exception BadPassword
+exception NoSuchUser
 
 type user = elt 
 
@@ -169,20 +173,15 @@ let update_user_data ~user =
     d.email <- email; 
     Persist.write_back global_users_container
 
-(* type of an authentication attemp *)
-type auth =
-  | Authenticated of user 
-  | BadPassword
-  | NoSuchUser
-
 (* authentication function *)
 let authenticate ~name ~pwd =
-  match getbyname name with
+  Preemptive.detach getbyname name >>=
+  function
     | Some user -> 
 	if user.data.pwd = Some pwd 
-	then Authenticated user
-	else BadPassword
-    | None -> NoSuchUser
+	then return user
+	else fail BadPassword
+    | None -> fail NoSuchUser
 
 (* randomly generates an 8-chars alnum password *)
 let generate_password () =

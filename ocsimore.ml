@@ -50,7 +50,7 @@ let (forum1_mod, ocsigen_dev, registered_users, nobody) =
 (* A MAIN PAGE FOR OUR SITE *)
 module rec Main: sig 
   (* this is a safe module for a recursive module definition *)
-  val login_actions: Eliom.server_params -> Users.auth option -> unit
+  val login_actions: Eliom.server_params -> Users.user option -> unit
   val logout_actions: Eliom.server_params -> unit
   val get_back: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
 end = struct

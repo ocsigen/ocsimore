@@ -4,18 +4,21 @@ open Eliom.Xhtml
 open Lwt
 open Users
 
+let user_table : Users.user persistent_table = 
+  create_persistent_table "ocsimore_user_table_v1"
+
 module type IN = sig
   val url: string list
   val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
   val default_groups: Users.user list
-  val login_actions: Eliom.server_params -> Users.auth option -> unit
+  val login_actions: Eliom.server_params -> Users.user option -> unit
   val logout_actions: Eliom.server_params -> unit
   val registration_mail_from: string * string
   val registration_mail_subject: string
 end
 
 module type OUT = sig
-  val mk_log_form: Eliom.server_params -> Users.auth option -> 
+  val mk_log_form: Eliom.server_params -> Users.user option -> 
     [> Xhtmltypes.form ] XHTML.M.elt
 end
 
@@ -94,18 +97,20 @@ module Make (A: IN) = struct
        [tr(td [submit_input "logout"]) [];
 	tr(td [a srv_edit sp [pcdata "Manage your account"] ()]) []]]
       
-  let mk_log_form sp sess = match sess with
-    | Some (Authenticated user) -> (* user is logged in *)
-	post_form ~a:[a_class ["logbox";"logged"]] 
-	  act_logout sp (fun _ -> logout_box sp user) ()
-    | Some BadPassword 
-    | Some NoSuchUser -> (* unsuccessful attempt *)
+  let mk_log_form sp = function
+  | Some user -> (* user is logged in *)
+      post_form ~a:[a_class ["logbox";"logged"]] 
+	act_logout sp (fun _ -> logout_box sp user) ()
+  | _ ->
+      let exn = get_exn sp in
+      if List.mem BadPassword exn || List.mem NoSuchUser exn
+      then (* unsuccessful attempt *)
 	post_form ~a:[a_class ["logbox";"error"]] 
-	  act_login sp (fun (usr,pwd) -> (login_box sp true usr pwd)) ()
-    | None -> (* no login attempt yet *)
+	  act_login sp (fun (usr, pwd) -> (login_box sp true usr pwd)) ()
+      else (* no login attempt yet *)
 	post_form ~a:[a_class ["logbox";"notlogged"]] 
-	  act_login sp (fun (usr,pwd) -> (login_box sp false usr pwd)) ()
-	  
+	  act_login sp (fun (usr, pwd) -> (login_box sp false usr pwd)) ()
+
   let page_register err = fun sp () ()-> 
     return 
       (html
@@ -262,15 +267,22 @@ module Make (A: IN) = struct
 		  p [A.exit_link sp]]))
 
   let mk_act_login sp () (usr,pwd) = 
-    return (authenticate usr pwd) >>= 
-      (fun a -> let sess = Some a in return (
-	 A.login_actions sp sess;
-	 match a with
-	   | Authenticated u -> 
-	       register_for_session sp srv_edit (page_edit u "");
-	       register_for_session sp srv_edit_done (page_edit_done u);
-               []
-	   | _ -> []))
+    A.logout_actions sp; 
+    close_session sp >>= 
+    (fun () -> 
+      catch
+        (fun () ->
+          authenticate usr pwd >>= 
+          (fun user -> 
+            set_persistent_data user_table sp user >>=
+            (fun () ->
+              return (
+              A.login_actions sp (Some user);
+              register_for_session sp srv_edit (page_edit user "");
+              register_for_session sp srv_edit_done (page_edit_done user);
+              []
+             ))))
+        (fun e -> return [e]))
 
 	
   let mk_act_logout sp () () = 
@@ -285,22 +297,5 @@ module Make (A: IN) = struct
     register srv_reminder (page_reminder "");
     register srv_reminder_done page_reminder_done;
 
-
-
-
-
-
-    (* Vincent: I add: *)
-    register srv_edit (fun _ _ _ -> 
-      return 
-        (html 
-           (head (title (pcdata "Error")) []) 
-           (body [h1 [pcdata "Please connect"]])));
-    register srv_edit_done  (fun _ _ _ -> 
-      return 
-        (html 
-           (head (title (pcdata "Error")) []) 
-           (body [h1 [pcdata "Please connect"]])))
-      (* must be done better!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 
 end

@@ -15,7 +15,7 @@ module type IN = sig
   val moderators: Users.user
   val url: string list
   val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
-  val mk_log_form : Eliom.server_params -> Users.auth option -> 
+  val mk_log_form : Eliom.server_params -> Users.user option -> 
     [> Xhtmltypes.form ] XHTML.M.elt
   val max_rows: int32
 end
@@ -27,7 +27,7 @@ module type OUT = sig
      [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
      [> `Registrable ])
     Eliom.service
-  val login_actions : Eliom.server_params -> Users.auth option -> unit
+  val login_actions : Eliom.server_params -> Users.user option -> unit
   val logout_actions : Eliom.server_params -> unit
 end
 
@@ -116,30 +116,30 @@ module Make (A: IN) = struct
 
   (* true if user is logged on *)
   let l = function
-    | Some (Users.Authenticated _) -> true
+    | Some _ -> true
     | _ -> false
 
   (* true if user can read messages *)
   let r = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
 	Users.in_group ~user ~group:A.readable_by
     | _ -> A.readable_by = Users.anonymous()
 
   (* true if user can write messages *)
   let w = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
 	Users.in_group ~user ~group:A.writable_by
     | _ -> A.writable_by = Users.anonymous()
 
   (* true if user is a moderator *)
   let m = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
 	Users.in_group ~user ~group:A.moderators
     | _ -> false (* no anonymous moderators *)
 
   (* gets login name *)
   let name = function
-    | Some (Users.Authenticated user) -> 
+    | Some user -> 
         let (n, _, _, _) = Users.get_user_data ~user in n
     | _ -> "<anonymous>"
 
@@ -368,37 +368,41 @@ module Make (A: IN) = struct
       | Unauthorized -> return (mk_unauthorized_page sp sess)
       | exc -> return (mk_exception_page sp failmsg exc))
 
-  let page_newthread sess = fun sp () (subject,txt) ->
-    let prepare () = 
-      if not (w sess) then 
-	raise Unauthorized
-      else 
-	let role = kindof sess in
-	let author = name sess in
+  let page_newthread = fun sp () (subject,txt) ->
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      let prepare () = 
+        if not (w sess) then 
+	  raise Unauthorized
+        else 
+	  let role = kindof sess in
+	  let author = name sess in
 	  Sql.new_thread_and_message ~frm_id ~author ~subject ~txt;
 	  (Sql.forum_get_data ~frm_id ~role,
 	   Sql.forum_get_threads_list 
 	     ~frm_id ~offset:0l ~limit:A.max_rows ~role)
-    and gen_html = fun (frm_data,thr_l) ->
-      let feedback = "Your message has been " ^
-        (match frm_data with (* get moderation status *)
-           | (_,_,_,true,_,_,_,_) -> 
-	       "sent; it is going to be submitted to the moderators' \
+      and gen_html = fun (frm_data,thr_l) ->
+        let feedback = "Your message has been " ^
+          (match frm_data with (* get moderation status *)
+          | (_,_,_,true,_,_,_,_) -> 
+	      "sent; it is going to be submitted to the moderators' \
                 approvation. Should it not appear in the list, please \
                 do not send it again."
-           | (_,_,_,false,_,_,_,_) -> "published.") in
-        mk_forum_page sp sess feedback frm_data thr_l
-    in lwt_page_with_exception_handling 
-	 sp sess "page_newthread" prepare gen_html
+    | (_,_,_,false,_,_,_,_) -> "published.") in
+      mk_forum_page sp sess feedback frm_data thr_l
+  in lwt_page_with_exception_handling 
+    sp sess "page_newthread" prepare gen_html)
 
 
-  let page_newmessage sess thr_id = fun sp () (txt) ->
-    let prepare () = 
-      if not (w sess) then
-	raise Unauthorized
-      else
-	let role = kindof sess in
-	let author = name sess in
+  let page_newmessage thr_id = fun sp () (txt) ->
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      let prepare () = 
+        if not (w sess) then
+	  raise Unauthorized
+        else
+	  let role = kindof sess in
+	  let author = name sess in
 	  Sql.new_message ~frm_id ~thr_id ~author ~txt;
 	  (Sql.forum_get_data ~frm_id ~role,
 	   Sql.thread_get_data ~frm_id ~thr_id ~role,
@@ -408,68 +412,71 @@ module Make (A: IN) = struct
   ---*)
 	   Sql.thread_get_messages_with_text_list 
 	     ~frm_id ~thr_id ~offset:0l ~limit:A.max_rows ~role)
-    and gen_html = fun (frm_data,thr_data,msg_l) ->
-      let feedback = "Your message has been " ^
-        (match frm_data with (* get moderation status *)
-           | (_,_,_,true,_,_,_,_) ->
-	       "sent; it is going to be submitted to the moderators' \
+      and gen_html = fun (frm_data,thr_data,msg_l) ->
+        let feedback = "Your message has been " ^
+          (match frm_data with (* get moderation status *)
+          | (_,_,_,true,_,_,_,_) ->
+	      "sent; it is going to be submitted to the moderators' \
                 approvation. Should it not appear in the list, please \
                 do not send it again."
-           | (_,_,_,false,_,_,_,_) -> "published.") in
-	mk_thread_page sp sess feedback thr_data msg_l
-    in lwt_page_with_exception_handling 
-	 sp sess "page_newmessage" prepare gen_html
+    | (_,_,_,false,_,_,_,_) -> "published.") in
+      mk_thread_page sp sess feedback thr_data msg_l
+  in lwt_page_with_exception_handling 
+    sp sess "page_newmessage" prepare gen_html)
 
-  let page_forum' sess = fun sp (offset,limit) () -> 
-    let prepare () = 
-      if not (r sess) then
-	raise Unauthorized
-      else
-	let role = kindof sess in
+  let page_forum' = fun sp (offset,limit) () -> 
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      let prepare () = 
+        if not (r sess) then
+	  raise Unauthorized
+        else
+	  let role = kindof sess in
 	  if w sess && A.writable_by <> Users.anonymous() then
-	    register_for_session sp srv_newthread (page_newthread sess)
+	    register_for_session sp srv_newthread page_newthread
 	  else (); (* user can't write, OR service is public because
 		      everyone can write *)
 	  (Sql.forum_get_data ~frm_id ~role,
 	   Sql.forum_get_threads_list ~frm_id ~offset ~limit ~role)
-    and gen_html = fun (frm_data,thr_l) -> 
-      mk_forum_page sp sess "" frm_data thr_l
-    in lwt_page_with_exception_handling 
-	 sp sess "page_forum" prepare gen_html
+      and gen_html = fun (frm_data,thr_l) -> 
+        mk_forum_page sp sess "" frm_data thr_l
+      in lwt_page_with_exception_handling 
+	sp sess "page_forum" prepare gen_html)
 
-  let page_forum sess = fun sp () () -> 
-    page_forum' sess sp (0l, A.max_rows) ()
+  let page_forum = fun sp () () -> 
+    page_forum' sp (0l, A.max_rows) ()
 
-  let page_thread' sess = fun sp (thr_id,(offset,limit)) () ->
-    let prepare () = 
-      if not (r sess) then
-	raise Unauthorized
-      else
-	let role = kindof sess in
+  let page_thread' = fun sp (thr_id,(offset,limit)) () ->
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      let prepare () = 
+        if not (r sess) then
+	  raise Unauthorized
+        else
+	  let role = kindof sess in
 	  if w sess
-	  then register_for_session sp srv_newmessage (page_newmessage 
-								 sess thr_id)
+	  then register_for_session sp srv_newmessage (page_newmessage thr_id)
 	  else ();
 	  match (Sql.thread_get_data ~frm_id ~thr_id ~role,
 (*---
-                 Sql.thread_get_messages_list 
-		   ~frm_id ~thr_id ~offset:0l ~limit:A.max_rows ~role,
-  ---*)
+   Sql.thread_get_messages_list 
+   ~frm_id ~thr_id ~offset:0l ~limit:A.max_rows ~role,
+   ---*)
 		 Sql.thread_get_messages_with_text_list 
 		   ~frm_id ~thr_id ~offset ~limit ~role) with
-	    | ((_,_,_,_,true,_,_),[]) -> 
-		(* Raises an exc if someone's trying to see a hidden thread 
-		   with no messages by herself *)
-		raise Unauthorized
-	    | (thr_data,msg_l) -> (thr_data,msg_l) 
-		
-    and gen_html = fun (thr_data,msg_l) ->
-      mk_thread_page sp sess "" thr_data msg_l
-    in lwt_page_with_exception_handling 
-         sp sess "page_thread" prepare gen_html
+	  | ((_,_,_,_,true,_,_),[]) -> 
+	      (* Raises an exc if someone's trying to see a hidden thread 
+		 with no messages by herself *)
+	      raise Unauthorized
+	  | (thr_data,msg_l) -> (thr_data,msg_l)
+                
+      and gen_html = fun (thr_data,msg_l) ->
+        mk_thread_page sp sess "" thr_data msg_l
+      in lwt_page_with_exception_handling 
+        sp sess "page_thread" prepare gen_html)
 
-  let page_thread sess = fun sp thr_id () ->
-    page_thread' sess sp (thr_id,(0l,A.max_rows)) ()
+  let page_thread = fun sp thr_id () ->
+    page_thread' sp (thr_id,(0l,A.max_rows)) ()
 
 (*---
   let page_message sess = fun sp msg_id () ->
@@ -496,13 +503,6 @@ module Make (A: IN) = struct
       >>= (fun () -> return [])
 
   let login_actions sp sess =
-    register_for_session sp srv_forum (page_forum sess);
-    register_for_session sp srv_forum' (page_forum' sess);
-    register_for_session sp srv_thread (page_thread sess);
-    register_for_session sp srv_thread' (page_thread' sess);
-(*---
-    register_service_for_session sp srv_message (page_message sess);
-  ---*)
     if m sess then (
       Actions.register_for_session sp act_forumtoggle forum_toggle;
       Actions.register_for_session sp act_threadtoggle thread_toggle;
@@ -512,30 +512,17 @@ module Make (A: IN) = struct
   let logout_actions sp = ()
     
   let _ =
-    register srv_forum (page_forum None);
-    register srv_forum' (page_forum' None);
-    register srv_thread (page_thread None);
-    register srv_thread' (page_thread' None);
+    register srv_forum page_forum;
+    register srv_forum' page_forum';
+    register srv_thread page_thread;
+    register srv_thread' page_thread';
 (*---
-    register srv_message (page_message None);
+    register srv_message page_message;
   ---*)
     if A.writable_by = Users.anonymous() then (
       (* see comment to register_aux in page_forum' *)
-      register srv_newthread (page_newthread None)
+      register srv_newthread page_newthread
     );
 
-
-    (* Vincent: I add: *)
-    register srv_newthread (fun _ _ _ -> 
-      return 
-        (html 
-           (head (title (pcdata "Error")) []) 
-           (body [h1 [pcdata "Please connect"]])));
-    register srv_newmessage  (fun _ _ _ -> 
-      return 
-        (html 
-           (head (title (pcdata "Error")) []) 
-           (body [h1 [pcdata "Please connect"]])))
-      (* must be done better!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! *)
 
 end

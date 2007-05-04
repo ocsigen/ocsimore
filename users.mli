@@ -12,6 +12,8 @@
 exception Loop
 exception UserExists
 exception NotAllowed
+exception BadPassword
+exception NoSuchUser
 
 
 (** The abstract type of users. *)
@@ -53,14 +55,8 @@ val anonymous : unit -> user
 
   (** {3 Authentication} *)
 
-(** Type of authentication attempts.*)
-type auth = 
-  | Authenticated of user (** authorization ok, [user] is a logged-in user *)
-  | BadPassword (** uncorrect password *)
-  | NoSuchUser  (** user name doesn't exist *)
-
 (** Authentication function. *)
-val authenticate : name:string -> pwd:string -> auth
+val authenticate : name:string -> pwd:string -> user Lwt.t
 
 (** Automatic password generation. *)
 val generate_password : unit -> string option
