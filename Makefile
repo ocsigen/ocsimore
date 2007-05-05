@@ -35,7 +35,7 @@ endif
 OCAMLC = ocamlfind ocamlc $(PKG) $(FLAGS)
 
 IMPLEM = sql.ml setOfSets.ml users.ml moreXhtml.ml sessionManager.ml \
-	 wikiparser.ml wiki.ml forum.ml ocsimore.ml
+	 wikiparser.ml wiki.ml forum.ml
 
 INTERF = $(IMPLEM:.ml=.mli)
 OBJECT = $(IMPLEM:.ml=.cmo)
@@ -47,8 +47,7 @@ DOC = ./html
 
 .PHONY: all depend doc clean
 
-all: depend
-	$(MAKE) $(TARGET)
+all: depend $(TARGET) ocsimore.cmo
 
 depend: $(PGSQL_EXT)
 	ocamlfind ocamldep $(PP) $(INTERF) $(IMPLEM) > .depend

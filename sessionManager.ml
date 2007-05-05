@@ -7,71 +7,82 @@ open Users
 let user_table : Users.user persistent_table = 
   create_persistent_table "ocsimore_user_table_v1"
 
-module type IN = sig
-  val url: string list
-  val exit_link: Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
-  val default_groups: Users.user list
-  val login_actions: Eliom.server_params -> Users.user option -> unit
-  val logout_actions: Eliom.server_params -> unit
-  val registration_mail_from: string * string
-  val registration_mail_subject: string
+type sessionmanager_in = 
+    { url: string list;
+      default_groups: Users.user list;
+      login_actions: Eliom.server_params -> Users.user option -> unit;
+      logout_actions: Eliom.server_params -> unit;
+      registration_mail_from: string * string;
+      registration_mail_subject: string;
+  }
+
+class type sessionmanager = object
+  method mk_log_form: Eliom.server_params -> Users.user option -> 
+    XHTML.M.block XHTML.M.elt
 end
 
-module type OUT = sig
-  val mk_log_form: Eliom.server_params -> Users.user option -> 
-    [> Xhtmltypes.form ] XHTML.M.elt
-end
-
-module Make (A: IN) = struct
+class makesessionmanager
+    (sessionmanagerinfo: sessionmanager_in) 
+    ~(exit_link : Eliom.server_params -> Xhtmltypes.p_content XHTML.M.elt) = 
 
   let act_login = new_post_coservice'
     ~post_params:(string "usr" ** string "pwd")
     ()
+  in
 
   let act_logout = new_post_coservice'
     ~post_params:unit
     ()
+  in
 
   let srv_register = new_service 
-    ~url:(A.url @ ["register"])
+    ~url:(sessionmanagerinfo.url @ ["register"])
     ~get_params:unit
     ()
+  in
 
   let srv_register_done = new_post_coservice
     ~fallback:srv_register
     ~post_params:(string "usr" ** (string "descr" ** string "email"))
     ()
+  in
 
   let srv_reminder = new_service
-    ~url:(A.url @ ["reminder"])
+    ~url:(sessionmanagerinfo.url @ ["reminder"])
     ~get_params:unit
     ()
+  in
 
   let srv_reminder_done = new_post_coservice
     ~fallback:srv_register
     ~post_params:(string "usr")
     ()
+  in
 
   let srv_edit = new_coservice
       ~fallback:srv_register
       ~get_params:unit
       ()
+  in
 
   let srv_edit_done = new_post_coservice
       ~fallback:srv_register
       ~post_params:(string "pwd" ** (string "pwd2" ** (string "descr" ** 
 						         string "email")))
       ()
+  in
 
 
   let valid_username usr =
     Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
+  in
 
   let valid_emailaddr email =
     Str.string_match 
       (Str.regexp ("^[A-Za-z0-9\\._-]+@" 
 		   ^ "\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
       email 0
+  in
 
   let login_box sp error usr pwd = 
     [table
@@ -89,6 +100,7 @@ module Make (A: IN) = struct
 		      [a srv_reminder sp [pcdata "Forgot your password?"] ()])
 		   []]
 	   else []))]
+  in
   
   let logout_box sp user =
     let (usr,pwd,descr,email) = get_user_data user in
@@ -96,21 +108,8 @@ module Make (A: IN) = struct
        (tr(td [pcdata ("Hi " ^ descr ^ "!")]) [])
        [tr(td [submit_input "logout"]) [];
 	tr(td [a srv_edit sp [pcdata "Manage your account"] ()]) []]]
+  in
       
-  let mk_log_form sp = function
-  | Some user -> (* user is logged in *)
-      post_form ~a:[a_class ["logbox";"logged"]] 
-	act_logout sp (fun _ -> logout_box sp user) ()
-  | _ ->
-      let exn = get_exn sp in
-      if List.mem BadPassword exn || List.mem NoSuchUser exn
-      then (* unsuccessful attempt *)
-	post_form ~a:[a_class ["logbox";"error"]] 
-	  act_login sp (fun (usr, pwd) -> (login_box sp true usr pwd)) ()
-      else (* no login attempt yet *)
-	post_form ~a:[a_class ["logbox";"notlogged"]] 
-	  act_login sp (fun (usr, pwd) -> (login_box sp false usr pwd)) ()
-
   let page_register err = fun sp () ()-> 
     return 
       (html
@@ -140,6 +139,7 @@ module Make (A: IN) = struct
 			   []]])
 		  ();
 		p [strong [pcdata err]]]))
+  in
 
   let page_register_done = fun sp () (usr,(desc,email))-> 
     if not (valid_username usr) then 
@@ -150,13 +150,13 @@ module Make (A: IN) = struct
       let pwd = generate_password() in
       let (user,n) = create_unique_user ~name:usr ~pwd ~desc ~email in
 	if (mail_password 
-	      ~name:n ~from_addr:A.registration_mail_from 
-	      ~subject:A.registration_mail_subject) 
+	      ~name:n ~from_addr:sessionmanagerinfo.registration_mail_from 
+	      ~subject:sessionmanagerinfo.registration_mail_subject) 
 	then 
 	  return 
 	    (ignore (List.map 
 		       (fun g-> add_group ~user ~group:g) 
-		       A.default_groups);
+		       sessionmanagerinfo.default_groups);
 	     html
 	       (head (title (pcdata "Registration")) [])
 	       (body [h1 [pcdata "Registration ok."];
@@ -166,7 +166,7 @@ module Make (A: IN) = struct
 			 pcdata email;
 			 br();
 			 pcdata "reporting your login name and password."];
-		      p [A.exit_link sp]]))
+		      p [exit_link sp]]))
 	else 
 	  return 
 	    (delete_user ~user;
@@ -174,7 +174,8 @@ module Make (A: IN) = struct
 	       (head (title (pcdata "Registration")) [])
 	       (body [h1 [pcdata "Registration failed."];
 		      p [pcdata "Please try later."];
-		      p [A.exit_link sp]]))
+		      p [exit_link sp]]))
+  in
 
   let page_reminder err = fun sp () () -> 
     return 
@@ -197,13 +198,14 @@ module Make (A: IN) = struct
 			[]])
 		  ();
 		p [strong [pcdata err]]]))
+  in
 
   let page_reminder_done = fun sp () usr ->
     if not (valid_username usr) then
       page_reminder "ERROR: Bad character(s) in login name!" sp () ()
     else (if (mail_password 
-		~name:usr ~from_addr:A.registration_mail_from 
-		~subject:A.registration_mail_subject) 
+		~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
+		~subject:sessionmanagerinfo.registration_mail_subject) 
 	  then 
 	    return 
 	      (html
@@ -212,7 +214,7 @@ module Make (A: IN) = struct
 			p [pcdata "You'll receive soon an e-mail message at \
                                    the address you entered when you \
                                    registered your account."];
-			p [A.exit_link sp]]))
+			p [exit_link sp]]))
 	  else 
 	    return 
 	      (html
@@ -220,7 +222,8 @@ module Make (A: IN) = struct
 		 (body [h1 [pcdata "Failure."];
 			p [pcdata "The username you entered doesn't exist, or \
                                    the service is unavailable at the moment."];
-			p [A.exit_link sp]])))
+			p [exit_link sp]])))
+  in
 
   let page_edit user err = fun sp () () ->
     let (n,_,d,e) = get_user_data ~user in
@@ -250,6 +253,7 @@ module Make (A: IN) = struct
 			     []]]) 
 		    ();
 		  p [strong [pcdata err]]]))
+  in
 
   let page_edit_done user = fun sp () (pwd,(pwd2,(desc,email)))->
     if not (valid_emailaddr email) then 
@@ -264,10 +268,11 @@ module Make (A: IN) = struct
 	 html
 	   (head (title (pcdata "Your account")) [])
 	   (body [h1 [pcdata "Personal information updated."];
-		  p [A.exit_link sp]]))
+		  p [exit_link sp]]))
+  in
 
   let mk_act_login sp () (usr,pwd) = 
-    A.logout_actions sp; 
+    sessionmanagerinfo.logout_actions sp; 
     close_session sp >>= 
     (fun () -> 
       catch
@@ -277,25 +282,46 @@ module Make (A: IN) = struct
             set_persistent_data user_table sp user >>=
             (fun () ->
               return (
-              A.login_actions sp (Some user);
+              sessionmanagerinfo.login_actions sp (Some user);
               register_for_session sp srv_edit (page_edit user "");
               register_for_session sp srv_edit_done (page_edit_done user);
               []
              ))))
         (fun e -> return [e]))
+  in
 
 	
   let mk_act_logout sp () () = 
-    A.logout_actions sp; 
+    sessionmanagerinfo.logout_actions sp; 
     close_session sp >>= (fun () -> return [])
-    
-  let _ = 
-    Actions.register act_login mk_act_login;
-    Actions.register act_logout mk_act_logout;
-    register srv_register (page_register "");
-    register srv_register_done page_register_done;
-    register srv_reminder (page_reminder "");
-    register srv_reminder_done page_reminder_done;
+  in
 
+  object
 
-end
+    method mk_log_form : Eliom.server_params -> Users.user option -> 
+      XHTML.M.block XHTML.M.elt
+        = fun sp sess -> match sess with
+          | Some user -> (* user is logged in *)
+              post_form ~a:[a_class ["logbox";"logged"]] 
+	        act_logout sp (fun _ -> logout_box sp user) ()
+          | _ ->
+              let exn = get_exn sp in
+              if List.mem BadPassword exn || List.mem NoSuchUser exn
+              then (* unsuccessful attempt *)
+	        post_form ~a:[a_class ["logbox";"error"]] 
+	          act_login sp (fun (usr, pwd) -> 
+                    (login_box sp true usr pwd)) ()
+              else (* no login attempt yet *)
+	        post_form ~a:[a_class ["logbox";"notlogged"]] 
+	          act_login sp (fun (usr, pwd) -> 
+                    (login_box sp false usr pwd)) ()
+
+    initializer
+      Actions.register act_login mk_act_login;
+      Actions.register act_logout mk_act_logout;
+      register srv_register (page_register "");
+      register srv_register_done page_register_done;
+      register srv_reminder (page_reminder "");
+      register srv_reminder_done page_reminder_done;
+
+  end

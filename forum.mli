@@ -1,28 +1,33 @@
-module type IN = sig
-  val identifier : string
-  val title : string
-  val descr : string
-  val moderated : bool
-  val readable_by : Users.user
-  val writable_by : Users.user
-  val moderators : Users.user
-  val url : string list
-  val exit_link : Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt
-  val mk_log_form :
-    Eliom.server_params ->
-    Users.user option -> [> Xhtmltypes.form ] XHTML.M.elt
-  val max_rows : int32
+type forum_in = 
+    {
+     identifier: string;
+     title: string;
+     descr: string;
+     moderated: bool;
+     readable_by: Users.user;
+     writable_by: Users.user;
+     moderators: Users.user;
+     url: string list;
+     max_rows: int32;
+   }
+
+class type forum = object
+  method srv_forum :
+      (unit, unit, Eliom.get_service_kind,
+       [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
+       [ `Registrable ])
+      Eliom.service
+  method login_actions : Eliom.server_params -> Users.user option -> unit
+  method logout_actions : Eliom.server_params -> unit
 end
 
-module type OUT = sig
-  val srv_forum :
-    (unit, unit,
-     [> `Attached of [> `Internal of [> `Service ] * [> `Get ] ] Eliom.a_s ],
-     [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-     [> `Registrable ])
-    Eliom.service
-  val login_actions : Eliom.server_params -> Users.user option -> unit
-  val logout_actions : Eliom.server_params -> unit
-end
+class makeforum :
+  forum_in ->
+  exit_link:(Eliom.server_params -> 
+    [< Xhtmltypes.div_content > `A ] XHTML.M.elt) ->
+  mk_log_form:(Eliom.server_params ->
+               Users.user option -> 
+                 [< Xhtmltypes.body_content > `Form `Div `H1 `P ] 
+                   XHTML.M.elt) ->
+                     forum
 
-module Make :  functor (A : IN) -> OUT
