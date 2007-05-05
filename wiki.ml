@@ -4,6 +4,7 @@ open XHTML.M
 open Eliom
 open Eliom.Xhtml
 open Lwt
+open Ocsimorelib
 
 exception Unauthorized
 
@@ -29,33 +30,15 @@ class type wiki =
   end
 
 
-(* USEFUL STUFF *)
-
-      (* these operators allow to write something like this:
-         list_item_1 ^:  
-         false % list_item_2 ^?  
-         true % list_item_3 ^?  
-         false % list_item_4 ^?  
-         list_item_5 ^:
-         []
-         which evaluates to [list_item_1; list_item_3; list_item_5]. *)
-let ( ^? ) (cond, x) xs = if cond then x::xs else xs (* right assoc *)
-let ( ^: ) x xs = x :: xs (* right assoc, same precedence of ^? *)
-let ( % ) x y = x,y  (* left assoc, higher precedence *)
-
-    (* some shortnamed functions for conversions *)
-let soL (* "string of Long" *) = Int64.to_string
-let sol (* "string of long" *) = Int32.to_string
-let sod (* "string of date" *) = Printer.CalendarPrinter.to_string
-
-
 (********************************************)
-class makewiki (wikiinfo : wiki_in)      
-    ~(exit_link : Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt)
-    ~(mk_log_form: Eliom.server_params -> Users.user option -> 
-      [> Xhtmltypes.form ] XHTML.M.elt)
+class makewiki ~(wikiinfo : wiki_in)      
+    ~(container : 
+        Eliom.server_params -> Users.user option -> title:string -> 
+          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
     : wiki
     = 
+
+  (* SERVICES *)
 (* mostra i dati di presentazione del Wiki (Sql.wiki_get_data),
    una form per "saltare" ad una wikipage,
    l'elenco alfabetico delle wikipages definite (Sql.wiki_get_pages_list) *)
@@ -90,45 +73,41 @@ class makewiki (wikiinfo : wiki_in)
                                       ~descr:wikiinfo.descr))
   in
           
+  object (me)
+
           (* USEFUL STUFF *)
           
           (* true if user is logged on *)
-  let l = function
-    | Some _ -> true
-    | _ -> false
-  in
+    method private l = function
+      | Some _ -> true
+      | _ -> false
               
               (* true if user can read wikipages *)
-  let r = function
-    | Some user -> 
-        Users.in_group ~user ~group:wikiinfo.readable_by
-    | _ -> wikiinfo.readable_by = Users.anonymous()
-  in
-              
-              (* true if user can write wikipages *)
-  let w = function
-    | Some user -> 
-        Users.in_group ~user ~group:wikiinfo.writable_by
-    | _ -> wikiinfo.writable_by = Users.anonymous()
-  in
-
-              (* gets login name *)
-  let name = function
-    | Some user -> 
-        let (n, _, _, _) = Users.get_user_data ~user in n
-    | _ -> "<anonymous>"
-  in
-  
-  object (me)
+    method private r = function
+      | Some user -> 
+          Users.in_group ~user ~group:wikiinfo.readable_by
+      | _ -> wikiinfo.readable_by = Users.anonymous()
+            
+            (* true if user can write wikipages *)
+    method private w = function
+      | Some user -> 
+          Users.in_group ~user ~group:wikiinfo.writable_by
+      | _ -> wikiinfo.writable_by = Users.anonymous()
+            
+            (* gets login name *)
+    method private name = function
+      | Some user -> 
+          let (n, _, _, _) = Users.get_user_data ~user in n
+      | _ -> "<anonymous>"
 
               (* SERVICES *)
 
-      method srv_main :
-          (unit, unit, Eliom.get_service_kind,
-           [< Eliom.suff ] as 'c, unit Eliom.param_name, unit Eliom.param_name,
-           [< Eliom.registrable ] as 'd)
-          Eliom.service
-          = srv_main
+    method srv_main :
+        (unit, unit, Eliom.get_service_kind,
+         [< Eliom.suff ] as 'c, unit Eliom.param_name, unit Eliom.param_name,
+         [< Eliom.registrable ] as 'd)
+        Eliom.service
+        = srv_main
 
           (* HTML FRAGMENTS: <form> CONTENTS *)
 
@@ -213,81 +192,81 @@ class makewiki (wikiinfo : wiki_in)
           [a srv_main sp 
              [pcdata ("Back to \"" ^wikiinfo.title^ "\" Wiki homepage")] ()]
 
-          (* an escape *)
-      method private exit_link_box = fun sp ->
-        div ~a:[a_class ["exit_link"]]
-          [exit_link sp]
 
 
           (* HTML FRAGMENTS: <html> PAGES *)
           
           (* code for the Wiki main page *)
       method private mk_main_page sp sess wik_data wpg_l =
-        html
-          (head (title (pcdata (wikiinfo.title^" Wiki"))) [])
-          (body [mk_log_form sp sess;
-                 me#wiki_data_box wik_data;
-                 me#wiki_howto_box;
-                 get_form srv_wikipage sp me#goto_wikipage_form; 
-                 me#wikipages_list_box sp wpg_l;
-                 me#exit_link_box sp])
+        container
+          sp
+          sess
+          ~title:(wikiinfo.title^" Wiki")
+          [me#wiki_data_box wik_data;
+           me#wiki_howto_box;
+           get_form srv_wikipage sp me#goto_wikipage_form; 
+           me#wikipages_list_box sp wpg_l;
+           ]
 
           (* code for an existing Wikipage *)
       method private mk_existing_wikipage sp sess sfx wpg_data =
         let (subj,txt,_,_) = wpg_data in
-        html
-          (head (title (pcdata (wikiinfo.title^" Wiki"))) [])
-          (body (mk_log_form sp sess ^:
-                 me#main_link_box sp ^:
-                 me#wikipage_data_box sp wpg_data ^:
-                 (w sess) % me#wikipage_howto_box ^?
-                 (w sess) % (post_form act_edit sp 
-                 (me#edit_wikipage_form sfx subj txt) ()) ^?
-                 []))
+        container
+          sp
+          sess
+          ~title:(wikiinfo.title^" Wiki")
+          (me#main_link_box sp ^:
+           me#wikipage_data_box sp wpg_data ^:
+           (me#w sess) % me#wikipage_howto_box ^?
+           (me#w sess) % (post_form act_edit sp 
+           (me#edit_wikipage_form sfx subj txt) ()) ^?
+           [])
 
           (* code for a blank Wikipage *)
       method private mk_blank_wikipage sp sess sfx =
-        html
-          (head (title (pcdata (wikiinfo.title^" Wiki"))) [])
-          (body (mk_log_form sp sess ^:
-                 me#blank_wikipage_box ^:
-                 me#main_link_box sp ^:
-                 (w sess) % me#wikipage_howto_box ^?
-                 (w sess) % (post_form act_edit sp
-                 (me#edit_wikipage_form sfx "" "") ())^? 
-                 []))
+        container
+          sp
+          sess
+          ~title:(wikiinfo.title^" Wiki")
+          (me#blank_wikipage_box ^:
+           me#main_link_box sp ^:
+           (me#w sess) % me#wikipage_howto_box ^?
+           (me#w sess) % (post_form act_edit sp
+           (me#edit_wikipage_form sfx "" "") ())^? 
+           [])
 
           (* code for a failsafe page *)
       method private mk_exception_page sp from exc =
-        html 
-          (head (title (pcdata "Error")) [])
-          (body
-             [div ~a:[a_class ["exception"]]
-                [h1 [pcdata "Exception:"];
-                 p [pcdata ((Printexc.to_string exc)^" in function: "^from)]; 
-                 me#exit_link_box sp]])
+        container
+          sp
+          None
+          ~title:(wikiinfo.title^" Wiki")
+          [div ~a:[a_class ["exception"]]
+             [h1 [pcdata "Exception:"];
+              p [pcdata ((Printexc.to_string exc)^" in function: "^from)]; 
+            ]]
 
           (* code for unauthorized users' fallback page *)
       method private mk_unauthorized_page sp sess =
-        html 
-          (head (title (pcdata "Error")) [])
-          (body 
-             [mk_log_form sp sess;
-              div ~a:[a_class ["unauthorized"]]
-                [h1 [pcdata "Restricted area:"];
-                 p [pcdata "Please log in with an authorized account."]];
-              me#exit_link_box sp])
+        container
+          sp
+          sess
+          ~title:(wikiinfo.title^" Wiki")
+          [div ~a:[a_class ["unauthorized"]]
+             [h1 [pcdata "Restricted area:"];
+              p [pcdata "Please log in with an authorized account."]];
+           ]
 
 (* SERVICES & ACTIONS IMPLEMENTATION *)
       method private lwt_page_with_exception_handling :
           'a. Eliom.server_params -> Users.user option -> 
-            string -> (unit -> 'a) -> ('a -> html) -> html Lwt.t =
+            string -> (unit -> 'a) -> ('a -> html Lwt.t) -> html Lwt.t =
         fun sp sess failmsg f1 f2 ->
           catch      
-            (function () -> Preemptive.detach f1 () >>= fun x -> return (f2 x))
+            (function () -> Preemptive.detach f1 () >>= fun x -> f2 x)
             (function
-              | Unauthorized -> return (me#mk_unauthorized_page sp sess)
-              | exc -> return (me#mk_exception_page sp failmsg exc))
+              | Unauthorized -> me#mk_unauthorized_page sp sess
+              | exc -> me#mk_exception_page sp failmsg exc)
 
       method private page_main sp () () =
         get_persistent_data SessionManager.user_table sp >>=
@@ -305,7 +284,7 @@ class makewiki (wikiinfo : wiki_in)
         get_persistent_data SessionManager.user_table sp >>=
         (fun sess ->
           let prepare () = 
-            if (r sess) 
+            if (me#r sess) 
             then Sql.wikipage_get_data ~wik_id ~suffix:sfx 
             else raise Unauthorized
           and gen_html = function
@@ -320,12 +299,12 @@ class makewiki (wikiinfo : wiki_in)
           Preemptive.detach 
             (fun a -> 
               Sql.add_or_change_wikipage ~wik_id ~suffix ~subject ~txt ~author:a)
-            (name sess) >>=
+            (me#name sess) >>=
           (fun () -> return []))
 
 
        method login_actions sp sess =
-         if (w sess)
+         if (me#w sess)
          then Actions.register_for_session sp act_edit me#edit_action
          else ()
              

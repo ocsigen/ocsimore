@@ -4,6 +4,7 @@ open XHTML.M
 open Eliom
 open Eliom.Xhtml
 open Lwt
+open Ocsimorelib
 
 exception Unauthorized
 
@@ -30,34 +31,13 @@ class type forum = object
   method logout_actions : Eliom.server_params -> unit
 end
 
-      (* USEFUL STUFF *)
-
-      (* these operators allow to write something like this:
-         list_item_1 ^:  
-         false % list_item_2 ^?  
-         true % list_item_3 ^?  
-         false % list_item_4 ^?  
-         list_item_5 ^:
-         []
-         which evaluates to [list_item_1; list_item_3; list_item_5]. *)
-let ( ^? ) (cond, x) xs = if cond then x::xs else xs (* right assoc *)
-let ( ^: ) x xs = x :: xs (* right assoc, same precedence of ^? *)
-let ( % ) x y = x,y  (* left assoc, higher precedence *)
-
-    (* some shortnamed functions for conversions *)
-let soL (* "string of Long" *) = Int64.to_string
-let sol (* "string of long" *) = Int32.to_string
-let sod (* "string of date" *) = Printer.CalendarPrinter.to_string
-
-    (* A user defined parameter type *)
-let int32 p = user_type Int32.of_string Int32.to_string p 
 
 
-
-class makeforum (foruminfo: forum_in) 
-    ~(exit_link : Eliom.server_params -> [> Xhtmltypes.a ] XHTML.M.elt)
-    ~(mk_log_form : Eliom.server_params -> Users.user option -> 
-      [> Xhtmltypes.form ] XHTML.M.elt) : forum
+class makeforum ~(foruminfo: forum_in)
+    ~(container : 
+        Eliom.server_params -> Users.user option -> title:string -> 
+          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
+    : forum
     =
 
   (* SERVICES *)
@@ -145,54 +125,56 @@ class makeforum (foruminfo: forum_in)
       ()
   in
 
-  (* USEFUL STUFF *)
-
-  (* true if user is logged on *)
-  let l = function
-    | Some _ -> true
-    | _ -> false
-  in
-
-  (* true if user can read messages *)
-  let r = function
-    | Some user -> 
-	Users.in_group ~user ~group:foruminfo.readable_by
-    | _ -> foruminfo.readable_by = Users.anonymous()
-  in
-
-  (* true if user can write messages *)
-  let w = function
-    | Some user -> 
-	Users.in_group ~user ~group:foruminfo.writable_by
-    | _ -> foruminfo.writable_by = Users.anonymous()
-  in
-
-  (* true if user is a moderator *)
-  let m = function
-    | Some user -> 
-	Users.in_group ~user ~group:foruminfo.moderators
-    | _ -> false (* no anonymous moderators *)
-  in
-
-  (* gets login name *)
-  let name = function
-    | Some user -> 
-        let (n, _, _, _) = Users.get_user_data ~user in n
-    | _ -> "<anonymous>"
-  in
-
-  (* for Sql module calls *)
-  let kindof sess = 
-    if m sess 
-    then Sql.Moderator
-    else (if w sess && l sess
-    then Sql.Author (name sess)
-    else Sql.Unknown)
-  in
 
   object (me)
 
  
+      (* USEFUL STUFF *)
+      
+      (* true if user is logged on *)
+    method private l = function
+      | Some _ -> true
+      | _ -> false
+            
+            
+            (* true if user can read messages *)
+    method private r = function
+      | Some user -> 
+	  Users.in_group ~user ~group:foruminfo.readable_by
+      | _ -> foruminfo.readable_by = Users.anonymous()
+
+
+            (* true if user can write messages *)
+    method private w = function
+      | Some user -> 
+	  Users.in_group ~user ~group:foruminfo.writable_by
+      | _ -> foruminfo.writable_by = Users.anonymous()
+
+
+            (* true if user is a moderator *)
+    method private m = function
+      | Some user -> 
+	  Users.in_group ~user ~group:foruminfo.moderators
+      | _ -> false (* no anonymous moderators *)
+            
+
+            (* gets login name *)
+    method private name = function
+      | Some user -> 
+          let (n, _, _, _) = Users.get_user_data ~user in n
+      | _ -> "<anonymous>"
+
+
+  (* for Sql module calls *)
+    method private kindof sess = 
+      if me#m sess 
+      then Sql.Moderator
+      else (if me#w sess && me#l sess
+      then Sql.Author (me#name sess)
+      else Sql.Unknown)
+
+
+
   (* HTML FRAGMENTS: <form> CONTENTS *)
 
   method private new_thread_form = fun (subject,txt) ->
@@ -235,14 +217,14 @@ class makeforum (foruminfo: forum_in)
       (h1 [pcdata ("Forum: " ^ title)] ^:
        h2 [pcdata ("Description: " ^ description)] ^:
        h3 (pcdata ("Threads: " ^ soL n_shown_thr) ^:
-       (m sess || w sess) % 
+       (me#m sess || me#w sess) % 
        pcdata (" (hidden: " ^ soL n_hidden_thr ^ ")") ^?
        pcdata (" Messages: " ^ soL n_shown_msg) ^:
-       (m sess || w sess) %
+       (me#m sess || me#w sess) %
        pcdata (" (hidden: " ^ soL n_hidden_msg ^")") ^?
        pcdata (" Moderated: " ^ if moder then "YES" else "NO") ^:
        []) ^:
-       (m sess) %
+       (me#m sess) %
        post_form act_forumtoggle sp me#forumtoggle_form () ^?
        [])
 
@@ -255,12 +237,12 @@ class makeforum (foruminfo: forum_in)
      h2 [pcdata ("created by: " ^ author);
      pcdata (sod datetime)] ^:
      h3 (pcdata ("Messages: " ^ soL n_shown_msg) ^:
-     (m sess || w sess) % 
+     (me#m sess || me#w sess) % 
      pcdata (" (hidden: " ^ soL n_hidden_msg ^ ")") ^?
-     (m sess || w sess) % 
+     (me#m sess || me#w sess) % 
      pcdata (" Hidden thread: " ^ if hidden then "YES" else "NO") ^?
      []) ^:
-     (m sess) % 
+     (me#m sess) % 
      post_form act_threadtoggle sp (me#thr_toggle_form id) () ^?
    [])
 
@@ -270,28 +252,28 @@ class makeforum (foruminfo: forum_in)
     div ~a:[a_class ["message_data"]]
       (h4 [pcdata ("posted by: " ^ author);
        pcdata (sod datetime)] ^: 
-       (m sess || w sess) % 
+       (me#m sess || me#w sess) % 
        p [pcdata("Hidden message: " ^ if hidden then "YES" else "NO")] ^?
        pre[pcdata text] ^: 
-       (m sess) % 
+       (me#m sess) % 
        post_form act_messagetoggle sp (me#msg_toggle_form id) () ^? 
        [])
 
 
   method private forum_threads_list_box sp sess thr_l =
     let fields = "date/time" ^: "subject" ^: "author" ^: 
-                           (m sess || w sess) % "hidden" ^? [] in
+                           (me#m sess || me#w sess) % "hidden" ^? [] in
     let tblhead = List.map (fun i -> th [pcdata i]) fields in
     let tbldata = List.map 
         (fun (id, subject, author, datetime, hidden) ->
           td [pcdata (sod datetime)] ^:
           td [a srv_thread sp [pcdata subject] id] ^:
                         td [pcdata author] ^:
-                (m sess || w sess) % 
+                (me#m sess || me#w sess) % 
                 td (pcdata (if hidden then "YES" else "NO") ^:
-    (m sess) %
+    (me#m sess) %
     post_form act_threadtoggle sp (me#thr_toggle_form id) () ^?
-  []) ^?
+    []) ^?
         [])
         thr_l in
     let tr' = function (x::xs) -> tr x xs | [] -> assert false in
@@ -302,13 +284,13 @@ class makeforum (foruminfo: forum_in)
 (*---
    let thread_messages_list_box sp sess msg_l =
    let fields = "date/time" ^: "author" ^: 
-   (m sess || w sess) % "hidden" ^? [] in
+   (me#m sess || me#w sess) % "hidden" ^? [] in
    let tblhead = List.map (fun i -> th [pcdata i]) fields in
    let tbldata = List.map 
    (fun (id, author, datetime, hidden) -> 
    td [pcdata (sod datetime)] ^:
    td [a srv_message sp [pcdata author] id] ^:
-   (m sess) % 
+   (me#m sess) % 
    td [pcdata (if hidden then "YES" else "NO");
    post_form act_messagetoggle sp (me#msg_toggle_form id) ()] ^?
    [])
@@ -329,76 +311,68 @@ class makeforum (foruminfo: forum_in)
       [a srv_forum sp [pcdata ("Back to \"" ^foruminfo.title^ "\" Forum homepage")] ()]
 
 
-  method private exit_link_box sp = 
-    div ~a:[a_class ["exit_link"]]
-      [exit_link sp]
-
-  
   method private feedback_box feedback =
     div ~a:[a_class ["feedback"]]
       [p [pcdata feedback]]
 
 
-
 (* HTML FRAGMENTS: <html> PAGES *)
 
   method private mk_forum_page sp sess feedback frm_data thr_l =
-    html
-      (head (title (pcdata (foruminfo.title^" Forum"))) [])
-      (body (mk_log_form sp sess ^:
-        me#feedback_box feedback ^:
-        me#forum_data_box sp sess frm_data ^:
-        me#forum_threads_list_box sp sess thr_l ^:
-        (w sess) % 
-        post_form srv_newthread sp me#new_thread_form () ^?
-        me#exit_link_box sp ^:
-                         []))
+    container
+      sp
+      sess
+      ~title:(foruminfo.title^" Forum")
+      (me#feedback_box feedback ^:
+       me#forum_data_box sp sess frm_data ^:
+       me#forum_threads_list_box sp sess thr_l ^:
+       (me#w sess) % 
+       post_form srv_newthread sp me#new_thread_form () ^?
+       [])
 
 
   method private mk_thread_page sp sess feedback thr_data msg_l =
-    html
-      (head (title (pcdata (foruminfo.title^" Forum"))) [])
-      (body (mk_log_form sp sess ^:
-        me#feedback_box feedback ^:
-        me#thread_data_box sp sess thr_data ^:
+    container
+      sp sess
+      ~title:(foruminfo.title^" Forum")
+        (me#feedback_box feedback ^:
+         me#thread_data_box sp sess thr_data ^:
 (*--- 
    thread_messages_list_box sp sess msg_l ^:
    ---*)
-        me#thread_messageswtext_list_box sp sess msg_l ^:
-        (w sess) % 
-        post_form srv_newmessage sp me#new_message_form () ^?
-        me#main_link_box sp ^:
-        []))
+         me#thread_messageswtext_list_box sp sess msg_l ^:
+         (me#w sess) % 
+         post_form srv_newmessage sp me#new_message_form () ^?
+         [])
 
 
 (*---
    method private mk_message_page sp sess msg_data =
-   html
-   (head (title (pcdata (foruminfo.title^" Forum"))) [])
-   (body [mk_log_form sp sess;
-   me#message_data_box sp sess msg_data;
+    container
+      sp sess
+      ~title:(foruminfo.title^" Forum")
+   [me#message_data_box sp sess msg_data;
    me#main_link_box sp])
    ---*)
 
   method private mk_exception_page sp from exc =
-    html 
-      (head (title (pcdata "Error")) [])
-      (body
-         [div ~a:[a_class ["exception"]]
-            [h1 [pcdata "Exception:"];
-             p [pcdata ((Printexc.to_string exc)^" in function: "^from)]; 
-             me#exit_link_box sp]])
+    container
+      sp None
+      ~title:(foruminfo.title^" Forum")
+      [div ~a:[a_class ["exception"]]
+         [h1 [pcdata "Exception:"];
+          p [pcdata ((Printexc.to_string exc)^" in function: "^from)]
+          ]]
 
 
   method private mk_unauthorized_page sp sess =
-    html 
-      (head (title (pcdata "Error")) [])
-      (body 
-         [mk_log_form sp sess;
-	  div ~a:[a_class ["unauthorized"]]
-            [h1 [pcdata "Restricted area:"];
-	     p [pcdata "Please log in with an authorized account."]];
-	  me#exit_link_box sp])
+    container
+      sp sess
+      ~title:(foruminfo.title^" Forum")
+      [div ~a:[a_class ["unauthorized"]]
+         [h1 [pcdata "Restricted area:"];
+	  p [pcdata "Please log in with an authorized account."]]
+     ]
 
 
 
@@ -406,25 +380,25 @@ class makeforum (foruminfo: forum_in)
 
   method private lwt_page_with_exception_handling :
       'a. Eliom.server_params -> Users.user option -> 
-        string -> (unit -> 'a) -> ('a -> html) -> html Lwt.t =
+        string -> (unit -> 'a) -> ('a -> html Lwt.t) -> html Lwt.t =
           fun sp sess failmsg f1 f2 ->
             catch      
               (function () -> Preemptive.detach f1 () >>= 
-                fun x -> return (f2 x))
+                fun x -> f2 x)
               (function
-                | Unauthorized -> return (me#mk_unauthorized_page sp sess)
-                | exc -> return (me#mk_exception_page sp failmsg exc))
+                | Unauthorized -> me#mk_unauthorized_page sp sess
+                | exc -> me#mk_exception_page sp failmsg exc)
 
   
   method private page_newthread = fun sp () (subject,txt) ->
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       let prepare () = 
-        if not (w sess) then 
+        if not (me#w sess) then 
 	  raise Unauthorized
         else 
-	  let role = kindof sess in
-	  let author = name sess in
+	  let role = me#kindof sess in
+	  let author = me#name sess in
 	  Sql.new_thread_and_message ~frm_id ~author ~subject ~txt;
 	  (Sql.forum_get_data ~frm_id ~role,
 	   Sql.forum_get_threads_list 
@@ -448,11 +422,11 @@ class makeforum (foruminfo: forum_in)
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       let prepare () = 
-        if not (w sess) then
+        if not (me#w sess) then
 	  raise Unauthorized
         else
-	  let role = kindof sess in
-	  let author = name sess in
+	  let role = me#kindof sess in
+	  let author = me#name sess in
 	  Sql.new_message ~frm_id ~thr_id ~author ~txt;
 	  (Sql.forum_get_data ~frm_id ~role,
 	   Sql.thread_get_data ~frm_id ~thr_id ~role,
@@ -480,11 +454,11 @@ class makeforum (foruminfo: forum_in)
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       let prepare () = 
-        if not (r sess) then
+        if not (me#r sess) then
 	  raise Unauthorized
         else
-	  let role = kindof sess in
-	  if w sess && foruminfo.writable_by <> Users.anonymous() then
+	  let role = me#kindof sess in
+	  if me#w sess && foruminfo.writable_by <> Users.anonymous() then
 	    register_for_session sp srv_newthread me#page_newthread
 	  else (); (* user can't write, OR service is public because
 		      everyone can write *)
@@ -504,11 +478,11 @@ class makeforum (foruminfo: forum_in)
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       let prepare () = 
-        if not (r sess) then
+        if not (me#r sess) then
 	  raise Unauthorized
         else
-	  let role = kindof sess in
-	  if w sess
+	  let role = me#kindof sess in
+	  if me#w sess
 	  then register_for_session sp srv_newmessage 
               (me#page_newmessage thr_id)
 	  else ();
@@ -571,7 +545,7 @@ class makeforum (foruminfo: forum_in)
         = srv_forum
 
     method login_actions sp sess =
-      if m sess then (
+      if me#m sess then (
         Actions.register_for_session sp act_forumtoggle me#forum_toggle;
         Actions.register_for_session sp act_threadtoggle me#thread_toggle;
         Actions.register_for_session sp act_messagetoggle me#message_toggle

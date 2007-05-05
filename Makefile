@@ -20,11 +20,14 @@ PGOCAML_SRC = /usr/local/src/pgocaml-0.5
 ### PostgreSQL/PGOCaml configuration section ends here
 
 
+CSV_EXT =
+#	  -I /home/vincent/src/ocaml-csv-1.1.6 csv.cma
 PGSQL_EXT = ./pa_pgsql.cma
 XHTML_EXT = $(shell ocamlfind query ocsigen)/xhtmlsyntax.cma
-PP = -pp "camlp4o $(PGSQL_EXT) $(XHTML_EXT) -loc loc"
+PP = -pp "camlp4o $(CSV_EXT) $(PGSQL_EXT) $(XHTML_EXT) -loc loc"
 
-PKG = -package calendar,pgocaml,ocsigen,str
+PKG = -package calendar,pgocaml,ocsigen,str 
+LIB = 
 
 ifeq "$(DEBUG)" "YES"
 FLAGS = -w Aelty -dtypes -g -thread
@@ -32,9 +35,9 @@ else
 FLAGS = -w y -thread
 endif
 
-OCAMLC = ocamlfind ocamlc $(PKG) $(FLAGS)
+OCAMLC = ocamlfind ocamlc $(PKG) $(FLAGS) $(LIB)
 
-IMPLEM = sql.ml setOfSets.ml users.ml moreXhtml.ml sessionManager.ml \
+IMPLEM = sql.ml setOfSets.ml users.ml ocsimorelib.ml sessionManager.ml \
 	 wikiparser.ml wiki.ml forum.ml
 
 INTERF = $(IMPLEM:.ml=.mli)
@@ -47,10 +50,10 @@ DOC = ./html
 
 .PHONY: all depend doc clean
 
-all: depend $(TARGET) ocsimore.cmo
+all: depend $(TARGET) ocsimoreexample.cmo
 
 depend: $(PGSQL_EXT)
-	ocamlfind ocamldep $(PP) $(INTERF) $(IMPLEM) > .depend
+	ocamlfind ocamldep $(PP) $(LIB) $(INTERF) $(IMPLEM) > .depend
 
 doc:
 	[ -d $(DOC) ] || mkdir $(DOC)
@@ -60,17 +63,17 @@ clean:
 	-rm -f *.cm? *.annot *.ml4 $(DOC)/* *~ *.mlj
 
 %.cmo: %.ml
-	$(OCAMLC) $(PP) -c $<
+	$(OCAMLC) $(PP) $(LIB) -c $<
 
 %.cmi: %.mli
-	$(OCAMLC) -c $<
+	$(OCAMLC) $(LIB) -c $<
 
 # Dumps inferred interface to a .mlj file
 %.mlj: %.ml
-	$(OCAMLC) $(PP) -i $< >$@
+	$(OCAMLC) $(PP) $(LIB) -i $< >$@
 
 $(TARGET): $(OBJECT)
-	$(OCAMLC) $(PP) -o $@ -a $^
+	$(OCAMLC) $(PP) $(LIB) -o $@ -a $^
 
 $(PGSQL_EXT): $(PGSQL_EXT:.cma=.ml4)
 	ocamlfind ocamlc \

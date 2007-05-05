@@ -2,12 +2,13 @@
 Edit the lines below and place them into the "server" section 
 of your ocsigen.conf file.
 -->
-    <dynlink>/OCAML-LIB-PATH/calendar/calendar.cma</dynlink>
-    <dynlink>/OCAML-LIB-PATH/extlib/extLib.cma</dynlink>
-    <dynlink>/OCAML-LIB-PATH/str.cma</dynlink>
-    <dynlink>/OCAML-LIB-PATH/pgocaml/pgocaml.cma</dynlink>
+    <extension>/OCAML-LIB-PATH/calendar/calendar.cma</extension>
+    <extension>/OCAML-LIB-PATH/extlib/extLib.cma</extension>
+    <extension>/OCAML-LIB-PATH/str.cma</extension>
+    <extension>/OCAML-LIB-PATH/pgocaml/pgocaml.cma</extension>
+    <extension>/path_to/ocsimore.cma</extension>
 
     <site dir="ocsimore" charset="iso-8859-15">
-      <module file="/path_to/ocsimore.cma" />
+      <module file="/path_to/ocsimoreexample.cmo" />
       <static dir="/path_to/ocsimore/static" />    
     </site>

@@ -16,6 +16,8 @@ end
 
 class makesessionmanager :
     sessionmanager_in ->
-    exit_link:(Eliom.server_params -> Xhtmltypes.p_content XHTML.M.elt) ->
-      sessionmanager
+      container: 
+        (Eliom.server_params -> Users.user option -> title:string -> 
+          XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
+            sessionmanager
 

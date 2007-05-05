@@ -20,12 +20,9 @@ end
 
 
 class makewiki :
-  wiki_in ->
-  exit_link:(Eliom.server_params -> 
-    [< Xhtmltypes.div_content > `A ] XHTML.M.elt) ->
-  mk_log_form:(Eliom.server_params ->
-               Users.user option -> 
-                 [< Xhtmltypes.body_content > `Form `Div `H1 `P ] 
-                   XHTML.M.elt) ->
+  wikiinfo:wiki_in ->
+  container: 
+      (Eliom.server_params -> Users.user option -> title:string -> 
+        XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
   wiki
 
