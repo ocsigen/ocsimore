@@ -10,8 +10,8 @@ let user_table : Users.user persistent_table =
 type sessionmanager_in = 
     { url: string list;
       default_groups: Users.user list;
-      login_actions: Eliom.server_params -> Users.user option -> unit;
-      logout_actions: Eliom.server_params -> unit;
+      login_actions: Eliom.server_params -> Users.user option -> unit Lwt.t;
+      logout_actions: Eliom.server_params -> unit Lwt.t;
       registration_mail_from: string * string;
       registration_mail_subject: string;
   }
@@ -19,6 +19,10 @@ type sessionmanager_in =
 class type sessionmanager = object
   method mk_log_form: Eliom.server_params -> Users.user option -> 
     XHTML.M.block XHTML.M.elt
+  method add_login_actions: 
+      (Eliom.server_params -> Users.user option -> unit Lwt.t) -> unit
+  method add_logout_actions: 
+      (Eliom.server_params -> unit Lwt.t) -> unit
 end
 
 class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
@@ -115,34 +119,35 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
 
       
   method private page_register err = fun sp () ()-> 
-    return 
-      (html
-	 (head (title (pcdata "Registration")) [])
-	 (body [h1 [pcdata "Registration form"];
-		p [pcdata "Please fill in the following fields.";
-		   br();
-		   pcdata "You can freely choose your login name: it will be \
-                           slightly modified automatically whether it had \
-                           been already chosen by another registered user.";
-		   br();
-		   pcdata "Be very careful to enter a valid e-mail address, \
-                           as the password for logging in will be sent \
-                           there."];
-		post_form 
-		  srv_register_done 
-		  sp
-		  (fun (usr,(desc,email)) -> 
-		     [table
-			(tr(td [pcdata "login name: (letters & digits only)"])
-			   [td [string_input usr]])
-			[tr(td [pcdata "enter your name:"])
-			   [td [string_input desc]];
-			 tr(td [pcdata "your e-mail address:"])
-			   [td [string_input email]];
-			 tr(td [submit_input "Register"])
-			   []]])
-		  ();
-		p [strong [pcdata err]]]))
+    container
+      sp
+      None
+      ~title:("Registration")
+      [h1 [pcdata "Registration form"];
+       p [pcdata "Please fill in the following fields.";
+	  br();
+	  pcdata "You can freely choose your login name: it will be \
+            slightly modified automatically whether it had \
+            been already chosen by another registered user.";
+	    br();
+	  pcdata "Be very careful to enter a valid e-mail address, \
+            as the password for logging in will be sent \
+            there."];
+          post_form 
+         srv_register_done 
+           sp
+          (fun (usr,(desc,email)) -> 
+            [table
+               (tr(td [pcdata "login name: (letters & digits only)"])
+	          [td [string_input usr]])
+               [tr(td [pcdata "enter your name:"])
+	          [td [string_input desc]];
+	        tr(td [pcdata "your e-mail address:"])
+	          [td [string_input email]];
+	        tr(td [submit_input "Register"])
+	          []]])
+              ();
+           p [strong [pcdata err]]]
 
 
   method private page_register_done = fun sp () (usr,(desc,email))-> 
@@ -282,30 +287,43 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
 	])
 
 
-  method private mk_act_login sp () (usr,pwd) = 
-    sessionmanagerinfo.logout_actions sp; 
-    close_session sp >>= 
-    (fun () -> 
-      catch
-        (fun () ->
-          authenticate usr pwd >>= 
-          (fun user -> 
-            set_persistent_data user_table sp user >>=
-            (fun () ->
-              return (
-              sessionmanagerinfo.login_actions sp (Some user);
-              register_for_session sp srv_edit (me#page_edit user "");
-              register_for_session sp srv_edit_done (me#page_edit_done user);
-              []
-             ))))
-        (fun e -> return [e]))
+  val mutable all_login_actions = sessionmanagerinfo.login_actions
+  val mutable all_logout_actions = sessionmanagerinfo.logout_actions
 
+  method private mk_act_login sp () (usr, pwd) =
+    all_logout_actions sp >>=
+    (fun () -> close_session sp >>= 
+      (fun () -> 
+        catch
+          (fun () ->
+            authenticate usr pwd >>= 
+            (fun user -> 
+              set_persistent_data user_table sp user >>=
+              (fun () ->
+                return (
+                all_login_actions sp (Some user);
+                register_for_session sp srv_edit (me#page_edit user "");
+                register_for_session sp srv_edit_done (me#page_edit_done user);
+                []
+               ))))
+          (fun e -> return [e])))
 
+  method add_login_actions f =
+    all_login_actions <- 
+    fun sp u -> 
+      all_login_actions sp u >>=
+      (fun () -> f sp u)
 	
   method private mk_act_logout sp () () = 
-    sessionmanagerinfo.logout_actions sp; 
-    close_session sp >>= (fun () -> return [])
+    all_logout_actions sp >>=
+    (fun () -> close_session sp >>= (fun () -> return []))
 
+  method add_logout_actions f =
+    all_logout_actions <- 
+    fun sp -> 
+      all_logout_actions sp >>=
+      (fun () -> f sp)
+	
 
     method mk_log_form : Eliom.server_params -> Users.user option -> 
       XHTML.M.block XHTML.M.elt

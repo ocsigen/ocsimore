@@ -1,0 +1,17 @@
+
+1. Install postgresql
+
+2. Create a user and a database
+sudo su postgres -c "createuser ocsimore"
+sudo su postgres createdb ocsimore
+
+3. Install pgocaml
+http://merjis.com/developers/pgocaml
+
+4. Compile ocsimore
+make depend
+make
+
+5. Adapt your ocsigen.conf using ocsigen.conf.example
+and run Ocsigen
+

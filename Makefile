@@ -8,14 +8,14 @@
 # Check/edit these settings:
 #
 # POSTGRESQL ENVIRONMENT VARIABLES
-export PGUSER = ocsigen
-export PGDATABASE = ocsigen
+export PGUSER = balat
+export PGDATABASE = balat
 # See PostgreSQL doc, section 28.11, for other vars; example:
 # export PGHOST=db.mydomain.com
 # export PGPORT=5432
 #
 # FULL PATH TO THE PGOCAML SOURCE FILES
-PGOCAML_SRC = /usr/local/src/pgocaml-0.5
+PGOCAML_SRC = /home/balat/src/pgocaml-0.6
 #
 ### PostgreSQL/PGOCaml configuration section ends here
 
@@ -30,9 +30,9 @@ PKG = -package calendar,pgocaml,ocsigen,str
 LIB = 
 
 ifeq "$(DEBUG)" "YES"
-FLAGS = -w Aelty -dtypes -g -thread
+FLAGS = -w Aelty -dtypes -g -thread -linkall
 else
-FLAGS = -w y -thread
+FLAGS = -w y -thread -linkall
 endif
 
 OCAMLC = ocamlfind ocamlc $(PKG) $(FLAGS) $(LIB)

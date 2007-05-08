@@ -14,15 +14,14 @@ class type wiki = object
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
       Eliom.service
-  method login_actions : Eliom.server_params -> Users.user option -> unit
-  method logout_actions : Eliom.server_params -> unit
 end
 
 
 class makewiki :
-  wikiinfo:wiki_in ->
-  container: 
-      (Eliom.server_params -> Users.user option -> title:string -> 
-        XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
-  wiki
+    wikiinfo:wiki_in ->
+      sessionmanager: SessionManager.sessionmanager ->
+        container: 
+          (Eliom.server_params -> Users.user option -> title:string -> 
+            XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
+              wiki
 

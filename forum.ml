@@ -27,13 +27,13 @@ class type forum = object
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
       Eliom.service
-  method login_actions : Eliom.server_params -> Users.user option -> unit
-  method logout_actions : Eliom.server_params -> unit
 end
 
 
 
-class makeforum ~(foruminfo: forum_in)
+class makeforum
+    ~(foruminfo : forum_in)
+    ~(sessionmanager : SessionManager.sessionmanager)
     ~(container : 
         Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> html Lwt.t)
@@ -544,20 +544,23 @@ class makeforum ~(foruminfo: forum_in)
       Eliom.service
         = srv_forum
 
-    method login_actions sp sess =
-      if me#m sess then (
-        Actions.register_for_session sp act_forumtoggle me#forum_toggle;
-        Actions.register_for_session sp act_threadtoggle me#thread_toggle;
-        Actions.register_for_session sp act_messagetoggle me#message_toggle
-       )
+    method private login_actions sp sess =
+      return
+        (if me#m sess then (
+          Actions.register_for_session sp act_forumtoggle me#forum_toggle;
+          Actions.register_for_session sp act_threadtoggle me#thread_toggle;
+          Actions.register_for_session sp act_messagetoggle me#message_toggle
+         ))
           
-    method logout_actions sp = ()
+    method private logout_actions sp = return ()
         
     initializer
       register srv_forum me#page_forum;
       register srv_forum' me#page_forum';
       register srv_thread me#page_thread;
       register srv_thread' me#page_thread';
+      sessionmanager#add_login_actions me#login_actions;
+      sessionmanager#add_logout_actions me#logout_actions;
 (*---
     register srv_message page_message;
   ---*)

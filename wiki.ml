@@ -20,9 +20,7 @@ type wiki_in =
 
 class type wiki = 
   object
-    method login_actions : Eliom.server_params -> Users.user option -> unit
-    method logout_actions : Eliom.server_params -> unit
-    method srv_main :
+     method srv_main :
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
@@ -31,7 +29,9 @@ class type wiki =
 
 
 (********************************************)
-class makewiki ~(wikiinfo : wiki_in)      
+class makewiki
+    ~(wikiinfo : wiki_in)      
+    ~(sessionmanager : SessionManager.sessionmanager)
     ~(container : 
         Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> html Lwt.t)
@@ -303,16 +303,20 @@ class makewiki ~(wikiinfo : wiki_in)
           (fun () -> return []))
 
 
-       method login_actions sp sess =
-         if (me#w sess)
-         then Actions.register_for_session sp act_edit me#edit_action
-         else ()
+       method private login_actions sp sess =
+         return
+           (if (me#w sess)
+           then Actions.register_for_session sp act_edit me#edit_action
+           else ())
              
-       method logout_actions (sp : Eliom.server_params) = ()
+       method private logout_actions (sp : Eliom.server_params) = 
+         return ()
                       
        initializer
          register srv_main me#page_main;
          register srv_wikipage me#page_wikipage;
+         sessionmanager#add_login_actions me#login_actions;
+         sessionmanager#add_logout_actions me#logout_actions;
          if wikiinfo.writable_by = Users.anonymous()
          then Actions.register act_edit me#edit_action
          else ()
