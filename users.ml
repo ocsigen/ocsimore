@@ -33,62 +33,73 @@ exception UserExists
 exception NotAllowed
 exception BadPassword
 exception NoSuchUser
+exception Users_error of string
 
 type user = elt 
 
 (* The users structure (persistent data) *)
 let global_users_container =
-  Persist.create "global_users_container" 
-    (fun () -> 
-       let rec get_pwd message =
-	 print_string message;
-	 flush Pervasives.stdout;
-	 match (try
-		  let default = Unix.tcgetattr Unix.stdin in
-		  let silent = {default with 
-				  Unix.c_echo = false;
-				  Unix.c_echoe = false;
-				  Unix.c_echok = false;
-				  Unix.c_echonl = false}
-		  in Some (default, silent)
-		with _ -> None) 
-	 with
+
+
+print_endline "---------------->avant run guc";
+  Lwt_unix.run
+
+    (
+print_endline "---------------->run guc";
+
+Persist.create "global_users_container" 
+       (fun () -> 
+         let rec get_pwd message =
+	   print_string message;
+	   flush Pervasives.stdout;
+	   match (try
+	     let default = Unix.tcgetattr Unix.stdin in
+	     let silent = {default with 
+			   Unix.c_echo = false;
+			   Unix.c_echoe = false;
+			   Unix.c_echok = false;
+			   Unix.c_echonl = false}
+	     in Some (default, silent)
+	   with _ -> None) 
+	   with
 	   | Some (default, silent) ->
 	       Unix.tcsetattr Unix.stdin Unix.TCSANOW silent;
 	       (try  
-		  let s = input_line Pervasives.stdin 
-		  in Unix.tcsetattr Unix.stdin Unix.TCSANOW default; s
-		with x -> 
-		  Unix.tcsetattr Unix.stdin Unix.TCSANOW default; raise x)
+	         let s = input_line Pervasives.stdin 
+	         in Unix.tcsetattr Unix.stdin Unix.TCSANOW default; s
+	       with x -> 
+	         Unix.tcsetattr Unix.stdin Unix.TCSANOW default; raise x)
 	   | None ->  input_line Pervasives.stdin
-	       
-       and ask_pwd () = 
-	 let pwd1 = get_pwd "Enter new password for root: " in
-	 let pwd2 = get_pwd "\nEnter root's password once again: "
-	 in if pwd1 = pwd2 
+	         
+         and ask_pwd () = 
+	   let pwd1 = get_pwd "Enter new password for root: " in
+	   let pwd2 = get_pwd "\nEnter root's password once again: "
+	   in if pwd1 = pwd2 
 	   then (print_endline "\nNew password registered."; pwd1) 
 	   else (print_endline "\nPasswords do not match."; ask_pwd())
-	     
-       and ask_email () =
-	 print_endline "\nEnter a valid e-mail address for root: ";
-	 let email = input_line Pervasives.stdin in
+	       
+         and ask_email () =
+	   print_endline "\nEnter a valid e-mail address for root: ";
+	   let email = input_line Pervasives.stdin in
 	   print_endline ("\n'" ^ email ^ "': Confirm this address? (Y/N)");
 	   match input_line Pervasives.stdin with
-	     | "Y"|"y" -> print_endline "\n Thank you."; email
-	     | _ -> print_endline "\n"; ask_email()
-		 
-       and anon = {data = {name = "";
-			   pwd = None;
-			   desc = "Anonymous user";
-			   email = ""};
-		   set = empty}
-	 
-       in {data = {name = "root";
-		   pwd = Some (ask_pwd());
-		   desc = "Administrator";
-		   email = ask_email()};
-	   set = singleton anon})
+	   | "Y"|"y" -> print_endline "\n Thank you."; email
+	   | _ -> print_endline "\n"; ask_email()
+	         
+         and anon = {data = {name = "";
+			     pwd = None;
+			     desc = "Anonymous user";
+			     email = ""};
+		     set = empty}
+	     
+         in {data = {name = "root";
+		     pwd = Some (ask_pwd());
+		     desc = "Administrator";
+		     email = ask_email()};
+	     set = singleton anon}))
 
+;;print_endline "---------------->run guc fini";;
+    
 (* Get a user by name. Not exported in interface. *)
 let getbyname name =
   let rec f u = function
@@ -97,10 +108,20 @@ let getbyname name =
 	then Some u
 	else fold f u.set None
     | found -> found
-  in f (Persist.get global_users_container) None
+  in
+  f (Persist.get global_users_container) None
 
-let root () = match getbyname "root" with Some u -> u | _ -> assert false
-let anonymous () = match getbyname "" with Some u -> u | _ -> assert false
+
+let root () = 
+  match getbyname "root" with
+  | Some u -> u
+  | _ -> raise (Users_error "user root not created")
+
+let anonymous () =
+  match getbyname "" with
+  | Some u -> u
+  | _ -> raise (Users_error "user anonymous not created")
+
 
 (* Does user1 own user2? *)
 let ( <-?- ) user1 user2 =
@@ -131,23 +152,26 @@ let rec ( <-//- ) user1 user2 =
 
 let create_user ~name ~pwd ~desc ~email = 
   match getbyname name with
-    | Some _ -> raise UserExists
-    | None ->
-	let data = {name = name; pwd = pwd; desc = desc; email = email} in
-	let newuser = {data = data; set = singleton (anonymous())} in
-	  root() <--- newuser;
-	  Persist.write_back global_users_container;
-	  newuser
+  | Some _ -> fail UserExists
+  | None ->
+      let data = {name = name; pwd = pwd; desc = desc; email = email} in
+      let newuser = {data = data; set = singleton (anonymous ())} in
+      root () <--- newuser;
+      Persist.write_back global_users_container >>=
+      (fun () -> return newuser)
 
 let create_unique_user ~name ~pwd ~desc ~email = 
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
-  let rec suffix n = match getbyname n with
+  let rec suffix n = 
+    match getbyname n with
     | Some _ -> suffix (n ^ (digit "X"))
-    | None -> (create_user ~name:n ~pwd ~desc ~email, n)
+    | None -> 
+        create_user ~name:n ~pwd ~desc ~email >>= 
+        (fun x -> return (x, n))
   in suffix name
 
 let delete_user ~user =
-  root() <-//- user;
+  root () <-//- user;
   Persist.write_back global_users_container
 
 let in_group ~user ~group =
@@ -172,16 +196,16 @@ let update_user_data ~user =
     d.desc <- desc; 
     d.email <- email; 
     Persist.write_back global_users_container
-
+        
 (* authentication function *)
 let authenticate ~name ~pwd =
-  Preemptive.detach getbyname name >>=
-  function
-    | Some user -> 
-	if user.data.pwd = Some pwd 
-	then return user
-	else fail BadPassword
-    | None -> fail NoSuchUser
+  match getbyname name with
+  | Some user -> 
+      if user.data.pwd = Some pwd 
+      then user
+      else raise BadPassword
+  | None -> raise NoSuchUser
+
 
 (* randomly generates an 8-chars alnum password *)
 let generate_password () =
@@ -195,26 +219,32 @@ let generate_password () =
     Some pwd
 
 (* sends user data to the user's mail address *)
-let mail_password ~name ~from_addr ~subject = match getbyname name with
-  | None -> false 
-  | Some user -> let (_,pwd,desc,email) = get_user_data ~user in
-      try
-	ignore(Netaddress.parse email);
-	Netsendmail.sendmail 
-	  (Netsendmail.compose 
-	     ~from_addr 
-	     ~to_addrs:[(desc, email)] 
-	     ~subject
-	     ("This is an auto-generated message. "
-	      ^ "Please do not reply to it.\n"
-	      ^ "\n"
-	      ^ "Your account is:\n"
-	      ^ "\tUsername:\t" ^ name ^ "\n"
-	      ^ "\tPassword:\t" ^ (match pwd with Some p -> p | _ -> "(NONE)")
-	      ^ "\n"));
-	true
-      with _ -> false
-	  
+let mail_password ~name ~from_addr ~subject = 
+  match getbyname name with
+  | None -> return false 
+  | Some user -> 
+      let (_,pwd,desc,email) = get_user_data ~user in 
+      catch
+        (fun () ->
+          Preemptive.detach
+            (fun () ->
+	      ignore(Netaddress.parse email);
+	      Netsendmail.sendmail 
+	        (Netsendmail.compose 
+	           ~from_addr 
+	           ~to_addrs:[(desc, email)] 
+	           ~subject
+	           ("This is an auto-generated message. "
+	            ^ "Please do not reply to it.\n"
+	            ^ "\n"
+	            ^ "Your account is:\n"
+	            ^ "\tUsername:\t" ^ name ^ "\n"
+	            ^ "\tPassword:\t" ^ (match pwd with Some p -> p
+                    | _ -> "(NONE)")
+	            ^ "\n"));
+	      true)
+            ())
+        (fun _ -> return false)
 
 
 
@@ -223,7 +253,7 @@ let mail_password ~name ~from_addr ~subject = match getbyname name with
 module type T = sig  
   type t  
   val value: t  
-  val group: user  
+  val group: user
 end
 
 module Protect = functor (A: T) ->
@@ -241,7 +271,7 @@ let get_user_by_name =
     struct
       type t = name:string -> user option
       let value = fun ~name -> getbyname name
-      let group = root()
+      let group = root ()
     end)
   in M.f
 		
@@ -250,6 +280,6 @@ let get_user_groups =
     struct
       type t = user:user -> user list
       let value = fun ~user -> elements user.set
-      let group = root()
+      let group = root ()
     end)
   in M.f

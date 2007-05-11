@@ -27,6 +27,42 @@ class type forum = object
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
       Eliom.service
+  method box_forum :
+      Users.user option ->
+        Eliom.server_params -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_forum' :
+      Users.user option ->
+        Eliom.server_params ->
+          int32 * int32 -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_newmessage :
+      Users.user option ->
+        int32 ->
+          Eliom.server_params -> string -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_newthread :
+      Users.user option ->
+        Eliom.server_params ->
+          string * string -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_thread' :
+      Users.user option ->
+        Eliom.server_params ->
+          int32 * (int32 * int32) -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method page_forum :
+      Eliom.server_params -> unit -> unit -> Eliom.Xhtml.page Lwt.t
+  method page_forum' :
+      Eliom.server_params ->
+        int32 * int32 -> unit -> Eliom.Xhtml.page Lwt.t
+  method page_newmessage :
+      int32 ->
+        Eliom.server_params -> unit -> string -> Eliom.Xhtml.page Lwt.t
+  method page_newthread :
+      Eliom.server_params ->
+        unit -> string * string -> Eliom.Xhtml.page Lwt.t
+  method page_thread :
+      Eliom.server_params -> int32 -> unit -> Eliom.Xhtml.page Lwt.t
+  method page_thread' :
+      Eliom.server_params ->
+        int32 * (int32 * int32) -> unit -> Eliom.Xhtml.page Lwt.t
+
 end
 
 
@@ -37,7 +73,6 @@ class makeforum
     ~(container : 
         Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> html Lwt.t)
-    : forum
     =
 
   (* SERVICES *)
@@ -65,14 +100,16 @@ class makeforum
 
 
   (* creates the new forum once and gets its id *)
-  let frm_id = Sql.Persist.get (Sql.Persist.create 
-				  foruminfo.identifier 
-				  (fun () -> Sql.new_forum 
-                                     ~title:foruminfo.title 
-                                     ~descr:foruminfo.descr 
-                                     ~moderated:foruminfo.moderated))
+  let frm_id = 
+    Lwt_unix.run
+      (Sql.Persist.lwtcreate 
+         foruminfo.identifier 
+         (fun () -> Sql.new_forum 
+             ~title:foruminfo.title 
+             ~descr:foruminfo.descr 
+             ~moderated:foruminfo.moderated) >>=
+       (fun a -> return (Sql.Persist.get a)))
   in
-
 
   (* as above, within a given interval *)
   let srv_thread' = new_service
@@ -128,7 +165,6 @@ class makeforum
 
   object (me)
 
- 
       (* USEFUL STUFF *)
       
       (* true if user is logged on *)
@@ -318,11 +354,7 @@ class makeforum
 
 (* HTML FRAGMENTS: <html> PAGES *)
 
-  method private mk_forum_page sp sess feedback frm_data thr_l =
-    container
-      sp
-      sess
-      ~title:(foruminfo.title^" Forum")
+    method private mk_forum_box sp sess feedback frm_data thr_l =
       (me#feedback_box feedback ^:
        me#forum_data_box sp sess frm_data ^:
        me#forum_threads_list_box sp sess thr_l ^:
@@ -331,181 +363,206 @@ class makeforum
        [])
 
 
-  method private mk_thread_page sp sess feedback thr_data msg_l =
-    container
-      sp sess
-      ~title:(foruminfo.title^" Forum")
-        (me#feedback_box feedback ^:
-         me#thread_data_box sp sess thr_data ^:
+    method private mk_thread_box sp sess feedback thr_data msg_l =
+      (me#feedback_box feedback ^:
+       me#thread_data_box sp sess thr_data ^:
 (*--- 
    thread_messages_list_box sp sess msg_l ^:
    ---*)
-         me#thread_messageswtext_list_box sp sess msg_l ^:
-         (me#w sess) % 
-         post_form srv_newmessage sp me#new_message_form () ^?
-         [])
+       me#thread_messageswtext_list_box sp sess msg_l ^:
+       (me#w sess) % 
+       post_form srv_newmessage sp me#new_message_form () ^?
+       [])
 
 
 (*---
-   method private mk_message_page sp sess msg_data =
-    container
-      sp sess
-      ~title:(foruminfo.title^" Forum")
+   method private mk_message_box sp sess msg_data =
    [me#message_data_box sp sess msg_data;
    me#main_link_box sp])
    ---*)
 
-  method private mk_exception_page sp from exc =
-    container
-      sp None
-      ~title:(foruminfo.title^" Forum")
-      [div ~a:[a_class ["exception"]]
-         [h1 [pcdata "Exception:"];
-          p [pcdata ((Printexc.to_string exc)^" in function: "^from)]
-          ]]
-
-
-  method private mk_unauthorized_page sp sess =
-    container
-      sp sess
-      ~title:(foruminfo.title^" Forum")
-      [div ~a:[a_class ["unauthorized"]]
-         [h1 [pcdata "Restricted area:"];
-	  p [pcdata "Please log in with an authorized account."]]
+  method private mk_exception_box sp from exc =
+    div ~a:[a_class ["exception"]]
+      [h1 [pcdata "Exception:"];
+       p [pcdata ((Printexc.to_string exc)^" in function: "^from)]
      ]
 
+
+  method private mk_unauthorized_box sp sess =
+    div ~a:[a_class ["unauthorized"]]
+      [h1 [pcdata "Restricted area:"];
+       p [pcdata "Please log in with an authorized account."]]
 
 
 (* SERVICES & ACTIONS IMPLEMENTATION *)
 
-  method private lwt_page_with_exception_handling :
+  method private lwt_box_with_exception_handling :
       'a. Eliom.server_params -> Users.user option -> 
-        string -> (unit -> 'a) -> ('a -> html Lwt.t) -> html Lwt.t =
+        string -> (unit -> 'a Lwt.t) -> 
+          ('a -> [< Xhtmltypes.body_content > `Div ] elt list) -> 
+          [< Xhtmltypes.body_content > `Div ] elt list Lwt.t =
           fun sp sess failmsg f1 f2 ->
             catch      
-              (function () -> Preemptive.detach f1 () >>= 
-                fun x -> f2 x)
+              (function () -> f1 () >>= fun x -> return (f2 x))
               (function
-                | Unauthorized -> me#mk_unauthorized_page sp sess
-                | exc -> me#mk_exception_page sp failmsg exc)
-
+                | Unauthorized -> return [me#mk_unauthorized_box sp sess]
+                | exc -> return [me#mk_exception_box sp failmsg exc])
   
-  method private page_newthread = fun sp () (subject,txt) ->
-    get_persistent_data SessionManager.user_table sp >>=
-    (fun sess ->
-      let prepare () = 
-        if not (me#w sess) then 
-	  raise Unauthorized
-        else 
-	  let role = me#kindof sess in
-	  let author = me#name sess in
-	  Sql.new_thread_and_message ~frm_id ~author ~subject ~txt;
-	  (Sql.forum_get_data ~frm_id ~role,
-	   Sql.forum_get_threads_list 
-	     ~frm_id ~offset:0l ~limit:foruminfo.max_rows ~role)
-      and gen_html = fun (frm_data,thr_l) ->
-        let feedback = "Your message has been " ^
-          (match frm_data with (* get moderation status *)
-          | (_,_,_,true,_,_,_,_) -> 
-	      "sent; it is going to be submitted to the moderators' \
-                approvation. Should it not appear in the list, please \
-               do not send it again."
-          | (_,_,_,false,_,_,_,_) -> "published.") 
-        in
-        me#mk_forum_page sp sess feedback frm_data thr_l
-    in me#lwt_page_with_exception_handling 
-         sp sess "page_newthread" prepare gen_html)
+  method box_newthread = fun sess sp (subject,txt) ->
+    let prepare () = 
+      if not (me#w sess) then 
+	fail Unauthorized
+      else 
+	let role = me#kindof sess in
+	let author = me#name sess in
+	Sql.new_thread_and_message ~frm_id ~author ~subject ~txt >>=
+        (fun _ ->
+	  Sql.forum_get_data ~frm_id ~role >>=
+          (fun a ->
+	    Sql.forum_get_threads_list 
+	      ~frm_id ~offset:0l ~limit:foruminfo.max_rows ~role >>=
+            (fun b -> return (a,b))))
+    and gen_html = fun (frm_data,thr_l) ->
+      let feedback = "Your message has been " ^
+        (match frm_data with (* get moderation status *)
+        | (_,_,_,true,_,_,_,_) -> 
+	    "sent; it is going to be submitted to the moderators' \
+              approval. Should it not appear in the list, please \
+              do not send it again."
+      | (_,_,_,false,_,_,_,_) -> "published.")
+    in
+    me#mk_forum_box sp sess feedback frm_data thr_l
+  in me#lwt_box_with_exception_handling 
+    sp sess "page_newthread" prepare gen_html
+
+   method page_newthread sp () (subject,txt) =
+     get_persistent_data SessionManager.user_table sp >>=
+     (fun sess ->
+       me#box_newthread sess sp (subject,txt) >>=
+       container
+         sp
+         sess
+         ~title:(foruminfo.title^" Forum"))
 
 
 
-  method private page_newmessage thr_id = fun sp () (txt) ->
-    get_persistent_data SessionManager.user_table sp >>=
-    (fun sess ->
-      let prepare () = 
-        if not (me#w sess) then
-	  raise Unauthorized
-        else
-	  let role = me#kindof sess in
-	  let author = me#name sess in
-	  Sql.new_message ~frm_id ~thr_id ~author ~txt;
-	  (Sql.forum_get_data ~frm_id ~role,
-	   Sql.thread_get_data ~frm_id ~thr_id ~role,
+  method box_newmessage sess thr_id sp txt =
+    let prepare () = 
+      if not (me#w sess) then
+	fail Unauthorized
+      else
+	let role = me#kindof sess in
+	let author = me#name sess in
+	Sql.new_message ~frm_id ~thr_id ~author ~txt >>=
+        (fun _ ->
+          Sql.forum_get_data ~frm_id ~role >>=
+          (fun a ->
+	    Sql.thread_get_data ~frm_id ~thr_id ~role >>=
+            (fun b ->
 (*---
    Sql.thread_get_messages_list 
    ~frm_id ~thr_id ~offset:0l ~limit:foruminfo.max_rows ~role
    ---*)
-	   Sql.thread_get_messages_with_text_list 
-	     ~frm_id ~thr_id ~offset:0l ~limit:foruminfo.max_rows ~role)
-      and gen_html = fun (frm_data,thr_data,msg_l) ->
-        let feedback = "Your message has been " ^
-          (match frm_data with (* get moderation status *)
-          | (_,_,_,true,_,_,_,_) ->
-	      "sent; it is going to be submitted to the moderators' \
-                approvation. Should it not appear in the list, please \
-                do not send it again."
-          | (_,_,_,false,_,_,_,_) -> "published.")
-        in
-          me#mk_thread_page sp sess feedback thr_data msg_l
-     in me#lwt_page_with_exception_handling 
-          sp sess "page_newmessage" prepare gen_html)
+	      Sql.thread_get_messages_with_text_list 
+	        ~frm_id ~thr_id ~offset:0l 
+                ~limit:foruminfo.max_rows ~role >>=
+              (fun c -> return (a,b,c)))))
+    and gen_html = fun (frm_data,thr_data,msg_l) ->
+      let feedback = "Your message has been " ^
+        (match frm_data with (* get moderation status *)
+        | (_,_,_,true,_,_,_,_) ->
+	    "sent; it is going to be submitted to the moderators' \
+              approvation. Should it not appear in the list, please \
+              do not send it again."
+      | (_,_,_,false,_,_,_,_) -> "published.")
+    in
+    me#mk_thread_box sp sess feedback thr_data msg_l
+  in me#lwt_box_with_exception_handling 
+       sp sess "page_newmessage" prepare gen_html
+  
 
-
-  method private page_forum' = fun sp (offset,limit) () -> 
+  method page_newmessage thr_id sp () txt =
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
-      let prepare () = 
-        if not (me#r sess) then
-	  raise Unauthorized
-        else
-	  let role = me#kindof sess in
-	  if me#w sess && foruminfo.writable_by <> Users.anonymous() then
-	    register_for_session sp srv_newthread me#page_newthread
-	  else (); (* user can't write, OR service is public because
-		      everyone can write *)
-	  (Sql.forum_get_data ~frm_id ~role,
-	   Sql.forum_get_threads_list ~frm_id ~offset ~limit ~role)
-      and gen_html = fun (frm_data,thr_l) -> 
-        me#mk_forum_page sp sess "" frm_data thr_l
-      in me#lwt_page_with_exception_handling 
-        sp sess "page_forum" prepare gen_html)
+      me#box_newmessage sess thr_id sp txt >>=
+      container
+        sp sess
+        ~title:(foruminfo.title^" Forum"))
 
+  method box_forum' sess sp (offset,limit) =
+    let prepare () = 
+      if not (me#r sess) then
+	fail Unauthorized
+      else
+	let role = me#kindof sess in
+	if me#w sess && foruminfo.writable_by <> Users.anonymous () then
+	  register_for_session sp srv_newthread me#page_newthread
+	else (); (* user can't write, OR service is public because
+		    everyone can write *)
+	Sql.forum_get_data ~frm_id ~role >>=
+        (fun a -> 
+	  Sql.forum_get_threads_list ~frm_id ~offset ~limit ~role >>=
+          (fun b -> return (a,b)))
+    and gen_html = fun (frm_data,thr_l) -> 
+      me#mk_forum_box sp sess "" frm_data thr_l
+    in me#lwt_box_with_exception_handling 
+      sp sess "block_forum'" prepare gen_html
 
-  method private page_forum = fun sp () () -> 
+  method page_forum' sp (offset,limit) () =
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      me#box_forum' sess sp (offset,limit) >>=
+      container
+        sp
+        sess
+        ~title:(foruminfo.title^" Forum"))
+
+  method page_forum = fun sp () () -> 
     me#page_forum' sp (0l, foruminfo.max_rows) ()
 
+  method box_forum sess sp = 
+    me#box_forum' sess sp (0l, foruminfo.max_rows)
+
   
-  method private page_thread' = fun sp (thr_id,(offset,limit)) () ->
-    get_persistent_data SessionManager.user_table sp >>=
-    (fun sess ->
-      let prepare () = 
-        if not (me#r sess) then
-	  raise Unauthorized
-        else
-	  let role = me#kindof sess in
-	  if me#w sess
-	  then register_for_session sp srv_newmessage 
-              (me#page_newmessage thr_id)
-	  else ();
-	  match (Sql.thread_get_data ~frm_id ~thr_id ~role,
+  method box_thread' sess sp (thr_id,(offset,limit)) =
+    let prepare () = 
+      if not (me#r sess) then
+	fail Unauthorized
+      else
+	let role = me#kindof sess in
+	if me#w sess
+	then register_for_session sp srv_newmessage 
+            (me#page_newmessage thr_id)
+	else ();
+	Sql.thread_get_data ~frm_id ~thr_id ~role >>=
+        (fun a ->
 (*---
    Sql.thread_get_messages_list 
    ~frm_id ~thr_id ~offset:0l ~limit:foruminfo.max_rows ~role,
    ---*)
-	         Sql.thread_get_messages_with_text_list 
-		   ~frm_id ~thr_id ~offset ~limit ~role) with
-	  | ((_,_,_,_,true,_,_),[]) -> 
-	      (* Raises an exc if someone's trying to see a hidden thread 
-	         with no messages by herself *)
-	      raise Unauthorized
-	  | (thr_data,msg_l) -> (thr_data,msg_l)
-                
-      and gen_html = fun (thr_data,msg_l) ->
-        me#mk_thread_page sp sess "" thr_data msg_l
-      in me#lwt_page_with_exception_handling 
-        sp sess "page_thread" prepare gen_html)
+	  Sql.thread_get_messages_with_text_list 
+	    ~frm_id ~thr_id ~offset ~limit ~role >>=
+          (fun b -> return (a,b))) >>= function
+	    | ((_,_,_,_,true,_,_),[]) -> 
+	        (* Raises an exc if someone's trying to see a hidden thread 
+	           with no messages by herself *)
+	        fail Unauthorized
+	    | (thr_data,msg_l) -> return (thr_data,msg_l)
+                    
+    and gen_html = fun (thr_data,msg_l) ->
+      me#mk_thread_box sp sess "" thr_data msg_l
+    in me#lwt_box_with_exception_handling 
+      sp sess "page_thread" prepare gen_html
 
+  method page_thread' sp (thr_id,(offset,limit)) () =
+    get_persistent_data SessionManager.user_table sp >>=
+    (fun sess ->
+      me#box_thread' sess sp (thr_id,(offset,limit)) >>=
+      container
+        sp sess
+        ~title:(foruminfo.title^" Forum"))
   
-  method private page_thread = fun sp thr_id () ->
+  method page_thread = fun sp thr_id () ->
     me#page_thread' sp (thr_id,(0l,foruminfo.max_rows)) ()
 
   
@@ -520,21 +577,19 @@ class makeforum
    in
    ---*)
 
-  method private forum_toggle = fun sp () _ -> 
-    Preemptive.detach (fun i -> Sql.forum_toggle_moderated ~frm_id:i) frm_id
-      >>= (fun () -> return [])
+  method private forum_toggle = fun sp () () -> 
+    Sql.forum_toggle_moderated ~frm_id >>=
+    fun () -> return []
 
 
   method private thread_toggle = fun sp () thr_id -> 
-    Preemptive.detach (fun i -> Sql.thread_toggle_hidden 
-        ~frm_id ~thr_id:i) thr_id
-      >>= (fun () -> return [])
+    Sql.thread_toggle_hidden ~frm_id ~thr_id >>= 
+    fun () -> return []
 
 
   method private message_toggle = fun sp () msg_id -> 
-    Preemptive.detach (fun i -> Sql.message_toggle_hidden 
-        ~frm_id ~msg_id:i) msg_id
-      >>= (fun () -> return [])
+    Sql.message_toggle_hidden ~frm_id ~msg_id >>= 
+    fun () -> return []
 
 
     method srv_forum : 
@@ -555,6 +610,7 @@ class makeforum
     method private logout_actions sp = return ()
         
     initializer
+print_endline "->initializer";
       register srv_forum me#page_forum;
       register srv_forum' me#page_forum';
       register srv_thread me#page_thread;
@@ -562,8 +618,8 @@ class makeforum
       sessionmanager#add_login_actions me#login_actions;
       sessionmanager#add_logout_actions me#logout_actions;
 (*---
-    register srv_message page_message;
-  ---*)
+   register srv_message page_message;
+   ---*)
       if foruminfo.writable_by = Users.anonymous() then (
         (* see comment to register_aux in page_forum' *)
         register srv_newthread me#page_newthread
@@ -571,3 +627,16 @@ class makeforum
 
 
 end
+
+let newforum
+    ~(foruminfo : forum_in)      
+    ~(sessionmanager : SessionManager.sessionmanager)
+    ~(container : 
+        Eliom.server_params -> Users.user option -> title:string -> 
+          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
+    : forum Lwt.t
+    = 
+  let o = new makeforum ~foruminfo ~sessionmanager ~container in
+  return (o :> forum)
+  
+

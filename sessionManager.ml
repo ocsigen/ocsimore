@@ -25,7 +25,8 @@ class type sessionmanager = object
       (Eliom.server_params -> unit Lwt.t) -> unit
 end
 
-class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
+class makesessionmanager 
+    ~(sessionmanagerinfo: sessionmanager_in)
     ~(container: 
         (Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t)) =
@@ -157,36 +158,41 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
       me#page_register "ERROR: Bad formed e-mail address!" sp () ()
     else 
       let pwd = generate_password() in
-      let (user,n) = create_unique_user ~name:usr ~pwd ~desc ~email in
-	if (mail_password 
-	      ~name:n ~from_addr:sessionmanagerinfo.registration_mail_from 
-	      ~subject:sessionmanagerinfo.registration_mail_subject) 
-	then 
-	  (List.iter
-	     (fun g -> add_group ~user ~group:g) 
-	     sessionmanagerinfo.default_groups;
-           container
-             sp
-             ~title:"Registration"
-             None
-             [h1 [pcdata "Registration ok."];
-	      p [pcdata "You'll receive soon an e-mail message at the \
-                     following address:";
-		     br();
-		 pcdata email;
-		 br();
-		 pcdata "reporting your login name and password."]
-	    ])
-	else 
-	  (delete_user ~user;
-           container
-             sp
-             ~title:"Registration"
-             None
-             [h1 [pcdata "Registration failed."];
-	      p [pcdata "Please try later."]
-	    ])
-
+        create_unique_user ~name:usr ~pwd ~desc ~email >>= fun (user,n) ->
+	  mail_password 
+	    ~name:n ~from_addr:sessionmanagerinfo.registration_mail_from 
+	    ~subject:sessionmanagerinfo.registration_mail_subject >>=
+          (fun b ->
+            if b
+	    then begin
+	      List.fold_left
+	        (fun thr g -> thr >>= (fun () -> add_group ~user ~group:g))
+                (return ())
+	        sessionmanagerinfo.default_groups >>= (fun () ->
+                  container
+                    sp
+                    ~title:"Registration"
+                    None
+                    [h1 [pcdata "Registration ok."];
+	             p [pcdata "You'll receive soon an e-mail message at the \
+                      following address:";
+		          br();
+		        pcdata email;
+		        br();
+		        pcdata "reporting your login name and password."]
+	           ])
+            end
+	    else 
+	      delete_user ~user >>= (fun () ->
+                container
+                  sp
+                  ~title:"Registration"
+                  None
+                  [h1 [pcdata "Registration failed."];
+	           p [pcdata "Please try later."]
+	         ])
+          )
+                
 
   method private page_reminder err = fun sp () () -> 
     container
@@ -215,28 +221,30 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
   method private page_reminder_done = fun sp () usr ->
     if not (me#valid_username usr) then
       me#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
-    else (if (mail_password 
-		~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
-		~subject:sessionmanagerinfo.registration_mail_subject) 
-    then 
-      container
-        sp
-        ~title:"Password reminder"
-        None
-        [h1 [pcdata "Password sent."];
-	 p [pcdata "You'll receive soon an e-mail message at \
-              the address you entered when you \
-                  registered your account."]
-	 ]
-     else 
-       container
-         sp
-         ~title:"Password reminder"
-         None
-         [h1 [pcdata "Failure."];
-	  p [pcdata "The username you entered doesn't exist, or \
-                                   the service is unavailable at the moment."]
-	  ])
+    else 
+      mail_password 
+	~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
+	~subject:sessionmanagerinfo.registration_mail_subject >>= (fun b ->
+          if b
+          then 
+            container
+              sp
+              ~title:"Password reminder"
+              None
+              [h1 [pcdata "Password sent."];
+	       p [pcdata "You'll receive soon an e-mail message at \
+                    the address you entered when you \
+                        registered your account."]
+	        ]
+          else 
+            container
+              sp
+              ~title:"Password reminder"
+              None
+              [h1 [pcdata "Failure."];
+	       p [pcdata "The username you entered doesn't exist, or \
+                    the service is unavailable at the moment."]
+	        ])
 
 
   method private page_edit user err = fun sp () () ->
@@ -296,18 +304,19 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
       (fun () -> 
         catch
           (fun () ->
-            authenticate usr pwd >>= 
-            (fun user -> 
-              set_persistent_data user_table sp user >>=
+            let user = authenticate usr pwd in
+            set_persistent_data user_table sp user >>=
+            (fun () ->
+              all_login_actions sp (Some user) >>=
               (fun () ->
                 return (
-                all_login_actions sp (Some user);
                 register_for_session sp srv_edit (me#page_edit user "");
-                register_for_session sp srv_edit_done (me#page_edit_done user);
-                []
-               ))))
+                register_for_session sp srv_edit_done
+                  (me#page_edit_done user);
+                [])
+              )))
           (fun e -> return [e])))
-
+      
   method add_login_actions f =
     all_login_actions <- 
     fun sp u -> 
@@ -343,6 +352,8 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
 	          act_login sp (fun (usr, pwd) -> 
                     (me#login_box sp false usr pwd)) ()
 
+    method lwtinit = return ()
+
     initializer
       Actions.register act_login me#mk_act_login;
       Actions.register act_logout me#mk_act_logout;
@@ -352,3 +363,13 @@ class makesessionmanager (sessionmanagerinfo: sessionmanager_in)
       register srv_reminder_done me#page_reminder_done;
 
   end
+
+let newsessionmanager
+    ~(sessionmanagerinfo: sessionmanager_in)
+    ~(container: 
+        (Eliom.server_params -> Users.user option -> title:string ->
+          XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t)) :
+    sessionmanager Lwt.t =
+  let o = new makesessionmanager ~sessionmanagerinfo ~container in
+  o#lwtinit >>=
+  (fun () -> return (o :> sessionmanager))

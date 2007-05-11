@@ -18,10 +18,10 @@ class type sessionmanager = object
       (Eliom.server_params -> unit Lwt.t) -> unit
 end
 
-class makesessionmanager :
-    sessionmanager_in ->
+val newsessionmanager :
+    sessionmanagerinfo:sessionmanager_in ->
       container: 
         (Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
-            sessionmanager
+            sessionmanager Lwt.t
 

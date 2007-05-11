@@ -17,11 +17,11 @@ class type wiki = object
 end
 
 
-class makewiki :
+val newwiki :
     wikiinfo:wiki_in ->
       sessionmanager: SessionManager.sessionmanager ->
         container: 
           (Eliom.server_params -> Users.user option -> title:string -> 
             XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
-              wiki
+              wiki Lwt.t
 

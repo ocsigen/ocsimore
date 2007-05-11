@@ -17,13 +17,49 @@ class type forum = object
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
       Eliom.service
+  method box_forum :
+      Users.user option ->
+        Eliom.server_params -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_forum' :
+      Users.user option ->
+        Eliom.server_params ->
+          int32 * int32 -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_newmessage :
+      Users.user option ->
+        int32 ->
+          Eliom.server_params -> string -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_newthread :
+      Users.user option ->
+        Eliom.server_params ->
+          string * string -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_thread' :
+      Users.user option ->
+        Eliom.server_params ->
+          int32 * (int32 * int32) -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method page_forum :
+      Eliom.server_params -> unit -> unit -> Eliom.Xhtml.page Lwt.t
+  method page_forum' :
+      Eliom.server_params ->
+        int32 * int32 -> unit -> Eliom.Xhtml.page Lwt.t
+  method page_newmessage :
+      int32 ->
+        Eliom.server_params -> unit -> string -> Eliom.Xhtml.page Lwt.t
+  method page_newthread :
+      Eliom.server_params ->
+        unit -> string * string -> Eliom.Xhtml.page Lwt.t
+  method page_thread :
+      Eliom.server_params -> int32 -> unit -> Eliom.Xhtml.page Lwt.t
+  method page_thread' :
+      Eliom.server_params ->
+        int32 * (int32 * int32) -> unit -> Eliom.Xhtml.page Lwt.t
+
 end
 
-class makeforum :
+val newforum :
   foruminfo:forum_in ->
     sessionmanager: SessionManager.sessionmanager ->
       container: 
         (Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
-            forum
+            forum Lwt.t
 

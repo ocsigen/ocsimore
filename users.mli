@@ -21,34 +21,36 @@ type user
 
 (** Creates a new user with given parameters. 
     Raises {!Users.UserExists} if [name] is already present. *)
-val create_user: name:string -> pwd:string option -> desc:string -> email:string -> user
+val create_user: name:string -> pwd:string option -> desc:string -> 
+  email:string -> user Lwt.t
 
 (** Same as [create_user], but may add a random suffix to [name] for
     failure avoidance. Returns the new user and its name. *)
-val create_unique_user: name:string -> pwd:string option -> desc:string -> email:string -> user * string
+val create_unique_user: name:string -> pwd:string option -> desc:string -> email:string -> (user * string) Lwt.t
 
 (** Gets user info. *)
-val get_user_data : user:user -> string * string option * string * string 
+val get_user_data : user:user -> string * string option * string * string
   (** Return value is {i (name, password, description, e-mail address)}.*)
 
 (** Updates user info. *)
-val update_user_data : user:user -> ?pwd:string option -> ?desc:string -> ?email:string -> unit -> unit
+val update_user_data : user:user -> ?pwd:string option -> 
+  ?desc:string -> ?email:string -> unit -> unit Lwt.t
   (** Raises {!Users.NotAllowed} if [user] is the anonymous user.
       Note: omission of an optional parameter stands for {e "do not
       change current value"}. *)
 
 (** Deletes a [user]. *)
-val delete_user : user:user -> unit
+val delete_user : user:user -> unit Lwt.t
 
 (** Returns [true] iif [user] is in [group]. *)
 val in_group : user:user -> group:user -> bool
 
 (** Adds [user] to [group].
     Raises {!Users.Loop} when attempting to make cyclic group membership. *)
-val add_group : user:user -> group:user -> unit
+val add_group : user:user -> group:user -> unit Lwt.t
 
 (** Removes [user] from [group]. *)
-val remove_group : user:user -> group:user -> unit
+val remove_group : user:user -> group:user -> unit Lwt.t
 
 (** The anonymous user *)
 val anonymous : unit -> user
@@ -56,13 +58,14 @@ val anonymous : unit -> user
   (** {3 Authentication} *)
 
 (** Authentication function. *)
-val authenticate : name:string -> pwd:string -> user Lwt.t
+val authenticate : name:string -> pwd:string -> user
 
 (** Automatic password generation. *)
 val generate_password : unit -> string option
 
 (** Password reminder via e-mail. *)
-val mail_password : name:string -> from_addr:string * string -> subject:string -> bool
+val mail_password : 
+     name:string -> from_addr:string * string -> subject:string -> bool Lwt.t
   (** If a user named [name] exists and has some e-mail address,
       [mail-password ~name ~from_addr ~subject] sends an e-mail message to
       such address and returns [true]; otherwise, returns [false]. *)
@@ -87,7 +90,7 @@ sig
 
   (** [f ~actor] returns [A.value] if [actor] is in [A.group];
       otherwise it raises [NotAllowed]. *)
-  val f : actor:user -> A.t 
+  val f : actor:user -> A.t
 
 end
   

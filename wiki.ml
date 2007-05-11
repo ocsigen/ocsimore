@@ -35,7 +35,6 @@ class makewiki
     ~(container : 
         Eliom.server_params -> Users.user option -> title:string -> 
           XHTML.M.block XHTML.M.elt list -> html Lwt.t)
-    : wiki
     = 
 
   (* SERVICES *)
@@ -66,11 +65,14 @@ class makewiki
           
         
         (* creates the new wiki once and gets its id *)
-  let wik_id = Sql.Persist.get (Sql.Persist.create 
-                                  wikiinfo.identifier 
-                                  (fun () -> Sql.new_wiki
-                                      ~title:wikiinfo.title 
-                                      ~descr:wikiinfo.descr))
+  let wik_id = 
+    Lwt_unix.run
+      (Sql.Persist.lwtcreate 
+         wikiinfo.identifier 
+         (fun () -> Sql.new_wiki
+             ~title:wikiinfo.title 
+             ~descr:wikiinfo.descr) >>=
+       (fun a -> return (Sql.Persist.get a)))
   in
           
   object (me)
@@ -86,13 +88,13 @@ class makewiki
     method private r = function
       | Some user -> 
           Users.in_group ~user ~group:wikiinfo.readable_by
-      | _ -> wikiinfo.readable_by = Users.anonymous()
+      | _ -> wikiinfo.readable_by = Users.anonymous ()
             
             (* true if user can write wikipages *)
     method private w = function
       | Some user -> 
           Users.in_group ~user ~group:wikiinfo.writable_by
-      | _ -> wikiinfo.writable_by = Users.anonymous()
+      | _ -> wikiinfo.writable_by = Users.anonymous ()
             
             (* gets login name *)
     method private name = function
@@ -104,9 +106,9 @@ class makewiki
 
     method srv_main :
         (unit, unit, Eliom.get_service_kind,
-         [< Eliom.suff ] as 'c, unit Eliom.param_name, unit Eliom.param_name,
-         [< Eliom.registrable ] as 'd)
-        Eliom.service
+         [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
+         [ `Registrable ])
+        Eliom.service 
         = srv_main
 
           (* HTML FRAGMENTS: <form> CONTENTS *)
@@ -260,10 +262,10 @@ class makewiki
 (* SERVICES & ACTIONS IMPLEMENTATION *)
       method private lwt_page_with_exception_handling :
           'a. Eliom.server_params -> Users.user option -> 
-            string -> (unit -> 'a) -> ('a -> html Lwt.t) -> html Lwt.t =
+            string -> (unit -> 'a Lwt.t) -> ('a -> html Lwt.t) -> html Lwt.t =
         fun sp sess failmsg f1 f2 ->
           catch      
-            (function () -> Preemptive.detach f1 () >>= fun x -> f2 x)
+            (function () -> f1 () >>= fun x -> f2 x)
             (function
               | Unauthorized -> me#mk_unauthorized_page sp sess
               | exc -> me#mk_exception_page sp failmsg exc)
@@ -272,8 +274,10 @@ class makewiki
         get_persistent_data SessionManager.user_table sp >>=
         (fun sess ->
           let prepare () = 
-            (Sql.wiki_get_data ~wik_id, 
-             Sql.wiki_get_pages_list ~wik_id)
+            Sql.wiki_get_data ~wik_id >>=
+            (fun a ->
+              Sql.wiki_get_pages_list ~wik_id >>=
+              (fun b -> return (a,b)))
           and gen_html (wik_data, wpg_l) = 
             me#mk_main_page sp sess wik_data wpg_l
           in 
@@ -285,8 +289,8 @@ class makewiki
         (fun sess ->
           let prepare () = 
             if (me#r sess) 
-            then Sql.wikipage_get_data ~wik_id ~suffix:sfx 
-            else raise Unauthorized
+            then Sql.wikipage_get_data ~wik_id ~suffix:sfx
+            else fail Unauthorized
           and gen_html = function
             | Some wpg_data -> me#mk_existing_wikipage sp sess sfx wpg_data
             | None -> me#mk_blank_wikipage sp sess sfx
@@ -296,10 +300,8 @@ class makewiki
       method private edit_action sp () (suffix,(subject,txt)) =
         get_persistent_data SessionManager.user_table sp >>=
         (fun sess ->
-          Preemptive.detach 
-            (fun a -> 
-              Sql.add_or_change_wikipage ~wik_id ~suffix ~subject ~txt ~author:a)
-            (me#name sess) >>=
+          Sql.add_or_change_wikipage
+            ~wik_id ~suffix ~subject ~txt ~author:(me#name sess) >>=
           (fun () -> return []))
 
 
@@ -317,8 +319,21 @@ class makewiki
          register srv_wikipage me#page_wikipage;
          sessionmanager#add_login_actions me#login_actions;
          sessionmanager#add_logout_actions me#logout_actions;
-         if wikiinfo.writable_by = Users.anonymous()
+         if wikiinfo.writable_by = Users.anonymous ()
          then Actions.register act_edit me#edit_action
          else ()
 
 end
+
+let newwiki
+    ~(wikiinfo : wiki_in)      
+    ~(sessionmanager : SessionManager.sessionmanager)
+    ~(container : 
+        Eliom.server_params -> Users.user option -> title:string -> 
+          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
+    : wiki Lwt.t
+    = 
+  let o = new makewiki ~wikiinfo ~sessionmanager ~container in
+  return (o :> wiki)
+  
+
