@@ -41,13 +41,9 @@ type user = elt
 let global_users_container =
 
 
-print_endline "---------------->avant run guc";
   Lwt_unix.run
 
-    (
-print_endline "---------------->run guc";
-
-Persist.create "global_users_container" 
+    (Persist.create "global_users_container" 
        (fun () -> 
          let rec get_pwd message =
 	   print_string message;
@@ -98,7 +94,6 @@ Persist.create "global_users_container"
 		     email = ask_email()};
 	     set = singleton anon}))
 
-;;print_endline "---------------->run guc fini";;
     
 (* Get a user by name. Not exported in interface. *)
 let getbyname name =

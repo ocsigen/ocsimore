@@ -105,10 +105,11 @@ class makesessionmanager
 	      [a srv_register sp [pcdata "New user? Register now!"] ()]) 
 	   []]
 	@ (if error
-	   then [tr(td ~a:[a_colspan 2]
-		      [a srv_reminder sp [pcdata "Forgot your password?"] ()])
-		   []]
-	   else []))]
+	then [tr (td ~a:[a_colspan 2] [pcdata "Wrong login or password"]) [];
+	      tr (td ~a:[a_colspan 2]
+		    [a srv_reminder sp [pcdata "Forgot your password?"] ()]) []
+            ]
+	else []))]
 
   
   method private logout_box sp user =
@@ -318,9 +319,10 @@ class makesessionmanager
           (fun e -> return [e])))
       
   method add_login_actions f =
+    let old_la = all_login_actions in
     all_login_actions <- 
     fun sp u -> 
-      all_login_actions sp u >>=
+      old_la sp u >>=
       (fun () -> f sp u)
 	
   method private mk_act_logout sp () () = 
@@ -328,9 +330,10 @@ class makesessionmanager
     (fun () -> close_session sp >>= (fun () -> return []))
 
   method add_logout_actions f =
+    let old_la = all_logout_actions in
     all_logout_actions <- 
     fun sp -> 
-      all_logout_actions sp >>=
+      old_la sp >>=
       (fun () -> f sp)
 	
 

@@ -21,13 +21,6 @@ module Persist = struct
   let lwtcreate name default =
     detach
       (fun () ->
-print_endline ("dans detach "^name);
-)
-       () >>=
-    fun () ->
-print_endline "apres detach";
-    detach
-      (fun () ->
         begin_work(db);
         match PGSQL(db) 
             "SELECT value FROM globalstore WHERE key = $name" with

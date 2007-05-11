@@ -24,6 +24,13 @@ class type forum = object
       Users.user option ->
         Eliom.server_params ->
           int32 * int32 -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_threads_list :
+      Users.user option ->
+        Eliom.server_params -> XHTML.M.block XHTML.M.elt list Lwt.t
+  method box_threads_list' :
+      Users.user option ->
+        Eliom.server_params ->
+          int32 * int32 -> XHTML.M.block XHTML.M.elt list Lwt.t
   method box_newmessage :
       Users.user option ->
         int32 ->
@@ -42,8 +49,7 @@ class type forum = object
       Eliom.server_params ->
         int32 * int32 -> unit -> Eliom.Xhtml.page Lwt.t
   method page_newmessage :
-      int32 ->
-        Eliom.server_params -> unit -> string -> Eliom.Xhtml.page Lwt.t
+      Eliom.server_params -> int32 -> string -> Eliom.Xhtml.page Lwt.t
   method page_newthread :
       Eliom.server_params ->
         unit -> string * string -> Eliom.Xhtml.page Lwt.t
