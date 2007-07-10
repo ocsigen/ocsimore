@@ -33,5 +33,4 @@ val parse :
     (string, unit, [< Eliom.get_service_kind ], [< Eliom.suff ], 'a,
      unit Eliom.param_name, [< Eliom.registrable ])
     Eliom.service * Eliom.server_params ->
-    string -> [> `H1 | `H2 | `H3 | `P | `Pre ] XHTML.M.elt list
-
+    string -> {{ Xhtml1_strict.flows }}

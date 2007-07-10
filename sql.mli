@@ -104,8 +104,8 @@ val message_get_neighbours :
     hidden status). *)
 val forum_get_threads_list :
   frm_id:int32 ->
-  offset:int32 ->
-  limit:int32 ->
+  offset:int64 ->
+  limit:int64 ->
   role:role -> (int32 * string * string * Calendar.t * bool) list Lwt.t
 
 (** returns the messages list of a thread, ordered cronologycally
@@ -114,16 +114,16 @@ val forum_get_threads_list :
     status). *)
 val thread_get_messages_list :
   frm_id:int32 ->  thr_id:int32 ->
-  offset:int32 ->
-  limit:int32 -> role:role -> (int32 * string * Calendar.t * bool)
+  offset:int64 ->
+  limit:int64 -> role:role -> (int32 * string * Calendar.t * bool)
   list Lwt.t
 
 (** as above, but returns the text of each message too.
     A list elt is (msg_id, text, author, datetime, hidden status). *)
 val thread_get_messages_with_text_list :
   frm_id:int32 ->  thr_id:int32 ->
-  offset:int32 ->
-  limit:int32 -> role:role -> (int32 * string * string * Calendar.t * bool)
+  offset:int64 ->
+  limit:int64 -> role:role -> (int32 * string * string * Calendar.t * bool)
   list Lwt.t
 
 

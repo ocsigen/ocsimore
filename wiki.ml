@@ -1,8 +1,8 @@
 (** Tool for wiki creation. *)
 
-open XHTML.M
+(* open XHTML.M *)
 open Eliom
-open Eliom.Xhtml
+open Eliomduce.Xhtml
 open Lwt
 open Ocsimorelib
 
@@ -20,7 +20,10 @@ type wiki_in =
 
 class type wiki = 
   object
-     method srv_main :
+		method container: 
+        Eliom.server_params -> Users.user option -> title:string -> 
+          {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
+		method srv_main:
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
@@ -32,9 +35,6 @@ class type wiki =
 class makewiki
     ~(wikiinfo : wiki_in)      
     ~(sessionmanager : SessionManager.sessionmanager)
-    ~(container : 
-        Eliom.server_params -> Users.user option -> title:string -> 
-          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
     = 
 
   (* SERVICES *)
@@ -77,6 +77,16 @@ class makewiki
           
   object (me)
 
+	method container (sp: Eliom.server_params) (user: Users.user option) ~title:(t: string) (contents: {{ Xhtml1_strict.blocks }}): {{ Xhtml1_strict.html }} Lwt.t =
+	begin
+		return {{ <html>[
+			<head>[
+				<title>{: t :}
+			]
+			<body>{: contents :}
+		] }}	
+	end
+
           (* USEFUL STUFF *)
           
           (* true if user is logged on *)
@@ -115,154 +125,170 @@ class makewiki
 
           (* a form to get to a wikipage by suffix *)
       method private goto_wikipage_form sfx =
-        [p [pcdata "Wikipage suffix: ";
-            string_input sfx;
-            submit_input "go!"]]
+				{{ [<p>[
+					'Wikipage suffix: '
+					{: string_input sfx :}
+					{: submit_input "Go!" :}
+				]] }}
 
           (* a form for wikipage editing *)
       method private edit_wikipage_form 
           sfx' subject' txt' (sfx,(subject,txt)) =
-        [p [pcdata "Subject:";
-            string_input ~a:[a_value subject'] subject;
-            br();
-            pcdata "Page body:";
-            br();
-            textarea txt 5 80 (pcdata txt');
-            br();
-            hidden_string_input sfx sfx';
-            submit_input "submit"]]
+				{{ [<p>[
+					'Subject: '
+					{: string_input ~a:{{ { value={: subject' :} } }} subject :}
+					<br>[]
+					'Page body: '
+					<br>[]
+					{: textarea txt 5 80 {{ {: txt' :} }} :}
+					<br>[]
+					{: hidden_string_input sfx sfx' :}
+					{: submit_input "Submit" :}
+				]] }}
 
           (* HTML FRAGMENTS: <div> BOXES *) 
           (* the Wiki description box *)
       method private wiki_data_box data =
         let (title, description, n_pages) = data in
-        div ~a:[a_class ["wiki_data"]]
-          [h1 [pcdata ("Wiki: " ^ title)];
-           h2 [pcdata ("Description: " ^ description)];
-           h3 [pcdata ("There are " ^ soL n_pages ^ " wikipages at present.")]]
+				{{ <div class="wiki_data">[
+					<h1>{: Format.sprintf "Wiki: %s" title :}
+					<h2>{: Format.sprintf "Description: %s" description :}
+					<h3>{: Format.sprintf "There are %Ld wikipages at present." n_pages :}
+				] }}
 
           (* the wikipages list *)
       method private wikipages_list_box sp wpg_l =
         let fields = ["subject"; "author"; "date/time"] in
-        let tblhead = List.map (fun i -> th [pcdata i]) fields in
+        let tblhead = List.map (fun i -> {{ <th>{: i :} }}) fields in
         let tbldata = List.map 
             (fun (subject, suffix, author, datetime) ->
-              [td [a srv_wikipage sp [pcdata subject] suffix];
-               td [pcdata author];
-               td [pcdata (sod datetime)]])
+							{{ [
+								<td>[{: a srv_wikipage sp {{ {: subject :} }} suffix :}]
+								<td>{: author :}
+								<td>{: sod datetime :}
+							] }})		
             wpg_l in
-        let tr' = function (x::xs) -> tr x xs | [] -> assert false in
-        div ~a:[a_class ["wikipages_list"]]
-          [table (tr' tblhead) (List.map tr' tbldata)]
+        (*let tr' = function (x::xs) -> tr x xs | [] -> assert false in *)
+				{{ <div class="wikipages_list">[
+					<table>[<tr>[{: List.hd tblhead :} !{: List.tl tblhead :}] !{: List.map (fun x -> {{ <tr>{: x :} }}) tbldata :}]
+				] }}
 
           (* the wikipage content; text is parsed for commands *)
       method private wikipage_data_box sp (subject, text, author, datetime) =
-        div ~a:[a_class ["wikipage_data"]]
-          [h1 [pcdata subject];
-           div ~a:[a_class ["Wikipage_parsed_data"]]
-             (Wikiparser.parse (srv_wikipage, sp) text);
-           h4 [pcdata ("Last modified: " ^ author ^ " " ^ (sod datetime))]]
+				{{ <div class="wikipage_data">[
+					<h1>{: subject :}
+					<div class="wikipage_parsed_data">{: Wikiparser.parse (srv_wikipage, sp) text :}
+					<h4>{: Format.sprintf "Last modified: %s %s" author (sod datetime) :}
+				] }}
 
           (* how to get to a wikipage? *)
       method private wiki_howto_box =
-        div ~a:[a_class ["wiki_howto"]]
-          [h3 [pcdata "To visit a wikipage, fill in the following form or \
-                 choose one of the links listed below."]]
+				{{ <div class="wiki_howto">[
+					<h3>"To visit a wikipage, fill in the following form or \
+						choose one of the links listed below."
+				] }}
 
                      (* how to edit a wikipage? *)
       method private wikipage_howto_box =
-        div ~a:[a_class ["wikipage_howto"]]
-          [h3 [pcdata "The following form allows you to edit the content of \
-                 this Wikipage."];
-                 p [pcdata "The 'subject' field will be the main title \
-                    of the page.";
-                        br();
-                    pcdata "The 'body' may contain formatted text, \
-                      using the well-known '%'-commands."]]
+				{{ <div class="wikipage_howto">[
+					<h3>"The following form allows you to edit the content of \
+                 this Wikipage."
+          <p>['The \'subject\' field will be the main title of the page.'
+					<br>[]
+          'The \'body\' may contain formatted text, \
+					using the well-known \'%\'-commands.']
+				] }}
 
                       (* default message for blank wikipages *)
       method private blank_wikipage_box =
-        div ~a:[a_class ["blank_wikipage"]]
-          [h3 [pcdata "This wikipage does not exist yet."];
-           p [pcdata "Authorized users can create a new page at this address. \
+				{{ <div class="blank_wikipage">[
+					<h3>"This wikipage does not exist yet."
+					<p>"Authorized users can create a new page at this address. \
                 If this is not your case, please check the wikipage address \
-                for typos."]]
-
+                for typos."
+				] }}
                     (* a link to the Wiki main page *)
       method private main_link_box sp =
-        div ~a:[a_class ["main_link"]]
-          [a srv_main sp 
-             [pcdata ("Back to \"" ^wikiinfo.title^ "\" Wiki homepage")] ()]
-
+				{{ <div class="main_link">[
+					{: a srv_main sp {{ {: Format.sprintf "Back to \"%s\" Wiki homepage" wikiinfo.title :} }} () :}
+				] }}
 
 
           (* HTML FRAGMENTS: <html> PAGES *)
           
           (* code for the Wiki main page *)
       method private mk_main_page sp sess wik_data wpg_l =
-        container
+        me#container
           sp
           sess
           ~title:(wikiinfo.title^" Wiki")
-          [me#wiki_data_box wik_data;
-           me#wiki_howto_box;
-           get_form srv_wikipage sp me#goto_wikipage_form; 
-           me#wikipages_list_box sp wpg_l;
-           ]
-
+					{{ [
+						{: me#wiki_data_box wik_data :}
+           	{: me#wiki_howto_box :}
+           	{: get_form srv_wikipage sp me#goto_wikipage_form :}
+           	{: me#wikipages_list_box sp wpg_l :}
+          ] }}
           (* code for an existing Wikipage *)
       method private mk_existing_wikipage sp sess sfx wpg_data =
         let (subj,txt,_,_) = wpg_data in
-        container
+        me#container
           sp
           sess
           ~title:(wikiinfo.title^" Wiki")
-          (me#main_link_box sp ^:
-           me#wikipage_data_box sp wpg_data ^:
-           (me#w sess) % me#wikipage_howto_box ^?
-           (me#w sess) % (post_form act_edit sp 
-           (me#edit_wikipage_form sfx subj txt) ()) ^?
-           [])
-
+					{{ [
+						{: me#main_link_box sp :}
+           	{: me#wikipage_data_box sp wpg_data :}
+						!{: if (me#w sess) then
+							{{ [
+								{: me#wikipage_howto_box :}
+            		{: post_form act_edit sp (me#edit_wikipage_form sfx subj txt) () :} ] }}
+							else
+							{{ [] }} :}
+					] }}
           (* code for a blank Wikipage *)
       method private mk_blank_wikipage sp sess sfx =
-        container
+        me#container
           sp
           sess
           ~title:(wikiinfo.title^" Wiki")
-          (me#blank_wikipage_box ^:
-           me#main_link_box sp ^:
-           (me#w sess) % me#wikipage_howto_box ^?
-           (me#w sess) % (post_form act_edit sp
-           (me#edit_wikipage_form sfx "" "") ())^? 
-           [])
+					{{ [
+						{: me#blank_wikipage_box :}
+           	{: me#main_link_box sp :}
+						!{: if (me#w sess) then
+							{{ [
+								{: me#wikipage_howto_box :}
+                {: post_form act_edit sp (me#edit_wikipage_form sfx "" "") () :}
+							] }}
+							else
+							{{ [] }} :}
+					] }}
 
           (* code for a failsafe page *)
       method private mk_exception_page sp from exc =
-        container
+        me#container
           sp
           None
           ~title:(wikiinfo.title^" Wiki")
-          [div ~a:[a_class ["exception"]]
-             [h1 [pcdata "Exception:"];
-              p [pcdata ((Printexc.to_string exc)^" in function: "^from)]; 
-            ]]
+					{{ [<div class="exception">[
+						<h1>"Exception"
+						<p>{: Format.sprintf "%s in function: %s" (Printexc.to_string exc) from :}
+					]] }}
 
           (* code for unauthorized users' fallback page *)
       method private mk_unauthorized_page sp sess =
-        container
+        me#container
           sp
           sess
           ~title:(wikiinfo.title^" Wiki")
-          [div ~a:[a_class ["unauthorized"]]
-             [h1 [pcdata "Restricted area:"];
-              p [pcdata "Please log in with an authorized account."]];
-           ]
+					{{ [<div class="unauthorized">[
+						<h1>"Restricted area"
+						<p>"Please log in with an authorized account."
+          ]] }}
 
 (* SERVICES & ACTIONS IMPLEMENTATION *)
       method private lwt_page_with_exception_handling :
           'a. Eliom.server_params -> Users.user option -> 
-            string -> (unit -> 'a Lwt.t) -> ('a -> html Lwt.t) -> html Lwt.t =
+            string -> (unit -> 'a Lwt.t) -> ('a -> {{ Xhtml1_strict.html }} Lwt.t) -> {{ Xhtml1_strict.html }} Lwt.t =
         fun sp sess failmsg f1 f2 ->
           catch      
             (function () -> f1 () >>= fun x -> f2 x)
@@ -328,12 +354,9 @@ end
 let newwiki
     ~(wikiinfo : wiki_in)      
     ~(sessionmanager : SessionManager.sessionmanager)
-    ~(container : 
-        Eliom.server_params -> Users.user option -> title:string -> 
-          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
     : wiki Lwt.t
     = 
-  let o = new makewiki ~wikiinfo ~sessionmanager ~container in
+  let o = new makewiki ~wikiinfo ~sessionmanager in
   return (o :> wiki)
   
 

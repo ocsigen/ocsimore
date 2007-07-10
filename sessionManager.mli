@@ -9,19 +9,16 @@ type sessionmanager_in =
       registration_mail_subject: string;
   }
 
-class type sessionmanager = object
+class sessionmanager: sessionmanagerinfo: sessionmanager_in ->
+object
+  method container: Eliom.server_params -> Users.user option -> title:string -> 
+          {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
   method mk_log_form: Eliom.server_params -> Users.user option -> 
-    XHTML.M.block XHTML.M.elt
+    {{ Xhtml1_strict.form }}
   method add_login_actions: 
       (Eliom.server_params -> Users.user option -> unit Lwt.t) -> unit
   method add_logout_actions: 
       (Eliom.server_params -> unit Lwt.t) -> unit
-end
-
-val newsessionmanager :
-    sessionmanagerinfo:sessionmanager_in ->
-      container: 
-        (Eliom.server_params -> Users.user option -> title:string -> 
-          XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
-            sessionmanager Lwt.t
-
+	method lwtinit: unit Lwt.t
+	method register: unit
+end;;

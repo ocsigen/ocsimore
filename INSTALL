@@ -12,6 +12,8 @@ http://merjis.com/developers/pgocaml
 make depend
 make
 
+- note: if necessary, adapt PGDATABASE, PGUSER and PGHOST in Makefile.config
+
 5. Adapt your ocsigen.conf using ocsigen.conf.example
 and run Ocsigen
 

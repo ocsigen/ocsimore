@@ -1,9 +1,9 @@
 (* A little parser for entering valid XHTML in wikipages.
    To be extended and rewritten with ad-hoc tools (ocamllex, ocamlyacc). *)
 
-open XHTML.M
+(* open XHTML.M *)
 open Eliom
-open Eliom.Xhtml
+open Eliomduce.Xhtml
 open List
 open String
 open Str
@@ -30,7 +30,7 @@ let lexer row =
        (full_split cmd_regexp row) 
 
 (* given [s1,s2,...,sn], returns pcdata[s1^s2^...^sn] *)
-let allpcdata l = pcdata (fold_left (^) "" l) 
+let allpcdata l = fold_left (^) "" l;;
 
 (* parse the argument of an inline command *)
 let rec get_args = function
@@ -42,20 +42,21 @@ let rec get_args = function
   | [] -> ([], []) 
 
 (* parse inline commands *)
-let rec parse_inl_cmd a_args = function
+let rec parse_inl_cmd a_args x: {{ Xhtml1_strict.inlines }} =
+	match x with
   | "%*"::toks -> let (args, rest) = get_args toks in 
-      strong[allpcdata args] :: parse_inl_cmd a_args rest
+      {{ [ <strong>{: allpcdata args :} !{: parse_inl_cmd a_args rest :} ] }}
   | "%/"::toks -> let (args, rest) = get_args toks in 
-      em[allpcdata args] :: parse_inl_cmd a_args rest
+      {{ [ <em>{: allpcdata args :} !{: parse_inl_cmd a_args rest :} ] }}
   | "%["::toks -> let (args, rest) = get_args toks in 
-      code[allpcdata args] :: parse_inl_cmd a_args rest
+      {{ [ <code>{: allpcdata args :} !{: parse_inl_cmd a_args rest :} ] }}
   | "%:"::toks -> let (args, rest) = get_args toks in
 		  let (srv,sp) = a_args in
 		  let sfx = fold_left (^) "" args in 
-      a srv sp [pcdata sfx] sfx :: parse_inl_cmd a_args rest
-  | "\\%"::toks -> pcdata "%" :: parse_inl_cmd a_args toks
-  | tok::toks -> pcdata tok :: parse_inl_cmd a_args toks
-  | [] -> [] 
+			{{ [ {: a srv sp {{ {: sfx :} }} sfx :} !{: parse_inl_cmd a_args rest :} ] }}
+  | "\\%"::toks -> {{ ['%' !{: parse_inl_cmd a_args toks :} ] }}
+  | tok::toks -> {{ [!{: tok :} !{: parse_inl_cmd a_args toks :} ] }}
+  | [] -> {{ [] }} 
 
 (* parse rows of preformatted code *)
 let rec parse_code = function
@@ -65,16 +66,21 @@ let rec parse_code = function
   | [] -> ([], [])
     
 (* parse row commands *)
-let rec parse_row_cmd a_args = function
+let rec parse_row_cmd a_args x: {{ Xhtml1_strict.flows }} =
+	match x with
   | ("%pre["::_) :: rows -> let (args, rest) = parse_code rows in 
-      pre[code(args)] :: parse_row_cmd a_args rest
-  | ("%###"::toks) :: rows -> h1[allpcdata toks] :: parse_row_cmd a_args rows
-  | ("%==="::toks) :: rows -> h2[allpcdata toks] :: parse_row_cmd a_args rows
-  | ("%---"::toks) :: rows -> h3[allpcdata toks] :: parse_row_cmd a_args rows
-  | row :: rows -> p(parse_inl_cmd a_args row) :: parse_row_cmd a_args rows
-  | [] -> [] 
+			{{ [ <code>{: String.concat "" args :} !{: parse_row_cmd a_args rest :} ] }}
+  | ("%###"::toks) :: rows ->
+			{{ [ <h1>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
+  | ("%==="::toks) :: rows ->
+			{{ [ <h2>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
+  | ("%---"::toks) :: rows ->
+			{{ [ <h3>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
+  | row :: rows ->
+			{{ [ <p>{: parse_inl_cmd a_args row :} !{: parse_row_cmd a_args rows :}] }}
+  | [] -> {{ [] }}
 
 (* LEXER+PARSER *)
 let parse a_args s = 
-  let rows = split (regexp "\n") s
-  in parse_row_cmd a_args (map lexer rows)
+  {{ {: let rows = split (regexp "\n") s
+  in parse_row_cmd a_args (map lexer rows) :} }}

@@ -9,7 +9,10 @@ type wiki_in =
    }
 
 class type wiki = object
-  method srv_main :
+	method container:
+		Eliom.server_params -> Users.user option -> title:string ->
+		{{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
+  method srv_main:
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
        [ `Registrable ])
@@ -17,11 +20,5 @@ class type wiki = object
 end
 
 
-val newwiki :
-    wikiinfo:wiki_in ->
-      sessionmanager: SessionManager.sessionmanager ->
-        container: 
-          (Eliom.server_params -> Users.user option -> title:string -> 
-            XHTML.M.block XHTML.M.elt list -> XHTML.M.html Lwt.t) ->
-              wiki Lwt.t
+val newwiki: wikiinfo:wiki_in -> sessionmanager: SessionManager.sessionmanager -> wiki Lwt.t
 

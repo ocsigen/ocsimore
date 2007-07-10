@@ -1,8 +1,8 @@
 (** Tool for forum creation. *)
 
-open XHTML.M
+(* open XHTML.M *)
 open Eliom
-open Eliom.Xhtml
+open Eliomduce.Xhtml
 open Lwt
 open Ocsimorelib
 
@@ -18,10 +18,12 @@ type forum_in =
      writable_by: Users.user;
      moderators: Users.user;
      url: string list;
-     max_rows: int32;
+     max_rows: int64;
    }
 
 class type forum = object
+	method container: Eliom.server_params -> Users.user option -> title:string -> 
+    {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
   method srv_forum : 
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
@@ -29,56 +31,51 @@ class type forum = object
       Eliom.service
   method box_forum :
       Users.user option ->
-        Eliom.server_params -> XHTML.M.block XHTML.M.elt list Lwt.t
+        Eliom.server_params -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_forum' :
       Users.user option ->
         Eliom.server_params ->
-          int32 * int32 -> XHTML.M.block XHTML.M.elt list Lwt.t
+          int64 * int64 -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_threads_list :
       Users.user option ->
-        Eliom.server_params -> XHTML.M.block XHTML.M.elt list Lwt.t
+        Eliom.server_params -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_threads_list' :
       Users.user option ->
         Eliom.server_params ->
-          int32 * int32 -> XHTML.M.block XHTML.M.elt list Lwt.t
+          int64 * int64 -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_newmessage :
       Users.user option ->
         int32 ->
-          Eliom.server_params -> string -> XHTML.M.block XHTML.M.elt list Lwt.t
+          Eliom.server_params -> string -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_newthread :
       Users.user option ->
         Eliom.server_params ->
-          string * string -> XHTML.M.block XHTML.M.elt list Lwt.t
+          string * string -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_thread' :
       Users.user option ->
         Eliom.server_params ->
-          int32 * (int32 * int32) -> XHTML.M.block XHTML.M.elt list Lwt.t
+          int32 * (int64 * int64) -> {{ Xhtml1_strict.blocks }} Lwt.t
   method page_forum :
-      Eliom.server_params -> unit -> unit -> Eliom.Xhtml.page Lwt.t
+      Eliom.server_params -> unit -> unit -> {{ Xhtml1_strict.html }} Lwt.t
   method page_forum' :
       Eliom.server_params ->
-        int32 * int32 -> unit -> Eliom.Xhtml.page Lwt.t
+        int64 * int64 -> unit -> {{ Xhtml1_strict.html }} Lwt.t
   method page_newmessage :
-      Eliom.server_params -> int32 -> string -> Eliom.Xhtml.page Lwt.t
+      Eliom.server_params -> int32 -> string -> {{ Xhtml1_strict.html }} Lwt.t
   method page_newthread :
       Eliom.server_params ->
-        unit -> string * string -> Eliom.Xhtml.page Lwt.t
+        unit -> string * string -> {{ Xhtml1_strict.html }} Lwt.t
   method page_thread :
-      Eliom.server_params -> int32 -> unit -> Eliom.Xhtml.page Lwt.t
+      Eliom.server_params -> int32 -> unit -> {{ Xhtml1_strict.html }} Lwt.t
   method page_thread' :
       Eliom.server_params ->
-        int32 * (int32 * int32) -> unit -> Eliom.Xhtml.page Lwt.t
-
+        int32 * (int64 * int64) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
+	method register: unit
 end
-
-
 
 class makeforum
     ~(foruminfo : forum_in)
     ~(sessionmanager : SessionManager.sessionmanager)
-    ~(container : 
-        Eliom.server_params -> Users.user option -> title:string -> 
-          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
     =
 
   (* SERVICES *)
@@ -93,7 +90,7 @@ class makeforum
   (* as above, within a given interval *)
   let srv_forum' = new_service 
     ~url:(foruminfo.url @ [""]) 
-    ~get_params:(int32 "offset" ** int32 "limit")
+    ~get_params:(int64 "offset" ** int64 "limit")
     ()
   in
 
@@ -120,7 +117,7 @@ class makeforum
   (* as above, within a given interval *)
   let srv_thread' = new_service
     ~url:(foruminfo.url @ ["thread"])
-    ~get_params:(int32 "thr_id" ** (int32 "offset" ** int32 "limit")) 
+    ~get_params:(int32 "thr_id" ** (int64 "offset" ** int64 "limit")) 
     ()
   in
 
@@ -227,112 +224,129 @@ class makeforum
 
   object (me)
 
+	method container (sp: Eliom.server_params) (user: Users.user option) ~title:(t: string) (contents: {{ Xhtml1_strict.blocks }}): {{ Xhtml1_strict.html }} Lwt.t =
+	begin
+		return {{ <html>[
+			<head>[<title>{: t :}]
+			<body>{: contents :}
+		] }}
+	end
 
   (* HTML FRAGMENTS: <form> CONTENTS *)
 
   method private new_thread_form = fun (subject,txt) ->
-    [h2 [pcdata "Start a new thread with a fresh message:"];
-     p [pcdata "Subject: ";
-        string_input subject;
-        br();
-        textarea txt 5 80 (pcdata "")];
-     p [submit_input "submit"]]
-
+  {{ [
+  	<h2>"Start a new thread with a fresh message:"
+	<p>[
+		'Subject: '
+		{: string_input subject :}
+		<br>[]
+		{: textarea txt 5 80 {{ "<your message here>" }} :}
+	]
+	<p>[{: submit_input "submit" :}]
+  ] }}
 
   method private new_message_form = fun (txt) ->
-    [h2 [pcdata "Post a new message in this thread:"];
-     p [textarea txt 5 80 (pcdata "")];
-     p [submit_input "submit"]]
-
+  {{ [
+  	<h2>"Post a new message in this thread:"
+	<p>[{: textarea txt 5 80 {{ "<your message here>" }} :}]
+	<p>[{: submit_input "submit" :}]
+  ] }}
 
   method private forumtoggle_form = fun _ ->
-    [p [submit_input "toggle"]]
-
+  {{ [
+  	<p>[{: submit_input "toggle" :}]
+  ] }}
 
   method private thr_toggle_form i = fun (thr_id) ->
-    [p [hidden_user_type_input sol thr_id i;
-        submit_input "toggle"]]
-
+  {{ [
+  	<p>[
+		{: hidden_user_type_input sol thr_id i :}
+		{: submit_input "toggle" :}
+	]
+  ] }}
 
   method private msg_toggle_form i = fun (msg_id) ->
-    [p [hidden_user_type_input sol msg_id i;
-        submit_input "toggle"]]
+  {{ [
+  	<p>[
+		{: hidden_user_type_input sol msg_id i :}
+		{: submit_input "toggle" :}
+	]
+  ] }}
 
-
-
-  (* HTML FRAGMENTS: <div> BOXES *) 
-  
   method private forum_data_box sp sess data =
-    let (id, title, description, moder,
-         n_shown_thr, n_hidden_thr, 
-         n_shown_msg, n_hidden_msg) = data in
-    div ~a:[a_class ["forum_data"]]
-      (h1 [pcdata ("Forum: " ^ title)] ^:
-       h2 [pcdata ("Description: " ^ description)] ^:
-       h3 (pcdata ("Threads: " ^ soL n_shown_thr) ^:
-       (m sess || w sess) % 
-       pcdata (" (hidden: " ^ soL n_hidden_thr ^ ")") ^?
-       pcdata (" Messages: " ^ soL n_shown_msg) ^:
-       (m sess || w sess) %
-       pcdata (" (hidden: " ^ soL n_hidden_msg ^")") ^?
-       pcdata (" Moderated: " ^ if moder then "YES" else "NO") ^:
-       []) ^:
-       (m sess) %
-       post_form act_forumtoggle sp me#forumtoggle_form () ^?
-       [])
-
+  let (id, title, description, moder, n_shown_thr, n_hidden_thr,
+       n_shown_msg, n_hidden_msg) = data in
+  {{ <div class="forum_data">([
+	<h1>{: Format.sprintf "Forum: %s" title :}
+	<h2>{: Format.sprintf "Description: %s" description :}
+	<h3>{: Format.sprintf "Threads: %Ld" n_shown_thr :}] @
+	{: if m sess || w sess then
+		{{ {: Format.sprintf " (hidden: %Ld)" n_hidden_thr :} }}
+	   else
+	   	{{ [] }} :} @
+	{: Format.sprintf "Moderated: %s" (if moder then "YES" else "NO") :} @
+	{: if m sess then
+		{{ [{: post_form act_forumtoggle sp me#forumtoggle_form () :}] }}
+	   else
+	   	{{ [] }} :}
+  ) }}
 
   method private thread_data_box sp sess data =
-    let (id, subject, author, datetime, hidden, 
-         n_shown_msg, n_hidden_msg) = data in
-    div ~a:[a_class ["thread_data"]]
-    (h1 [pcdata ("Thread: " ^ subject)] ^:
-     h2 [pcdata ("created by: " ^ author);
-     pcdata (sod datetime)] ^:
-     h3 (pcdata ("Messages: " ^ soL n_shown_msg) ^:
-     (m sess || w sess) % 
-     pcdata (" (hidden: " ^ soL n_hidden_msg ^ ")") ^?
-     (m sess || w sess) % 
-     pcdata (" Hidden thread: " ^ if hidden then "YES" else "NO") ^?
-     []) ^:
-     (m sess) % 
-     post_form act_threadtoggle sp (me#thr_toggle_form id) () ^?
-   [])
-
+  let (id, subject, author, datetime, hidden, n_shown_msg, n_hidden_msg) = data
+  in
+  {{ <div class="thread_data">[
+  	<h1>{: Format.sprintf "Thread: %s" subject :}
+	<h2>{: Format.sprintf "Created by: %s %s" author (sod datetime) :}
+	<h3>{: Format.sprintf "Messages: %Ld%s" n_shown_msg
+	       (if m sess || w sess then
+			Format.sprintf " (hidden: %Ld) Hidden thread: %s" n_hidden_msg (if hidden then "YES" else "NO")
+	        else
+	   		"") :}
+  	!{: if m sess then
+		{{ [{: post_form act_threadtoggle sp (me#thr_toggle_form id) () :}] }}
+  	   else
+	   	{{ [] }} :}
+  ] }}
 
   method private message_data_box sp sess data =
-    let (id, text, author, datetime, hidden) = data in
-    div ~a:[a_class ["message_data"]]
-      (h4 [pcdata ("posted by: " ^ author);
-       pcdata (sod datetime)] ^: 
-       (m sess || w sess) % 
-       p [pcdata("Hidden message: " ^ if hidden then "YES" else "NO")] ^?
-       pre[pcdata text] ^: 
-       (m sess) % 
-       post_form act_messagetoggle sp (me#msg_toggle_form id) () ^? 
-       [])
-
+  let (id, text, author, datetime, hidden) = data in
+  {{ <div class="message_data">(
+	[<h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}] @
+	{: if m sess || w sess then
+		{{ [<p>{: Format.sprintf "Hidden message: %s" (if hidden then "YES" else "NO") :}] }}
+	   else
+		{{ [] }} :} @
+	[<pre>{: text :}] @
+	{: if m sess then 
+		{{ [ {:	post_form act_messagetoggle sp (me#msg_toggle_form id) () :} ] }}
+	   else
+		{{ [] }} :}) }}
 
   method private forum_threads_list_box sp sess thr_l =
-    let fields = "date/time" ^: "subject" ^: "author" ^: 
-                           (m sess || w sess) % "hidden" ^? [] in
-    let tblhead = List.map (fun i -> th [pcdata i]) fields in
-    let tbldata = List.map 
-        (fun (id, subject, author, datetime, hidden) ->
-          td [pcdata (sod datetime)] ^:
-          td [a srv_thread sp [pcdata subject] id] ^:
-                        td [pcdata author] ^:
-                (m sess || w sess) % 
-                td (pcdata (if hidden then "YES" else "NO") ^:
-    (m sess) %
-    post_form act_threadtoggle sp (me#thr_toggle_form id) () ^?
-    []) ^?
-        [])
-        thr_l in
-    let tr' = function (x::xs) -> tr x xs | [] -> assert false in
-    div ~a:[a_class ["forum_threads_list"]]
-      [table (tr' tblhead) (List.map tr' tbldata)]
-
+  let fields = "date/time" ^: "subject" ^: "author" ^: (m sess || w sess) % "hidden" ^? [] in
+  let tblhead = List.map (fun i -> {{ <th>{: i :} }}) fields in
+  let tbldata = List.map (fun (id, subject, author, datetime, hidden) ->
+  {{ [
+	<td>{: sod datetime :}
+	<td>[{: a srv_thread sp {{ {: subject :} }} id :}]
+	<td>{: author :}
+     	!{: if m sess || w sess then 
+		{{ [<td>[
+			!{: if hidden then "YES" else "NO" :}
+			!{: if m sess then
+				{{ [ {: post_form act_threadtoggle sp (me#thr_toggle_form id) () :} ] }}
+	    		    else
+				{{ [] }} :}
+		]] }}
+	    else
+		{{ [] }} :}
+	] }})
+     thr_l in
+    (* let tr' = function (x::xs) -> {{ <tr>{: x::xs :} }} | [] -> assert false in *)
+		{{ <div class="forum_threads_list">[
+				<table>[<tr>[{: List.hd tblhead :} !{: List.tl tblhead :}] !{: List.map (fun x -> {{ <tr>{: x :} }}) tbldata :}]
+			] }}
 
 (*---
    let thread_messages_list_box sp sess msg_l =
@@ -355,42 +369,41 @@ class makeforum
    ---*)
 
   method private thread_messageswtext_list_box sp sess msg_l =
-    div ~a:[a_class ["thread_messageswtext_list"]]
-      (List.map (fun m -> me#message_data_box sp sess m) msg_l)
-
+	{{ <div class="thread_messageswtext_list">
+			{: List.map (fun m -> me#message_data_box sp sess m) msg_l :} }}
 
   method private main_link_box sp = 
-    div ~a:[a_class ["main_link"]]
-      [a srv_forum sp [pcdata ("Back to \"" ^foruminfo.title^ "\" Forum homepage")] ()]
-
+	{{ <div class="main_link">[
+			{: a srv_forum sp {{ {: Format.sprintf "Back to \"%s\" forum homepage" foruminfo.title :} }} () :}] }}
 
   method private feedback_box feedback =
-    div ~a:[a_class ["feedback"]]
-      [p [pcdata feedback]]
-
+	{{ <div class="feedback">[<p>{: feedback :}] }}
 
 (* HTML FRAGMENTS: <html> PAGES *)
 
     method private mk_forum_box sp sess feedback frm_data thr_l =
-      (me#feedback_box feedback ^:
-       me#forum_data_box sp sess frm_data ^:
-       me#forum_threads_list_box sp sess thr_l ^:
-       (w sess) % 
-       post_form srv_newthread sp me#new_thread_form () ^?
-       [])
+			{{ ([
+      	{: me#feedback_box feedback :}
+				{: me#forum_data_box sp sess frm_data :}
+       	{: me#forum_threads_list_box sp sess thr_l :}] @
+       	{: if (w sess) then
+       	{{ [{: post_form srv_newthread sp me#new_thread_form () :}] }}
+				else
+       	{{ [] }} :}) }}
 
 
     method private mk_thread_box sp sess feedback thr_id thr_data msg_l =
-      (me#feedback_box feedback ^:
-       me#thread_data_box sp sess thr_data ^:
+			{{ ([
+				{: me#feedback_box feedback :}
+       	{: me#thread_data_box sp sess thr_data :}
 (*--- 
    thread_messages_list_box sp sess msg_l ^:
    ---*)
-       me#thread_messageswtext_list_box sp sess msg_l ^:
-       (w sess) % 
-       post_form srv_newmessage sp me#new_message_form thr_id ^?
-       [])
-
+       	{: me#thread_messageswtext_list_box sp sess msg_l :}] @
+				{: if (w sess) then
+				{{ [{: post_form srv_newmessage sp me#new_message_form thr_id :}] }}
+				else
+				{{ [] }} :}) }}
 
 (*---
    method private mk_message_box sp sess msg_data =
@@ -399,31 +412,30 @@ class makeforum
    ---*)
 
   method private mk_exception_box sp from exc =
-    div ~a:[a_class ["exception"]]
-      [h1 [pcdata "Exception:"];
-       p [pcdata ((Printexc.to_string exc)^" in function: "^from)]
-     ]
-
+	{{ <div class="exception">[
+			<h1>"Exception"
+			<p>{: Format.sprintf "%s in function: %s" (Printexc.to_string exc) from :}
+			] }}
 
   method private mk_unauthorized_box sp sess =
-    div ~a:[a_class ["unauthorized"]]
-      [h1 [pcdata "Restricted area:"];
-       p [pcdata "Please log in with an authorized account."]]
-
+	{{ <div class="unauthorized">[
+			<h1>"Restricted area"
+			<p>"Please log in with an authorized account."
+		 ] }}
 
 (* SERVICES & ACTIONS IMPLEMENTATION *)
 
   method private lwt_box_with_exception_handling :
       'a. Eliom.server_params -> Users.user option -> 
         string -> (unit -> 'a Lwt.t) -> 
-          ('a -> [< Xhtmltypes.body_content > `Div ] elt list) -> 
-          [< Xhtmltypes.body_content > `Div ] elt list Lwt.t =
+          ('a -> (* [< Xhtmltypes.body_content > `Div ] elt list *) 'b) -> 
+          'b Lwt.t =
           fun sp sess failmsg f1 f2 ->
             catch      
               (function () -> f1 () >>= fun x -> return (f2 x))
               (function
-                | Unauthorized -> return [me#mk_unauthorized_box sp sess]
-                | exc -> return [me#mk_exception_box sp failmsg exc])
+                | Unauthorized -> return {{ [ {: me#mk_unauthorized_box sp sess :} ] }}
+                | exc -> return {{ [ {: me#mk_exception_box sp failmsg exc :} ] }})
   
   method box_newthread = fun sess sp (subject,txt) ->
     let prepare () = 
@@ -437,7 +449,7 @@ class makeforum
 	  Sql.forum_get_data ~frm_id ~role >>=
           (fun a ->
 	    Sql.forum_get_threads_list 
-	      ~frm_id ~offset:0l ~limit:foruminfo.max_rows ~role >>=
+	      ~frm_id ~offset:0L ~limit:foruminfo.max_rows ~role >>=
             (fun b -> return (a,b))))
     and gen_html = fun (frm_data,thr_l) ->
       let feedback = "Your message has been " ^
@@ -456,7 +468,7 @@ class makeforum
      get_persistent_data SessionManager.user_table sp >>=
      (fun sess ->
        me#box_newthread sess sp (subject,txt) >>=
-       container
+       me#container
          sp
          sess
          ~title:(foruminfo.title^" Forum"))
@@ -464,6 +476,7 @@ class makeforum
 
 
   method box_newmessage sess thr_id sp txt =
+		Messages.debug "[box_newmessage";
     let prepare () = 
       if not (w sess) then
 	fail Unauthorized
@@ -481,7 +494,7 @@ class makeforum
    ~frm_id ~thr_id ~offset:0l ~limit:foruminfo.max_rows ~role
    ---*)
 	      Sql.thread_get_messages_with_text_list 
-	        ~frm_id ~thr_id ~offset:0l 
+	        ~frm_id ~thr_id ~offset:0L 
                 ~limit:foruminfo.max_rows ~role >>=
               (fun c -> return (a,b,c)))))
     and gen_html = fun (frm_data,thr_data,msg_l) ->
@@ -502,7 +515,7 @@ class makeforum
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       me#box_newmessage sess thr_id sp txt >>=
-      container
+      me#container
         sp sess
         ~title:(foruminfo.title^" Forum"))
 
@@ -516,7 +529,7 @@ class makeforum
 
   method box_threads_list' sess sp (offset,limit) =
     let gen_html (frm_data, thr_l) =
-      [me#forum_threads_list_box sp sess thr_l]
+      {{ [ {: me#forum_threads_list_box sp sess thr_l :} ] }}
     in me#lwt_box_with_exception_handling 
       sp sess "block_threads_list'" 
       (prepare_threads_list sess (offset, limit)) gen_html
@@ -525,19 +538,19 @@ class makeforum
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       me#box_forum' sess sp (offset,limit) >>=
-      container
+      me#container
         sp
         sess
         ~title:(foruminfo.title^" Forum"))
 
   method box_threads_list sess sp = 
-    me#box_threads_list' sess sp (0l, foruminfo.max_rows)
+    me#box_threads_list' sess sp (0L, foruminfo.max_rows)
 
   method page_forum = fun sp () () -> 
-    me#page_forum' sp (0l, foruminfo.max_rows) ()
+    me#page_forum' sp (0L, foruminfo.max_rows) ()
 
   method box_forum sess sp = 
-    me#box_forum' sess sp (0l, foruminfo.max_rows)
+    me#box_forum' sess sp (0L, foruminfo.max_rows)
 
   
   method box_thread' sess sp (thr_id, (offset, limit)) =
@@ -570,12 +583,12 @@ class makeforum
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
       me#box_thread' sess sp (thr_id,(offset,limit)) >>=
-      container
+      me#container
         sp sess
         ~title:(foruminfo.title^" Forum"))
   
   method page_thread = fun sp thr_id () ->
-    me#page_thread' sp (thr_id,(0l,foruminfo.max_rows)) ()
+    me#page_thread' sp (thr_id,(0L,foruminfo.max_rows)) ()
 
   
 (*---
@@ -604,6 +617,7 @@ class makeforum
     fun () -> return []
 
 
+
     method srv_forum : 
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
@@ -630,8 +644,9 @@ class makeforum
         )
           
     method private logout_actions sp = return ()
-        
-    initializer
+      
+		method register =
+		begin
       register srv_forum me#page_forum;
       register srv_forum' me#page_forum';
       register srv_thread me#page_thread;
@@ -645,19 +660,13 @@ class makeforum
         (* see comment to register_aux in page_forum' *)
         register srv_newthread me#page_newthread
        )
-
+		end
 
 end
 
 let newforum
     ~(foruminfo : forum_in)      
-    ~(sessionmanager : SessionManager.sessionmanager)
-    ~(container : 
-        Eliom.server_params -> Users.user option -> title:string -> 
-          XHTML.M.block XHTML.M.elt list -> html Lwt.t)
-    : forum Lwt.t
+    ~(sessionmanager : SessionManager.sessionmanager): forum Lwt.t
     = 
-  let o = new makeforum ~foruminfo ~sessionmanager ~container in
+  let o = new makeforum ~foruminfo ~sessionmanager in
   return (o :> forum)
-  
-
