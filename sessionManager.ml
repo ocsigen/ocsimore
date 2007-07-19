@@ -91,9 +91,9 @@ class sessionmanager
 
   method private login_box sp error usr pwd = 
 		{{ [<table>([
-				<tr>[<td>"Username:" <td>[{: string_input usr :}]]
-				<tr>[<td>"Password:" <td>[{: string_password_input pwd :}]]
-				<tr>[<td>[{: submit_input "login" :}]]
+				<tr>[<td>"Username:" <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]]
+				<tr>[<td>"Password:" <td>[{: string_input ~input_type:{:"password":} ~name:pwd () :}]]
+				<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"Login" () :}]]
 				<tr>[<td colspan="2">[{: a srv_register sp {{ "New user? Register now!" }} () :}]]] @
 				{: if error then
 					{{ [<tr>[<td colspan="2">"Wrong login or password"]
@@ -105,7 +105,7 @@ class sessionmanager
     let (usr,pwd,descr,email) = get_user_data user in
 		{{ [<table>[
 				<tr>[<td>{: Format.sprintf "Hi %s!" descr :}]
-				<tr>[<td>[{: submit_input "logout" :}]]
+				<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"logout" () :}]]
 				<tr>[<td>[{: a srv_edit sp {{ "Manage your account" }} () :}]]]] }}
       
   method private page_register err = fun sp () ()-> 
@@ -127,18 +127,18 @@ class sessionmanager
 						{{ [<table>[
 								<tr>[
 									<td>"login name: (letters & digits only)"
-									<td>[{: string_input usr :}]
+									<td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
 								]
 								<tr>[
 									<td>"real name:"
-									<td>[{: string_input desc :}]
+									<td>[{: string_input ~input_type:{:"text":} ~name:desc () :}]
 								]
 								<tr>[
 									<td>"e-mail address:"
-									<td>[{: string_input email :}]
+									<td>[{: string_input ~input_type:{:"text":} ~name:email () :}]
 								]
 								<tr>[
-									<td>[{: submit_input "Register" :}]
+									<td>[{: string_input ~input_type:{:"submit":} ~value:"Register" () :}]
 								]]] }})
               () :}
 					<p>[<strong>{: err :}]]}} 
@@ -203,8 +203,8 @@ class sessionmanager
 				 	{{ [<table>[
 						<tr>[
 							<td>"Enter your login name:"
-							<td>[{: string_input usr :}]
-							<td>[{: submit_input "Submit" :}]
+							<td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
+							<td>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
 					]]]
 					}}) ()	:}
 			 <p>[<strong>{: err :}]] }}
@@ -254,22 +254,22 @@ class sessionmanager
 					]
 					<tr>[
 						<td>"real name: "
-						<td>[{: string_input ~value:d desc :}]
+						<td>[{: string_input ~input_type:{:"text":} ~value:d ~name:desc () :}]
 					]
 					<tr>[
 						<td>"e-mail address: "
-						<td>[{: string_input ~value:e email :}]
+						<td>[{: string_input ~input_type:{:"text":} ~value:e ~name:email () :}]
 					]
 					<tr>[
 						<td colspan="2">"Enter a new password twice, or 
 						leave blank for no changes:"
 					]
 					<tr>[
-						<td>[{: string_password_input ~value:"" pwd :}]
-						<td>[{: string_password_input ~value:"" pwd2 :}]
+						<td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd () :}]
+						<td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd2 () :}]
 					]
 					<tr>[
-						<td>[{: submit_input "Confirm" :}]
+						<td>[{: string_input ~input_type:{: "submit" :} ~value:"Confirm" () :}]
 					]
 				]]
 			}}) () :} 

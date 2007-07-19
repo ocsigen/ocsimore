@@ -25,8 +25,7 @@ class type wiki =
           {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
 		method srv_main:
       (unit, unit, Eliom.get_service_kind,
-       [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-       [ `Registrable ])
+       [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
   end
 
@@ -116,8 +115,7 @@ class makewiki
 
     method srv_main :
         (unit, unit, Eliom.get_service_kind,
-         [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-         [ `Registrable ])
+         [ `WithoutSuffix ], unit, unit, [ `Registrable ])
         Eliom.service 
         = srv_main
 
@@ -127,8 +125,8 @@ class makewiki
       method private goto_wikipage_form sfx =
 				{{ [<p>[
 					'Wikipage suffix: '
-					{: string_input sfx :}
-					{: submit_input "Go!" :}
+					{: string_input ~input_type:{:"text":} ~name:sfx () :}
+					{: string_input ~input_type:{:"submit":} ~value:"Go!" () :}
 				]] }}
 
           (* a form for wikipage editing *)
@@ -136,14 +134,14 @@ class makewiki
           sfx' subject' txt' (sfx,(subject,txt)) =
 				{{ [<p>[
 					'Subject: '
-					{: string_input ~a:{{ { value={: subject' :} } }} subject :}
+					{: string_input ~input_type:{:"text":} ~name:subject ~value:subject' () :}
 					<br>[]
 					'Page body: '
 					<br>[]
-					{: textarea txt 5 80 {{ {: txt' :} }} :}
+					{: textarea ~name:txt ~rows:5 ~cols:80 ~value:{{ {: txt' :} }} () :}
 					<br>[]
-					{: hidden_string_input sfx sfx' :}
-					{: submit_input "Submit" :}
+					{: string_input ~input_type:{:"hidden":} ~name:sfx ~value:sfx' () :}
+					{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}
 				]] }}
 
           (* HTML FRAGMENTS: <div> BOXES *) 

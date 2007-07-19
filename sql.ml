@@ -114,7 +114,7 @@ let new_thread_and_message ~frm_id ~author ~subject ~txt =
       (thr_id, msg_id))
     ()
         
-let new_message ~frm_id ~thr_id ~author ~txt = 
+let new_message ~frm_id ~thr_id ?parent_id ~author ~txt () = 
   (* inserts a message in an existing thread; message will be hidden
      if forum is moderated *)
   detach
@@ -131,9 +131,16 @@ let new_message ~frm_id ~thr_id ~author ~txt =
         (PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)";
          serial4 db "textdata_id_seq") in
       let msg_id = 
-        (PGSQL(db) "INSERT INTO messages (author, thr_id, txt_id, hidden) \
+				match parent_id with
+				| None ->
+						(PGSQL(db) "INSERT INTO messages (author, thr_id, txt_id, hidden) \
            VALUES ($author, $thr_id, $txt_id, $hidden)";
-           serial4 db "messages_id_seq") in
+           serial4 db "messages_id_seq")
+				| Some pid ->
+						(PGSQL(db) "INSERT INTO messages (author, thr_id, parent_id, \
+						txt_id, hidden) VALUES ($author, $thr_id, $pid, $txt_id, $hidden)";
+           serial4 db "messages_id_seq")
+				in
       commit db;
       msg_id)
     ()

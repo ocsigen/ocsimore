@@ -14,8 +14,7 @@ class type wiki = object
 		{{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
   method srv_main:
       (unit, unit, Eliom.get_service_kind,
-       [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-       [ `Registrable ])
+       [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
 end
 

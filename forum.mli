@@ -11,14 +11,20 @@ type forum_in =
      max_rows: int64;
    }
 
-class type forum = object
+class forum:
+	foruminfo: forum_in ->
+	sessionmanager: SessionManager.sessionmanager ->
+object
 	method container :
     Eliom.server_params -> Users.user option -> title:string -> 
        {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
+	method private thread_data_box:
+		Eliom.server_params -> Users.user option ->
+		int32 * string * string * Calendar.t * bool * int64 * int64 ->
+		{{ Xhtml1_strict.block }}
   method srv_forum :
       (unit, unit, Eliom.get_service_kind,
-       [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-       [ `Registrable ])
+       [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
   method box_forum :
       Users.user option ->
@@ -58,11 +64,8 @@ class type forum = object
         unit -> string * string -> {{ Xhtml1_strict.html }} Lwt.t
   method page_thread :
       Eliom.server_params -> int32 -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_thread' :
-      Eliom.server_params ->
-        int32 * (int64 * int64) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
+  method page_thread':
+		Eliom.server_params ->
+		int32 * (int64 * int64) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
 	method register: unit
-end
-
-val newforum :
-  foruminfo:forum_in -> sessionmanager: SessionManager.sessionmanager -> forum Lwt.t
+end;;

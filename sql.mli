@@ -55,7 +55,8 @@ val new_thread_and_message :
 (** inserts a message for an existing thread; message will be hidden
     if forum is moderated *)
 val new_message :
-  frm_id:int32 ->  thr_id:int32 -> author:string -> txt:string -> int32 Lwt.t
+  frm_id:int32 -> thr_id:int32 -> ?parent_id:int32 -> author:string ->
+	txt:string -> unit -> int32 Lwt.t
 
 (** toggle moderation status of a forum *)
 val forum_toggle_moderated : frm_id:int32 -> unit Lwt.t

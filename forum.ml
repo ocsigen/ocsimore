@@ -21,59 +21,7 @@ type forum_in =
      max_rows: int64;
    }
 
-class type forum = object
-	method container: Eliom.server_params -> Users.user option -> title:string -> 
-    {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
-  method srv_forum : 
-      (unit, unit, Eliom.get_service_kind,
-       [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-       [ `Registrable ])
-      Eliom.service
-  method box_forum :
-      Users.user option ->
-        Eliom.server_params -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_forum' :
-      Users.user option ->
-        Eliom.server_params ->
-          int64 * int64 -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_threads_list :
-      Users.user option ->
-        Eliom.server_params -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_threads_list' :
-      Users.user option ->
-        Eliom.server_params ->
-          int64 * int64 -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_newmessage :
-      Users.user option ->
-        int32 ->
-          Eliom.server_params -> string -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_newthread :
-      Users.user option ->
-        Eliom.server_params ->
-          string * string -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_thread' :
-      Users.user option ->
-        Eliom.server_params ->
-          int32 * (int64 * int64) -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method page_forum :
-      Eliom.server_params -> unit -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_forum' :
-      Eliom.server_params ->
-        int64 * int64 -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_newmessage :
-      Eliom.server_params -> int32 -> string -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_newthread :
-      Eliom.server_params ->
-        unit -> string * string -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_thread :
-      Eliom.server_params -> int32 -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_thread' :
-      Eliom.server_params ->
-        int32 * (int64 * int64) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-	method register: unit
-end
-
-class makeforum
+class forum
     ~(foruminfo : forum_in)
     ~(sessionmanager : SessionManager.sessionmanager)
     =
@@ -86,11 +34,21 @@ class makeforum
     ~get_params:unit
     ()
   in
+  let srv_forum_post = new_post_service 
+    ~fallback:srv_forum
+    ~post_params:unit
+    ()
+  in
 
   (* as above, within a given interval *)
   let srv_forum' = new_service 
     ~url:(foruminfo.url @ [""]) 
     ~get_params:(int64 "offset" ** int64 "limit")
+    ()
+	in
+  let srv_forum_post' = new_post_service 
+    ~fallback:srv_forum'
+    ~post_params:unit
     ()
   in
 
@@ -99,6 +57,11 @@ class makeforum
     ~url:(foruminfo.url @ ["thread"])
     ~get_params:(int32 "thr_id") 
     ()
+	in
+	let srv_thread_post = new_post_service
+    ~fallback:srv_thread
+		~post_params:unit
+		()
   in
 
 
@@ -118,6 +81,11 @@ class makeforum
   let srv_thread' = new_service
     ~url:(foruminfo.url @ ["thread"])
     ~get_params:(int32 "thr_id" ** (int64 "offset" ** int64 "limit")) 
+    ()
+  in
+  let srv_thread_post' = new_post_service
+    ~fallback:srv_thread'
+    ~post_params:unit
     ()
   in
 
@@ -232,6 +200,7 @@ class makeforum
 		] }}
 	end
 
+
   (* HTML FRAGMENTS: <form> CONTENTS *)
 
   method private new_thread_form = fun (subject,txt) ->
@@ -239,38 +208,38 @@ class makeforum
   	<h2>"Start a new thread with a fresh message:"
 	<p>[
 		'Subject: '
-		{: string_input subject :}
+		{: string_input ~input_type:{:"text":} ~name:subject () :}
 		<br>[]
-		{: textarea txt 5 80 {{ "<your message here>" }} :}
+		{: textarea ~name:txt ~rows:5 ~cols:80 ~value:{{ "Write your message here" }}  () :}
 	]
-	<p>[{: submit_input "submit" :}]
+	<p>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
   ] }}
 
   method private new_message_form = fun (txt) ->
   {{ [
   	<h2>"Post a new message in this thread:"
-	<p>[{: textarea txt 5 80 {{ "<your message here>" }} :}]
-	<p>[{: submit_input "submit" :}]
+	<p>[{: textarea ~name:txt ~rows:5 ~cols:80 ~value:{{ "Write your message here" }} () :}]
+	<p>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
   ] }}
 
   method private forumtoggle_form = fun _ ->
   {{ [
-  	<p>[{: submit_input "toggle" :}]
+  	<p>[{: string_input ~input_type:{:"submit":} ~value:"Toggle" () :}]
   ] }}
 
   method private thr_toggle_form i = fun (thr_id) ->
   {{ [
   	<p>[
-		{: hidden_user_type_input sol thr_id i :}
-		{: submit_input "toggle" :}
+		{: user_type_input ~input_type:{:"hidden":} ~name:thr_id ~value:i sol :}
+		{: string_input ~input_type:{:"submit":} ~value:"Toggle" () :}
 	]
   ] }}
 
   method private msg_toggle_form i = fun (msg_id) ->
   {{ [
   	<p>[
-		{: hidden_user_type_input sol msg_id i :}
-		{: submit_input "toggle" :}
+		{: user_type_input ~input_type:{:"hidden":} ~name:msg_id ~value:i sol :}
+		{: string_input ~input_type:{:"submit":} ~value:"Toggle" () :}
 	]
   ] }}
 
@@ -296,9 +265,9 @@ class makeforum
   let (id, subject, author, datetime, hidden, n_shown_msg, n_hidden_msg) = data
   in
   {{ <div class="thread_data">[
-  	<h1>{: Format.sprintf "Thread: %s" subject :}
-	<h2>{: Format.sprintf "Created by: %s %s" author (sod datetime) :}
-	<h3>{: Format.sprintf "Messages: %Ld%s" n_shown_msg
+		<h1>{: Format.sprintf "Thread: %s" subject :}
+		<h2>{: Format.sprintf "Created by: %s %s" author (sod datetime) :}
+		<h3>{: Format.sprintf "Messages: %Ld%s" n_shown_msg
 	       (if m sess || w sess then
 			Format.sprintf " (hidden: %Ld) Hidden thread: %s" n_hidden_msg (if hidden then "YES" else "NO")
 	        else
@@ -393,17 +362,18 @@ class makeforum
 
 
     method private mk_thread_box sp sess feedback thr_id thr_data msg_l =
-			{{ ([
+			{{ [
 				{: me#feedback_box feedback :}
        	{: me#thread_data_box sp sess thr_data :}
 (*--- 
    thread_messages_list_box sp sess msg_l ^:
    ---*)
-       	{: me#thread_messageswtext_list_box sp sess msg_l :}] @
-				{: if (w sess) then
+       	{: me#thread_messageswtext_list_box sp sess msg_l :}
+				!{: if (w sess) then
 				{{ [{: post_form srv_newmessage sp me#new_message_form thr_id :}] }}
 				else
-				{{ [] }} :}) }}
+				{{ [] }} :}
+			]	}}
 
 (*---
    method private mk_message_box sp sess msg_data =
@@ -476,14 +446,13 @@ class makeforum
 
 
   method box_newmessage sess thr_id sp txt =
-		Messages.debug "[box_newmessage";
     let prepare () = 
       if not (w sess) then
 	fail Unauthorized
       else
 	let role = kindof sess in
 	let author = name sess in
-	Sql.new_message ~frm_id ~thr_id ~author ~txt >>=
+	Sql.new_message ~frm_id ~thr_id ~author ~txt () >>=
         (fun _ ->
           Sql.forum_get_data ~frm_id ~role >>=
           (fun a ->
@@ -620,8 +589,7 @@ class makeforum
 
     method srv_forum : 
       (unit, unit, Eliom.get_service_kind,
-       [ `WithoutSuffix ], unit Eliom.param_name, unit Eliom.param_name,
-       [ `Registrable ])
+       [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
         = srv_forum
 
@@ -648,9 +616,13 @@ class makeforum
 		method register =
 		begin
       register srv_forum me#page_forum;
+      register srv_forum_post me#page_forum;
       register srv_forum' me#page_forum';
+      register srv_forum_post' me#page_forum';
       register srv_thread me#page_thread;
+			register srv_thread_post me#page_thread;
       register srv_thread' me#page_thread';
+      register srv_thread_post' me#page_thread';
       sessionmanager#add_login_actions me#login_actions;
       sessionmanager#add_logout_actions me#logout_actions;
 (*---
@@ -663,10 +635,3 @@ class makeforum
 		end
 
 end
-
-let newforum
-    ~(foruminfo : forum_in)      
-    ~(sessionmanager : SessionManager.sessionmanager): forum Lwt.t
-    = 
-  let o = new makeforum ~foruminfo ~sessionmanager in
-  return (o :> forum)
