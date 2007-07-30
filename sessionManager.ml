@@ -337,18 +337,18 @@ class sessionmanager
       {{ Xhtml1_strict.form }}
         = fun sp sess -> match sess with
           | Some user -> (* user is logged in *)
-              post_form ~a:{{ {class="logbox logged"} }} 
-	        act_logout sp (fun _ -> me#logout_box sp user) ()
+              post_form ~a:{{ {class="logbox logged"} }}
+							~service:act_logout ~sp:sp (fun _ -> me#logout_box sp user) ()
           | _ ->
               let exn = get_exn sp in
               if List.mem BadPassword exn || List.mem NoSuchUser exn
               then (* unsuccessful attempt *)
 	        post_form ~a:{{ {class="logbox error"} }} 
-	          act_login sp (fun (usr, pwd) -> 
+	          ~service:act_login ~sp:sp (fun (usr, pwd) -> 
                     (me#login_box sp true usr pwd)) ()
               else (* no login attempt yet *)
 	        post_form ~a:{{ {class="logbox notlogged"} }}
-	          act_login sp (fun (usr, pwd) -> 
+	          ~service:act_login ~sp:sp (fun (usr, pwd) -> 
                     (me#login_box sp false usr pwd)) ()
 
     method lwtinit = return ()

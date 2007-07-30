@@ -151,7 +151,7 @@ class makewiki
 				{{ <div class="wiki_data">[
 					<h1>{: Format.sprintf "Wiki: %s" title :}
 					<h2>{: Format.sprintf "Description: %s" description :}
-					<h3>{: Format.sprintf "There are %Ld wikipages at present." n_pages :}
+					<h3>{: Format.sprintf "There are %d wikipages at present." n_pages :}
 				] }}
 
           (* the wikipages list *)

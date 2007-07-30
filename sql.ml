@@ -58,6 +58,15 @@ module Persist = struct
 
 end
 
+type db_int_t = int32;;
+type db_size_t = int64;;
+
+let db_int_of_int = Int32.of_int;;
+let db_size_of_int = Int64.of_int;;
+let db_int_of_string = Int32.of_string;;
+let string_of_db_int = Int32.to_string;;
+let int_of_db_int = Int32.to_int;;
+let int_of_db_size = Int64.to_int;;
 
   (* I could define here a functor to try to abstract the db
      structure, improving Vincent's Ocsicache.Make; but I need lots of
@@ -74,7 +83,12 @@ end
 
 
 (* Used to restrict the recordsets *)
-type role = Moderator | Author of string | Unknown
+type role = Moderator | Author of string | Unknown;;
+
+type message_info =
+	db_int_t * string * string * Calendar.t * bool * db_int_t option * string option;;
+
+type 'a tree = Node of 'a * ('a tree list);;
 
 let new_forum ~title ~descr ~moderated =
   (* inserts a new forum *)
@@ -227,8 +241,8 @@ let forum_get_data ~frm_id ~role =
 	    (0L, 0L)) in
       commit db;
       (id, title, description, moderated,
-       n_shown_thr, n_hidden_thr,
-       n_shown_msg, n_hidden_msg))
+       int_of_db_size n_shown_thr, int_of_db_size n_hidden_thr,
+       int_of_db_size n_shown_msg, int_of_db_size n_hidden_msg))
     ()
         
 let thread_get_data ~frm_id ~thr_id ~role =
@@ -245,12 +259,12 @@ let thread_get_data ~frm_id ~thr_id ~role =
             FROM threads WHERE id = $thr_id AND frm_id = $frm_id"
         with [x] -> x | _ -> raise Not_found) in
       let n_shown_msg = 
-        (match 
+        int_of_db_size (match 
           PGSQL(db) "SELECT COUNT(*) FROM messages \
             WHERE thr_id = $thr_id AND (NOT hidden)"
         with [Some x] -> x | _ -> assert false) in
       let n_hidden_msg =
-        (match role with
+        int_of_db_size (match role with
         | Moderator -> (* counts all hidden messages *)
 	    (match PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
                 WHERE messages.thr_id = $thr_id \
@@ -390,6 +404,8 @@ let forum_get_threads_list ~frm_id ~offset ~limit ~role =
   (* returns the threads list of a forum, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
+	let db_offset = db_size_of_int offset
+	and db_limit = db_size_of_int limit in
   detach
     (fun () ->
       let thr_l = 
@@ -399,61 +415,59 @@ let forum_get_threads_list ~frm_id ~offset ~limit ~role =
               FROM threads \
               WHERE frm_id = $frm_id \
               ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset"
+              LIMIT $db_limit OFFSET $db_offset"
         | Author a ->
 	    PGSQL(db) "SELECT id, subject, author, datetime, hidden \
               FROM threads \
               WHERE frm_id = $frm_id \
               AND (author = $a OR NOT hidden) \
               ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset"
+              LIMIT $db_limit OFFSET $db_offset"
         | Unknown ->
 	    PGSQL(db) "SELECT id, subject, author, datetime, hidden \
               FROM threads \
               WHERE frm_id = $frm_id \
               AND NOT hidden \
               ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset") in
+              LIMIT $db_limit OFFSET $db_offset") in
               thr_l)
           ()
 
-let thread_get_messages_list ~frm_id ~thr_id ~offset ~limit ~role =
-  (* returns the messages list of a thread, ordered cronologycally
-     (latest first), with max [~limit] items and skipping first
-     [~offset] rows. *)
-  detach
-    (fun () ->
-      begin_work db;
-      let _ = 
-        (match PGSQL(db) "SELECT frm_id FROM threads \
-            WHERE frm_id = $frm_id AND id = $thr_id"
-        with [x] -> x | _ -> raise Not_found) in
-      let msg_l = 
-        (match role with
-        | Moderator ->
-	    PGSQL(db) "SELECT id, author, datetime, hidden \
-              FROM messages \
-              WHERE thr_id = $thr_id \
-              ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset"
-        | Author a ->
-	    PGSQL(db) "SELECT id, author, datetime, hidden \
-              FROM messages \
-              WHERE thr_id = $thr_id AND (author = $a OR NOT hidden) \
-              ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset"
-        | Unknown ->
-	    PGSQL(db) "SELECT id, author, datetime, hidden \
-              FROM messages \
-              WHERE thr_id = $thr_id AND NOT hidden \
-              ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset") in
-              commit db;
-            msg_l)
-          ()
+let rec forest_of (get_id: 'a -> 'b) (get_parent_id: 'a -> 'b option) (z: 'a list): 'a tree list =
+begin
+	let rec tree_of_aux n l =
+	let n_id = get_id n in
+	begin
+		match l with
+		| [] -> ([], [])
+		| (x::xs) ->
+			let x_pid = get_parent_id x in
+			if x_pid = (Some n_id) then
+			let x_children, x_rest = tree_of_aux x xs in
+			let n_children, n_rest = tree_of_aux n x_rest in
+				((Node (x, x_children))::n_children, n_rest) 
+			else
+				([], x::xs)
+	end in	
+	match z with
+	| [] -> []
+	| m::ms -> let (m_children, m_rest) = tree_of_aux m ms in
+		begin
+			if m_rest = [] then [Node (m, m_children)]
+			else (Node (m, m_children))::(forest_of get_id get_parent_id m_rest)
+		end
+end;;
 
-let thread_get_messages_with_text_list ~frm_id ~thr_id ~offset ~limit ~role =
-  (* as above, but gets message texts too. *)
+let rec cut id =
+function
+|	[]  -> []
+|	h::t -> let (h_id,_,_,_,_,_,_) = h in
+	if h_id = id then [h] else h::(cut id t);;
+
+let thread_get_messages_tree ~frm_id ~thr_id ~offset ~limit ?top ~max_depth ~role () =
+	let db_offset = db_size_of_int offset
+	and db_limit = db_size_of_int limit 
+	and db_max_depth = db_int_of_int max_depth in
   detach
     (fun () ->
       begin_work db;
@@ -461,30 +475,86 @@ let thread_get_messages_with_text_list ~frm_id ~thr_id ~offset ~limit ~role =
         (match PGSQL(db) "SELECT frm_id FROM threads \
             WHERE frm_id = $frm_id AND id = $thr_id"
         with [x] -> x | _ -> raise Not_found) in
+			let db_top = match top with
+				None -> "0"
+			| Some i -> string_of_db_int i in
       let msg_l = 
-        (match role with
-        | Moderator ->
-	    PGSQL(db) "SELECT messages.id, txt, author, datetime, hidden \
-              FROM messages, textdata \
-              WHERE thr_id = $thr_id AND txt_id = textdata.id \
-              ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset"
-        | Author a ->
-	    PGSQL(db) "SELECT messages.id, txt, author, datetime, hidden \
-              FROM messages, textdata \
-              WHERE thr_id = $thr_id AND txt_id = textdata.id \
-              AND (author = $a OR NOT hidden) \
-              ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset"
-        | Unknown ->
-	    PGSQL(db) "SELECT messages.id, txt, author, datetime, hidden \
-              FROM messages, textdata \
-              WHERE thr_id = $thr_id AND txt_id = textdata.id \
-              AND NOT hidden \
-              ORDER BY datetime DESC \
-              LIMIT $limit OFFSET $offset") in
-              msg_l)
-          ()
+			(match role with 
+			| Moderator ->
+		PGSQL(db) "SELECT id,author,datetime,hidden,parent_keyid,branch \
+		FROM connectby('messages','id','parent_id','datetime',$db_top,$db_max_depth,'-') \
+		AS t(keyid int, parent_keyid int, level int, branch text, pos int), \
+		messages \
+		WHERE keyid = messages.id AND thr_id = $thr_id \
+		ORDER BY pos \
+		LIMIT $db_limit OFFSET $db_offset" 
+			| Author a ->
+		PGSQL(db) "SELECT id,author,datetime,hidden,parent_keyid,branch \
+		FROM connectby('messages','id','parent_id','datetime',$db_top,$db_max_depth,'-') \
+		AS t(keyid int, parent_keyid int, level int, branch text, pos int), \
+		messages \
+		WHERE keyid = messages.id AND thr_id = $thr_id AND (author = $a OR NOT hidden)  \
+		ORDER BY pos \
+		LIMIT $db_limit OFFSET $db_offset" 
+			| Unknown ->
+		PGSQL(db) "SELECT id,author,datetime,hidden,parent_keyid,branch \
+		FROM connectby('messages','id','parent_id','datetime',$db_top,$db_max_depth,'-') \
+		AS t(keyid int, parent_keyid int, level int, branch text, pos int), \
+		messages \
+		WHERE keyid = messages.id AND thr_id = $thr_id AND NOT hidden  \
+		ORDER BY pos \
+		LIMIT $db_limit OFFSET $db_offset") in
+              commit db;
+           forest_of (fun (x,_,_,_,_,_)->x) (fun (_,_,_,_,x,_)->x) msg_l)
+          ();;
+
+let thread_get_messages_with_text_tree ~frm_id ~thr_id ~offset ~limit ?top ?bottom ~max_depth ~role () =
+	let db_offset = db_size_of_int offset
+	and db_limit = db_size_of_int limit 
+	and db_max_depth = db_int_of_int max_depth in
+  detach
+    (fun () ->
+      begin_work db;
+      let _ = 
+        (match PGSQL(db) "SELECT frm_id FROM threads \
+            WHERE frm_id = $frm_id AND id = $thr_id"
+        with [x] -> x | _ -> raise Not_found) in
+			let db_top = match top with
+			| None -> "0"
+			| Some i -> string_of_db_int i in
+      let msg_l = 
+			(match role with 
+			| Moderator ->
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,parent_keyid,branch \
+		FROM connectby('messages','id','parent_id','datetime',$db_top,$db_max_depth,'-') \
+		AS t(keyid int, parent_keyid int, level int, branch text, pos int), \
+		messages, textdata \
+		WHERE keyid = messages.id AND thr_id = $thr_id AND txt_id = textdata.id \
+		ORDER BY pos \
+		LIMIT $db_limit OFFSET $db_offset" 
+			| Author a ->
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,parent_keyid,branch \
+		FROM connectby('messages','id','parent_id','datetime',$db_top,$db_max_depth,'-') \
+		AS t(keyid int, parent_keyid int, level int, branch text, pos int), \
+		messages, textdata \
+		WHERE keyid = messages.id AND thr_id = $thr_id AND (author = $a OR NOT hidden) AND txt_id = textdata.id \
+		ORDER BY pos \
+		LIMIT $db_limit OFFSET $db_offset" 
+			| Unknown ->
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,parent_keyid,branch \
+		FROM connectby('messages','id','parent_id','datetime',$db_top,$db_max_depth,'-') \
+		AS t(keyid int, parent_keyid int, level int, branch text, pos int), \
+		messages, textdata \
+		WHERE keyid = messages.id AND thr_id = $thr_id AND NOT hidden AND txt_id = textdata.id \
+		ORDER BY pos \
+		LIMIT $db_limit OFFSET $db_offset") in
+              commit db;
+							let final_msg_l = match bottom with
+							| None -> msg_l
+							| Some btm -> cut btm msg_l
+							in
+           forest_of (fun (x,_,_,_,_,_,_)->x) (fun (_,_,_,_,_,x,_)->x) final_msg_l)
+          ();;
 
 let new_wiki ~title ~descr =
   (* inserts a new wiki *)
@@ -559,7 +629,7 @@ let wiki_get_data ~wik_id =
             "SELECT COUNT(*) FROM wikipages WHERE wik_id = $wik_id"
         with [Some x] -> x | _ -> assert false) in
       commit db;
-      (title, description, n_pages))
+      (title, description, int_of_db_size n_pages))
     ()
 
 let wiki_get_pages_list ~wik_id =

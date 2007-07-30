@@ -21,6 +21,6 @@ let sol (* "string of long" *) = Int32.to_string
 let sod (* "string of date" *) = Printer.CalendarPrinter.to_string
 
     (* A user defined parameter type *)
-let int32 p = user_type Int32.of_string Int32.to_string p 
-let int64 p = user_type Int64.of_string Int64.to_string p
+let id p = user_type Sql.db_int_of_string Sql.string_of_db_int p 
+(* let int64 p = user_type Int64.of_string Int64.to_string p *)
 
