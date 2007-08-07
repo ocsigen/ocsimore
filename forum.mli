@@ -25,12 +25,17 @@ object
        {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
 	method private thread_data_box:
 		Eliom.server_params -> Users.user option ->
-		(Sql.db_int_t * string * string * Calendar.t * bool * int * int) -> {{ Xhtml1_strict.block }}
+		(Sql.db_int_t * string * string * string option * Calendar.t * bool * int * int) -> {{ Xhtml1_strict.block }}
+	method private article_box:
+		Eliom.server_params -> Users.user option ->
+		(Sql.db_int_t * string * string * string option * Calendar.t * bool * int * int) -> {{ Xhtml1_strict.block }}
 	method private message_data_box:
 		Eliom.server_params -> Users.user option -> Sql.db_int_t -> 
-		Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option * string option -> {{ Xhtml1_strict.block }}
+		Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option * string option ->
+		int -> int -> {{ Xhtml1_strict.block }}
 	method private thread_messageswtext_box:
 		Eliom.server_params -> Users.user option -> Sql.db_int_t ->
+		int -> int ->
 		(Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option * string option) Sql.tree list ->
 		{{ Xhtml1_strict.block }}
 
@@ -51,14 +56,14 @@ object
         Eliom.server_params -> Users.user option ->
           int * int -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_newmessage :
-      Eliom.server_params -> Users.user option -> Sql.db_int_t -> string ->
-			{{ Xhtml1_strict.blocks }} Lwt.t
+      Eliom.server_params -> Users.user option -> Sql.db_int_t * (int * int) ->
+			string -> {{ Xhtml1_strict.blocks }} Lwt.t
   method box_replymessage :
       Eliom.server_params -> Users.user option -> Sql.db_int_t ->
 			Sql.db_int_t * string -> 
 			{{ Xhtml1_strict.blocks }} Lwt.t
   method box_newthread :
-        Eliom.server_params -> Users.user option -> string * string ->
+        Eliom.server_params -> Users.user option -> bool * (string * string) ->
 				{{ Xhtml1_strict.blocks }} Lwt.t
   method box_thread' :
      Eliom.server_params -> Users.user option -> Sql.db_int_t * (int * int) ->
@@ -73,12 +78,13 @@ object
       Eliom.server_params ->
         int * int -> unit -> {{ Xhtml1_strict.html }} Lwt.t
   method page_newmessage :
-      Eliom.server_params -> Sql.db_int_t -> string -> {{ Xhtml1_strict.html }} Lwt.t
+      Eliom.server_params -> Sql.db_int_t * (int * int) -> string ->
+			{{ Xhtml1_strict.html }} Lwt.t
   method page_replymessage :
       Eliom.server_params -> Sql.db_int_t -> Sql.db_int_t * string -> {{ Xhtml1_strict.html }} Lwt.t
   method page_newthread :
       Eliom.server_params ->
-        unit -> string * string -> {{ Xhtml1_strict.html }} Lwt.t
+        unit -> bool * (string * string) -> {{ Xhtml1_strict.html }} Lwt.t
   method page_thread :
       Eliom.server_params -> Sql.db_int_t -> unit -> {{ Xhtml1_strict.html }} Lwt.t
   method page_thread':

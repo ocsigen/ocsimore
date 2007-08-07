@@ -107,7 +107,7 @@ let new_thread_and_message ~frm_id ~author ~subject ~txt =
   (* inserts a message starting a new thread; both thread and message
      will be hidden if forum is moderated *)
   detach
-    (fun () ->
+  (fun () ->
       begin_work db;
       let hidden = 
         (match 
@@ -127,7 +127,26 @@ let new_thread_and_message ~frm_id ~author ~subject ~txt =
       commit db;
       (thr_id, msg_id))
     ()
-        
+    
+let new_thread_and_article ~frm_id ~author ~subject ~txt =
+	detach
+		(fun () -> 
+      begin_work db;
+      let hidden = 
+        (match 
+          PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" 
+        with [x] -> x | _ -> raise Not_found) in
+      let txt_id = 
+        (PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)";
+         serial4 db "textdata_id_seq") in
+      let thr_id = 
+        (PGSQL(db) "INSERT INTO threads (frm_id, subject, hidden, author, article_id) \
+           VALUES ($frm_id, $subject, $hidden, $author, $txt_id)";
+           serial4 db "threads_id_seq") in
+      commit db;
+      (thr_id, txt_id))
+    ();;
+
 let new_message ~frm_id ~thr_id ?parent_id ~author ~txt () = 
   (* inserts a message in an existing thread; message will be hidden
      if forum is moderated *)
@@ -250,20 +269,21 @@ let thread_get_data ~frm_id ~thr_id ~role =
      shown/hidden messages of a thread.  NB: a message is counted as
      hidden if: 1) its hidden status is true, or 2) it is in a hidden
      thread. *)
-  detach
-    (fun () ->
-      begin_work db;
-      let (id, subject, author, datetime, hidden) =
-        (match
-          PGSQL(db) "SELECT id, subject, author, datetime, hidden \
-            FROM threads WHERE id = $thr_id AND frm_id = $frm_id"
-        with [x] -> x | _ -> raise Not_found) in
-      let n_shown_msg = 
+	detach
+	(fun () -> begin_work db;
+	let (id, subject, author, datetime, hidden, article) =
+		(match
+			PGSQL(db) "SELECT t.id, subject, t.author, t.datetime, t.hidden, COALESCE (txt, '') \
+			FROM threads AS t LEFT OUTER JOIN textdata ON \
+			(t.article_id = textdata.id)\
+			WHERE t.id = $thr_id AND frm_id = $frm_id"
+		with [x] -> x | _ -> raise Not_found) in
+ 	let n_shown_msg = 
         int_of_db_size (match 
           PGSQL(db) "SELECT COUNT(*) FROM messages \
             WHERE thr_id = $thr_id AND (NOT hidden)"
         with [Some x] -> x | _ -> assert false) in
-      let n_hidden_msg =
+	let n_hidden_msg =
         int_of_db_size (match role with
         | Moderator -> (* counts all hidden messages *)
 	    (match PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
@@ -280,8 +300,9 @@ let thread_get_data ~frm_id ~thr_id ~role =
 	    with [Some x] -> x | _ -> assert false)
         | Unknown -> (* nothing to be counted *) 0L) in
       commit db;
-      (id, subject, author, datetime, hidden, n_shown_msg, n_hidden_msg))
+      (id, subject, author, article, datetime, hidden, n_shown_msg, n_hidden_msg))
     ()
+;;
 
 let message_get_data ~frm_id ~msg_id =
   (* returns id, text, author, datetime, hidden status of a message *)
@@ -299,6 +320,7 @@ let message_get_data ~frm_id ~msg_id =
         with [x] -> x | _ -> raise Not_found) in
       (id, text, author, datetime, hidden))
     ()
+;;
       
 let thread_get_neighbours ~frm_id ~thr_id ~role =
   (* returns None|Some id of prev & next thread in the same forum. *)
@@ -431,7 +453,7 @@ let forum_get_threads_list ~frm_id ~offset ~limit ~role =
               ORDER BY datetime DESC \
               LIMIT $db_limit OFFSET $db_offset") in
               thr_l)
-          ()
+          ();;
 
 let rec forest_of (get_id: 'a -> 'b) (get_parent_id: 'a -> 'b option) (z: 'a list): 'a tree list =
 begin

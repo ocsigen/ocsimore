@@ -47,6 +47,7 @@ type db_int_t;;
 type db_size_t;;
 
 val db_int_of_int: int -> db_int_t
+val int_of_db_int: db_int_t -> int
 val db_int_of_string: string -> db_int_t
 val string_of_db_int: db_int_t -> string
 val db_size_of_int: int -> db_size_t
@@ -66,6 +67,12 @@ val new_forum : title:string -> descr:string -> moderated:bool -> db_int_t Lwt.t
 val new_thread_and_message :
   frm_id:db_int_t ->
   author:string -> subject:string -> txt:string -> (db_int_t * db_int_t) Lwt.t
+
+(** inserts a thread with an article; the thread will be hidden if the forum
+    is moderated *)
+val new_thread_and_article:
+	frm_id:db_int_t -> author:string -> subject:string -> txt:string ->
+	(db_int_t * db_int_t) Lwt.t
 
 (** inserts a message for an existing thread; message will be hidden
     if forum is moderated *)
@@ -98,7 +105,7 @@ val forum_get_data:
     - it's in a hidden thread. *)
 val thread_get_data : 
   frm_id:db_int_t -> thr_id:db_int_t -> role:role -> 
-  (db_int_t * string * string * Calendar.t * bool * int * int) Lwt.t
+  (db_int_t * string * string * string option * Calendar.t * bool * int * int) Lwt.t
   
 (** returns id, text, author, datetime, hidden status of a message *)
 val message_get_data : frm_id:db_int_t -> msg_id:db_int_t -> 
