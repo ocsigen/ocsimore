@@ -57,7 +57,7 @@ type role = Moderator | Author of string | Unknown;;
 
 (** type of [message] list *)
 type 'a tree = Node of 'a * ('a tree list);;
-
+type 'a collection = List of 'a list | Forest of 'a tree list;;
 
 (** inserts a new forum *)
 val new_forum : title:string -> descr:string -> moderated:bool -> db_int_t Lwt.t
@@ -131,19 +131,17 @@ val forum_get_threads_list :
   limit:int ->
   role:role -> (db_int_t * string * string * Calendar.t * bool) list Lwt.t
 
+val thread_get_messages_with_text :
+	frm_id:db_int_t -> thr_id:db_int_t ->
+	offset:int ->
+	limit:int -> role:role -> ?bottom:db_int_t -> unit ->
+	(db_int_t * string * string * Calendar.t * bool * db_int_t option) collection Lwt.t
 (** as above, but in tree form *)
-val thread_get_messages_tree :
+val thread_get_messages_with_text_forest :
 	frm_id:db_int_t -> thr_id:db_int_t ->
 	offset:int ->
-	limit:int -> ?top:db_int_t -> max_depth:int -> role:role -> unit ->
-	(db_int_t * string * Calendar.t * bool * db_int_t option * string option) tree list Lwt.t
-
-val thread_get_messages_with_text_tree :
-	frm_id:db_int_t -> thr_id:db_int_t ->
-	offset:int ->
-	limit:int -> ?top:db_int_t -> ?bottom:db_int_t ->
-	max_depth:int -> role:role -> unit ->
-	(db_int_t * string * string * Calendar.t * bool * db_int_t option * string option) tree list Lwt.t
+	limit:int -> ?top:db_int_t -> ?bottom:db_int_t -> role:role -> unit ->
+	(db_int_t * string * string * Calendar.t * bool * db_int_t option) collection Lwt.t
 
 (** {4 Wikis} *)
 

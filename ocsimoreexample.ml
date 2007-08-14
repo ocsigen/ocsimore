@@ -7,7 +7,7 @@ let main_service = new_service ~url:[""] ~get_params:unit ();;
 let _ =
 begin
   Lwt_unix.run
-  (Sql.Persist.lwtcreate "gnork"
+  (Sql.Persist.lwtcreate "omexample_store"
   (fun () -> Users.create_user "admin" (Some "nimda") "Administrator" "") >>=
   fun s -> return (Sql.Persist.get s) >>=
   fun admin ->
@@ -37,6 +37,7 @@ begin
 			Forum.writable_by = Users.anonymous ();
 			Forum.moderators = admin;
 			Forum.max_rows = 5;
+			Forum.arborescent = true
 		}
 		~sessionmanager:sessmag) >>=
 	fun forum1 -> 
@@ -51,6 +52,7 @@ begin
 			Forum.writable_by = Users.anonymous ();
 			Forum.moderators = admin;
 			Forum.max_rows = 5;
+			Forum.arborescent = true
 		}
 		~sessionmanager:sessmag) >>=
   fun forum2 -> let main_page sp _ _ =

@@ -9,16 +9,17 @@ type forum_in =
      moderators: Users.user;
      url: string list;
      max_rows: int;
+		 arborescent: bool;
    }
 
 class forum:
 	foruminfo: forum_in ->
 	sessionmanager: SessionManager.sessionmanager ->
 object
-	method private is_logged_on: Users.user option -> bool
-	method private can_read: Users.user option -> bool
-	method private can_write: Users.user option -> bool
-	method private can_moderate: Users.user option -> bool
+	method is_logged_on: Users.user option -> bool
+	method can_read: Users.user option -> bool
+	method can_write: Users.user option -> bool
+	method can_moderate: Users.user option -> bool
 
 	method container :
     Eliom.server_params -> Users.user option -> title:string -> 
@@ -31,18 +32,26 @@ object
 		(Sql.db_int_t * string * string * string option * Calendar.t * bool * int * int) -> {{ Xhtml1_strict.block }}
 	method private message_data_box:
 		Eliom.server_params -> Users.user option -> Sql.db_int_t -> 
-		Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option * string option ->
+		Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option ->
 		int -> int -> {{ Xhtml1_strict.block }}
 	method private thread_messageswtext_box:
 		Eliom.server_params -> Users.user option -> Sql.db_int_t ->
 		int -> int ->
-		(Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option * string option) Sql.tree list ->
+		(Sql.db_int_t * string * string * Calendar.t * bool * Sql.db_int_t option) Sql.collection ->
 		{{ Xhtml1_strict.block }}
 
   method srv_forum :
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
+	method srv_newthread :
+		(unit, bool * (string * string), Eliom.post_service_kind,
+		[ `WithoutSuffix ], unit, [`One of bool] Eliom.param_name * ([`One of string] Eliom.param_name * [`One of string] Eliom.param_name), [ `Registrable ])
+		Eliom.service
+
+	method new_thread_form: 
+		[`One of bool] Eliom.param_name * ([`One of string] Eliom.param_name * [`One of string] Eliom.param_name) -> {{ [Xhtml1_strict.form_content*] }}
+
   method box_forum :
        Eliom.server_params -> Users.user option ->
 			 {{ Xhtml1_strict.blocks }} Lwt.t

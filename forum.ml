@@ -19,6 +19,7 @@ type forum_in =
      moderators: Users.user;
      url: string list;
      max_rows: int;
+		 arborescent: bool;
    }
 
 class forum
@@ -125,24 +126,24 @@ class forum
       (* USEFUL STUFF *)
       
   (* true if user is logged on *)
-  method private is_logged_on = function
+  method is_logged_on = function
     | Some _ -> true
     | _ -> false
 
   (* true if user can read messages *)
-  method private can_read = function
+  method can_read = function
     | Some user -> 
 	Users.in_group ~user ~group:foruminfo.readable_by
     | _ -> foruminfo.readable_by = Users.anonymous()
 
   (* true if user can write messages *)
-  method private can_write = function
+  method can_write = function
     | Some user -> 
 	Users.in_group ~user ~group:foruminfo.writable_by
     | _ -> foruminfo.writable_by = Users.anonymous()
 
   (* true if user is a moderator *)
-  method private can_moderate = function
+  method can_moderate = function
     | Some user -> 
 	Users.in_group ~user ~group:foruminfo.moderators
     | _ -> false (* no anonymous moderators *)
@@ -182,7 +183,7 @@ class forum
 
   (* HTML FRAGMENTS: <form> CONTENTS *)
 
-  method private new_thread_form = fun (is_article,(subject,txt)) ->
+  method new_thread_form = fun (is_article,(subject,txt)) ->
   {{ [
   	<h2>"Start a new thread:"
 		<p>[
@@ -279,7 +280,7 @@ class forum
 	}}
 
   method private message_data_box sp sess thr_id data offset limit =
-  let (id, text, author, datetime, hidden, _, _) = data in
+  let (id, text, author, datetime, hidden, _) = data in
   {{ <div class="message_data">[
 		<h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}
 	!{: if me#can_moderate sess || me#can_write sess then
@@ -339,16 +340,16 @@ class forum
  
    ---*)
 
-  method private thread_messageswtext_box sp sess thr_id offset limit msg_t =
+	method private thread_messageswtext_box sp sess thr_id offset limit msgs =
 	let rec tree_to_li msg_t: {{ Xhtml1_strict.li }} list =
 	begin
 		match msg_t with
 		| Sql.Node (m, ch) ->
 			[{{ <li>[
 				{: me#message_data_box sp sess thr_id m offset limit :}
-				!{: tree_list_to_ul ch :}] }}]
+				!{: forest_to_ul ch :}] }}]
 	end
-	and tree_list_to_ul msg_l: {{ Xhtml1_strict.flows }} =
+	and forest_to_ul msg_l: {{ Xhtml1_strict.flows }} =
 	begin
 		match msg_l with
 		| [] -> {{ [] }}
@@ -357,7 +358,16 @@ class forum
 			| [] -> {{ "empty" }}
 			| h::t -> {{ [<ul>[{: h :} !{: t :}]] }})
 	end in
-	{{ <div class="thread_messageswtext_list">{: tree_list_to_ul msg_t :} }}
+	begin
+		match msgs with
+		| Sql.List msg_l -> 	
+			{{ <div class="thread_messageswtext_list">{: List.map
+				(fun m -> {{ {: me#message_data_box sp sess thr_id m offset limit :} }})
+				msg_l :}
+			}}
+		| Sql.Forest msg_f ->
+			{{ <div class="thread_messageswtext_list">{: forest_to_ul msg_f :} }}
+	end
 
   method private main_link_box sp = 
 	{{ <div class="main_link">[
@@ -400,13 +410,12 @@ class forum
 				else
        	{{ [] }} :}) }}
 
-
-    method private mk_thread_box sp sess feedback thr_id thr_data offset limit msg_t =
+    method private mk_thread_box sp sess feedback thr_id thr_data offset limit msgs =
 			{{ [
 				{: me#feedback_box feedback :}
        	{: me#thread_data_box sp sess thr_data :}
 				{: me#article_box sp sess thr_data :}
-       	{: me#thread_messageswtext_box sp sess thr_id offset limit msg_t :}
+       	{: me#thread_messageswtext_box sp sess thr_id offset limit msgs :}
 				!{: me#thread_navigation_box sp sess thr_id thr_data offset limit :}
 				!{: if (me#can_write sess) then
 				{{ [{: post_form srv_newmessage sp me#new_message_form (thr_id, (offset, limit)) :}] }}
@@ -509,10 +518,13 @@ class forum
 	Sql.new_message ~frm_id ~thr_id ~author ~txt () >>=
 	fun id -> Sql.forum_get_data ~frm_id ~role >>=
 	fun a -> Sql.thread_get_data ~frm_id ~thr_id ~role >>=
-	fun b -> Sql.thread_get_messages_with_text_tree ~frm_id ~thr_id 
-		~offset ~limit ~max_depth:0 ~role () >>=
+	fun b ->
+		(if foruminfo.arborescent then
+			Sql.thread_get_messages_with_text_forest ~frm_id ~thr_id ~offset ~limit ~role () 
+		else
+			Sql.thread_get_messages_with_text ~frm_id ~thr_id ~offset ~limit ~role ()) >>=
 	fun c -> return (a,b,c)
-	and gen_html = fun (frm_data,thr_data,msg_l) ->
+	and gen_html = fun (frm_data,thr_data,msgs) ->
   let feedback = "Your message has been " ^
         (match frm_data with (* get moderation status *)
         | (_,_,_,true,_,_,_,_) ->
@@ -521,7 +533,7 @@ class forum
               do not send it again."
       | (_,_,_,false,_,_,_,_) -> "published.")
     in
-    me#mk_thread_box sp sess feedback thr_id thr_data offset limit msg_l
+    me#mk_thread_box sp sess feedback thr_id thr_data offset limit msgs
   in me#lwt_box_with_exception_handling 
        sp sess "page_newmessage" prepare gen_html
 
@@ -542,11 +554,16 @@ class forum
 	Sql.new_message ~frm_id ~thr_id ~parent_id ~author ~txt () >>=
   fun id -> Sql.forum_get_data ~frm_id ~role >>=
   fun a -> Sql.thread_get_data ~frm_id ~thr_id ~role >>=
-  fun b -> Sql.thread_get_messages_with_text_tree ~frm_id ~thr_id ~bottom:id
-		~offset:0 ~limit:(Sql.int_of_db_int id) ~max_depth:0 ~role () >>=
+  fun b -> 
+		(if foruminfo.arborescent then
+			Sql.thread_get_messages_with_text_forest ~frm_id ~thr_id ~bottom:id
+		~offset:0 ~limit:(Sql.int_of_db_int id) ~role ()
+		else
+			Sql.thread_get_messages_with_text ~frm_id ~thr_id ~bottom:id
+			~offset:0 ~limit:(Sql.int_of_db_int id) ~role ()) >>=
 	fun c -> return (a,b,c)
-  and gen_html = fun (frm_data,thr_data,msg_l) ->
-	let new_id = List.length msg_l in
+  and gen_html = fun (frm_data,thr_data,msgs) ->
+	let (_,_,_,_,_,_,new_id,_) = thr_data in
 	let offset = new_id - (new_id mod foruminfo.max_rows) in
   let feedback = "Your reply has been " ^
   	(match frm_data with (* get moderation status *)
@@ -555,7 +572,7 @@ class forum
               approvation. Should it not appear in the list, please \
               do not send it again."
     | (_,_,_,false,_,_,_,_) -> "published.") in
-  me#mk_thread_box sp sess feedback thr_id thr_data offset foruminfo.max_rows msg_l in
+  me#mk_thread_box sp sess feedback thr_id thr_data offset foruminfo.max_rows msgs in
 	me#lwt_box_with_exception_handling sp sess "page_newmessage" prepare gen_html
 
 	method page_replymessage sp thr_id (parent_id,txt) =
@@ -603,12 +620,17 @@ class forum
 		else
 		let role = me#kindof sess in
 			Sql.thread_get_data ~frm_id ~thr_id ~role >>=
-			fun a -> Sql.thread_get_messages_with_text_tree ~frm_id ~thr_id ~offset ~limit ~role ~max_depth:0 () >>=
+			fun a -> 
+				(if foruminfo.arborescent then
+					Sql.thread_get_messages_with_text_forest ~frm_id ~thr_id ~offset ~limit ~role ()
+				else
+					Sql.thread_get_messages_with_text ~frm_id ~thr_id ~offset ~limit ~role ()) >>=
 			fun b -> return (a,b) >>=
 			function
-  		| ((_,_,_,_,_,true,_,_),[]) -> fail Unauthorized
+  		| ((_,_,_,_,_,true,_,_),Sql.List [])
+  		| ((_,_,_,_,_,true,_,_),Sql.Forest []) -> fail Unauthorized
 			(* Raises an exc if someone's trying to see a hidden thread with no messages by herself *)
-			| (thr_data,msg_l) -> return (thr_data,msg_l)
+			| (thr_data,msgs) -> return (thr_data,msgs)
 	and gen_html (thr_data, msg_l) =
 		me#mk_thread_box sp sess "" thr_id thr_data offset limit msg_l
 	in me#lwt_box_with_exception_handling sp sess "page_thread" prepare gen_html
@@ -633,17 +655,22 @@ class forum
    Sql.thread_get_messages_list 
    ~frm_id ~thr_id ~offset:0l ~limit:foruminfo.max_rows ~role,
    ---*)
-	  Sql.thread_get_messages_with_text_tree
-	    ~frm_id ~thr_id ~offset ~limit ~role ~max_depth:0 ~bottom:parent_id () >>=
+	  (if foruminfo.arborescent then
+			Sql.thread_get_messages_with_text_forest
+	    ~frm_id ~thr_id ~offset ~limit ~role ~bottom:parent_id ()
+		else
+			Sql.thread_get_messages_with_text
+	    ~frm_id ~thr_id ~offset ~limit ~role ~bottom:parent_id ()) >>=
           (fun b -> return (a,b))) >>= function
-	    | ((_,_,_,_,_,true,_,_),[]) -> 
+	    | ((_,_,_,_,_,true,_,_),Sql.List []) 
+	    | ((_,_,_,_,_,true,_,_),Sql.Forest []) -> 
 	        (* Raises an exc if someone's trying to see a hidden thread 
 	           with no messages by herself *)
 	        fail Unauthorized
-	    | (thr_data,msg_l) -> return (thr_data,msg_l)
+	    | (thr_data,msgs) -> return (thr_data,msgs)
                     
-    and gen_html (thr_data, msg_l) =
-      me#mk_reply_box sp sess "" thr_id thr_data parent_id offset limit msg_l
+    and gen_html (thr_data, msgs) =
+      me#mk_reply_box sp sess "" thr_id thr_data parent_id offset limit msgs
     in me#lwt_box_with_exception_handling 
       sp sess "page_thread" prepare gen_html
 
@@ -677,6 +704,12 @@ class forum
        [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
         = srv_forum
+
+    method srv_newthread : 
+      (unit, bool * (string * string), Eliom.post_service_kind,
+       [ `WithoutSuffix ], unit, [`One of bool] Eliom.param_name * ([`One of string] Eliom.param_name * [`One of string] Eliom.param_name), [ `Registrable ])
+      Eliom.service
+        = srv_newthread
 
     method private login_actions sp sess =
       return
