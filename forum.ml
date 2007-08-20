@@ -743,15 +743,13 @@ class forum
           Actions.register_for_session sp act_message_sticky_toggle me#message_toggle_sticky
 				end;
         if me#can_write sess && foruminfo.writable_by <> Users.anonymous () then
-	   			register_for_session sp srv_newthread me#page_newthread
-        else (); (* user can't write, OR service is public because everyone can write *)
+				begin
+	   			register_for_session sp srv_newthread me#page_newthread;
+	   			register_for_session sp srv_newmessage me#page_newmessage;
+	   			register_for_session sp srv_replymessage me#page_replymessage
+				end
+        else () (* user can't write, OR service is public because everyone can write *)
 
-	 if me#can_write sess && foruminfo.writable_by <> Users.anonymous ()
-	 then 
-	 begin
-		register_for_session sp srv_newmessage me#page_newmessage;
-		register_for_session sp srv_replymessage me#page_replymessage
-	 end;
 
         )
           
@@ -767,13 +765,13 @@ class forum
 			register srv_reply' me#page_reply';
       sessionmanager#add_login_actions me#login_actions;
       sessionmanager#add_logout_actions me#logout_actions;
-      if foruminfo.writable_by = Users.anonymous() then
-			begin
-        (* see comment to register_aux in page_forum' *)
-        register srv_newthread me#page_newthread;
-				register srv_newmessage me#page_newmessage;
-				register srv_replymessage me#page_replymessage;
-			end
+      register srv_newthread me#page_newthread;
+			register srv_newmessage me#page_newmessage;
+			register srv_replymessage me#page_replymessage;
+			Actions.register act_forumtoggle me#forum_toggle;
+			Actions.register act_threadtoggle me#thread_toggle;
+			Actions.register act_message_hidden_toggle me#message_toggle_hidden;
+			Actions.register act_message_sticky_toggle me#message_toggle_sticky
 		end
 
 end
