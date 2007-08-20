@@ -78,7 +78,7 @@ val new_thread_and_article:
     if forum is moderated *)
 val new_message :
   frm_id:db_int_t -> thr_id:db_int_t -> ?parent_id:db_int_t -> author:string ->
-	txt:string -> unit -> db_int_t Lwt.t
+	txt:string -> sticky:bool -> unit -> db_int_t Lwt.t
 
 (** toggle moderation status of a forum *)
 val forum_toggle_moderated : frm_id:db_int_t -> unit Lwt.t
@@ -88,6 +88,9 @@ val thread_toggle_hidden : frm_id:db_int_t -> thr_id:db_int_t -> unit Lwt.t
   
 (** hides/shows a message *)
 val message_toggle_hidden : frm_id:db_int_t -> msg_id:db_int_t -> unit Lwt.t
+
+(** makes a message sticky (or not) *)
+val message_toggle_sticky: frm_id:db_int_t -> msg_id:db_int_t -> unit Lwt.t
 
 (** returns id, title, description, moderation status, number of shown/hidden
     threads and messages of a forum.  
@@ -135,13 +138,13 @@ val thread_get_messages_with_text :
 	frm_id:db_int_t -> thr_id:db_int_t ->
 	offset:int ->
 	limit:int -> role:role -> ?bottom:db_int_t -> unit ->
-	(db_int_t * string * string * Calendar.t * bool * db_int_t option) collection Lwt.t
+	(db_int_t * string * string * Calendar.t * bool * bool *  db_int_t option) collection Lwt.t
 (** as above, but in tree form *)
 val thread_get_messages_with_text_forest :
 	frm_id:db_int_t -> thr_id:db_int_t ->
 	offset:int ->
 	limit:int -> ?top:db_int_t -> ?bottom:db_int_t -> role:role -> unit ->
-	(db_int_t * string * string * Calendar.t * bool * db_int_t option) collection Lwt.t
+	(db_int_t * string * string * Calendar.t * bool * bool * db_int_t option) collection Lwt.t
 
 (** {4 Wikis} *)
 

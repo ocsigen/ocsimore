@@ -91,13 +91,13 @@ class forum
   (* inserts the new message and redisplays the messages list *)
   let srv_newmessage = new_post_coservice
       ~fallback:srv_thread'
-      ~post_params:(string "text")
+      ~post_params:(string "text" ** bool "sticky")
       ()
   in
 
 	let srv_replymessage = new_post_coservice
 		~fallback:srv_thread
-		~post_params:(id "parent_id" ** string "text")
+		~post_params:(id "parent_id" ** string "text" ** bool "sticky")
 		()
 	in
 
@@ -116,11 +116,15 @@ class forum
   in
 
   (* toggle the hidden flag of a message *)
-  let act_messagetoggle = new_post_coservice'
+  let act_message_hidden_toggle = new_post_coservice'
       ~post_params:(id "msg_id")
       ()
   in
 
+  let act_message_sticky_toggle = new_post_coservice'
+      ~post_params:(id "msg_id")
+      ()
+  in
   object (me)
 
       (* USEFUL STUFF *)
@@ -199,16 +203,20 @@ class forum
 	<p>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
   ] }}
 
-  method private new_message_form = fun (txt) ->
+  method new_message_form = fun (txt,sticky) ->
   {{ [
   	<h2>"Post a new message in this thread:"
+	<p>[{: bool_checkbox ~name:sticky () :}
+		' This message is sticky']
 	<p>[{: textarea ~name:txt ~rows:5 ~cols:80 ~value:{{ "Write your message here" }} () :}]
 	<p>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
   ] }}
 
-  method private reply_form = fun parent_id (p_id,txt) ->
+  method private reply_form = fun parent_id (p_id,(txt,sticky)) ->
   {{ [
   	<h2>"Reply to this message:"
+	<p>[{: bool_checkbox ~name:sticky () :}
+		' This message is sticky']
 	<p>[{: textarea ~name:txt ~rows:5 ~cols:80 ~value:{{ "Write your message here" }} () :}]
 	<p>[{: user_type_input ~input_type:{:"hidden":} ~name:p_id ~value:parent_id Sql.string_of_db_int :}]
 	<p>[
@@ -217,25 +225,32 @@ class forum
 
   method private forumtoggle_form = fun _ ->
   {{ [
-  	<p>[{: string_input ~input_type:{:"submit":} ~value:"Toggle" () :}]
+  	<p>[{: string_input ~input_type:{:"submit":} ~value:"Toggle hidden" () :}]
   ] }}
 
   method private thr_toggle_form i = fun thr_id ->
   {{ [
   	<p>[
 		{: user_type_input ~input_type:{:"hidden":} ~name:thr_id ~value:i Sql.string_of_db_int :}
-		{: string_input ~input_type:{:"submit":} ~value:"Toggle" () :}
+		{: string_input ~input_type:{:"submit":} ~value:"Toggle hidden" () :}
 	]
   ] }}
 
-  method private msg_toggle_form i = fun (msg_id) ->
+  method private msg_toggle_hidden_form i = fun (msg_id) ->
   {{ [
   	<p>[
 		{: user_type_input ~input_type:{:"hidden":} ~name:msg_id ~value:i Sql.string_of_db_int :}
-		{: string_input ~input_type:{:"submit":} ~value:"Toggle" () :}
+		{: string_input ~input_type:{:"submit":} ~value:"Toggle hidden" () :}
 	]
   ] }}
 
+  method private msg_toggle_sticky_form i = fun (msg_id) ->
+  {{ [
+  	<p>[
+		{: user_type_input ~input_type:{:"hidden":} ~name:msg_id ~value:i Sql.string_of_db_int :}
+		{: string_input ~input_type:{:"submit":} ~value:"Toggle sticky" () :}
+	]
+  ] }}
   method private forum_data_box sp sess data =
   let (id, title, description, moder, n_shown_thr, n_hidden_thr,
        n_shown_msg, n_hidden_msg) = data in
@@ -280,17 +295,20 @@ class forum
 	}}
 
   method private message_data_box sp sess thr_id data offset limit =
-  let (id, text, author, datetime, hidden, _) = data in
+  let (id, text, author, datetime, hidden, sticky, _) = data in
   {{ <div class="message_data">[
 		<h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}
 	!{: if me#can_moderate sess || me#can_write sess then
-		{{ [<p>{: Format.sprintf "Hidden message: %s" (if hidden then "YES" else "NO") :}] }}
+		{{ [<p>{: Format.sprintf "Hidden message: %s; sticky message: %s" (if hidden then "YES" else "NO") (if sticky then "YES" else "NO") :}] }}
 	   else
 		{{ [] }} :}
 	<pre>{: text :}
 	{: a srv_reply' sp {{ "Reply to this message" }} (thr_id, (id, (offset, limit))) :}
 	!{: if me#can_moderate sess then 
-		{{ [ {:	post_form act_messagetoggle sp (me#msg_toggle_form id) () :} ] }}
+		{{[
+			{: post_form act_message_hidden_toggle sp (me#msg_toggle_hidden_form id) () :}
+			{: post_form act_message_sticky_toggle sp (me#msg_toggle_sticky_form id) () :}
+		]}}
 	   else
 		{{ [] }} :}
 	] }}
@@ -505,17 +523,17 @@ class forum
        me#container
          sp
          sess
-         ~title:(foruminfo.title^" Forum"))
+         ~title:foruminfo.title)
 
 
-  method box_newmessage sp sess (thr_id, (offset, limit)) txt =
+  method box_newmessage sp sess (thr_id, (offset, limit)) (txt, sticky)  =
     let prepare () = 
       if not (me#can_write sess) then
 	fail Unauthorized
       else
 	let role = me#kindof sess in
 	let author = me#name sess in
-	Sql.new_message ~frm_id ~thr_id ~author ~txt () >>=
+	Sql.new_message ~frm_id ~thr_id ~author ~txt ~sticky () >>=
 	fun id -> Sql.forum_get_data ~frm_id ~role >>=
 	fun a -> Sql.thread_get_data ~frm_id ~thr_id ~role >>=
 	fun b ->
@@ -537,21 +555,21 @@ class forum
   in me#lwt_box_with_exception_handling 
        sp sess "page_newmessage" prepare gen_html
 
-  method page_newmessage sp tol txt =
+  method page_newmessage sp tol ts =
     get_persistent_data SessionManager.user_table sp >>=
     (fun sess ->
-      me#box_newmessage sp sess tol txt >>=
+      me#box_newmessage sp sess tol ts >>=
       me#container
         sp sess ~title:foruminfo.title)
 
-  method box_replymessage sp sess thr_id (parent_id,txt) =
+  method box_replymessage sp sess thr_id (parent_id,(txt,sticky)) =
   let prepare () = 
   if not (me#can_write sess) then
 		fail Unauthorized
   else
 	let role = me#kindof sess in
 	let author = me#name sess in
-	Sql.new_message ~frm_id ~thr_id ~parent_id ~author ~txt () >>=
+	Sql.new_message ~frm_id ~thr_id ~parent_id ~author ~txt ~sticky () >>=
   fun id -> Sql.forum_get_data ~frm_id ~role >>=
   fun a -> Sql.thread_get_data ~frm_id ~thr_id ~role >>=
   fun b -> 
@@ -597,12 +615,9 @@ class forum
 
   method page_forum' sp (offset,limit) () =
     get_persistent_data SessionManager.user_table sp >>=
-    (fun sess ->
+    fun sess ->
       me#box_forum' sp sess (offset,limit) >>=
-      me#container
-        sp
-        sess
-        ~title:(foruminfo.title^" Forum"))
+      me#container sp sess ~title:foruminfo.title
 
   method box_threads_list sp sess = 
     me#box_threads_list' sp sess (0, foruminfo.max_rows)
@@ -638,7 +653,7 @@ class forum
   method page_thread' sp (thr_id,(offset,limit)) () =
     get_persistent_data SessionManager.user_table sp >>=
 		fun sess -> me#box_thread' sp sess (thr_id,(offset,limit)) >>=
-    me#container sp sess ~title:(foruminfo.title^" Forum")
+    me#container sp sess ~title:foruminfo.title
   
   method page_thread = fun sp thr_id () ->
     me#page_thread' sp (thr_id, (0, foruminfo.max_rows)) ()
@@ -676,11 +691,9 @@ class forum
 
 	method page_reply' = fun sp (thr_id,(parent_id,(offset,limit))) () ->
 		get_persistent_data SessionManager.user_table sp >>=
-		(fun sess ->
+		fun sess ->
 			me#box_reply' sp sess (thr_id,(parent_id,(offset,limit))) >>=
-			me#container
-				sp sess
-				~title:(foruminfo.title ^ " Forum"))
+			me#container sp sess ~title:foruminfo.title
 
 	method page_reply = fun sp (thr_id,parent_id) () ->
 		me#page_reply' sp (thr_id,(parent_id,(0,foruminfo.max_rows))) ()
@@ -694,16 +707,25 @@ class forum
     Sql.thread_toggle_hidden ~frm_id ~thr_id >>= 
     fun () -> return []
 
-  method private message_toggle = fun sp () msg_id -> 
+  method private message_toggle_hidden = fun sp () msg_id -> 
     Sql.message_toggle_hidden ~frm_id ~msg_id >>= 
     fun () -> return []
 
+  method private message_toggle_sticky = fun sp () msg_id -> 
+    Sql.message_toggle_sticky ~frm_id ~msg_id >>= 
+    fun () -> return []
 
     method srv_forum : 
       (unit, unit, Eliom.get_service_kind,
        [ `WithoutSuffix ], unit, unit, [ `Registrable ])
       Eliom.service
         = srv_forum
+
+		method srv_thread:
+			(Sql.db_int_t, unit, Eliom.get_service_kind, [`WithoutSuffix],
+			[`One of Sql.db_int_t] Eliom.param_name, unit,
+			[`Registrable]) Eliom.service 
+				= srv_thread
 
     method srv_newthread : 
       (unit, bool * (string * string), Eliom.post_service_kind,
@@ -717,7 +739,8 @@ class forum
 				begin
           Actions.register_for_session sp act_forumtoggle me#forum_toggle;
           Actions.register_for_session sp act_threadtoggle me#thread_toggle;
-          Actions.register_for_session sp act_messagetoggle me#message_toggle
+          Actions.register_for_session sp act_message_hidden_toggle me#message_toggle_hidden;
+          Actions.register_for_session sp act_message_sticky_toggle me#message_toggle_sticky
 				end;
         if me#can_write sess && foruminfo.writable_by <> Users.anonymous () then
 	   			register_for_session sp srv_newthread me#page_newthread

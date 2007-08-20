@@ -152,7 +152,7 @@ let new_thread_and_article ~frm_id ~author ~subject ~txt =
       (thr_id, txt_id))
     ();;
 
-let new_message ~frm_id ~thr_id ?parent_id ~author ~txt () = 
+let new_message ~frm_id ~thr_id ?parent_id ~author ~txt ~sticky () = 
   (* inserts a message in an existing thread; message will be hidden
      if forum is moderated *)
   detach
@@ -176,8 +176,9 @@ let new_message ~frm_id ~thr_id ?parent_id ~author ~txt () =
 						[x] -> (match x with None -> db_int_of_int 0 | Some y -> y)
 							| _ -> db_int_of_int 0) in 
 						(PGSQL(db) "INSERT INTO messages (author, thr_id, txt_id, hidden, \
-						tree_min, tree_max) \
-           VALUES ($author, $thr_id, $txt_id, $hidden, $db_max + 1, $db_max + 2)";
+						sticky, tree_min, tree_max) \
+           VALUES ($author, $thr_id, $txt_id, $hidden, $sticky, \
+					 $db_max + 1, $db_max + 2)";
            serial4 db "messages_id_seq")
 				| Some pid ->
 					let (db_min, db_max) = (match PGSQL(db) "SELECT tree_min, tree_max \
@@ -188,8 +189,9 @@ let new_message ~frm_id ~thr_id ?parent_id ~author ~txt () =
 						PGSQL(db) "UPDATE messages SET tree_max = tree_max + 2 \
 							WHERE $db_min BETWEEN tree_min AND tree_max";
 						PGSQL(db) "INSERT INTO messages (author, thr_id, txt_id, hidden, \
-						tree_min, tree_max) \
-						VALUES ($author, $thr_id, $txt_id, $hidden, $db_max, $db_max + 1)";
+						sticky, tree_min, tree_max) \
+						VALUES ($author, $thr_id, $txt_id, $hidden, $sticky, $db_max, \
+						$db_max + 1)";
            serial4 db "messages_id_seq")
 				in
       commit db;
@@ -222,7 +224,13 @@ let message_toggle_hidden ~frm_id ~msg_id =
         WHERE messages.id = $msg_id \
         AND messages.thr_id = threads.id \
         AND threads.frm_id = $frm_id")
-        ()
+        ();;
+
+let message_toggle_sticky ~frm_id ~msg_id =
+	detach
+	(fun () -> PGSQL(db) "UPDATE messages SET sticky = NOT messages.sticky \
+	FROM threads WHERE messages.id = $msg_id AND messages.thr_id = threads.id \
+	AND threads.frm_id = $frm_id") ();;
 
 let forum_get_data ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
@@ -504,7 +512,7 @@ end;;
 let rec cut id =
 function
 |	[]  -> []
-|	h::t -> let (h_id,_,_,_,_,_) = h in
+|	h::t -> let (h_id,_,_,_,_,_,_) = h in
 	if h_id = id then [h] else h::(cut id t);;
 
 
@@ -516,26 +524,26 @@ detach
 	begin_work db;
 	let msg_l = (match role with 
 	| Moderator ->
-		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden, \
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,sticky, \
 			CAST(NULL AS INTEGER) \
 		FROM messages, textdata \
 		WHERE txt_id = textdata.id AND thr_id = $thr_id \
-		ORDER BY datetime \
+		ORDER BY sticky DESC, datetime \
 		LIMIT $db_limit OFFSET $db_offset" 
 	| Author a ->
-		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden, \
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,sticky, \
 			CAST(NULL AS INTEGER) \
 		FROM messages, textdata \
 		WHERE (author = $a OR NOT hidden) AND txt_id = textdata.id AND \
 			thr_id = $thr_id \
-		ORDER BY datetime \
+		ORDER BY sticky DESC, datetime \
 		LIMIT $db_limit OFFSET $db_offset" 
 	| Unknown ->
-		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden, \
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,sticky, \
 			CAST(NULL AS INTEGER) \
 		FROM messages, textdata \
 		WHERE NOT hidden AND txt_id = textdata.id AND thr_id = $thr_id \
-		ORDER BY datetime \
+		ORDER BY sticky DESC, datetime \
 		LIMIT $db_limit OFFSET $db_offset") in
     commit db;
 		let final_msg_l = match bottom with
@@ -561,25 +569,28 @@ let thread_get_messages_with_text_forest ~frm_id ~thr_id ~offset ~limit ?top ?bo
       let msg_l = 
 			(match role with 
 			| Moderator ->
-		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,tree_max-tree_min \
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,sticky, \
+		tree_max-tree_min \
 		FROM messages, textdata \
 		WHERE txt_id = textdata.id AND (tree_min BETWEEN $db_min AND $db_max) \
 		AND thr_id = $thr_id \
-		ORDER BY tree_min \
+		ORDER BY sticky DESC, tree_min \
 		LIMIT $db_limit OFFSET $db_offset" 
 			| Author a ->
-		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,tree_max-tree_min \
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,sticky, \
+		tree_max-tree_min \
 		FROM messages, textdata \
 		WHERE (author = $a OR NOT hidden) AND txt_id = textdata.id AND \
 			(tree_min BETWEEN $db_min AND $db_max) AND thr_id = $thr_id \
-		ORDER BY tree_min \
+		ORDER BY sticky DESC, tree_min \
 		LIMIT $db_limit OFFSET $db_offset" 
 			| Unknown ->
-		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,tree_max-tree_min \
+		PGSQL(db) "SELECT messages.id,txt,author,datetime,hidden,sticky, \
+		tree_max-tree_min \
 		FROM messages, textdata \
 		WHERE NOT hidden AND txt_id = textdata.id AND \
 			(tree_min BETWEEN $db_min AND $db_max) AND thr_id = $thr_id \
-		ORDER BY tree_min \
+		ORDER BY sticky DESC, tree_min \
 		LIMIT $db_limit OFFSET $db_offset") in
               commit db;
 							let final_msg_l = match bottom with
@@ -587,7 +598,7 @@ let thread_get_messages_with_text_forest ~frm_id ~thr_id ~offset ~limit ?top ?bo
 							| Some btm -> cut btm msg_l
 							in
            Forest (forest_of
-					 	(fun (_,_,_,_,_,x)->match x with None->1|Some i -> int_of_db_int i)
+					 	(fun (_,_,_,_,_,_,x)->match x with None->1|Some i -> int_of_db_int i)
 						final_msg_l))
           ();;
 
