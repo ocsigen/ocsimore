@@ -242,7 +242,9 @@ CREATE TABLE messages (
     txt_id integer NOT NULL,
     hidden boolean DEFAULT false NOT NULL,
     parent_id integer DEFAULT 0 NOT NULL,
-    sticky boolean DEFAULT false NOT NULL
+    sticky boolean DEFAULT false NOT NULL,
+		tree_min integer DEFAULT 0 NOT NULL,
+		tree_max integer DEFAULT 0 NOT NULL
 );
 
 
