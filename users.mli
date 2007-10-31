@@ -21,36 +21,36 @@ type user
 
 (** Creates a new user with given parameters. 
     Raises {!Users.UserExists} if [name] is already present. *)
-val create_user: name:string -> pwd:string option -> desc:string -> 
+val create_user: Sql.db_t -> name:string -> pwd:string option -> desc:string -> 
   email:string -> user Lwt.t
 
 (** Same as [create_user], but may add a random suffix to [name] for
     failure avoidance. Returns the new user and its name. *)
-val create_unique_user: name:string -> pwd:string option -> desc:string -> email:string -> (user * string) Lwt.t
+val create_unique_user: Sql.db_t -> name:string -> pwd:string option -> desc:string -> email:string -> (user * string) Lwt.t
 
 (** Gets user info. *)
 val get_user_data : user:user -> string * string option * string * string
   (** Return value is {i (name, password, description, e-mail address)}.*)
 
 (** Updates user info. *)
-val update_user_data : user:user -> ?pwd:string option -> 
+val update_user_data : Sql.db_t -> user:user -> ?pwd:string option -> 
   ?desc:string -> ?email:string -> unit -> unit Lwt.t
   (** Raises {!Users.NotAllowed} if [user] is the anonymous user.
       Note: omission of an optional parameter stands for {e "do not
       change current value"}. *)
 
 (** Deletes a [user]. *)
-val delete_user : user:user -> unit Lwt.t
+val delete_user : Sql.db_t -> user:user -> unit Lwt.t
 
 (** Returns [true] iif [user] is in [group]. *)
 val in_group : user:user -> group:user -> bool
 
 (** Adds [user] to [group].
     Raises {!Users.Loop} when attempting to make cyclic group membership. *)
-val add_group : user:user -> group:user -> unit Lwt.t
+val add_group : Sql.db_t -> user:user -> group:user -> unit Lwt.t
 
 (** Removes [user] from [group]. *)
-val remove_group : user:user -> group:user -> unit Lwt.t
+val remove_group : Sql.db_t -> user:user -> group:user -> unit Lwt.t
 
 (** The anonymous user *)
 val anonymous : unit -> user

@@ -1,7 +1,11 @@
 (** Tool for wiki creation. *)
 
 (* open XHTML.M *)
-open Eliom
+open Eliommod
+open Eliomparameters
+open Eliomservices
+open Eliomsessions
+open Eliompredefmod
 open Eliomduce.Xhtml
 open Lwt
 open Ocsimorelib
@@ -21,12 +25,12 @@ type wiki_in =
 class type wiki = 
   object
 		method container: 
-        Eliom.server_params -> Users.user option -> title:string -> 
+        server_params -> Users.user session_data -> title:string -> 
           {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
 		method srv_main:
-      (unit, unit, Eliom.get_service_kind,
+      (unit, unit, get_service_kind,
        [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-      Eliom.service
+      service
   end
 
 
@@ -41,7 +45,7 @@ class makewiki
    una form per "saltare" ad una wikipage,
    l'elenco alfabetico delle wikipages definite (Sql.wiki_get_pages_list) *)
   let srv_main = new_service
-      ~url:wikiinfo.url
+      ~path:wikiinfo.url
       ~get_params:unit
       ()
   in
@@ -50,7 +54,7 @@ class makewiki
    Solo lettura -> se c'è la pagina, la mostra, se non c'è, dice che non c'è
    Scrittura -> se c'è, la mostra + form modifica precompilato; se no, form inserimento *)
   let srv_wikipage = new_service
-      ~url:wikiinfo.url
+      ~path:wikiinfo.url
       ~get_params:(suffix (string "page"))
       ()
   in
@@ -76,7 +80,7 @@ class makewiki
           
   object (me)
 
-	method container (sp: Eliom.server_params) (user: Users.user option) ~title:(t: string) (contents: {{ Xhtml1_strict.blocks }}): {{ Xhtml1_strict.html }} Lwt.t =
+	method container (sp: server_params) (user: Users.user session_data) ~title:(t: string) (contents: {{ Xhtml1_strict.blocks }}): {{ Xhtml1_strict.html }} Lwt.t =
 	begin
 		return {{ <html>[
 			<head>[
@@ -90,33 +94,33 @@ class makewiki
           
           (* true if user is logged on *)
     method private l = function
-      | Some _ -> true
+      | Data _ -> true
       | _ -> false
               
               (* true if user can read wikipages *)
     method private r = function
-      | Some user -> 
+      | Data user -> 
           Users.in_group ~user ~group:wikiinfo.readable_by
       | _ -> wikiinfo.readable_by = Users.anonymous ()
             
             (* true if user can write wikipages *)
     method private w = function
-      | Some user -> 
+      | Data user -> 
           Users.in_group ~user ~group:wikiinfo.writable_by
       | _ -> wikiinfo.writable_by = Users.anonymous ()
             
             (* gets login name *)
     method private name = function
-      | Some user -> 
+      | Data user -> 
           let (n, _, _, _) = Users.get_user_data ~user in n
       | _ -> "<anonymous>"
 
               (* SERVICES *)
 
     method srv_main :
-        (unit, unit, Eliom.get_service_kind,
-         [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-        Eliom.service 
+        (unit, unit, get_service_kind,
+				[ `WithoutSuffix ], unit, unit, [ `Registrable ])
+        service 
         = srv_main
 
           (* HTML FRAGMENTS: <form> CONTENTS *)
@@ -265,7 +269,7 @@ class makewiki
       method private mk_exception_page sp from exc =
         me#container
           sp
-          None
+          No_data
           ~title:(wikiinfo.title^" Wiki")
 					{{ [<div class="exception">[
 						<h1>"Exception"
@@ -285,7 +289,7 @@ class makewiki
 
 (* SERVICES & ACTIONS IMPLEMENTATION *)
       method private lwt_page_with_exception_handling :
-          'a. Eliom.server_params -> Users.user option -> 
+          'a. server_params -> Users.user session_data -> 
             string -> (unit -> 'a Lwt.t) -> ('a -> {{ Xhtml1_strict.html }} Lwt.t) -> {{ Xhtml1_strict.html }} Lwt.t =
         fun sp sess failmsg f1 f2 ->
           catch      
@@ -295,7 +299,7 @@ class makewiki
               | exc -> me#mk_exception_page sp failmsg exc)
 
       method private page_main sp () () =
-        get_persistent_data SessionManager.user_table sp >>=
+        get_persistent_session_data SessionManager.user_table sp () >>=
         (fun sess ->
           let prepare () = 
             Sql.wiki_get_data ~wik_id >>=
@@ -309,7 +313,7 @@ class makewiki
             sp sess "page_main" prepare gen_html)
 
       method private page_wikipage sp sfx () =
-        get_persistent_data SessionManager.user_table sp >>=
+        get_persistent_session_data SessionManager.user_table sp () >>=
         (fun sess ->
           let prepare () = 
             if (me#r sess) 
@@ -322,7 +326,7 @@ class makewiki
             sp sess "page_wikipage" prepare gen_html)
 
       method private edit_action sp () (suffix,(subject,txt)) =
-        get_persistent_data SessionManager.user_table sp >>=
+        get_persistent_session_data SessionManager.user_table sp () >>=
         (fun sess ->
           Sql.add_or_change_wikipage
             ~wik_id ~suffix ~subject ~txt ~author:(me#name sess) >>=
@@ -335,7 +339,7 @@ class makewiki
            then Actions.register_for_session sp act_edit me#edit_action
            else ())
              
-       method private logout_actions (sp : Eliom.server_params) = 
+       method private logout_actions (sp : server_params) = 
          return ()
                       
        initializer

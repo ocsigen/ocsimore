@@ -1,3 +1,7 @@
+open Eliommod
+open Eliomservices
+open Eliomsessions
+
 type wiki_in = 
     {
      identifier: string;
@@ -10,12 +14,12 @@ type wiki_in =
 
 class type wiki = object
 	method container:
-		Eliom.server_params -> Users.user option -> title:string ->
+		server_params -> Users.user session_data -> title:string ->
 		{{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
   method srv_main:
-      (unit, unit, Eliom.get_service_kind,
+      (unit, unit, get_service_kind,
        [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-      Eliom.service
+      service
 end
 
 

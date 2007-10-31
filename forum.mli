@@ -1,123 +1,45 @@
+(**
+This is the forum component of Ocsimore.
+
+@author Jaap Boender
+@author Pieto Furiesi
+*)
+
+(* open Eliommod *)
+open Eliomparameters
+open Eliomsessions
+open Eliomservices
+
+(** This type contains information for initalization of the forum. *)
 type forum_in = 
-    {
-     identifier: string;
-     title: string;
-     descr: string;
-     moderated: bool;
-     readable_by: Users.user;
-     writable_by: Users.user;
-     moderators: Users.user;
-     url: string list;
-     max_rows: int;
-		 arborescent: bool;
-   }
+{
+	identifier: string; (** The short name of the forum *)
+	title: string; (** Its title *)
+	descr: string; (** A somewhat longer description of the forum *)
+	moderated: bool; (** Whether the forum is moderated *)
+	readable_by: Users.user; (** The set of users who can read the forum *)
+	writable_by: Users.user; (** The set of users who can write to the forum *)
+	moderators: Users.user; (** The set of users who can moderate the forum *)
+	url: string list; (** The URL of the forum *)
+	max_rows: int option; (** The maximum number of messages displayed on one page (or [None] if everything should be displayed) *)
+	arborescent: bool; (** Whether the forum is {i arborescent}; i.e. whether its messages are in tree or list format *)
+}
 
-class forum:
-	foruminfo: forum_in ->
-	sessionmanager: SessionManager.sessionmanager ->
+class forum: db: Sql.db_t -> foruminfo: forum_in ->
 object
-	method is_logged_on: Users.user option -> bool
-	method can_read: Users.user option -> bool
-	method can_write: Users.user option -> bool
-	method can_moderate: Users.user option -> bool
 
-	method container :
-    Eliom.server_params -> Users.user option -> title:string -> 
-       {{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
-	method private thread_data_box:
-		Eliom.server_params -> Users.user option ->
-		(Sql.db_int_t * string * string * string option * Calendar.t * bool * int * int) -> {{ Xhtml1_strict.block }}
-	method private article_box:
-		Eliom.server_params -> Users.user option ->
-		(Sql.db_int_t * string * string * string option * Calendar.t * bool * int * int) -> {{ Xhtml1_strict.block }}
-	method private forum_threads_list_box:
-		Eliom.server_params -> Users.user option ->
-		(Sql.db_int_t * string * string * Calendar.t * bool) list ->
-		{{ Xhtml1_strict.block }}
-	method private message_data_box:
-		Eliom.server_params -> Users.user option -> Sql.db_int_t -> 
-		Sql.db_int_t * string * string * Calendar.t * bool * bool * Sql.db_int_t option ->
-		int -> int -> {{ Xhtml1_strict.block }}
-	method private thread_messageswtext_box:
-		Eliom.server_params -> Users.user option -> Sql.db_int_t ->
-		int -> int ->
-		(Sql.db_int_t * string * string * Calendar.t * bool * bool * Sql.db_int_t option) Sql.collection ->
-		{{ Xhtml1_strict.block }}
+	method db: Sql.db_t
 
-  method srv_forum :
-      (unit, unit, Eliom.get_service_kind,
-       [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-      Eliom.service
-	method srv_thread :
-			(Sql.db_int_t, unit, Eliom.get_service_kind,
-			[ `WithoutSuffix ], [`One of Sql.db_int_t] Eliom.param_name, unit,[`Registrable ])
-			Eliom.service
-	method srv_newthread :
-		(unit, bool * (string * string), Eliom.post_service_kind,
-		[ `WithoutSuffix ], unit, [`One of bool] Eliom.param_name * ([`One of string] Eliom.param_name * [`One of string] Eliom.param_name), [ `Registrable ])
-		Eliom.service
+	method get_forum_id: int
 
-	method new_thread_form: 
-		[`One of bool] Eliom.param_name *
-		([`One of string] Eliom.param_name * [`One of string] Eliom.param_name) ->
-		{{ [Xhtml1_strict.form_content*] }}
-	method new_message_form:
-	[ `One of string ] Eliom.param_name * [`One of bool] Eliom.param_name ->
-	{{ [Xhtml1_strict.form_content*] }}
+	(** [can_read] [user] is  [true] if the user can read the current forum. *)
+	method can_read: Users.user session_data -> bool
 
-  method box_forum :
-       Eliom.server_params -> Users.user option ->
-			 {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_forum' :
-        Eliom.server_params -> Users.user option ->
-          int * int -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_threads_list :
-        Eliom.server_params -> Users.user option ->
-				{{ Xhtml1_strict.blocks }} Lwt.t
-  method box_threads_list' :
-        Eliom.server_params -> Users.user option ->
-          int * int -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_newmessage :
-      Eliom.server_params -> Users.user option -> Sql.db_int_t * (int * int) ->
-			string * bool -> {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_replymessage :
-      Eliom.server_params -> Users.user option -> Sql.db_int_t ->
-			Sql.db_int_t * (string * bool) -> 
-			{{ Xhtml1_strict.blocks }} Lwt.t
-  method box_newthread :
-        Eliom.server_params -> Users.user option -> bool * (string * string) ->
-				{{ Xhtml1_strict.blocks }} Lwt.t
-  method box_thread' :
-     Eliom.server_params -> Users.user option -> Sql.db_int_t * (int * int) ->
-		 {{ Xhtml1_strict.blocks }} Lwt.t
-  method box_reply' :
-     Eliom.server_params -> Users.user option ->
-		 Sql.db_int_t * (Sql.db_int_t * (int * int)) ->
-		 {{ Xhtml1_strict.blocks }} Lwt.t
-  method page_forum :
-      Eliom.server_params -> unit -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_forum' :
-      Eliom.server_params ->
-        int * int -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_newmessage :
-      Eliom.server_params -> Sql.db_int_t * (int * int) -> string * bool ->
-			{{ Xhtml1_strict.html }} Lwt.t
-  method page_replymessage :
-      Eliom.server_params -> Sql.db_int_t -> Sql.db_int_t * (string * bool) ->
-			{{ Xhtml1_strict.html }} Lwt.t
-  method page_newthread :
-      Eliom.server_params ->
-        unit -> bool * (string * string) -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_thread :
-      Eliom.server_params -> Sql.db_int_t -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-  method page_thread':
-		Eliom.server_params ->
-		Sql.db_int_t * (int * int) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-	method page_reply:
-		Eliom.server_params ->
-		(Sql.db_int_t * Sql.db_int_t) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-	method page_reply':
-		Eliom.server_params ->
-		Sql.db_int_t * (Sql.db_int_t * (int * int)) -> unit -> {{ Xhtml1_strict.html }} Lwt.t
-	method register: unit
+	(** [can_write] [user] is  [true] if the user can write (i.e. modify) the
+	current forum. *)
+	method can_write: Users.user session_data -> bool
+
+	(** [can_moderate] [user] is  [true] if the user can moderate the current forum. *)
+	method can_moderate: Users.user session_data -> bool
+
 end;;

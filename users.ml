@@ -40,10 +40,12 @@ type user = elt
 (* The users structure (persistent data) *)
 let global_users_container =
 
-
+	Messages.debug "[Users] global_users_container";
   Lwt_unix.run
 
-    (Persist.create "global_users_container" 
+    (Sql.connect () >>=
+		fun db -> Messages.debug "[Users] connected";
+		Persist.create db "global_users_container" 
        (fun () -> 
          let rec get_pwd message =
 	   print_string message;
@@ -145,52 +147,52 @@ let rec ( <-//- ) user1 user2 =
 
 (* PUBLIC OPERATIONS ON USERS*)
 
-let create_user ~name ~pwd ~desc ~email = 
+let create_user db ~name ~pwd ~desc ~email = 
   match getbyname name with
   | Some _ -> fail UserExists
   | None ->
       let data = {name = name; pwd = pwd; desc = desc; email = email} in
       let newuser = {data = data; set = singleton (anonymous ())} in
       root () <--- newuser;
-      Persist.write_back global_users_container >>=
+      Persist.write_back db global_users_container >>=
       (fun () -> return newuser)
 
-let create_unique_user ~name ~pwd ~desc ~email = 
+let create_unique_user db ~name ~pwd ~desc ~email = 
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
   let rec suffix n = 
     match getbyname n with
     | Some _ -> suffix (n ^ (digit "X"))
     | None -> 
-        create_user ~name:n ~pwd ~desc ~email >>= 
+        create_user db ~name:n ~pwd ~desc ~email >>= 
         (fun x -> return (x, n))
   in suffix name
 
-let delete_user ~user =
+let delete_user db ~user =
   root () <-//- user;
-  Persist.write_back global_users_container
+  Persist.write_back db global_users_container
 
 let in_group ~user ~group =
   user = group || user <-??- group
 
-let add_group ~user ~group =
+let add_group db ~user ~group =
   user <--- group;
-  Persist.write_back global_users_container
+  Persist.write_back db global_users_container
 
-let remove_group ~user ~group =
+let remove_group db ~user ~group =
   user <-//- group;
-  Persist.write_back global_users_container
+  Persist.write_back db global_users_container
 
 let get_user_data ~user =
   let {name = n; pwd = p; desc = d; email = e} = user.data
   in (n, p, d, e)
 
-let update_user_data ~user =
+let update_user_data db ~user =
   let d = user.data 
   in fun ?(pwd = d.pwd) ?(desc = d.desc) ?(email = d.email) () ->
     d.pwd <- pwd; 
     d.desc <- desc; 
     d.email <- email; 
-    Persist.write_back global_users_container
+    Persist.write_back db global_users_container
         
 (* authentication function *)
 let authenticate ~name ~pwd =
@@ -225,6 +227,7 @@ let mail_password ~name ~from_addr ~subject =
             (fun () ->
 	      ignore(Netaddress.parse email);
 	      Netsendmail.sendmail 
+					~mailer:"/usr/sbin/sendmail"
 	        (Netsendmail.compose 
 	           ~from_addr 
 	           ~to_addrs:[(desc, email)] 

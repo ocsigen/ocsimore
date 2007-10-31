@@ -2,7 +2,6 @@
    To be extended and rewritten with ad-hoc tools (ocamllex, ocamlyacc). *)
 
 (* open XHTML.M *)
-open Eliom
 open Eliomduce.Xhtml
 open List
 open String

@@ -40,39 +40,21 @@ begin
 			Forum.arborescent = true
 		}
 		~sessionmanager:sessmag) >>=
-	fun forum1 -> 
-		return (new Forum.forum
-		~foruminfo:{
-			Forum.url = ["forum2"];
-			Forum.identifier = "forum1";
-			Forum.title = "Second Forum";
-			Forum.descr = "An utterly nondescript forum, but moderated";
-			Forum.moderated = true;
-			Forum.readable_by = Users.anonymous ();
-			Forum.writable_by = Users.anonymous ();
-			Forum.moderators = admin;
-			Forum.max_rows = 5;
-			Forum.arborescent = true
-		}
-		~sessionmanager:sessmag) >>=
-  fun forum2 -> let main_page sp _ _ =
+	fun forum1 -> let main_page sp _ _ =
     begin
       get_persistent_data SessionManager.user_table sp >>=
-			fun sess ->	forum1#box_forum sp sess >>=
-			fun forum1_box -> forum2#box_forum sp sess >>=
-			fun forum2_box ->
+			fun sess ->	forum1#display sp sess >>=
+			fun forum1_box -> 
 				return {{<html>[
 					<head>[<title>{: "Yayness!" :}]
 					<body>[
 						{: sessmag#mk_log_form sp sess :}
 						!{: forum1_box :}
-						!{: forum2_box :}
 					]]
 				}}
     end in
   sessmag#register;
 	forum1#register;
-	forum2#register;
   register ~service:main_service main_page;
   return ())
 end;;
