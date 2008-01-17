@@ -1,6 +1,8 @@
 open Eliommod
 open Eliomservices
 open Eliomsessions 
+open Eliomduce.Xhtml
+open Xhtml1_strict
 
 val user_table : Users.user persistent_table
 
@@ -33,7 +35,7 @@ object
   method add_logout_actions: 
       (server_params -> unit Lwt.t) -> unit
 	method lwtinit: unit Lwt.t
-	method register: unit
+	method register: unit Lwt.t
 end;;
 
 val connect:

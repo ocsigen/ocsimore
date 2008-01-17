@@ -39,12 +39,11 @@ type user = elt
 
 (* The users structure (persistent data) *)
 let global_users_container =
-
-	Messages.debug "[Users] global_users_container";
+	(* Messages.debug2 "[Users] global_users_container"; *)
   Lwt_unix.run
 
     (Sql.connect () >>=
-		fun db -> Messages.debug "[Users] connected";
+		fun db -> Messages.debug2 "[Users] connected";
 		Persist.create db "global_users_container" 
        (fun () -> 
          let rec get_pwd message =
@@ -95,7 +94,6 @@ let global_users_container =
 		     desc = "Administrator";
 		     email = ask_email()};
 	     set = singleton anon}))
-
     
 (* Get a user by name. Not exported in interface. *)
 let getbyname name =

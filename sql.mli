@@ -183,6 +183,6 @@ val new_service: db_t -> url:string -> db_int_t Lwt.t
 (** list services *)
 val list_services: db_t -> string list Lwt.t
 
-val get_service_parameters: db_t -> url:string -> (db_int_t * string * string) list Lwt.t
+val get_service_parameters: db_t -> url:string -> (db_int_t * string) list Lwt.t
 
-val add_parameter_to_service: db_t -> url:string -> param_name:string -> param_type:string -> db_int_t Lwt.t
+val add_parameter_to_service: db_t -> url:string -> param_name:string -> db_int_t Lwt.t

@@ -4,8 +4,10 @@ open Eliomservices
 open Eliomsessions
 open Eliompredefmod
 open Eliomduce.Xhtml
+open Xhtml1_strict
 open Lwt
 open Users
+open Services
 
 let user_table: Users.user persistent_table = 
   create_persistent_table "ocsimore_user_table_v1"
@@ -316,7 +318,8 @@ object (self)
 
 	method private page_create_service_done user = fun sp () url ->
 		let sess = Data user in
-		Services.create_service db ~url:url >>=
+		create_service db ~url >>=
+		fun () -> register_service ~sp db ~url >>=
 		fun _ -> self#container
 			~sp
 			~sess
@@ -328,29 +331,35 @@ object (self)
 					{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }})
 
 	method private page_modify_service user = fun sp url () ->
+		(* let type_dropdown name value =
+			let l = List.map (fun t ->
+				Option ({{ {} }}, t, None, t = (string_of_type value))
+			) ["int"; "float"; "string"; "bool"; "file"; "unit"] in
+			Eliomduce.Xhtml.string_select ~name (List.hd l) (List.tl l) in *)
+
 		let sess = Data user in
-	  Messages.debug (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-		Services.get_service_parameters db ~url >>=
-		fun params -> Services.get_service_widgets ~url >>=
+	  Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+		get_service_parameters db ~url >>=
+		fun params -> get_service_widgets ~url >>=
 		fun widgets ->
-			return {{ [<h1>"Configure your new service"
+			return {{ [<h1>"Configure your service"
 			{: post_form ~service:srv_modify_service_done ~sp
 				(fun () -> {{ [<table>[
 						<tr>[
 							<td>"Service URL:"
 							<td>{: url :}
-							<td>[{: string_input ~input_type:{: "submit" :} ~value:"Modify service" () :}]]
+							<td>[{: string_input ~input_type:{: "submit" :} ~value:"Apply" () :}]]
 					]] }}) url :}
 				<div class="service_parameters">
 				[
 					<h2>"Parameters"
 					<table>
 					[
-						<tr>[<th>"Name" <th>"Type"]
-						!{: List.map (fun p -> {{ <tr>[<td>{: p.Services.name :} <td>{: match p.Services.p_type with Services.Int -> "int" | Services.String -> "string" :} ] }}) params :}
+						<tr>[<th>"Name"]
+						!{: List.map (fun p -> {{ <tr>[<td>{: p.name :}] }}) params :}
 					]
 					{: post_form act_add_parameter sp 
-						(fun (srv_name, param_name) -> {{ [<p>[ {: string_input ~input_type:{: "hidden" :} ~name:srv_name ~value:url () :}  {: string_input ~input_type:{: "text" :} ~name:param_name () :} {: string_input ~input_type:{: "submit" :} ~value:"Add parameter" () :} ]] }}) () :}
+						(fun (srv_name, param_name) -> {{ [<p>[ {: string_input ~input_type:{: "hidden" :} ~name:srv_name ~value:url () :} {: string_input ~input_type:{: "text" :} ~name:param_name () :} (* {: type_dropdown param_type String :} *) {: string_input ~input_type:{: "submit" :} ~value:"Add parameter" () :} ]] }}) () :}
 				]
 				<div class="service_widgets">
 				[
@@ -363,7 +372,7 @@ object (self)
 			~contents:cts
 
 	method private page_modify_service_done user = fun sp url () ->
-	  Messages.debug (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+	  Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
 		let sess = Data user in
 		self#container
 			~sp
@@ -372,7 +381,7 @@ object (self)
 
 	method private page_list_services user = fun sp () () ->
 		let sess = Data user in
-		Services.get_services db >>=
+		get_services db >>=
 		fun services -> 
 			(if Users.in_group user sessionmanagerinfo.administrator then
 				return {{ [<h1>"Existing services"
@@ -394,8 +403,8 @@ object (self)
 	method private add_parameter_handler user = fun sp () (url, param_name) ->
 		if Users.in_group user sessionmanagerinfo.administrator then
 		begin
-			Messages.debug "[add_parameter_handler] user is an administrator.";
-			Services.add_parameter db ~url ~param:{ Services.name=param_name; Services.p_type=Services.String } >>=
+			Messages.debug2 "[add_parameter_handler] user is an administrator.";
+			add_parameter db ~url ~param:{ name=param_name } >>=
 			fun _ -> return []
 		end
 		else
@@ -410,11 +419,11 @@ object (self)
     fun () -> close_session ~sp () >>= 
     fun () -> catch
     (fun () -> let user = authenticate usr pwd in
-			Messages.debug (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+			Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
      	set_persistent_session_data user_table sp user >>=
       fun () -> all_login_actions sp (Data user) >>=
       fun () -> return (
-			  Messages.debug (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+			  Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
         register_for_session sp srv_edit (self#page_edit user "");
         register_for_session sp srv_edit_done (self#page_edit_done user);
 				register_for_session sp srv_create_service (self#page_create_service user);
@@ -423,7 +432,7 @@ object (self)
 				register_for_session sp srv_modify_service_done (self#page_modify_service_done user);
 				register_for_session sp srv_list_services (self#page_list_services user);
 				Actions.register_for_session sp act_add_parameter (self#add_parameter_handler user);
-			  Messages.debug (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+			  Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
         []))
     (fun e -> return [e])
       
@@ -468,7 +477,7 @@ object (self)
     method lwtinit =
 			return ()
 
-		method register: unit =
+		method register =
 		begin
       Actions.register act_login self#mk_act_login;
       Actions.register act_logout self#mk_act_logout;
@@ -479,6 +488,7 @@ object (self)
 			register srv_list_services self#page_not_allowed;
 			register srv_create_service (fun sp _ () -> self#page_not_allowed sp () ());
 			register srv_modify_service (fun sp _ () -> self#page_not_allowed sp () ());
+			Services.register_services db 
 		end
 	
 end;;
@@ -490,7 +500,7 @@ begin
 		get_persistent_session_data ~table:user_table ~sp () >>=
 		fun sess -> 
 		sm#set_user sess;
-		Lwt_util.map (fun w ->
+		Lwt_util.map_serial (fun w ->
 			w ~sp
 		) (fwl get_params post_params) >>=
 		fun c -> container ~sp ~sess ~contents:{{ {: c :} }}

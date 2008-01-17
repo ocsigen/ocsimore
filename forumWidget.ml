@@ -2,6 +2,7 @@ open Lwt
 open Eliommod
 open Eliomparameters
 open Eliomservices
+open Eliomsessions
 open Eliomduce.Xhtml
 open SessionManager
 open Ocsimorelib
@@ -103,13 +104,13 @@ object (self)
 	let thr_id = Sql.db_int_of_int thread_id in
 	db >>=
 	fun db -> Sql.thread_get_nr_messages db ~thr_id ~role:(parent#get_role forum_id) >>=
-	fun nr_m -> nr_messages <- nr_m; Messages.debug "[message_navigation_widget] retrieve_data: end";
+	fun nr_m -> nr_messages <- nr_m; Messages.debug2 "[message_navigation_widget] retrieve_data: end";
 	return ()
 
 	method apply ~sp (forum_id, thread_id, offset, limit) =
-	Messages.debug "[message_navigation_widget] apply";
+	Messages.debug2 "[message_navigation_widget] apply";
 	self#retrieve_data (forum_id, thread_id, offset, limit) >>=
-	fun () -> Messages.debug "[message_navigation_widget] apply: end"; return {{
+	fun () -> Messages.debug2 "[message_navigation_widget] apply: end"; return {{
 		<div class={: div_class :}>
 		{:
 			match limit with
@@ -221,7 +222,7 @@ object (self)
 	] :}
 
 	method apply ~(sp:server_params) (forum_id, thread_id, parent_id, offset) =
-	Messages.debug "[message_form_widget] apply (& end)";
+	Messages.debug2 "[message_form_widget] apply (& end)";
 	my_parent_id <- parent_id;
 	return {{
 		<div class={: div_class :}>[
@@ -338,9 +339,9 @@ object (self)
 		return (self#set_hidden_messages hm)
 
 	method apply ~sp thread_id =
-	Messages.debug "[thread_widget] apply";
+	Messages.debug2 "[thread_widget] apply";
 	self#retrieve_data thread_id >>=
-	fun () -> Messages.debug "[thread_widget] apply: end"; return
+	fun () -> Messages.debug2 "[thread_widget] apply: end"; return
 	{{ <div class={: div_class :}>[
 		<h1>{: self#get_subject :}
 		<h2>{: Printf.sprintf "Created by: %s %s" self#get_author (sod self#get_datetime) :}
@@ -361,6 +362,7 @@ object (self)
 	val db = Sql.connect ()
 
 	method private retrieve_data (forum_id) =
+	Messages.debug2 "[threads_list] retrieve_data";
 	let frm_id = Sql.db_int_of_int forum_id in
 	db >>=
 	fun db -> Sql.forum_get_threads_list db ~frm_id ~role:(parent#get_role forum_id) () >>=
@@ -423,7 +425,7 @@ object (self)
 	method apply ~sp (forum_id, is_article, subject, txt) =
 	let frm_id = Sql.db_int_of_int forum_id
 	and author = parent#get_user_name in
-	Messages.debug (Printf.sprintf "Author: %s" author);
+	Messages.debug2 (Printf.sprintf "Author: %s" author);
 	db >>=
 	fun db -> (if is_article then
 		Sql.new_thread_and_article db ~frm_id ~author ~subject ~txt
