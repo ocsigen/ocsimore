@@ -423,24 +423,25 @@ let forum_get_threads_list db ~frm_id ?offset ?limit ~role () =
   (* returns the threads list of a forum, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
+	Messages.debug2 "forum_get_threads_list";
 	let db_offset = match offset with
 	| None -> db_size_of_int 0
 	| Some x -> db_size_of_int x in
 	match limit with
 	| None -> 
 		(match role with
-		| Moderator -> LWT_PGSQL(db) "SELECT id, subject, author, datetime, hidden \
+		| Moderator -> Messages.debug2 "moderator";LWT_PGSQL(db) "SELECT id, subject, author, datetime, hidden \
 				FROM threads \
 				WHERE frm_id = $frm_id \
 				ORDER BY datetime DESC \
 				OFFSET $db_offset"
-		| Author a -> LWT_PGSQL(db) "SELECT id, subject, author, datetime, hidden \
+		| Author a -> Messages.debug2 (Printf.sprintf "author %s" a); LWT_PGSQL(db) "SELECT id, subject, author, datetime, hidden \
 				FROM threads \
 				WHERE frm_id = $frm_id \
 				AND (author = $a OR NOT hidden) \
 				ORDER BY datetime DESC \
 				OFFSET $db_offset"
-		| Unknown -> LWT_PGSQL(db) "SELECT id, subject, author, datetime, hidden \
+		| Unknown -> Messages.debug2 "Huh?"; LWT_PGSQL(db) "SELECT id, subject, author, datetime, hidden \
 				FROM threads \
 				WHERE frm_id = $frm_id \
 				AND NOT hidden \

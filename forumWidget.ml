@@ -16,7 +16,7 @@ type message_data =
 	datetime: Calendar.t
 };;
 
-class login_widget ~(parent: sessionmanager) ~(srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service) ~(srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service) ~(srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service) =
+class login_widget ~(parent: sessionmanager) =
 object (self)
 	inherit [unit] parametrized_widget parent
 
@@ -27,10 +27,10 @@ object (self)
       <tr>[<td>"Username:" <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]]
       <tr>[<td>"Password:" <td>[{: string_input ~input_type:{:"password":} ~name:pwd () :}]]
       <tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"Login" () :}]]
-      <tr>[<td colspan="2">[{: a srv_register sp {{ "New user? Register now!" }} () :}]]] @
+      <tr>[<td colspan="2">[{: a parent#srv_register sp {{ "New user? Register now!" }} () :}]]] @
       {: if error then
         {{ [<tr>[<td colspan="2">"Wrong login or password"]
-        <tr>[<td colspan="2">[{: a srv_reminder sp {{ "Forgot your password?" }} () :}]]] }}
+        <tr>[<td colspan="2">[{: a parent#srv_reminder sp {{ "Forgot your password?" }} () :}]]] }}
         else
        {{ [] }} :})] }}
 
@@ -39,7 +39,7 @@ object (self)
   {{ [<table>[
       <tr>[<td>{: Printf.sprintf "Hi %s!" descr :}]
       <tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"logout" () :}]]
-      <tr>[<td>[{: a srv_edit sp {{ "Manage your account" }} () :}]]
+      <tr>[<td>[{: a parent#srv_edit sp {{ "Manage your account" }} () :}]]
   ]] }}
 
 	method apply ~sp () =
@@ -408,7 +408,7 @@ object (self)
 	val db = Sql.connect ()
 
 	method private retrieve_data (forum_id) =
-	Messages.debug2 "[threads_list] retrieve_data";
+	Messages.debug2 (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
 	let frm_id = Sql.db_int_of_int forum_id in
 	db >>=
 	fun db -> Sql.forum_get_threads_list db ~frm_id ~role:(parent#get_role forum_id) () >>=
@@ -420,7 +420,8 @@ object (self)
 	method apply ~sp (forum_id) =
 	catch (fun () -> self#retrieve_data forum_id >>=
 	fun () -> return self#get_children >>=
-	fun subjects -> Lwt_util.map (fun s -> return {{ <tr>[
+	fun subjects ->  Messages.debug2 (Printf.sprintf "[thread_list] apply: %d items" (List.length subjects));
+	Lwt_util.map (fun s -> return {{ <tr>[
 			<td>{: sod s.datetime :}
 			<td>[{: a ~service:srv_thread ~sp {{ {: s.subject :} }} (forum_id, (s.id, None)) :}]
 			<td>{: s.author:}
@@ -529,5 +530,48 @@ object (self)
 				!{: l :}
 			]] }}
 		:}
+	}}
+end;;
+
+class forum_form_widget ~(parent: sessionmanager) ~(srv_add_forum: (unit, bool * (string * string), post_service_kind, [`WithoutSuffix], unit, [`One of bool] param_name * ([`One of string] param_name * [`One of string] param_name), [`Registrable]) service) =
+object (self)
+	inherit [unit] parametrized_widget parent
+
+	val div_class = "forum_form"
+
+	method private form (is_moderated, (name, descr)) =
+	{{ [
+		<h2>"Start a new forum"
+		<table>[
+			<tr>[<td>[{: bool_checkbox ~checked:true ~name:is_moderated () :} ' This forum is moderated']]
+			<tr>[<td>['Name: ' {: string_input ~input_type:{: "text" :} ~name:name () :}]]
+			<tr>[<td>['Description: ' {: string_input ~input_type:{: "text" :} ~name:descr () :}]]
+			<tr>[<td>[{: string_input ~input_type:{: "submit" :} ~value:"Submit" () :}]]
+		]
+	] }}
+
+	method apply ~sp forum_id =
+	return {{
+		<div class={: div_class :}>[
+			{: (post_form ~service:srv_add_forum ~sp self#form) () :}
+		] }}
+end;;
+
+class forum_add_action ~(parent: sessionmanager) =
+object (self)
+	inherit [bool * string * string] parametrized_widget parent
+	
+	val div_class = "forum_add"
+	val db = Sql.connect ()
+
+	method apply ~sp (moderated, name, descr) =
+	db >>=
+	fun db -> 
+		Sql.new_forum db ~title:name ~descr ~moderated >>=
+	fun _ -> 
+		return {{
+		<div class={: div_class :}>[
+			<p>"The new thread has been created."
+		]
 	}}
 end;;

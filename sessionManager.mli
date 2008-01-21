@@ -21,6 +21,9 @@ object
 	method db: Sql.db_t
 	method act_login: (unit, string * string, [`Nonattached of [`Post] na_s], [`WithoutSuffix], unit, [`One of string] param_name * [`One of string] param_name, [`Registrable]) service
 	method act_logout: (unit, unit, [`Nonattached of [`Post] na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service
+	method srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable ]) service
+	method srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable ]) service
+	method srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable ]) service
 	method set_user: Users.user session_data -> unit
 	method get_forum: int -> Forum.forum
 	method add_forum: Forum.forum -> unit

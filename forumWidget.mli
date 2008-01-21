@@ -23,9 +23,6 @@ type message_data =
 
 (** A widget for the login/logout box *)
 class login_widget: parent:sessionmanager ->
-	srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service ->
-	srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service ->
-	srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service ->
 object
 	inherit [unit] parametrized_widget
 end;;
@@ -180,4 +177,14 @@ class forums_list_widget: parent:sessionmanager -> srv_forum: (int, unit, get_se
 object
 	inherit [unit] parametrized_widget
 	inherit [forum_data] list_widget
+end;;
+
+class forum_form_widget: parent: sessionmanager -> srv_add_forum: (unit, bool * (string * string), post_service_kind, [`WithoutSuffix], unit, [`One of bool] param_name * ([`One of string] param_name * [`One of string] param_name), [`Registrable]) service -> 
+object
+	inherit [unit] parametrized_widget
+end;;
+
+class forum_add_action: parent:sessionmanager ->
+object
+	inherit [bool * string * string] parametrized_widget
 end;;

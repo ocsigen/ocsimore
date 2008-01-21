@@ -27,12 +27,12 @@ class sessionmanager ~(db: Sql.db_t) ~(sessionmanagerinfo: sessionmanager_in) =
 
 let internal_act_login = new_post_coservice' ~post_params:(string "usr" ** string "pwd") () 
 and internal_act_logout = new_post_coservice' ~post_params:unit ()
-and srv_register = new_service ~path:(sessionmanagerinfo.url @ ["register"]) ~get_params:unit () in
-let srv_register_done = new_post_coservice ~fallback:srv_register ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
-and srv_reminder = new_service ~path:(sessionmanagerinfo.url @ ["reminder"]) ~get_params:unit ()
-and srv_reminder_done = new_post_coservice ~fallback:srv_register ~post_params:(string "usr") ()
-and srv_edit = new_coservice ~fallback:srv_register ~get_params:unit ()
-and srv_edit_done = new_post_coservice ~fallback:srv_register ~post_params:(string "pwd" ** (string "pwd2" ** (string "descr" ** string "email"))) () 
+and internal_srv_register = new_service ~path:(sessionmanagerinfo.url @ ["register"]) ~get_params:unit () in
+let srv_register_done = new_post_coservice ~fallback:internal_srv_register ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
+and internal_srv_reminder = new_service ~path:(sessionmanagerinfo.url @ ["reminder"]) ~get_params:unit ()
+and srv_reminder_done = new_post_coservice ~fallback:internal_srv_register ~post_params:(string "usr") ()
+and internal_srv_edit = new_coservice ~fallback:internal_srv_register ~get_params:unit ()
+and srv_edit_done = new_post_coservice ~fallback:internal_srv_register ~post_params:(string "pwd" ** (string "pwd2" ** (string "descr" ** string "email"))) () 
 and srv_create_service = new_service ~path:(sessionmanagerinfo.url @ ["create_service"]) ~get_params:unit () in
 let srv_create_service_done = new_post_coservice ~fallback:srv_create_service ~post_params:(string "url") () in
 let srv_modify_service = new_service ~path:(sessionmanagerinfo.url @ ["modify_service"]) ~get_params:(string "url") () in
@@ -50,6 +50,9 @@ object (self)
 
 	method act_login: (unit, string * string, [`Nonattached of [`Post] Eliomservices.na_s], [`WithoutSuffix], unit, [`One of string] Eliomparameters.param_name * [`One of string] Eliomparameters.param_name, [`Registrable]) Eliomservices.service =
 	internal_act_login
+	method srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_register
+	method srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_reminder
+	method srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_edit
 
 	method act_logout: (unit, unit, [`Nonattached of [`Post] Eliomservices.na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service =
 	internal_act_logout
@@ -108,10 +111,10 @@ object (self)
 			<tr>[<td>"Username:" <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]]
 			<tr>[<td>"Password:" <td>[{: string_input ~input_type:{:"password":} ~name:pwd () :}]]
 			<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"Login" () :}]]
-			<tr>[<td colspan="2">[{: a srv_register sp {{ "New user? Register now!" }} () :}]]] @
+			<tr>[<td colspan="2">[{: a internal_srv_register sp {{ "New user? Register now!" }} () :}]]] @
 			{: if error then
 				{{ [<tr>[<td colspan="2">"Wrong login or password"]
-				<tr>[<td colspan="2">[{: a srv_reminder sp {{ "Forgot your password?" }} () :}]]] }}
+				<tr>[<td colspan="2">[{: a internal_srv_reminder sp {{ "Forgot your password?" }} () :}]]] }}
 				else
 			 {{	[] }} :})] }}
 
@@ -120,7 +123,7 @@ object (self)
 	{{ [<table>[
 			<tr>[<td>{: Printf.sprintf "Hi %s!" descr :}]
 			<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"logout" () :}]]
-			<tr>[<td>[{: a srv_edit sp {{ "Manage your account" }} () :}]]
+			<tr>[<td>[{: a internal_srv_edit sp {{ "Manage your account" }} () :}]]
 			!{: if Users.in_group user sessionmanagerinfo.administrator then
 						{{ [
 							<tr>[<td>[{: a srv_create_service sp {{ "Create a new service" }} () :}]]
@@ -437,7 +440,7 @@ object (self)
       fun () -> all_login_actions sp (Data user) >>=
       fun () -> return (
 			  Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-        register_for_session sp srv_edit (self#page_edit user "");
+        register_for_session sp internal_srv_edit (self#page_edit user "");
         register_for_session sp srv_edit_done (self#page_edit_done user);
 				register_for_session sp srv_create_service (self#page_create_service user);
 				register_for_session sp srv_create_service_done (self#page_create_service_done user);
@@ -494,9 +497,9 @@ object (self)
 		begin
       Actions.register internal_act_login self#mk_act_login;
       Actions.register internal_act_logout self#mk_act_logout;
-      register srv_register (self#page_register "");
+      register internal_srv_register (self#page_register "");
       register srv_register_done self#page_register_done;
-      register srv_reminder (self#page_reminder "");
+      register internal_srv_reminder (self#page_reminder "");
       register srv_reminder_done self#page_reminder_done;
 			register srv_list_services self#page_not_allowed;
 			register srv_create_service (fun sp _ () -> self#page_not_allowed sp () ());
