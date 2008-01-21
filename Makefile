@@ -49,6 +49,7 @@ print_sql:
 	PGHOST=$(HOST) PGUSER=$(USER) PGDATABASE=$(DATABASE) \
 	camlp4o.byte \
 	$(shell ocamlc -where)/str.cma \
+	-I +threads $(shell ocamlfind query threads)/threads/threads.cma \
 	-I +pcre $(shell ocamlfind query pcre)/pcre.cma \
 	-I +extlib $(shell ocamlfind query extlib)/extLib.cma \
 	-I +calendar $(shell ocamlfind query calendar)/calendar.cma \
@@ -56,7 +57,7 @@ print_sql:
 	-I +ssl $(shell ocamlfind query ssl)/ssl.cma \
 	-I +lwt $(shell ocamlfind query lwt)/lwt.cma \
 	$(shell ocamlfind query pgocaml)/pgocaml.cma \
-	$(shell ocamlfind query pgocaml)/pa_pgsql.cmo pr_o.cmo sql.ml
+	$(shell ocamlfind query pgocaml)/lwt_pa_pgsql.cmo pr_o.cmo sql.ml
 
 %.cmo: %.ml
 	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	

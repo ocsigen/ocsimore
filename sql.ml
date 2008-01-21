@@ -61,14 +61,17 @@ let connect () =
 	Lwt_PGOCaml.connect ~host:"localhost" ~database:"ocsimore" ~user:"ocsigen" ();;
 
 type db_int_t = int32;;
-type db_size_t = int64;;
+type db_size_t = int32;;
+type db_count_t = int64;;
 
 let db_int_of_int = Int32.of_int;;
-let db_size_of_int = Int64.of_int;;
+let db_size_of_int = Int32.of_int;;
+let db_count_of_int = Int64.of_int;;
 let db_int_of_string = Int32.of_string;;
 let string_of_db_int = Int32.to_string;;
 let int_of_db_int = Int32.to_int;;
-let int_of_db_size = Int64.to_int;;
+let int_of_db_size = Int32.to_int;;
+let int_of_db_count = Int64.to_int;;
 
   (* I could define here a functor to try to abstract the db
      structure, improving Vincent's Ocsicache.Make; but I need lots of
@@ -214,22 +217,22 @@ let forum_get_data db ~frm_id ~role =
 	fun (id, title, description, moderated) -> 
 		LWT_PGSQL(db) "SELECT COUNT(*) FROM threads \
 		WHERE frm_id = $frm_id AND (NOT hidden)" >>=
-	fun y -> (match y with [Some x] -> return (int_of_db_size x) | _ -> assert false) >>=
+	fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false) >>=
 	fun n_shown_thr  -> LWT_PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
 		WHERE threads.frm_id = $frm_id \
 		AND messages.thr_id = threads.id \
 		AND NOT (messages.hidden OR threads.hidden)" >>=
-	fun y -> (match y with [Some x] -> return (int_of_db_size x) | _ -> assert false) >>=
+	fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false) >>=
 	fun n_shown_msg -> (match role with	
 		| Moderator -> (* counts all hidden stuff *)
 			LWT_PGSQL(db) "SELECT COUNT(*) FROM threads \
 				WHERE frm_id = $frm_id AND hidden" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_size x) | _ -> assert false)
+			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
 		| Author a ->
 			LWT_PGSQL(db) "SELECT COUNT(*) FROM threads \
 				WHERE frm_id = $frm_id AND hidden \
 				AND author = $a" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_size x) | _ -> assert false)
+			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
 		| Unknown -> return 0) >>=
 	fun n_hidden_thr -> (match role with
 		| Moderator -> 
@@ -237,14 +240,14 @@ let forum_get_data db ~frm_id ~role =
 				WHERE threads.frm_id = $frm_id \
 				AND messages.thr_id = threads.id \
 				AND (messages.hidden OR threads.hidden)" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_size x) | _ -> assert false)
+			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
 		| Author a ->
 			LWT_PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
  				WHERE threads.frm_id = $frm_id \
 				AND messages.thr_id = threads.id \
 				AND (messages.hidden OR threads.hidden) \
 				AND messages.author = $a" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_size x) | _ -> assert false)
+			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
 		| Unknown -> return 0) >>=
 	fun n_hidden_msg -> commit db >>=
 	fun () -> return 
@@ -276,7 +279,7 @@ let thread_get_nr_messages db ~thr_id ~role =
 			| [Some x] -> return x
 			| _ -> fail (Failure "thread_get_nr_messages"))) >>=
 	fun n_msg -> commit db >>=
-	fun () -> Messages.debug2 "[Sql] thread_get_nr_messages: end"; return (int_of_db_size n_msg);;
+	fun () -> Messages.debug2 "[Sql] thread_get_nr_messages: end"; return (int_of_db_count n_msg);;
 
 let thread_get_data db (* ~frm_id *) ~thr_id ~role =
   (* returns id, subject, author, datetime, hidden status, number of
@@ -293,7 +296,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
 		LWT_PGSQL(db) "SELECT COUNT(*) FROM messages \
 		WHERE thr_id = $thr_id AND (NOT hidden)" >>=
 	fun y -> (match y with
-		| [Some x] -> return (int_of_db_size x)
+		| [Some x] -> return (int_of_db_count x)
 		| _ -> assert false) >>=
  	fun n_shown_msg -> (match role with
 		| Moderator -> (* counts all hidden messages *)
@@ -302,7 +305,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
 				AND threads.id = $thr_id \
 				AND (messages.hidden OR threads.hidden)" >>=
 	    fun y -> (match y with
-				| [Some x] -> return (int_of_db_size x)
+				| [Some x] -> return (int_of_db_count x)
 				| _ -> assert false)
  		| Author a -> (* counts only hidden messages posted by her *)
 	    LWT_PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
@@ -311,7 +314,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
 				AND (messages.hidden OR threads.hidden) \
 				AND messages.author = $a" >>=
 	    fun y -> (match y with
-				| [Some x] -> return (int_of_db_size x)
+				| [Some x] -> return (int_of_db_count x)
 				| _ -> assert false)
 		| Unknown -> (* nothing to be counted *) return 0) >>=
 	fun n_hidden_msg -> commit db >>=

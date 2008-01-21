@@ -2,7 +2,7 @@ open Lwt
 open Eliomparameters
 open Eliomservices
 
-let services_table = Hashtbl.create 1;;
+let services_table: (string, (string list, unit, [`Attached of [`Internal of [`Service ] * [`Get ] ] Eliomservices.a_s ], [ `WithoutSuffix ], [ `One of string ] Eliomparameters.param_name Eliomparameters.listnames, unit, [`Registrable ]) Eliomservices.service) Hashtbl.t = Hashtbl.create 1;;
 
 (* For the moment, all parameters are strings. *)
 (* type service_type =

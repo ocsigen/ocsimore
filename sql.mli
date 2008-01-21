@@ -46,14 +46,18 @@ val connect: unit -> db_t Lwt.t
 (** type for database integers (and IDs) *)
 type db_int_t;;
 
-(** type for database offsets, counts and limits *)
+(** type for database offsets, and limits *)
 type db_size_t;;
+
+(** type for counts *)
+type db_count_t;;
 
 val db_int_of_int: int -> db_int_t
 val int_of_db_int: db_int_t -> int
 val db_int_of_string: string -> db_int_t
 val string_of_db_int: db_int_t -> string
 val db_size_of_int: int -> db_size_t
+val db_count_of_int: int -> db_count_t
 
 (** type of [~role] labelled parameter *)
 type role = Moderator | Author of string | Unknown;;
