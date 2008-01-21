@@ -25,8 +25,8 @@ type sessionmanager_in =
 
 class sessionmanager ~(db: Sql.db_t) ~(sessionmanagerinfo: sessionmanager_in) =
 
-let act_login = new_post_coservice' ~post_params:(string "usr" ** string "pwd") () 
-and act_logout = new_post_coservice' ~post_params:unit ()
+let internal_act_login = new_post_coservice' ~post_params:(string "usr" ** string "pwd") () 
+and internal_act_logout = new_post_coservice' ~post_params:unit ()
 and srv_register = new_service ~path:(sessionmanagerinfo.url @ ["register"]) ~get_params:unit () in
 let srv_register_done = new_post_coservice ~fallback:srv_register ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
 and srv_reminder = new_service ~path:(sessionmanagerinfo.url @ ["reminder"]) ~get_params:unit ()
@@ -47,6 +47,12 @@ object (self)
 	val mutable current_user = No_data
 	val forums = Hashtbl.create 1
 	val widget_types = Hashtbl.create 1
+
+	method act_login: (unit, string * string, [`Nonattached of [`Post] Eliomservices.na_s], [`WithoutSuffix], unit, [`One of string] Eliomparameters.param_name * [`One of string] Eliomparameters.param_name, [`Registrable]) Eliomservices.service =
+	internal_act_login
+
+	method act_logout: (unit, unit, [`Nonattached of [`Post] Eliomservices.na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service =
+	internal_act_logout
 
 	method db = db
 
@@ -70,6 +76,13 @@ object (self)
 	match current_user with
 	| Data _ -> true
 	| _ -> false
+
+	method get_user = current_user
+
+	method get_user_data =
+	match current_user with
+	| Data u -> Users.get_user_data ~user:u 
+	| _ -> ("Anonymous", None, "", "")
 
 	method get_user_name =
 	match current_user with
@@ -455,7 +468,7 @@ object (self)
       (fun () -> f sp)
 	
 
-    method mk_log_form : server_params -> Users.user session_data -> 
+    (* method mk_log_form : server_params -> Users.user session_data -> 
       {{ Xhtml1_strict.form }}
         = fun sp sess -> 
 					match sess with
@@ -472,15 +485,15 @@ object (self)
               else (* no login attempt yet *)
 	        post_form ~a:{{ {class="logbox notlogged"} }}
 	          ~service:act_login ~sp:sp (fun (usr, pwd) -> 
-                    (self#login_box sp false usr pwd)) ()
+                    (self#login_box sp false usr pwd)) () *)
 
     method lwtinit =
 			return ()
 
 		method register =
 		begin
-      Actions.register act_login self#mk_act_login;
-      Actions.register act_logout self#mk_act_logout;
+      Actions.register internal_act_login self#mk_act_login;
+      Actions.register internal_act_logout self#mk_act_logout;
       register srv_register (self#page_register "");
       register srv_register_done self#page_register_done;
       register srv_reminder (self#page_reminder "");
@@ -500,6 +513,7 @@ begin
 		get_persistent_session_data ~table:user_table ~sp () >>=
 		fun sess -> 
 		sm#set_user sess;
+		Messages.debug2 (Printf.sprintf "[sessionManager] connect: setting user to %s" sm#get_user_name);
 		Lwt_util.map_serial (fun w ->
 			w ~sp
 		) (fwl get_params post_params) >>=

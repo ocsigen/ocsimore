@@ -198,6 +198,10 @@ let message_toggle_sticky db ~frm_id ~msg_id =
 		FROM threads WHERE messages.id = $msg_id AND messages.thr_id = threads.id \
 		AND threads.frm_id = $frm_id"
 
+let get_forums_list db =
+	begin_work db >>=
+	fun () -> LWT_PGSQL(db) "SELECT id, title, descr, moderated FROM forums"
+
 let forum_get_data db ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
      threads and messages of a forum.  NB: a message is counted as

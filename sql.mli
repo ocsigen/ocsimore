@@ -91,6 +91,9 @@ val message_toggle_hidden : db_t -> frm_id:db_int_t -> msg_id:db_int_t -> unit L
 (** makes a message sticky (or not) *)
 val message_toggle_sticky: db_t -> frm_id:db_int_t -> msg_id:db_int_t -> unit Lwt.t
 
+(** returns the list of available forums *)
+val get_forums_list: db_t -> (db_int_t * string * string * bool) list Lwt.t
+
 (** returns id, title, description, moderation status, number of shown/hidden
     threads and messages of a forum.  
     NB: a message is counted as hidden if: 

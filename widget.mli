@@ -12,7 +12,6 @@ This module contains general-use widgets for Ocsimore.
 
 class widget: parent:sessionmanager ->
 object
-
 	method name: string
 end;;
 

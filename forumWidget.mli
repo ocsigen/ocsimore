@@ -21,6 +21,15 @@ type message_data =
 	datetime: Calendar.t
 }
 
+(** A widget for the login/logout box *)
+class login_widget: parent:sessionmanager ->
+	srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service ->
+	srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service ->
+	srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service ->
+object
+	inherit [unit] parametrized_widget
+end;;
+
 (** A parametrized_widget that displays one message*)
 class message_widget: parent:sessionmanager ->
 object
@@ -157,4 +166,18 @@ end;;
 class thread_add_action: parent:sessionmanager ->
 object
 	inherit [int * bool * string * string] parametrized_widget
+end;;
+
+type forum_data =
+{
+	id: int;
+	name: string;
+	description: string;
+	moderated: bool;
+};;
+
+class forums_list_widget: parent:sessionmanager -> srv_forum: (int, unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name, unit, [`Registrable]) service ->
+object
+	inherit [unit] parametrized_widget
+	inherit [forum_data] list_widget
 end;;

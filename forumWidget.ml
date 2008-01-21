@@ -16,6 +16,52 @@ type message_data =
 	datetime: Calendar.t
 };;
 
+class login_widget ~(parent: sessionmanager) ~(srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service) ~(srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service) ~(srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service) =
+object (self)
+	inherit [unit] parametrized_widget parent
+
+	val div_class = "logbox"
+
+  method private login_box sp error usr pwd =
+  {{ [<table>([
+      <tr>[<td>"Username:" <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]]
+      <tr>[<td>"Password:" <td>[{: string_input ~input_type:{:"password":} ~name:pwd () :}]]
+      <tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"Login" () :}]]
+      <tr>[<td colspan="2">[{: a srv_register sp {{ "New user? Register now!" }} () :}]]] @
+      {: if error then
+        {{ [<tr>[<td colspan="2">"Wrong login or password"]
+        <tr>[<td colspan="2">[{: a srv_reminder sp {{ "Forgot your password?" }} () :}]]] }}
+        else
+       {{ [] }} :})] }}
+
+  method private logout_box sp user =
+  let (usr,pwd,descr,email) = parent#get_user_data in
+  {{ [<table>[
+      <tr>[<td>{: Printf.sprintf "Hi %s!" descr :}]
+      <tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"logout" () :}]]
+      <tr>[<td>[{: a srv_edit sp {{ "Manage your account" }} () :}]]
+  ]] }}
+
+	method apply ~sp () =
+	get_persistent_session_data SessionManager.user_table sp () >>=
+	fun sess -> return {{ <div class={: div_class :}>[{:
+		match sess with
+		| Data user ->
+			post_form ~a:{{ { class="logbox logged"} }} ~service:parent#act_logout ~sp
+				(fun _ -> self#logout_box sp user) ()
+		| _ ->  let exn = get_exn sp in
+              if List.mem Users.BadPassword exn || List.mem Users.NoSuchUser exn
+              then (* unsuccessful attempt *)
+          post_form ~a:{{ {class="logbox error"} }}
+            ~service:parent#act_login ~sp:sp (fun (usr, pwd) ->
+                    (self#login_box sp true usr pwd)) ()
+              else (* no login attempt yet *)
+          post_form ~a:{{ {class="logbox notlogged"} }}
+            ~service:parent#act_login ~sp:sp (fun (usr, pwd) ->
+                    (self#login_box sp false usr pwd)) () :}] }}
+
+end;;
+
 class message_widget ~(parent: sessionmanager) =
 object (self)
 	inherit [int] parametrized_widget parent
@@ -372,7 +418,7 @@ object (self)
 	fun children -> return (self#set_children children)
 
 	method apply ~sp (forum_id) =
-	self#retrieve_data (forum_id) >>=
+	catch (fun () -> self#retrieve_data forum_id >>=
 	fun () -> return self#get_children >>=
 	fun subjects -> Lwt_util.map (fun s -> return {{ <tr>[
 			<td>{: sod s.datetime :}
@@ -387,8 +433,12 @@ object (self)
 				<tr>[<th>"Time" <th>"Subject" <th>"Author"]
 				!{: l :}
 			]] }}
-		:}
-	}}
+		:} }}) 
+	(function 
+	 Not_found -> return {{ <div class={: div_class :}>[<p>"This forum is not available."] }}
+	| e -> return {{ <div class={: div_class :}>[
+		<p>{: Printf.sprintf "Error: %s" (Printexc.to_string e) :}
+	] }})
 end;;
 
 class thread_form_widget ~(parent: sessionmanager) ~(srv_add_thread: (int, bool * (string * string), post_service_kind, [`WithoutSuffix], [`One of int] param_name, [`One of bool] param_name * ([`One of string] param_name * [`One of string] param_name), [`Registrable]) service) =
@@ -425,7 +475,6 @@ object (self)
 	method apply ~sp (forum_id, is_article, subject, txt) =
 	let frm_id = Sql.db_int_of_int forum_id
 	and author = parent#get_user_name in
-	Messages.debug2 (Printf.sprintf "Author: %s" author);
 	db >>=
 	fun db -> (if is_article then
 		Sql.new_thread_and_article db ~frm_id ~author ~subject ~txt
@@ -435,5 +484,50 @@ object (self)
 		<div class={: div_class :}>[
 			<p>"The new thread has been created."
 		]
+	}}
+end;;
+
+type forum_data =
+{
+	id: int;
+	name: string;
+	description: string;
+	moderated: bool;
+};;
+
+class forums_list_widget ~(parent: sessionmanager) ~(srv_forum: (int, unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name, unit, [`Registrable]) service) =
+object (self)
+	inherit [unit] parametrized_widget parent
+	inherit [forum_data] list_widget parent
+
+  val div_class = "forums_list"
+	val db = Sql.connect ()
+
+	method private retrieve_data () =
+	Messages.debug2 "[forums_list] retrieve_data";
+	db >>=
+	fun db -> Sql.get_forums_list db >>=
+	fun result -> Lwt_util.map (fun (i, n, d, m) ->
+		return { id = Sql.int_of_db_int i; name = n; description = d; moderated = m }
+	) result >>=
+	fun children -> return (self#set_children children)
+
+	method apply ~sp () =
+	self#retrieve_data () >>=
+	fun () -> return self#get_children >>=
+	fun subjects -> Lwt_util.map (fun s -> return {{ <tr>[
+			<td>[{: a ~service:srv_forum ~sp {{ {: s.name :} }} s.id :}]
+			<td>{: s.description :}
+			<td>{: if s.moderated then "Yes" else "No" :}
+		] }}) subjects >>=
+	fun rows -> return {{
+		<div class={: div_class :}>{:
+			match rows with
+			| [] -> {{ [<p>"There are no forums available."] }}
+			| l -> {{ [<table>[
+				<tr>[<th>"Name" <th>"Description" <th>"Moderated"]
+				!{: l :}
+			]] }}
+		:}
 	}}
 end;;
