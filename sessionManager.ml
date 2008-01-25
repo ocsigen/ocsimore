@@ -6,21 +6,21 @@ open Eliompredefmod
 open Eliomduce.Xhtml
 open Xhtml1_strict
 open Lwt
-open Users
 open Services
+open Users
 
-let user_table: Users.user persistent_table = 
+let user_table: user persistent_table = 
   create_persistent_table "ocsimore_user_table_v1"
 
 type sessionmanager_in = 
 {
 	url: string list;
-	default_groups: Users.user list;
-	login_actions: server_params -> Users.user session_data -> unit Lwt.t;
+	default_groups: user list;
+	login_actions: server_params -> user session_data -> unit Lwt.t;
 	logout_actions: server_params -> unit Lwt.t;
 	registration_mail_from: string * string;
 	registration_mail_subject: string;
-	administrator: Users.user;
+	administrator: user;
 }
 
 class sessionmanager ~(db: Sql.db_t) ~(sessionmanagerinfo: sessionmanager_in) =
@@ -44,7 +44,7 @@ let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
 
 object (self)
 
-	val mutable current_user = No_data
+	val mutable current_user: user session_data = No_data
 	val forums = Hashtbl.create 1
 	val widget_types = Hashtbl.create 1
 
@@ -61,19 +61,13 @@ object (self)
 
 	method set_user u = current_user <- u
 
-	method container ~(sp: server_params) ~(sess: Users.user session_data) ~(contents:Xhtml1_strict.blocks): Xhtml1_strict.html Lwt.t =
+	method container ~(sp: server_params) ~(sess: user session_data) ~(contents:Xhtml1_strict.blocks): Xhtml1_strict.html Lwt.t =
 	return {{ 
 		<html>[
 			<head>[<title>"Temporary title"]
 			<body>{: contents :}
 		]
 	}}
-
-	method get_forum (forum_id: int) =
-		Hashtbl.find forums forum_id
-
-	method add_forum (f: Forum.forum) =
-		Hashtbl.add forums (f#get_forum_id) f
 
 	method is_logged_on =
 	match current_user with
@@ -84,19 +78,30 @@ object (self)
 
 	method get_user_data =
 	match current_user with
-	| Data u -> Users.get_user_data ~user:u 
-	| _ -> ("Anonymous", None, "", "")
+	| Data u -> Users.get_user_data ~user:u
+	| _ -> (0, "Anonymous", None, "", "")
+
+	method get_user_id =
+	match current_user with
+	| Data u -> let (i, _, _, _, _) = Users.get_user_data ~user:u in i
+	| _ -> 0
 
 	method get_user_name =
 	match current_user with
-	| Data u -> let (n, _, _, _) = Users.get_user_data ~user:u in n
+	| Data u -> let (_, n, _, _, _) = Users.get_user_data ~user:u in n
 	| _ -> "Anonymous"
 
 	method get_role (forum_id: int) =
-	let f = self#get_forum forum_id in
-		if f#can_moderate current_user then Sql.Moderator
-		else if f#can_write current_user && self#is_logged_on then Sql.Author self#get_user_name
-		else Sql.Unknown
+	Messages.debug2 (Printf.sprintf "[sessionManager] [%s] get_role (forum_id: %d)" (Sql.uuid_of_conn (return db)) forum_id);
+	Forum.get_forum_by_id db forum_id >>=
+	fun f -> Messages.debug2 "[sessionManager] got forum"; return
+		(match current_user with
+		| Data u -> 
+				if Forum.can_moderate f u then (Messages.debug2 "[sessionManager] result: moderator"; Sql.Moderator)
+				else if Forum.can_write f u && self#is_logged_on then (Messages.debug2 "[sessionManager] result: author"; Sql.Author (Sql.db_int_of_int self#get_user_id))
+				else if Forum.can_read f u && self#is_logged_on then (Messages.debug2 "[sessionManager] result: lurker"; Sql.Lurker self#get_user_name)
+				else (Messages.debug2 "[sessionManager] result: unknown"; Sql.Unknown)
+		| _ -> (Messages.debug2 "[sessionManager] result: nobody logged in"; Sql.Unknown))
 
 	method private valid_username usr =
 	Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
@@ -106,33 +111,6 @@ object (self)
 		(Str.regexp ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
 	email 0
 
-	method private login_box sp error usr pwd = 
-	{{ [<table>([
-			<tr>[<td>"Username:" <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]]
-			<tr>[<td>"Password:" <td>[{: string_input ~input_type:{:"password":} ~name:pwd () :}]]
-			<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"Login" () :}]]
-			<tr>[<td colspan="2">[{: a internal_srv_register sp {{ "New user? Register now!" }} () :}]]] @
-			{: if error then
-				{{ [<tr>[<td colspan="2">"Wrong login or password"]
-				<tr>[<td colspan="2">[{: a internal_srv_reminder sp {{ "Forgot your password?" }} () :}]]] }}
-				else
-			 {{	[] }} :})] }}
-
-	method private logout_box sp user =
-	let (usr,pwd,descr,email) = get_user_data user in
-	{{ [<table>[
-			<tr>[<td>{: Printf.sprintf "Hi %s!" descr :}]
-			<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"logout" () :}]]
-			<tr>[<td>[{: a internal_srv_edit sp {{ "Manage your account" }} () :}]]
-			!{: if Users.in_group user sessionmanagerinfo.administrator then
-						{{ [
-							<tr>[<td>[{: a srv_create_service sp {{ "Create a new service" }} () :}]]
-							<tr>[<td>[{: a srv_list_services sp {{ "List services" }} () :}]]
-						] }}
-					else
-						{{ [] }} :}
-	]] }}
-      
 	method private page_register err = fun sp () ()-> 
    self#container
      ~sp
@@ -167,15 +145,15 @@ object (self)
              () :}
 				<p>[<strong>{: err :}]]}} 
 
-  method private page_register_done = fun sp () (usr,(desc,email))-> 
+  method private page_register_done = fun sp () (usr,(fullname,email))-> 
     if not (self#valid_username usr) then 
       self#page_register "ERROR: Bad character(s) in login name!" sp () ()
     else if not (self#valid_emailaddr email) then 
       self#page_register "ERROR: Bad formed e-mail address!" sp () ()
     else 
-      let pwd = generate_password() in
-        create_unique_user db ~name:usr ~pwd ~desc ~email >>= fun (user,n) ->
-	  mail_password 
+      let pwd = generate_password () in
+        create_unique_user db ~name:usr ~pwd ~fullname ~email >>= fun (user,n) ->
+	  mail_password db
 	    ~name:n ~from_addr:sessionmanagerinfo.registration_mail_from 
 	    ~subject:sessionmanagerinfo.registration_mail_subject >>=
           (fun b ->
@@ -204,7 +182,7 @@ object (self)
 									~sess:No_data
 									~contents:{{ [<h1>"Registration failed."
 										<p>"Please try later."] }}
-	         )
+	         ) 
           )
                 
   method private page_reminder err = fun sp () () -> 
@@ -229,7 +207,8 @@ object (self)
 			 <p>[<strong>{: err :}]] }}
 
   method private page_reminder_done = fun sp () usr ->
-    if not (self#valid_username usr) then
+		self#page_reminder "Users are being impelemented (TODO)" sp () ()
+    (* if not (self#valid_username usr) then
       self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
     else 
       mail_password 
@@ -250,10 +229,12 @@ object (self)
               ~sess:No_data
 							~contents:{{ [<h1>"Failure"
 							<p>"The username you entered doesn't exist, or \
-							the service is unavailable at the moment."] }})
+							the service is unavailable at the moment."] }}) *)
 
-  method private page_edit user err = fun sp () () ->
-    let (n,_,d,e) = get_user_data ~user in
+  method private page_edit err = fun sp () () ->
+		get_persistent_session_data user_table sp () >>=
+		fun sess -> match sess with
+			Data user -> let (_,n,_,d,e) = get_user_data ~user in
       self#container
         ~sp
         ~sess:No_data
@@ -289,15 +270,20 @@ object (self)
 			}}) () :} 
 		  <p>[<strong>{: err :}]] }}
 
-  method private page_edit_done user = fun sp () (pwd,(pwd2,(desc,email)))->
-    if not (self#valid_emailaddr email) then 
-      self#page_edit user "ERROR: Bad formed e-mail address!" sp () ()
+  method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
+		get_persistent_session_data user_table sp () >>=
+		fun sess -> match sess with
+		| Data user ->
+    if not (self#valid_emailaddr email) then  
+      self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
     else if pwd <> pwd2 then
-      self#page_edit user "ERROR: Passwords don't match!" sp () ()
+      self#page_edit "ERROR: Passwords don't match!" sp () ()
     else
-      (ignore (if pwd = ""
-      then update_user_data db ~user ~desc ~email ()
-      else update_user_data db ~user ~desc ~email ~pwd:(Some pwd) ());
+			(Messages.debug2 (Printf.sprintf "fullname: %s" fullname);
+      ignore (if pwd = ""
+      then update_user_data db ~user ~fullname ~email ()
+      else update_user_data db ~user ~fullname ~email ~pwd:(Some pwd) ());
+			set_persistent_session_data user_table sp user;	
        self#container
          ~sp
          ~sess:No_data
@@ -310,13 +296,14 @@ object (self)
 			~contents:{{ [<h1>"I can\'t do that, Dave."
 				<p>"In order to manipulate services, you must be an administrator."] }}	
 
-	method private page_create_service user = fun sp () () ->
-		let sess = Data user in
+	method private page_create_service = fun sp () () ->
+		get_persistent_session_data user_table sp () >>=
+		fun sess -> 
 		self#container
 			~sp
 			~sess
-			~contents:(
-				if Users.in_group user sessionmanagerinfo.administrator then
+			~contents:({{ [<p>"being implemented"] }}
+				(* if in_group user sessionmanagerinfo.administrator then
 					begin
 						{{ [
 							<h1>"Creation of a new service"
@@ -330,31 +317,31 @@ object (self)
 					end
 					else 
 					let (n, _, _, _) = get_user_data user in
-						{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }})
+						{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }} *) )
 
-	method private page_create_service_done user = fun sp () url ->
-		let sess = Data user in
+	method private page_create_service_done = fun sp () url ->
+		get_persistent_session_data user_table sp () >>=
+		fun sess -> 
 		create_service db ~url >>=
 		fun () -> register_service ~sp db ~url >>=
 		fun _ -> self#container
 			~sp
 			~sess
-			~contents:(
-				if Users.in_group user sessionmanagerinfo.administrator then
+			~contents:({{ [<p>"being implemented"] }}
+				(* if in_group user sessionmanagerinfo.administrator then
 					{{ [<h1>"The service has been created."] }}
 				else 
 				let (n, _, _, _) = get_user_data user in
-					{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }})
+					{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}*) )
 
-	method private page_modify_service user = fun sp url () ->
+	method private page_modify_service = fun sp url () ->
 		(* let type_dropdown name value =
 			let l = List.map (fun t ->
 				Option ({{ {} }}, t, None, t = (string_of_type value))
 			) ["int"; "float"; "string"; "bool"; "file"; "unit"] in
 			Eliomduce.Xhtml.string_select ~name (List.hd l) (List.tl l) in *)
-
-		let sess = Data user in
-	  Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+		get_persistent_session_data user_table sp () >>=
+	  fun sess -> Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
 		get_service_parameters db ~url >>=
 		fun params -> get_service_widgets ~url >>=
 		fun widgets ->
@@ -387,19 +374,20 @@ object (self)
 			~sess
 			~contents:cts
 
-	method private page_modify_service_done user = fun sp url () ->
+	method private page_modify_service_done = fun sp url () ->
+		get_persistent_session_data user_table sp () >>=
+		fun sess ->
 	  Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-		let sess = Data user in
 		self#container
 			~sp
 			~sess
 			~contents:{{ [<h1>"Your service has been modified."] }}
 
-	method private page_list_services user = fun sp () () ->
-		let sess = Data user in
-		get_services db >>=
+	method private page_list_services = fun sp () () ->
+		get_persistent_session_data user_table sp () >>=
+		fun sess -> get_services db >>=
 		fun services -> 
-			(if Users.in_group user sessionmanagerinfo.administrator then
+			(* (if in_group user sessionmanagerinfo.administrator then
 				return {{ [<h1>"Existing services"
 					<table>[
 						<tr>[<th>"Name" <th>""]
@@ -410,21 +398,22 @@ object (self)
 				] }}
 				else
 				let (n, _, _, _) = get_user_data user in
-					return {{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}) >>=
+					return {{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}) >>= *)
+					return {{ [<p>"being implemented"] }} >>=
 		fun cts -> self#container
 			~sp
 			~sess
 			~contents:cts
 
 	method private add_parameter_handler user = fun sp () (url, param_name) ->
-		if Users.in_group user sessionmanagerinfo.administrator then
+		(* if in_group user sessionmanagerinfo.administrator then
 		begin
 			Messages.debug2 "[add_parameter_handler] user is an administrator.";
 			add_parameter db ~url ~param:{ name=param_name } >>=
 			fun _ -> return []
 		end
-		else
-			return [Users.NotAllowed]
+		else *)
+			return [NotAllowed]
 		
 
   val mutable all_login_actions = sessionmanagerinfo.login_actions
@@ -434,22 +423,10 @@ object (self)
     all_logout_actions sp >>=
     fun () -> close_session ~sp () >>= 
     fun () -> catch
-    (fun () -> let user = authenticate usr pwd in
-			Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+    (fun () -> authenticate db ~name:usr ~pwd  >>=
+		fun user -> 
      	set_persistent_session_data user_table sp user >>=
-      fun () -> all_login_actions sp (Data user) >>=
-      fun () -> return (
-			  Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-        register_for_session sp internal_srv_edit (self#page_edit user "");
-        register_for_session sp srv_edit_done (self#page_edit_done user);
-				register_for_session sp srv_create_service (self#page_create_service user);
-				register_for_session sp srv_create_service_done (self#page_create_service_done user);
-				register_for_session sp srv_modify_service (self#page_modify_service user);
-				register_for_session sp srv_modify_service_done (self#page_modify_service_done user);
-				register_for_session sp srv_list_services (self#page_list_services user);
-				Actions.register_for_session sp act_add_parameter (self#add_parameter_handler user);
-			  Messages.debug2 (Printf.sprintf "[mk_act_login] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-        []))
+      fun () -> all_login_actions sp (Data user); return []) 
     (fun e -> return [e])
       
   method add_login_actions f =
@@ -471,40 +448,37 @@ object (self)
       (fun () -> f sp)
 	
 
-    (* method mk_log_form : server_params -> Users.user session_data -> 
-      {{ Xhtml1_strict.form }}
-        = fun sp sess -> 
-					match sess with
-          | Data user -> (* user is logged in *)
-              post_form ~a:{{ {class="logbox logged"} }}
-							~service:act_logout ~sp:sp (fun _ -> self#logout_box sp user) ()
-          | _ ->
-              let exn = get_exn sp in
-              if List.mem BadPassword exn || List.mem NoSuchUser exn
-              then (* unsuccessful attempt *)
-	        post_form ~a:{{ {class="logbox error"} }} 
-	          ~service:act_login ~sp:sp (fun (usr, pwd) -> 
-                    (self#login_box sp true usr pwd)) ()
-              else (* no login attempt yet *)
-	        post_form ~a:{{ {class="logbox notlogged"} }}
-	          ~service:act_login ~sp:sp (fun (usr, pwd) -> 
-                    (self#login_box sp false usr pwd)) () *)
-
     method lwtinit =
 			return ()
 
 		method register =
 		begin
+			Messages.debug2 "[sessionManager] registering I";
       Actions.register internal_act_login self#mk_act_login;
+			Messages.debug2 "[sessionManager] registering II";
       Actions.register internal_act_logout self#mk_act_logout;
+			Messages.debug2 "[sessionManager] registering III";
       register internal_srv_register (self#page_register "");
+			Messages.debug2 "[sessionManager] registering IV";
       register srv_register_done self#page_register_done;
+			Messages.debug2 "[sessionManager] registering V";
       register internal_srv_reminder (self#page_reminder "");
+			Messages.debug2 "[sessionManager] registering VI";
       register srv_reminder_done self#page_reminder_done;
-			register srv_list_services self#page_not_allowed;
-			register srv_create_service (fun sp _ () -> self#page_not_allowed sp () ());
-			register srv_modify_service (fun sp _ () -> self#page_not_allowed sp () ());
-			Services.register_services db 
+			Messages.debug2 "[sessionManager] registering VII";
+			register srv_list_services self#page_list_services;
+			Messages.debug2 "[sessionManager] registering VIII";
+			register srv_create_service self#page_create_service;
+			Messages.debug2 "[sessionManager] registering IX";
+			register srv_modify_service self#page_modify_service;
+			Messages.debug2 "[sessionManager] registering X";
+      register internal_srv_edit (self#page_edit "");
+			Messages.debug2 "[sessionManager] registering XI";
+      register srv_edit_done self#page_edit_done;
+			Messages.debug2 "[sessionManager] registering XII";
+			(* Services.register_services db >>=
+			fun () -> *) Messages.debug2 "[sessionManager] registering done";
+				return ()
 		end
 	
 end;;
@@ -515,8 +489,7 @@ begin
 	(fun sp get_params post_params ->
 		get_persistent_session_data ~table:user_table ~sp () >>=
 		fun sess -> 
-		sm#set_user sess;
-		Messages.debug2 (Printf.sprintf "[sessionManager] connect: setting user to %s" sm#get_user_name);
+		sm#set_user sess; 
 		Lwt_util.map_serial (fun w ->
 			w ~sp
 		) (fwl get_params post_params) >>=

@@ -25,17 +25,14 @@ object
 	method srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable ]) service
 	method srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable ]) service
 	method set_user: Users.user session_data -> unit
-	method get_forum: int -> Forum.forum
-	method add_forum: Forum.forum -> unit
 	method is_logged_on: bool
 	method get_user: Users.user session_data
-	method get_user_data: string * string option * string * string
+	method get_user_data: int * string * string option * string * string
+	method get_user_id: int
 	method get_user_name: string
-	method get_role: int -> Sql.role
+	method get_role: int -> Sql.role Lwt.t
   method container: sp:server_params -> sess:Users.user session_data ->
 		contents:Xhtml1_strict.blocks -> Xhtml1_strict.html Lwt.t
-  (* method mk_log_form: server_params -> Users.user session_data -> 
-    {{ Xhtml1_strict.form }} *)
   method add_login_actions: 
       (server_params -> Users.user session_data -> unit Lwt.t) -> unit
   method add_logout_actions: 

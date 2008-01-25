@@ -13,7 +13,8 @@ type message_data =
 	id: int;
 	text: string;
 	author: string;
-	datetime: Calendar.t
+	datetime: Calendar.t;
+	hidden: bool;
 };;
 
 class login_widget ~(parent: sessionmanager) =
@@ -35,7 +36,7 @@ object (self)
        {{ [] }} :})] }}
 
   method private logout_box sp user =
-  let (usr,pwd,descr,email) = parent#get_user_data in
+  let (_,usr,_,descr,email) = parent#get_user_data in
   {{ [<table>[
       <tr>[<td>{: Printf.sprintf "Hi %s!" descr :}]
       <tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"logout" () :}]]
@@ -43,6 +44,7 @@ object (self)
   ]] }}
 
 	method apply ~sp () =
+	Messages.debug2 "[forumWidget] login#apply";
 	get_persistent_session_data SessionManager.user_table sp () >>=
 	fun sess -> return {{ <div class={: div_class :}>[{:
 		match sess with
@@ -62,9 +64,26 @@ object (self)
 
 end;;
 
-class message_widget ~(parent: sessionmanager) =
+class message_toggle_action ~(parent: sessionmanager) = 
 object (self)
-	inherit [int] parametrized_widget parent
+	inherit [int * int] parametrized_widget parent
+	
+	val div_class = "thread_toggle"
+	val db = Sql.connect ()
+
+	method apply ~sp (forum_id, message_id) =
+		let frm_id = Sql.db_int_of_int forum_id in
+		let msg_id = Sql.db_int_of_int message_id in
+		db >>=
+		fun db -> Sql.message_toggle_hidden db ~frm_id ~msg_id >>=
+		fun () -> return {{ <div class={: div_class :}>[
+			<p>"Thread toggled."		
+		] }}
+end;;
+
+class message_widget ~(parent: sessionmanager) ~(srv_message_toggle: unit) =
+object (self)
+	inherit [int * int] parametrized_widget parent
 
 	val div_class = "message"
 	val mutable subject = ""
@@ -81,16 +100,16 @@ object (self)
 	method set_hidden h = hidden <- h
 	method set_sticky s = sticky <- s
 
-	method apply ~sp (message_id) =
-	self#retrieve_data (message_id) >>=
-	fun () -> return
+	method apply ~sp (forum_id, message_id) =
+	self#retrieve_data (forum_id, message_id) >>=
+	fun () -> parent#get_role forum_id >>=
+	fun role -> return
 	{{ <div class={: div_class :}>[
 			<h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}
 			!{:
-				(* XXX if forum#can_moderate sess || forum#can_write sess then *)
-					{{ [<p>{: Format.sprintf "Hidden: %s; sticky: %s" (if hidden then "YES" else "NO") (if sticky then "YES" else "NO") :}] }}
-				(* else
-					{{ [] }} *)
+					match role with
+					| Sql.Moderator -> {{ [<p>{: Format.sprintf "Message is hidden: %s; sticky: %s" (if hidden then "YES" else "NO") (if sticky then "YES" else "NO") :}] }}
+					| _ -> {{[] }}
 			:}
 			<pre>{: text :}
 			(* TODO: reply to this message *)
@@ -108,11 +127,12 @@ object (self)
 	method private retrieve_data (forum_id, thread_id, offset, limit) =
 	let thr_id = Sql.db_int_of_int thread_id in
 	db >>=
-	fun db -> Sql.thread_get_messages_with_text db ~thr_id ~role:(parent#get_role forum_id) ?offset ?limit () >>=
+	fun db -> parent#get_role forum_id >>=
+	fun role -> Sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () >>=
 	fun results ->
 	Lwt_util.map
-		(fun (i, t, a, d, _, _) ->
-			return { id = (Sql.int_of_db_int i); text = t; author = a; datetime = d })
+		(fun (i, t, a, d, h, _) ->
+			return { id = (Sql.int_of_db_int i); text = t; author = a; datetime = d; hidden = h })
 		results >>=
 	fun children -> return (self#set_children children)
 	
@@ -149,14 +169,15 @@ object (self)
 	method private retrieve_data (forum_id, thread_id, offset, limit) =
 	let thr_id = Sql.db_int_of_int thread_id in
 	db >>=
-	fun db -> Sql.thread_get_nr_messages db ~thr_id ~role:(parent#get_role forum_id) >>=
+	fun db -> parent#get_role forum_id >>=
+	fun role -> Sql.thread_get_nr_messages db ~thr_id ~role >>=
 	fun nr_m -> nr_messages <- nr_m; Messages.debug2 "[message_navigation_widget] retrieve_data: end";
 	return ()
 
 	method apply ~sp (forum_id, thread_id, offset, limit) =
-	Messages.debug2 "[message_navigation_widget] apply";
+	Messages.debug2 (Printf.sprintf "[forumWidget] [%s] message_navigation#apply" (Sql.uuid_of_conn db));
 	self#retrieve_data (forum_id, thread_id, offset, limit) >>=
-	fun () -> Messages.debug2 "[message_navigation_widget] apply: end"; return {{
+	fun () -> return {{
 		<div class={: div_class :}>
 		{:
 			match limit with
@@ -195,7 +216,7 @@ object (self)
 	}}
 end;;
 
-class message_forest_widget ~(parent: sessionmanager) ~(srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service) =
+class message_forest_widget ~(parent: sessionmanager) ~(srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service) ~(srv_message_toggle:(int * (int * int option), int, post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), [`One of int] param_name, [`Registrable]) service) =
 object (self)
 	inherit [int * int * int option] parametrized_widget parent
 
@@ -207,20 +228,25 @@ object (self)
 
 	method get_children = children
 
+	method private toggle_form hidden id (msg_id) =
+		{{ [<p>['Message is hidden: ' !{: if hidden then "YES" else "NO" :} ' ' {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :} {: int_input ~input_type:{: "hidden" :} ~name:msg_id ~value:id () :} ]] }}
+
 	method private retrieve_data (forum_id, thread_id, btm) =
 	let thr_id = Sql.db_int_of_int thread_id
 	and bottom = match btm with
 	| None -> None
 	| Some x -> Some (Sql.db_int_of_int x) in
 	db >>=
-	fun db -> Sql.thread_get_messages_with_text_forest db ~thr_id ~role:(parent#get_role forum_id) ?bottom () >>=
+	fun db -> parent#get_role forum_id >>=
+	fun role -> Sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () >>=
 	fun results -> lwt_forest_map
-		(fun (i, t, a, d, _, _, _, _) ->
-			return { id = (Sql.int_of_db_int i); text = t; author = a; datetime = d })
+		(fun (i, t, a, d, h, _, _, _) ->
+			return { id = (Sql.int_of_db_int i); text = t; author = a; datetime = d; hidden = h })
 		results >>=
 	fun children -> return (self#set_children children)
 
 	method apply ~sp (forum_id, thread_id, bottom) =
+		Messages.debug2 (Printf.sprintf"[forumWidget] [%s] message_forest#apply" (Sql.uuid_of_conn db));
 	let rec listize_forest (f: Xhtml1_strict._div tree list): Xhtml1_strict.ul list Lwt.t =
 		Lwt_util.map (function 
 		| Node (p, ch) -> listize_forest ch >>=
@@ -230,12 +256,17 @@ object (self)
 			] }}) f
 	in
 	self#retrieve_data (forum_id, thread_id, bottom) >>=
-	fun () -> return self#get_children >>=
+	fun () -> parent#get_role forum_id >>=
+	fun role -> return self#get_children >>=
 	fun subjects -> lwt_forest_map (fun s -> return {{
 		<div class="message_data">
 		[
 			<h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
 			<pre>{: s.text :}
+			!{: match role with
+				| Sql.Moderator -> {{ [{: post_form ~service:srv_message_toggle ~sp (self#toggle_form s.hidden s.id) (forum_id, (thread_id, None)) :}] }}
+				| _ -> {{ [] }}
+			:}
 			{: a srv_reply_message sp {{ "Reply to this message" }} (forum_id, (thread_id, (None, s.id))) :}
 		]
 	}}) subjects >>=
@@ -268,7 +299,7 @@ object (self)
 	] :}
 
 	method apply ~(sp:server_params) (forum_id, thread_id, parent_id, offset) =
-	Messages.debug2 "[message_form_widget] apply (& end)";
+	Messages.debug2 "[forumWidget] message_form_widget#apply"; 
 	my_parent_id <- parent_id;
 	return {{
 		<div class={: div_class :}>[
@@ -280,7 +311,7 @@ class message_add_action ~(parent: sessionmanager) =
 object (self)
 	inherit [int * int * int option * string * bool] parametrized_widget parent
 	
-	val div_class = "message_add`"
+	val div_class = "message_add"
 	val db = Sql.connect ()
 
 	method apply ~sp (forum_id, thread_id, par_id, txt, sticky) =
@@ -289,9 +320,9 @@ object (self)
 		match par_id with
 		| None -> None
 		| Some x -> Some (Sql.db_int_of_int x)
-	and author = parent#get_user_name in
+	and author_id = Sql.db_int_of_int parent#get_user_id in
 		db >>=
-		fun db -> Sql.new_message db ~thr_id ?parent_id ~author ~txt ~sticky () >>=
+		fun db -> Sql.new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>=
 		fun _ -> return {{
 		<div class={: div_class :}>[
 			<p>"Your message has been added."
@@ -301,7 +332,7 @@ end;;
 
 class latest_messages_widget ~(parent: sessionmanager) =
 object (self)
-	inherit [int list * int] parametrized_widget parent
+	inherit [int] parametrized_widget parent
 
 	val div_class = "latest_messages"
 	val mutable messages = []
@@ -309,14 +340,16 @@ object (self)
 	
 	method private set_messages m = messages <- m
 
-	method private retrieve_data (forum_ids, limit) =
-	let frm_ids = List.map Sql.db_int_of_int forum_ids in
+	method private retrieve_data limit =
 	db >>=
-	fun db -> Sql.get_latest_messages db ~frm_ids ~limit () >>=
+	fun db -> Sql.get_forums_list db >>=
+	fun forums -> let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
+		Sql.get_latest_messages db ~frm_ids ~limit () >>=
 	fun res -> return (self#set_messages res)
 
-	method apply ~sp (forum_ids, limit) =
-	self#retrieve_data (forum_ids, limit) >>=
+	method apply ~sp limit =
+		Messages.debug2 (Printf.sprintf "[forumWidget] [%s] latest_messages#apply" (Sql.uuid_of_conn db));
+	self#retrieve_data limit >>=
 	fun () -> Lwt_util.map (fun (id, msg, author) ->
 		return {{ <tr>[<td>{: msg :} <td>{: author :}] }} ) messages >>=
 	fun tbl -> return {{
@@ -339,7 +372,7 @@ type thread_data =
 	datetime: Calendar.t
 };;
 
-class thread_widget ~(parent: sessionmanager) =
+class thread_widget ~(parent: sessionmanager) ~(srv_thread_toggle: (int * (int * int option), unit, post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service) =
 object (self)
 	inherit [int * int] parametrized_widget parent
 
@@ -369,10 +402,14 @@ object (self)
 	method get_shown_messages = shown_messages
 	method get_hidden_messages = hidden_messages
 
+	method private toggle_form () =
+		{{ [<p>['Thread is hidden: ' !{: if self#get_hidden then "YES" else "NO" :} ' ' {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :}]] }}
+
 	method private retrieve_data (forum_id, thread_id) =
 	let thr_id = Sql.db_int_of_int thread_id in
 	db >>=
-	fun db -> Sql.thread_get_data db ~thr_id ~role:(parent#get_role forum_id) >>=
+	fun db -> parent#get_role forum_id >>=
+	fun role -> Sql.thread_get_data db ~thr_id ~role >>=
 	fun (i, s, a, ar, d, h, sm, hm) ->
 		self#set_subject s;
 		self#set_author a;
@@ -384,12 +421,18 @@ object (self)
 		self#set_shown_messages sm;
 		return (self#set_hidden_messages hm)
 
-	method apply ~sp thread_id =
-	Messages.debug2 "[thread_widget] apply";
-	self#retrieve_data thread_id >>=
-	fun () -> Messages.debug2 "[thread_widget] apply: end"; return
+	method apply ~sp (forum_id, thread_id) =
+	Messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread#apply" (Sql.uuid_of_conn db));
+	self#retrieve_data (forum_id, thread_id) >>=
+	fun () -> parent#get_role forum_id >>=
+	fun role -> return
 	{{ <div class={: div_class :}>[
 		<h1>{: self#get_subject :}
+		!{:
+			match role with
+			| Sql.Moderator -> {{ [{: post_form ~service:srv_thread_toggle ~sp self#toggle_form (forum_id, (thread_id, None)) :}] }}
+			| _ -> {{ [] }}
+		:}
 		<h2>{: Printf.sprintf "Created by: %s %s" self#get_author (sod self#get_datetime) :}
 		<div class="article">{:
 			match self#get_article with
@@ -397,6 +440,23 @@ object (self)
 			| Some a -> {{ [<pre>{: a :}] }}
 		:}
 	] }}
+end;;
+
+class thread_toggle_action ~(parent: sessionmanager) = 
+object (self)
+	inherit [int * int] parametrized_widget parent
+	
+	val div_class = "thread_toggle"
+	val db = Sql.connect ()
+
+	method apply ~sp (forum_id, thread_id) =
+		let frm_id = Sql.db_int_of_int forum_id in
+		let thr_id = Sql.db_int_of_int thread_id in
+		db >>=
+		fun db -> Sql.thread_toggle_hidden db ~frm_id ~thr_id >>=
+		fun () -> return {{ <div class={: div_class :}>[
+			<p>"Thread toggled."		
+		] }}
 end;;
 
 class thread_list_widget ~(parent: sessionmanager) ~(srv_thread:(int * (int * int option), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service) =
@@ -409,15 +469,17 @@ object (self)
 
 	method private retrieve_data (forum_id) =
 	Messages.debug2 (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
-	let frm_id = Sql.db_int_of_int forum_id in
+	let frm_id = Sql.db_int_of_int forum_id in 
 	db >>=
-	fun db -> Sql.forum_get_threads_list db ~frm_id ~role:(parent#get_role forum_id) () >>=
+	fun db -> parent#get_role forum_id >>=
+	fun role -> Sql.forum_get_threads_list db ~frm_id ~role () >>=
 	fun result -> Lwt_util.map (fun (i, s, a, d, _) ->
 		return { id = Sql.int_of_db_int i; subject = s; author = a; datetime = d }
 	) result >>=
 	fun children -> return (self#set_children children)
 
 	method apply ~sp (forum_id) =
+	Messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread_list#apply" (Sql.uuid_of_conn db));
 	catch (fun () -> self#retrieve_data forum_id >>=
 	fun () -> return self#get_children >>=
 	fun subjects ->  Messages.debug2 (Printf.sprintf "[thread_list] apply: %d items" (List.length subjects));
@@ -460,6 +522,7 @@ object (self)
 	] }}
 
 	method apply ~sp forum_id =
+		Messages.debug2 "[forumWidget] thread_form#apply";
 	return {{
 		<div class={: div_class :}>[
 			{: (post_form ~service:srv_add_thread ~sp self#form) forum_id :}
@@ -473,14 +536,15 @@ object (self)
 	val div_class = "thread_add"
 	val db = Sql.connect ()
 
-	method apply ~sp (forum_id, is_article, subject, txt) =
+	method apply ~sp (forum_id, is_article, sbj, txt) =
 	let frm_id = Sql.db_int_of_int forum_id
-	and author = parent#get_user_name in
+	and author_id = Sql.db_int_of_int parent#get_user_id 
+	and subject = (if sbj = "" then "No subject" else sbj) in
 	db >>=
 	fun db -> (if is_article then
-		Sql.new_thread_and_article db ~frm_id ~author ~subject ~txt
+		Sql.new_thread_and_article db ~frm_id ~author_id ~subject ~txt
 	else
-		Sql.new_thread_and_message db ~frm_id ~author ~subject ~txt) >>=
+		Sql.new_thread_and_message db ~frm_id ~author_id ~subject ~txt) >>=
 	fun _ -> return {{
 		<div class={: div_class :}>[
 			<p>"The new thread has been created."
@@ -494,6 +558,7 @@ type forum_data =
 	name: string;
 	description: string;
 	moderated: bool;
+	arborescent: bool;
 };;
 
 class forums_list_widget ~(parent: sessionmanager) ~(srv_forum: (int, unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name, unit, [`Registrable]) service) =
@@ -508,8 +573,8 @@ object (self)
 	Messages.debug2 "[forums_list] retrieve_data";
 	db >>=
 	fun db -> Sql.get_forums_list db >>=
-	fun result -> Lwt_util.map (fun (i, n, d, m) ->
-		return { id = Sql.int_of_db_int i; name = n; description = d; moderated = m }
+	fun result -> Lwt_util.map (fun (i, n, d, m, a) ->
+		return { id = Sql.int_of_db_int i; name = n; description = d; moderated = m; arborescent = a }
 	) result >>=
 	fun children -> return (self#set_children children)
 
@@ -533,19 +598,21 @@ object (self)
 	}}
 end;;
 
-class forum_form_widget ~(parent: sessionmanager) ~(srv_add_forum: (unit, bool * (string * string), post_service_kind, [`WithoutSuffix], unit, [`One of bool] param_name * ([`One of string] param_name * [`One of string] param_name), [`Registrable]) service) =
+class forum_form_widget ~(parent: sessionmanager) ~(srv_add_forum: (unit, string * (string * (string * (bool * bool))), post_service_kind, [`WithoutSuffix], unit, [`One of string] param_name * ([`One of string] param_name * ([`One of string] param_name * ([`One of bool] param_name * [`One of bool] param_name))), [`Registrable]) service) =
 object (self)
 	inherit [unit] parametrized_widget parent
 
 	val div_class = "forum_form"
 
-	method private form (is_moderated, (name, descr)) =
+	method private form (name, (url, (descr, (moderated, arborescent)))) =
 	{{ [
 		<h2>"Start a new forum"
 		<table>[
-			<tr>[<td>[{: bool_checkbox ~checked:true ~name:is_moderated () :} ' This forum is moderated']]
-			<tr>[<td>['Name: ' {: string_input ~input_type:{: "text" :} ~name:name () :}]]
+			<tr>[<td>['Name: ' {: string_input ~input_type:{: "text" :} ~name () :}]]
+			<tr>[<td>['URL: ' {: string_input ~input_type:{: "text" :} ~name:url () :}]]
 			<tr>[<td>['Description: ' {: string_input ~input_type:{: "text" :} ~name:descr () :}]]
+			<tr>[<td>[{: bool_checkbox ~checked:true ~name:moderated () :} ' This forum is moderated']]
+			<tr>[<td>[{: bool_checkbox ~checked:true ~name:arborescent () :} ' This forum is arborescent']]
 			<tr>[<td>[{: string_input ~input_type:{: "submit" :} ~value:"Submit" () :}]]
 		]
 	] }}
@@ -559,16 +626,15 @@ end;;
 
 class forum_add_action ~(parent: sessionmanager) =
 object (self)
-	inherit [bool * string * string] parametrized_widget parent
+	inherit [string * string * string * bool * bool] parametrized_widget parent
 	
 	val div_class = "forum_add"
 	val db = Sql.connect ()
 
-	method apply ~sp (moderated, name, descr) =
+	method apply ~sp (name, url, descr, moderated, arborescent) =
 	db >>=
-	fun db -> 
-		Sql.new_forum db ~title:name ~descr ~moderated >>=
-	fun _ -> 
+	fun db -> Sql.new_forum db ~title:name ~descr ~moderated ~arborescent >>=
+	fun _ ->
 		return {{
 		<div class={: div_class :}>[
 			<p>"The new thread has been created."

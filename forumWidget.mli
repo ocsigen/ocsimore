@@ -18,7 +18,8 @@ type message_data =
 	id: int;
 	text: string;
 	author: string;
-	datetime: Calendar.t
+	datetime: Calendar.t;
+	hidden: bool;
 }
 
 (** A widget for the login/logout box *)
@@ -27,10 +28,15 @@ object
 	inherit [unit] parametrized_widget
 end;;
 
-(** A parametrized_widget that displays one message*)
-class message_widget: parent:sessionmanager ->
+class message_toggle_action: parent:sessionmanager ->
 object
-	inherit [int] parametrized_widget
+	inherit [int * int] parametrized_widget
+end;;
+
+(** A parametrized_widget that displays one message*)
+class message_widget: parent:sessionmanager -> srv_message_toggle:unit -> 
+object
+	inherit [int * int] parametrized_widget
 
 	(** Set the message subject *)
 	method set_subject: string -> unit
@@ -62,7 +68,7 @@ object
 	inherit [int * int * int option * int option] parametrized_widget
 end;;
 
-class message_forest_widget: parent:sessionmanager -> srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service ->
+class message_forest_widget: parent:sessionmanager -> srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service -> srv_message_toggle:(int * (int * int option), int, post_service_kind, [ `WithoutSuffix ], [ `One of int ] param_name * ([ `One of int ] param_name * [ `Opt of int ] param_name), [`One of int] param_name, [ `Registrable ]) service ->
 object
 	inherit [int * int * int option] parametrized_widget	
 
@@ -83,7 +89,7 @@ end;;
 
 class latest_messages_widget: parent:sessionmanager ->
 object
-	inherit [int list * int] parametrized_widget
+	inherit [int] parametrized_widget
 end;;
 
 type thread_data =
@@ -94,7 +100,7 @@ type thread_data =
 	datetime: Calendar.t
 }
 
-class thread_widget: parent:sessionmanager -> 
+class thread_widget: parent:sessionmanager -> srv_thread_toggle:(int * (int * int option), unit, post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service -> 
 object
 	inherit [int * int] parametrized_widget
 	
@@ -149,6 +155,11 @@ object
 	method get_hidden_messages: int
 end;;
 
+class thread_toggle_action: parent:sessionmanager ->
+object
+	inherit [int * int] parametrized_widget
+end;;
+
 class thread_list_widget: parent:sessionmanager -> srv_thread: (int * (int * int option), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service ->
 object
 	inherit [thread_data] list_widget
@@ -171,6 +182,7 @@ type forum_data =
 	name: string;
 	description: string;
 	moderated: bool;
+	arborescent: bool;
 };;
 
 class forums_list_widget: parent:sessionmanager -> srv_forum: (int, unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name, unit, [`Registrable]) service ->
@@ -179,12 +191,12 @@ object
 	inherit [forum_data] list_widget
 end;;
 
-class forum_form_widget: parent: sessionmanager -> srv_add_forum: (unit, bool * (string * string), post_service_kind, [`WithoutSuffix], unit, [`One of bool] param_name * ([`One of string] param_name * [`One of string] param_name), [`Registrable]) service -> 
+class forum_form_widget: parent: sessionmanager -> srv_add_forum: (unit, string * (string * (string * (bool * bool))), post_service_kind, [`WithoutSuffix], unit, [`One of string] param_name * ([`One of string] param_name * ([`One of string] param_name * ([`One of bool] param_name * [`One of bool] param_name))), [`Registrable]) service -> 
 object
 	inherit [unit] parametrized_widget
 end;;
 
 class forum_add_action: parent:sessionmanager ->
 object
-	inherit [bool * string * string] parametrized_widget
+	inherit [string * string * string * bool * bool] parametrized_widget
 end;;

@@ -5,49 +5,44 @@ open Eliomservices
 open Eliomsessions
 open Eliomduce.Xhtml
 open Lwt
-open Ocsimorelib
+open Users
 
 exception Unauthorized
 
-type forum_in = 
-    {
-     identifier: string;
-     title: string;
-     descr: string;
-     moderated: bool;
-     readable_by: Users.user;
-     writable_by: Users.user;
-     moderators: Users.user;
-     url: string list;
-     max_rows: int option;
-		 arborescent: bool;
-   }
+type forum_data =
+{
+	id: int;
+	title: string;
+	readable_by: Users.user;
+	writable_by: Users.user;
+	moderated_by: Users.user
+}
 
-class forum ~(db: Sql.db_t) ~(foruminfo: forum_in) =
+let get_forum_by_id db id =
+	Sql.find_forum db ~id:(Sql.db_int_of_int id) () >>=
+	fun (id, title, r, w, m) -> get_user_by_name db ~name:r >>=
+	fun read -> get_user_by_name db ~name:w >>=
+	fun write -> get_user_by_name db ~name:m >>=
+	fun moderate ->  
+		return { id = Sql.int_of_db_int id; title = title; readable_by = read;
+			writable_by = write; moderated_by = moderate
+		}
 
-(* creates the new forum once and gets its id *)
-let forum_id = Sql.int_of_db_int (Lwt_unix.run
-	(Sql.Persist.lwtcreate db foruminfo.identifier
-	(fun () -> Sql.new_forum db ~title:foruminfo.title ~descr:foruminfo.descr ~moderated:foruminfo.moderated) >>=
-	fun a -> return (Sql.Persist.get a))) in
+let get_forum_by_name db title =
+	Sql.find_forum db ~title () >>=
+	fun (id, title, r, w, m) -> get_user_by_name db ~name:r >>=
+	fun read -> get_user_by_name db ~name:w >>=
+	fun write -> get_user_by_name db ~name:m >>=
+	fun moderate -> 
+		return { id = Sql.int_of_db_int id; title = title; readable_by = read;
+			writable_by = write; moderated_by = moderate
+		}
 
-object (self)
+let can_read forum user =
+	in_group user forum.readable_by
 
-	method db = db
+let can_write forum user =
+	in_group user forum.writable_by
 
-	method get_forum_id = forum_id
-
-	method can_read =
-	function
-	| Data user -> Users.in_group ~user ~group:foruminfo.readable_by
-	| _ -> foruminfo.readable_by = Users.anonymous ()
-
-	method can_write =
-	function
-	| Data user -> Users.in_group ~user ~group:foruminfo.writable_by
-	| _ -> foruminfo.writable_by = Users.anonymous ()
-
-	method can_moderate = function
-	| Data user -> Users.in_group ~user ~group:foruminfo.moderators
-	| _ -> false (* there are no anonymous moderators *)
-end
+let can_moderate forum user =
+	in_group user forum.moderated_by

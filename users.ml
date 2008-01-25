@@ -13,9 +13,10 @@
 open Lwt
 
 type userdata = 
-    {name: string;
+    {id: int;
+		 name: string;
      mutable pwd: string option;
-     mutable desc: string;
+     mutable fullname: string;
      mutable email: string}
       
 module M = SetOfSets.Make(
@@ -37,173 +38,15 @@ exception Users_error of string
 
 type user = elt 
 
-(* The users structure (persistent data) *)
-let global_users_container =
-	(* Messages.debug2 "[Users] global_users_container"; *)
-  Lwt_unix.run
+let get_user_by_name db ~name =
+	Sql.find_user db ~name () >>=
+	fun (i, n, p, d, e, pm) -> let data = { id = Sql.int_of_db_int i; name = n; pwd = p; fullname = d; email = e } in
+	 	let user = { data = data; set = match pm with
+		| None -> empty
+		| Some x -> (Marshal.from_string x 0) } in
+		return user;;
 
-    (Sql.connect () >>=
-		fun db -> Messages.debug2 "[Users] connected";
-		Persist.create db "global_users_container" 
-       (fun () -> 
-         let rec get_pwd message =
-	   print_string message;
-	   flush Pervasives.stdout;
-	   match (try
-	     let default = Unix.tcgetattr Unix.stdin in
-	     let silent = {default with 
-			   Unix.c_echo = false;
-			   Unix.c_echoe = false;
-			   Unix.c_echok = false;
-			   Unix.c_echonl = false}
-	     in Some (default, silent)
-	   with _ -> None) 
-	   with
-	   | Some (default, silent) ->
-	       Unix.tcsetattr Unix.stdin Unix.TCSANOW silent;
-	       (try  
-	         let s = input_line Pervasives.stdin 
-	         in Unix.tcsetattr Unix.stdin Unix.TCSANOW default; s
-	       with x -> 
-	         Unix.tcsetattr Unix.stdin Unix.TCSANOW default; raise x)
-	   | None ->  input_line Pervasives.stdin
-	         
-         and ask_pwd () = 
-	   let pwd1 = get_pwd "Enter new password for root: " in
-	   let pwd2 = get_pwd "\nEnter root's password once again: "
-	   in if pwd1 = pwd2 
-	   then (print_endline "\nNew password registered."; pwd1) 
-	   else (print_endline "\nPasswords do not match."; ask_pwd())
-	       
-         and ask_email () =
-	   print_endline "\nEnter a valid e-mail address for root: ";
-	   let email = input_line Pervasives.stdin in
-	   print_endline ("\n'" ^ email ^ "': Confirm this address? (Y/N)");
-	   match input_line Pervasives.stdin with
-	   | "Y"|"y" -> print_endline "\n Thank you."; email
-	   | _ -> print_endline "\n"; ask_email()
-	         
-         and anon = {data = {name = "";
-			     pwd = None;
-			     desc = "Anonymous user";
-			     email = ""};
-		     set = empty}
-	     
-         in {data = {name = "root";
-		     pwd = Some (ask_pwd());
-		     desc = "Administrator";
-		     email = ask_email()};
-	     set = singleton anon}))
-    
-(* Get a user by name. Not exported in interface. *)
-let getbyname name =
-  let rec f u = function
-    | None ->
-	if u.data.name = name 
-	then Some u
-	else fold f u.set None
-    | found -> found
-  in
-  f (Persist.get global_users_container) None
-
-
-let root () = 
-  match getbyname "root" with
-  | Some u -> u
-  | _ -> raise (Users_error "user root not created")
-
-let anonymous () =
-  match getbyname "" with
-  | Some u -> u
-  | _ -> raise (Users_error "user anonymous not created")
-
-
-(* Does user1 own user2? *)
-let ( <-?- ) user1 user2 =
-  mem user2 user1.set
-
-(* <-?- transitive closure *)
-let rec ( <-??- ) user1 user2 =
-  user1 <-?- user2 || exists (fun elt -> elt <-??- user2) user1.set
-    
-(* Insert user2 into user1.set. *)
-let ( <--- ) user1 user2 = 
-  if user2 = user1 || user2 <-??- user1
-  then raise Loop
-  else user1.set <- add user2 user1.set
-
-(* Remove user2 from user1.set. *)
-let ( <-/- ) user1 user2 =
-  if user1 <-?- user2
-  then user1.set <- union user2.set (remove user2 user1.set)
-  else ()
-
-(* Remove user2 from user1.set and from each u.set such that user1 <-??- u *)
-let rec ( <-//- ) user1 user2 =
-  user1 <-/- user2; iter (fun elt -> elt <-//- user2) user1.set
-
-
-(* PUBLIC OPERATIONS ON USERS*)
-
-let create_user db ~name ~pwd ~desc ~email = 
-  match getbyname name with
-  | Some _ -> fail UserExists
-  | None ->
-      let data = {name = name; pwd = pwd; desc = desc; email = email} in
-      let newuser = {data = data; set = singleton (anonymous ())} in
-      root () <--- newuser;
-      Persist.write_back db global_users_container >>=
-      (fun () -> return newuser)
-
-let create_unique_user db ~name ~pwd ~desc ~email = 
-  let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
-  let rec suffix n = 
-    match getbyname n with
-    | Some _ -> suffix (n ^ (digit "X"))
-    | None -> 
-        create_user db ~name:n ~pwd ~desc ~email >>= 
-        (fun x -> return (x, n))
-  in suffix name
-
-let delete_user db ~user =
-  root () <-//- user;
-  Persist.write_back db global_users_container
-
-let in_group ~user ~group =
-  user = group || user <-??- group
-
-let add_group db ~user ~group =
-  user <--- group;
-  Persist.write_back db global_users_container
-
-let remove_group db ~user ~group =
-  user <-//- group;
-  Persist.write_back db global_users_container
-
-let get_user_data ~user =
-  let {name = n; pwd = p; desc = d; email = e} = user.data
-  in (n, p, d, e)
-
-let update_user_data db ~user =
-  let d = user.data 
-  in fun ?(pwd = d.pwd) ?(desc = d.desc) ?(email = d.email) () ->
-    d.pwd <- pwd; 
-    d.desc <- desc; 
-    d.email <- email; 
-    Persist.write_back db global_users_container
-        
-(* authentication function *)
-let authenticate ~name ~pwd =
-  match getbyname name with
-  | Some user -> 
-      if user.data.pwd = Some pwd 
-      then user
-      else raise BadPassword
-  | None -> raise NoSuchUser
-
-
-(* randomly generates an 8-chars alnum password *)
-let generate_password () =
+let generate_password () = 
   let chars = "0123456789"^
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"^
     "abcdefghijklmnopqrstuvwxyz" in
@@ -213,69 +56,154 @@ let generate_password () =
     done;
     Some pwd
 
-(* sends user data to the user's mail address *)
-let mail_password ~name ~from_addr ~subject = 
-  match getbyname name with
-  | None -> return false 
-  | Some user -> 
-      let (_,pwd,desc,email) = get_user_data ~user in 
-      catch
-        (fun () ->
-          Preemptive.detach
-            (fun () ->
-	      ignore(Netaddress.parse email);
-	      Netsendmail.sendmail 
-					~mailer:"/usr/sbin/sendmail"
-	        (Netsendmail.compose 
-	           ~from_addr 
-	           ~to_addrs:[(desc, email)] 
-	           ~subject
-	           ("This is an auto-generated message. "
-	            ^ "Please do not reply to it.\n"
-	            ^ "\n"
-	            ^ "Your account is:\n"
-	            ^ "\tUsername:\t" ^ name ^ "\n"
-	            ^ "\tPassword:\t" ^ (match pwd with Some p -> p
-                    | _ -> "(NONE)")
-	            ^ "\n"));
-	      true)
-            ())
-        (fun _ -> return false)
+let mail_password db ~name ~from_addr ~subject =
+  catch
+	(fun () -> get_user_by_name db ~name >>=
+	fun user -> Preemptive.detach
+		(fun () -> ignore(Netaddress.parse user.data.email);
+      Netsendmail.sendmail
+        ~mailer:"/usr/sbin/sendmail"
+        (Netsendmail.compose
+           ~from_addr
+           ~to_addrs:[(user.data.fullname, user.data.email)]
+           ~subject
+           ("This is an auto-generated message. "
+            ^ "Please do not reply to it.\n"
+            ^ "\n"
+            ^ "Your account is:\n"
+            ^ "\tUsername:\t" ^ name ^ "\n"
+            ^ "\tPassword:\t" ^ (match user.data.pwd with Some p -> p
+                   | _ -> "(NONE)")
+              ^ "\n"));
+      true) ())
+	(function
+	| _ -> return false)
 
+let create_user db ~name ~pwd ~fullname ~email =
+	catch 
+	(fun () -> get_user_by_name db ~name)
+	(function Not_found ->
+		Sql.new_user db ~name ~password:pwd ~fullname ~email >>=
+		fun i ->
+		let data = { id = Sql.int_of_db_int i; name = name; pwd = pwd; fullname = fullname; email = email }	in
+		let user = { data = data; set = empty } in
+		return user
+	| e -> fail e);;
 
+let create_unique_user db ~name ~pwd ~fullname ~email =
+	let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
+	let rec suffix n =
+		catch
+		(fun () -> get_user_by_name db ~name:n >>=
+		 fun _ -> suffix (n ^ ("digit X")))
+		(function
+		| Not_found -> create_user db ~name:n ~pwd ~fullname ~email >>=
+			fun x -> return (x, n))
+	in suffix name;;
 
-(* A functor for value protection. *)
+let get_user_data ~user =
+	let { id = i; name = n; pwd = p; fullname = d; email = e} = user.data
+	in (i, n, p, d, e);;
 
-module type T = sig  
-  type t  
-  val value: t  
-  val group: user
-end
+let update_user_data db ~user =
+	let d = user.data
+	in fun ?(pwd = d.pwd) ?(fullname = d.fullname) ?(email = d.email) () ->
+		d.pwd <- pwd;
+		d.fullname <- fullname;
+		d.email <- email;
+		Sql.update_data db ~id:(Sql.db_int_of_int user.data.id) ~name:user.data.name ~password:pwd ~fullname ~email
 
-module Protect = functor (A: T) ->
-struct
-  let f ~actor = 
-    if in_group ~user:actor ~group:A.group
-    then A.value
-    else raise NotAllowed
-end
-    
-(* Some functions available only to root *)
+let ( <-?- ) user1 user2 =
+	mem user2 user1.set
 
-let get_user_by_name =
-  let module M = Protect(
-    struct
-      type t = name:string -> user option
-      let value = fun ~name -> getbyname name
-      let group = root ()
-    end)
-  in M.f
-		
-let get_user_groups =
-  let module M = Protect(
-    struct
-      type t = user:user -> user list
-      let value = fun ~user -> elements user.set
-      let group = root ()
-    end)
-  in M.f
+let rec ( <-??- ) user1 user2 =
+	user1 <-?- user2 || exists (fun elt -> elt <-??- user2) user1.set
+
+let ( <--- ) user1 user2 =
+	if user2 = user1 || user2 <-??- user1
+	then raise Loop
+	else user1.set <- add user2 user1.set
+
+let ( <-/- ) user1 user2 =
+	if user1 <-?- user2
+	then user1.set <- union user2.set (remove user2 user1.set)
+	else ()
+
+let rec ( <-//- ) user1 user2 =
+	user1 <-/- user2; iter (fun elt -> elt <-//- user2) user1.set
+
+let update_permissions db ~user =
+	Sql.update_permissions db ~name:user.data.name ~perm:(Marshal.to_string user.set [])
+
+let rec update_permissions_cascade db ~user =
+	Lwt_util.iter (fun elt -> update_permissions_cascade db ~user:elt)
+		(elements user.set);
+	update_permissions db ~user
+
+let authenticate db ~name ~pwd =
+	catch (fun () -> get_user_by_name db name >>=
+	fun u -> if u.data.pwd = (Some pwd) then return u
+	else fail BadPassword)
+	(function
+	| Not_found -> fail NoSuchUser
+	| e -> fail e)
+
+let delete_user db ~user =
+	get_user_by_name db "root" >>=
+	fun root -> root <-//- user;
+	update_permissions_cascade db ~user:root
+
+let in_group ~user ~group =
+	user = group || user <-??- group
+
+let add_group db ~user ~group =
+	user <--- group;
+	update_permissions db ~user:group
+
+let create_standard_users db =
+	let rec get_pwd message =
+		print_string message;
+		flush Pervasives.stdout;
+		match (try
+			let default = Unix.tcgetattr Unix.stdin in
+			let silent = {default with
+				Unix.c_echo = false;
+				Unix.c_echoe = false;
+				Unix.c_echok = false;
+				Unix.c_echonl = false}
+			in Some (default, silent)
+			with _ -> None)
+		with
+		| Some (default, silent) ->
+				Unix.tcsetattr Unix.stdin Unix.TCSANOW silent;
+				(try
+					let s = input_line Pervasives.stdin
+					in Unix.tcsetattr Unix.stdin Unix.TCSANOW default; s
+				with x ->
+					Unix.tcsetattr Unix.stdin Unix.TCSANOW default; raise x)
+		| None ->  input_line Pervasives.stdin
+
+  and ask_pwd () =
+		let pwd1 = get_pwd "Please enter a root password: "
+		and pwd2 = get_pwd "\nPlease enter the same password again: " in
+		if pwd1 = pwd2
+		then (print_endline "\nNew password registered."; pwd1)
+		else (print_endline "\nPasswords do not match, please try again."; ask_pwd ()) 
+
+	and ask_email () =
+		print_endline "\nEnter a valid e-mail address for root: ";
+		let email = input_line Pervasives.stdin in
+		print_endline ("\n'" ^ email ^ "': Confirm this address? (Y/N)");
+		match input_line Pervasives.stdin with
+		| "Y"|"y" -> print_endline "\n Thank you."; email
+		| _ -> print_endline "\n"; ask_email() in
+
+	catch
+	(fun () -> Sql.find_user db ~name:"root" () >>=
+	fun _ -> return ())
+	(function Not_found -> 
+	create_user db "root" (Some (ask_pwd ())) "Charlie Root" (ask_email ()) >>=
+	fun root -> create_user db "" None "Anonymous" "" >>=
+	fun anon -> root <--- anon;
+		update_permissions db ~user:root
+	| e -> fail e)

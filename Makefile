@@ -1,5 +1,5 @@
-OCSIMORE_SRC = setOfSets.ml users.ml services.ml sessionManager.ml \
-	ocsimorelib.ml widget.ml forumWidget.ml forum.ml # wikiparser.ml wiki.ml
+OCSIMORE_SRC = setOfSets.ml users.ml services.ml forum.ml sessionManager.ml \
+	ocsimorelib.ml widget.ml forumWidget.ml # wikiparser.ml wiki.ml
 OCSIMORE_MLI = widget.mli forumWidget.mli forum.mli \
 	sessionManager.mli setOfSets.mli services.mli users.mli \
 	# wiki.mli wikiparser.mli

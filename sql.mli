@@ -1,47 +1,13 @@
 (** Database interface. 
-
     All SQL commands go here. *)
 
 open Ocsimorelib
 
 type db_t = (string, bool) Hashtbl.t Lwt_PGOCaml.t
 
-(** {4 Persistent data} *)
-
-(** Persistent data -- this is, mutatis mutandis, Vincent Balat's
-    Ocsipersist module; thanks to him.
-
-    Data are kept in memory but all modifications
-    are stored in the database; when launching the program, if the
-    value exists in the database, it is loaded, otherwise it is
-    initialised to the default value. *)
-module Persist : sig
-
-  (** Type of persistent data *)
-  type 'a t
-
-  (** [create name default] returns a persistent value named
-      [name] from database or create it with the [default] value if it
-      does not exist. [default] will be evaluated (i.e., applied to
-      [()]), only in the latter case.*)
-  val create : db_t -> string -> (unit -> 'a) -> 'a t Lwt.t
-
-  val lwtcreate : db_t -> string -> (unit -> 'a Lwt.t) -> 'a t Lwt.t
-
-  (** [get pv] gives the value of [pv] *)
-  val get : 'a t -> 'a
-
-  (** [set pv value] sets a persistent value [pv] to [value] and store it in the database. *)
-  val set : db_t -> 'a t -> 'a -> unit Lwt.t
-    
-  (** [write_back pv] forces a database write of [pv]. *)
-  val write_back : db_t -> 'a t -> unit Lwt.t
-
-end
+val uuid_of_conn: db_t Lwt.t -> string
 
 val connect: unit -> db_t Lwt.t
-
-(** {4 Forums} *)
 
 (** type for database integers (and IDs) *)
 type db_int_t;;
@@ -60,27 +26,38 @@ val db_size_of_int: int -> db_size_t
 val db_count_of_int: int -> db_count_t
 
 (** type of [~role] labelled parameter *)
-type role = Moderator | Author of string | Unknown;;
+type role = Moderator | Author of db_int_t | Lurker of string | Unknown;;
+
+(** {4  Users} *)
+
+(** {4 Forums} *)
+val new_user: db_t -> name:string -> password:string option -> fullname:string -> email:string -> db_int_t Lwt.t
+
+val find_user: db_t -> ?id:db_int_t -> ?name:string -> unit -> (db_int_t * string * string option * string * string * string option) Lwt.t
+
+val update_data: db_t -> id:db_int_t -> name:string -> password:string option -> fullname:string -> email:string -> unit Lwt.t
+
+val update_permissions: db_t -> name:string -> perm:string -> unit Lwt.t
 
 (** inserts a new forum *)
-val new_forum : db_t -> title:string -> descr:string -> moderated:bool -> db_int_t Lwt.t
+val new_forum : db_t -> title:string -> descr:string -> moderated:bool -> arborescent:bool -> db_int_t Lwt.t
 
 (** inserts a message starting a new thread; both thread and message
     will be hidden if forum is moderated *)
 val new_thread_and_message :
   db_t -> frm_id:db_int_t ->
-  author:string -> subject:string -> txt:string -> (db_int_t * db_int_t) Lwt.t
+  author_id:db_int_t -> subject:string -> txt:string -> (db_int_t * db_int_t) Lwt.t
 
 (** inserts a thread with an article; the thread will be hidden if the forum
     is moderated *)
 val new_thread_and_article:
-	db_t -> frm_id:db_int_t -> author:string -> subject:string -> txt:string ->
+	db_t -> frm_id:db_int_t -> author_id:db_int_t -> subject:string -> txt:string ->
 	(db_int_t * db_int_t) Lwt.t
 
 (** inserts a message for an existing thread; message will be hidden
     if forum is moderated *)
 val new_message :
-  db_t -> thr_id:db_int_t -> ?parent_id:db_int_t -> author:string ->
+  db_t -> thr_id:db_int_t -> ?parent_id:db_int_t -> author_id:db_int_t ->
 	txt:string -> sticky:bool -> unit -> db_int_t Lwt.t
 
 (** toggle moderation status of a forum *)
@@ -95,8 +72,10 @@ val message_toggle_hidden : db_t -> frm_id:db_int_t -> msg_id:db_int_t -> unit L
 (** makes a message sticky (or not) *)
 val message_toggle_sticky: db_t -> frm_id:db_int_t -> msg_id:db_int_t -> unit Lwt.t
 
+val find_forum: db_t -> ?id:db_int_t -> ?title:string -> unit -> (db_int_t * string * string * string * string) Lwt.t
+
 (** returns the list of available forums *)
-val get_forums_list: db_t -> (db_int_t * string * string * bool) list Lwt.t
+val get_forums_list: db_t -> (db_int_t * string * string * bool * bool) list Lwt.t
 
 (** returns id, title, description, moderation status, number of shown/hidden
     threads and messages of a forum.  
