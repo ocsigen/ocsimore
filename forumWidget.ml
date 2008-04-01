@@ -6,6 +6,7 @@ open Eliomsessions
 open Eliomduce.Xhtml
 open SessionManager
 open Ocsimorelib
+open CalendarLib
 open Widget
 
 type message_data =
@@ -325,7 +326,7 @@ object (self)
 		fun db -> Sql.new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>=
 		fun _ -> return {{
 		<div class={: div_class :}>[
-			<p>"Your message has been added."
+			<p>"Your message has been added (possibly subject to moderation)."
 		]
 	}}
 end;;
@@ -547,7 +548,7 @@ object (self)
 		Sql.new_thread_and_message db ~frm_id ~author_id ~subject ~txt) >>=
 	fun _ -> return {{
 		<div class={: div_class :}>[
-			<p>"The new thread has been created."
+			<p>"The new thread has been created (possibly subject to moderation)."
 		]
 	}}
 end;;
@@ -633,7 +634,7 @@ object (self)
 
 	method apply ~sp (name, url, descr, moderated, arborescent) =
 	db >>=
-	fun db -> Sql.new_forum db ~title:name ~descr ~moderated ~arborescent >>=
+	fun db -> Forum.new_forum db ~title:name ~descr ~moderated ~arborescent () >>=
 	fun _ ->
 		return {{
 		<div class={: div_class :}>[

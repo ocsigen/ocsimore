@@ -8,177 +8,7 @@ SET check_function_bodies = false;
 SET client_min_messages = warning;
 SET escape_string_warning = off;
 
---
--- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: pgsql
---
-
-COMMENT ON SCHEMA public IS 'Standard public schema';
-
-
 SET search_path = public, pg_catalog;
-
---
--- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: pgsql
---
-
-CREATE TYPE tablefunc_crosstab_2 AS (
-	row_name text,
-	category_1 text,
-	category_2 text
-);
-
-
-ALTER TYPE public.tablefunc_crosstab_2 OWNER TO pgsql;
-
---
--- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: pgsql
---
-
-CREATE TYPE tablefunc_crosstab_3 AS (
-	row_name text,
-	category_1 text,
-	category_2 text,
-	category_3 text
-);
-
-
-ALTER TYPE public.tablefunc_crosstab_3 OWNER TO pgsql;
-
---
--- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: pgsql
---
-
-CREATE TYPE tablefunc_crosstab_4 AS (
-	row_name text,
-	category_1 text,
-	category_2 text,
-	category_3 text,
-	category_4 text
-);
-
-
-ALTER TYPE public.tablefunc_crosstab_4 OWNER TO pgsql;
-
---
--- Name: connectby(text, text, text, text, integer, text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION connectby(text, text, text, text, integer, text) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'connectby_text'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.connectby(text, text, text, text, integer, text) OWNER TO pgsql;
-
---
--- Name: connectby(text, text, text, text, integer); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION connectby(text, text, text, text, integer) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'connectby_text'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.connectby(text, text, text, text, integer) OWNER TO pgsql;
-
---
--- Name: connectby(text, text, text, text, text, integer, text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION connectby(text, text, text, text, text, integer, text) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'connectby_text_serial'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.connectby(text, text, text, text, text, integer, text) OWNER TO pgsql;
-
---
--- Name: connectby(text, text, text, text, text, integer); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION connectby(text, text, text, text, text, integer) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'connectby_text_serial'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.connectby(text, text, text, text, text, integer) OWNER TO pgsql;
-
---
--- Name: crosstab(text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION crosstab(text) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'crosstab'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.crosstab(text) OWNER TO pgsql;
-
---
--- Name: crosstab(text, integer); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION crosstab(text, integer) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'crosstab'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.crosstab(text, integer) OWNER TO pgsql;
-
---
--- Name: crosstab(text, text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION crosstab(text, text) RETURNS SETOF record
-    AS '$libdir/tablefunc', 'crosstab_hash'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.crosstab(text, text) OWNER TO pgsql;
-
---
--- Name: crosstab2(text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION crosstab2(text) RETURNS SETOF tablefunc_crosstab_2
-    AS '$libdir/tablefunc', 'crosstab'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.crosstab2(text) OWNER TO pgsql;
-
---
--- Name: crosstab3(text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION crosstab3(text) RETURNS SETOF tablefunc_crosstab_3
-    AS '$libdir/tablefunc', 'crosstab'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.crosstab3(text) OWNER TO pgsql;
-
---
--- Name: crosstab4(text); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION crosstab4(text) RETURNS SETOF tablefunc_crosstab_4
-    AS '$libdir/tablefunc', 'crosstab'
-    LANGUAGE c STABLE STRICT;
-
-
-ALTER FUNCTION public.crosstab4(text) OWNER TO pgsql;
-
---
--- Name: normal_rand(integer, double precision, double precision); Type: FUNCTION; Schema: public; Owner: pgsql
---
-
-CREATE FUNCTION normal_rand(integer, double precision, double precision) RETURNS SETOF double precision
-    AS '$libdir/tablefunc', 'normal_rand'
-    LANGUAGE c STRICT;
-
-
-ALTER FUNCTION public.normal_rand(integer, double precision, double precision) OWNER TO pgsql;
 
 SET default_tablespace = '';
 
@@ -189,41 +19,25 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE forums (
-    id serial NOT NULL,
+    id integer NOT NULL,
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
-    moderated boolean DEFAULT false NOT NULL
+    moderated boolean DEFAULT false NOT NULL,
+    arborescent boolean NOT NULL,
+    reader integer NOT NULL,
+    writer integer NOT NULL,
+    moderator integer NOT NULL
 );
 
 
 ALTER TABLE public.forums OWNER TO ocsigen;
 
 --
--- Name: forums_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
---
-
-CREATE SEQUENCE forums_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.forums_id_seq OWNER TO ocsigen;
-
---
--- Name: forums_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
---
-
-ALTER SEQUENCE forums_id_seq OWNED BY forums.id;
-
-
---
 -- Name: globalstore; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
 CREATE TABLE globalstore (
-    "key" text NOT NULL,
+    key text NOT NULL,
     value bytea
 );
 
@@ -235,16 +49,16 @@ ALTER TABLE public.globalstore OWNER TO ocsigen;
 --
 
 CREATE TABLE messages (
-    id serial NOT NULL,
-    author text DEFAULT ''::text NOT NULL,
+    id integer NOT NULL,
     datetime timestamp without time zone DEFAULT (now())::timestamp without time zone NOT NULL,
     thr_id integer NOT NULL,
     txt_id integer NOT NULL,
     hidden boolean DEFAULT false NOT NULL,
     parent_id integer DEFAULT 0 NOT NULL,
     sticky boolean DEFAULT false NOT NULL,
-		tree_min integer DEFAULT 0 NOT NULL,
-		tree_max integer DEFAULT 0 NOT NULL
+    tree_min integer DEFAULT 0 NOT NULL,
+    tree_max integer DEFAULT 0 NOT NULL,
+    author_id integer NOT NULL
 );
 
 
@@ -272,31 +86,78 @@ COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 
 
 --
--- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: service_parameters; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
-CREATE SEQUENCE messages_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+CREATE TABLE service_parameters (
+    id integer NOT NULL,
+    service_id integer NOT NULL,
+    name text NOT NULL
+);
 
 
-ALTER TABLE public.messages_id_seq OWNER TO ocsigen;
+ALTER TABLE public.service_parameters OWNER TO ocsigen;
 
 --
--- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: services; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
-ALTER SEQUENCE messages_id_seq OWNED BY messages.id;
+CREATE TABLE services (
+    id integer NOT NULL,
+    url text NOT NULL
+);
 
+
+ALTER TABLE public.services OWNER TO ocsigen;
+
+--
+-- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: ocsigen
+--
+
+CREATE TYPE tablefunc_crosstab_2 AS (
+	row_name text,
+	category_1 text,
+	category_2 text
+);
+
+
+ALTER TYPE public.tablefunc_crosstab_2 OWNER TO ocsigen;
+
+--
+-- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: ocsigen
+--
+
+CREATE TYPE tablefunc_crosstab_3 AS (
+	row_name text,
+	category_1 text,
+	category_2 text,
+	category_3 text
+);
+
+
+ALTER TYPE public.tablefunc_crosstab_3 OWNER TO ocsigen;
+
+--
+-- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: ocsigen
+--
+
+CREATE TYPE tablefunc_crosstab_4 AS (
+	row_name text,
+	category_1 text,
+	category_2 text,
+	category_3 text,
+	category_4 text
+);
+
+
+ALTER TYPE public.tablefunc_crosstab_4 OWNER TO ocsigen;
 
 --
 -- Name: textdata; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
 CREATE TABLE textdata (
-    id serial NOT NULL,
+    id integer NOT NULL,
     txt text DEFAULT ''::text NOT NULL
 );
 
@@ -304,37 +165,17 @@ CREATE TABLE textdata (
 ALTER TABLE public.textdata OWNER TO ocsigen;
 
 --
--- Name: textdata_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
---
-
-CREATE SEQUENCE textdata_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.textdata_id_seq OWNER TO ocsigen;
-
---
--- Name: textdata_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
---
-
-ALTER SEQUENCE textdata_id_seq OWNED BY textdata.id;
-
-
---
 -- Name: threads; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
 CREATE TABLE threads (
-    id serial NOT NULL,
+    id integer NOT NULL,
     subject text DEFAULT ''::text NOT NULL,
     frm_id integer NOT NULL,
     hidden boolean DEFAULT false NOT NULL,
     datetime timestamp without time zone DEFAULT now() NOT NULL,
-    author text DEFAULT ''::text NOT NULL,
-    article_id integer
+    article_id integer,
+    author_id integer NOT NULL
 );
 
 
@@ -348,31 +189,27 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 --
--- Name: threads_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: users; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
-CREATE SEQUENCE threads_id_seq
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+CREATE TABLE users (
+    id integer NOT NULL,
+    login text NOT NULL,
+    password text,
+    fullname text NOT NULL,
+    email text NOT NULL,
+    permissions bytea
+);
 
 
-ALTER TABLE public.threads_id_seq OWNER TO ocsigen;
-
---
--- Name: threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
---
-
-ALTER SEQUENCE threads_id_seq OWNED BY threads.id;
-
+ALTER TABLE public.users OWNER TO ocsigen;
 
 --
 -- Name: wikipages; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
 CREATE TABLE wikipages (
-    id serial NOT NULL,
+    id integer NOT NULL,
     suffix text DEFAULT ''::text NOT NULL,
     wik_id integer NOT NULL,
     txt_id integer NOT NULL,
@@ -399,6 +236,215 @@ COMMENT ON COLUMN wikipages.txt_id IS 'text';
 
 
 --
+-- Name: wikis; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+--
+
+CREATE TABLE wikis (
+    id integer NOT NULL,
+    title text DEFAULT ''::text NOT NULL,
+    descr text DEFAULT ''::text NOT NULL
+);
+
+
+ALTER TABLE public.wikis OWNER TO ocsigen;
+
+--
+-- Name: forums_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE forums_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.forums_id_seq OWNER TO ocsigen;
+
+--
+-- Name: forums_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE forums_id_seq OWNED BY forums.id;
+
+
+--
+-- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('forums_id_seq', 1, false);
+
+
+--
+-- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE messages_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.messages_id_seq OWNER TO ocsigen;
+
+--
+-- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE messages_id_seq OWNED BY messages.id;
+
+
+--
+-- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('messages_id_seq', 1, false);
+
+
+--
+-- Name: service_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE service_parameters_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.service_parameters_id_seq OWNER TO ocsigen;
+
+--
+-- Name: service_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE service_parameters_id_seq OWNED BY service_parameters.id;
+
+
+--
+-- Name: service_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('service_parameters_id_seq', 1, false);
+
+
+--
+-- Name: services_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE services_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.services_id_seq OWNER TO ocsigen;
+
+--
+-- Name: services_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE services_id_seq OWNED BY services.id;
+
+
+--
+-- Name: services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('services_id_seq', 1, false);
+
+
+--
+-- Name: textdata_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE textdata_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.textdata_id_seq OWNER TO ocsigen;
+
+--
+-- Name: textdata_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE textdata_id_seq OWNED BY textdata.id;
+
+
+--
+-- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('textdata_id_seq', 1, false);
+
+
+--
+-- Name: threads_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE threads_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.threads_id_seq OWNER TO ocsigen;
+
+--
+-- Name: threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE threads_id_seq OWNED BY threads.id;
+
+
+--
+-- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('threads_id_seq', 1, false);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+--
+
+CREATE SEQUENCE users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MAXVALUE
+    NO MINVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.users_id_seq OWNER TO ocsigen;
+
+--
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+--
+
+ALTER SEQUENCE users_id_seq OWNED BY users.id;
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('users_id_seq', 1, false);
+
+
+--
 -- Name: wikipages_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
 --
 
@@ -420,23 +466,18 @@ ALTER SEQUENCE wikipages_id_seq OWNED BY wikipages.id;
 
 
 --
--- Name: wikis; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: wikipages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
 --
 
-CREATE TABLE wikis (
-    id serial NOT NULL,
-    title text DEFAULT ''::text NOT NULL,
-    descr text DEFAULT ''::text NOT NULL
-);
+SELECT pg_catalog.setval('wikipages_id_seq', 1, false);
 
-
-ALTER TABLE public.wikis OWNER TO ocsigen;
 
 --
 -- Name: wikis_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
 --
 
 CREATE SEQUENCE wikis_id_seq
+    START WITH 1
     INCREMENT BY 1
     NO MAXVALUE
     NO MINVALUE
@@ -450,6 +491,13 @@ ALTER TABLE public.wikis_id_seq OWNER TO ocsigen;
 --
 
 ALTER SEQUENCE wikis_id_seq OWNED BY wikis.id;
+
+
+--
+-- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+--
+
+SELECT pg_catalog.setval('wikis_id_seq', 1, false);
 
 
 --
@@ -470,6 +518,20 @@ ALTER TABLE messages ALTER COLUMN id SET DEFAULT nextval('messages_id_seq'::regc
 -- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
 --
 
+ALTER TABLE service_parameters ALTER COLUMN id SET DEFAULT nextval('service_parameters_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE services ALTER COLUMN id SET DEFAULT nextval('services_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+--
+
 ALTER TABLE textdata ALTER COLUMN id SET DEFAULT nextval('textdata_id_seq'::regclass);
 
 
@@ -478,6 +540,13 @@ ALTER TABLE textdata ALTER COLUMN id SET DEFAULT nextval('textdata_id_seq'::regc
 --
 
 ALTER TABLE threads ALTER COLUMN id SET DEFAULT nextval('threads_id_seq'::regclass);
+
+
+--
+-- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
 
 
 --
@@ -495,6 +564,87 @@ ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
 
 
 --
+-- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY forums (id, title, descr, moderated, arborescent, reader, writer, moderator) FROM stdin;
+\.
+
+
+--
+-- Data for Name: globalstore; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY globalstore (key, value) FROM stdin;
+\.
+
+
+--
+-- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY messages (id, datetime, thr_id, txt_id, hidden, parent_id, sticky, tree_min, tree_max, author_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY service_parameters (id, service_id, name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY services (id, url) FROM stdin;
+\.
+
+
+--
+-- Data for Name: textdata; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY textdata (id, txt) FROM stdin;
+\.
+
+
+--
+-- Data for Name: threads; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY threads (id, subject, frm_id, hidden, datetime, article_id, author_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY users (id, login, password, fullname, email, permissions) FROM stdin;
+0	anonymous	\N	Anonymous		\N
+\.
+
+
+--
+-- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdin;
+\.
+
+
+--
+-- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: ocsigen
+--
+
+COPY wikis (id, title, descr) FROM stdin;
+\.
+
+
+--
 -- Name: forums_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
 --
 
@@ -507,7 +657,7 @@ ALTER TABLE ONLY forums
 --
 
 ALTER TABLE ONLY globalstore
-    ADD CONSTRAINT globalstore_pkey PRIMARY KEY ("key");
+    ADD CONSTRAINT globalstore_pkey PRIMARY KEY (key);
 
 
 --
@@ -516,6 +666,22 @@ ALTER TABLE ONLY globalstore
 
 ALTER TABLE ONLY messages
     ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+--
+
+ALTER TABLE ONLY service_parameters
+    ADD CONSTRAINT service_parameters_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+--
+
+ALTER TABLE ONLY services
+    ADD CONSTRAINT services_pkey PRIMARY KEY (id);
 
 
 --
@@ -532,6 +698,14 @@ ALTER TABLE ONLY textdata
 
 ALTER TABLE ONLY threads
     ADD CONSTRAINT threads_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+--
+
+ALTER TABLE ONLY users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --
@@ -559,6 +733,38 @@ ALTER TABLE ONLY wikis
 
 
 --
+-- Name: forums_moderator_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE ONLY forums
+    ADD CONSTRAINT forums_moderator_fkey FOREIGN KEY (moderator) REFERENCES users(id);
+
+
+--
+-- Name: forums_reader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE ONLY forums
+    ADD CONSTRAINT forums_reader_fkey FOREIGN KEY (reader) REFERENCES users(id);
+
+
+--
+-- Name: forums_writer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE ONLY forums
+    ADD CONSTRAINT forums_writer_fkey FOREIGN KEY (writer) REFERENCES users(id);
+
+
+--
+-- Name: messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE ONLY messages
+    ADD CONSTRAINT messages_author_id_fkey FOREIGN KEY (author_id) REFERENCES users(id);
+
+
+--
 -- Name: messages_thr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
@@ -575,11 +781,27 @@ ALTER TABLE ONLY messages
 
 
 --
+-- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE ONLY service_parameters
+    ADD CONSTRAINT service_parameters_service_id_fkey FOREIGN KEY (service_id) REFERENCES services(id);
+
+
+--
 -- Name: threads_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
 --
 
 ALTER TABLE ONLY threads
     ADD CONSTRAINT threads_article_id_fkey FOREIGN KEY (article_id) REFERENCES textdata(id);
+
+
+--
+-- Name: threads_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+--
+
+ALTER TABLE ONLY threads
+    ADD CONSTRAINT threads_author_id_fkey FOREIGN KEY (author_id) REFERENCES users(id);
 
 
 --

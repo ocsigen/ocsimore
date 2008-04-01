@@ -4,6 +4,7 @@ open Eliomparameters
 open Eliomservices
 open Eliomduce
 open Ocsimorelib
+open CalendarLib
 open SessionManager
 open Widget
 

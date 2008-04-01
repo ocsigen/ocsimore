@@ -38,10 +38,16 @@ exception Users_error of string
 
 type user = elt 
 
+let anonymous = 
+	{ data = { id = 0; name = "anonymous"; pwd = None; fullname = "Anonymous"; email = "" }; set = empty };;
+
 let get_user_by_name db ~name =
+	if name = "anonymous" then return anonymous
+	else
 	Sql.find_user db ~name () >>=
 	fun (i, n, p, d, e, pm) -> let data = { id = Sql.int_of_db_int i; name = n; pwd = p; fullname = d; email = e } in
 	 	let user = { data = data; set = match pm with
+
 		| None -> empty
 		| Some x -> (Marshal.from_string x 0) } in
 		return user;;
@@ -79,15 +85,20 @@ let mail_password db ~name ~from_addr ~subject =
 	(function
 	| _ -> return false)
 
+let update_permissions db ~user =
+	Sql.update_permissions db ~name:user.data.name ~perm:(Marshal.to_string user.set []);;
+
 let create_user db ~name ~pwd ~fullname ~email =
 	catch 
 	(fun () -> get_user_by_name db ~name)
-	(function Not_found ->
+	(function 
+	| Not_found ->
 		Sql.new_user db ~name ~password:pwd ~fullname ~email >>=
 		fun i ->
 		let data = { id = Sql.int_of_db_int i; name = name; pwd = pwd; fullname = fullname; email = email }	in
-		let user = { data = data; set = empty } in
-		return user
+		let user = { data = data; set = singleton anonymous } in
+			update_permissions db ~user >>=
+			fun () -> return user
 	| e -> fail e);;
 
 let create_unique_user db ~name ~pwd ~fullname ~email =
@@ -98,7 +109,7 @@ let create_unique_user db ~name ~pwd ~fullname ~email =
 		 fun _ -> suffix (n ^ ("digit X")))
 		(function
 		| Not_found -> create_user db ~name:n ~pwd ~fullname ~email >>=
-			fun x -> return (x, n))
+		fun x -> return (x, n))
 	in suffix name;;
 
 let get_user_data ~user =
@@ -131,9 +142,6 @@ let ( <-/- ) user1 user2 =
 
 let rec ( <-//- ) user1 user2 =
 	user1 <-/- user2; iter (fun elt -> elt <-//- user2) user1.set
-
-let update_permissions db ~user =
-	Sql.update_permissions db ~name:user.data.name ~perm:(Marshal.to_string user.set [])
 
 let rec update_permissions_cascade db ~user =
 	Lwt_util.iter (fun elt -> update_permissions_cascade db ~user:elt)
@@ -203,7 +211,5 @@ let create_standard_users db =
 	fun _ -> return ())
 	(function Not_found -> 
 	create_user db "root" (Some (ask_pwd ())) "Charlie Root" (ask_email ()) >>=
-	fun root -> create_user db "" None "Anonymous" "" >>=
-	fun anon -> root <--- anon;
-		update_permissions db ~user:root
+	fun root -> return ()
 	| e -> fail e)

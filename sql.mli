@@ -2,6 +2,7 @@
     All SQL commands go here. *)
 
 open Ocsimorelib
+open CalendarLib
 
 type db_t = (string, bool) Hashtbl.t Lwt_PGOCaml.t
 
@@ -40,7 +41,9 @@ val update_data: db_t -> id:db_int_t -> name:string -> password:string option ->
 val update_permissions: db_t -> name:string -> perm:string -> unit Lwt.t
 
 (** inserts a new forum *)
-val new_forum : db_t -> title:string -> descr:string -> moderated:bool -> arborescent:bool -> db_int_t Lwt.t
+val new_forum : db_t -> title:string -> descr:string -> moderated:bool ->
+   arborescent:bool -> reader:db_int_t -> writer:db_int_t ->
+   moderator:db_int_t ->  db_int_t Lwt.t
 
 (** inserts a message starting a new thread; both thread and message
     will be hidden if forum is moderated *)

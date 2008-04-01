@@ -14,7 +14,7 @@ EXTLIB = $(shell ocamlfind query extlib)/extLib.cma
 PCRE  = $(shell ocamlfind query pcre)/pcre.cma
 UNIX = $(shell ocamlfind query unix)/unix.cma
 STR = $(shell ocamlfind query str)/str.cma
-CALENDAR = $(shell ocamlfind query calendar)/calendar.cma
+CALENDAR = $(shell ocamlfind query calendar)/calendarLib.cmo
 CSV = $(shell ocamlfind query csv)/csv.cma
 PP = -pp "camlp4o.byte -I $(shell ocamlfind query extlib) \
 	-I $(shell ocamlfind query pcre) \
@@ -24,7 +24,7 @@ PP = -pp "camlp4o.byte -I $(shell ocamlfind query extlib) \
 	-I $(shell ocamlfind query lwt) \
 	-I $(shell ocamlfind query threads)/threads \
 	-I $(shell ocamlfind query pgocaml) \
-	extLib.cma pcre.cma str.cma calendar.cma csv.cma ssl.cma threads.cma lwt.cma \
+	extLib.cma pcre.cma str.cma calendarLib.cmo csv.cma ssl.cma threads.cma lwt.cma \
 	pgocaml.cma lwt_pa_pgsql.cmo -loc loc"
 #PP=-syntax camlp4o
 
@@ -52,7 +52,7 @@ print_sql:
 	-I +threads $(shell ocamlfind query threads)/threads/threads.cma \
 	-I +pcre $(shell ocamlfind query pcre)/pcre.cma \
 	-I +extlib $(shell ocamlfind query extlib)/extLib.cma \
-	-I +calendar $(shell ocamlfind query calendar)/calendar.cma \
+	-I +calendar $(shell ocamlfind query calendar)/calendarLib.cmo \
 	-I +csv $(shell ocamlfind query csv)/csv.cma \
 	-I +ssl $(shell ocamlfind query ssl)/ssl.cma \
 	-I +lwt $(shell ocamlfind query lwt)/lwt.cma \
