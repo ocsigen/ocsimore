@@ -1,8 +1,8 @@
 open Eliommod
-open Eliomparameters
-open Eliomservices
-open Eliomsessions 
-open Eliomduce.Xhtml
+open Eliom_parameters
+open Eliom_services
+open Eliom_sessions 
+open Eliom_duce.Xhtml
 val user_table : Users.user persistent_table
 
 type sessionmanager_in = 
@@ -32,7 +32,7 @@ object
 	method get_user_name: string
 	method get_role: int -> Sql.role Lwt.t
   method container: sp:server_params -> sess:Users.user session_data ->
-		contents:Xhtml1_strict.blocks -> Xhtml1_strict.html Lwt.t
+		contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
   method add_login_actions: 
       (server_params -> Users.user session_data -> unit Lwt.t) -> unit
   method add_logout_actions: 
@@ -44,6 +44,6 @@ end;;
 val connect:
 	sessionmanager ->
 	('get, 'post, internal_service_kind, [`WithoutSuffix], 'gn, 'pn, [`Registrable]) service ->
-	(sp:server_params -> sess:Users.user Eliomsessions.session_data -> contents: Xhtml1_strict.blocks -> Eliomduce.Xhtml.page Lwt.t) ->
-('get -> 'post -> (sp:server_params -> Xhtml1_strict._div Lwt.t) list)
+	(sp:server_params -> sess:Users.user Eliom_sessions.session_data -> contents: Xhtmltypes_duce.blocks -> Eliom_duce.Xhtml.page Lwt.t) ->
+('get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list)
 -> unit

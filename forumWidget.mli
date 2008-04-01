@@ -1,8 +1,8 @@
 open Lwt
 open Eliommod
-open Eliomparameters
-open Eliomservices
-open Eliomduce
+open Eliom_parameters
+open Eliom_services
+open Eliom_duce
 open Ocsimorelib
 open CalendarLib
 open SessionManager

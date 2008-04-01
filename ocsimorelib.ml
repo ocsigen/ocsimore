@@ -1,6 +1,6 @@
 open Lwt
 (* open Eliommod *)
-open Eliomsessions
+open Eliom_sessions
 open CalendarLib
 
       (* USEFUL STUFF *)

@@ -16,7 +16,7 @@ open CalendarLib
 type db_t = ((string, bool) Hashtbl.t) Lwt_PGOCaml.t
 
 let connect () =
-  Messages.debug2 "[Sql] connect";
+  Ocsigen_messages.debug2 "[Sql] connect";
   Lwt_PGOCaml.connect ~host: "localhost" ~database: "ocsimore"
     ~user: "ocsigen" ()
   
@@ -51,7 +51,7 @@ let int_of_db_count = Int64.to_int
      define those ones directly. *)
 (* USERS *)
 let new_user db ~name ~password ~fullname ~email =
-  (Messages.debug2 "[Sql] new_user";
+  (Ocsigen_messages.debug2 "[Sql] new_user";
    (begin_work db) >>=
      (fun _ ->
         (match password with
@@ -175,11 +175,11 @@ let new_user db ~name ~password ~fullname ~email =
                (fun frm_id ->
                   (commit db) >>=
                     (fun _ ->
-                       (Messages.debug2 "[Sql] new_user: finish";
+                       (Ocsigen_messages.debug2 "[Sql] new_user: finish";
                         return frm_id))))))
   
 let find_user db ?id ?name () =
-  (Messages.debug2
+  (Ocsigen_messages.debug2
      (Printf.sprintf "[Sql] [%s] find_user" (Lwt_PGOCaml.uuid_of_conn db));
    (match (name, id) with
     | (Some n, Some i) ->
@@ -426,18 +426,18 @@ let find_user db ?id ?name () =
      (fun res ->
         match res with
         | [ u ] ->
-            (Messages.debug2
+            (Ocsigen_messages.debug2
                (Printf.sprintf "[Sql] [%s] find_user: return"
                   (Lwt_PGOCaml.uuid_of_conn db));
              return u)
         | _ ->
-            (Messages.debug2
+            (Ocsigen_messages.debug2
                (Printf.sprintf "[Sql] [%s] find_user: fail with Not_found"
                   (Lwt_PGOCaml.uuid_of_conn db));
              fail Not_found)))
   
 let update_permissions db ~name ~perm =
-  (Messages.debug2 (Printf.sprintf "[Sql] update_permissions [%s]" perm);
+  (Ocsigen_messages.debug2 (Printf.sprintf "[Sql] update_permissions [%s]" perm);
    (begin_work db) >>=
      (fun _ ->
         (find_user db ~name ()) >>=
@@ -497,11 +497,11 @@ let update_permissions db ~name ~perm =
                 (fun _ -> return ()))
                >>=
                (fun () ->
-                  (Messages.debug2 "[Sql] update_permissions: finish";
+                  (Ocsigen_messages.debug2 "[Sql] update_permissions: finish";
                    (commit db) >>= (fun _ -> return ()))))))
   
 let update_data db ~id ~name ~password ~fullname ~email =
-  (Messages.debug2 "[Sql] update_data";
+  (Ocsigen_messages.debug2 "[Sql] update_data";
    (begin_work db) >>=
      (fun _ ->
         (find_user db ~id ~name ()) >>=
@@ -627,7 +627,7 @@ let update_data db ~id ~name ~password ~fullname ~email =
                     (fun _ -> return ()))
                >>=
                (fun () ->
-                  (Messages.debug2 "[Sql] update_data: finish";
+                  (Ocsigen_messages.debug2 "[Sql] update_data: finish";
                    (commit db) >>= (fun _ -> return ()))))))
   
 (* FORUMS *)
@@ -646,7 +646,7 @@ type message_info =
 let new_forum db ~title ~descr ~moderated ~arborescent ~reader ~writer
               ~moderator =
   (* inserts a new forum *)
-  (Messages.debug2 "[Sql] new_forum";
+  (Ocsigen_messages.debug2 "[Sql] new_forum";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -718,13 +718,13 @@ let new_forum db ~title ~descr ~moderated ~arborescent ~reader ~writer
                (fun frm_id ->
                   (commit db) >>=
                     (fun _ ->
-                       (Messages.debug2 "[Sql] new_forum: finish";
+                       (Ocsigen_messages.debug2 "[Sql] new_forum: finish";
                         return frm_id))))))
   
 let new_thread_and_message db ~frm_id ~author_id ~subject ~txt =
   (* inserts a message starting a new thread; both thread and message
      will be hidden if forum is moderated *)
-  (Messages.debug2 "[Sql] new_thread_and_message";
+  (Ocsigen_messages.debug2 "[Sql] new_thread_and_message";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -1214,7 +1214,7 @@ let new_thread_and_message db ~frm_id ~author_id ~subject ~txt =
                                                        (fun msg_id ->
                                                           (commit db) >>=
                                                             (fun _ ->
-                                                               (Messages.
+                                                               (Ocsigen_messages.
                                                                   debug2
                                                                   "[Sql] new_thread_and_message: finish";
                                                                 return
@@ -1222,7 +1222,7 @@ let new_thread_and_message db ~frm_id ~author_id ~subject ~txt =
                                                                    msg_id)))))))))))))))
   
 let new_thread_and_article db ~frm_id ~author_id ~subject ~txt =
-  (Messages.debug2 "[Sql] new_thread_and_article";
+  (Ocsigen_messages.debug2 "[Sql] new_thread_and_article";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -1443,14 +1443,14 @@ let new_thread_and_article db ~frm_id ~author_id ~subject ~txt =
                                    (fun thr_id ->
                                       (commit db) >>=
                                         (fun _ ->
-                                           (Messages.debug2
+                                           (Ocsigen_messages.debug2
                                               "[Sql] new_thread_and_article: finish";
                                             return (thr_id, txt_id)))))))))))
   
 let new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () =
   (* inserts a message in an existing thread; message will be hidden
      if forum is moderated *)
-  (Messages.debug2 "[Sql] new_message";
+  (Ocsigen_messages.debug2 "[Sql] new_message";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -2441,13 +2441,13 @@ let new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () =
                                         (fun msg_id ->
                                            (commit db) >>=
                                              (fun _ ->
-                                                (Messages.debug2
+                                                (Ocsigen_messages.debug2
                                                    "[Sql] new_message: finish";
                                                  return msg_id)))))))))))
   
 let forum_toggle_moderated db ~frm_id =
   (* toggle moderation status of a forum *)
-  (Messages.debug2 "[Sql] forum_toggle_moderated";
+  (Ocsigen_messages.debug2 "[Sql] forum_toggle_moderated";
    bind
      (let dbh = db in
       let params = [ [ Some (PGOCaml.string_of_int32 frm_id) ] ] in
@@ -2497,7 +2497,7 @@ let forum_toggle_moderated db ~frm_id =
      (fun _ -> return ()))
   
 let thread_toggle_hidden db ~frm_id ~thr_id = (* hides/shows a thread *)
-  (Messages.debug2 "[Sql] thread_toggle_hidden";
+  (Ocsigen_messages.debug2 "[Sql] thread_toggle_hidden";
    bind
      (let dbh = db in
       let params =
@@ -2550,7 +2550,7 @@ let thread_toggle_hidden db ~frm_id ~thr_id = (* hides/shows a thread *)
      (fun _ -> return ()))
   
 let message_toggle_hidden db ~frm_id ~msg_id = (* hides/shows a message *)
-  (Messages.debug2 "[Sql] message_toggle_hidden";
+  (Ocsigen_messages.debug2 "[Sql] message_toggle_hidden";
    bind
      (let dbh = db in
       let params =
@@ -2605,7 +2605,7 @@ let message_toggle_hidden db ~frm_id ~msg_id = (* hides/shows a message *)
      (fun _ -> return ()))
   
 let message_toggle_sticky db ~frm_id ~msg_id =
-  (Messages.debug2 "[Sql] message_toggle_sticky";
+  (Ocsigen_messages.debug2 "[Sql] message_toggle_sticky";
    bind
      (let dbh = db in
       let params =
@@ -2660,7 +2660,7 @@ let message_toggle_sticky db ~frm_id ~msg_id =
      (fun _ -> return ()))
   
 let find_forum db ?id ?title () =
-  (Messages.debug2
+  (Ocsigen_messages.debug2
      (Printf.sprintf "[Sql] [%s] find_forum (id: %s title: %s)"
         (Lwt_PGOCaml.uuid_of_conn db)
         (match id with | None -> "none" | Some i -> string_of_db_int i)
@@ -2918,19 +2918,19 @@ let find_forum db ?id ?title () =
                (fun _ ->
                   match r with
                   | [ x ] ->
-                      (Messages.debug2
+                      (Ocsigen_messages.debug2
                          (Printf.sprintf "[Sql] [%s] find_forum: return"
                             (Lwt_PGOCaml.uuid_of_conn db));
                        return x)
                   | _ ->
-                      (Messages.debug2
+                      (Ocsigen_messages.debug2
                          (Printf.sprintf
                             "[Sql] [%s] find_forum: fail with Not_found"
                             (Lwt_PGOCaml.uuid_of_conn db));
                        fail Not_found)))))
   
 let get_forums_list db =
-  (Messages.debug2 "[Sql] get_forums_list";
+  (Ocsigen_messages.debug2 "[Sql] get_forums_list";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -3013,14 +3013,14 @@ let get_forums_list db =
           (fun r ->
              (commit db) >>=
                (fun _ ->
-                  (Messages.debug2 "[Sql] get_forums_list: finish"; return r)))))
+                  (Ocsigen_messages.debug2 "[Sql] get_forums_list: finish"; return r)))))
   
 let forum_get_data db ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
      threads and messages of a forum.  NB: a message is counted as
      hidden if: 1) its hidden status is true, or 2) it is in a hidden
      thread. *)
-  (Messages.debug2 "[Sql] forum_get_data";
+  (Ocsigen_messages.debug2 "[Sql] forum_get_data";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -3907,7 +3907,7 @@ let forum_get_data db ~frm_id ~role =
                                              (fun n_hidden_msg ->
                                                 (commit db) >>=
                                                   (fun _ ->
-                                                     (Messages.debug2
+                                                     (Ocsigen_messages.debug2
                                                         "[Sql] forum_get_data: finish";
                                                       return
                                                         (id, title,
@@ -3919,7 +3919,7 @@ let forum_get_data db ~frm_id ~role =
                                                          n_hidden_msg)))))))))))))
   
 let thread_get_nr_messages db ~thr_id ~role =
-  (Messages.debug2 "[Sql] thread_get_nr_messages";
+  (Ocsigen_messages.debug2 "[Sql] thread_get_nr_messages";
    (begin_work db) >>=
      (fun _ -> (* all messages *)
         (* all non-hidden messages AND hidden messages posted by a *)
@@ -4180,7 +4180,7 @@ let thread_get_nr_messages db ~thr_id ~role =
           (fun n_msg ->
              (commit db) >>=
                (fun _ ->
-                  (Messages.debug2 "[Sql] thread_get_nr_messages: finish";
+                  (Ocsigen_messages.debug2 "[Sql] thread_get_nr_messages: finish";
                    return (int_of_db_count n_msg))))))
   
 let thread_get_data db (* ~frm_id *) ~thr_id ~role =
@@ -4188,7 +4188,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
      shown/hidden messages of a thread.  NB: a message is counted as
      hidden if: 1) its hidden status is true, or 2) it is in a hidden
      thread. *)
-  (Messages.debug2
+  (Ocsigen_messages.debug2
      (Printf.sprintf "[Sql] [%s] thread_get_data"
         (Lwt_PGOCaml.uuid_of_conn db));
    (begin_work db) >>=
@@ -4610,7 +4610,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
                               (fun n_hidden_msg ->
                                  (commit db) >>=
                                    (fun _ ->
-                                      (Messages.debug2
+                                      (Ocsigen_messages.debug2
                                          "[Sql] thread_get_data: finish";
                                        return
                                          (id, subject, author_id, article,
@@ -4619,7 +4619,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
   
 let message_get_data db ~frm_id ~msg_id =
   (* returns id, text, author, datetime, hidden status of a message *)
-  (Messages.debug2 "[Sql] message_get_data";
+  (Ocsigen_messages.debug2 "[Sql] message_get_data";
    (bind
       (let dbh = db in
        let params =
@@ -4706,12 +4706,12 @@ let message_get_data db ~frm_id ~msg_id =
      (fun y ->
         (match y with | [ x ] -> return x | _ -> fail Not_found) >>=
           (fun (id, text, author_id, datetime, hidden) ->
-             (Messages.debug2 "[Sql] message_get_data: finish";
+             (Ocsigen_messages.debug2 "[Sql] message_get_data: finish";
               return (id, text, author_id, datetime, hidden)))))
   
 let thread_get_neighbours db ~frm_id ~thr_id ~role =
   (* returns None|Some id of prev & next thread in the same forum. *)
-  (Messages.debug2 "[Sql] thread_get_neighbours";
+  (Ocsigen_messages.debug2 "[Sql] thread_get_neighbours";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -5434,14 +5434,14 @@ let thread_get_neighbours db ~frm_id ~thr_id ~role =
                                    (fun next ->
                                       (commit db) >>=
                                         (fun _ ->
-                                           (Messages.debug2
+                                           (Ocsigen_messages.debug2
                                               "[Sql] thread_get_neighbours: finish";
                                             return (prev, next)))))))))))
   
 let message_get_neighbours db ~frm_id ~msg_id ~role =
   (* returns None|Some id of prev & next message in the same
      thread. *)
-  (Messages.debug2 "[Sql] message_get_neighbours";
+  (Ocsigen_messages.debug2 "[Sql] message_get_neighbours";
    (begin_work db) >>=
      (fun _ ->
         (bind
@@ -6169,7 +6169,7 @@ let message_get_neighbours db ~frm_id ~msg_id ~role =
                                    (fun next ->
                                       (commit db) >>=
                                         (fun _ ->
-                                           (Messages.debug2
+                                           (Ocsigen_messages.debug2
                                               "[Sql] message_get_neighbours: finish";
                                             return (prev, next)))))))))))
   
@@ -6177,7 +6177,7 @@ let forum_get_threads_list db ~frm_id ?offset ?limit ~role () =
   (* returns the threads list of a forum, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
-  (Messages.debug2 "[Sql] forum_get_threads_list";
+  (Ocsigen_messages.debug2 "[Sql] forum_get_threads_list";
    let db_offset =
      match offset with
      | None -> db_size_of_int 0
@@ -6755,7 +6755,7 @@ let rec cut f id =
   
 let thread_get_messages_with_text db ~thr_id ?offset ?limit ~role ?bottom ()
                                   =
-  (Messages.debug2 "[Sql] thread_get_messages_with_text";
+  (Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text";
    let db_offset =
      match offset with
      | None -> db_size_of_int 0
@@ -7062,7 +7062,7 @@ let thread_get_messages_with_text db ~thr_id ?offset ?limit ~role ?bottom ()
                           | Some btm ->
                               cut (fun (id, _, _, _, _, _) -> id) btm msg_l
                         in
-                          (Messages.debug2
+                          (Ocsigen_messages.debug2
                              "[Sql] thread_get_messages_with_text: finish";
                            return final_msg_l))))
      | Some x ->
@@ -7391,13 +7391,13 @@ let thread_get_messages_with_text db ~thr_id ?offset ?limit ~role ?bottom ()
                             | Some btm ->
                                 cut (fun (id, _, _, _, _, _) -> id) btm msg_l
                           in
-                            (Messages.debug2
+                            (Ocsigen_messages.debug2
                                "[Sql] thread_get_messages_with_text: finish";
                              return final_msg_l)))))
   
 let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top
                                          ?bottom ~role () =
-  (Messages.debug2 "[Sql] thread_get_messages_with_text_forest";
+  (Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text_forest";
    let db_offset =
      match offset with
      | None -> db_size_of_int 0
@@ -7954,7 +7954,7 @@ let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top
                                    cut (fun (id, _, _, _, _, _, _, _) -> id)
                                      btm msg_l
                              in
-                               (Messages.debug2
+                               (Ocsigen_messages.debug2
                                   "[Sql] thread_get_messages_with_text_forest: finish";
                                 return
                                   (forest_of
@@ -8545,7 +8545,7 @@ let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top
                                        (fun (id, _, _, _, _, _, _, _) -> id)
                                        btm msg_l
                                in
-                                 (Messages.debug2
+                                 (Ocsigen_messages.debug2
                                     "[Sql] thread_get_messages_with_text_forest: finish";
                                   return
                                     (forest_of
@@ -8555,7 +8555,7 @@ let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top
                                        final_msg_l)))))))
   
 let get_latest_messages db ~frm_ids ~limit () =
-  (Messages.debug2
+  (Ocsigen_messages.debug2
      (Printf.sprintf "[Sql] get_latest_messages [%s]"
         (String.concat "," (List.map string_of_db_int frm_ids)));
    let db_limit = db_size_of_int limit
@@ -8644,7 +8644,7 @@ let get_latest_messages db ~frm_ids ~limit () =
                rows))
        >>=
        (fun result ->
-          (Messages.debug2 "[Sql] get_latest_messages: finish";
+          (Ocsigen_messages.debug2 "[Sql] get_latest_messages: finish";
            return result)))
   
 (* let new_wiki ~title ~descr =

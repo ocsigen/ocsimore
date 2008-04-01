@@ -1,9 +1,9 @@
 open Lwt
 open Eliommod
-open Eliomparameters
-open Eliomservices
-open Eliomsessions
-open Eliomduce.Xhtml
+open Eliom_parameters
+open Eliom_services
+open Eliom_sessions
+open Eliom_duce.Xhtml
 open SessionManager
 open Ocsimorelib
 open CalendarLib
@@ -45,7 +45,7 @@ object (self)
   ]] }}
 
 	method apply ~sp () =
-	Messages.debug2 "[forumWidget] login#apply";
+	Ocsigen_messages.debug2 "[forumWidget] login#apply";
 	get_persistent_session_data SessionManager.user_table sp () >>=
 	fun sess -> return {{ <div class={: div_class :}>[{:
 		match sess with
@@ -172,11 +172,11 @@ object (self)
 	db >>=
 	fun db -> parent#get_role forum_id >>=
 	fun role -> Sql.thread_get_nr_messages db ~thr_id ~role >>=
-	fun nr_m -> nr_messages <- nr_m; Messages.debug2 "[message_navigation_widget] retrieve_data: end";
+	fun nr_m -> nr_messages <- nr_m; Ocsigen_messages.debug2 "[message_navigation_widget] retrieve_data: end";
 	return ()
 
 	method apply ~sp (forum_id, thread_id, offset, limit) =
-	Messages.debug2 (Printf.sprintf "[forumWidget] [%s] message_navigation#apply" (Sql.uuid_of_conn db));
+	Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] message_navigation#apply" (Sql.uuid_of_conn db));
 	self#retrieve_data (forum_id, thread_id, offset, limit) >>=
 	fun () -> return {{
 		<div class={: div_class :}>
@@ -247,8 +247,8 @@ object (self)
 	fun children -> return (self#set_children children)
 
 	method apply ~sp (forum_id, thread_id, bottom) =
-		Messages.debug2 (Printf.sprintf"[forumWidget] [%s] message_forest#apply" (Sql.uuid_of_conn db));
-	let rec listize_forest (f: Xhtml1_strict._div tree list): Xhtml1_strict.ul list Lwt.t =
+		Ocsigen_messages.debug2 (Printf.sprintf"[forumWidget] [%s] message_forest#apply" (Sql.uuid_of_conn db));
+	let rec listize_forest (f: Xhtmltypes_duce._div tree list): Xhtmltypes_duce.ul list Lwt.t =
 		Lwt_util.map (function 
 		| Node (p, ch) -> listize_forest ch >>=
 			fun rest -> return {{ <ul>[ 
@@ -300,7 +300,7 @@ object (self)
 	] :}
 
 	method apply ~(sp:server_params) (forum_id, thread_id, parent_id, offset) =
-	Messages.debug2 "[forumWidget] message_form_widget#apply"; 
+	Ocsigen_messages.debug2 "[forumWidget] message_form_widget#apply"; 
 	my_parent_id <- parent_id;
 	return {{
 		<div class={: div_class :}>[
@@ -349,7 +349,7 @@ object (self)
 	fun res -> return (self#set_messages res)
 
 	method apply ~sp limit =
-		Messages.debug2 (Printf.sprintf "[forumWidget] [%s] latest_messages#apply" (Sql.uuid_of_conn db));
+		Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] latest_messages#apply" (Sql.uuid_of_conn db));
 	self#retrieve_data limit >>=
 	fun () -> Lwt_util.map (fun (id, msg, author) ->
 		return {{ <tr>[<td>{: msg :} <td>{: author :}] }} ) messages >>=
@@ -423,7 +423,7 @@ object (self)
 		return (self#set_hidden_messages hm)
 
 	method apply ~sp (forum_id, thread_id) =
-	Messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread#apply" (Sql.uuid_of_conn db));
+	Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread#apply" (Sql.uuid_of_conn db));
 	self#retrieve_data (forum_id, thread_id) >>=
 	fun () -> parent#get_role forum_id >>=
 	fun role -> return
@@ -469,7 +469,7 @@ object (self)
 	val db = Sql.connect ()
 
 	method private retrieve_data (forum_id) =
-	Messages.debug2 (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
+	Ocsigen_messages.debug2 (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
 	let frm_id = Sql.db_int_of_int forum_id in 
 	db >>=
 	fun db -> parent#get_role forum_id >>=
@@ -480,10 +480,10 @@ object (self)
 	fun children -> return (self#set_children children)
 
 	method apply ~sp (forum_id) =
-	Messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread_list#apply" (Sql.uuid_of_conn db));
+	Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread_list#apply" (Sql.uuid_of_conn db));
 	catch (fun () -> self#retrieve_data forum_id >>=
 	fun () -> return self#get_children >>=
-	fun subjects ->  Messages.debug2 (Printf.sprintf "[thread_list] apply: %d items" (List.length subjects));
+	fun subjects ->  Ocsigen_messages.debug2 (Printf.sprintf "[thread_list] apply: %d items" (List.length subjects));
 	Lwt_util.map (fun s -> return {{ <tr>[
 			<td>{: sod s.datetime :}
 			<td>[{: a ~service:srv_thread ~sp {{ {: s.subject :} }} (forum_id, (s.id, None)) :}]
@@ -523,7 +523,7 @@ object (self)
 	] }}
 
 	method apply ~sp forum_id =
-		Messages.debug2 "[forumWidget] thread_form#apply";
+		Ocsigen_messages.debug2 "[forumWidget] thread_form#apply";
 	return {{
 		<div class={: div_class :}>[
 			{: (post_form ~service:srv_add_thread ~sp self#form) forum_id :}
@@ -571,7 +571,7 @@ object (self)
 	val db = Sql.connect ()
 
 	method private retrieve_data () =
-	Messages.debug2 "[forums_list] retrieve_data";
+	Ocsigen_messages.debug2 "[forums_list] retrieve_data";
 	db >>=
 	fun db -> Sql.get_forums_list db >>=
 	fun result -> Lwt_util.map (fun (i, n, d, m, a) ->

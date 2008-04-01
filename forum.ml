@@ -1,9 +1,9 @@
 (* open XHTML.M *)
 open Eliommod
-open Eliomparameters
-open Eliomservices
-open Eliomsessions
-open Eliomduce.Xhtml
+open Eliom_parameters
+open Eliom_services
+open Eliom_sessions
+open Eliom_duce.Xhtml
 open Lwt
 open Users
 

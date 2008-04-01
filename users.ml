@@ -65,7 +65,7 @@ let generate_password () =
 let mail_password db ~name ~from_addr ~subject =
   catch
 	(fun () -> get_user_by_name db ~name >>=
-	fun user -> Preemptive.detach
+	fun user -> Lwt_preemptive.detach
 		(fun () -> ignore(Netaddress.parse user.data.email);
       Netsendmail.sendmail
         ~mailer:"/usr/sbin/sendmail"

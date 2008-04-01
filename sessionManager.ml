@@ -1,10 +1,10 @@
 open Eliommod
-open Eliomparameters
-open Eliomservices
-open Eliomsessions
-open Eliompredefmod
-open Eliomduce.Xhtml
-open Xhtml1_strict
+open Eliom_parameters
+open Eliom_services
+open Eliom_sessions
+open Eliom_predefmod
+open Eliom_duce.Xhtml
+open Xhtmltypes_duce
 open Lwt
 open Services
 open Users
@@ -48,20 +48,20 @@ object (self)
 	val forums = Hashtbl.create 1
 	val widget_types = Hashtbl.create 1
 
-	method act_login: (unit, string * string, [`Nonattached of [`Post] Eliomservices.na_s], [`WithoutSuffix], unit, [`One of string] Eliomparameters.param_name * [`One of string] Eliomparameters.param_name, [`Registrable]) Eliomservices.service =
+	method act_login: (unit, string * string, [`Nonattached of [`Post] Eliom_services.na_s], [`WithoutSuffix], unit, [`One of string] Eliom_parameters.param_name * [`One of string] Eliom_parameters.param_name, [`Registrable]) Eliom_services.service =
 	internal_act_login
 	method srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_register
 	method srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_reminder
 	method srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_edit
 
-	method act_logout: (unit, unit, [`Nonattached of [`Post] Eliomservices.na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service =
+	method act_logout: (unit, unit, [`Nonattached of [`Post] Eliom_services.na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service =
 	internal_act_logout
 
 	method db = db
 
 	method set_user u = current_user <- u
 
-	method container ~(sp: server_params) ~(sess: user session_data) ~(contents:Xhtml1_strict.blocks): Xhtml1_strict.html Lwt.t =
+	method container ~(sp: server_params) ~(sess: user session_data) ~(contents:Xhtmltypes_duce.blocks): Xhtmltypes_duce.html Lwt.t =
 	return {{ 
 		<html>[
 			<head>[<title>"Temporary title"]
@@ -92,16 +92,16 @@ object (self)
 	| _ -> "Anonymous"
 
 	method get_role (forum_id: int) =
-	Messages.debug2 (Printf.sprintf "[sessionManager] [%s] get_role (forum_id: %d)" (Sql.uuid_of_conn (return db)) forum_id);
+	Ocsigen_messages.debug2 (Printf.sprintf "[sessionManager] [%s] get_role (forum_id: %d)" (Sql.uuid_of_conn (return db)) forum_id);
 	Forum.get_forum_by_id db forum_id >>=
-	fun f -> Messages.debug2 "[sessionManager] got forum"; return
+	fun f -> Ocsigen_messages.debug2 "[sessionManager] got forum"; return
 		(match current_user with
 		| Data u -> 
-				if Forum.can_moderate f u then (Messages.debug2 "[sessionManager] result: moderator"; Sql.Moderator)
-				else if Forum.can_write f u && self#is_logged_on then (Messages.debug2 "[sessionManager] result: author"; Sql.Author (Sql.db_int_of_int self#get_user_id))
-				else if Forum.can_read f u && self#is_logged_on then (Messages.debug2 "[sessionManager] result: lurker"; Sql.Lurker self#get_user_name)
-				else (Messages.debug2 "[sessionManager] result: unknown"; Sql.Unknown)
-		| _ -> (Messages.debug2 "[sessionManager] result: nobody logged in"; Sql.Unknown))
+				if Forum.can_moderate f u then (Ocsigen_messages.debug2 "[sessionManager] result: moderator"; Sql.Moderator)
+				else if Forum.can_write f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: author"; Sql.Author (Sql.db_int_of_int self#get_user_id))
+				else if Forum.can_read f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: lurker"; Sql.Lurker self#get_user_name)
+				else (Ocsigen_messages.debug2 "[sessionManager] result: unknown"; Sql.Unknown)
+		| _ -> (Ocsigen_messages.debug2 "[sessionManager] result: nobody logged in"; Sql.Unknown))
 
 	method private valid_username usr =
 	Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
@@ -279,7 +279,7 @@ object (self)
     else if pwd <> pwd2 then
       self#page_edit "ERROR: Passwords don't match!" sp () ()
     else
-			(Messages.debug2 (Printf.sprintf "fullname: %s" fullname);
+			(Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
       ignore (if pwd = ""
       then update_user_data db ~user ~fullname ~email ()
       else update_user_data db ~user ~fullname ~email ~pwd:(Some pwd) ());
@@ -339,9 +339,9 @@ object (self)
 			let l = List.map (fun t ->
 				Option ({{ {} }}, t, None, t = (string_of_type value))
 			) ["int"; "float"; "string"; "bool"; "file"; "unit"] in
-			Eliomduce.Xhtml.string_select ~name (List.hd l) (List.tl l) in *)
+			Eliom_duce.Xhtml.string_select ~name (List.hd l) (List.tl l) in *)
 		get_persistent_session_data user_table sp () >>=
-	  fun sess -> Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+	  fun sess -> Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
 		get_service_parameters db ~url >>=
 		fun params -> get_service_widgets ~url >>=
 		fun widgets ->
@@ -377,7 +377,7 @@ object (self)
 	method private page_modify_service_done = fun sp url () ->
 		get_persistent_session_data user_table sp () >>=
 		fun sess ->
-	  Messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+	  Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
 		self#container
 			~sp
 			~sess
@@ -408,7 +408,7 @@ object (self)
 	method private add_parameter_handler user = fun sp () (url, param_name) ->
 		(* if in_group user sessionmanagerinfo.administrator then
 		begin
-			Messages.debug2 "[add_parameter_handler] user is an administrator.";
+			Ocsigen_messages.debug2 "[add_parameter_handler] user is an administrator.";
 			add_parameter db ~url ~param:{ name=param_name } >>=
 			fun _ -> return []
 		end
@@ -453,37 +453,37 @@ object (self)
 
 		method register =
 		begin
-			Messages.debug2 "[sessionManager] registering I";
+			Ocsigen_messages.debug2 "[sessionManager] registering I";
       Actions.register internal_act_login self#mk_act_login;
-			Messages.debug2 "[sessionManager] registering II";
+			Ocsigen_messages.debug2 "[sessionManager] registering II";
       Actions.register internal_act_logout self#mk_act_logout;
-			Messages.debug2 "[sessionManager] registering III";
+			Ocsigen_messages.debug2 "[sessionManager] registering III";
       register internal_srv_register (self#page_register "");
-			Messages.debug2 "[sessionManager] registering IV";
+			Ocsigen_messages.debug2 "[sessionManager] registering IV";
       register srv_register_done self#page_register_done;
-			Messages.debug2 "[sessionManager] registering V";
+			Ocsigen_messages.debug2 "[sessionManager] registering V";
       register internal_srv_reminder (self#page_reminder "");
-			Messages.debug2 "[sessionManager] registering VI";
+			Ocsigen_messages.debug2 "[sessionManager] registering VI";
       register srv_reminder_done self#page_reminder_done;
-			Messages.debug2 "[sessionManager] registering VII";
+			Ocsigen_messages.debug2 "[sessionManager] registering VII";
 			register srv_list_services self#page_list_services;
-			Messages.debug2 "[sessionManager] registering VIII";
+			Ocsigen_messages.debug2 "[sessionManager] registering VIII";
 			register srv_create_service self#page_create_service;
-			Messages.debug2 "[sessionManager] registering IX";
+			Ocsigen_messages.debug2 "[sessionManager] registering IX";
 			register srv_modify_service self#page_modify_service;
-			Messages.debug2 "[sessionManager] registering X";
+			Ocsigen_messages.debug2 "[sessionManager] registering X";
       register internal_srv_edit (self#page_edit "");
-			Messages.debug2 "[sessionManager] registering XI";
+			Ocsigen_messages.debug2 "[sessionManager] registering XI";
       register srv_edit_done self#page_edit_done;
-			Messages.debug2 "[sessionManager] registering XII";
+			Ocsigen_messages.debug2 "[sessionManager] registering XII";
 			(* Services.register_services db >>=
-			fun () -> *) Messages.debug2 "[sessionManager] registering done";
+			fun () -> *) Ocsigen_messages.debug2 "[sessionManager] registering done";
 				return ()
 		end
 	
 end;;
 
-let connect sm srv container (fwl: 'get -> 'post -> (sp:server_params -> Xhtml1_strict._div Lwt.t) list) =
+let connect sm srv container (fwl: 'get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list) =
 begin
 	register srv
 	(fun sp get_params post_params ->

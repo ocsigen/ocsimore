@@ -1,8 +1,8 @@
 open Lwt
-open Eliomparameters
-open Eliomservices
+open Eliom_parameters
+open Eliom_services
 
-let services_table: (string, (string list, unit, [`Attached of [`Internal of [`Service ] * [`Get ] ] Eliomservices.a_s ], [ `WithoutSuffix ], [ `One of string ] Eliomparameters.param_name Eliomparameters.listnames, unit, [`Registrable ]) Eliomservices.service) Hashtbl.t = Hashtbl.create 1;;
+let services_table: (string, (string list, unit, [`Attached of [`Internal of [`Service ] * [`Get ] ] Eliom_services.a_s ], [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name Eliom_parameters.listnames, unit, [`Registrable ]) Eliom_services.service) Hashtbl.t = Hashtbl.create 1;;
 
 (* For the moment, all parameters are strings. *)
 (* type service_type =
@@ -60,7 +60,7 @@ let get_service_widgets ~url =
 let register_service ?sp db ~url =
 	get_service_parameters db ~url >>=
 	fun params -> 
-	let srv = Eliomduce.Xhtml.register_new_service ?sp ~path:[url] ~get_params:(list "param" (string "value"))
+	let srv = Eliom_duce.Xhtml.register_new_service ?sp ~path:[url] ~get_params:(list "param" (string "value"))
 		(fun sp _ _ ->
 			return {{
 				<html>[<head>[<title>"Your service"]

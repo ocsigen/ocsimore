@@ -1,7 +1,7 @@
 open Lwt
 open Eliommod
-open Eliomduce.Xhtml
-open Eliomsessions
+open Eliom_duce.Xhtml
+open Eliom_sessions
 open SessionManager
 open Ocsimorelib
 
@@ -34,7 +34,7 @@ object (self)
 	val div_class = "list"
 	val mutable children: 'child_type list = []
 
-	method display ~(sp:server_params): Xhtml1_strict._div Lwt.t =
+	method display ~(sp:server_params): Xhtmltypes_duce._div Lwt.t =
 	return
 	{{
 		<div class={: div_class :}>[]

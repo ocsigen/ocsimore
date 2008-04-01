@@ -1,7 +1,7 @@
 open Lwt
 open Eliommod
-open Eliomsessions
-open Eliomduce.Xhtml
+open Eliom_sessions
+open Eliom_duce.Xhtml
 open SessionManager
 
 (**
@@ -25,7 +25,7 @@ object
 	*)
 	method private retrieve_data: 'param_type -> unit Lwt.t
 
-	method apply: sp:server_params -> 'param_type -> Xhtml1_strict._div Lwt.t
+	method apply: sp:server_params -> 'param_type -> Xhtmltypes_duce._div Lwt.t
 end;;
 
 (** The base parametrized_widget list class *)
@@ -37,7 +37,7 @@ object
 	Display the parametrized_widget list. Calls the display procedure for every item of the
 	contents in turn.
 	*)
-	method display: sp:server_params -> Xhtml1_strict._div Lwt.t
+	method display: sp:server_params -> Xhtmltypes_duce._div Lwt.t
 
 	(** Clear the contents *)
 	method clear_children: unit
