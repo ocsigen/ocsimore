@@ -28,48 +28,76 @@ object
 	inherit [int * int] parametrized_widget
 end;;
 
-(** A parametrized_widget that displays one message*)
+(** A parametrized_widget that displays one message *)
 class message_widget: parent:sessionmanager -> srv_message_toggle:unit -> 
 object
-	inherit [int * int] parametrized_widget
-
-	(** Set the message subject *)
-	method set_subject: string -> unit
-
-	(** Set the message author *)
-	method set_author: string -> unit
-
-	(** Set the message contents *)
-	method set_text: string -> unit
-
-	(** Set the message date and time *)
-	method set_datetime: Calendar.t -> unit
-
-	(** Indicate whether the message is hidden *)
-	method set_hidden: bool -> unit
-
-	(** Indicate whether the message is sticky *)
-	method set_sticky: bool -> unit
+  inherit [int * int] parametrized_widget
+    
+  (** Set the message subject *)
+  method set_subject: string -> unit
+    
+  (** Set the message author *)
+  method set_author: string -> unit
+    
+  (** Set the message contents *)
+  method set_text: string -> unit
+    
+  (** Set the message date and time *)
+  method set_datetime: Calendar.t -> unit
+    
+  (** Indicate whether the message is hidden *)
+  method set_hidden: bool -> unit
+    
+  (** Indicate whether the message is sticky *)
+  method set_sticky: bool -> unit
 end;;
 
-class message_list_widget: parent:sessionmanager ->
+class message_list_widget : parent:sessionmanager ->
 object
-	inherit [message_data] list_widget
-	inherit [int * int * int option * int option] parametrized_widget
+  inherit [message_data] list_widget
+  inherit [int * int * int option * int option] parametrized_widget
 end;;
 
-class message_navigation_widget: parent:sessionmanager -> srv_thread: (int * (int * int option), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service ->
+class message_navigation_widget : 
+  parent:sessionmanager -> 
+      srv_thread:(int * (int * int option), 
+                  unit, 
+                  get_service_kind,
+                  [`WithoutSuffix],
+                  [`One of int] param_name *
+                    ([`One of int] param_name * [`Opt of int] param_name),
+                  unit,
+                  [`Registrable]) service ->
 object
-	inherit [int * int * int option * int option] parametrized_widget
+  inherit [int * int * int option * int option] parametrized_widget
 end;;
 
-class message_forest_widget: parent:sessionmanager -> srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service -> srv_message_toggle:(int * (int * int option), int, post_service_kind, [ `WithoutSuffix ], [ `One of int ] param_name * ([ `One of int ] param_name * [ `Opt of int ] param_name), [`One of int] param_name, [ `Registrable ]) service ->
+class message_forest_widget : 
+  parent:sessionmanager -> 
+      srv_reply_message:(int * (int * (int option * int)), 
+                         unit,
+                         get_service_kind,
+                         [`WithoutSuffix],
+                         [`One of int] param_name *
+                           ([`One of int] param_name * 
+                              ([`Opt of int] param_name *
+                                 [`One of int] param_name)), 
+                         unit, [`Registrable]) service -> 
+      srv_message_toggle:(int * (int * int option), 
+                          int,
+                          post_service_kind,
+                          [ `WithoutSuffix ], 
+                          [ `One of int ] param_name * 
+                            ([ `One of int ] param_name *
+                               [ `Opt of int ] param_name), 
+                          [`One of int] param_name,
+                          [ `Registrable ]) service ->
 object
-	inherit [int * int * int option] parametrized_widget	
-
-	method get_children: message_data Ocsimorelib.tree list
-
-	method set_children: message_data Ocsimorelib.tree list -> unit
+  inherit [int * int * int option] parametrized_widget	
+    
+  method get_children: message_data Ocsimorelib.tree list
+    
+  method set_children: message_data Ocsimorelib.tree list -> unit
 end;;
 
 class message_form_widget: parent:sessionmanager -> srv_add_message: (int * (int * int option), string * (int option * bool), post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), [`One of string] param_name * ([`Opt of int] param_name * [`One of bool] param_name), [`Registrable]) service ->

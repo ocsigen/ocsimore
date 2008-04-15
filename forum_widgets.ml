@@ -20,214 +20,276 @@ type message_data =
 
 class message_toggle_action ~(parent: sessionmanager) = 
 object (self)
-	inherit [int * int] parametrized_widget parent
-	
-	val div_class = "thread_toggle"
-	val db = Sql.connect ()
-
-	method apply ~sp (forum_id, message_id) =
-		let frm_id = Sql.db_int_of_int forum_id in
-		let msg_id = Sql.db_int_of_int message_id in
-		db >>=
-		fun db -> Sql.message_toggle_hidden db ~frm_id ~msg_id >>=
-		fun () -> return {{ <div class={: div_class :}>[
-			<p>"Thread toggled."		
-		] }}
+  inherit [int * int] parametrized_widget parent
+    
+  val div_class = "thread_toggle"
+  val db = Sql.connect ()
+    
+  method apply ~sp (forum_id, message_id) =
+    let frm_id = Sql.db_int_of_int forum_id in
+    let msg_id = Sql.db_int_of_int message_id in
+    db >>= fun db -> 
+    Sql.message_toggle_hidden db ~frm_id ~msg_id >>= fun () -> 
+    return {{ <div class={: div_class :}>[
+		<p>"Thread toggled."		
+	      ] }}
 end;;
 
 class message_widget ~(parent: sessionmanager) ~(srv_message_toggle: unit) =
 object (self)
-	inherit [int * int] parametrized_widget parent
-
-	val div_class = "message"
-	val mutable subject = ""
-	val mutable author = ""
-	val mutable text = ""
-	val mutable datetime = Calendar.now ()
-	val mutable hidden = false
-	val mutable sticky = false
-
-	method set_subject s = subject <- s
-	method set_author a = author <- a
-	method set_text t = text <- t
-	method set_datetime d = datetime <- d
-	method set_hidden h = hidden <- h
-	method set_sticky s = sticky <- s
-
-	method apply ~sp (forum_id, message_id) =
-	self#retrieve_data (forum_id, message_id) >>=
-	fun () -> parent#get_role forum_id >>=
-	fun role -> return
-	{{ <div class={: div_class :}>[
-			<h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}
-			!{:
-					match role with
-					| Sql.Moderator -> {{ [<p>{: Format.sprintf "Message is hidden: %s; sticky: %s" (if hidden then "YES" else "NO") (if sticky then "YES" else "NO") :}] }}
-					| _ -> {{[] }}
-			:}
-			<pre>{: text :}
-			(* TODO: reply to this message *)
-	] }}
+  inherit [int * int] parametrized_widget parent
+    
+  val div_class = "message"
+  val mutable subject = ""
+  val mutable author = ""
+  val mutable text = ""
+  val mutable datetime = Calendar.now ()
+  val mutable hidden = false
+  val mutable sticky = false
+    
+  method set_subject s = subject <- s
+  method set_author a = author <- a
+  method set_text t = text <- t
+  method set_datetime d = datetime <- d
+  method set_hidden h = hidden <- h
+  method set_sticky s = sticky <- s
+    
+  method apply ~sp (forum_id, message_id) =
+    self#retrieve_data (forum_id, message_id) >>= fun () -> 
+    parent#get_role forum_id >>= fun role -> 
+    return
+      {{ <div class={: div_class :}>[
+	   <h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}
+	     !{:
+		 match role with
+		   | Sql.Moderator -> 
+                       {{ [<p>{: Format.sprintf
+                                 "Message is hidden: %s; sticky: %s" 
+                                 (if hidden then "YES" else "NO")
+                                 (if sticky then "YES" else "NO") :}] }}
+		   | _ -> {{[] }}
+		       :}
+	   <pre>{: text :}
+	     (* TODO: reply to this message *)
+	 ] }}
 end;;
 
 class message_list_widget ~(parent: sessionmanager) = 
 object (self)
-	inherit [message_data] list_widget parent
-	inherit [int * int * int option * int option] parametrized_widget parent
-
-	val div_class = "message_list"
-	val db = Sql.connect ()
-
-	method private retrieve_data (forum_id, thread_id, offset, limit) =
-	let thr_id = Sql.db_int_of_int thread_id in
-	db >>=
-	fun db -> parent#get_role forum_id >>=
-	fun role -> Sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () >>=
-	fun results ->
-	Lwt_util.map
-		(fun (i, t, a, d, h, _) ->
-			return { id = (Sql.int_of_db_int i); text = t; author = a; datetime = d; hidden = h })
-		results >>=
-	fun children -> return (self#set_children children)
+  inherit [message_data] list_widget parent
+  inherit [int * int * int option * int option] parametrized_widget parent
+    
+  val div_class = "message_list"
+  val db = Sql.connect ()
+    
+  method private retrieve_data (forum_id, thread_id, offset, limit) =
+    let thr_id = Sql.db_int_of_int thread_id in
+    db >>= fun db -> 
+    parent#get_role forum_id >>= fun role -> 
+    Sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () 
+      >>= fun results ->
+    Lwt_util.map
+      (fun (i, t, a, d, h, _) ->
+	 return { id = (Sql.int_of_db_int i); 
+                  text = t; 
+                  author = a; 
+                  datetime = d; 
+                  hidden = h })
+      results
+      >>= fun children -> 
+    return (self#set_children children)
 	
-	method apply ~sp (forum_id, thread_id, offset, limit) =
-	self#retrieve_data (forum_id, thread_id, offset, limit) >>=
-	fun () -> return self#get_children >>=
-	fun subjects -> Lwt_util.map (fun s -> return {{
-		<div class="message_data">
+  method apply ~sp (forum_id, thread_id, offset, limit) =
+    self#retrieve_data (forum_id, thread_id, offset, limit) >>= fun () -> 
+    return self#get_children >>= fun subjects -> 
+    Lwt_util.map 
+      (fun s -> 
+         return 
+           {{
+	      <div class="message_data">
 		[
-			<h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
-			<pre>{: s.text :}
+		  <h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
+		  <pre>{: s.text :}
 		]
-	}}) subjects >>=
-	fun rows -> return
-	{{
-		<div class={: div_class :}>[
-			!{:
-				match rows with
-				| [] -> {{ [<p>"This thread does not contain any messages."] }}
-				| l -> {{ {: l :} }}
-			:}
-		]
-	}}
+	    }}) subjects >>= fun rows -> 
+        return
+	  {{
+	     <div class={: div_class :}>[
+	       !{:
+		   match rows with
+		     | [] -> {{ [<p>"This thread does not contain any messages."] }}
+		     | l -> {{ {: l :} }}
+			 :}
+	     ]
+	   }}
 end;;
 
-class message_navigation_widget ~(parent: sessionmanager) ~(srv_thread:(int * (int * int option), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service) =
+class message_navigation_widget
+  ~(parent: sessionmanager)
+  ~(srv_thread:(int * (int * int option), 
+                unit, 
+                get_service_kind,
+                [`WithoutSuffix], 
+                [`One of int] param_name * 
+                  ([`One of int] param_name * [`Opt of int] param_name), 
+                unit, 
+                [`Registrable]) service) =
 object (self)
-	inherit [int * int * int option * int option] parametrized_widget parent
+  inherit [int * int * int option * int option] parametrized_widget parent
+    
+  val div_class = "message_navigation"
+  val mutable nr_messages = 0
+  val db = Sql.connect ()
+    
+  method private retrieve_data (forum_id, thread_id, offset, limit) =
+    let thr_id = Sql.db_int_of_int thread_id in
+    db >>= fun db -> 
+    parent#get_role forum_id >>= fun role -> 
+    Sql.thread_get_nr_messages db ~thr_id ~role >>= fun nr_m -> 
+    nr_messages <- nr_m; 
+    Ocsigen_messages.debug2 "[message_navigation_widget] retrieve_data: end";
+    return ()
 
-	val div_class = "message_navigation"
-	val mutable nr_messages = 0
-	val db = Sql.connect ()
-
-	method private retrieve_data (forum_id, thread_id, offset, limit) =
-	let thr_id = Sql.db_int_of_int thread_id in
-	db >>=
-	fun db -> parent#get_role forum_id >>=
-	fun role -> Sql.thread_get_nr_messages db ~thr_id ~role >>=
-	fun nr_m -> nr_messages <- nr_m; Ocsigen_messages.debug2 "[message_navigation_widget] retrieve_data: end";
-	return ()
-
-	method apply ~sp (forum_id, thread_id, offset, limit) =
-	Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] message_navigation#apply" (Sql.uuid_of_conn db));
-	self#retrieve_data (forum_id, thread_id, offset, limit) >>=
-	fun () -> return {{
-		<div class={: div_class :}>
+  method apply ~sp (forum_id, thread_id, offset, limit) =
+    Ocsigen_messages.debug2
+      (Printf.sprintf "[forumWidget] [%s] message_navigation#apply"
+         (Sql.uuid_of_conn db));
+    self#retrieve_data (forum_id, thread_id, offset, limit) >>= fun () -> 
+    return {{
+	      <div class={: div_class :}>
 		{:
-			match limit with
-			|	None -> {{ [] }}
-			| Some l -> {{
-				[<table>[
-					<tr>[
-						<td>{: if offset = None || offset = Some 0 then
-								{{ "First" }}
-							else
-								{{[{: a srv_thread sp {{"First"}} (forum_id, (thread_id, None)) :}]}}
-							:}
-						<td>{: match offset with
-							| None -> {{ "Previous" }}
-							| Some o -> if o <= l then
-									{{[{: a srv_thread sp {{"Previous"}} (forum_id, (thread_id, None)) :}]}}
-								else
-									{{[{: a srv_thread sp {{"Previous"}} (forum_id, (thread_id, Some (o-l))) :}]}}
-						:}
-						<td>{: let o = match offset with None -> 0 | Some x -> x in
-							if (o + l) >= nr_messages then
-								{{ "Next" }}
-							else
-								{{[{: a srv_thread sp {{"Next"}} (forum_id, (thread_id, Some (o+l))):}]}}
-						:}
-						<td>{: let o = match offset with None -> 0 | Some x -> x in
-							if l >= nr_messages || (o + l) >= nr_messages then
-								{{ "Last" }}
-							else
-								{{[{: a srv_thread sp {{"Last"}} (forum_id, (thread_id, Some (nr_messages-nr_messages mod l))):}]}}
-						:}
-						]
-				]]
-			}}
-		:}
-	}}
+		   match limit with
+		     | None -> {{ [] }}
+		     | Some l -> 
+                         {{
+			    [<table>[
+				<tr>[
+				  <td>{: if offset = None || 
+                                         offset = Some 0 then
+					   {{ "First" }}
+				       else
+					 {{[{: a srv_thread sp {{"First"}} 
+                                               (forum_id, (thread_id, None))
+                                               :}]}}
+					   :}
+				  <td>{: match offset with
+					 | None -> {{ "Previous" }}
+					 | Some o -> if o <= l then
+					     {{[{: a srv_thread sp
+                                                   {{"Previous"}}
+                                                   (forum_id, (thread_id, None))
+                                                   :}]}}
+					   else
+					     {{[{: a srv_thread sp
+                                                   {{"Previous"}}
+                                                   (forum_id,
+                                                    (thread_id, Some (o-l)))
+                                                   :}]}}
+					       :}
+				  <td>{: let o = match offset with
+                                         | None -> 0
+                                         | Some x -> x 
+                                       in
+                                         if (o + l) >= nr_messages then
+					   {{ "Next" }}
+					 else
+					   {{[{: a srv_thread sp {{"Next"}} 
+                                                 (forum_id, 
+                                                  (thread_id, Some (o+l))):}]}}
+					     :}
+				  <td>{: let o = match offset with
+                                         | None -> 0
+                                         | Some x -> x 
+                                       in
+					 if l >= nr_messages || 
+                                           (o + l) >= nr_messages then
+					     {{ "Last" }}
+					 else
+					   {{[{: a srv_thread sp {{"Last"}} 
+                                                 (forum_id,
+                                                  (thread_id, Some
+                                                     (nr_messages - 
+                                                        nr_messages mod l)))
+                                                 :}]}}
+					     :}
+				]
+			      ]]
+			  }}
+		           :}
+	    }}
 end;;
 
-class message_forest_widget ~(parent: sessionmanager) ~(srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service) ~(srv_message_toggle:(int * (int * int option), int, post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), [`One of int] param_name, [`Registrable]) service) =
+class message_forest_widget
+  ~(parent: sessionmanager)
+  ~(srv_reply_message:(int * (int * (int option * int)), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * ([`Opt of int] param_name * [`One of int] param_name)), unit, [`Registrable]) service)
+  ~(srv_message_toggle:(int * (int * int option), int, post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), [`One of int] param_name, [`Registrable]) service) =
 object (self)
-	inherit [int * int * int option] parametrized_widget parent
+  inherit [int * int * int option] parametrized_widget parent
+    
+  val div_class = "message_forest"
+  val mutable children: message_data tree list = []
+  val db = Sql.connect () 
+    
+  method set_children c = children <- c
+    
+  method get_children = children
+    
+  method private toggle_form hidden id (msg_id) =
+    {{ [<p>['Message is hidden: ' !{: if hidden then "YES" else "NO" :} ' ' {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :} {: int_input ~input_type:{: "hidden" :} ~name:msg_id ~value:id () :} ]] }}
+      
+  method private retrieve_data (forum_id, thread_id, btm) =
+    let thr_id = Sql.db_int_of_int thread_id
+    and bottom = match btm with
+      | None -> None
+      | Some x -> Some (Sql.db_int_of_int x) in
+      db >>= fun db -> 
+      parent#get_role forum_id >>= fun role -> 
+      Sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () 
+        >>= fun results -> 
+      lwt_forest_map
+	(fun (i, t, a, d, h, _, _, _) ->
+	   return { id = (Sql.int_of_db_int i); 
+                    text = t; 
+                    author = a; 
+                    datetime = d; 
+                    hidden = h })
+	results >>= fun children -> 
+      return (self#set_children children)
 
-	val div_class = "message_forest"
-	val mutable children: message_data tree list = []
-	val db = Sql.connect () 
-
-	method set_children c = children <- c
-
-	method get_children = children
-
-	method private toggle_form hidden id (msg_id) =
-		{{ [<p>['Message is hidden: ' !{: if hidden then "YES" else "NO" :} ' ' {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :} {: int_input ~input_type:{: "hidden" :} ~name:msg_id ~value:id () :} ]] }}
-
-	method private retrieve_data (forum_id, thread_id, btm) =
-	let thr_id = Sql.db_int_of_int thread_id
-	and bottom = match btm with
-	| None -> None
-	| Some x -> Some (Sql.db_int_of_int x) in
-	db >>=
-	fun db -> parent#get_role forum_id >>=
-	fun role -> Sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () >>=
-	fun results -> lwt_forest_map
-		(fun (i, t, a, d, h, _, _, _) ->
-			return { id = (Sql.int_of_db_int i); text = t; author = a; datetime = d; hidden = h })
-		results >>=
-	fun children -> return (self#set_children children)
-
-	method apply ~sp (forum_id, thread_id, bottom) =
-		Ocsigen_messages.debug2 (Printf.sprintf"[forumWidget] [%s] message_forest#apply" (Sql.uuid_of_conn db));
-	let rec listize_forest (f: Xhtmltypes_duce._div tree list): Xhtmltypes_duce.ul list Lwt.t =
-		Lwt_util.map (function 
-		| Node (p, ch) -> listize_forest ch >>=
-			fun rest -> return {{ <ul>[ 
-				<li>[{: p :}]
-				!{: List.map (fun r -> {{ <li>[{: r :}] }}) rest :}
-			] }}) f
-	in
-	self#retrieve_data (forum_id, thread_id, bottom) >>=
-	fun () -> parent#get_role forum_id >>=
-	fun role -> return self#get_children >>=
-	fun subjects -> lwt_forest_map (fun s -> return {{
-		<div class="message_data">
-		[
-			<h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
-			<pre>{: s.text :}
-			!{: match role with
-				| Sql.Moderator -> {{ [{: post_form ~service:srv_message_toggle ~sp (self#toggle_form s.hidden s.id) (forum_id, (thread_id, None)) :}] }}
-				| _ -> {{ [] }}
-			:}
-			{: a srv_reply_message sp {{ "Reply to this message" }} (forum_id, (thread_id, (None, s.id))) :}
-		]
-	}}) subjects >>=
-	fun forest -> listize_forest forest >>=
-	fun div_contents -> return {{
-		<div class={: div_class :}>{: div_contents :}
-	}}
+  method apply ~sp (forum_id, thread_id, bottom) =
+    Ocsigen_messages.debug2
+      (Printf.sprintf"[forumWidget] [%s] message_forest#apply" 
+         (Sql.uuid_of_conn db));
+    let rec listize_forest
+        (f: Xhtmltypes_duce._div tree list): Xhtmltypes_duce.ul list Lwt.t =
+      Lwt_util.map (function 
+		      | Node (p, ch) -> listize_forest ch >>= fun rest -> 
+                          return {{ <ul>[ 
+				      <li>[{: p :}]
+				        !{: List.map (fun r -> {{ <li>[{: r :}] }}) rest :}
+			            ] }}) f
+    in
+      self#retrieve_data (forum_id, thread_id, bottom) >>= fun () -> 
+      parent#get_role forum_id >>= fun role -> 
+      return self#get_children >>= fun subjects -> 
+      lwt_forest_map 
+        (fun s -> 
+           return {{
+		     <div class="message_data">
+		       [
+			 <h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
+			 <pre>{: s.text :}
+			   !{: match role with
+			       | Sql.Moderator -> {{ [{: post_form ~service:srv_message_toggle ~sp (self#toggle_form s.hidden s.id) (forum_id, (thread_id, None)) :}] }}
+			       | _ -> {{ [] }}
+			           :}
+			   {: a srv_reply_message sp {{ "Reply to this message" }} (forum_id, (thread_id, (None, s.id))) :}
+		       ]
+	           }}) subjects >>= fun forest -> 
+        listize_forest forest >>= fun div_contents -> 
+        return {{
+		  <div class={: div_class :}>{: div_contents :}
+	        }}
 end;;
 
 class message_form_widget ~(parent: sessionmanager) ~(srv_add_message: (int * (int * int option), string * (int option * bool), post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), [`One of string] param_name * ([`Opt of int] param_name * [`One of bool] param_name), [`Registrable]) service) =
@@ -326,137 +388,182 @@ type thread_data =
 	datetime: Calendar.t
 };;
 
-class thread_widget ~(parent: sessionmanager) ~(srv_thread_toggle: (int * (int * int option), unit, post_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service) =
+class thread_widget
+  ~(parent: sessionmanager)
+  ~(srv_thread_toggle: (int * (int * int option), 
+                        unit, 
+                        post_service_kind,
+                        [`WithoutSuffix],
+                        [`One of int] param_name * 
+                          ([`One of int] param_name * 
+                             [`Opt of int] param_name), 
+                        unit, 
+                        [`Registrable]) service) =
 object (self)
-	inherit [int * int] parametrized_widget parent
+  inherit [int * int] parametrized_widget parent
+    
+  val div_class = "thread"
+  val mutable subject = ""
+  val mutable author = ""
+  val mutable article = None
+  val mutable datetime = Calendar.now ()
+  val mutable hidden = false
+  val mutable shown_messages = 0
+  val mutable hidden_messages = 0
+  val db = Sql.connect ()
+    
+  method set_subject s = subject <- s
+  method set_author a = author <- a
+  method set_article a = article <- (Some a)
+  method set_datetime d = datetime <- d
+  method set_hidden h = hidden <- h
+  method set_shown_messages sm = shown_messages <- sm
+  method set_hidden_messages hm = hidden_messages <- hm
+    
+  method get_subject = subject
+  method get_author = author
+  method get_article = article
+  method get_datetime = datetime
+  method get_hidden = hidden
+  method get_shown_messages = shown_messages
+  method get_hidden_messages = hidden_messages
+    
+  method private toggle_form () =
+    {{ [<p>['Thread is hidden: '
+              !{: if self#get_hidden then "YES" else "NO" :}
+              ' ' 
+              {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :}
+           ]] }}
 
-	val div_class = "thread"
-	val mutable subject = ""
-	val mutable author = ""
-	val mutable article = None
-	val mutable datetime = Calendar.now ()
-	val mutable hidden = false
-	val mutable shown_messages = 0
-	val mutable hidden_messages = 0
-	val db = Sql.connect ()
+  method private retrieve_data (forum_id, thread_id) =
+    let thr_id = Sql.db_int_of_int thread_id in
+    db >>= fun db -> 
+    parent#get_role forum_id >>= fun role -> 
+    Sql.thread_get_data db ~thr_id ~role >>= fun (i, s, a, ar, d, h, sm, hm) ->
+    self#set_subject s;
+    self#set_author a;
+    (match ar with
+       | None -> ()
+       | Some x -> self#set_article x);
+    self#set_datetime d;
+    self#set_hidden h;
+    self#set_shown_messages sm;
+    return (self#set_hidden_messages hm)
 
-	method set_subject s = subject <- s
-	method set_author a = author <- a
-	method set_article a = article <- (Some a)
-	method set_datetime d = datetime <- d
-	method set_hidden h = hidden <- h
-	method set_shown_messages sm = shown_messages <- sm
-	method set_hidden_messages hm = hidden_messages <- hm
-
-	method get_subject = subject
-	method get_author = author
-	method get_article = article
-	method get_datetime = datetime
-	method get_hidden = hidden
-	method get_shown_messages = shown_messages
-	method get_hidden_messages = hidden_messages
-
-	method private toggle_form () =
-		{{ [<p>['Thread is hidden: ' !{: if self#get_hidden then "YES" else "NO" :} ' ' {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :}]] }}
-
-	method private retrieve_data (forum_id, thread_id) =
-	let thr_id = Sql.db_int_of_int thread_id in
-	db >>=
-	fun db -> parent#get_role forum_id >>=
-	fun role -> Sql.thread_get_data db ~thr_id ~role >>=
-	fun (i, s, a, ar, d, h, sm, hm) ->
-		self#set_subject s;
-		self#set_author a;
-		(match ar with
-		| None -> ()
-		| Some x -> self#set_article x);
-		self#set_datetime d;
-		self#set_hidden h;
-		self#set_shown_messages sm;
-		return (self#set_hidden_messages hm)
-
-	method apply ~sp (forum_id, thread_id) =
-	Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread#apply" (Sql.uuid_of_conn db));
-	self#retrieve_data (forum_id, thread_id) >>=
-	fun () -> parent#get_role forum_id >>=
-	fun role -> return
-	{{ <div class={: div_class :}>[
-		<h1>{: self#get_subject :}
-		!{:
-			match role with
-			| Sql.Moderator -> {{ [{: post_form ~service:srv_thread_toggle ~sp self#toggle_form (forum_id, (thread_id, None)) :}] }}
-			| _ -> {{ [] }}
-		:}
-		<h2>{: Printf.sprintf "Created by: %s %s" self#get_author (sod self#get_datetime) :}
-		<div class="article">{:
-			match self#get_article with
-			| None -> {{ [] }}
-			| Some a -> {{ [<pre>{: a :}] }}
-		:}
-	] }}
-end;;
+  method apply ~sp (forum_id, thread_id) =
+    Ocsigen_messages.debug2
+      (Printf.sprintf "[forumWidget] [%s] thread#apply" (Sql.uuid_of_conn db));
+    self#retrieve_data (forum_id, thread_id) >>= fun () -> 
+    parent#get_role forum_id >>= fun role -> 
+    return
+      {{ <div class={: div_class :}>[
+	   <h1>{: self#get_subject :}
+	     !{:
+		 match role with
+		   | Sql.Moderator -> 
+                       {{ [{: post_form ~service:srv_thread_toggle
+                              ~sp self#toggle_form
+                              (forum_id, (thread_id, None)) :}] }}
+		   | _ -> {{ [] }}
+		       :}
+	   <h2>{: Printf.sprintf
+                  "Created by: %s %s" self#get_author (sod self#get_datetime)
+                  :}
+	   <div class="article">{:
+			           match self#get_article with
+			             | None -> {{ [] }}
+			             | Some a -> {{ [<pre>{: a :}] }}
+		                         :}
+	 ] }}
+end
 
 class thread_toggle_action ~(parent: sessionmanager) = 
 object (self)
-	inherit [int * int] parametrized_widget parent
-	
-	val div_class = "thread_toggle"
-	val db = Sql.connect ()
-
-	method apply ~sp (forum_id, thread_id) =
-		let frm_id = Sql.db_int_of_int forum_id in
-		let thr_id = Sql.db_int_of_int thread_id in
-		db >>=
-		fun db -> Sql.thread_toggle_hidden db ~frm_id ~thr_id >>=
-		fun () -> return {{ <div class={: div_class :}>[
-			<p>"Thread toggled."		
-		] }}
+  inherit [int * int] parametrized_widget parent
+    
+  val div_class = "thread_toggle"
+  val db = Sql.connect ()
+    
+  method apply ~sp (forum_id, thread_id) =
+    let frm_id = Sql.db_int_of_int forum_id in
+    let thr_id = Sql.db_int_of_int thread_id in
+    db >>= fun db -> 
+    Sql.thread_toggle_hidden db ~frm_id ~thr_id >>= fun () -> 
+    return {{ <div class={: div_class :}>[
+		<p>"Thread toggled."		
+	      ] }}
 end;;
 
-class thread_list_widget ~(parent: sessionmanager) ~(srv_thread:(int * (int * int option), unit, get_service_kind, [`WithoutSuffix], [`One of int] param_name * ([`One of int] param_name * [`Opt of int] param_name), unit, [`Registrable]) service) =
+class thread_list_widget
+  ~(parent: sessionmanager)
+  ~(srv_thread:(int * (int * int option), 
+                unit, 
+                get_service_kind, 
+                [`WithoutSuffix],
+                [`One of int] param_name * 
+                  ([`One of int] param_name * [`Opt of int] param_name),
+                unit,
+                [`Registrable]) service) =
 object (self)
-	inherit [int] parametrized_widget parent
-	inherit [thread_data] list_widget parent
+  inherit [int] parametrized_widget parent
+  inherit [thread_data] list_widget parent
+    
+  val div_class = "thread_list"
+  val db = Sql.connect ()
+    
+  method private retrieve_data (forum_id) =
+    Ocsigen_messages.debug2
+      (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
+    let frm_id = Sql.db_int_of_int forum_id in 
+    db >>= fun db -> 
+    parent#get_role forum_id >>= fun role -> 
+    Sql.forum_get_threads_list db ~frm_id ~role () >>= fun result -> 
+    Lwt_util.map (fun (i, s, a, d, _) ->
+		    return { id = Sql.int_of_db_int i; 
+                             subject = s; 
+                             author = a; 
+                             datetime = d }
+	         ) result >>= fun children -> 
+    return (self#set_children children)
 
-	val div_class = "thread_list"
-	val db = Sql.connect ()
-
-	method private retrieve_data (forum_id) =
-	Ocsigen_messages.debug2 (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
-	let frm_id = Sql.db_int_of_int forum_id in 
-	db >>=
-	fun db -> parent#get_role forum_id >>=
-	fun role -> Sql.forum_get_threads_list db ~frm_id ~role () >>=
-	fun result -> Lwt_util.map (fun (i, s, a, d, _) ->
-		return { id = Sql.int_of_db_int i; subject = s; author = a; datetime = d }
-	) result >>=
-	fun children -> return (self#set_children children)
-
-	method apply ~sp (forum_id) =
-	Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] thread_list#apply" (Sql.uuid_of_conn db));
-	catch (fun () -> self#retrieve_data forum_id >>=
-	fun () -> return self#get_children >>=
-	fun subjects ->  Ocsigen_messages.debug2 (Printf.sprintf "[thread_list] apply: %d items" (List.length subjects));
-	Lwt_util.map (fun s -> return {{ <tr>[
-			<td>{: sod s.datetime :}
-			<td>[{: a ~service:srv_thread ~sp {{ {: s.subject :} }} (forum_id, (s.id, None)) :}]
-			<td>{: s.author:}
-		] }}) subjects >>=
-	fun rows -> return {{
-		<div class={: div_class :}>{:
-			match rows with
-			| [] -> {{ [<p>"This forum does not contain any threads."] }}
-			| l -> {{ [<table>[
-				<tr>[<th>"Time" <th>"Subject" <th>"Author"]
-				!{: l :}
-			]] }}
-		:} }}) 
-	(function 
-	 Not_found -> return {{ <div class={: div_class :}>[<p>"This forum is not available."] }}
-	| e -> return {{ <div class={: div_class :}>[
-		<p>{: Printf.sprintf "Error: %s" (Printexc.to_string e) :}
-	] }})
-end;;
+  method apply ~sp (forum_id) =
+    Ocsigen_messages.debug2
+      (Printf.sprintf "[forumWidget] [%s] thread_list#apply"
+         (Sql.uuid_of_conn db));
+    catch (fun () -> self#retrieve_data forum_id >>= fun () -> 
+             return self#get_children >>= fun subjects -> 
+             Ocsigen_messages.debug2
+               (Printf.sprintf "[thread_list] apply: %d items" 
+                  (List.length subjects));
+	       Lwt_util.map 
+                 (fun s -> 
+                    return {{ <tr>[
+			        <td>{: sod s.datetime :}
+			        <td>[{: a ~service:srv_thread ~sp
+                                        {{ {: s.subject :} }} 
+                                        (forum_id, (s.id, None)) :}]
+			        <td>{: s.author:}
+		              ] }}) subjects >>= fun rows -> 
+                 return {{
+		           <div class={: div_class :}>
+                             {:
+			        match rows with
+			          | [] -> {{ [<p>"This forum does not contain any threads."] }}
+			          | l -> {{ [<table>[
+				                <tr>[<th>"Time" <th>"Subject" <th>"Author"]
+				                  !{: l :}
+			                      ]] }}
+		                      :} }}) 
+      (function 
+	 | Not_found -> 
+             return
+               {{ <div class={: div_class :}>
+                    [<p>"This forum is not available."] }}
+	 | e -> return {{ <div class={: div_class :}>[
+		            <p>{: Printf.sprintf "Error: %s"
+                                  (Printexc.to_string e) :}
+	                  ] }})
+end
 
 class thread_form_widget ~(parent: sessionmanager) ~(srv_add_thread: (int, bool * (string * string), post_service_kind, [`WithoutSuffix], [`One of int] param_name, [`One of bool] param_name * ([`One of string] param_name * [`One of string] param_name), [`Registrable]) service) =
 object (self)

@@ -803,22 +803,28 @@ let wiki_get_pages_list ~wik_id =
           commit db;
         wpg_l)
     ()
-    
+*)    
 
-let wikipage_get_data ~wik_id ~suffix =
+let wikibox_get_data db ~wiki ~id =
   (* returns subject, text, author, datetime of a wikipage; None if
      non-existant *)
-  Lwt_preemptive.detach
-    (fun () ->
-      let wpg_data =
-        (match 
-          LWT_PGSQL(db) "SELECT subject, txt, author, datetime \
-            FROM wikipages, textdata \
-            WHERE wik_id = $wik_id AND suffix = $suffix \
-            AND txt_id = textdata.id"
-        with [x] -> Some x | _ -> None) in
-      wpg_data)
-    () *)
+  LWT_PGSQL(db) "SELECT comment, author, content, datetime \
+                 FROM wikiboxes \
+                 WHERE wiki_id = $wiki \
+                 AND id = $id \
+                 AND version = \
+                     (SELECT max(version) \
+                      FROM wikiboxes \
+                      WHERE wiki_id = $wiki \
+                      AND id = $id)" >>= 
+  function
+    | [] -> Lwt.return None
+    | [x] -> Lwt.return (Some x)
+    | x::_ -> 
+        Ocsigen_messages.warning
+          "Ocsimore: database error (Wiki_sql.wikipage_get_data)";
+        Lwt.return (Some x)
+
 
 
 

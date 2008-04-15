@@ -159,12 +159,13 @@ val wiki_get_data : wik_id:db_int_t -> (string * string * int) Lwt.t
 (** returns the list of subject, suffix, author, datetime of wikipages, sorted by subject *)
 val wiki_get_pages_list : wik_id:db_int_t -> 
   (string * string * string * Calendar.t) list Lwt.t
+*)
 
-(** look for a wikipage and returns [Some (subject, text, author,
+(** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
-val wikipage_get_data : wik_id:db_int_t -> suffix:string ->
+val wikibox_get_data : db_t -> wiki:db_int_t -> id:db_int_t ->
   (string * string * string * Calendar.t) option Lwt.t
- *)
+
 
 (*
 (** create a new service *)

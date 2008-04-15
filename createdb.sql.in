@@ -201,32 +201,34 @@ ALTER TABLE public.users OWNER TO %%USER%%;
 -- Name: wikipages; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
-CREATE TABLE wikipages (
+CREATE TABLE wikiboxes (
     id integer NOT NULL,
-    suffix text DEFAULT ''::text NOT NULL,
-    wik_id integer NOT NULL,
-    txt_id integer NOT NULL,
+    wiki_id integer NOT NULL, -- There may be several wikis
+    version serial NOT NULL,
+    comment text DEFAULT ''::text NOT NULL,
     author text DEFAULT ''::text NOT NULL,
+    content text NOT NULL,
     datetime timestamp without time zone DEFAULT now() NOT NULL,
-    subject text DEFAULT ''::text NOT NULL
+    PRIMARY KEY (id, version)
 );
 
+
+ALTER TABLE public.wikiboxes OWNER TO %%USER%%;
+
+CREATE TABLE wikipages (
+    id integer NOT NULL,
+    pagename text DEFAULT ''::text NOT NULL,
+    UNIQUE (pagename),
+    UNIQUE (id)
+);
 
 ALTER TABLE public.wikipages OWNER TO %%USER%%;
 
 --
--- Name: COLUMN wikipages.wik_id; Type: COMMENT; Schema: public; Owner: %%USER%%
+-- Name: COLUMN wikiboxes.wik_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
-COMMENT ON COLUMN wikipages.wik_id IS 'wiki';
-
-
---
--- Name: COLUMN wikipages.txt_id; Type: COMMENT; Schema: public; Owner: %%USER%%
---
-
-COMMENT ON COLUMN wikipages.txt_id IS 'text';
-
+COMMENT ON COLUMN wikiboxes.wiki_id IS 'wiki';
 
 --
 -- Name: wikis; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
@@ -241,319 +243,319 @@ CREATE TABLE wikis (
 
 ALTER TABLE public.wikis OWNER TO %%USER%%;
 
---
--- Name: forums_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: forums_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
-CREATE SEQUENCE forums_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
-
-
-ALTER TABLE public.forums_id_seq OWNER TO %%USER%%;
-
---
--- Name: forums_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
-
-ALTER SEQUENCE forums_id_seq OWNED BY forums.id;
+-- CREATE SEQUENCE forums_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
---
--- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- ALTER TABLE public.forums_id_seq OWNER TO %%USER%%;
 
-SELECT pg_catalog.setval('forums_id_seq', 1, false);
+-- --
+-- -- Name: forums_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-
---
--- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
-
-CREATE SEQUENCE messages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- ALTER SEQUENCE forums_id_seq OWNED BY forums.id;
 
 
-ALTER TABLE public.messages_id_seq OWNER TO %%USER%%;
+-- --
+-- -- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
---
--- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
-
-ALTER SEQUENCE messages_id_seq OWNED BY messages.id;
+-- SELECT pg_catalog.setval('forums_id_seq', 1, false);
 
 
---
--- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('messages_id_seq', 1, false);
-
-
---
--- Name: service_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
-
-CREATE SEQUENCE service_parameters_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- CREATE SEQUENCE messages_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
-ALTER TABLE public.service_parameters_id_seq OWNER TO %%USER%%;
+-- ALTER TABLE public.messages_id_seq OWNER TO %%USER%%;
 
---
--- Name: service_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER SEQUENCE service_parameters_id_seq OWNED BY service_parameters.id;
-
-
---
--- Name: service_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
-
-SELECT pg_catalog.setval('service_parameters_id_seq', 1, false);
+-- ALTER SEQUENCE messages_id_seq OWNED BY messages.id;
 
 
---
--- Name: services_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-CREATE SEQUENCE services_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- SELECT pg_catalog.setval('messages_id_seq', 1, false);
 
 
-ALTER TABLE public.services_id_seq OWNER TO %%USER%%;
+-- --
+-- -- Name: service_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
---
--- Name: services_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- CREATE SEQUENCE service_parameters_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
-ALTER SEQUENCE services_id_seq OWNED BY services.id;
+
+-- ALTER TABLE public.service_parameters_id_seq OWNER TO %%USER%%;
+
+-- --
+-- -- Name: service_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
+
+-- ALTER SEQUENCE service_parameters_id_seq OWNED BY service_parameters.id;
 
 
---
--- Name: services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: service_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('services_id_seq', 1, false);
+-- SELECT pg_catalog.setval('service_parameters_id_seq', 1, false);
+
+
+-- --
+-- -- Name: services_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
+
+-- CREATE SEQUENCE services_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
+
+
+-- ALTER TABLE public.services_id_seq OWNER TO %%USER%%;
+
+-- --
+-- -- Name: services_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
+
+-- ALTER SEQUENCE services_id_seq OWNED BY services.id;
+
+
+-- --
+-- -- Name: services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
+
+-- SELECT pg_catalog.setval('services_id_seq', 1, false);
 
 
 --
 -- Name: textdata_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
-CREATE SEQUENCE textdata_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- CREATE SEQUENCE textdata_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
-ALTER TABLE public.textdata_id_seq OWNER TO %%USER%%;
+-- ALTER TABLE public.textdata_id_seq OWNER TO %%USER%%;
 
---
--- Name: textdata_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: textdata_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER SEQUENCE textdata_id_seq OWNED BY textdata.id;
+-- ALTER SEQUENCE textdata_id_seq OWNED BY textdata.id;
 
 
---
--- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('textdata_id_seq', 1, false);
+-- SELECT pg_catalog.setval('textdata_id_seq', 1, false);
 
 
---
--- Name: threads_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: threads_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
-CREATE SEQUENCE threads_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- CREATE SEQUENCE threads_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
-ALTER TABLE public.threads_id_seq OWNER TO %%USER%%;
+-- ALTER TABLE public.threads_id_seq OWNER TO %%USER%%;
 
---
--- Name: threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER SEQUENCE threads_id_seq OWNED BY threads.id;
+-- ALTER SEQUENCE threads_id_seq OWNED BY threads.id;
 
 
---
--- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('threads_id_seq', 1, false);
+-- SELECT pg_catalog.setval('threads_id_seq', 1, false);
 
 
---
--- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
-CREATE SEQUENCE users_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- CREATE SEQUENCE users_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
-ALTER TABLE public.users_id_seq OWNER TO %%USER%%;
+-- ALTER TABLE public.users_id_seq OWNER TO %%USER%%;
 
---
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER SEQUENCE users_id_seq OWNED BY users.id;
+-- ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 
---
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('users_id_seq', 1, false);
+-- SELECT pg_catalog.setval('users_id_seq', 1, false);
 
 
---
--- Name: wikipages_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: wikipages_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
-CREATE SEQUENCE wikipages_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- CREATE SEQUENCE wikipages_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
-ALTER TABLE public.wikipages_id_seq OWNER TO %%USER%%;
+-- ALTER TABLE public.wikipages_id_seq OWNER TO %%USER%%;
 
---
--- Name: wikipages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: wikipages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER SEQUENCE wikipages_id_seq OWNED BY wikipages.id;
+-- ALTER SEQUENCE wikipages_id_seq OWNED BY wikipages.id;
 
 
---
--- Name: wikipages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: wikipages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('wikipages_id_seq', 1, false);
+-- SELECT pg_catalog.setval('wikipages_id_seq', 1, false);
 
 
---
--- Name: wikis_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: wikis_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
+-- --
 
-CREATE SEQUENCE wikis_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MAXVALUE
-    NO MINVALUE
-    CACHE 1;
+-- CREATE SEQUENCE wikis_id_seq
+--     START WITH 1
+--     INCREMENT BY 1
+--     NO MAXVALUE
+--     NO MINVALUE
+--     CACHE 1;
 
 
-ALTER TABLE public.wikis_id_seq OWNER TO %%USER%%;
+-- ALTER TABLE public.wikis_id_seq OWNER TO %%USER%%;
 
---
--- Name: wikis_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: wikis_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER SEQUENCE wikis_id_seq OWNED BY wikis.id;
+-- ALTER SEQUENCE wikis_id_seq OWNED BY wikis.id;
 
 
---
--- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
+-- --
 
-SELECT pg_catalog.setval('wikis_id_seq', 1, false);
+-- SELECT pg_catalog.setval('wikis_id_seq', 1, false);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE forums ALTER COLUMN id SET DEFAULT nextval('forums_id_seq'::regclass);
+-- ALTER TABLE forums ALTER COLUMN id SET DEFAULT nextval('forums_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE messages ALTER COLUMN id SET DEFAULT nextval('messages_id_seq'::regclass);
+-- ALTER TABLE messages ALTER COLUMN id SET DEFAULT nextval('messages_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE service_parameters ALTER COLUMN id SET DEFAULT nextval('service_parameters_id_seq'::regclass);
+-- ALTER TABLE service_parameters ALTER COLUMN id SET DEFAULT nextval('service_parameters_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE services ALTER COLUMN id SET DEFAULT nextval('services_id_seq'::regclass);
+-- ALTER TABLE services ALTER COLUMN id SET DEFAULT nextval('services_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE textdata ALTER COLUMN id SET DEFAULT nextval('textdata_id_seq'::regclass);
+-- ALTER TABLE textdata ALTER COLUMN id SET DEFAULT nextval('textdata_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE threads ALTER COLUMN id SET DEFAULT nextval('threads_id_seq'::regclass);
+-- ALTER TABLE threads ALTER COLUMN id SET DEFAULT nextval('threads_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
+-- ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE wikipages ALTER COLUMN id SET DEFAULT nextval('wikipages_id_seq'::regclass);
+-- ALTER TABLE wikipages ALTER COLUMN id SET DEFAULT nextval('wikipages_id_seq'::regclass);
 
 
---
--- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
+-- ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
 
 
 --
@@ -572,20 +574,20 @@ COPY messages (id, datetime, thr_id, txt_id, hidden, parent_id, sticky, tree_min
 \.
 
 
---
--- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: %%USER%%
+-- --
 
-COPY service_parameters (id, service_id, name) FROM stdin;
-\.
+-- COPY service_parameters (id, service_id, name) FROM stdin;
+-- \.
 
 
---
--- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: %%USER%%
+-- --
 
-COPY services (id, url) FROM stdin;
-\.
+-- COPY services (id, url) FROM stdin;
+-- \.
 
 
 --
@@ -617,8 +619,8 @@ COPY users (id, login, password, fullname, email, permissions) FROM stdin;
 -- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
-COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdin;
-\.
+-- COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdin;
+-- \.
 
 
 --
@@ -645,20 +647,20 @@ ALTER TABLE ONLY messages
     ADD CONSTRAINT messages_pkey PRIMARY KEY (id);
 
 
---
--- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
---
+-- --
+-- -- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
+-- --
 
-ALTER TABLE ONLY service_parameters
-    ADD CONSTRAINT service_parameters_pkey PRIMARY KEY (id);
+-- ALTER TABLE ONLY service_parameters
+--     ADD CONSTRAINT service_parameters_pkey PRIMARY KEY (id);
 
 
---
--- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
---
+-- --
+-- -- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
+-- --
 
-ALTER TABLE ONLY services
-    ADD CONSTRAINT services_pkey PRIMARY KEY (id);
+-- ALTER TABLE ONLY services
+--     ADD CONSTRAINT services_pkey PRIMARY KEY (id);
 
 
 --
@@ -683,22 +685,6 @@ ALTER TABLE ONLY threads
 
 ALTER TABLE ONLY users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
-
-
---
--- Name: wikipages_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
---
-
-ALTER TABLE ONLY wikipages
-    ADD CONSTRAINT wikipages_pkey PRIMARY KEY (id);
-
-
---
--- Name: wikipages_wik_id_suffix_key; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
---
-
-ALTER TABLE ONLY wikipages
-    ADD CONSTRAINT wikipages_wik_id_suffix_key UNIQUE (wik_id, suffix);
 
 
 --
@@ -757,12 +743,12 @@ ALTER TABLE ONLY messages
     ADD CONSTRAINT messages_txt_id_fkey FOREIGN KEY (txt_id) REFERENCES textdata(id);
 
 
---
--- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
---
+-- --
+-- -- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
+-- --
 
-ALTER TABLE ONLY service_parameters
-    ADD CONSTRAINT service_parameters_service_id_fkey FOREIGN KEY (service_id) REFERENCES services(id);
+-- ALTER TABLE ONLY service_parameters
+--     ADD CONSTRAINT service_parameters_service_id_fkey FOREIGN KEY (service_id) REFERENCES services(id);
 
 
 --
@@ -788,21 +774,6 @@ ALTER TABLE ONLY threads
 ALTER TABLE ONLY threads
     ADD CONSTRAINT threads_frm_id_fkey FOREIGN KEY (frm_id) REFERENCES forums(id);
 
-
---
--- Name: wikipages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
---
-
-ALTER TABLE ONLY wikipages
-    ADD CONSTRAINT wikipages_txt_id_fkey FOREIGN KEY (txt_id) REFERENCES textdata(id);
-
-
---
--- Name: wikipages_wik_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
---
-
-ALTER TABLE ONLY wikipages
-    ADD CONSTRAINT wikipages_wik_id_fkey FOREIGN KEY (wik_id) REFERENCES wikis(id);
 
 
 --

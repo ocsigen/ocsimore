@@ -3,12 +3,12 @@ include Makefile.config
 OCSIMORE_SRC1 = ocsimore_config.ml
 OCSIMORE_SRC2 = setOfSets.ml users.ml \
 	forum.ml session_manager.ml \
-	ocsimorelib.ml widget.ml user_widget.ml forum_widgets.ml \
-	wiki_parser.ml wiki.ml
+	ocsimorelib.ml widget.ml user_widgets.ml forum_widgets.ml \
+	wiki_parser.ml wiki.ml wiki_widgets.ml
 # services.ml
 OCSIMORE_MLI = widget.mli forum_widgets.mli forum.mli \
 	session_manager.mli setOfSets.mli users.mli user_widgets.mli \
-	wiki.mli wiki_parser.mli
+	wiki.mli wiki_parser.mli wiki_widgets.mli
 #services.mli 
 OCSIMORE_CMO = $(OCSIMORE_SRC1:.ml=.cmo) sql.cmo $(OCSIMORE_SRC2:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)

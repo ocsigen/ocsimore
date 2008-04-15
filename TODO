@@ -4,3 +4,6 @@ TODO
 Replace (using another table)
  - I removed all that depends on the module Services for now Vincent 2008/04/15
 (dynamic creation of services)
+
+Wiki :
+ - What if two users modify the same page at the same time?
