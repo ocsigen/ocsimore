@@ -4,7 +4,7 @@ open Eliom_parameters
 open Eliom_services
 open Eliom_sessions
 open Eliom_duce.Xhtml
-open SessionManager
+open Session_manager
 open Ocsimorelib
 open CalendarLib
 open Widget

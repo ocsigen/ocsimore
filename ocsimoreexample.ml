@@ -11,20 +11,20 @@ begin
   (fun () -> Users.create_user "admin" (Some "nimda") "Administrator" "") >>=
   fun s -> return (Sql.Persist.get s) >>=
   fun admin ->
-    let s = new SessionManager.sessionmanager
+    let s = new Session_manager.sessionmanager
     ~sessionmanagerinfo:{
-      SessionManager.url = ["users"];
-      SessionManager.default_groups = [];
-      SessionManager.login_actions =
+      Session_manager.url = ["users"];
+      Session_manager.default_groups = [];
+      Session_manager.login_actions =
         (fun sp sess -> return ());
-      SessionManager.logout_actions =
+      Session_manager.logout_actions =
         (fun sp -> return ());
-      SessionManager.registration_mail_from =
+      Session_manager.registration_mail_from =
         ("Registration","register@somewhere.net");
-			SessionManager.registration_mail_subject = "Register"
+			Session_manager.registration_mail_subject = "Register"
     } in
     s#lwtinit >>=
-    fun () -> return (s :> SessionManager.sessionmanager) >>=
+    fun () -> return (s :> Session_manager.sessionmanager) >>=
   fun sessmag ->
 		return (new Forum.forum
 		~foruminfo:{
@@ -42,7 +42,7 @@ begin
 		~sessionmanager:sessmag) >>=
 	fun forum1 -> let main_page sp _ _ =
     begin
-      get_persistent_data SessionManager.user_table sp >>=
+      get_persistent_data Session_manager.user_table sp >>=
 			fun sess ->	forum1#display sp sess >>=
 			fun forum1_box -> 
 				return {{<html>[

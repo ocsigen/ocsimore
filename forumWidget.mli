@@ -5,7 +5,7 @@ open Eliom_services
 open Eliom_duce
 open Ocsimorelib
 open CalendarLib
-open SessionManager
+open Session_manager
 open Widget
 
 (**

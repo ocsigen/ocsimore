@@ -2,7 +2,7 @@ open Lwt
 open Eliommod
 open Eliom_duce.Xhtml
 open Eliom_sessions
-open SessionManager
+open Session_manager
 open Ocsimorelib
 
 class widget ~(parent: sessionmanager) =

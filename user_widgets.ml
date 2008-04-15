@@ -1,7 +1,7 @@
 let (>>=) = Lwt.bind
 
 
-class login_widget ~(parent: SessionManager.sessionmanager) =
+class login_widget ~(parent: Session_manager.sessionmanager) =
 object (self)
   inherit [unit] Widget.parametrized_widget parent
     
@@ -41,7 +41,7 @@ object (self)
   method apply ~sp () =
     Ocsigen_messages.debug2 "[forumWidget] login#apply";
     Eliom_sessions.get_persistent_session_data
-      SessionManager.user_table sp () >>= fun sess ->
+      Session_manager.user_table sp () >>= fun sess ->
     Lwt.return {{ <div class={: div_class :}>
                 [{:
 		    match sess with
