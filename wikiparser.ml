@@ -2,7 +2,7 @@
    To be extended and rewritten with ad-hoc tools (ocamllex, ocamlyacc). *)
 
 (* open XHTML.M *)
-open Eliomduce.Xhtml
+open Eliom_duce.Xhtml
 open List
 open String
 open Str
@@ -41,7 +41,7 @@ let rec get_args = function
   | [] -> ([], []) 
 
 (* parse inline commands *)
-let rec parse_inl_cmd a_args x: {{ Xhtml1_strict.inlines }} =
+let rec parse_inl_cmd a_args x: {{ Xhtmltypes_duce.inlines }} =
 	match x with
   | "%*"::toks -> let (args, rest) = get_args toks in 
       {{ [ <strong>{: allpcdata args :} !{: parse_inl_cmd a_args rest :} ] }}
@@ -65,7 +65,7 @@ let rec parse_code = function
   | [] -> ([], [])
     
 (* parse row commands *)
-let rec parse_row_cmd a_args x: {{ Xhtml1_strict.flows }} =
+let rec parse_row_cmd a_args x: {{ Xhtmltypes_duce.flows }} =
 	match x with
   | ("%pre["::_) :: rows -> let (args, rest) = parse_code rows in 
 			{{ [ <code>{: String.concat "" args :} !{: parse_row_cmd a_args rest :} ] }}
@@ -80,6 +80,6 @@ let rec parse_row_cmd a_args x: {{ Xhtml1_strict.flows }} =
   | [] -> {{ [] }}
 
 (* LEXER+PARSER *)
-let parse a_args s = 
+let parse a_args s : {{ Xhtmltypes_duce.flows }} = 
   {{ {: let rows = split (regexp "\n") s
   in parse_row_cmd a_args (map lexer rows) :} }}

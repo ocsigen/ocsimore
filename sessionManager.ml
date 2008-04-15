@@ -6,7 +6,6 @@ open Eliom_predefmod
 open Eliom_duce.Xhtml
 open Xhtmltypes_duce
 open Lwt
-open Services
 open Users
 
 let user_table: user persistent_table = 
@@ -33,11 +32,12 @@ and internal_srv_reminder = new_service ~path:(sessionmanagerinfo.url @ ["remind
 and srv_reminder_done = new_post_coservice ~fallback:internal_srv_register ~post_params:(string "usr") ()
 and internal_srv_edit = new_coservice ~fallback:internal_srv_register ~get_params:unit ()
 and srv_edit_done = new_post_coservice ~fallback:internal_srv_register ~post_params:(string "pwd" ** (string "pwd2" ** (string "descr" ** string "email"))) () 
-and srv_create_service = new_service ~path:(sessionmanagerinfo.url @ ["create_service"]) ~get_params:unit () in
+(* and srv_create_service = new_service ~path:(sessionmanagerinfo.url @ ["create_service"]) ~get_params:unit () in
 let srv_create_service_done = new_post_coservice ~fallback:srv_create_service ~post_params:(string "url") () in
 let srv_modify_service = new_service ~path:(sessionmanagerinfo.url @ ["modify_service"]) ~get_params:(string "url") () in
 let srv_modify_service_done = new_post_coservice ~fallback:srv_modify_service ~post_params:unit () in
-let srv_list_services = new_service ~path:(sessionmanagerinfo.url @ ["list_services"]) ~get_params:unit () in
+let srv_list_services = new_service ~path:(sessionmanagerinfo.url @ ["list_services"]) ~get_params:unit () *)
+in
 
 let act_add_parameter = new_post_coservice' ~post_params:(string "service_name" ** string "param_name") () in
 let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
@@ -296,7 +296,7 @@ object (self)
 			~contents:{{ [<h1>"I can\'t do that, Dave."
 				<p>"In order to manipulate services, you must be an administrator."] }}	
 
-	method private page_create_service = fun sp () () ->
+(*	method private page_create_service = fun sp () () ->
 		get_persistent_session_data user_table sp () >>=
 		fun sess -> 
 		self#container
@@ -405,6 +405,8 @@ object (self)
 			~sess
 			~contents:cts
 
+*)
+
 	method private add_parameter_handler user = fun sp () (url, param_name) ->
 		(* if in_group user sessionmanagerinfo.administrator then
 		begin
@@ -466,7 +468,7 @@ object (self)
 			Ocsigen_messages.debug2 "[sessionManager] registering VI";
       register srv_reminder_done self#page_reminder_done;
 			Ocsigen_messages.debug2 "[sessionManager] registering VII";
-			register srv_list_services self#page_list_services;
+(*			register srv_list_services self#page_list_services;
 			Ocsigen_messages.debug2 "[sessionManager] registering VIII";
 			register srv_create_service self#page_create_service;
 			Ocsigen_messages.debug2 "[sessionManager] registering IX";
@@ -478,6 +480,7 @@ object (self)
 			Ocsigen_messages.debug2 "[sessionManager] registering XII";
 			(* Services.register_services db >>=
 			fun () -> *) Ocsigen_messages.debug2 "[sessionManager] registering done";
+*)
 				return ()
 		end
 	

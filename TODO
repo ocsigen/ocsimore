@@ -1,0 +1,6 @@
+TODO
+
+ - The set of groups for one user is a marshalled ocaml value. 
+Replace (using another table)
+ - I removed all that depends on the module Services for now Vincent 2008/04/15
+(dynamic creation of services)

@@ -1,3 +1,7 @@
+-- WARNING! 
+-- createdb.sql is generated automatically from createdb.ml.in 
+-- Do not edit manually!
+
 --
 -- PostgreSQL database dump
 --
@@ -31,18 +35,6 @@ CREATE TABLE forums (
 
 
 ALTER TABLE public.forums OWNER TO %%USER%%;
-
---
--- Name: globalstore; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
---
-
-CREATE TABLE globalstore (
-    key text NOT NULL,
-    value bytea
-);
-
-
-ALTER TABLE public.globalstore OWNER TO %%USER%%;
 
 --
 -- Name: messages; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
@@ -85,30 +77,31 @@ COMMENT ON COLUMN messages.txt_id IS 'text';
 COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 
 
---
--- Name: service_parameters; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
---
+-- PAS FINI
+-- --
+-- -- Name: service_parameters; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
+-- --
 
-CREATE TABLE service_parameters (
-    id integer NOT NULL,
-    service_id integer NOT NULL,
-    name text NOT NULL
-);
-
-
-ALTER TABLE public.service_parameters OWNER TO %%USER%%;
-
---
--- Name: services; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
---
-
-CREATE TABLE services (
-    id integer NOT NULL,
-    url text NOT NULL
-);
+-- CREATE TABLE service_parameters (
+--     id integer NOT NULL,
+--     service_id integer NOT NULL,
+--     name text NOT NULL
+-- );
 
 
-ALTER TABLE public.services OWNER TO %%USER%%;
+-- ALTER TABLE public.service_parameters OWNER TO %%USER%%;
+
+-- --
+-- -- Name: services; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
+-- --
+
+-- CREATE TABLE services (
+--     id integer NOT NULL,
+--     url text NOT NULL
+-- );
+
+
+-- ALTER TABLE public.services OWNER TO %%USER%%;
 
 --
 -- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: %%USER%%
@@ -572,14 +565,6 @@ COPY forums (id, title, descr, moderated, arborescent, reader, writer, moderator
 
 
 --
--- Data for Name: globalstore; Type: TABLE DATA; Schema: public; Owner: %%USER%%
---
-
-COPY globalstore (key, value) FROM stdin;
-\.
-
-
---
 -- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
@@ -650,14 +635,6 @@ COPY wikis (id, title, descr) FROM stdin;
 
 ALTER TABLE ONLY forums
     ADD CONSTRAINT forums_pkey PRIMARY KEY (id);
-
-
---
--- Name: globalstore_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
---
-
-ALTER TABLE ONLY globalstore
-    ADD CONSTRAINT globalstore_pkey PRIMARY KEY (key);
 
 
 --

@@ -1,13 +1,16 @@
 include Makefile.config
 
-OCSIMORE_SRC = ocsimore_config.ml sql.ml \
-	setOfSets.ml users.ml services.ml forum.ml sessionManager.ml \
-	ocsimorelib.ml widget.ml forumWidget.ml
-# wikiparser.ml wiki.ml
+OCSIMORE_SRC1 = ocsimore_config.ml
+OCSIMORE_SRC2 = setOfSets.ml users.ml \
+	forum.ml sessionManager.ml \
+	ocsimorelib.ml widget.ml user_widget.ml forumWidget.ml \
+	wikiparser.ml wiki.ml
+# services.ml
 OCSIMORE_MLI = widget.mli forumWidget.mli forum.mli \
-	sessionManager.mli setOfSets.mli services.mli users.mli \
-# wiki.mli wikiparser.mli
-OCSIMORE_CMO = $(OCSIMORE_SRC:.ml=.cmo)
+	sessionManager.mli setOfSets.mli users.mli user_widget.mli \
+	wiki.mli wikiparser.mli
+#services.mli 
+OCSIMORE_CMO = $(OCSIMORE_SRC1:.ml=.cmo) sql.cmo $(OCSIMORE_SRC2:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
 
 #HOST = localhost
@@ -53,7 +56,8 @@ sql.cmo: sql.ml
 	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
 
 print_sql:
-	PGHOST=$(HOST) PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+#	PGHOST=$(HOST) 
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
 	$(CAMLP4O) \
 	$(shell ocamlc -where)/str.cma \
 	-I +threads $(shell ocamlfind query threads)/threads/threads.cma \
@@ -80,8 +84,9 @@ createdb.sql: createdb.sql.in
 	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	
 
 depend:
-	ocamlducefind ocamldep $(OCSIMORE_SRC) $(OCSIMORE_MLI) > .depend
-	PGHOST=$(HOST) PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+	ocamlducefind ocamldep $(OCSIMORE_SRC1) $(OCSIMORE_SRC2) $(OCSIMORE_MLI) > .depend
+#	PGHOST=$(HOST) 
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
 	ocamlfind ocamldep $(PACKAGES) $(PP) sql.ml sql.mli >> .depend
 
 clean:

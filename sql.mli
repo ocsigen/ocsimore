@@ -140,10 +140,10 @@ val get_latest_messages:
 
 (** {4 Wikis} *)
 
-(* 
 (** inserts a new wiki container *)
-val new_wiki : title:string -> descr:string -> db_int_t  Lwt.t
+val new_wiki : db_t -> title:string -> descr:string -> db_int_t Lwt.t
 
+(*
 (** inserts a new wikipage in an existing wiki; returns [None] if
     insertion failed due to [~suffix] already in use; [Some id] otherwise. *) 
 val new_wikipage : wik_id:db_int_t -> suffix:string -> author:string ->
@@ -166,6 +166,7 @@ val wikipage_get_data : wik_id:db_int_t -> suffix:string ->
   (string * string * string * Calendar.t) option Lwt.t
  *)
 
+(*
 (** create a new service *)
 val new_service: db_t -> url:string -> db_int_t Lwt.t
 
@@ -175,3 +176,4 @@ val list_services: db_t -> string list Lwt.t
 val get_service_parameters: db_t -> url:string -> (db_int_t * string) list Lwt.t
 
 val add_parameter_to_service: db_t -> url:string -> param_name:string -> db_int_t Lwt.t
+*)

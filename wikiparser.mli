@@ -29,11 +29,12 @@
     {b Escape:} to include a literal [%] in text affected by an inline command, use the escaped form [\%].
  *)
 
-open Eliommod
-open Eliomparameters
-open Eliomservices
+open Eliom_common
+open Eliom_parameters
+open Eliom_services
 
 val parse :
-    (string, unit, [< get_service_kind ], [< suff ], 'a,
-     unit, [< registrable ]) service * server_params ->
-    string -> {{ Xhtml1_strict.flows }}
+  (string, unit, [< Eliom_services.get_service_kind ],
+   [< Eliom_services.suff ], 'a, unit, [< Eliom_services.registrable ])
+  Eliom_services.service * Eliom_sessions.server_params ->
+  string -> {{ Xhtmltypes_duce.flows }}

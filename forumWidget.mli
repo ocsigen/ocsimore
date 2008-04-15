@@ -23,12 +23,6 @@ type message_data =
 	hidden: bool;
 }
 
-(** A widget for the login/logout box *)
-class login_widget: parent:sessionmanager ->
-object
-	inherit [unit] parametrized_widget
-end;;
-
 class message_toggle_action: parent:sessionmanager ->
 object
 	inherit [int * int] parametrized_widget

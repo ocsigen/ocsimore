@@ -98,18 +98,21 @@ type message_info =
 	db_int_t * string * string * Calendar.t * bool * db_int_t option * string option;;
 (* type 'a collection = List of 'a list | Forest of 'a tree list;; *)
 
-let new_forum db ~title ~descr ~moderated ~arborescent ~reader ~writer
-~moderator =
+let new_forum
+    db ~title ~descr ~moderated ~arborescent ~reader ~writer
+    ~moderator =
   (* inserts a new forum *)
-	Ocsigen_messages.debug2 "[Sql] new_forum";
-  begin_work db >>=
-  fun _ -> LWT_PGSQL(db) "INSERT INTO forums (title, descr, moderated,
-  arborescent, reader, writer, moderator) \
-		VALUES ($title, $descr, $moderated, $arborescent, $reader, $writer,
-    $moderator)" >>=
-	fun () -> serial4 db "forums_id_seq" >>=
-	fun frm_id -> commit db >>=
-	fun _ -> Ocsigen_messages.debug2 "[Sql] new_forum: finish"; return frm_id;;
+  Ocsigen_messages.debug2 "[Sql] new_forum";
+  begin_work db >>= fun _ -> 
+  LWT_PGSQL(db) 
+    "INSERT INTO forums (title, descr, moderated,
+     arborescent, reader, writer, moderator) \
+     VALUES ($title, $descr, $moderated, $arborescent, $reader, $writer,
+     $moderator)" >>= fun () -> 
+  serial4 db "forums_id_seq" >>= fun frm_id -> 
+  commit db >>=	fun _ -> 
+  Ocsigen_messages.debug2 "[Sql] new_forum: finish"; 
+  return frm_id;;
         
 let new_thread_and_message db ~frm_id ~author_id ~subject ~txt = 
   (* inserts a message starting a new thread; both thread and message
@@ -715,23 +718,20 @@ let db_limit = db_size_of_int limit in
 	ORDER BY datetime DESC LIMIT $db_limit" >>=
 	fun result -> Ocsigen_messages.debug2 "[Sql] get_latest_messages: finish"; return result;;
 
-(* let new_wiki ~title ~descr =
+let new_wiki db ~title ~descr =
   (* inserts a new wiki *)
-  Preemptive.detach
-    (fun () ->
-      begin_work db;
-      let wik_id = 
-        (LWT_PGSQL(db) "INSERT INTO wikis (title, descr) \
-           VALUES ($title, $descr)";
-           serial4 db "wikis_id_seq") in 
-      commit db;
-      wik_id)
-    ()
+  begin_work db >>= fun _ ->
+  LWT_PGSQL(db) "INSERT INTO wikis (title, descr) \
+                 VALUES ($title, $descr)" >>= fun () ->
+  serial4 db "wikis_id_seq" >>= fun wik_id ->
+  commit db >>= fun _ ->
+  return wik_id
 
+(*
 let new_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
   (* inserts a new wikipage in an existing wiki; returns [None] if
      [~suffix] is already used in that wiki. *)
-  Preemptive.detach
+  Lwt_preemptive.detach
     (fun () ->
       begin_work db;
       let wpg_id =
@@ -753,7 +753,7 @@ let new_wikipage ~wik_id ~suffix ~author ~subject ~txt =
 
 let add_or_change_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
   (* updates, or inserts, a wikipage. *)
-  Preemptive.detach
+  Lwt_preemptive.detach
     (fun () ->
       begin_work db;
       (match
@@ -777,7 +777,7 @@ let add_or_change_wikipage ~wik_id ~suffix ~author ~subject ~txt =
 
 let wiki_get_data ~wik_id = 
   (* returns title, description, number of wikipages of a wiki. *)
-  Preemptive.detach
+  Lwt_preemptive.detach
     (fun () ->
       begin_work db;
       let (title, description) = 
@@ -793,7 +793,7 @@ let wiki_get_data ~wik_id =
 
 let wiki_get_pages_list ~wik_id =
   (* returns the list of wikipages *)
-  Preemptive.detach
+  Lwt_preemptive.detach
     (fun () ->
       begin_work db;
       let wpg_l = LWT_PGSQL(db) "SELECT subject, suffix, author, datetime \
@@ -808,7 +808,7 @@ let wiki_get_pages_list ~wik_id =
 let wikipage_get_data ~wik_id ~suffix =
   (* returns subject, text, author, datetime of a wikipage; None if
      non-existant *)
-  Preemptive.detach
+  Lwt_preemptive.detach
     (fun () ->
       let wpg_data =
         (match 
@@ -820,7 +820,11 @@ let wikipage_get_data ~wik_id ~suffix =
       wpg_data)
     () *)
 
+
+
+(*
 (* SERVICES *)
+(*VVV PAS FINI !!!!!!!!!!!!!!! *)
 let new_service db ~url =
   (* inserts a new service *)
   begin_work db >>=
@@ -855,3 +859,4 @@ let add_parameter_to_service db ~url ~param_name =
 	fun () -> serial4 db "service_parameters_id_seq" >>=
 	fun param_id -> commit db >>=
 	fun _ -> return param_id;;
+*)
