@@ -1,7 +1,7 @@
 (* The structure for users is a complete lattice, whose elements are
    sets of sets, ordered inclusion: the bottom element is the empty
    set (the anonymous user), the top element is the set of all sets
-   (the root user).
+   (the admin user).
 
    In this model, users and groups are the same concept; we only
    distinguish, for practical matters, between "login enabled" users
@@ -14,7 +14,7 @@ open Lwt
 
 type userdata = 
     {id: int;
-		 name: string;
+     name: string;
      mutable pwd: string option;
      mutable fullname: string;
      mutable email: string}
@@ -39,7 +39,12 @@ exception Users_error of string
 type user = elt 
 
 let anonymous = 
-	{ data = { id = 0; name = "anonymous"; pwd = None; fullname = "Anonymous"; email = "" }; set = empty };;
+	{ data = { id = 0; 
+                   name = "anonymous"; 
+                   pwd = None; 
+                   fullname = "Anonymous"; 
+                   email = "" }; 
+          set = empty };;
 
 let get_user_by_name db ~name =
 	if name = "anonymous" then return anonymous
@@ -157,9 +162,9 @@ let authenticate db ~name ~pwd =
 	| e -> fail e)
 
 let delete_user db ~user =
-	get_user_by_name db "root" >>=
-	fun root -> root <-//- user;
-	update_permissions_cascade db ~user:root
+	get_user_by_name db "admin" >>=
+	fun admin -> admin <-//- user;
+	update_permissions_cascade db ~user:admin
 
 let in_group ~user ~group =
 	user = group || user <-??- group
@@ -192,14 +197,14 @@ let create_standard_users db =
 		| None ->  input_line Pervasives.stdin
 
   and ask_pwd () =
-		let pwd1 = get_pwd "Please enter a root password: "
+		let pwd1 = get_pwd "Please enter a password for admin: "
 		and pwd2 = get_pwd "\nPlease enter the same password again: " in
 		if pwd1 = pwd2
 		then (print_endline "\nNew password registered."; pwd1)
 		else (print_endline "\nPasswords do not match, please try again."; ask_pwd ()) 
 
 	and ask_email () =
-		print_endline "\nEnter a valid e-mail address for root: ";
+		print_endline "\nEnter a valid e-mail address for admin: ";
 		let email = input_line Pervasives.stdin in
 		print_endline ("\n'" ^ email ^ "': Confirm this address? (Y/N)");
 		match input_line Pervasives.stdin with
@@ -207,9 +212,9 @@ let create_standard_users db =
 		| _ -> print_endline "\n"; ask_email() in
 
 	catch
-	(fun () -> Sql.find_user db ~name:"root" () >>=
+	(fun () -> Sql.find_user db ~name:"admin" () >>=
 	fun _ -> return ())
 	(function Not_found -> 
-	create_user db "root" (Some (ask_pwd ())) "Charlie Root" (ask_email ()) >>=
-	fun root -> return ()
+	create_user db "admin" (Some (ask_pwd ())) "Charlie Admin" (ask_email ()) >>=
+	fun admin -> return ()
 	| e -> fail e)

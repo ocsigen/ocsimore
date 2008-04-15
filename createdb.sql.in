@@ -15,7 +15,7 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 --
--- Name: forums; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: forums; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE forums (
@@ -30,10 +30,10 @@ CREATE TABLE forums (
 );
 
 
-ALTER TABLE public.forums OWNER TO ocsigen;
+ALTER TABLE public.forums OWNER TO %%USER%%;
 
 --
--- Name: globalstore; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: globalstore; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE globalstore (
@@ -42,10 +42,10 @@ CREATE TABLE globalstore (
 );
 
 
-ALTER TABLE public.globalstore OWNER TO ocsigen;
+ALTER TABLE public.globalstore OWNER TO %%USER%%;
 
 --
--- Name: messages; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: messages; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE messages (
@@ -62,31 +62,31 @@ CREATE TABLE messages (
 );
 
 
-ALTER TABLE public.messages OWNER TO ocsigen;
+ALTER TABLE public.messages OWNER TO %%USER%%;
 
 --
--- Name: COLUMN messages.thr_id; Type: COMMENT; Schema: public; Owner: ocsigen
+-- Name: COLUMN messages.thr_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
 COMMENT ON COLUMN messages.thr_id IS 'thread';
 
 
 --
--- Name: COLUMN messages.txt_id; Type: COMMENT; Schema: public; Owner: ocsigen
+-- Name: COLUMN messages.txt_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
 COMMENT ON COLUMN messages.txt_id IS 'text';
 
 
 --
--- Name: COLUMN messages.hidden; Type: COMMENT; Schema: public; Owner: ocsigen
+-- Name: COLUMN messages.hidden; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
 COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 
 
 --
--- Name: service_parameters; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: service_parameters; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE service_parameters (
@@ -96,10 +96,10 @@ CREATE TABLE service_parameters (
 );
 
 
-ALTER TABLE public.service_parameters OWNER TO ocsigen;
+ALTER TABLE public.service_parameters OWNER TO %%USER%%;
 
 --
--- Name: services; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: services; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE services (
@@ -108,10 +108,10 @@ CREATE TABLE services (
 );
 
 
-ALTER TABLE public.services OWNER TO ocsigen;
+ALTER TABLE public.services OWNER TO %%USER%%;
 
 --
--- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: ocsigen
+-- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: %%USER%%
 --
 
 CREATE TYPE tablefunc_crosstab_2 AS (
@@ -121,10 +121,10 @@ CREATE TYPE tablefunc_crosstab_2 AS (
 );
 
 
-ALTER TYPE public.tablefunc_crosstab_2 OWNER TO ocsigen;
+ALTER TYPE public.tablefunc_crosstab_2 OWNER TO %%USER%%;
 
 --
--- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: ocsigen
+-- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: %%USER%%
 --
 
 CREATE TYPE tablefunc_crosstab_3 AS (
@@ -135,10 +135,10 @@ CREATE TYPE tablefunc_crosstab_3 AS (
 );
 
 
-ALTER TYPE public.tablefunc_crosstab_3 OWNER TO ocsigen;
+ALTER TYPE public.tablefunc_crosstab_3 OWNER TO %%USER%%;
 
 --
--- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: ocsigen
+-- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: %%USER%%
 --
 
 CREATE TYPE tablefunc_crosstab_4 AS (
@@ -150,10 +150,10 @@ CREATE TYPE tablefunc_crosstab_4 AS (
 );
 
 
-ALTER TYPE public.tablefunc_crosstab_4 OWNER TO ocsigen;
+ALTER TYPE public.tablefunc_crosstab_4 OWNER TO %%USER%%;
 
 --
--- Name: textdata; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: textdata; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE textdata (
@@ -162,10 +162,10 @@ CREATE TABLE textdata (
 );
 
 
-ALTER TABLE public.textdata OWNER TO ocsigen;
+ALTER TABLE public.textdata OWNER TO %%USER%%;
 
 --
--- Name: threads; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: threads; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE threads (
@@ -179,17 +179,17 @@ CREATE TABLE threads (
 );
 
 
-ALTER TABLE public.threads OWNER TO ocsigen;
+ALTER TABLE public.threads OWNER TO %%USER%%;
 
 --
--- Name: COLUMN threads.frm_id; Type: COMMENT; Schema: public; Owner: ocsigen
+-- Name: COLUMN threads.frm_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
 COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: users; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE users (
@@ -202,10 +202,10 @@ CREATE TABLE users (
 );
 
 
-ALTER TABLE public.users OWNER TO ocsigen;
+ALTER TABLE public.users OWNER TO %%USER%%;
 
 --
--- Name: wikipages; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: wikipages; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE wikipages (
@@ -219,24 +219,24 @@ CREATE TABLE wikipages (
 );
 
 
-ALTER TABLE public.wikipages OWNER TO ocsigen;
+ALTER TABLE public.wikipages OWNER TO %%USER%%;
 
 --
--- Name: COLUMN wikipages.wik_id; Type: COMMENT; Schema: public; Owner: ocsigen
+-- Name: COLUMN wikipages.wik_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
 COMMENT ON COLUMN wikipages.wik_id IS 'wiki';
 
 
 --
--- Name: COLUMN wikipages.txt_id; Type: COMMENT; Schema: public; Owner: ocsigen
+-- Name: COLUMN wikipages.txt_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --
 
 COMMENT ON COLUMN wikipages.txt_id IS 'text';
 
 
 --
--- Name: wikis; Type: TABLE; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: wikis; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 CREATE TABLE wikis (
@@ -246,10 +246,10 @@ CREATE TABLE wikis (
 );
 
 
-ALTER TABLE public.wikis OWNER TO ocsigen;
+ALTER TABLE public.wikis OWNER TO %%USER%%;
 
 --
--- Name: forums_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: forums_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE forums_id_seq
@@ -260,24 +260,24 @@ CREATE SEQUENCE forums_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.forums_id_seq OWNER TO ocsigen;
+ALTER TABLE public.forums_id_seq OWNER TO %%USER%%;
 
 --
--- Name: forums_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: forums_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE forums_id_seq OWNED BY forums.id;
 
 
 --
--- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('forums_id_seq', 1, false);
 
 
 --
--- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: messages_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE messages_id_seq
@@ -288,24 +288,24 @@ CREATE SEQUENCE messages_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.messages_id_seq OWNER TO ocsigen;
+ALTER TABLE public.messages_id_seq OWNER TO %%USER%%;
 
 --
--- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: messages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE messages_id_seq OWNED BY messages.id;
 
 
 --
--- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('messages_id_seq', 1, false);
 
 
 --
--- Name: service_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: service_parameters_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE service_parameters_id_seq
@@ -316,24 +316,24 @@ CREATE SEQUENCE service_parameters_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.service_parameters_id_seq OWNER TO ocsigen;
+ALTER TABLE public.service_parameters_id_seq OWNER TO %%USER%%;
 
 --
--- Name: service_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: service_parameters_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE service_parameters_id_seq OWNED BY service_parameters.id;
 
 
 --
--- Name: service_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: service_parameters_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('service_parameters_id_seq', 1, false);
 
 
 --
--- Name: services_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: services_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE services_id_seq
@@ -344,24 +344,24 @@ CREATE SEQUENCE services_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.services_id_seq OWNER TO ocsigen;
+ALTER TABLE public.services_id_seq OWNER TO %%USER%%;
 
 --
--- Name: services_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: services_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE services_id_seq OWNED BY services.id;
 
 
 --
--- Name: services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: services_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('services_id_seq', 1, false);
 
 
 --
--- Name: textdata_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: textdata_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE textdata_id_seq
@@ -372,24 +372,24 @@ CREATE SEQUENCE textdata_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.textdata_id_seq OWNER TO ocsigen;
+ALTER TABLE public.textdata_id_seq OWNER TO %%USER%%;
 
 --
--- Name: textdata_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: textdata_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE textdata_id_seq OWNED BY textdata.id;
 
 
 --
--- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: textdata_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('textdata_id_seq', 1, false);
 
 
 --
--- Name: threads_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: threads_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE threads_id_seq
@@ -400,24 +400,24 @@ CREATE SEQUENCE threads_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.threads_id_seq OWNER TO ocsigen;
+ALTER TABLE public.threads_id_seq OWNER TO %%USER%%;
 
 --
--- Name: threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: threads_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE threads_id_seq OWNED BY threads.id;
 
 
 --
--- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: threads_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('threads_id_seq', 1, false);
 
 
 --
--- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE users_id_seq
@@ -428,24 +428,24 @@ CREATE SEQUENCE users_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.users_id_seq OWNER TO ocsigen;
+ALTER TABLE public.users_id_seq OWNER TO %%USER%%;
 
 --
--- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 
 --
--- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('users_id_seq', 1, false);
 
 
 --
--- Name: wikipages_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: wikipages_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE wikipages_id_seq
@@ -456,24 +456,24 @@ CREATE SEQUENCE wikipages_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.wikipages_id_seq OWNER TO ocsigen;
+ALTER TABLE public.wikipages_id_seq OWNER TO %%USER%%;
 
 --
--- Name: wikipages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: wikipages_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE wikipages_id_seq OWNED BY wikipages.id;
 
 
 --
--- Name: wikipages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: wikipages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('wikipages_id_seq', 1, false);
 
 
 --
--- Name: wikis_id_seq; Type: SEQUENCE; Schema: public; Owner: ocsigen
+-- Name: wikis_id_seq; Type: SEQUENCE; Schema: public; Owner: %%USER%%
 --
 
 CREATE SEQUENCE wikis_id_seq
@@ -484,87 +484,87 @@ CREATE SEQUENCE wikis_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.wikis_id_seq OWNER TO ocsigen;
+ALTER TABLE public.wikis_id_seq OWNER TO %%USER%%;
 
 --
--- Name: wikis_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: ocsigen
+-- Name: wikis_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: %%USER%%
 --
 
 ALTER SEQUENCE wikis_id_seq OWNED BY wikis.id;
 
 
 --
--- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsigen
+-- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: %%USER%%
 --
 
 SELECT pg_catalog.setval('wikis_id_seq', 1, false);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE forums ALTER COLUMN id SET DEFAULT nextval('forums_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE messages ALTER COLUMN id SET DEFAULT nextval('messages_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE service_parameters ALTER COLUMN id SET DEFAULT nextval('service_parameters_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE services ALTER COLUMN id SET DEFAULT nextval('services_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE textdata ALTER COLUMN id SET DEFAULT nextval('textdata_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE threads ALTER COLUMN id SET DEFAULT nextval('threads_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE wikipages ALTER COLUMN id SET DEFAULT nextval('wikipages_id_seq'::regclass);
 
 
 --
--- Name: id; Type: DEFAULT; Schema: public; Owner: ocsigen
+-- Name: id; Type: DEFAULT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
 
 
 --
--- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY forums (id, title, descr, moderated, arborescent, reader, writer, moderator) FROM stdin;
@@ -572,7 +572,7 @@ COPY forums (id, title, descr, moderated, arborescent, reader, writer, moderator
 
 
 --
--- Data for Name: globalstore; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: globalstore; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY globalstore (key, value) FROM stdin;
@@ -580,7 +580,7 @@ COPY globalstore (key, value) FROM stdin;
 
 
 --
--- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY messages (id, datetime, thr_id, txt_id, hidden, parent_id, sticky, tree_min, tree_max, author_id) FROM stdin;
@@ -588,7 +588,7 @@ COPY messages (id, datetime, thr_id, txt_id, hidden, parent_id, sticky, tree_min
 
 
 --
--- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY service_parameters (id, service_id, name) FROM stdin;
@@ -596,7 +596,7 @@ COPY service_parameters (id, service_id, name) FROM stdin;
 
 
 --
--- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY services (id, url) FROM stdin;
@@ -604,7 +604,7 @@ COPY services (id, url) FROM stdin;
 
 
 --
--- Data for Name: textdata; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: textdata; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY textdata (id, txt) FROM stdin;
@@ -612,7 +612,7 @@ COPY textdata (id, txt) FROM stdin;
 
 
 --
--- Data for Name: threads; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: threads; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY threads (id, subject, frm_id, hidden, datetime, article_id, author_id) FROM stdin;
@@ -620,7 +620,7 @@ COPY threads (id, subject, frm_id, hidden, datetime, article_id, author_id) FROM
 
 
 --
--- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY users (id, login, password, fullname, email, permissions) FROM stdin;
@@ -629,7 +629,7 @@ COPY users (id, login, password, fullname, email, permissions) FROM stdin;
 
 
 --
--- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdin;
@@ -637,7 +637,7 @@ COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdi
 
 
 --
--- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: ocsigen
+-- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: %%USER%%
 --
 
 COPY wikis (id, title, descr) FROM stdin;
@@ -645,7 +645,7 @@ COPY wikis (id, title, descr) FROM stdin;
 
 
 --
--- Name: forums_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: forums_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY forums
@@ -653,7 +653,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: globalstore_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: globalstore_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY globalstore
@@ -661,7 +661,7 @@ ALTER TABLE ONLY globalstore
 
 
 --
--- Name: messages_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: messages_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY messages
@@ -669,7 +669,7 @@ ALTER TABLE ONLY messages
 
 
 --
--- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY service_parameters
@@ -677,7 +677,7 @@ ALTER TABLE ONLY service_parameters
 
 
 --
--- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY services
@@ -685,7 +685,7 @@ ALTER TABLE ONLY services
 
 
 --
--- Name: textdata_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: textdata_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY textdata
@@ -693,7 +693,7 @@ ALTER TABLE ONLY textdata
 
 
 --
--- Name: threads_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: threads_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY threads
@@ -701,7 +701,7 @@ ALTER TABLE ONLY threads
 
 
 --
--- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY users
@@ -709,7 +709,7 @@ ALTER TABLE ONLY users
 
 
 --
--- Name: wikipages_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: wikipages_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY wikipages
@@ -717,7 +717,7 @@ ALTER TABLE ONLY wikipages
 
 
 --
--- Name: wikipages_wik_id_suffix_key; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: wikipages_wik_id_suffix_key; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY wikipages
@@ -725,7 +725,7 @@ ALTER TABLE ONLY wikipages
 
 
 --
--- Name: wikis_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsigen; Tablespace: 
+-- Name: wikis_pkey; Type: CONSTRAINT; Schema: public; Owner: %%USER%%; Tablespace: 
 --
 
 ALTER TABLE ONLY wikis
@@ -733,7 +733,7 @@ ALTER TABLE ONLY wikis
 
 
 --
--- Name: forums_moderator_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: forums_moderator_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY forums
@@ -741,7 +741,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: forums_reader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: forums_reader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY forums
@@ -749,7 +749,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: forums_writer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: forums_writer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY forums
@@ -757,7 +757,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY messages
@@ -765,7 +765,7 @@ ALTER TABLE ONLY messages
 
 
 --
--- Name: messages_thr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: messages_thr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY messages
@@ -773,7 +773,7 @@ ALTER TABLE ONLY messages
 
 
 --
--- Name: messages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: messages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY messages
@@ -781,7 +781,7 @@ ALTER TABLE ONLY messages
 
 
 --
--- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY service_parameters
@@ -789,7 +789,7 @@ ALTER TABLE ONLY service_parameters
 
 
 --
--- Name: threads_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: threads_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY threads
@@ -797,7 +797,7 @@ ALTER TABLE ONLY threads
 
 
 --
--- Name: threads_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: threads_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY threads
@@ -805,7 +805,7 @@ ALTER TABLE ONLY threads
 
 
 --
--- Name: threads_frm_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: threads_frm_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY threads
@@ -813,7 +813,7 @@ ALTER TABLE ONLY threads
 
 
 --
--- Name: wikipages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: wikipages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY wikipages
@@ -821,7 +821,7 @@ ALTER TABLE ONLY wikipages
 
 
 --
--- Name: wikipages_wik_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsigen
+-- Name: wikipages_wik_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: %%USER%%
 --
 
 ALTER TABLE ONLY wikipages
@@ -833,8 +833,8 @@ ALTER TABLE ONLY wikipages
 --
 
 REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM pgsql;
-GRANT ALL ON SCHEMA public TO pgsql;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO PUBLIC;
 
 

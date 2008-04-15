@@ -1,19 +1,32 @@
 
-1. Install postgresql
+1. Install postgresql if needed
 
-2. Create a user and a database
-sudo su postgres -c "createuser ocsimore"
-sudo su postgres createdb ocsimore
+2. Adapt the file Makefile.config to set the user who will run the 
+   Ocsigen process. We suppose that the postgresql user will have the same name.
+   Then do
 
-3. Install pgocaml
+make createdb.sql
+
+3. Create a postgresql user with that name (here ocsigen) 
+and a database called ocsimore
+(replace "ocsigen" by the name of your user):
+
+sudo su postgres -c "createuser ocsigen"
+sudo su postgres -c "createdb -O ocsigen ocsimore"
+sudo -u ocsigen psql -f createdb.sql ocsimore
+
+If something goes wrong, you can delete the database by typing:
+sudo su postgres -c "dropdb ocsimore"
+
+4. Install pgocaml
 http://merjis.com/developers/pgocaml
 
-4. Compile ocsimore
+5. Compile ocsimore
 make depend
 make
 
-- note: if necessary, adapt PGDATABASE, PGUSER and PGHOST in Makefile.config
 
-5. Adapt your ocsigen.conf using ocsigen.conf.example
-and run Ocsigen
+6. Adapt your ocsigen.conf using ocsigen.conf.example
+and run Ocsigen with user ocsigen
+
 

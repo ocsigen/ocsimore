@@ -2,8 +2,9 @@
 This is the forum component of Ocsimore.
 
 @author Jaap Boender
-@author Pieto Furiesi
+@author Piero Furiesi
 *)
+
 type forum_data = {
 	id: int;
 	title: string;

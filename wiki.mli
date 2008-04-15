@@ -1,27 +1,22 @@
-open Eliommod
-open Eliomservices
-open Eliomsessions
+(**
+This is the wiki component of Ocsimore.
 
-type wiki_in = 
-    {
-     identifier: string;
-     title: string;
-     descr: string;
-     readable_by: Users.user;
-     writable_by: Users.user;
-     url: string list;
-   }
+@author Jaap Boender
+@author Piero Furiesi
+@author Vincent Balat
+*)
 
-class type wiki = object
-	method container:
-		server_params -> Users.user session_data -> title:string ->
-		{{ Xhtml1_strict.blocks }} -> {{ Xhtml1_strict.html }} Lwt.t
-  method srv_main:
-      (unit, unit, get_service_kind,
-       [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-      service
-end
+type wiki_data = {
+  id : int;
+  title : string;
+  readable_by : Users.user;
+  writable_by : Users.user;
+}
 
-
-val newwiki: wikiinfo:wiki_in -> sessionmanager: SessionManager.sessionmanager -> wiki Lwt.t
-
+val new_wiki : 
+  Sql.db_t -> 
+  title:string -> 
+  ?reader:Users.user -> 
+  ?writer:Users.user -> 
+  unit -> 
+  Sql.db_int_t Lwt.t
