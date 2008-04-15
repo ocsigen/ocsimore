@@ -1,8 +1,12 @@
 
 1. Install postgresql if needed
 
-2. Adapt the file Makefile.config to set the user who will run the 
-   Ocsigen process. We suppose that the postgresql user will have the same name.
+2. Run 
+
+sh configure <toto>
+
+   where <toto> is the user who will run the Ocsigen process. 
+   We suppose for now that the postgresql user will have the same name.
    Then do
 
 make createdb.sql
