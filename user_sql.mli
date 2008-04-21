@@ -1,24 +1,21 @@
-(** type of [~role] labelled parameter *)
-type role = Moderator | Author of Sql.db_int_t | Lurker of string | Unknown;;
-
 val new_user: 
   Sql.db_t -> 
   name:string -> 
   password:string option -> 
   fullname:string -> 
   email:string -> 
-  Sql.db_int_t Lwt.t
+  int32 Lwt.t
 
 val find_user: 
   Sql.db_t -> 
-  ?id:Sql.db_int_t -> 
+  ?id:int32 -> 
   ?name:string -> 
   unit -> 
-  (Sql.db_int_t * string * string option * string * string * string option) Lwt.t
+  (int32 * string * string option * string * string * string option) Lwt.t
 
 val update_data: 
   Sql.db_t -> 
-  id:Sql.db_int_t -> 
+  id:int32 -> 
   name:string -> 
   password:string option -> 
   fullname:string -> 

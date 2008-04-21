@@ -1,5 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
+ * Copyright (C) 2005 Piero Furiesi, Jaap Boender and Vincent Balat
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,12 +16,19 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+type wiki = int32
 
-let new_wiki db ~title ~descr =
+open Lwt
+open Sql.PGOCaml
+open Ocsimorelib
+open CalendarLib
+open Sql
+
+let new_wiki db ~title ~descr ~reader ~writer ~acl =
   (* inserts a new wiki *)
   begin_work db >>= fun _ ->
-  PGSQL(db) "INSERT INTO wikis (title, descr) \
-                 VALUES ($title, $descr)" >>= fun () ->
+  PGSQL(db) "INSERT INTO wikis (title, descr, reader, writer, acl) \
+                 VALUES ($title, $descr, $reader, $writer, $acl)" >>= fun () ->
   serial4 db "wikis_id_seq" >>= fun wik_id ->
   commit db >>= fun _ ->
   return wik_id
@@ -123,3 +130,29 @@ let wikibox_get_data db ~wiki ~id =
         Ocsigen_messages.warning
           "Ocsimore: database error (Wiki_sql.wikipage_get_data)";
         Lwt.return (Some x)
+
+let find_wiki db ?id ?title () =
+ begin_work db >>= fun _ -> 
+ (match (title, id) with
+    | (Some t, Some i) -> 
+        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+		FROM wikis, users AS r, users AS w \
+		WHERE r.id = reader AND w.id = writer \
+		AND title = $t AND wikis.id = $i"
+    | (Some t, None) -> 
+        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+		FROM wikis, users AS r, users AS w \
+		WHERE r.id = reader AND w.id = writer \
+		AND title = $t"
+    | (None, Some i) -> 
+        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+		FROM wikis, users AS r, users AS w \
+		WHERE r.id = reader AND w.id = writer \
+		AND wikis.id = $i"
+    | (None, None) -> fail (Invalid_argument "Wiki_sql.find_wiki")) 
+   >>= fun r -> 
+   commit db >>= fun _ -> 
+   (match r with
+      | [x] -> return x
+      | _ -> fail Not_found)
+

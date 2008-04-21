@@ -10,7 +10,7 @@ OCSIMORE_MLI = widget.mli forum_widgets.mli forum.mli \
 	session_manager.mli setOfSets.mli users.mli user_widgets.mli \
 	wiki.mli wiki_parser.mli wiki_widgets.mli
 #services.mli 
-OCSIMORE_CMO = $(OCSIMORE_SRC1:.ml=.cmo) sql.cmo $(OCSIMORE_SRC2:.ml=.cmo)
+OCSIMORE_CMO = $(OCSIMORE_SRC1:.ml=.cmo) sql.cmo user_sql.cmo forum_sql.cmo wiki_sql.cmo $(OCSIMORE_SRC2:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
 
 #HOST = localhost
@@ -55,6 +55,11 @@ sql.cmo: sql.ml
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
 	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
 
+%sql.cmo: %sql.ml
+#	PGHOST=$(HOST) 
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
+
 print_sql:
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
@@ -73,7 +78,7 @@ print_sql:
 ocsimore_config.ml: ocsimore_config.ml.in
 	sed "s/%%USER%%/$(USER)/g" ocsimore_config.ml.in > ocsimore_config.ml
 
-createdb.sql: createdb.sql.in
+sql: createdb.sql.in user_createdb.sql.in forum_createdb.sql.in wiki_createdb.sql.in
 	sed "s/%%USER%%/$(USER)/g" createdb.sql.in > createdb.sql
 	sed "s/%%USER%%/$(USER)/g" user_createdb.sql.in > user_createdb.sql
 	sed "s/%%USER%%/$(USER)/g" forum_createdb.sql.in > forum_createdb.sql
@@ -90,9 +95,9 @@ depend:
 	ocamlducefind ocamldep $(OCSIMORE_SRC1) $(OCSIMORE_SRC2) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
-	ocamlfind ocamldep $(PACKAGES) $(PP) sql.ml sql.mli >> .depend
+	ocamlfind ocamldep $(PACKAGES) $(PP) user_sql.ml user_sql.mli forum_sql.ml forum_sql.mli wiki_sql.ml wiki_sql.mli sql.ml sql.mli >> .depend
 
 clean:
-	rm -f $(OCSIMORE_CMO) $(OCSIMORE_CMI) sql.cmo sql.cmi ocsimore.cma createdb.sql ocsimore_config.ml
+	rm -f *.cmo *.cmi *.cma *.sql ocsimore_config.ml
 
 include .depend

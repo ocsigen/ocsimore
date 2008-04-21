@@ -2,7 +2,7 @@
 let (>>=) = Lwt.bind
 
 type wiki_data = {
-  id: int;
+  wiki_id: Wiki_sql.wiki;
   comment: string;
   author: Users.user option;
   content: string;
@@ -11,7 +11,7 @@ type wiki_data = {
 
 class wikibox_widget ~(parent: Session_manager.sessionmanager) =
 object (self)
-  inherit [int * int] Widget.parametrized_widget parent
+  inherit [Wiki_sql.wiki * int32] Widget.parametrized_widget parent
 
   val div_class = "wikibox"
 
@@ -20,9 +20,7 @@ object (self)
   method private set_data d = 
     data <- Some d
     
-  method private retrieve_data (wiki_id0, wikibox_id) =
-    let wiki_id = Sql.db_int_of_int wiki_id0 in
-    let wikibox_id = Sql.db_int_of_int wikibox_id in
+  method private retrieve_data (wiki_id, wikibox_id) =
     Lwt_pool.use Sql.pool (fun db -> 
     Wiki_sql.wikibox_get_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
     match result with
@@ -36,7 +34,7 @@ object (self)
               | Users.NoSuchUser -> Lwt.return None
               | e -> Lwt.fail e) >>= fun user ->
 	 self#set_data
-           { id = wiki_id0; 
+           { wiki_id = wiki_id;
              content = cont; 
              author = user; 
              datetime = d; 

@@ -22,13 +22,23 @@
      done because of the need to match every query request against a
      forum's ACL.  TO BE DONE: A LAYER FOR ACCESS CONTROL *)
 
+type forum = int32
 
-(* Used to restrict the recordsets *)
-type role = Moderator | Author of db_int_t | Lurker of string | Unknown;;
+open Lwt
+open Sql.PGOCaml
+open Ocsimorelib
+open CalendarLib
+open Sql
+
+(** Role of user in the forum *)
+type role = Moderator | Author of int32 | Lurker of string | Unknown;;
 
 type message_info =
-	db_int_t * string * string * Calendar.t * bool * db_int_t option * string option;;
+    int32 * string * string * Calendar.t * bool * int32 option * string option;;
 (* type 'a collection = List of 'a list | Forest of 'a tree list;; *)
+
+let get_id x = x
+let of_id x = x
 
 let new_forum
     db ~title ~descr ~moderated ~arborescent ~reader ~writer
@@ -45,7 +55,7 @@ let new_forum
   commit db >>=	fun _ -> 
   Ocsigen_messages.debug2 "[Sql] new_forum: finish"; 
   return frm_id;;
-        
+
 let new_thread_and_message db ~frm_id ~author_id ~subject ~txt = 
   (* inserts a message starting a new thread; both thread and message
      will be hidden if forum is moderated *)
@@ -62,9 +72,9 @@ let new_thread_and_message db ~frm_id ~author_id ~subject ~txt =
 		WHERE thr_id = $thr_id" >>=
 	fun z -> (match z with
 		| [x] -> (match x with
-			| None -> return (db_int_of_int 0)
+			| None -> return 0l
 			| Some y -> return y)
-		| _ -> return (db_int_of_int 0)) >>=
+		| _ -> return 0l) >>=
 	fun db_max -> PGSQL(db) "INSERT INTO messages (author_id, thr_id, txt_id, hidden, tree_min, tree_max) \
 		VALUES ($author_id, $thr_id, $txt_id, $hidden, $db_max + 1, $db_max + 2)" >>=
 	fun () -> serial4 db "messages_id_seq" >>=
@@ -100,9 +110,9 @@ let new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () =
 		WHERE thr_id = $thr_id" >>=
 	fun z -> (match z with
 		| [x] -> (match x with
-			| None -> return (db_int_of_int 0)
+			| None -> return 0l
 			| Some y -> return y)
-		| _ -> return (db_int_of_int 0)) >>=
+		| _ -> return 0l) >>=
 	fun db_max -> 
 		(match parent_id with
 		| None -> PGSQL(db) "INSERT INTO messages (author_id, thr_id, txt_id, hidden, \
@@ -155,19 +165,22 @@ let message_toggle_sticky db ~frm_id ~msg_id =
 let find_forum db ?id ?title () =
  begin_work db >>= fun _ -> 
  (match (title, id) with
-    | (Some t, Some i) ->  PGSQL(db) "SELECT forums.id, title, r.login, w.login, m.login \
+    | (Some t, Some i) -> 
+        PGSQL(db) "SELECT forums.id, title, descr, r.login, w.login, m.login \
 		FROM forums, users AS r, users AS w, users AS m \
 		WHERE r.id = reader AND w.id = writer AND m.id = moderator \
 		AND title = $t AND forums.id = $i"
-    | (Some t, None) -> PGSQL(db) "SELECT forums.id, title, r.login, w.login, m.login \
+    | (Some t, None) -> 
+        PGSQL(db) "SELECT forums.id, title, descr, r.login, w.login, m.login \
 		FROM forums, users AS r, users AS w, users AS m \
 		WHERE r.id = reader AND w.id = writer AND m.id = moderator \
 		AND title = $t"
-    | (None, Some i) -> PGSQL(db) "SELECT forums.id, title, r.login, w.login, m.login \
+    | (None, Some i) -> 
+        PGSQL(db) "SELECT forums.id, title, descr, r.login, w.login, m.login \
 		FROM forums, users AS r, users AS w, users AS m \
 		WHERE r.id = reader AND w.id = writer AND m.id = moderator \
 		AND forums.id = $i"
-    | (None, None) -> fail (Failure "Neither title nor id specified")) 
+    | (None, None) -> fail (Invalid_argument "Forum_sql.find_forum")) 
    >>= fun r -> 
    commit db >>= fun _ -> 
    (match r with
@@ -175,11 +188,14 @@ let find_forum db ?id ?title () =
       | _ -> fail Not_found)
 
 let get_forums_list db =
-	Ocsigen_messages.debug2 "[Sql] get_forums_list";
-	begin_work db >>=
-	fun _ -> PGSQL(db) "SELECT id, title, descr, moderated, arborescent FROM forums" >>=
-	fun r -> commit db >>=
-	fun _ -> Ocsigen_messages.debug2 "[Sql] get_forums_list: finish"; return r;;
+  Ocsigen_messages.debug2 "[Sql] get_forums_list";
+  begin_work db >>= fun _ ->
+  PGSQL(db) 
+    "SELECT id, title, descr, moderated, arborescent FROM forums" 
+    >>= fun r -> 
+  commit db >>= fun _ -> 
+  Ocsigen_messages.debug2 "[Sql] get_forums_list: finish"; 
+  return r;;
 
 let forum_get_data db ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
@@ -194,38 +210,38 @@ let forum_get_data db ~frm_id ~role =
 	fun (id, title, description, moderated) -> 
 		PGSQL(db) "SELECT COUNT(*) FROM threads \
 		WHERE frm_id = $frm_id AND (NOT hidden)" >>=
-	fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false) >>=
+	fun y -> (match y with [Some x] -> return x | _ -> assert false) >>=
 	fun n_shown_thr  -> PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
 		WHERE threads.frm_id = $frm_id \
 		AND messages.thr_id = threads.id \
 		AND NOT (messages.hidden OR threads.hidden)" >>=
-	fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false) >>=
+	fun y -> (match y with [Some x] -> return x | _ -> assert false) >>=
 	fun n_shown_msg -> (match role with	
 		| Moderator -> (* counts all hidden stuff *)
 			PGSQL(db) "SELECT COUNT(*) FROM threads \
 				WHERE frm_id = $frm_id AND hidden" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
+			fun y -> (match y with [Some x] -> return x | _ -> assert false)
 		| Author aid ->
 			PGSQL(db) "SELECT COUNT(*) FROM threads \
 				WHERE frm_id = $frm_id AND hidden \
 				AND author_id = $aid" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
-		| Unknown -> return 0) >>=
+			fun y -> (match y with [Some x] -> return x | _ -> assert false)
+		| Unknown -> return 0L) >>=
 	fun n_hidden_thr -> (match role with
 		| Moderator -> 
 			PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
 				WHERE threads.frm_id = $frm_id \
 				AND messages.thr_id = threads.id \
 				AND (messages.hidden OR threads.hidden)" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
+			fun y -> (match y with [Some x] -> return x | _ -> assert false)
 		| Author aid ->
 			PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
  				WHERE threads.frm_id = $frm_id \
 				AND messages.thr_id = threads.id \
 				AND (messages.hidden OR threads.hidden) \
 				AND messages.author_id = $aid" >>=
-			fun y -> (match y with [Some x] -> return (int_of_db_count x) | _ -> assert false)
-		| Unknown -> return 0) >>=
+			fun y -> (match y with [Some x] -> return x | _ -> assert false)
+		| Unknown -> return 0L) >>=
 	fun n_hidden_msg -> commit db >>=
 	fun _ -> Ocsigen_messages.debug2 "[Sql] forum_get_data: finish"; return 
       (id, title, description, moderated,
@@ -256,7 +272,7 @@ let thread_get_nr_messages db ~thr_id ~role =
 			| [Some x] -> return x
 			| _ -> fail (Failure "thread_get_nr_messages"))) >>=
 	fun n_msg -> commit db >>=
-	fun _ -> Ocsigen_messages.debug2 "[Sql] thread_get_nr_messages: finish"; return (int_of_db_count n_msg);;
+	fun _ -> Ocsigen_messages.debug2 "[Sql] thread_get_nr_messages: finish"; return n_msg;;
 
 let thread_get_data db (* ~frm_id *) ~thr_id ~role =
   (* returns id, subject, author, datetime, hidden status, number of
@@ -273,7 +289,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
 		PGSQL(db) "SELECT COUNT(*) FROM messages \
 		WHERE thr_id = $thr_id AND (NOT hidden)" >>=
 	fun y -> (match y with
-		| [Some x] -> return (int_of_db_count x)
+		| [Some x] -> return x
 		| _ -> assert false) >>=
  	fun n_shown_msg -> (match role with
 		| Moderator -> (* counts all hidden messages *)
@@ -282,7 +298,7 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
 				AND threads.id = $thr_id \
 				AND (messages.hidden OR threads.hidden)" >>=
 	    fun y -> (match y with
-				| [Some x] -> return (int_of_db_count x)
+				| [Some x] -> return x
 				| _ -> assert false)
  		| Author aid -> (* counts only hidden messages posted by her *)
 	    PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
@@ -291,9 +307,9 @@ let thread_get_data db (* ~frm_id *) ~thr_id ~role =
 				AND (messages.hidden OR threads.hidden) \
 				AND messages.author_id = $aid" >>=
 	    fun y -> (match y with
-				| [Some x] -> return (int_of_db_count x)
+				| [Some x] -> return x
 				| _ -> assert false)
-		| Unknown -> (* nothing to be counted *) return 0) >>=
+		| Unknown -> (* nothing to be counted *) return 0L) >>=
 	fun n_hidden_msg -> commit db >>=
  	fun _ -> Ocsigen_messages.debug2 "[Sql] thread_get_data: finish"; return (id, subject, author_id, article, datetime, hidden, n_shown_msg, n_hidden_msg);;
 
@@ -407,8 +423,8 @@ let forum_get_threads_list db ~frm_id ?offset ?limit ~role () =
      [~offset] rows. *)
 	Ocsigen_messages.debug2 "[Sql] forum_get_threads_list";
 	let db_offset = match offset with
-	| None -> db_size_of_int 0
-	| Some x -> db_size_of_int x in
+	| None -> 0L
+	| Some x -> x in
 	match limit with
 	| None -> 
 		(match role with
@@ -431,7 +447,7 @@ let forum_get_threads_list db ~frm_id ?offset ?limit ~role () =
 				AND NOT hidden \
 				ORDER BY datetime DESC \
 				OFFSET $db_offset")
-	| Some x -> let db_limit = db_size_of_int x in
+	| Some x -> let db_limit = x in
 		(match role with
 		| Moderator -> PGSQL(db) "SELECT threads.id, subject, fullname, datetime, hidden \
 				FROM threads, users \
@@ -479,8 +495,8 @@ function
 let thread_get_messages_with_text db ~thr_id ?offset ?limit ~role ?bottom () =
 	Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text";
 let db_offset = match offset with
-| None -> db_size_of_int 0
-| Some x -> db_size_of_int x in
+| None -> 0L
+| Some x -> x in
 match limit with
 | None -> 
 	begin_work db >>=
@@ -511,7 +527,7 @@ match limit with
 		| Some btm -> cut (fun (id,_,_,_,_,_) -> id) btm msg_l in
 		Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text: finish";
 			return final_msg_l
-| Some x -> let db_limit = db_size_of_int x in
+| Some x -> let db_limit = x in
 	begin_work db >>=
 	fun _ -> (match role with 
 	| Moderator ->
@@ -544,8 +560,8 @@ match limit with
 let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top ?bottom ~role () =
 	Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text_forest";
 	let db_offset = match offset with
-	| None -> db_size_of_int 0
-	| Some x -> db_size_of_int x in
+	| None -> 0L
+	| Some x -> x in
 	match limit with
 	| None -> begin_work db >>=
 		fun _ -> (match top with
@@ -588,9 +604,9 @@ let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top ?bottom 
 			| Some btm -> cut (fun (id,_,_,_,_,_,_,_) -> id) btm msg_l in
 		Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text_forest: finish";
       return (forest_of
-			 	(fun (_,_,_,_,_,_,x,y)->(int_of_db_int x, int_of_db_int y))
+			 	(fun (_,_,_,_,_,_,x,y)-> (x, y))
 				final_msg_l)
-	| Some x -> let db_limit = db_size_of_int x in
+	| Some x -> let db_limit = x in
     begin_work db >>=
 		fun _ -> (match top with
 		| None -> (PGSQL(db) "SELECT MIN(tree_min), MAX(tree_max) \
@@ -632,17 +648,15 @@ let thread_get_messages_with_text_forest db ~thr_id ?offset ?limit ?top ?bottom 
 		| Some btm -> cut (fun (id,_,_,_,_,_,_,_) -> id) btm msg_l in
 		Ocsigen_messages.debug2 "[Sql] thread_get_messages_with_text_forest: finish";
 	return (forest_of
-		(fun (_,_,_,_,_,_,x,y)->(int_of_db_int x, int_of_db_int y))
+		(fun (_,_,_,_,_,_,x,y)->(x, y))
 		final_msg_l);;
 
 let get_latest_messages db ~frm_ids ~limit () =
-	Ocsigen_messages.debug2 (Printf.sprintf "[Sql] get_latest_messages [%s]" (String.concat "," (List.map string_of_db_int frm_ids)));
-let db_limit = db_size_of_int limit in
 	PGSQL(db) "SELECT messages.id,txt,fullname \
 	FROM messages, textdata, users \
 	WHERE messages.txt_id = textdata.id AND \
 	thr_id IN (SELECT id FROM threads WHERE frm_id IN $@frm_ids) AND
 	NOT messages.hidden AND users.id = author_id \
-	ORDER BY datetime DESC LIMIT $db_limit" >>=
+	ORDER BY datetime DESC LIMIT $limit" >>=
 	fun result -> Ocsigen_messages.debug2 "[Sql] get_latest_messages: finish"; return result;;
 

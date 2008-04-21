@@ -16,7 +16,12 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+let (>>=)= Lwt.bind
 
+open Sql.PGOCaml
+open Ocsimorelib
+open CalendarLib
+open Sql
 
 let new_user db ~name ~password ~fullname ~email =
   begin_work db >>= fun _ -> 
@@ -38,11 +43,11 @@ let find_user db ?id ?name () =
          PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE id = $i"
      | (Some n, None) -> 
          PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE login = $n"
-     | (None, None) -> fail (Failure "Neither name nor id specified")) 
+     | (None, None) -> Lwt.fail (Failure "Neither name nor id specified")) 
   >>= fun res -> 
   (match res with
      | [u] -> return u
-     | _ -> fail Not_found);;
+     | _ -> Lwt.fail Not_found);;
 
 let update_permissions db ~name ~perm =
   Ocsigen_messages.debug2 (Printf.sprintf "[Sql] update_permissions [%s]" perm);

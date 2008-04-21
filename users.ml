@@ -13,11 +13,11 @@
 open Lwt
 
 type userdata = 
-    {id: int;
-     name: string;
-     mutable pwd: string option;
-     mutable fullname: string;
-     mutable email: string}
+    { id: int32;
+      name: string;
+      mutable pwd: string option;
+      mutable fullname: string;
+      mutable email: string }
       
 module M = SetOfSets.Make(
   struct 
@@ -36,26 +36,32 @@ exception BadPassword
 exception NoSuchUser
 exception Users_error of string
 
-type user = elt 
+type user = M.SSet.elt
 
 let anonymous = 
-	{ data = { id = 0; 
-                   name = "anonymous"; 
-                   pwd = None; 
-                   fullname = "Anonymous"; 
-                   email = "" }; 
-          set = empty };;
+  { data = { id = 0l; 
+             name = "anonymous"; 
+             pwd = None; 
+             fullname = "Anonymous"; 
+             email = "" }; 
+    set = empty };;
 
 let get_user_by_name db ~name =
-	if name = "anonymous" then return anonymous
-	else
-	User_sql.find_user db ~name () >>=
-	fun (i, n, p, d, e, pm) -> let data = { id = Sql.int_of_db_int i; name = n; pwd = p; fullname = d; email = e } in
-	 	let user = { data = data; set = match pm with
-
-		| None -> empty
-		| Some x -> (Marshal.from_string x 0) } in
-		return user;;
+  if name = "anonymous" then return anonymous
+  else
+    User_sql.find_user db ~name () >>= fun (i, n, p, d, e, pm) -> 
+    let data = { id = i; 
+                 name = n; 
+                 pwd = p; 
+                 fullname = d; 
+                 email = e } 
+    in
+    let user = { data = data; 
+                 set = match pm with
+		   | None -> empty
+		   | Some x -> (Marshal.from_string x 0) } 
+    in
+    return user;;
 
 let generate_password () = 
   let chars = "0123456789"^
@@ -94,17 +100,22 @@ let update_permissions db ~user =
 	User_sql.update_permissions db ~name:user.data.name ~perm:(Marshal.to_string user.set []);;
 
 let create_user db ~name ~pwd ~fullname ~email =
-	catch 
-	(fun () -> get_user_by_name db ~name)
-	(function 
-	| Not_found ->
-		User_sql.new_user db ~name ~password:pwd ~fullname ~email >>=
-		fun i ->
-		let data = { id = Sql.int_of_db_int i; name = name; pwd = pwd; fullname = fullname; email = email }	in
-		let user = { data = data; set = singleton anonymous } in
-			update_permissions db ~user >>=
-			fun () -> return user
-	| e -> fail e);;
+  catch 
+    (fun () -> get_user_by_name db ~name)
+    (function 
+       | Not_found ->
+	   (User_sql.new_user db ~name ~password:pwd ~fullname ~email 
+           >>= fun i ->
+	   let data = { id = i;
+                        name = name; 
+                        pwd = pwd; 
+                        fullname = fullname; 
+                        email = email }	
+           in
+	   let user = { data = data; set = singleton anonymous } in
+	   update_permissions db ~user >>= fun () -> 
+           return user)
+       | e -> fail e);;
 
 let create_unique_user db ~name ~pwd ~fullname ~email =
 	let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
@@ -122,12 +133,17 @@ let get_user_data ~user =
 	in (i, n, p, d, e);;
 
 let update_user_data db ~user =
-	let d = user.data
-	in fun ?(pwd = d.pwd) ?(fullname = d.fullname) ?(email = d.email) () ->
-		d.pwd <- pwd;
-		d.fullname <- fullname;
-		d.email <- email;
-		User_sql.update_data db ~id:(Sql.db_int_of_int user.data.id) ~name:user.data.name ~password:pwd ~fullname ~email
+  let d = user.data
+  in fun ?(pwd = d.pwd) ?(fullname = d.fullname) ?(email = d.email) () ->
+    d.pwd <- pwd;
+    d.fullname <- fullname;
+    d.email <- email;
+    User_sql.update_data db
+      ~id:user.data.id
+      ~name:user.data.name
+      ~password:pwd
+      ~fullname
+      ~email
 
 let ( <-?- ) user1 user2 =
 	mem user2 user1.set

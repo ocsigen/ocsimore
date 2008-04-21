@@ -1,3 +1,33 @@
+(* Ocsimore
+ * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
+
+
+type forum
+
+(** Role of user in the forum *)
+type role = Moderator | Author of int32 | Lurker of string | Unknown;;
+
+(** returns forum id *)
+val get_id : forum -> int32
+
+(** returns forum from id *)
+val of_id : int32 -> forum
+
 (** inserts a new forum *)
 val new_forum : 
   Sql.db_t -> 
@@ -5,67 +35,68 @@ val new_forum :
   descr:string -> 
   moderated:bool ->
   arborescent:bool -> 
-  reader:Sql.db_int_t -> 
-  writer:Sql.db_int_t ->
-  moderator:Sql.db_int_t ->  
-  Sql.db_int_t Lwt.t
+  reader:int32 -> 
+  writer:int32 ->
+  moderator:int32 ->  
+  forum Lwt.t
 
 (** inserts a message starting a new thread; both thread and message
     will be hidden if forum is moderated *)
 val new_thread_and_message :
   Sql.db_t -> 
-  frm_id:Sql.db_int_t ->
-  author_id:Sql.db_int_t -> 
+  frm_id:forum ->
+  author_id:int32 -> 
   subject:string -> 
   txt:string -> 
-  (Sql.db_int_t * Sql.db_int_t) Lwt.t
+  (int32 * int32) Lwt.t
 
 (** inserts a thread with an article; the thread will be hidden if the forum
     is moderated *)
 val new_thread_and_article:
   Sql.db_t -> 
-  frm_id:Sql.db_int_t -> 
-  author_id:Sql.db_int_t -> 
+  frm_id:forum -> 
+  author_id:int32 -> 
   subject:string -> txt:string ->
-  (Sql.db_int_t * Sql.db_int_t) Lwt.t
+  (int32 * int32) Lwt.t
 
 (** inserts a message for an existing thread; message will be hidden
     if forum is moderated *)
 val new_message :
   Sql.db_t -> 
-  thr_id:Sql.db_int_t ->
-  ?parent_id:Sql.db_int_t -> 
-  author_id:Sql.db_int_t ->
+  thr_id:int32 ->
+  ?parent_id:int32 -> 
+  author_id:int32 ->
   txt:string -> 
   sticky:bool -> 
   unit -> 
-  Sql.db_int_t Lwt.t
+  int32 Lwt.t
 
 (** toggle moderation status of a forum *)
-val forum_toggle_moderated : Sql.db_t -> frm_id:Sql.db_int_t -> unit Lwt.t
+val forum_toggle_moderated : Sql.db_t -> frm_id:forum -> unit Lwt.t
   
 (** hides/shows a thread *)
 val thread_toggle_hidden : 
-  Sql.db_t -> frm_id:Sql.db_int_t -> thr_id:Sql.db_int_t -> unit Lwt.t
+  Sql.db_t -> frm_id:forum -> thr_id:int32 -> unit Lwt.t
   
 (** hides/shows a message *)
 val message_toggle_hidden :
-  Sql.db_t -> frm_id:Sql.db_int_t -> msg_id:Sql.db_int_t -> unit Lwt.t
+  Sql.db_t -> frm_id:forum -> msg_id:int32 -> unit Lwt.t
 
 (** makes a message sticky (or not) *)
 val message_toggle_sticky: 
-  Sql.db_t -> frm_id:Sql.db_int_t -> msg_id:Sql.db_int_t -> unit Lwt.t
+  Sql.db_t -> frm_id:forum -> msg_id:int32 -> unit Lwt.t
 
+(** Find forum information for a wiki, given its id or title *)
 val find_forum: 
   Sql.db_t -> 
-  ?id:Sql.db_int_t -> 
+  ?id:forum -> 
   ?title:string -> 
   unit -> 
-  (Sql.db_int_t * string * string * string * string) Lwt.t
+  (forum * string * string * string * string * string) Lwt.t
 
 (** returns the list of available forums *)
 val get_forums_list : 
-  Sql.db_t -> (Sql.db_int_t * string * string * bool * bool) list Lwt.t
+  Sql.db_t -> (forum * string * string * bool * bool) list Lwt.t
 
 (** returns id, title, description, moderation status, number of shown/hidden
     threads and messages of a forum.  
@@ -74,13 +105,13 @@ val get_forums_list :
     - it's in a hidden thread. *)
 val forum_get_data: 
   Sql.db_t -> 
-  frm_id:Sql.db_int_t -> 
-  role:User_sql.role -> 
-  (Sql.db_int_t * string * string * bool * int * int * int * int) Lwt.t
+  frm_id:forum -> 
+  role:role -> 
+  (int32 * string * string * bool * int64 * int64 * int64 * int64) Lwt.t
  
 (** returns the number of visible messages in a thread *)
 val thread_get_nr_messages : 
-  Sql.db_t -> thr_id:Sql.db_int_t -> role:User_sql.role -> int Lwt.t
+  Sql.db_t -> thr_id:int32 -> role:role -> int64 Lwt.t
 
 (** returns id, subject, author, datetime, hidden status, number of shown/hidden
     messages of a thread.  
@@ -88,41 +119,41 @@ val thread_get_nr_messages :
     - its hidden status is true, or 
     - it's in a hidden thread. *)
 val thread_get_data : 
-  (* frm_id:Sql.db_int_t -> *) 
+  (* frm_id:forum -> *) 
   Sql.db_t -> 
-  thr_id:Sql.db_int_t -> 
-  role:User_sql.role -> 
-  (Sql.db_int_t * 
+  thr_id:int32 -> 
+  role:role -> 
+  (int32 * 
      string * 
      string * 
      string option * 
      CalendarLib.Calendar.t * 
      bool * 
-     int * 
-     int) Lwt.t
+     int64 * 
+     int64) Lwt.t
   
 (** returns id, text, author, datetime, hidden status of a message *)
 val message_get_data : 
   Sql.db_t -> 
-  frm_id:Sql.db_int_t -> 
-  msg_id:Sql.db_int_t -> 
- (Sql.db_int_t * string * string * CalendarLib.Calendar.t * bool) Lwt.t
+  frm_id:forum -> 
+  msg_id:int32 -> 
+ (int32 * string * string * CalendarLib.Calendar.t * bool) Lwt.t
   
 (** returns None|Some id of prev & next thread in the same forum *)
 val thread_get_neighbours :
   Sql.db_t -> 
-  frm_id:Sql.db_int_t ->  
-  thr_id:Sql.db_int_t -> 
-  role:User_sql.role -> 
-  (Sql.db_int_t option * Sql.db_int_t option) Lwt.t
+  frm_id:forum ->  
+  thr_id:int32 -> 
+  role:role -> 
+  (int32 option * int32 option) Lwt.t
 
 (** returns None|Some id of prev & next message in the same thread *)
 val message_get_neighbours :
   Sql.db_t -> 
-  frm_id:Sql.db_int_t ->  
-  msg_id:Sql.db_int_t -> 
-  role:User_sql.role -> 
-  (Sql.db_int_t option * Sql.db_int_t option) Lwt.t
+  frm_id:forum ->  
+  msg_id:int32 -> 
+  role:role -> 
+  (int32 option * int32 option) Lwt.t
 
 (** returns the threads list of a forum, ordered cronologycally
     (latest first), with max [~limit] items and skipping first
@@ -130,46 +161,46 @@ val message_get_neighbours :
     hidden status). *)
 val forum_get_threads_list :
   Sql.db_t -> 
-  frm_id:Sql.db_int_t -> 
-  ?offset:int -> 
-  ?limit:int -> 
-  role:User_sql.role -> 
+  frm_id:forum -> 
+  ?offset:int64 -> 
+  ?limit:int64 -> 
+  role:role -> 
   unit ->
-  (Sql.db_int_t * string * string * CalendarLib.Calendar.t * bool) list Lwt.t
+  (int32 * string * string * CalendarLib.Calendar.t * bool) list Lwt.t
 
 val thread_get_messages_with_text :
   Sql.db_t -> 
-  thr_id:Sql.db_int_t -> 
-  ?offset:int -> 
-  ?limit:int -> 
-  role:User_sql.role ->
-  ?bottom:Sql.db_int_t -> 
+  thr_id:int32 -> 
+  ?offset:int64 -> 
+  ?limit:int64 -> 
+  role:role ->
+  ?bottom:int32 -> 
   unit ->
-  (Sql.db_int_t * string * string * CalendarLib.Calendar.t * bool * bool) list Lwt.t
+  (forum * string * string * CalendarLib.Calendar.t * bool * bool) list Lwt.t
 (** as above, but in tree form *)
 
 val thread_get_messages_with_text_forest :
   Sql.db_t -> 
-  thr_id:Sql.db_int_t -> 
-  ?offset:int -> 
-  ?limit:int ->
-  ?top:Sql.db_int_t -> 
-  ?bottom:Sql.db_int_t -> 
-  role:User_sql.role -> 
+  thr_id:int32 -> 
+  ?offset:int64 -> 
+  ?limit:int64 ->
+  ?top:int32 -> 
+  ?bottom:int32 -> 
+  role:role -> 
   unit ->
-  (Sql.db_int_t * 
+  (forum * 
      string * 
      string * 
      CalendarLib.Calendar.t * 
      bool * 
      bool * 
-     Sql.db_int_t * 
-     Sql.db_int_t) Ocsimorelib.tree list Lwt.t
+     int32 * 
+     int32) Ocsimorelib.tree list Lwt.t
 
 val get_latest_messages:
   Sql.db_t -> 
-  frm_ids:Sql.db_int_t list -> 
-  limit:int -> 
+  frm_ids:forum list -> 
+  limit:int64 -> 
   unit ->
-  (Sql.db_int_t * string * string) list Lwt.t
+  (forum * string * string) list Lwt.t
 

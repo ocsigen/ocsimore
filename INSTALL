@@ -9,7 +9,7 @@ sh configure <toto>
    We suppose for now that the postgresql user will have the same name.
    Then do
 
-make createdb.sql
+make sql
 
 3. Create a postgresql user with that name (here ocsigen) 
 and a database called ocsimore

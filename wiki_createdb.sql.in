@@ -35,7 +35,10 @@ COMMENT ON COLUMN wikiboxes.wiki_id IS 'wiki';
 CREATE TABLE wikis (
     id serial NOT NULL primary key,
     title text DEFAULT ''::text NOT NULL,
-    descr text DEFAULT ''::text NOT NULL
+    descr text DEFAULT ''::text NOT NULL,
+    reader integer NOT NULL,
+    writer integer NOT NULL,
+    acl boolean DEFAULT false NOT NULL
 );
 
 

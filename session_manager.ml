@@ -45,7 +45,7 @@ let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
 object (self)
 
 	val mutable current_user: user session_data = No_data
-	val forums = Hashtbl.create 1
+
 	val widget_types = Hashtbl.create 1
 
 	method act_login: (unit, string * string, [`Nonattached of [`Post] Eliom_services.na_s], [`WithoutSuffix], unit, [`One of string] Eliom_parameters.param_name * [`One of string] Eliom_parameters.param_name, [`Registrable]) Eliom_services.service =
@@ -79,31 +79,20 @@ object (self)
 	method get_user_data =
 	match current_user with
 	| Data u -> Users.get_user_data ~user:u
-	| _ -> (0, "Anonymous", None, "", "")
+	| _ -> (0l, "Anonymous", None, "", "")
 
 	method get_user_id =
 	match current_user with
 	| Data u -> let (i, _, _, _, _) = Users.get_user_data ~user:u in i
-	| _ -> 0
+	| _ -> 0l
 
 	method get_user_name =
 	match current_user with
 	| Data u -> let (_, n, _, _, _) = Users.get_user_data ~user:u in n
 	| _ -> "Anonymous"
 
-	method get_role (forum_id: int) =
-	Forum.get_forum_by_id db forum_id >>=
-	fun f -> Ocsigen_messages.debug2 "[sessionManager] got forum"; return
-		(match current_user with
-		| Data u -> 
-				if Forum.can_moderate f u then (Ocsigen_messages.debug2 "[sessionManager] result: moderator"; User_sql.Moderator)
-				else if Forum.can_write f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: author"; User_sql.Author (Sql.db_int_of_int self#get_user_id))
-				else if Forum.can_read f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: lurker"; User_sql.Lurker self#get_user_name)
-				else (Ocsigen_messages.debug2 "[sessionManager] result: unknown"; User_sql.Unknown)
-		| _ -> (Ocsigen_messages.debug2 "[sessionManager] result: nobody logged in"; User_sql.Unknown))
-
 	method private valid_username usr =
-	Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
+	  Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
 
 	method private valid_emailaddr email =
   Str.string_match 

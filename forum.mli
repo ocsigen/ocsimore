@@ -5,22 +5,25 @@ This is the forum component of Ocsimore.
 @author Piero Furiesi
 *)
 
-type forum_data = {
-  id : int;
+type forum = {
+  id : Forum_sql.forum;
   title : string;
+  descr: string;
   readable_by : Users.user;
   writable_by : Users.user;
   moderated_by : Users.user;
 }
     
-val get_forum_by_name : Sql.db_t -> string -> forum_data Lwt.t
-val get_forum_by_id : Sql.db_t -> int -> forum_data Lwt.t
+val get_forum_by_name : Sql.db_t -> string -> forum Lwt.t
+val get_forum_by_id : Sql.db_t -> Forum_sql.forum -> forum Lwt.t
   
-val can_read : forum_data -> Users.user -> bool
-val can_write : forum_data -> Users.user -> bool
-val can_moderate : forum_data -> Users.user -> bool
+val can_read : forum -> Users.user -> bool
+val can_write : forum -> Users.user -> bool
+val can_moderate : forum -> Users.user -> bool
 
-val new_forum : 
+(** Creates a new forum or returns its id without modification
+    if it already exists. *)
+val create_forum : 
   Sql.db_t -> 
   title:string -> 
   descr:string -> 
@@ -30,4 +33,11 @@ val new_forum :
   ?writer:Users.user -> 
   ?moderator:Users.user -> 
   unit -> 
-  Sql.db_int_t Lwt.t
+  forum Lwt.t
+
+(** *)
+val get_role : 
+  Sql.db_t -> 
+  Session_manager.sessionmanager -> 
+  Forum_sql.forum -> 
+  Forum_sql.role Lwt.t

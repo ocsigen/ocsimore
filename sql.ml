@@ -41,18 +41,11 @@ let connect () =
 
 let pool = Lwt_pool.create 50 connect
 
+(*
 type db_int_t = int32;;
 type db_size_t = int64;;
 type db_count_t = int64;;
-
-let db_int_of_int = Int32.of_int;;
-let db_size_of_int = Int64.of_int;;
-let db_count_of_int = Int64.of_int;;
-let db_int_of_string = Int32.of_string;;
-let string_of_db_int = Int32.to_string;;
-let int_of_db_int = Int32.to_int;;
-let int_of_db_size = Int64.to_int;;
-let int_of_db_count = Int64.to_int;;
+*)
 
   (* I could define here a functor to try to abstract the db
      structure, improving Vincent's Ocsicache.Make; but I need lots of

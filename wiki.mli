@@ -6,14 +6,22 @@ This is the wiki component of Ocsimore.
 @author Vincent Balat
 *)
 
-type wiki_data = {
-  id : int;
+type wiki = {
+  id : Wiki_sql.wiki;
   title : string;
+  descr : string;
+  default_reader: Users.user;
+  default_writer: Users.user;
+  acl_enabled: bool;
 }
 
-val new_wiki : 
-  Sql.db_t -> 
-  title:string -> 
-  descr:string -> 
-  unit -> 
-  Sql.db_int_t Lwt.t
+
+(** Creates a new wiki or returns its id without modification
+    if it already exists. *)
+  val create_wiki :
+    Sql.db_t ->
+    title:string ->
+    descr:string ->
+    ?acl_enabled:bool ->
+    ?reader:Users.user -> ?writer:Users.user -> unit -> wiki Lwt.t
+
