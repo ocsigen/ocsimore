@@ -92,7 +92,6 @@ object (self)
 	| _ -> "Anonymous"
 
 	method get_role (forum_id: int) =
-	Ocsigen_messages.debug2 (Printf.sprintf "[sessionManager] [%s] get_role (forum_id: %d)" (Sql.uuid_of_conn (return db)) forum_id);
 	Forum.get_forum_by_id db forum_id >>=
 	fun f -> Ocsigen_messages.debug2 "[sessionManager] got forum"; return
 		(match current_user with

@@ -23,7 +23,7 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE forums (
-    id integer NOT NULL,
+    id serial NOT NULL,
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
     moderated boolean DEFAULT false NOT NULL,
@@ -41,7 +41,7 @@ ALTER TABLE public.forums OWNER TO %%USER%%;
 --
 
 CREATE TABLE messages (
-    id integer NOT NULL,
+    id serial NOT NULL,
     datetime timestamp without time zone DEFAULT (now())::timestamp without time zone NOT NULL,
     thr_id integer NOT NULL,
     txt_id integer NOT NULL,
@@ -83,7 +83,7 @@ COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 -- --
 
 -- CREATE TABLE service_parameters (
---     id integer NOT NULL,
+--     id serial NOT NULL,
 --     service_id integer NOT NULL,
 --     name text NOT NULL
 -- );
@@ -96,7 +96,7 @@ COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 -- --
 
 -- CREATE TABLE services (
---     id integer NOT NULL,
+--     id serial NOT NULL,
 --     url text NOT NULL
 -- );
 
@@ -150,7 +150,7 @@ ALTER TYPE public.tablefunc_crosstab_4 OWNER TO %%USER%%;
 --
 
 CREATE TABLE textdata (
-    id integer NOT NULL,
+    id serial NOT NULL,
     txt text DEFAULT ''::text NOT NULL
 );
 
@@ -162,7 +162,7 @@ ALTER TABLE public.textdata OWNER TO %%USER%%;
 --
 
 CREATE TABLE threads (
-    id integer NOT NULL,
+    id serial NOT NULL,
     subject text DEFAULT ''::text NOT NULL,
     frm_id integer NOT NULL,
     hidden boolean DEFAULT false NOT NULL,
@@ -186,7 +186,7 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 --
 
 CREATE TABLE users (
-    id integer NOT NULL,
+    id serial NOT NULL,
     login text NOT NULL,
     password text,
     fullname text NOT NULL,
@@ -202,7 +202,7 @@ ALTER TABLE public.users OWNER TO %%USER%%;
 --
 
 CREATE TABLE wikiboxes (
-    id integer NOT NULL,
+    id serial NOT NULL,
     wiki_id integer NOT NULL, -- There may be several wikis
     version serial NOT NULL,
     comment text DEFAULT ''::text NOT NULL,
@@ -216,7 +216,7 @@ CREATE TABLE wikiboxes (
 ALTER TABLE public.wikiboxes OWNER TO %%USER%%;
 
 CREATE TABLE wikipages (
-    id integer NOT NULL,
+    id integer NOT NULL REFERENCES wikiboxes(id),
     pagename text DEFAULT ''::text NOT NULL,
     UNIQUE (pagename),
     UNIQUE (id)
@@ -235,7 +235,7 @@ COMMENT ON COLUMN wikiboxes.wiki_id IS 'wiki';
 --
 
 CREATE TABLE wikis (
-    id integer NOT NULL,
+    id serial NOT NULL,
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL
 );

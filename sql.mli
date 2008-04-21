@@ -4,11 +4,14 @@
 open Ocsimorelib
 open CalendarLib
 
-type db_t = (string, bool) Hashtbl.t Lwt_PGOCaml.t
+module PGOCaml : sig type 'a t end
 
-val uuid_of_conn: db_t Lwt.t -> string
+type db_t = (string, bool) Hashtbl.t PGOCaml.t
 
-val connect: unit -> db_t Lwt.t
+(* val connect: unit -> db_t Lwt.t *)
+
+(** Pool of SQL connections *)
+val pool : db_t Lwt_pool.t
 
 (** type for database integers (and IDs) *)
 type db_int_t;;

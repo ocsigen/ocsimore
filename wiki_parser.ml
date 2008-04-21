@@ -28,8 +28,8 @@ let lexer row =
        (function Delim d -> d | Text t -> t)
        (full_split cmd_regexp row) 
 
-(* given [s1,s2,...,sn], returns pcdata[s1^s2^...^sn] *)
-let allpcdata l = fold_left (^) "" l;;
+(* given [s1,s2,...,sn], returns s1^s2^...^sn *)
+let allpcdata = String.concat "";;
 
 (* parse the argument of an inline command *)
 let rec get_args = function

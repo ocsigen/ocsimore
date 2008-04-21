@@ -23,16 +23,15 @@ object (self)
   inherit [int * int] parametrized_widget parent
     
   val div_class = "thread_toggle"
-  val db = Sql.connect ()
     
   method apply ~sp (forum_id, message_id) =
     let frm_id = Sql.db_int_of_int forum_id in
     let msg_id = Sql.db_int_of_int message_id in
-    db >>= fun db -> 
-    Sql.message_toggle_hidden db ~frm_id ~msg_id >>= fun () -> 
-    return {{ <div class={: div_class :}>[
-		<p>"Thread toggled."		
-	      ] }}
+    Lwt_pool.use Sql.pool (fun db -> 
+      Sql.message_toggle_hidden db ~frm_id ~msg_id >>= fun () -> 
+      return {{ <div class={: div_class :}>[
+		  <p>"Thread toggled."		
+	        ] }})
 end;;
 
 class message_widget ~(parent: sessionmanager) ~(srv_message_toggle: unit) =
@@ -80,24 +79,23 @@ object (self)
   inherit [int * int * int option * int option] parametrized_widget parent
     
   val div_class = "message_list"
-  val db = Sql.connect ()
     
   method private retrieve_data (forum_id, thread_id, offset, limit) =
     let thr_id = Sql.db_int_of_int thread_id in
-    db >>= fun db -> 
-    parent#get_role forum_id >>= fun role -> 
-    Sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () 
-      >>= fun results ->
-    Lwt_util.map
-      (fun (i, t, a, d, h, _) ->
-	 return { id = (Sql.int_of_db_int i); 
-                  text = t; 
-                  author = a; 
-                  datetime = d; 
-                  hidden = h })
-      results
-      >>= fun children -> 
-    return (self#set_children children)
+    Lwt_pool.use Sql.pool (fun db -> 
+      parent#get_role forum_id >>= fun role -> 
+      Sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () 
+        >>= fun results ->
+      Lwt_util.map
+        (fun (i, t, a, d, h, _) ->
+	   return { id = (Sql.int_of_db_int i); 
+                    text = t; 
+                    author = a; 
+                    datetime = d; 
+                    hidden = h })
+        results
+          >>= fun children -> 
+      return (self#set_children children))
 	
   method apply ~sp (forum_id, thread_id, offset, limit) =
     self#retrieve_data (forum_id, thread_id, offset, limit) >>= fun () -> 
@@ -139,21 +137,17 @@ object (self)
     
   val div_class = "message_navigation"
   val mutable nr_messages = 0
-  val db = Sql.connect ()
     
   method private retrieve_data (forum_id, thread_id, offset, limit) =
     let thr_id = Sql.db_int_of_int thread_id in
-    db >>= fun db -> 
+    Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
     Sql.thread_get_nr_messages db ~thr_id ~role >>= fun nr_m -> 
     nr_messages <- nr_m; 
     Ocsigen_messages.debug2 "[message_navigation_widget] retrieve_data: end";
-    return ()
+    return ())
 
   method apply ~sp (forum_id, thread_id, offset, limit) =
-    Ocsigen_messages.debug2
-      (Printf.sprintf "[forumWidget] [%s] message_navigation#apply"
-         (Sql.uuid_of_conn db));
     self#retrieve_data (forum_id, thread_id, offset, limit) >>= fun () -> 
     return {{
 	      <div class={: div_class :}>
@@ -228,7 +222,6 @@ object (self)
     
   val div_class = "message_forest"
   val mutable children: message_data tree list = []
-  val db = Sql.connect () 
     
   method set_children c = children <- c
     
@@ -242,9 +235,9 @@ object (self)
     and bottom = match btm with
       | None -> None
       | Some x -> Some (Sql.db_int_of_int x) in
-      db >>= fun db -> 
-      parent#get_role forum_id >>= fun role -> 
-      Sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () 
+    Lwt_pool.use Sql.pool (fun db -> 
+    parent#get_role forum_id >>= fun role -> 
+    Sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () 
         >>= fun results -> 
       lwt_forest_map
 	(fun (i, t, a, d, h, _, _, _) ->
@@ -254,12 +247,9 @@ object (self)
                     datetime = d; 
                     hidden = h })
 	results >>= fun children -> 
-      return (self#set_children children)
+      return (self#set_children children))
 
   method apply ~sp (forum_id, thread_id, bottom) =
-    Ocsigen_messages.debug2
-      (Printf.sprintf"[forumWidget] [%s] message_forest#apply" 
-         (Sql.uuid_of_conn db));
     let rec listize_forest
         (f: Xhtmltypes_duce._div tree list): Xhtmltypes_duce.ul list Lwt.t =
       Lwt_util.map (function 
@@ -328,7 +318,6 @@ object (self)
 	inherit [int * int * int option * string * bool] parametrized_widget parent
 	
 	val div_class = "message_add"
-	val db = Sql.connect ()
 
 	method apply ~sp (forum_id, thread_id, par_id, txt, sticky) =
 	let thr_id = Sql.db_int_of_int thread_id
@@ -337,13 +326,13 @@ object (self)
 		| None -> None
 		| Some x -> Some (Sql.db_int_of_int x)
 	and author_id = Sql.db_int_of_int parent#get_user_id in
-		db >>=
-		fun db -> Sql.new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>=
+          Lwt_pool.use Sql.pool (fun db -> 
+            Sql.new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>=
 		fun _ -> return {{
 		<div class={: div_class :}>[
 			<p>"Your message has been added (possibly subject to moderation)."
 		]
-	}}
+	                         }})
 end;;
 
 class latest_messages_widget ~(parent: sessionmanager) =
@@ -352,19 +341,17 @@ object (self)
 
 	val div_class = "latest_messages"
 	val mutable messages = []
-	val db = Sql.connect ()
 	
 	method private set_messages m = messages <- m
 
 	method private retrieve_data limit =
-	db >>=
-	fun db -> Sql.get_forums_list db >>=
+          Lwt_pool.use Sql.pool (fun db -> 
+            Sql.get_forums_list db >>=
 	fun forums -> let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
 		Sql.get_latest_messages db ~frm_ids ~limit () >>=
-	fun res -> return (self#set_messages res)
+	fun res -> return (self#set_messages res))
 
 	method apply ~sp limit =
-		Ocsigen_messages.debug2 (Printf.sprintf "[forumWidget] [%s] latest_messages#apply" (Sql.uuid_of_conn db));
 	self#retrieve_data limit >>=
 	fun () -> Lwt_util.map (fun (id, msg, author) ->
 		return {{ <tr>[<td>{: msg :} <td>{: author :}] }} ) messages >>=
@@ -410,7 +397,6 @@ object (self)
   val mutable hidden = false
   val mutable shown_messages = 0
   val mutable hidden_messages = 0
-  val db = Sql.connect ()
     
   method set_subject s = subject <- s
   method set_author a = author <- a
@@ -437,7 +423,7 @@ object (self)
 
   method private retrieve_data (forum_id, thread_id) =
     let thr_id = Sql.db_int_of_int thread_id in
-    db >>= fun db -> 
+    Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
     Sql.thread_get_data db ~thr_id ~role >>= fun (i, s, a, ar, d, h, sm, hm) ->
     self#set_subject s;
@@ -448,11 +434,9 @@ object (self)
     self#set_datetime d;
     self#set_hidden h;
     self#set_shown_messages sm;
-    return (self#set_hidden_messages hm)
+    return (self#set_hidden_messages hm))
 
   method apply ~sp (forum_id, thread_id) =
-    Ocsigen_messages.debug2
-      (Printf.sprintf "[forumWidget] [%s] thread#apply" (Sql.uuid_of_conn db));
     self#retrieve_data (forum_id, thread_id) >>= fun () -> 
     parent#get_role forum_id >>= fun role -> 
     return
@@ -482,16 +466,15 @@ object (self)
   inherit [int * int] parametrized_widget parent
     
   val div_class = "thread_toggle"
-  val db = Sql.connect ()
     
   method apply ~sp (forum_id, thread_id) =
     let frm_id = Sql.db_int_of_int forum_id in
     let thr_id = Sql.db_int_of_int thread_id in
-    db >>= fun db -> 
+    Lwt_pool.use Sql.pool (fun db -> 
     Sql.thread_toggle_hidden db ~frm_id ~thr_id >>= fun () -> 
     return {{ <div class={: div_class :}>[
 		<p>"Thread toggled."		
-	      ] }}
+	      ] }})
 end;;
 
 class thread_list_widget
@@ -509,13 +492,10 @@ object (self)
   inherit [thread_data] list_widget parent
     
   val div_class = "thread_list"
-  val db = Sql.connect ()
     
   method private retrieve_data (forum_id) =
-    Ocsigen_messages.debug2
-      (Printf.sprintf "[thread_list] retrieve_data (id: %d)"  forum_id);
     let frm_id = Sql.db_int_of_int forum_id in 
-    db >>= fun db -> 
+    Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
     Sql.forum_get_threads_list db ~frm_id ~role () >>= fun result -> 
     Lwt_util.map (fun (i, s, a, d, _) ->
@@ -524,12 +504,9 @@ object (self)
                              author = a; 
                              datetime = d }
 	         ) result >>= fun children -> 
-    return (self#set_children children)
+    return (self#set_children children))
 
   method apply ~sp (forum_id) =
-    Ocsigen_messages.debug2
-      (Printf.sprintf "[forumWidget] [%s] thread_list#apply"
-         (Sql.uuid_of_conn db));
     catch (fun () -> self#retrieve_data forum_id >>= fun () -> 
              return self#get_children >>= fun subjects -> 
              Ocsigen_messages.debug2
@@ -595,14 +572,13 @@ object (self)
 	inherit [int * bool * string * string] parametrized_widget parent
 	
 	val div_class = "thread_add"
-	val db = Sql.connect ()
 
 	method apply ~sp (forum_id, is_article, sbj, txt) =
 	let frm_id = Sql.db_int_of_int forum_id
 	and author_id = Sql.db_int_of_int parent#get_user_id 
 	and subject = (if sbj = "" then "No subject" else sbj) in
-	db >>=
-	fun db -> (if is_article then
+        Lwt_pool.use Sql.pool (fun db -> 
+          (if is_article then
 		Sql.new_thread_and_article db ~frm_id ~author_id ~subject ~txt
 	else
 		Sql.new_thread_and_message db ~frm_id ~author_id ~subject ~txt) >>=
@@ -610,7 +586,7 @@ object (self)
 		<div class={: div_class :}>[
 			<p>"The new thread has been created (possibly subject to moderation)."
 		]
-	}}
+	}})
 end;;
 
 type forum_data =
@@ -628,16 +604,15 @@ object (self)
 	inherit [forum_data] list_widget parent
 
   val div_class = "forums_list"
-	val db = Sql.connect ()
 
 	method private retrieve_data () =
 	Ocsigen_messages.debug2 "[forums_list] retrieve_data";
-	db >>=
-	fun db -> Sql.get_forums_list db >>=
+        Lwt_pool.use Sql.pool (fun db -> 
+	Sql.get_forums_list db >>=
 	fun result -> Lwt_util.map (fun (i, n, d, m, a) ->
 		return { id = Sql.int_of_db_int i; name = n; description = d; moderated = m; arborescent = a }
 	) result >>=
-	fun children -> return (self#set_children children)
+	fun children -> return (self#set_children children))
 
 	method apply ~sp () =
 	self#retrieve_data () >>=
@@ -690,15 +665,14 @@ object (self)
 	inherit [string * string * string * bool * bool] parametrized_widget parent
 	
 	val div_class = "forum_add"
-	val db = Sql.connect ()
 
 	method apply ~sp (name, url, descr, moderated, arborescent) =
-	db >>=
-	fun db -> Forum.new_forum db ~title:name ~descr ~moderated ~arborescent () >>=
-	fun _ ->
+          Lwt_pool.use Sql.pool (fun db -> 
+          Forum.new_forum db ~title:name ~descr ~moderated ~arborescent () >>=
+	    fun _ ->
 		return {{
 		<div class={: div_class :}>[
 			<p>"The new thread has been created."
 		]
-	}}
+	}})
 end;;

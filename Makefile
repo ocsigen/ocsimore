@@ -34,7 +34,7 @@ PP = -pp "$(CAMLP4O) -I $(shell ocamlfind query extlib) \
 	-I $(shell ocamlfind query threads)/threads \
 	-I $(shell ocamlfind query pgocaml) \
 	extLib.cma pcre.cma str.cma calendarLib.cmo csv.cma ssl.cma threads.cma lwt.cma \
-	pgocaml.cma lwt_pa_pgsql.cmo -loc loc"
+	pgocaml.cma pa_pgsql.cmo -loc loc"
 #PP=-syntax camlp4o
 
 PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen
@@ -68,7 +68,7 @@ print_sql:
 	-I +ssl $(shell ocamlfind query ssl)/ssl.cma \
 	-I +lwt $(shell ocamlfind query lwt)/lwt.cma \
 	$(shell ocamlfind query pgocaml)/pgocaml.cma \
-	$(shell ocamlfind query pgocaml)/lwt_pa_pgsql.cmo pr_o.cmo sql.ml
+	$(shell ocamlfind query pgocaml)/pa_pgsql.cmo pr_o.cmo sql.ml
 
 ocsimore_config.ml: ocsimore_config.ml.in
 	sed "s/%%USER%%/$(USER)/g" ocsimore_config.ml.in > ocsimore_config.ml

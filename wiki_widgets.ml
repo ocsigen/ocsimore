@@ -17,15 +17,13 @@ object (self)
 
   val mutable data = None
 
-  val db = Sql.connect ()
-
   method private set_data d = 
     data <- Some d
     
   method private retrieve_data (wiki_id0, wikibox_id) =
     let wiki_id = Sql.db_int_of_int wiki_id0 in
     let wikibox_id = Sql.db_int_of_int wikibox_id in
-    db >>= fun db -> 
+    Lwt_pool.use Sql.pool (fun db -> 
     Sql.wikibox_get_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
     match result with
       | None -> Lwt.return ()
@@ -43,7 +41,7 @@ object (self)
              author = user; 
              datetime = d; 
              comment = com };
-         Lwt.return ()
+         Lwt.return ())
 
   method apply ~sp (wiki_id, message_id) =
     self#retrieve_data (wiki_id, message_id) >>= fun () -> 

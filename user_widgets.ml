@@ -39,7 +39,7 @@ object (self)
            ]] }}
         
   method apply ~sp () =
-    Ocsigen_messages.debug2 "[forumWidget] login#apply";
+    Ocsigen_messages.debug2 "[User_widgets] login#apply";
     Eliom_sessions.get_persistent_session_data
       Session_manager.user_table sp () >>= fun sess ->
     Lwt.return {{ <div class={: div_class :}>
