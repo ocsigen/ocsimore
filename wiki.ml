@@ -12,6 +12,6 @@ type wiki_data = {
 }
 
 let new_wiki db ~title ~descr () =
-  Sql.new_wiki db title descr
+  Wiki_sql.new_wiki db title descr
 
 

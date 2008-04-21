@@ -49,7 +49,7 @@ let anonymous =
 let get_user_by_name db ~name =
 	if name = "anonymous" then return anonymous
 	else
-	Sql.find_user db ~name () >>=
+	User_sql.find_user db ~name () >>=
 	fun (i, n, p, d, e, pm) -> let data = { id = Sql.int_of_db_int i; name = n; pwd = p; fullname = d; email = e } in
 	 	let user = { data = data; set = match pm with
 
@@ -91,14 +91,14 @@ let mail_password db ~name ~from_addr ~subject =
 	| _ -> return false)
 
 let update_permissions db ~user =
-	Sql.update_permissions db ~name:user.data.name ~perm:(Marshal.to_string user.set []);;
+	User_sql.update_permissions db ~name:user.data.name ~perm:(Marshal.to_string user.set []);;
 
 let create_user db ~name ~pwd ~fullname ~email =
 	catch 
 	(fun () -> get_user_by_name db ~name)
 	(function 
 	| Not_found ->
-		Sql.new_user db ~name ~password:pwd ~fullname ~email >>=
+		User_sql.new_user db ~name ~password:pwd ~fullname ~email >>=
 		fun i ->
 		let data = { id = Sql.int_of_db_int i; name = name; pwd = pwd; fullname = fullname; email = email }	in
 		let user = { data = data; set = singleton anonymous } in
@@ -127,7 +127,7 @@ let update_user_data db ~user =
 		d.pwd <- pwd;
 		d.fullname <- fullname;
 		d.email <- email;
-		Sql.update_data db ~id:(Sql.db_int_of_int user.data.id) ~name:user.data.name ~password:pwd ~fullname ~email
+		User_sql.update_data db ~id:(Sql.db_int_of_int user.data.id) ~name:user.data.name ~password:pwd ~fullname ~email
 
 let ( <-?- ) user1 user2 =
 	mem user2 user1.set
@@ -212,7 +212,7 @@ let create_standard_users db =
 		| _ -> print_endline "\n"; ask_email() in
 
 	catch
-	(fun () -> Sql.find_user db ~name:"admin" () >>=
+	(fun () -> User_sql.find_user db ~name:"admin" () >>=
 	fun _ -> return ())
 	(function Not_found -> 
 	create_user db "admin" (Some (ask_pwd ())) "Charlie Admin" (ask_email ()) >>=

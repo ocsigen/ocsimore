@@ -28,7 +28,7 @@ object (self)
     let frm_id = Sql.db_int_of_int forum_id in
     let msg_id = Sql.db_int_of_int message_id in
     Lwt_pool.use Sql.pool (fun db -> 
-      Sql.message_toggle_hidden db ~frm_id ~msg_id >>= fun () -> 
+      Forum_sql.message_toggle_hidden db ~frm_id ~msg_id >>= fun () -> 
       return {{ <div class={: div_class :}>[
 		  <p>"Thread toggled."		
 	        ] }})
@@ -61,7 +61,7 @@ object (self)
 	   <h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}
 	     !{:
 		 match role with
-		   | Sql.Moderator -> 
+		   | User_sql.Moderator -> 
                        {{ [<p>{: Format.sprintf
                                  "Message is hidden: %s; sticky: %s" 
                                  (if hidden then "YES" else "NO")
@@ -84,7 +84,7 @@ object (self)
     let thr_id = Sql.db_int_of_int thread_id in
     Lwt_pool.use Sql.pool (fun db -> 
       parent#get_role forum_id >>= fun role -> 
-      Sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () 
+      Forum_sql.thread_get_messages_with_text db ~thr_id ~role ?offset ?limit () 
         >>= fun results ->
       Lwt_util.map
         (fun (i, t, a, d, h, _) ->
@@ -142,7 +142,7 @@ object (self)
     let thr_id = Sql.db_int_of_int thread_id in
     Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
-    Sql.thread_get_nr_messages db ~thr_id ~role >>= fun nr_m -> 
+    Forum_sql.thread_get_nr_messages db ~thr_id ~role >>= fun nr_m -> 
     nr_messages <- nr_m; 
     Ocsigen_messages.debug2 "[message_navigation_widget] retrieve_data: end";
     return ())
@@ -237,7 +237,7 @@ object (self)
       | Some x -> Some (Sql.db_int_of_int x) in
     Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
-    Sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () 
+    Forum_sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () 
         >>= fun results -> 
       lwt_forest_map
 	(fun (i, t, a, d, h, _, _, _) ->
@@ -270,7 +270,7 @@ object (self)
 			 <h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
 			 <pre>{: s.text :}
 			   !{: match role with
-			       | Sql.Moderator -> {{ [{: post_form ~service:srv_message_toggle ~sp (self#toggle_form s.hidden s.id) (forum_id, (thread_id, None)) :}] }}
+			       | User_sql.Moderator -> {{ [{: post_form ~service:srv_message_toggle ~sp (self#toggle_form s.hidden s.id) (forum_id, (thread_id, None)) :}] }}
 			       | _ -> {{ [] }}
 			           :}
 			   {: a srv_reply_message sp {{ "Reply to this message" }} (forum_id, (thread_id, (None, s.id))) :}
@@ -327,7 +327,7 @@ object (self)
 		| Some x -> Some (Sql.db_int_of_int x)
 	and author_id = Sql.db_int_of_int parent#get_user_id in
           Lwt_pool.use Sql.pool (fun db -> 
-            Sql.new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>=
+            Forum_sql.new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>=
 		fun _ -> return {{
 		<div class={: div_class :}>[
 			<p>"Your message has been added (possibly subject to moderation)."
@@ -346,9 +346,9 @@ object (self)
 
 	method private retrieve_data limit =
           Lwt_pool.use Sql.pool (fun db -> 
-            Sql.get_forums_list db >>=
+            Forum_sql.get_forums_list db >>=
 	fun forums -> let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
-		Sql.get_latest_messages db ~frm_ids ~limit () >>=
+		Forum_sql.get_latest_messages db ~frm_ids ~limit () >>=
 	fun res -> return (self#set_messages res))
 
 	method apply ~sp limit =
@@ -425,7 +425,7 @@ object (self)
     let thr_id = Sql.db_int_of_int thread_id in
     Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
-    Sql.thread_get_data db ~thr_id ~role >>= fun (i, s, a, ar, d, h, sm, hm) ->
+    Forum_sql.thread_get_data db ~thr_id ~role >>= fun (i, s, a, ar, d, h, sm, hm) ->
     self#set_subject s;
     self#set_author a;
     (match ar with
@@ -444,7 +444,7 @@ object (self)
 	   <h1>{: self#get_subject :}
 	     !{:
 		 match role with
-		   | Sql.Moderator -> 
+		   | User_sql.Moderator -> 
                        {{ [{: post_form ~service:srv_thread_toggle
                               ~sp self#toggle_form
                               (forum_id, (thread_id, None)) :}] }}
@@ -471,7 +471,7 @@ object (self)
     let frm_id = Sql.db_int_of_int forum_id in
     let thr_id = Sql.db_int_of_int thread_id in
     Lwt_pool.use Sql.pool (fun db -> 
-    Sql.thread_toggle_hidden db ~frm_id ~thr_id >>= fun () -> 
+    Forum_sql.thread_toggle_hidden db ~frm_id ~thr_id >>= fun () -> 
     return {{ <div class={: div_class :}>[
 		<p>"Thread toggled."		
 	      ] }})
@@ -497,7 +497,7 @@ object (self)
     let frm_id = Sql.db_int_of_int forum_id in 
     Lwt_pool.use Sql.pool (fun db -> 
     parent#get_role forum_id >>= fun role -> 
-    Sql.forum_get_threads_list db ~frm_id ~role () >>= fun result -> 
+    Forum_sql.forum_get_threads_list db ~frm_id ~role () >>= fun result -> 
     Lwt_util.map (fun (i, s, a, d, _) ->
 		    return { id = Sql.int_of_db_int i; 
                              subject = s; 
@@ -579,9 +579,9 @@ object (self)
 	and subject = (if sbj = "" then "No subject" else sbj) in
         Lwt_pool.use Sql.pool (fun db -> 
           (if is_article then
-		Sql.new_thread_and_article db ~frm_id ~author_id ~subject ~txt
+		Forum_sql.new_thread_and_article db ~frm_id ~author_id ~subject ~txt
 	else
-		Sql.new_thread_and_message db ~frm_id ~author_id ~subject ~txt) >>=
+		Forum_sql.new_thread_and_message db ~frm_id ~author_id ~subject ~txt) >>=
 	fun _ -> return {{
 		<div class={: div_class :}>[
 			<p>"The new thread has been created (possibly subject to moderation)."
@@ -608,7 +608,7 @@ object (self)
 	method private retrieve_data () =
 	Ocsigen_messages.debug2 "[forums_list] retrieve_data";
         Lwt_pool.use Sql.pool (fun db -> 
-	Sql.get_forums_list db >>=
+	Forum_sql.get_forums_list db >>=
 	fun result -> Lwt_util.map (fun (i, n, d, m, a) ->
 		return { id = Sql.int_of_db_int i; name = n; description = d; moderated = m; arborescent = a }
 	) result >>=

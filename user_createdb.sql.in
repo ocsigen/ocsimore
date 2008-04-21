@@ -1,0 +1,29 @@
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
+--
+
+CREATE TABLE users (
+    id serial NOT NULL primary key,
+    login text NOT NULL,
+    password text,
+    fullname text NOT NULL,
+    email text NOT NULL,
+    permissions bytea
+);
+
+
+ALTER TABLE public.users OWNER TO %%USER%%;
+
+--
+-- Name: wikipages; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 
+--
+
+
+-- --
+-- -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: %%USER%%
+-- --
+
+-- COPY users (id, login, password, fullname, email, permissions) FROM stdin;
+-- 0	anonymous	\N	Anonymous		\N
+-- \.
+

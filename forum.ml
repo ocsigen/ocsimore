@@ -19,7 +19,7 @@ type forum_data =
     }
 
 let get_forum_by_id db id =
-  Sql.find_forum db ~id:(Sql.db_int_of_int id) ()
+  Forum_sql.find_forum db ~id:(Sql.db_int_of_int id) ()
   >>= fun (id, title, r, w, m) -> 
   get_user_by_name db ~name:r >>= fun read -> 
   get_user_by_name db ~name:w >>= fun write -> 
@@ -32,7 +32,7 @@ let get_forum_by_id db id =
 	 }
 
 let get_forum_by_name db title =
-  Sql.find_forum db ~title () >>= fun (id, title, r, w, m) -> 
+  Forum_sql.find_forum db ~title () >>= fun (id, title, r, w, m) -> 
   get_user_by_name db ~name:r >>= fun read -> 
   get_user_by_name db ~name:w >>= fun write -> 
   get_user_by_name db ~name:m >>= fun moderate ->
@@ -66,7 +66,7 @@ let new_forum
     let (m_id, _, _, _, _) = match moderator with
       | None -> anon
       | Some u -> get_user_data u in
-      Sql.new_forum
+      Forum_sql.new_forum
         db title descr moderated arborescent
         (Sql.db_int_of_int r_id)
         (Sql.db_int_of_int w_id)

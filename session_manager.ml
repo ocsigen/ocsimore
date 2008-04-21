@@ -96,11 +96,11 @@ object (self)
 	fun f -> Ocsigen_messages.debug2 "[sessionManager] got forum"; return
 		(match current_user with
 		| Data u -> 
-				if Forum.can_moderate f u then (Ocsigen_messages.debug2 "[sessionManager] result: moderator"; Sql.Moderator)
-				else if Forum.can_write f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: author"; Sql.Author (Sql.db_int_of_int self#get_user_id))
-				else if Forum.can_read f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: lurker"; Sql.Lurker self#get_user_name)
-				else (Ocsigen_messages.debug2 "[sessionManager] result: unknown"; Sql.Unknown)
-		| _ -> (Ocsigen_messages.debug2 "[sessionManager] result: nobody logged in"; Sql.Unknown))
+				if Forum.can_moderate f u then (Ocsigen_messages.debug2 "[sessionManager] result: moderator"; User_sql.Moderator)
+				else if Forum.can_write f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: author"; User_sql.Author (Sql.db_int_of_int self#get_user_id))
+				else if Forum.can_read f u && self#is_logged_on then (Ocsigen_messages.debug2 "[sessionManager] result: lurker"; User_sql.Lurker self#get_user_name)
+				else (Ocsigen_messages.debug2 "[sessionManager] result: unknown"; User_sql.Unknown)
+		| _ -> (Ocsigen_messages.debug2 "[sessionManager] result: nobody logged in"; User_sql.Unknown))
 
 	method private valid_username usr =
 	Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0

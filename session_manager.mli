@@ -30,7 +30,7 @@ object
 	method get_user_data: int * string * string option * string * string
 	method get_user_id: int
 	method get_user_name: string
-	method get_role: int -> Sql.role Lwt.t
+	method get_role: int -> User_sql.role Lwt.t
   method container: sp:server_params -> sess:Users.user session_data ->
 		contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
   method add_login_actions: 

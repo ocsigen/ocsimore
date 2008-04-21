@@ -75,6 +75,9 @@ ocsimore_config.ml: ocsimore_config.ml.in
 
 createdb.sql: createdb.sql.in
 	sed "s/%%USER%%/$(USER)/g" createdb.sql.in > createdb.sql
+	sed "s/%%USER%%/$(USER)/g" user_createdb.sql.in > user_createdb.sql
+	sed "s/%%USER%%/$(USER)/g" forum_createdb.sql.in > forum_createdb.sql
+	sed "s/%%USER%%/$(USER)/g" wiki_createdb.sql.in > wiki_createdb.sql
 
 
 %.cmo: %.ml

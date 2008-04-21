@@ -24,7 +24,7 @@ object (self)
     let wiki_id = Sql.db_int_of_int wiki_id0 in
     let wikibox_id = Sql.db_int_of_int wikibox_id in
     Lwt_pool.use Sql.pool (fun db -> 
-    Sql.wikibox_get_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
+    Wiki_sql.wikibox_get_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
     match result with
       | None -> Lwt.return ()
       | Some (com, a, cont, d) ->
