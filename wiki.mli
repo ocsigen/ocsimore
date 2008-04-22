@@ -19,7 +19,6 @@ type wiki = {
 (** Creates a new wiki or returns its id without modification
     if it already exists. *)
   val create_wiki :
-    Sql.db_t ->
     title:string ->
     descr:string ->
     ?acl_enabled:bool ->

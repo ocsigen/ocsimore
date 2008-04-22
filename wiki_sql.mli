@@ -2,7 +2,6 @@ type wiki
 
 (** inserts a new wiki container *)
 val new_wiki : 
-  Sql.db_t -> 
   title:string -> 
   descr:string -> 
   reader:int32 -> 
@@ -12,7 +11,6 @@ val new_wiki :
 
 (** Find wiki information for a wiki, given its id or title *)
 val find_wiki: 
-  Sql.db_t -> 
   ?id:wiki -> 
   ?title:string -> 
   unit -> 
@@ -21,7 +19,6 @@ val find_wiki:
 (** Inserts a new wikipage in an existing wiki and return the id of the 
     wikibox. *)
 val new_wikibox :
-  Sql.db_t -> 
   wiki:wiki ->
   author:string ->
   comment:string ->
@@ -31,7 +28,6 @@ val new_wikibox :
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
 val get_wikibox_data : 
-  Sql.db_t -> 
   wiki:wiki -> 
   id:int32 ->
   (string * string * string * CalendarLib.Calendar.t) option Lwt.t

@@ -21,14 +21,13 @@ object (self)
     data <- Some d
     
   method private retrieve_data (wiki_id, wikibox_id) =
-    Lwt_pool.use Sql.pool (fun db -> 
-    Wiki_sql.get_wikibox_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
+    Wiki_sql.get_wikibox_data ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
     match result with
       | None -> Lwt.return ()
       | Some (com, a, cont, d) ->
          Lwt.catch
            (fun () -> 
-              Users.get_user_by_name db a >>= fun user ->
+              Users.get_user_by_name a >>= fun user ->
               Lwt.return (Some user))
            (function
               | Users.NoSuchUser -> Lwt.return None
@@ -39,7 +38,7 @@ object (self)
              author = user; 
              datetime = d; 
              comment = com };
-         Lwt.return ())
+         Lwt.return ()
 
   method apply ~sp (wiki_id, message_id) =
     self#retrieve_data (wiki_id, message_id) >>= fun () -> 

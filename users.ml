@@ -38,12 +38,12 @@ exception Users_error of string
 
 type user = M.SSet.elt
 
-let update_permissions db ~user =
+let update_permissions ~user =
   User_sql.update_permissions 
-    db ~name:user.data.name ~perm:(Marshal.to_string user.set [])
+    ~name:user.data.name ~perm:(Marshal.to_string user.set [])
 
-let get_user_by_name_from_db db ~name =
-  User_sql.find_user db ~name () >>= fun (i, n, p, d, e, pm) -> 
+let get_user_by_name_from_db ~name =
+  User_sql.find_user ~name () >>= fun (i, n, p, d, e, pm) -> 
   let data = { id = i; 
                name = n; 
                pwd = p; 
@@ -57,13 +57,13 @@ let get_user_by_name_from_db db ~name =
   in
   return user
 
-let create_anonymous db =
+let create_anonymous () =
   catch
-    (fun () -> get_user_by_name_from_db db ~name:"anonymous")
+    (fun () -> get_user_by_name_from_db ~name:"anonymous")
     (function
        | Not_found ->
 	   (User_sql.new_user 
-              db ~name:"anonymous" ~password:None
+              ~name:"anonymous" ~password:None
               ~fullname:"Anonymous" ~email:"" >>= fun i ->
 	   let data = { id = i;
                         name = "anonymous"; 
@@ -74,12 +74,10 @@ let create_anonymous db =
 	   Lwt.return { data = data; set = empty })
        | e -> Lwt.fail e)
 
-let anonymous =
-  Lwt_unix.run 
-    (Lwt_pool.use Sql.pool (fun db -> create_anonymous db))
+let anonymous = Lwt_unix.run (create_anonymous ())
 
 
-let create_admin db =
+let create_admin () =
   let rec get_pwd message =
     print_string message;
     flush Pervasives.stdout;
@@ -119,13 +117,13 @@ let create_admin db =
   in
   
   Lwt.catch
-    (fun () -> get_user_by_name_from_db db ~name:"admin")
+    (fun () -> get_user_by_name_from_db ~name:"admin")
     (function
        | Not_found ->
            let pwd = ask_pwd () in
            let email = ask_email () in
 	   (User_sql.new_user 
-              db ~name:"admin" ~password:(Some pwd)
+              ~name:"admin" ~password:(Some pwd)
               ~fullname:"Admin" ~email:email >>= fun i ->
 	   let data = { id = i;
                         name = "admin"; 
@@ -138,25 +136,23 @@ let create_admin db =
 
 
 
-let admin =
-  Lwt_unix.run 
-    (Lwt_pool.use Sql.pool (fun db -> create_admin db))
+let admin = Lwt_unix.run (create_admin ())
 
 
-let get_user_by_name db ~name =
+let get_user_by_name ~name =
   if name = "anonymous" 
   then return anonymous
   else
   if name = "admin" 
   then return admin
-  else get_user_by_name_from_db db ~name
+  else get_user_by_name_from_db ~name
 
-let create_user db ~name ~pwd ~fullname ~email =
+let create_user ~name ~pwd ~fullname ~email =
   catch 
-    (fun () -> get_user_by_name db ~name)
+    (fun () -> get_user_by_name ~name)
     (function 
        | Not_found ->
-	   (User_sql.new_user db ~name ~password:pwd ~fullname ~email 
+	   (User_sql.new_user ~name ~password:pwd ~fullname ~email 
            >>= fun i ->
 	   let data = { id = i;
                         name = name; 
@@ -165,7 +161,7 @@ let create_user db ~name ~pwd ~fullname ~email =
                         email = email }	
            in
 	   let user = { data = data; set = singleton anonymous } in
-	   update_permissions db ~user >>= fun () -> 
+	   update_permissions ~user >>= fun () -> 
            return user)
        | e -> fail e)
 
@@ -182,10 +178,10 @@ let generate_password () =
     Some pwd
 
 
-let mail_password db ~name ~from_addr ~subject =
+let mail_password ~name ~from_addr ~subject =
   catch
     (fun () -> 
-       get_user_by_name db ~name >>= fun user -> 
+       get_user_by_name ~name >>= fun user -> 
        Lwt_preemptive.detach
 	 (fun () -> 
             ignore(Netaddress.parse user.data.email);
@@ -209,15 +205,15 @@ let mail_password db ~name ~from_addr ~subject =
 let create_unique_user =
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
   let lock = Lwt_mutex.create () in
-  fun db ~name ~pwd ~fullname ~email ->
+  fun ~name ~pwd ~fullname ~email ->
     let rec suffix n =
       catch
         (fun () -> 
-           get_user_by_name db ~name:n >>= fun _ -> 
+           get_user_by_name ~name:n >>= fun _ -> 
            suffix (n ^ (digit "X")))
         (function
 	   | Not_found -> 
-               (create_user db ~name:n ~pwd ~fullname ~email >>= fun x -> 
+               (create_user ~name:n ~pwd ~fullname ~email >>= fun x -> 
                   Lwt.return (x, n))
            | e -> fail e)
     in
@@ -230,13 +226,13 @@ let get_user_data ~user =
   let { id = i; name = n; pwd = p; fullname = d; email = e} = user.data in
   (i, n, p, d, e);;
 
-let update_user_data db ~user =
+let update_user_data ~user =
   let d = user.data
   in fun ?(pwd = d.pwd) ?(fullname = d.fullname) ?(email = d.email) () ->
     d.pwd <- pwd;
     d.fullname <- fullname;
     d.email <- email;
-    User_sql.update_data db
+    User_sql.update_data
       ~id:user.data.id
       ~name:user.data.name
       ~password:pwd
@@ -264,28 +260,28 @@ let ( <-/- ) user1 user2 =
 let rec ( <-//- ) user1 user2 =
 	user1 <-/- user2; iter (fun elt -> elt <-//- user2) user1.set
 
-let rec update_permissions_cascade db ~user =
+let rec update_permissions_cascade ~user =
   Lwt_util.iter
-    (fun elt -> update_permissions_cascade db ~user:elt)
+    (fun elt -> update_permissions_cascade ~user:elt)
     (elements user.set) >>= fun () ->
-  update_permissions db ~user
+  update_permissions ~user
 
-let authenticate db ~name ~pwd =
-	catch (fun () -> get_user_by_name db name >>=
+let authenticate ~name ~pwd =
+	catch (fun () -> get_user_by_name name >>=
 	fun u -> if u.data.pwd = (Some pwd) then return u
 	else fail BadPassword)
 	(function
 	| Not_found -> fail NoSuchUser
 	| e -> fail e)
 
-let delete_user db ~user =
-	get_user_by_name db "admin" >>=
+let delete_user ~user =
+	get_user_by_name "admin" >>=
 	fun admin -> admin <-//- user;
-	update_permissions_cascade db ~user:admin
+	update_permissions_cascade ~user:admin
 
 let in_group ~user ~group =
 	user = group || user <-??- group
 
-let add_group db ~user ~group =
+let add_group ~user ~group =
 	user <--- group;
-	update_permissions db ~user:group
+	update_permissions ~user:group

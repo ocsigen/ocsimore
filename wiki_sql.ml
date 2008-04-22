@@ -24,73 +24,82 @@ open Ocsimorelib
 open CalendarLib
 open Sql
 
-let new_wiki db ~title ~descr ~reader ~writer ~acl =
-  (* inserts a new wiki *)
-  begin_work db >>= fun _ ->
-  PGSQL(db) "INSERT INTO wikis (title, descr, reader, writer, acl) \
-                 VALUES ($title, $descr, $reader, $writer, $acl)" >>= fun () ->
-  serial4 db "wikis_id_seq" >>= fun wik_id ->
-  commit db >>= fun _ ->
-  return wik_id
+(** inserts a new wiki *)
+let new_wiki ~title ~descr ~reader ~writer ~acl =
+  Lwt_pool.use Sql.pool (fun db ->
+       begin_work db >>= fun _ ->
+       PGSQL(db) "INSERT INTO wikis (title, descr, reader, writer, acl) \
+                  VALUES ($title, $descr, $reader, $writer, $acl)" >>= fun () ->
+       serial4 db "wikis_id_seq" >>= fun wik_id ->
+       commit db >>= fun _ ->
+       return wik_id)
 
-let new_wikibox db ~wiki ~author ~comment ~content = 
-  (** Inserts a new wikibox in an existing wiki and return its id. *)
-  begin_work db >>= fun () ->
-  PGSQL(db) "INSERT INTO wikiboxes \
-               (wiki_id, author, comment, content) \
-             VALUES ($wiki, $author, $comment, $content)" >>= fun () ->
-  serial4 db "wikiboxes_id_seq" >>= fun wbx_id ->
-  commit db >>= fun () ->
-  Lwt.return wbx_id
+(** Inserts a new wikibox in an existing wiki and return its id. *)
+let new_wikibox ~wiki ~author ~comment ~content = 
+  Lwt_pool.use Sql.pool (fun db ->
+       begin_work db >>= fun () ->
+       PGSQL(db) "INSERT INTO wikiboxes \
+                    (wiki_id, author, comment, content) \
+                  VALUES ($wiki, $author, $comment, $content)" >>= fun () ->
+       serial4 db "wikiboxes_id_seq" >>= fun wbx_id ->
+       commit db >>= fun () ->
+       Lwt.return wbx_id)
 
 
-let get_wikibox_data db ~wiki ~id =
-  (* returns subject, text, author, datetime of a wikibox; None if
-     non-existant *)
-  PGSQL(db) "SELECT comment, author, content, datetime \
-             FROM wikiboxes \
-             WHERE wiki_id = $wiki \
-             AND id = $id \
-             AND version = \
+(** returns subject, text, author, datetime of a wikibox; 
+    None if non-existant *)
+let get_wikibox_data ~wiki ~id =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT comment, author, content, datetime \
+                  FROM wikiboxes \
+                  WHERE wiki_id = $wiki \
+                  AND id = $id \
+                  AND version = \
                      (SELECT max(version) \
                       FROM wikiboxes \
                       WHERE wiki_id = $wiki \
                       AND id = $id)"
-  >>= function
-    | [] -> Lwt.return None
-    | [x] -> Lwt.return (Some x)
-    | x::_ -> 
-        Ocsigen_messages.warning
-          "Ocsimore: database error (Wiki_sql.get_wikibox_data)";
-        Lwt.return (Some x)
+       >>= function
+         | [] -> Lwt.return None
+         | [x] -> Lwt.return (Some x)
+         | x::_ -> 
+             Ocsigen_messages.warning
+               "Ocsimore: database error (Wiki_sql.get_wikibox_data)";
+             Lwt.return (Some x))
 
-let find_wiki db ?id ?title () =
- begin_work db >>= fun _ -> 
- (match (title, id) with
-    | (Some t, Some i) -> 
-        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
-		FROM wikis, users AS r, users AS w \
-		WHERE r.id = reader AND w.id = writer \
-		AND title = $t AND wikis.id = $i"
-    | (Some t, None) -> 
-        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+let find_wiki ?id ?title () =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db ->
+       begin_work db >>= fun _ -> 
+       (match (title, id) with
+          | (Some t, Some i) -> 
+              PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+                         FROM wikis, users AS r, users AS w \
+                         WHERE r.id = reader AND w.id = writer \
+                         AND title = $t AND wikis.id = $i"
+          | (Some t, None) -> 
+              PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
 		FROM wikis, users AS r, users AS w \
 		WHERE r.id = reader AND w.id = writer \
 		AND title = $t"
-    | (None, Some i) -> 
-        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+          | (None, Some i) -> 
+              PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
 		FROM wikis, users AS r, users AS w \
 		WHERE r.id = reader AND w.id = writer \
 		AND wikis.id = $i"
-    | (None, None) -> fail (Invalid_argument "Wiki_sql.find_wiki")) 
-   >>= fun r -> 
-   commit db >>= fun () -> 
-   (match r with
-      | [x] -> Lwt.return x
-      | x::_ -> 
-          Ocsigen_messages.warning "Ocsimore: two wikis have the same name"; 
-          Lwt.return x
-      | [] -> Lwt.fail Not_found)
+          | (None, None) -> fail (Invalid_argument "Wiki_sql.find_wiki")) 
+         >>= fun r -> 
+       commit db >>= fun () -> 
+       (match r with
+          | [x] -> Lwt.return x
+          | x::_ -> 
+              Ocsigen_messages.warning
+                "Ocsimore: two wikis have the same name"; 
+              Lwt.return x
+          | [] -> Lwt.fail Not_found))
 
 (*
 let new_wikipage ~wik_id ~suffix ~author ~subject ~txt = 

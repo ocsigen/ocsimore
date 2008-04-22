@@ -18,12 +18,12 @@ type forum = {
   moderated_by: Users.user
 }
 
-let get_forum_by_id db id =
-  Forum_sql.find_forum db ~id ()
+let get_forum_by_id id =
+  Forum_sql.find_forum ~id ()
   >>= fun (id, title, descr, r, w, m) -> 
-  get_user_by_name db ~name:r >>= fun read -> 
-  get_user_by_name db ~name:w >>= fun write -> 
-  get_user_by_name db ~name:m >>= fun moderate ->
+  get_user_by_name ~name:r >>= fun read -> 
+  get_user_by_name ~name:w >>= fun write -> 
+  get_user_by_name ~name:m >>= fun moderate ->
   return { id = id; 
            title = title; 
            descr = descr;
@@ -32,11 +32,11 @@ let get_forum_by_id db id =
            moderated_by = moderate
 	 }
 
-let get_forum_by_name db title =
-  Forum_sql.find_forum db ~title () >>= fun (id, title, descr, r, w, m) -> 
-  get_user_by_name db ~name:r >>= fun read -> 
-  get_user_by_name db ~name:w >>= fun write -> 
-  get_user_by_name db ~name:m >>= fun moderate ->
+let get_forum_by_name title =
+  Forum_sql.find_forum ~title () >>= fun (id, title, descr, r, w, m) -> 
+  get_user_by_name ~name:r >>= fun read -> 
+  get_user_by_name ~name:w >>= fun write -> 
+  get_user_by_name ~name:m >>= fun moderate ->
   return { id = id; 
            title = title; 
            descr = descr;
@@ -55,7 +55,6 @@ let can_moderate forum user =
   in_group user forum.moderated_by
 
 let create_forum
-    db
     ~title
     ~descr
     ~moderated
@@ -65,14 +64,14 @@ let create_forum
     ?(moderator = Users.anonymous) (*VVV ??? *)
     () =
   catch
-    (fun () -> get_forum_by_name db title)
+    (fun () -> get_forum_by_name title)
     (function
        | Not_found -> 
            let (r_id, _, _, _, _) = Users.get_user_data reader in
            let (w_id, _, _, _, _) = Users.get_user_data writer in
            let (m_id, _, _, _, _) = Users.get_user_data moderator in
            Forum_sql.new_forum
-             db title descr moderated arborescent
+             title descr moderated arborescent
              r_id w_id m_id
              >>= fun id -> 
            Lwt.return { id = id; 
@@ -84,8 +83,8 @@ let create_forum
 	              }
        | e -> fail e)
 
-let get_role db sm (forum_id : Forum_sql.forum) =
-  get_forum_by_id db forum_id >>= fun f -> 
+let get_role sm (forum_id : Forum_sql.forum) =
+  get_forum_by_id forum_id >>= fun f -> 
   Lwt.return
     (match sm#get_user with
        | Data u -> 

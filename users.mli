@@ -23,12 +23,11 @@ val anonymous : user
 
 val admin : user
 
-val get_user_by_name: Sql.db_t -> name:string -> user Lwt.t
+val get_user_by_name : name:string -> user Lwt.t
 
 val generate_password: unit -> string option
 
 val mail_password: 
-  Sql.db_t -> 
   name:string -> 
   from_addr:string * string -> 
   subject: string -> 
@@ -37,7 +36,6 @@ val mail_password:
 (** Creates a new user with given parameters. 
     Raises {!Users.UserExists} if [name] is already present. *)
 val create_user: 
-  Sql.db_t -> 
   name:string -> 
   pwd:string option -> 
   fullname:string -> 
@@ -45,7 +43,6 @@ val create_user:
   user Lwt.t
 
 val create_unique_user: 
-  Sql.db_t -> 
   name:string -> 
   pwd:string option -> 
   fullname:string -> 
@@ -55,7 +52,6 @@ val create_unique_user:
 val get_user_data: user:user -> int32 * string * string option * string * string
 
 val update_user_data: 
-  Sql.db_t -> 
   user:user -> 
   ?pwd:string option -> 
   ?fullname:string -> 
@@ -63,13 +59,13 @@ val update_user_data:
   unit -> 
   unit Lwt.t
 
-val authenticate: Sql.db_t -> name:string -> pwd:string -> user Lwt.t
+val authenticate : name:string -> pwd:string -> user Lwt.t
 
-val delete_user: Sql.db_t -> user:user -> unit Lwt.t
+val delete_user : user:user -> unit Lwt.t
 
 val in_group: user:user -> group:user -> bool
 
-val add_group: Sql.db_t -> user:user -> group:user -> unit Lwt.t
+val add_group : user:user -> group:user -> unit Lwt.t
 
 
 

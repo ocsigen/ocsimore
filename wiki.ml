@@ -38,11 +38,11 @@ type wiki = {
   acl_enabled: bool;
 }
 
-let get_wiki_by_id db id =
-  Wiki_sql.find_wiki db ~id ()
+let get_wiki_by_id id =
+  Wiki_sql.find_wiki ~id ()
   >>= fun (id, title, descr, r, w, a) -> 
-  Users.get_user_by_name db ~name:r >>= fun read -> 
-  Users.get_user_by_name db ~name:w >>= fun write -> 
+  Users.get_user_by_name ~name:r >>= fun read -> 
+  Users.get_user_by_name ~name:w >>= fun write -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
@@ -51,10 +51,10 @@ let get_wiki_by_id db id =
                acl_enabled = a
 	     }
 
-let get_wiki_by_name db title =
-  Wiki_sql.find_wiki db ~title () >>= fun (id, title, descr, r, w, a) -> 
-  Users.get_user_by_name db ~name:r >>= fun read -> 
-  Users.get_user_by_name db ~name:w >>= fun write -> 
+let get_wiki_by_name title =
+  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, r, w, a) -> 
+  Users.get_user_by_name ~name:r >>= fun read -> 
+  Users.get_user_by_name ~name:w >>= fun write -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
@@ -63,15 +63,15 @@ let get_wiki_by_name db title =
                acl_enabled = a
 	     }
 
-let create_wiki db ~title ~descr ?(acl_enabled=false)
+let create_wiki ~title ~descr ?(acl_enabled=false)
     ?(reader = Users.anonymous) ?(writer = Users.anonymous) () =
   Lwt.catch 
-    (fun () -> get_wiki_by_name db title)
+    (fun () -> get_wiki_by_name title)
     (function
        | Not_found -> 
            let (r_id, _, _, _, _) = Users.get_user_data reader in
            let (w_id, _, _, _, _) = Users.get_user_data writer in
-           Wiki_sql.new_wiki db title descr r_id w_id acl_enabled
+           Wiki_sql.new_wiki title descr r_id w_id acl_enabled
                >>= fun id -> 
            Lwt.return { id = id; 
                         title = title; 

@@ -16,9 +16,8 @@ type sessionmanager_in =
       administrator: Users.user;
     }
       
-class sessionmanager: db: Sql.db_t -> sessionmanagerinfo: sessionmanager_in ->
+class sessionmanager: sessionmanagerinfo: sessionmanager_in ->
 object
-  method db: Sql.db_t
 
   method act_login: 
     (unit, 

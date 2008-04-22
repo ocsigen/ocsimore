@@ -23,7 +23,8 @@ open Ocsimorelib
 open CalendarLib
 open Sql
 
-let new_user db ~name ~password ~fullname ~email =
+let new_user ~name ~password ~fullname ~email =
+  Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   (match password with
      | None -> 
@@ -34,35 +35,41 @@ let new_user db ~name ~password ~fullname ~email =
                     VALUES ($name, $pwd, $fullname, $email)") >>= fun () -> 
   serial4 db "users_id_seq" >>= fun frm_id -> 
   commit db >>=	fun _ -> 
-  return frm_id;;
+  return frm_id)
 
-let find_user db ?id ?name () =
-  (match (name, id) with
-     | (Some n, Some i) -> 
-         PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE id = $i AND login = $n"
-     | (None, Some i) -> 
-         PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE id = $i"
-     | (Some n, None) -> 
-         PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE login = $n"
-     | (None, None) -> Lwt.fail (Failure "Neither name nor id specified")) 
-  >>= fun res -> 
-  (match res with
-     | [u] -> return u
-     | _ -> Lwt.fail Not_found);;
+let find_user ?db ?id ?name () =
+  (match db with
+    | None -> Lwt_pool.use Sql.pool
+    | Some db -> (fun f -> f db))
+    (fun db ->
+       (match (name, id) with
+          | (Some n, Some i) -> 
+              PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE id = $i AND login = $n"
+          | (None, Some i) -> 
+              PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE id = $i"
+          | (Some n, None) -> 
+              PGSQL(db) "SELECT id, login, password, fullname, email, permissions FROM users WHERE login = $n"
+          | (None, None) -> Lwt.fail (Failure "Neither name nor id specified")) 
+       >>= fun res -> 
+         (match res with
+            | [u] -> return u
+            | _ -> Lwt.fail Not_found))
 
-let update_permissions db ~name ~perm =
+let update_permissions ~name ~perm =
+  Lwt_pool.use Sql.pool (fun db ->
   Ocsigen_messages.debug2 (Printf.sprintf "[Sql] update_permissions [%s]" perm);
   begin_work db >>= fun () -> 
-  find_user db ~name () >>= fun (id, _, _, _, _, _) -> 
+  find_user ~db ~name () >>= fun (id, _, _, _, _, _) -> 
   PGSQL(db) "UPDATE users SET permissions = $perm WHERE id = $id" >>= fun () ->
   Ocsigen_messages.debug2 "[Sql] update_permissions: finish"; 
   commit db >>= fun () -> 
-  return ();;
+  return ())
 
-let update_data db ~id ~name ~password ~fullname ~email =
+let update_data ~id ~name ~password ~fullname ~email =
+  Lwt_pool.use Sql.pool (fun db ->
   Ocsigen_messages.debug2 "[Sql] update_data";
   begin_work db >>= fun _ -> 
-  find_user db ~id ~name () >>=	fun (id, _, _, _, _, _) -> 
+  find_user ~db ~id ~name () >>= fun (id, _, _, _, _, _) -> 
   (match password with
      | None -> 
          PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $id"
@@ -71,5 +78,5 @@ let update_data db ~id ~name ~password ~fullname ~email =
     >>=	fun () -> 
   Ocsigen_messages.debug2 "[Sql] update_data: finish"; 
   commit db >>= fun _ -> 
-  Lwt.return ();;
+  Lwt.return ())
 

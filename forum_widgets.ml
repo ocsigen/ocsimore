@@ -25,12 +25,11 @@ object (self)
   val div_class = "thread_toggle"
     
   method apply ~sp (frm_id, msg_id) =
-    Lwt_pool.use Sql.pool (fun db -> 
-      Forum_sql.message_toggle_hidden db ~frm_id ~msg_id >>= fun () -> 
-      return {{ <div class={: div_class :}>[
-		  <p>"Thread toggled."		
-	        ] }})
-end;;
+    Forum_sql.message_toggle_hidden ~frm_id ~msg_id >>= fun () -> 
+    Lwt.return {{ <div class={: div_class :}>[
+		    <p>"Thread toggled."		
+	          ] }}
+end
 
 class message_list_widget ~(parent: sessionmanager) = 
 object (self)
@@ -40,20 +39,19 @@ object (self)
   val div_class = "message_list"
     
   method private retrieve_data (forum_id, thr_id, offset, limit) =
-    Lwt_pool.use Sql.pool (fun db -> 
-      Forum.get_role db parent forum_id >>= fun role -> 
-      Forum_sql.thread_get_messages_with_text
-        db ~thr_id ~role ?offset ?limit () >>= fun results ->
-      Lwt_util.map
-        (fun (i, t, a, d, h, _) ->
-	   return { id = i; 
-                    text = t; 
-                    author = a; 
-                    datetime = d; 
-                    hidden = h })
-        results
-          >>= fun children -> 
-      return (self#set_children children))
+    Forum.get_role parent forum_id >>= fun role -> 
+    Forum_sql.thread_get_messages_with_text
+      ~thr_id ~role ?offset ?limit () >>= fun results ->
+    Lwt_util.map
+      (fun (i, t, a, d, h, _) ->
+	 return { id = i; 
+                  text = t; 
+                  author = a; 
+                  datetime = d; 
+                  hidden = h })
+      results
+        >>= fun children -> 
+    Lwt.return (self#set_children children)
 	
   method apply ~sp (forum_id, thread_id, offset, limit) =
     self#retrieve_data (forum_id, thread_id, offset, limit) >>= fun () -> 
@@ -97,12 +95,11 @@ object (self)
   val mutable nr_messages = 0L
     
   method private retrieve_data (forum_id, thr_id, offset, limit) =
-    Lwt_pool.use Sql.pool (fun db -> 
-    Forum.get_role db parent forum_id >>= fun role -> 
-    Forum_sql.thread_get_nr_messages db ~thr_id ~role >>= fun nr_m -> 
+    Forum.get_role parent forum_id >>= fun role -> 
+    Forum_sql.thread_get_nr_messages ~thr_id ~role >>= fun nr_m -> 
     nr_messages <- nr_m;
     Ocsigen_messages.debug2 "[message_navigation_widget] retrieve_data: end";
-    return ())
+    return ()
 
   method apply ~sp (forum_id, thread_id, offset, limit) =
     self#retrieve_data (forum_id, thread_id, offset, limit) >>= fun () -> 
@@ -225,10 +222,9 @@ object (self)
            ]] }}
       
   method private retrieve_data (forum_id, thr_id, bottom) =
-    Lwt_pool.use Sql.pool (fun db -> 
-    Forum.get_role db parent forum_id >>= fun r -> 
+    Forum.get_role parent forum_id >>= fun r -> 
     role <- r;
-    Forum_sql.thread_get_messages_with_text_forest db ~thr_id ~role ?bottom () 
+    Forum_sql.thread_get_messages_with_text_forest ~thr_id ~role ?bottom () 
         >>= fun results -> 
       lwt_forest_map
 	(fun (i, t, a, d, h, _, _, _) ->
@@ -238,7 +234,7 @@ object (self)
                     datetime = d; 
                     hidden = h })
 	results >>= fun children -> 
-      return (self#set_children children))
+      return (self#set_children children)
 
   method apply ~sp (forum_id, thread_id, bottom) =
     let rec listize_forest
@@ -342,16 +338,14 @@ object (self)
     
   method apply ~sp (forum_id, thr_id, parent_id, txt, sticky) =
     let author_id = parent#get_user_id in
-    Lwt_pool.use Sql.pool 
-      (fun db -> 
-         Forum_sql.new_message
-           db ~thr_id ?parent_id ~author_id ~txt ~sticky () >>= fun _ -> 
-         return {{
-		   <div class={: div_class :}>[
-		     <p>"Your message has been added (possibly subject to moderation)."
-		   ]
-	         }})
-end;;
+    Forum_sql.new_message
+      ~thr_id ?parent_id ~author_id ~txt ~sticky () >>= fun _ -> 
+    Lwt.return {{
+		  <div class={: div_class :}>[
+		    <p>"Your message has been added (possibly subject to moderation)."
+		  ]
+	        }}
+end
 
 class latest_messages_widget ~(parent: sessionmanager) =
 object (self)
@@ -363,11 +357,10 @@ object (self)
 	method private set_messages m = messages <- m
 
 	method private retrieve_data limit =
-          Lwt_pool.use Sql.pool (fun db -> 
-            Forum_sql.get_forums_list db >>= fun forums -> 
-            let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
-            Forum_sql.get_latest_messages db ~frm_ids ~limit () >>= fun res ->
-            Lwt.return (self#set_messages res))
+          Forum_sql.get_forums_list () >>= fun forums -> 
+          let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
+          Forum_sql.get_latest_messages ~frm_ids ~limit () >>= fun res ->
+          Lwt.return (self#set_messages res)
 
 	method apply ~sp limit =
 	self#retrieve_data limit >>=
@@ -441,10 +434,9 @@ object (self)
            ]] }}
 
   method private retrieve_data (forum_id, thr_id) =
-    Lwt_pool.use Sql.pool (fun db -> 
-    Forum.get_role db parent forum_id >>= fun r ->
+    Forum.get_role parent forum_id >>= fun r ->
     role <- r;
-    Forum_sql.thread_get_data db ~thr_id ~role
+    Forum_sql.thread_get_data ~thr_id ~role
       >>= fun (i, s, a, ar, d, h, sm, hm) ->
     self#set_subject s;
     self#set_author a;
@@ -454,7 +446,7 @@ object (self)
     self#set_datetime d;
     self#set_hidden h;
     self#set_shown_messages sm;
-    return (self#set_hidden_messages hm))
+    return (self#set_hidden_messages hm)
 
   method apply ~sp (forum_id, thread_id) =
     self#retrieve_data (forum_id, thread_id) >>= fun () -> 
@@ -488,11 +480,10 @@ object (self)
   val div_class = "thread_toggle"
     
   method apply ~sp (frm_id, thr_id) =
-    Lwt_pool.use Sql.pool (fun db -> 
-    Forum_sql.thread_toggle_hidden db ~frm_id ~thr_id >>= fun () -> 
+    Forum_sql.thread_toggle_hidden ~frm_id ~thr_id >>= fun () -> 
     return {{ <div class={: div_class :}>[
 		<p>"Thread toggled."		
-	      ] }})
+	      ] }}
 end;;
 
 class thread_list_widget
@@ -512,16 +503,15 @@ object (self)
   val div_class = "thread_list"
     
   method private retrieve_data frm_id =
-    Lwt_pool.use Sql.pool (fun db -> 
-    Forum.get_role db parent frm_id >>= fun role -> 
-    Forum_sql.forum_get_threads_list db ~frm_id ~role () >>= fun result -> 
+    Forum.get_role parent frm_id >>= fun role -> 
+    Forum_sql.forum_get_threads_list ~frm_id ~role () >>= fun result -> 
     Lwt_util.map (fun (i, s, a, d, _) ->
                     return { id = Forum_sql.of_id i; 
                              subject = s; 
                              author = a; 
                              datetime = d }
 	         ) result >>= fun children -> 
-    return (self#set_children children))
+    return (self#set_children children)
 
   method apply ~sp (forum_id) =
     catch (fun () -> self#retrieve_data forum_id >>= fun () -> 
@@ -605,16 +595,16 @@ object (self)
 	method apply ~sp (frm_id, is_article, sbj, txt) =
 	  let author_id = parent#get_user_id 
 	  and subject = (if sbj = "" then "No subject" else sbj) in
-          Lwt_pool.use Sql.pool (fun db -> 
-            (if is_article then
-		Forum_sql.new_thread_and_article db ~frm_id ~author_id ~subject ~txt
-	else
-		Forum_sql.new_thread_and_message db ~frm_id ~author_id ~subject ~txt) >>=
+          (if is_article 
+           then
+	     Forum_sql.new_thread_and_article ~frm_id ~author_id ~subject ~txt
+	   else
+	     Forum_sql.new_thread_and_message ~frm_id ~author_id ~subject ~txt) >>=
 	fun _ -> return {{
 		<div class={: div_class :}>[
 			<p>"The new thread has been created (possibly subject to moderation)."
 		]
-	}})
+	}}
 end;;
 
 type forum_data =
@@ -643,19 +633,17 @@ object (self)
   val div_class = "forums_list"
 
   method private retrieve_data () =
-    Lwt_pool.use Sql.pool 
-      (fun db -> 
-         Forum_sql.get_forums_list db >>= fun result -> 
-         Lwt_util.map (fun (i, n, d, m, a) ->
-	                 Lwt.return
-                           { id = i; 
-                             name = n; 
-                             description = d; 
-                             moderated = m; 
-                             arborescent = a }
-	              ) result 
-           >>= fun children -> 
-         Lwt.return (self#set_children children))
+    Forum_sql.get_forums_list () >>= fun result -> 
+    Lwt_util.map (fun (i, n, d, m, a) ->
+	            Lwt.return
+                      { id = i; 
+                        name = n; 
+                        description = d; 
+                        moderated = m; 
+                        arborescent = a }
+	         ) result 
+      >>= fun children -> 
+        Lwt.return (self#set_children children)
 
   method apply ~sp () =
     self#retrieve_data () >>= fun () -> 
@@ -715,15 +703,14 @@ object (self)
 	val div_class = "forum_add"
 
 	method apply ~sp (name, url, descr, moderated, arborescent) =
-          Lwt_pool.use Sql.pool (fun db -> 
           Forum.create_forum
-            db ~title:name ~descr ~moderated ~arborescent () >>=
+            ~title:name ~descr ~moderated ~arborescent () >>=
 	    fun _ ->
-		return {{
-		<div class={: div_class :}>[
-			<p>"The new thread has been created."
-		]
-	}})
+	      return {{
+		        <div class={: div_class :}>[
+			  <p>"The new thread has been created."
+		        ]
+	              }}
 end;;
 
 (* 
@@ -749,7 +736,7 @@ object (self)
     
   method apply ~sp (forum_id, message_id) =
     self#retrieve_data (forum_id, message_id) >>= fun () -> 
-    Forum.get_role db parent forum_id >>= fun role -> 
+    Forum.get_role parent forum_id >>= fun role -> 
     return
       {{ <div class={: div_class :}>[
 	   <h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}

@@ -30,7 +30,6 @@ val of_id : int32 -> forum
 
 (** inserts a new forum *)
 val new_forum : 
-  Sql.db_t -> 
   title:string -> 
   descr:string -> 
   moderated:bool ->
@@ -43,7 +42,6 @@ val new_forum :
 (** inserts a message starting a new thread; both thread and message
     will be hidden if forum is moderated *)
 val new_thread_and_message :
-  Sql.db_t -> 
   frm_id:forum ->
   author_id:int32 -> 
   subject:string -> 
@@ -53,7 +51,6 @@ val new_thread_and_message :
 (** inserts a thread with an article; the thread will be hidden if the forum
     is moderated *)
 val new_thread_and_article:
-  Sql.db_t -> 
   frm_id:forum -> 
   author_id:int32 -> 
   subject:string -> txt:string ->
@@ -62,7 +59,6 @@ val new_thread_and_article:
 (** inserts a message for an existing thread; message will be hidden
     if forum is moderated *)
 val new_message :
-  Sql.db_t -> 
   thr_id:int32 ->
   ?parent_id:int32 -> 
   author_id:int32 ->
@@ -72,31 +68,30 @@ val new_message :
   int32 Lwt.t
 
 (** toggle moderation status of a forum *)
-val forum_toggle_moderated : Sql.db_t -> frm_id:forum -> unit Lwt.t
+val forum_toggle_moderated : frm_id:forum -> unit Lwt.t
   
 (** hides/shows a thread *)
 val thread_toggle_hidden : 
-  Sql.db_t -> frm_id:forum -> thr_id:int32 -> unit Lwt.t
+  frm_id:forum -> thr_id:int32 -> unit Lwt.t
   
 (** hides/shows a message *)
 val message_toggle_hidden :
-  Sql.db_t -> frm_id:forum -> msg_id:int32 -> unit Lwt.t
+  frm_id:forum -> msg_id:int32 -> unit Lwt.t
 
 (** makes a message sticky (or not) *)
 val message_toggle_sticky: 
-  Sql.db_t -> frm_id:forum -> msg_id:int32 -> unit Lwt.t
+  frm_id:forum -> msg_id:int32 -> unit Lwt.t
 
 (** Find forum information for a wiki, given its id or title *)
 val find_forum: 
-  Sql.db_t -> 
   ?id:forum -> 
   ?title:string -> 
   unit -> 
   (forum * string * string * string * string * string) Lwt.t
 
 (** returns the list of available forums *)
-val get_forums_list : 
-  Sql.db_t -> (forum * string * string * bool * bool) list Lwt.t
+val get_forums_list : unit ->
+  (forum * string * string * bool * bool) list Lwt.t
 
 (** returns id, title, description, moderation status, number of shown/hidden
     threads and messages of a forum.  
@@ -104,14 +99,13 @@ val get_forums_list :
     - its hidden status is true, or 
     - it's in a hidden thread. *)
 val forum_get_data: 
-  Sql.db_t -> 
   frm_id:forum -> 
   role:role -> 
   (int32 * string * string * bool * int64 * int64 * int64 * int64) Lwt.t
  
 (** returns the number of visible messages in a thread *)
 val thread_get_nr_messages : 
-  Sql.db_t -> thr_id:int32 -> role:role -> int64 Lwt.t
+  thr_id:int32 -> role:role -> int64 Lwt.t
 
 (** returns id, subject, author, datetime, hidden status, number of shown/hidden
     messages of a thread.  
@@ -120,7 +114,6 @@ val thread_get_nr_messages :
     - it's in a hidden thread. *)
 val thread_get_data : 
   (* frm_id:forum -> *) 
-  Sql.db_t -> 
   thr_id:int32 -> 
   role:role -> 
   (int32 * 
@@ -134,14 +127,12 @@ val thread_get_data :
   
 (** returns id, text, author, datetime, hidden status of a message *)
 val message_get_data : 
-  Sql.db_t -> 
   frm_id:forum -> 
   msg_id:int32 -> 
  (int32 * string * string * CalendarLib.Calendar.t * bool) Lwt.t
   
 (** returns None|Some id of prev & next thread in the same forum *)
 val thread_get_neighbours :
-  Sql.db_t -> 
   frm_id:forum ->  
   thr_id:int32 -> 
   role:role -> 
@@ -149,7 +140,6 @@ val thread_get_neighbours :
 
 (** returns None|Some id of prev & next message in the same thread *)
 val message_get_neighbours :
-  Sql.db_t -> 
   frm_id:forum ->  
   msg_id:int32 -> 
   role:role -> 
@@ -160,7 +150,6 @@ val message_get_neighbours :
     [~offset] rows.  A list elt is (thr_id, subject, author, datetime,
     hidden status). *)
 val forum_get_threads_list :
-  Sql.db_t -> 
   frm_id:forum -> 
   ?offset:int64 -> 
   ?limit:int64 -> 
@@ -169,7 +158,6 @@ val forum_get_threads_list :
   (int32 * string * string * CalendarLib.Calendar.t * bool) list Lwt.t
 
 val thread_get_messages_with_text :
-  Sql.db_t -> 
   thr_id:int32 -> 
   ?offset:int64 -> 
   ?limit:int64 -> 
@@ -180,7 +168,6 @@ val thread_get_messages_with_text :
 (** as above, but in tree form *)
 
 val thread_get_messages_with_text_forest :
-  Sql.db_t -> 
   thr_id:int32 -> 
   ?offset:int64 -> 
   ?limit:int64 ->
@@ -198,7 +185,6 @@ val thread_get_messages_with_text_forest :
      int32) Ocsimorelib.tree list Lwt.t
 
 val get_latest_messages:
-  Sql.db_t -> 
   frm_ids:forum list -> 
   limit:int64 -> 
   unit ->
