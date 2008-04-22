@@ -22,6 +22,11 @@
      done because of the need to match every query request against a
      forum's ACL.  TO BE DONE: A LAYER FOR ACCESS CONTROL *)
 
+(**
+@author Jaap Boender
+@author Vincent Balat
+*)
+
 type forum = int32
 
 open Lwt

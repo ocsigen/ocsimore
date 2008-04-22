@@ -12,26 +12,29 @@ open Widget
 This module contains forum widgets for use with the {!Forum.forum} class
 
 @author Jaap Boender
+@author Vincent Balat
 *)
 
 type message_data =
 {
-	id: Forum_sql.forum;
-	text: string;
-	author: string;
-	datetime: Calendar.t;
-	hidden: bool;
+  id: Forum_sql.forum;
+  text: string;
+  author: string;
+  datetime: Calendar.t;
+  hidden: bool;
 }
 
-class message_toggle_action: parent:sessionmanager ->
-object
-	inherit [Forum_sql.forum * int32] parametrized_widget
-end;;
+
+class message_toggle_action : parent:sessionmanager ->
+  [Forum_sql.forum * int32] parametrized_unit_div_widget_t
+
+
 class message_list_widget : parent:sessionmanager ->
 object
   inherit [message_data] list_widget
-  inherit [Forum_sql.forum * int32 * int64 option * int64 option] 
-    parametrized_widget
+  inherit [Forum_sql.forum * int32 * int64 option * int64 option, 
+           message_data list] 
+    parametrized_div_widget_t
 end;;
 
 class message_navigation_widget : 
@@ -44,10 +47,9 @@ class message_navigation_widget :
                     ([`One of int32] param_name * [`Opt of int64] param_name),
                   unit,
                   [`Registrable]) service ->
-object
-  inherit [Forum_sql.forum * int32 * int64 option * int64 option] 
-    parametrized_widget
-end;;
+      [Forum_sql.forum * int32 * int64 option * int64 option, int64]
+        parametrized_div_widget_t
+
 
 class message_forest_widget : 
   parent:sessionmanager -> 
@@ -69,30 +71,35 @@ class message_forest_widget :
                                [ `Opt of int32 ] param_name), 
                           [`One of int32] param_name,
                           [ `Registrable ]) service ->
-object
-  inherit [Forum_sql.forum * int32 * int32 option] parametrized_widget	
-    
-  method get_children: message_data Ocsimorelib.tree list
-    
-  method set_children: message_data Ocsimorelib.tree list -> unit
-end;;
+      [Forum_sql.forum * int32 * int32 option, 
+       (message_data Ocsimorelib.tree list * Forum_sql.role)] 
+        parametrized_div_widget_t
 
-class message_form_widget: 
+
+class message_form_widget : 
   parent:sessionmanager -> 
-      srv_add_message: (int32 * (int32 * int32 option), string * (int32 option * bool), post_service_kind, [`WithoutSuffix], [`One of int32] param_name * ([`One of int32] param_name * [`Opt of int32] param_name), [`One of string] param_name * ([`Opt of int32] param_name * [`One of bool] param_name), [`Registrable]) service ->
-object
-	inherit [Forum_sql.forum * int32 * int32 option * int32 option] parametrized_widget
-end;;
+      srv_add_message:(int32 * (int32 * int32 option), 
+                       string * (int32 option * bool), 
+                       post_service_kind,
+                       [`WithoutSuffix],
+                       [`One of int32] param_name * 
+                         ([`One of int32] param_name *
+                            [`Opt of int32] param_name), 
+                       [`One of string] param_name * 
+                         ([`Opt of int32] param_name * 
+                            [`One of bool] param_name), 
+                       [`Registrable]) service ->
+      [Forum_sql.forum * int32 * int32 option * int32 option] 
+        parametrized_unit_div_widget_t
 
 class message_add_action: parent:sessionmanager ->
-object
-	inherit [Forum_sql.forum * int32 * int32 option * string * bool] parametrized_widget
-end;;
+      [Forum_sql.forum * int32 * int32 option * string * bool]
+        parametrized_unit_div_widget_t
+
 
 class latest_messages_widget: parent:sessionmanager ->
-object
-	inherit [int64] parametrized_widget
-end;;
+      [int64, (Forum_sql.forum * string * string) list]
+        parametrized_div_widget_t
 
 type thread_data =
 {
@@ -112,64 +119,14 @@ class thread_widget:
                            ([`One of int32] param_name * 
                               [`Opt of int32] param_name), 
                          unit, [`Registrable]) service -> 
-object
-  inherit [Forum_sql.forum * int32] parametrized_widget
+      [Forum_sql.forum * int32, 
+       ((int32 * string * string * string option *
+           CalendarLib.Printer.CalendarPrinter.t * bool * int64 * int64) *
+          Forum_sql.role)] parametrized_div_widget_t
     
-  (** Set the thread subject *)
-  method set_subject: string -> unit
-    
-  (** Set the tread author *)
-  method set_author: string -> unit
-    
-  (**
-     Set the thread article. What we call an article is a special sort of message
-     in a thread that can only be specified when creating the tread; this is for
-     example useful if the thread contains a news article that can be reacted
-     upon.
-  *)
-  method set_article: string -> unit
-    
-  (** Set the thread date and time *)
-  method set_datetime: Calendar.t -> unit
-    
-  (**
-     Indicate whether the thread is hidden (if not, individual messages can
-     still be hidden)
-  *)
-  method set_hidden: bool -> unit
-    
-  (** Set the number of shown messages *)
-  method set_shown_messages: int64 -> unit
-    
-  (** Set the number of hidden messages *)
-  method set_hidden_messages: int64 -> unit
-    
-  (** Get the thread subject *)
-  method get_subject: string
-    
-  (** Get the thread author *)
-  method get_author: string
-    
-  (** Get the thread's article (if applicable) *)
-  method get_article: string option
-    
-  (** Get the thread creation time *)
-  method get_datetime: Calendar.t
-    
-  (** Query whether the thread is hidden *)
-  method get_hidden: bool
-    
-  (** Get the number of shown messages in the thread *)
-  method get_shown_messages: int64
-    
-  (** Get the number of shown messages in the thread *)
-  method get_hidden_messages: int64
-end;;
 
 class thread_toggle_action: parent:sessionmanager ->
-object
-	inherit [Forum_sql.forum * int32] parametrized_widget
-end;;
+      [Forum_sql.forum * int32] parametrized_unit_div_widget_t
 
 class thread_list_widget: 
   parent:sessionmanager -> 
@@ -184,7 +141,8 @@ class thread_list_widget:
                    [`Registrable]) service ->
 object
 	inherit [thread_data] list_widget
-	inherit [Forum_sql.forum] parametrized_widget 
+	inherit [Forum_sql.forum, 
+                 (thread_data list * Forum_sql.role)] parametrized_div_widget_t
 end;;
 
 class thread_form_widget: 
@@ -198,14 +156,11 @@ class thread_form_widget:
                          ([`One of string] param_name *
                             [`One of string] param_name),
                        [`Registrable]) service -> 
-object
-	inherit [Forum_sql.forum] parametrized_widget
-end;;
+      [Forum_sql.forum] parametrized_unit_div_widget_t
+
 
 class thread_add_action: parent:sessionmanager ->
-object
-	inherit [Forum_sql.forum * bool * string * string] parametrized_widget
-end;;
+      [Forum_sql.forum * bool * string * string] parametrized_unit_div_widget_t
 
 type forum_data =
 {
@@ -225,26 +180,34 @@ class forums_list_widget:
                [`One of int32] param_name, 
                unit, [`Registrable]) service ->
 object
-  inherit [unit] parametrized_widget
+  inherit [unit, forum_data list] parametrized_div_widget_t
   inherit [forum_data] list_widget
 end;;
 
-class forum_form_widget: parent: sessionmanager -> srv_add_forum: (unit, string * (string * (string * (bool * bool))), post_service_kind, [`WithoutSuffix], unit, [`One of string] param_name * ([`One of string] param_name * ([`One of string] param_name * ([`One of bool] param_name * [`One of bool] param_name))), [`Registrable]) service -> 
-object
-	inherit [unit] parametrized_widget
-end;;
+class forum_form_widget: 
+  parent: sessionmanager -> 
+      srv_add_forum: (unit, 
+                      string * (string * (string * (bool * bool))), 
+                      post_service_kind,
+                      [`WithoutSuffix], 
+                      unit, 
+                      [`One of string] param_name * 
+                        ([`One of string] param_name * 
+                           ([`One of string] param_name * 
+                              ([`One of bool] param_name * 
+                                 [`One of bool] param_name))), 
+                      [`Registrable]) service -> 
+      [unit] parametrized_unit_div_widget_t
 
 class forum_add_action: parent:sessionmanager ->
-object
-	inherit [string * string * string * bool * bool] parametrized_widget
-end;;
+      [string * string * string * bool * bool] parametrized_unit_div_widget_t
 
 
 (*
-(** A parametrized_widget that displays one message *)
+(** A parametrized_div_widget that displays one message *)
 class message_widget: parent:sessionmanager -> srv_message_toggle:unit -> 
 object
-  inherit [Forum_sql.forum * int32] parametrized_widget
+  inherit [Forum_sql.forum * int32] parametrized_div_widget
     
   (** Set the message subject *)
   method set_subject: string -> unit

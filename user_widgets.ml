@@ -3,10 +3,10 @@ let (>>=) = Lwt.bind
 
 class login_widget ~(parent: Session_manager.sessionmanager) =
 object (self)
-  inherit [unit] Widget.parametrized_widget parent
+  inherit [unit] Widget.parametrized_unit_div_widget parent
     
-  val div_class = "logbox"
-    
+  val xhtml_class = "logbox"
+
   method private login_box sp error usr pwd =
     {{ [<table>([
                   <tr>[<td>"Username:" 
@@ -42,7 +42,7 @@ object (self)
     Ocsigen_messages.debug2 "[User_widgets] login#apply";
     Eliom_sessions.get_persistent_session_data
       Session_manager.user_table sp () >>= fun sess ->
-    Lwt.return {{ <div class={: div_class :}>
+    Lwt.return {{ <div class={: xhtml_class :}>
                 [{:
 		    match sess with
 		      | Eliom_sessions.Data user ->
