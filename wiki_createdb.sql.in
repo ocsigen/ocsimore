@@ -1,7 +1,7 @@
 
 CREATE TABLE wikiboxes (
     id serial NOT NULL,
-    wiki_id integer NOT NULL, -- There may be several wikis
+    wiki_id integer NOT NULL,
     version serial NOT NULL,
     comment text DEFAULT ''::text NOT NULL,
     author text DEFAULT ''::text NOT NULL,
@@ -14,10 +14,8 @@ CREATE TABLE wikiboxes (
 ALTER TABLE public.wikiboxes OWNER TO %%USER%%;
 
 CREATE TABLE wikipages (
-    id integer NOT NULL, -- REFERENCES wikiboxes(id),
-    pagename text DEFAULT ''::text NOT NULL,
-    UNIQUE (pagename),
-    UNIQUE (id)
+    id integer PRIMARY KEY, --  REFERENCES wikiboxes(id)
+    pagename text DEFAULT ''::text NOT NULL UNIQUE
 );
 
 ALTER TABLE public.wikipages OWNER TO %%USER%%;

@@ -19,7 +19,9 @@ exception NoSuchUser
 (** The abstract type of users. *)
 type user
 
-val anonymous: user
+val anonymous : user
+
+val admin : user
 
 val get_user_by_name: Sql.db_t -> name:string -> user Lwt.t
 
@@ -69,5 +71,5 @@ val in_group: user:user -> group:user -> bool
 
 val add_group: Sql.db_t -> user:user -> group:user -> unit Lwt.t
 
-val create_standard_users: Sql.db_t -> unit Lwt.t
+
 

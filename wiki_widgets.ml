@@ -22,7 +22,7 @@ object (self)
     
   method private retrieve_data (wiki_id, wikibox_id) =
     Lwt_pool.use Sql.pool (fun db -> 
-    Wiki_sql.wikibox_get_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
+    Wiki_sql.get_wikibox_data db ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
     match result with
       | None -> Lwt.return ()
       | Some (com, a, cont, d) ->
@@ -51,4 +51,5 @@ object (self)
       {{ <div class={: div_class :}>
            {: content :}
 	  }}
+
 end;;

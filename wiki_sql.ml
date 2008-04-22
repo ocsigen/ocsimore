@@ -33,6 +33,65 @@ let new_wiki db ~title ~descr ~reader ~writer ~acl =
   commit db >>= fun _ ->
   return wik_id
 
+let new_wikibox db ~wiki ~author ~comment ~content = 
+  (** Inserts a new wikibox in an existing wiki and return its id. *)
+  begin_work db >>= fun () ->
+  PGSQL(db) "INSERT INTO wikiboxes \
+               (wiki_id, author, comment, content) \
+             VALUES ($wiki, $author, $comment, $content)" >>= fun () ->
+  serial4 db "wikiboxes_id_seq" >>= fun wbx_id ->
+  commit db >>= fun () ->
+  Lwt.return wbx_id
+
+
+let get_wikibox_data db ~wiki ~id =
+  (* returns subject, text, author, datetime of a wikibox; None if
+     non-existant *)
+  PGSQL(db) "SELECT comment, author, content, datetime \
+             FROM wikiboxes \
+             WHERE wiki_id = $wiki \
+             AND id = $id \
+             AND version = \
+                     (SELECT max(version) \
+                      FROM wikiboxes \
+                      WHERE wiki_id = $wiki \
+                      AND id = $id)"
+  >>= function
+    | [] -> Lwt.return None
+    | [x] -> Lwt.return (Some x)
+    | x::_ -> 
+        Ocsigen_messages.warning
+          "Ocsimore: database error (Wiki_sql.get_wikibox_data)";
+        Lwt.return (Some x)
+
+let find_wiki db ?id ?title () =
+ begin_work db >>= fun _ -> 
+ (match (title, id) with
+    | (Some t, Some i) -> 
+        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+		FROM wikis, users AS r, users AS w \
+		WHERE r.id = reader AND w.id = writer \
+		AND title = $t AND wikis.id = $i"
+    | (Some t, None) -> 
+        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+		FROM wikis, users AS r, users AS w \
+		WHERE r.id = reader AND w.id = writer \
+		AND title = $t"
+    | (None, Some i) -> 
+        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
+		FROM wikis, users AS r, users AS w \
+		WHERE r.id = reader AND w.id = writer \
+		AND wikis.id = $i"
+    | (None, None) -> fail (Invalid_argument "Wiki_sql.find_wiki")) 
+   >>= fun r -> 
+   commit db >>= fun () -> 
+   (match r with
+      | [x] -> Lwt.return x
+      | x::_ -> 
+          Ocsigen_messages.warning "Ocsimore: two wikis have the same name"; 
+          Lwt.return x
+      | [] -> Lwt.fail Not_found)
+
 (*
 let new_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
   (* inserts a new wikipage in an existing wiki; returns [None] if
@@ -56,6 +115,7 @@ let new_wikipage ~wik_id ~suffix ~author ~subject ~txt =
       commit db;
       wpg_id)
     ()
+
 
 let add_or_change_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
   (* updates, or inserts, a wikipage. *)
@@ -110,49 +170,3 @@ let wiki_get_pages_list ~wik_id =
         wpg_l)
     ()
 *)    
-
-let wikibox_get_data db ~wiki ~id =
-  (* returns subject, text, author, datetime of a wikipage; None if
-     non-existant *)
-  PGSQL(db) "SELECT comment, author, content, datetime \
-                 FROM wikiboxes \
-                 WHERE wiki_id = $wiki \
-                 AND id = $id \
-                 AND version = \
-                     (SELECT max(version) \
-                      FROM wikiboxes \
-                      WHERE wiki_id = $wiki \
-                      AND id = $id)" >>= 
-  function
-    | [] -> Lwt.return None
-    | [x] -> Lwt.return (Some x)
-    | x::_ -> 
-        Ocsigen_messages.warning
-          "Ocsimore: database error (Wiki_sql.wikipage_get_data)";
-        Lwt.return (Some x)
-
-let find_wiki db ?id ?title () =
- begin_work db >>= fun _ -> 
- (match (title, id) with
-    | (Some t, Some i) -> 
-        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
-		FROM wikis, users AS r, users AS w \
-		WHERE r.id = reader AND w.id = writer \
-		AND title = $t AND wikis.id = $i"
-    | (Some t, None) -> 
-        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
-		FROM wikis, users AS r, users AS w \
-		WHERE r.id = reader AND w.id = writer \
-		AND title = $t"
-    | (None, Some i) -> 
-        PGSQL(db) "SELECT wikis.id, title, descr, r.login, w.login, acl \
-		FROM wikis, users AS r, users AS w \
-		WHERE r.id = reader AND w.id = writer \
-		AND wikis.id = $i"
-    | (None, None) -> fail (Invalid_argument "Wiki_sql.find_wiki")) 
-   >>= fun r -> 
-   commit db >>= fun _ -> 
-   (match r with
-      | [x] -> return x
-      | _ -> fail Not_found)
-

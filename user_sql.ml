@@ -28,9 +28,10 @@ let new_user db ~name ~password ~fullname ~email =
   (match password with
      | None -> 
          PGSQL(db) "INSERT INTO users (login, fullname, email)\
-		VALUES ($name, $fullname, $email)"
+                    VALUES ($name, $fullname, $email)"
      | Some pwd -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname, email) VALUES ($name, $pwd, $fullname, $email)") >>= fun () -> 
+         PGSQL(db) "INSERT INTO users (login, password, fullname, email) \
+                    VALUES ($name, $pwd, $fullname, $email)") >>= fun () -> 
   serial4 db "users_id_seq" >>= fun frm_id -> 
   commit db >>=	fun _ -> 
   return frm_id;;
@@ -51,19 +52,24 @@ let find_user db ?id ?name () =
 
 let update_permissions db ~name ~perm =
   Ocsigen_messages.debug2 (Printf.sprintf "[Sql] update_permissions [%s]" perm);
-	begin_work db >>=
-	fun _ -> find_user db ~name () >>=
-	fun (id, _, _, _, _, _) -> PGSQL(db) "UPDATE users SET permissions = $perm WHERE id = $id" >>=
-	fun () -> Ocsigen_messages.debug2 "[Sql] update_permissions: finish"; commit db >>=
-  fun _ -> return ();;
+  begin_work db >>= fun () -> 
+  find_user db ~name () >>= fun (id, _, _, _, _, _) -> 
+  PGSQL(db) "UPDATE users SET permissions = $perm WHERE id = $id" >>= fun () ->
+  Ocsigen_messages.debug2 "[Sql] update_permissions: finish"; 
+  commit db >>= fun () -> 
+  return ();;
 
 let update_data db ~id ~name ~password ~fullname ~email =
-	Ocsigen_messages.debug2 "[Sql] update_data";
-	begin_work db >>=
-	fun _ -> find_user db ~id ~name () >>=
-	fun (id, _, _, _, _, _) -> (match password with
-	| None -> PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $id"
-	| Some pwd -> PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $id") >>=
-	fun () -> Ocsigen_messages.debug2 "[Sql] update_data: finish"; commit db >>=
-  fun _ -> return ();;
+  Ocsigen_messages.debug2 "[Sql] update_data";
+  begin_work db >>= fun _ -> 
+  find_user db ~id ~name () >>=	fun (id, _, _, _, _, _) -> 
+  (match password with
+     | None -> 
+         PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $id"
+     | Some pwd -> 
+         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $id") 
+    >>=	fun () -> 
+  Ocsigen_messages.debug2 "[Sql] update_data: finish"; 
+  commit db >>= fun _ -> 
+  Lwt.return ();;
 

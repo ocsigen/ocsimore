@@ -59,41 +59,47 @@ let new_forum
 let new_thread_and_message db ~frm_id ~author_id ~subject ~txt = 
   (* inserts a message starting a new thread; both thread and message
      will be hidden if forum is moderated *)
-	Ocsigen_messages.debug2 "[Sql] new_thread_and_message";
-	begin_work db >>=
-	fun _ -> PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>= 
-	fun y -> (match y with [x] -> return x | _ -> fail Not_found) >>=
-	fun hidden -> PGSQL(db) "INSERT INTO threads (frm_id, subject, hidden, author_id) \
-		VALUES ($frm_id, $subject, $hidden, $author_id)" >>=
-	fun () -> serial4 db "threads_id_seq" >>=
-	fun thr_id -> PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>=
-	fun () ->	serial4 db "textdata_id_seq" >>=
-	fun txt_id -> PGSQL(db) "SELECT MAX(tree_max) FROM messages \
-		WHERE thr_id = $thr_id" >>=
-	fun z -> (match z with
-		| [x] -> (match x with
-			| None -> return 0l
-			| Some y -> return y)
-		| _ -> return 0l) >>=
-	fun db_max -> PGSQL(db) "INSERT INTO messages (author_id, thr_id, txt_id, hidden, tree_min, tree_max) \
-		VALUES ($author_id, $thr_id, $txt_id, $hidden, $db_max + 1, $db_max + 2)" >>=
-	fun () -> serial4 db "messages_id_seq" >>=
-	fun msg_id -> commit db >>=
- 	fun _ -> Ocsigen_messages.debug2 "[Sql] new_thread_and_message: finish";
-	return (thr_id, msg_id);;
+  Ocsigen_messages.debug2 "[Sql] new_thread_and_message";
+  begin_work db >>= fun _ -> 
+  PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>= fun y -> 
+  (match y with [x] -> return x | _ -> fail Not_found) >>= fun hidden -> 
+  PGSQL(db) "INSERT INTO threads (frm_id, subject, hidden, author_id) \
+             VALUES ($frm_id, $subject, $hidden, $author_id)" >>= fun () -> 
+  serial4 db "threads_id_seq" >>= fun thr_id -> 
+  PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>= fun () ->
+  serial4 db "textdata_id_seq" >>= fun txt_id -> 
+  PGSQL(db) "SELECT MAX(tree_max) FROM messages \
+             WHERE thr_id = $thr_id" >>= fun z -> 
+  (match z with
+     | [x] -> (match x with
+		 | None -> return 0l
+		 | Some y -> return y)
+     | _ -> return 0l) >>= fun db_max -> 
+  PGSQL(db) "INSERT INTO messages \
+               (author_id, thr_id, txt_id, hidden, tree_min, tree_max) \
+             VALUES ($author_id, $thr_id, $txt_id, $hidden, \
+                     $db_max + 1, $db_max + 2)" >>= fun () -> 
+  serial4 db "messages_id_seq" >>= fun msg_id -> 
+  commit db >>=	fun _ -> 
+  Ocsigen_messages.debug2 "[Sql] new_thread_and_message: finish";
+  return (thr_id, msg_id);;
     
 let new_thread_and_article db ~frm_id ~author_id ~subject ~txt =
-	Ocsigen_messages.debug2 "[Sql] new_thread_and_article";
-	begin_work db >>=
-	fun _ -> PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>=
-	fun y -> (match y with [x] -> return x | _ -> fail Not_found) >>=
-	fun hidden -> PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>=
-	fun () -> serial4 db "textdata_id_seq" >>=
-	fun txt_id -> PGSQL(db) "INSERT INTO threads (frm_id, subject, hidden, author_id, article_id) \
-		VALUES ($frm_id, $subject, $hidden, $author_id, $txt_id)" >>=
-	fun () -> serial4 db "threads_id_seq" >>=
-	fun thr_id -> commit db >>=
-	fun _ -> Ocsigen_messages.debug2 "[Sql] new_thread_and_article: finish"; return (thr_id, txt_id);;
+  Ocsigen_messages.debug2 "[Sql] new_thread_and_article";
+  begin_work db >>= fun _ -> 
+  PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>=	fun y -> 
+  (match y with [x] -> return x | _ -> fail Not_found) >>= fun hidden -> 
+  PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>= fun () -> 
+  serial4 db "textdata_id_seq" >>= fun txt_id -> 
+  PGSQL(db) "INSERT INTO threads \
+               (frm_id, subject, hidden, author_id, article_id) \
+             VALUES ($frm_id, $subject, $hidden, $author_id, $txt_id)" 
+    >>= fun () -> 
+  serial4 db "threads_id_seq" >>= fun thr_id -> 
+  commit db >>=	fun _ -> 
+  Ocsigen_messages.debug2
+    "[Sql] new_thread_and_article: finish"; 
+  return (thr_id, txt_id);;
 
 let new_message db ~thr_id ?parent_id ~author_id ~txt ~sticky () = 
   (* inserts a message in an existing thread; message will be hidden
