@@ -3,16 +3,27 @@
 --
 
 CREATE TABLE users (
-    id serial NOT NULL primary key,
+    id serial PRIMARY KEY,
     login text NOT NULL,
     password text,
     fullname text NOT NULL,
-    email text NOT NULL,
-    permissions bytea
+    email text NOT NULL
 );
 
 
 ALTER TABLE public.users OWNER TO %%USER%%;
+
+CREATE TABLE groups (
+    id serial PRIMARY KEY,
+    name text NOT NULL UNIQUE
+);
+
+CREATE TABLE userrights (
+    id integer NOT NULL REFERENCES users(id),
+    groupid integer NOT NULL REFERENCES groups(id),
+    CONSTRAINT uni UNIQUE (id, groupid)
+);
+
 
 --
 -- Name: wikipages; Type: TABLE; Schema: public; Owner: %%USER%%; Tablespace: 

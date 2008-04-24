@@ -87,7 +87,8 @@ val find_forum:
   ?id:forum -> 
   ?title:string -> 
   unit -> 
-  (forum * string * string * string * string * string) Lwt.t
+  (forum * string * string * bool * bool * 
+     Users.group * Users.group * Users.group) Lwt.t
 
 (** returns the list of available forums *)
 val get_forums_list : unit ->

@@ -1,9 +1,17 @@
 TODO
 
- - The set of groups for one user is a marshalled ocaml value. 
-Replace (using another table)
+ - groups are now basic (unix like). Not possible to put a group in another
+ like before. To do that, we must think about how to do a DAG in a database
  - I removed all that depends on the module Services for now Vincent 2008/04/15
 (dynamic creation of services)
+ - pas clair la distinction entre forum et forum_sql, user et usr_sql,
+ notamment pour l'abstraction des types forum, group, user...
+ - uniformize labels (put labels everywhere, and always the same name for the
+ same type)
 
-Wiki :
+Wiki:
  - What if two users modify the same page at the same time?
+
+Users:
+ - encryption of password for the db
+ - using PAM or LDAP for authentication

@@ -22,6 +22,13 @@ val new_user:
   password:string option -> 
   fullname:string -> 
   email:string -> 
+  groups:int32 list ->
+  int32 Lwt.t
+
+val delete_user : user:int32 -> unit Lwt.t
+
+val new_group: 
+  name:string -> 
   int32 Lwt.t
 
 val find_user: 
@@ -29,7 +36,7 @@ val find_user:
   ?id:int32 -> 
   ?name:string -> 
   unit -> 
-  (int32 * string * string option * string * string * string option) Lwt.t
+  ((int32 * string * string option * string * string) * int32 list) Lwt.t
 
 val update_data: 
   id:int32 -> 
@@ -37,10 +44,13 @@ val update_data:
   password:string option -> 
   fullname:string -> 
   email:string -> 
+  ?groups:int32 list ->
+  unit ->
   unit Lwt.t
 
-val update_permissions: 
-  name:string -> 
-  perm:string -> 
-  unit Lwt.t
+val add_to_group : userid:int32 -> groupid:int32 -> unit Lwt.t
 
+val remove_from_group : userid:int32 -> groupid:int32 -> unit Lwt.t
+
+(** Returns all groups (names and ids) from the database *)
+val get_groups : unit -> (int32 * string) list Lwt.t

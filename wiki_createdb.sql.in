@@ -58,3 +58,19 @@ ALTER TABLE public.wikis OWNER TO %%USER%%;
 -- COPY wikis (id, title, descr) FROM stdin;
 -- \.
 
+CREATE TABLE wikiboxreaders (
+    wiki_id integer NOT NULL,
+    id integer NOT NULL,
+    reader integer NOT NULL,
+    PRIMARY KEY (wiki_id, id),
+    CONSTRAINT uni_r UNIQUE (wiki_id, id, reader)
+);
+
+CREATE TABLE wikiboxwriters (
+    wiki_id integer NOT NULL,
+    id integer NOT NULL,
+    writer integer NOT NULL,
+    PRIMARY KEY (wiki_id, id),
+    CONSTRAINT uni_w UNIQUE (wiki_id, id, writer)
+);
+

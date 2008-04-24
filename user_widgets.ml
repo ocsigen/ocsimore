@@ -29,9 +29,9 @@ object (self)
                      {{ [] }} :})] }}
       
   method private logout_box sp user =
-    let (_,usr,_,descr,email) = parent#get_user_data in
+    let u = parent#get_user_data in
       {{ [<table>[
-             <tr>[<td>{: Printf.sprintf "Hi %s!" descr :}]
+             <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
              <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                           ~input_type:{:"submit":} ~value:"logout" () :}]]
              <tr>[<td>[{: Eliom_duce.Xhtml.a parent#srv_edit
@@ -44,13 +44,13 @@ object (self)
       Session_manager.user_table sp () >>= fun sess ->
     Lwt.return {{ <div class={: xhtml_class :}>
                 [{:
-		    match sess with
-		      | Eliom_sessions.Data user ->
-			  Eliom_duce.Xhtml.post_form
+                    match sess with
+                      | Eliom_sessions.Data user ->
+                          Eliom_duce.Xhtml.post_form
                             ~a:{{ { class="logbox logged"} }} 
                             ~service:parent#act_logout ~sp
-			    (fun _ -> self#logout_box sp user) ()
-		      | _ ->  let exn = Eliom_sessions.get_exn sp in
+                            (fun _ -> self#logout_box sp user) ()
+                      | _ ->  let exn = Eliom_sessions.get_exn sp in
                           if List.mem Users.BadPassword exn || 
                             List.mem Users.NoSuchUser exn
                           then (* unsuccessful attempt *)

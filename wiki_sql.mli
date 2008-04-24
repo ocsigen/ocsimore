@@ -1,5 +1,8 @@
 type wiki
 
+(** Role of user in the wiki *)
+type role = Author of int32 | Lurker of string | Unknown;;
+
 (** inserts a new wiki container *)
 val new_wiki : 
   title:string -> 
@@ -14,7 +17,7 @@ val find_wiki:
   ?id:wiki -> 
   ?title:string -> 
   unit -> 
-  (wiki * string * string * string * string * bool) Lwt.t
+  (wiki * string * string * Users.group * Users.group * bool) Lwt.t
 
 (** Inserts a new wikipage in an existing wiki and return the id of the 
     wikibox. *)
@@ -23,6 +26,8 @@ val new_wikibox :
   author:string ->
   comment:string ->
   content:string ->
+  ?rights:Users.group list * Users.group list ->
+  unit ->
   int32 Lwt.t
 
 (** looks for a wikibox and returns [Some (subject, text, author,
@@ -32,6 +37,8 @@ val get_wikibox_data :
   id:int32 ->
   (string * string * string * CalendarLib.Calendar.t) option Lwt.t
 
+val get_readers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
+val get_writers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
 
 (*
 (** inserts a new wikipage in an existing wiki; returns [None] if

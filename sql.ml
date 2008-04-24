@@ -63,34 +63,34 @@ let new_service db ~url =
   (* inserts a new service *)
   begin_work db >>=
   fun _ -> PGSQL(db) "INSERT INTO services (url) \
-		VALUES ($url)" >>=
-	fun () -> serial4 db "services_id_seq" >>=
-	fun srv_id -> commit db >>=
-	fun _ -> return srv_id;;
+                VALUES ($url)" >>=
+        fun () -> serial4 db "services_id_seq" >>=
+        fun srv_id -> commit db >>=
+        fun _ -> return srv_id;;
 
 let list_services db =
-	begin_work db >>=
-	fun _ -> PGSQL(db) "SELECT url FROM services" >>=
-	fun srv_l -> commit db >>=
-	fun _ -> return srv_l;;
+        begin_work db >>=
+        fun _ -> PGSQL(db) "SELECT url FROM services" >>=
+        fun srv_l -> commit db >>=
+        fun _ -> return srv_l;;
 
 let get_service_parameters db ~url =
-	begin_work db >>=
-	fun _ -> PGSQL(db) "SELECT id FROM services WHERE url = $url" >>=
-	fun x -> (match x with [id] -> return id | _ -> fail Not_found) >>=
-	fun id -> PGSQL(db) "SELECT id, name FROM service_parameters \
-		WHERE service_id = $id" >>=
-	fun param_l -> commit db >>=
-	fun _ -> return param_l;;
+        begin_work db >>=
+        fun _ -> PGSQL(db) "SELECT id FROM services WHERE url = $url" >>=
+        fun x -> (match x with [id] -> return id | _ -> fail Not_found) >>=
+        fun id -> PGSQL(db) "SELECT id, name FROM service_parameters \
+                WHERE service_id = $id" >>=
+        fun param_l -> commit db >>=
+        fun _ -> return param_l;;
 
 let add_parameter_to_service db ~url ~param_name =
-	begin_work db >>=
-	fun _ -> PGSQL(db) "SELECT id FROM services WHERE url = $url" >>=
-	fun x -> (match x with [id] -> return id | _ -> fail Not_found) >>=
-	fun id -> PGSQL(db) "INSERT INTO service_parameters \
-		(service_id, name) VALUES \
-		($id, $param_name)"  >>=
-	fun () -> serial4 db "service_parameters_id_seq" >>=
-	fun param_id -> commit db >>=
-	fun _ -> return param_id;;
+        begin_work db >>=
+        fun _ -> PGSQL(db) "SELECT id FROM services WHERE url = $url" >>=
+        fun x -> (match x with [id] -> return id | _ -> fail Not_found) >>=
+        fun id -> PGSQL(db) "INSERT INTO service_parameters \
+                (service_id, name) VALUES \
+                ($id, $param_name)"  >>=
+        fun () -> serial4 db "service_parameters_id_seq" >>=
+        fun param_id -> commit db >>=
+        fun _ -> return param_id;;
 *)

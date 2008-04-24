@@ -9,7 +9,7 @@ open Session_manager
 open Widget
 
 (**
-This module contains forum widgets for use with the {!Forum.forum} class
+This module contains forum widgets for forums
 
 @author Jaap Boender
 @author Vincent Balat
@@ -162,13 +162,14 @@ class thread_form_widget:
 class thread_add_action: parent:sessionmanager ->
       [Forum_sql.forum * bool * string * string] parametrized_unit_div_widget_t
 
+
 type forum_data =
 {
-	id: Forum_sql.forum;
-	name: string;
-	description: string;
-	moderated: bool;
-	arborescent: bool;
+  id: Forum_sql.forum;
+  name: string;
+  description: string;
+  moderated: bool;
+  arborescent: bool;
 };;
 
 class forums_list_widget: 

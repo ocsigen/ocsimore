@@ -6,15 +6,15 @@ open Eliom_duce.Xhtml
 val user_table : Users.user persistent_table
 
 type sessionmanager_in = 
-    {
-      url: string list;
-      default_groups: Users.user list;
-      login_actions: server_params -> Users.user session_data -> unit Lwt.t;
-      logout_actions: server_params -> unit Lwt.t;
-      registration_mail_from: string * string;
-      registration_mail_subject: string;
-      administrator: Users.user;
-    }
+{
+  url: string list;
+  default_groups: Users.group list;
+  login_actions: server_params -> Users.user session_data -> unit Lwt.t;
+  logout_actions: server_params -> unit Lwt.t;
+  registration_mail_from: string * string;
+  registration_mail_subject: string;
+  administrator: Users.user;
+}
       
 class sessionmanager: sessionmanagerinfo: sessionmanager_in ->
 object
@@ -70,7 +70,7 @@ object
 
   method get_user: Users.user session_data
 
-  method get_user_data: int32 * string * string option * string * string
+  method get_user_data: Users.userdata
 
   method get_user_id: int32
 

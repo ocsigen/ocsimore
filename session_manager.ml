@@ -13,13 +13,13 @@ let user_table: user persistent_table =
 
 type sessionmanager_in = 
 {
-	url: string list;
-	default_groups: user list;
-	login_actions: server_params -> user session_data -> unit Lwt.t;
-	logout_actions: server_params -> unit Lwt.t;
-	registration_mail_from: string * string;
-	registration_mail_subject: string;
-	administrator: user;
+  url: string list;
+  default_groups: Users.group list;
+  login_actions: server_params -> Users.user session_data -> unit Lwt.t;
+  logout_actions: server_params -> unit Lwt.t;
+  registration_mail_from: string * string;
+  registration_mail_subject: string;
+  administrator: Users.user;
 }
 
 class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
@@ -89,11 +89,11 @@ object (self)
     ~(sess: user session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     return {{ 
-	      <html>[
-		<head>[<title>"Temporary title"]
-		<body>{: contents :}
-	      ]
-	    }}
+              <html>[
+                <head>[<title>"Temporary title"]
+                <body>{: contents :}
+              ]
+            }}
       
   method is_logged_on =
     match current_user with
@@ -105,17 +105,17 @@ object (self)
   method get_user_data =
     match current_user with
       | Data u -> Users.get_user_data ~user:u
-      | _ -> (0l, "Anonymous", None, "", "")
+      | _ -> Users.get_user_data Users.anonymous
           
   method get_user_id =
     match current_user with
-      | Data u -> let (i, _, _, _, _) = Users.get_user_data ~user:u in i
+      | Data u -> (Users.get_user_data ~user:u).Users.id
       | _ -> 0l
           
   method get_user_name =
     match current_user with
-      | Data u -> let (_, n, _, _, _) = Users.get_user_data ~user:u in n
-      | _ -> "Anonymous"
+      | Data u -> (Users.get_user_data ~user:u).Users.name
+      | _ -> (Users.get_user_data anonymous).Users.name
           
   method private valid_username usr =
     Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
@@ -130,73 +130,71 @@ object (self)
       ~sp
       ~sess:No_data
       ~contents:{{ [<h1>"Registration form"
-		     <p>['Please fill in the following fields.'
-				         <br>[]
-				         'You can freely choose your login name: it will be \
-				         slightly modified automatically if it has already been chosen \
-				           by another registered user.'
-				           <br>[]
-				           'Be very careful to enter a valid e-mail address, \
-				             as the password for logging in will be sent there.']
-		     {: post_form srv_register_done sp
+                     <p>['Please fill in the following fields.'
+                                         <br>[]
+                                         'You can freely choose your login name: it will be \
+                                         slightly modified automatically if it has already been chosen \
+                                           by another registered user.'
+                                           <br>[]
+                                           'Be very careful to enter a valid e-mail address, \
+                                             as the password for logging in will be sent there.']
+                     {: post_form srv_register_done sp
                         (fun (usr,(desc,email)) -> 
-			   {{ [<table>[
-				  <tr>[
-				    <td>"login name: (letters & digits only)"
-				    <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
-				  ]
-				  <tr>[
-				    <td>"real name:"
-				    <td>[{: string_input ~input_type:{:"text":} ~name:desc () :}]
-				  ]
-				  <tr>[
-				    <td>"e-mail address:"
-				    <td>[{: string_input ~input_type:{:"text":} ~name:email () :}]
-				  ]
-				  <tr>[
-				    <td>[{: string_input ~input_type:{:"submit":} ~value:"Register" () :}]
-				  ]]] }})
+                           {{ [<table>[
+                                  <tr>[
+                                    <td>"login name: (letters & digits only)"
+                                    <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
+                                  ]
+                                  <tr>[
+                                    <td>"real name:"
+                                    <td>[{: string_input ~input_type:{:"text":} ~name:desc () :}]
+                                  ]
+                                  <tr>[
+                                    <td>"e-mail address:"
+                                    <td>[{: string_input ~input_type:{:"text":} ~name:email () :}]
+                                  ]
+                                  <tr>[
+                                    <td>[{: string_input ~input_type:{:"submit":} ~value:"Register" () :}]
+                                  ]]] }})
                         () :}
-		     <p>[<strong>{: err :}]]}} 
+                     <p>[<strong>{: err :}]]}} 
       
-  method private page_register_done = fun sp () (usr,(fullname,email))-> 
+  method private page_register_done = fun sp () (usr, (fullname, email)) ->
     if not (self#valid_username usr) then 
       self#page_register "ERROR: Bad character(s) in login name!" sp () ()
     else if not (self#valid_emailaddr email) then 
       self#page_register "ERROR: Bad formed e-mail address!" sp () ()
     else 
       let pwd = generate_password () in
-        create_unique_user ~name:usr ~pwd ~fullname ~email >>= fun (user,n) ->
-	  mail_password
-	    ~name:n ~from_addr:sessionmanagerinfo.registration_mail_from 
-	    ~subject:sessionmanagerinfo.registration_mail_subject >>=
-            (fun b ->
-               if b
-	       then begin
-	         List.fold_left
-	           (fun thr g -> thr >>= (fun () -> add_group ~user ~group:g))
-                   (return ())
-	           sessionmanagerinfo.default_groups >>= (fun () ->
-                                                            self#container
-                                                              ~sp
-							      ~sess:No_data
-							      ~contents:{{ [<h1>"Registration ok."
-									     <p>(['You\'ll soon receive an e-mail message at the \
-										    following address:'
-										  <br>[]] @
-										   {: email :} @
-										    [<br>[]
-											'reporting your login name and password.'])] }}
-	                                                 )
-               end
-	       else 
-	         delete_user ~user >>= fun () ->
-                 self#container
-                   ~sp
-		   ~sess:No_data
-		   ~contents:{{ [<h1>"Registration failed."
-				  <p>"Please try later."] }}
-	    )
+      Users.create_unique_user
+        ~name:usr ~pwd ~fullname ~email 
+        ~groups:sessionmanagerinfo.default_groups >>= fun (user, n) ->
+      mail_password
+        ~name:n
+        ~from_addr:sessionmanagerinfo.registration_mail_from 
+        ~subject:sessionmanagerinfo.registration_mail_subject >>= fun b ->
+      if b
+      then begin
+        self#container
+          ~sp
+          ~sess:No_data
+          ~contents:{{ [<h1>"Registration ok."
+                         <p>(['You\'ll soon receive an e-mail message at the \
+                                following address:'
+                              <br>[]] @
+                               {: email :} @
+                                [<br>[]
+                                    'reporting your login name and password.'])] }}
+        
+      end
+      else 
+        Users.delete_user ~user >>= fun () ->
+        self#container
+          ~sp
+          ~sess:No_data
+          ~contents:{{ [<h1>"Registration failed."
+                         <p>"Please try later."] }}
+
 
               
   method private page_reminder err = fun sp () () -> 
@@ -204,21 +202,21 @@ object (self)
       ~sp
       ~sess:No_data
       ~contents:{{ [<h1>"Password reminder"
-		     <p>['This service allows you to get an e-mail message \
-		     with your connection password.'
-			 <br>[]
-			 'The message will be sent to the address you \
-			   entered when you registered your account.']
+                     <p>['This service allows you to get an e-mail message \
+                     with your connection password.'
+                         <br>[]
+                         'The message will be sent to the address you \
+                           entered when you registered your account.']
                      {: post_form srv_reminder_done sp
                         (fun usr -> 
-			   {{ [<table>[
-				  <tr>[
-				    <td>"Enter your login name:"
-				    <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
-				    <td>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
-				  ]]]
-			    }}) ()	:}
-		     <p>[<strong>{: err :}]] }}
+                           {{ [<table>[
+                                  <tr>[
+                                    <td>"Enter your login name:"
+                                    <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
+                                    <td>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
+                                  ]]]
+                            }}) ()        :}
+                     <p>[<strong>{: err :}]] }}
       
   method private page_reminder_done = fun sp () usr ->
     self#page_reminder "Users are being impelemented (TODO)" sp () ()
@@ -226,211 +224,212 @@ object (self)
          self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
          else 
          mail_password 
-	 ~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
-	 ~subject:sessionmanagerinfo.registration_mail_subject >>= (fun b ->
+         ~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
+         ~subject:sessionmanagerinfo.registration_mail_subject >>= (fun b ->
          if b
          then 
          self#container
          ~sp
          ~sess:No_data
-	 ~contents:{{ [<h1>"Password sent"
-	 <p>"You'll soon receive an e-mail message at \
-	 the address you entered when you \
-	 registered your account."] }}
+         ~contents:{{ [<h1>"Password sent"
+         <p>"You'll soon receive an e-mail message at \
+         the address you entered when you \
+         registered your account."] }}
          else 
          self#container
          ~sp
          ~sess:No_data
-	 ~contents:{{ [<h1>"Failure"
-	 <p>"The username you entered doesn't exist, or \
-	 the service is unavailable at the moment."] }}) *)
+         ~contents:{{ [<h1>"Failure"
+         <p>"The username you entered doesn't exist, or \
+         the service is unavailable at the moment."] }}) *)
       
   method private page_edit err = fun sp () () ->
     get_persistent_session_data user_table sp () >>= fun sess -> 
     match sess with
-      |	Data user -> let (_,n,_,d,e) = get_user_data ~user in
+      | Data user -> 
+          let u = get_user_data ~user in
           self#container
             ~sp
               ~sess:No_data
-	      ~contents:{{ [<h1>"Your account"
-			     <p>"Change your persional information:"
-			     {: post_form srv_edit_done sp
-	                        (fun (pwd,(pwd2,(desc,email))) -> 
-		                   {{ [<table>[
-					  <tr>[
-						<td>"login name: "
-						<td>[<strong>{: n :}]
-					]
-					<tr>[
-						<td>"real name: "
-						<td>[{: string_input ~input_type:{:"text":} ~value:d ~name:desc () :}]
-					]
-					<tr>[
-						<td>"e-mail address: "
-						<td>[{: string_input ~input_type:{:"text":} ~value:e ~name:email () :}]
-					]
-					<tr>[
-						<td colspan="2">"Enter a new password twice, or 
-						leave blank for no changes:"
-					]
-					<tr>[
-						<td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd () :}]
-						<td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd2 () :}]
-					]
-					<tr>[
-						<td>[{: string_input ~input_type:{: "submit" :} ~value:"Confirm" () :}]
-					]
-				]]
-			}}) () :} 
-		  <p>[<strong>{: err :}]] }}
+              ~contents:{{ [<h1>"Your account"
+                             <p>"Change your persional information:"
+                             {: post_form srv_edit_done sp
+                                (fun (pwd,(pwd2,(desc,email))) -> 
+                                   {{ [<table>[
+                                          <tr>[
+                                                <td>"login name: "
+                                                <td>[<strong>{: u.Users.name :}]
+                                        ]
+                                        <tr>[
+                                                <td>"real name: "
+                                                <td>[{: string_input ~input_type:{:"text":} ~value:u.Users.fullname ~name:desc () :}]
+                                        ]
+                                        <tr>[
+                                                <td>"e-mail address: "
+                                                <td>[{: string_input ~input_type:{:"text":} ~value:u.Users.email ~name:email () :}]
+                                        ]
+                                        <tr>[
+                                                <td colspan="2">"Enter a new password twice, or 
+                                                leave blank for no changes:"
+                                        ]
+                                        <tr>[
+                                                <td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd () :}]
+                                                <td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd2 () :}]
+                                        ]
+                                        <tr>[
+                                                <td>[{: string_input ~input_type:{: "submit" :} ~value:"Confirm" () :}]
+                                        ]
+                                ]]
+                        }}) () :} 
+                  <p>[<strong>{: err :}]] }}
 
   method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
     get_persistent_session_data user_table sp () >>= fun sess -> 
       match sess with
-	| Data user ->
+        | Data user ->
             if not (self#valid_emailaddr email) then  
               self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
             else if pwd <> pwd2 then
               self#page_edit "ERROR: Passwords don't match!" sp () ()
             else
-	      (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
+              (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
                ignore (if pwd = ""
                        then update_user_data ~user ~fullname ~email ()
                        else update_user_data ~user ~fullname ~email ~pwd:(Some pwd) ());
-	       set_persistent_session_data user_table sp user;	
+               set_persistent_session_data user_table sp user;        
                self#container
                  ~sp
                  ~sess:No_data
-		 ~contents:{{ [<h1>"Personal information updated"] }})
+                 ~contents:{{ [<h1>"Personal information updated"] }})
                 
   method private page_not_allowed = fun sp () () ->
     self#container
       ~sp
       ~sess:No_data
       ~contents:{{ [<h1>"I can\'t do that, Dave."
-		     <p>"In order to manipulate services, you must be an administrator."] }}	
+                     <p>"In order to manipulate services, you must be an administrator."] }}        
       
-  (*	method private page_create_service = fun sp () () ->
-	get_persistent_session_data user_table sp () >>=
-	fun sess -> 
-		self#container
-			~sp
-			~sess
-			~contents:({{ [<p>"being implemented"] }}
-				(* if in_group user sessionmanagerinfo.administrator then
-					begin
-						{{ [
-							<h1>"Creation of a new service"
-							{: post_form ~service:srv_create_service_done ~sp:sp
-								(fun url -> {{ [<table>[
-									<tr>[<td>"URL:" <td>[{: string_input ~input_type:{:"text":} ~name:url () :}]]
-									<tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"OK" () :}]]
-								]] }}) ()
-							:}	
-						] }}
-					end
-					else 
-					let (n, _, _, _) = get_user_data user in
-						{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }} *) )
+  (*        method private page_create_service = fun sp () () ->
+        get_persistent_session_data user_table sp () >>=
+        fun sess -> 
+                self#container
+                        ~sp
+                        ~sess
+                        ~contents:({{ [<p>"being implemented"] }}
+                                (* if in_group user sessionmanagerinfo.administrator then
+                                        begin
+                                                {{ [
+                                                        <h1>"Creation of a new service"
+                                                        {: post_form ~service:srv_create_service_done ~sp:sp
+                                                                (fun url -> {{ [<table>[
+                                                                        <tr>[<td>"URL:" <td>[{: string_input ~input_type:{:"text":} ~name:url () :}]]
+                                                                        <tr>[<td>[{: string_input ~input_type:{:"submit":} ~value:"OK" () :}]]
+                                                                ]] }}) ()
+                                                        :}        
+                                                ] }}
+                                        end
+                                        else 
+                                        let (n, _, _, _) = get_user_data user in
+                                                {{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }} *) )
 
-	method private page_create_service_done = fun sp () url ->
-		get_persistent_session_data user_table sp () >>=
-		fun sess -> 
-		create_service ~url >>=
-		fun () -> register_service ~sp ~url >>=
-		fun _ -> self#container
-			~sp
-			~sess
-			~contents:({{ [<p>"being implemented"] }}
-				(* if in_group user sessionmanagerinfo.administrator then
-					{{ [<h1>"The service has been created."] }}
-				else 
-				let (n, _, _, _) = get_user_data user in
-					{{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}*) )
+        method private page_create_service_done = fun sp () url ->
+                get_persistent_session_data user_table sp () >>=
+                fun sess -> 
+                create_service ~url >>=
+                fun () -> register_service ~sp ~url >>=
+                fun _ -> self#container
+                        ~sp
+                        ~sess
+                        ~contents:({{ [<p>"being implemented"] }}
+                                (* if in_group user sessionmanagerinfo.administrator then
+                                        {{ [<h1>"The service has been created."] }}
+                                else 
+                                let (n, _, _, _) = get_user_data user in
+                                        {{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}*) )
 
-	method private page_modify_service = fun sp url () ->
-		(* let type_dropdown name value =
-			let l = List.map (fun t ->
-				Option ({{ {} }}, t, None, t = (string_of_type value))
-			) ["int"; "float"; "string"; "bool"; "file"; "unit"] in
-			Eliom_duce.Xhtml.string_select ~name (List.hd l) (List.tl l) in *)
-		get_persistent_session_data user_table sp () >>=
-	  fun sess -> Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-		get_service_parameters ~url >>=
-		fun params -> get_service_widgets ~url >>=
-		fun widgets ->
-			return {{ [<h1>"Configure your service"
-			{: post_form ~service:srv_modify_service_done ~sp
-				(fun () -> {{ [<table>[
-						<tr>[
-							<td>"Service URL:"
-							<td>{: url :}
-							<td>[{: string_input ~input_type:{: "submit" :} ~value:"Apply" () :}]]
-					]] }}) url :}
-				<div class="service_parameters">
-				[
-					<h2>"Parameters"
-					<table>
-					[
-						<tr>[<th>"Name"]
-						!{: List.map (fun p -> {{ <tr>[<td>{: p.name :}] }}) params :}
-					]
-					{: post_form act_add_parameter sp 
-						(fun (srv_name, param_name) -> {{ [<p>[ {: string_input ~input_type:{: "hidden" :} ~name:srv_name ~value:url () :} {: string_input ~input_type:{: "text" :} ~name:param_name () :} (* {: type_dropdown param_type String :} *) {: string_input ~input_type:{: "submit" :} ~value:"Add parameter" () :} ]] }}) () :}
-				]
-				<div class="service_widgets">
-				[
-					<h2>"Widgets"
-				]
-			] }} >>=
-		fun cts -> self#container
-			~sp
-			~sess
-			~contents:cts
+        method private page_modify_service = fun sp url () ->
+                (* let type_dropdown name value =
+                        let l = List.map (fun t ->
+                                Option ({{ {} }}, t, None, t = (string_of_type value))
+                        ) ["int"; "float"; "string"; "bool"; "file"; "unit"] in
+                        Eliom_duce.Xhtml.string_select ~name (List.hd l) (List.tl l) in *)
+                get_persistent_session_data user_table sp () >>=
+          fun sess -> Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+                get_service_parameters ~url >>=
+                fun params -> get_service_widgets ~url >>=
+                fun widgets ->
+                        return {{ [<h1>"Configure your service"
+                        {: post_form ~service:srv_modify_service_done ~sp
+                                (fun () -> {{ [<table>[
+                                                <tr>[
+                                                        <td>"Service URL:"
+                                                        <td>{: url :}
+                                                        <td>[{: string_input ~input_type:{: "submit" :} ~value:"Apply" () :}]]
+                                        ]] }}) url :}
+                                <div class="service_parameters">
+                                [
+                                        <h2>"Parameters"
+                                        <table>
+                                        [
+                                                <tr>[<th>"Name"]
+                                                !{: List.map (fun p -> {{ <tr>[<td>{: p.name :}] }}) params :}
+                                        ]
+                                        {: post_form act_add_parameter sp 
+                                                (fun (srv_name, param_name) -> {{ [<p>[ {: string_input ~input_type:{: "hidden" :} ~name:srv_name ~value:url () :} {: string_input ~input_type:{: "text" :} ~name:param_name () :} (* {: type_dropdown param_type String :} *) {: string_input ~input_type:{: "submit" :} ~value:"Add parameter" () :} ]] }}) () :}
+                                ]
+                                <div class="service_widgets">
+                                [
+                                        <h2>"Widgets"
+                                ]
+                        ] }} >>=
+                fun cts -> self#container
+                        ~sp
+                        ~sess
+                        ~contents:cts
 
-	method private page_modify_service_done = fun sp url () ->
-		get_persistent_session_data user_table sp () >>=
-		fun sess ->
-	  Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
-		self#container
-			~sp
-			~sess
-			~contents:{{ [<h1>"Your service has been modified."] }}
+        method private page_modify_service_done = fun sp url () ->
+                get_persistent_session_data user_table sp () >>=
+                fun sess ->
+          Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
+                self#container
+                        ~sp
+                        ~sess
+                        ~contents:{{ [<h1>"Your service has been modified."] }}
 
-	method private page_list_services = fun sp () () ->
-		get_persistent_session_data user_table sp () >>=
-		fun sess -> get_services >>=
-		fun services -> 
-			(* (if in_group user sessionmanagerinfo.administrator then
-				return {{ [<h1>"Existing services"
-					<table>[
-						<tr>[<th>"Name" <th>""]
-						!{: List.map (fun n ->
-							{{ <tr>[<td>{: n :} <td>[{: a srv_modify_service sp {{ "Modify" }} n :}]] }})
-						services :}
-					]
-				] }}
-				else
-				let (n, _, _, _) = get_user_data user in
-					return {{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}) >>= *)
-					return {{ [<p>"being implemented"] }} >>=
-		fun cts -> self#container
-			~sp
-			~sess
-			~contents:cts
+        method private page_list_services = fun sp () () ->
+                get_persistent_session_data user_table sp () >>=
+                fun sess -> get_services >>=
+                fun services -> 
+                        (* (if in_group user sessionmanagerinfo.administrator then
+                                return {{ [<h1>"Existing services"
+                                        <table>[
+                                                <tr>[<th>"Name" <th>""]
+                                                !{: List.map (fun n ->
+                                                        {{ <tr>[<td>{: n :} <td>[{: a srv_modify_service sp {{ "Modify" }} n :}]] }})
+                                                services :}
+                                        ]
+                                ] }}
+                                else
+                                let (n, _, _, _) = get_user_data user in
+                                        return {{ [<h1>{: Printf.sprintf "I can't do that, %s." n :}] }}) >>= *)
+                                        return {{ [<p>"being implemented"] }} >>=
+                fun cts -> self#container
+                        ~sp
+                        ~sess
+                        ~contents:cts
 
 *)
 
-	method private add_parameter_handler user = fun sp () (url, param_name) ->
-		(* if in_group user sessionmanagerinfo.administrator then
-		begin
-			Ocsigen_messages.debug2 "[add_parameter_handler] user is an administrator.";
-			add_parameter ~url ~param:{ name=param_name } >>=
-			fun _ -> return []
-		end
-		else *)
-			return [NotAllowed]
-		
+        method private add_parameter_handler user = fun sp () (url, param_name) ->
+                (* if in_group user sessionmanagerinfo.administrator then
+                begin
+                        Ocsigen_messages.debug2 "[add_parameter_handler] user is an administrator.";
+                        add_parameter ~url ~param:{ name=param_name } >>=
+                        fun _ -> return []
+                end
+                else *)
+                        return [NotAllowed]
+                
 
         val mutable all_login_actions = sessionmanagerinfo.login_actions
         val mutable all_logout_actions = sessionmanagerinfo.logout_actions
@@ -441,7 +440,7 @@ object (self)
           Lwt.catch
             (fun () -> 
                authenticate ~name:usr ~pwd  >>= fun user -> 
-     	       set_persistent_session_data user_table sp user >>= fun () -> 
+                    set_persistent_session_data user_table sp user >>= fun () -> 
                all_login_actions sp (Data user); 
                Lwt.return []) 
             (fun e -> return [e])
@@ -451,7 +450,7 @@ object (self)
           all_login_actions <- 
             fun sp u -> 
               old_la sp u >>= (fun () -> f sp u)
-	        
+                
         method private mk_act_logout sp () () = 
           all_logout_actions sp >>= fun () ->
           close_session ~sp () >>= fun () -> return []
@@ -460,7 +459,7 @@ object (self)
     let old_la = all_logout_actions in
     all_logout_actions <- fun sp -> 
       old_la sp >>= fun () -> f sp
-	
+        
 
   method lwtinit =
     return ()
@@ -480,22 +479,22 @@ object (self)
       Ocsigen_messages.debug2 "[sessionManager] registering VI";
       register srv_reminder_done self#page_reminder_done;
       Ocsigen_messages.debug2 "[sessionManager] registering VII";
-      (*			register srv_list_services self#page_list_services;
-			Ocsigen_messages.debug2 "[sessionManager] registering VIII";
-			register srv_create_service self#page_create_service;
-			Ocsigen_messages.debug2 "[sessionManager] registering IX";
-			register srv_modify_service self#page_modify_service;
-			Ocsigen_messages.debug2 "[sessionManager] registering X";
+      (*                        register srv_list_services self#page_list_services;
+                        Ocsigen_messages.debug2 "[sessionManager] registering VIII";
+                        register srv_create_service self#page_create_service;
+                        Ocsigen_messages.debug2 "[sessionManager] registering IX";
+                        register srv_modify_service self#page_modify_service;
+                        Ocsigen_messages.debug2 "[sessionManager] registering X";
       register internal_srv_edit (self#page_edit "");
-			Ocsigen_messages.debug2 "[sessionManager] registering XI";
+                        Ocsigen_messages.debug2 "[sessionManager] registering XI";
       register srv_edit_done self#page_edit_done;
-			Ocsigen_messages.debug2 "[sessionManager] registering XII";
-			(* Services.register_services >>=
-			fun () -> *) Ocsigen_messages.debug2 "[sessionManager] registering done";
+                        Ocsigen_messages.debug2 "[sessionManager] registering XII";
+                        (* Services.register_services >>=
+                        fun () -> *) Ocsigen_messages.debug2 "[sessionManager] registering done";
 *)
-				return ()
-		end
-	
+                                return ()
+                end
+        
 end;;
 
 let connect sm srv container
@@ -504,11 +503,11 @@ let connect sm srv container
   begin
     register srv
       (fun sp get_params post_params ->
-	 get_persistent_session_data ~table:user_table ~sp () >>= fun sess -> 
-	 sm#set_user sess; 
-	 Lwt_util.map_serial (fun w ->
-			        w ~sp
-		             ) (fwl get_params post_params) >>= fun c -> 
+         get_persistent_session_data ~table:user_table ~sp () >>= fun sess -> 
+         sm#set_user sess; 
+         Lwt_util.map_serial (fun w ->
+                                w ~sp
+                             ) (fwl get_params post_params) >>= fun c -> 
          container ~sp ~sess ~contents:{{ {: c :} }}
       )
 end

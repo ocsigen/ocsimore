@@ -42,7 +42,7 @@ let rec get_args = function
 
 (* parse inline commands *)
 let rec parse_inl_cmd a_args x: {{ Xhtmltypes_duce.inlines }} =
-	match x with
+        match x with
   | "%*"::toks -> let (args, rest) = get_args toks in 
       {{ [ <strong>{: allpcdata args :} !{: parse_inl_cmd a_args rest :} ] }}
   | "%/"::toks -> let (args, rest) = get_args toks in 
@@ -50,9 +50,9 @@ let rec parse_inl_cmd a_args x: {{ Xhtmltypes_duce.inlines }} =
   | "%["::toks -> let (args, rest) = get_args toks in 
       {{ [ <code>{: allpcdata args :} !{: parse_inl_cmd a_args rest :} ] }}
   | "%:"::toks -> let (args, rest) = get_args toks in
-		  let (srv,sp) = a_args in
-		  let sfx = fold_left (^) "" args in 
-			{{ [ {: a srv sp {{ {: sfx :} }} sfx :} !{: parse_inl_cmd a_args rest :} ] }}
+                  let (srv,sp) = a_args in
+                  let sfx = fold_left (^) "" args in 
+                        {{ [ {: a srv sp {{ {: sfx :} }} sfx :} !{: parse_inl_cmd a_args rest :} ] }}
   | "\\%"::toks -> {{ ['%' !{: parse_inl_cmd a_args toks :} ] }}
   | tok::toks -> {{ [!{: tok :} !{: parse_inl_cmd a_args toks :} ] }}
   | [] -> {{ [] }} 
@@ -66,17 +66,17 @@ let rec parse_code = function
     
 (* parse row commands *)
 let rec parse_row_cmd a_args x: {{ Xhtmltypes_duce.flows }} =
-	match x with
+        match x with
   | ("%pre["::_) :: rows -> let (args, rest) = parse_code rows in 
-			{{ [ <code>{: String.concat "" args :} !{: parse_row_cmd a_args rest :} ] }}
+                        {{ [ <code>{: String.concat "" args :} !{: parse_row_cmd a_args rest :} ] }}
   | ("%###"::toks) :: rows ->
-			{{ [ <h1>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
+                        {{ [ <h1>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
   | ("%==="::toks) :: rows ->
-			{{ [ <h2>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
+                        {{ [ <h2>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
   | ("%---"::toks) :: rows ->
-			{{ [ <h3>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
+                        {{ [ <h3>{: allpcdata toks :} !{: parse_row_cmd a_args rows :} ] }}
   | row :: rows ->
-			{{ [ <p>{: parse_inl_cmd a_args row :} !{: parse_row_cmd a_args rows :}] }}
+                        {{ [ <p>{: parse_inl_cmd a_args row :} !{: parse_row_cmd a_args rows :}] }}
   | [] -> {{ [] }}
 
 (* LEXER+PARSER *)

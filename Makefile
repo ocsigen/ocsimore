@@ -1,16 +1,28 @@
 include Makefile.config
 
+# cannot use ocamlduce with camlp4 :-(
 OCSIMORE_SRC1 = ocsimore_config.ml
-OCSIMORE_SRC2 = setOfSets.ml users.ml \
-	forum.ml session_manager.ml \
+OCSIMORE_SRC2 = users.ml
+OCSIMORE_SRC3 = forum.ml session_manager.ml \
 	ocsimorelib.ml widget.ml user_widgets.ml forum_widgets.ml \
 	wiki_parser.ml wiki.ml wiki_widgets.ml
+
+OCSIMORE_SQL1 = sql.ml user_sql.ml
+OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
+
+OCSIMORE_SRC = $(OCSIMORE_SRC1) $(OCSIMORE_SQL1) $(OCSIMORE_SRC2) \
+               $(OCSIMORE_SQL2) $(OCSIMORE_SRC3)
+
+OCSIMORE_SRC_NOSQL = $(OCSIMORE_SRC1) $(OCSIMORE_SRC2) $(OCSIMORE_SRC3)
+
+OCSIMORE_SQL = $(OCSIMORE_SQL1) $(OCSIMORE_SQL2)
+
 # services.ml
 OCSIMORE_MLI = widget.mli forum_widgets.mli forum.mli \
 	session_manager.mli setOfSets.mli users.mli user_widgets.mli \
 	wiki.mli wiki_parser.mli wiki_widgets.mli
 #services.mli 
-OCSIMORE_CMO = $(OCSIMORE_SRC1:.ml=.cmo) sql.cmo user_sql.cmo forum_sql.cmo wiki_sql.cmo $(OCSIMORE_SRC2:.ml=.cmo)
+OCSIMORE_CMO = $(OCSIMORE_SRC:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
 
 #HOST = localhost
@@ -42,7 +54,7 @@ LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
 .PHONY: all depend clean
 
-all: createdb.sql ocsimore.cma
+all: sql ocsimore.cma
 
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
@@ -92,10 +104,10 @@ sql: createdb.sql.in user_createdb.sql.in forum_createdb.sql.in wiki_createdb.sq
 	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	
 
 depend:
-	ocamlducefind ocamldep $(OCSIMORE_SRC1) $(OCSIMORE_SRC2) $(OCSIMORE_MLI) > .depend
+	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
-	ocamlfind ocamldep $(PACKAGES) $(PP) user_sql.ml user_sql.mli forum_sql.ml forum_sql.mli wiki_sql.ml wiki_sql.mli sql.ml sql.mli >> .depend
+	ocamlfind ocamldep $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
 	rm -f *.cmo *.cmi *.cma *.sql ocsimore_config.ml

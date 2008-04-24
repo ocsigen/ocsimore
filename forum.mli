@@ -5,22 +5,20 @@ This is the forum component of Ocsimore.
 @author Piero Furiesi
 *)
 
-type forum = {
+type forum_info = {
   id : Forum_sql.forum;
   title : string;
   descr: string;
-  readable_by : Users.user;
-  writable_by : Users.user;
-  moderated_by : Users.user;
+  moderated: bool;
+  arborescent: bool;
+  readable_by : Users.group;
+  writable_by : Users.group;
+  moderated_by : Users.group;
 }
     
-val get_forum_by_name : string -> forum Lwt.t
-val get_forum_by_id : Forum_sql.forum -> forum Lwt.t
+val get_forum_by_name : string -> forum_info Lwt.t
+val get_forum_by_id : Forum_sql.forum -> forum_info Lwt.t
   
-val can_read : forum -> Users.user -> bool
-val can_write : forum -> Users.user -> bool
-val can_moderate : forum -> Users.user -> bool
-
 (** Creates a new forum or returns its id without modification
     if it already exists. *)
 val create_forum : 
@@ -28,14 +26,16 @@ val create_forum :
   descr:string -> 
   moderated:bool -> 
   arborescent:bool -> 
-  ?reader:Users.user -> 
-  ?writer:Users.user -> 
-  ?moderator:Users.user -> 
+  ?reader:Users.group -> 
+  ?writer:Users.group -> 
+  ?moderator:Users.group -> 
   unit -> 
-  forum Lwt.t
+  forum_info Lwt.t
 
 (** *)
+val can_read : forum_info -> Users.user -> bool
+val can_write : forum_info -> Users.user -> bool
+val can_moderate : forum_info -> Users.user -> bool
+
 val get_role : 
-  Session_manager.sessionmanager -> 
-  Forum_sql.forum -> 
-  Forum_sql.role Lwt.t
+  Session_manager.sessionmanager -> Forum_sql.forum -> Forum_sql.role Lwt.t

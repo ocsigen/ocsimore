@@ -32,7 +32,6 @@ class widget ~(parent: sessionmanager) =
 object (self)
 
   val xhtml_class = "widget"
-  (* val mutable role: Sql.role = Sql.Unknown *)
     
   method name = xhtml_class
 end;;
@@ -97,6 +96,8 @@ end
 
 class type ['param_type] parametrized_unit_div_widget_t =
           ['param_type, unit, Xhtmltypes_duce._div] parametrized_widget_t
+
+
   
 class ['child_type] list_widget ~(parent: sessionmanager) =
 object (self)
@@ -107,7 +108,7 @@ object (self)
   method display ~(sp:server_params) : Xhtmltypes_duce._div Lwt.t =
     return
       {{
-	 <div class={: xhtml_class :}>[]
+         <div class={: xhtml_class :}>[]
        }}
       
 end
