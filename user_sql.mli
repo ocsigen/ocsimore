@@ -16,41 +16,46 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(** The abstract type of user ids *)
+type userid = int32
+
+(** The abstract type of groups *)
+type groupid = int32
 
 val new_user: 
   name:string -> 
   password:string option -> 
   fullname:string -> 
   email:string -> 
-  groups:int32 list ->
-  int32 Lwt.t
+  groups:groupid list ->
+  userid Lwt.t
 
-val delete_user : user:int32 -> unit Lwt.t
+val delete_user : user:userid -> unit Lwt.t
 
 val new_group: 
   name:string -> 
-  int32 Lwt.t
+  groupid Lwt.t
 
 val find_user: 
   ?db:Sql.db_t ->
-  ?id:int32 -> 
+  ?id:userid -> 
   ?name:string -> 
   unit -> 
-  ((int32 * string * string option * string * string) * int32 list) Lwt.t
+  ((userid * string * string option * string * string) * groupid list) Lwt.t
 
 val update_data: 
-  id:int32 -> 
+  id:userid -> 
   name:string -> 
   password:string option -> 
   fullname:string -> 
   email:string -> 
-  ?groups:int32 list ->
+  ?groups:groupid list ->
   unit ->
   unit Lwt.t
 
-val add_to_group : userid:int32 -> groupid:int32 -> unit Lwt.t
+val add_to_group : userid:userid -> groupid:groupid -> unit Lwt.t
 
-val remove_from_group : userid:int32 -> groupid:int32 -> unit Lwt.t
+val remove_from_group : userid:userid -> groupid:groupid -> unit Lwt.t
 
 (** Returns all groups (names and ids) from the database *)
-val get_groups : unit -> (int32 * string) list Lwt.t
+val get_groups : unit -> (groupid * string) list Lwt.t

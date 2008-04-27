@@ -19,13 +19,15 @@
 
 let (>>=) = Lwt.bind
 
+type group = User_sql.groupid
+
 type userdata = 
-    { id: int32;
+    { id: User_sql.userid;
       name: string;
       mutable pwd: string option;
       mutable fullname: string;
       mutable email: string;
-      mutable groups: int32 list }
+      mutable groups: group list }
       
 exception UserExists
 exception GroupExists
@@ -35,8 +37,6 @@ exception NoSuchUser
 exception Users_error of string
 
 type user = userdata
-
-type group = int32
 
 (* We keep all groups in memory AND in db *)
 let groups = ref (Lwt_unix.run (User_sql.get_groups ()))
@@ -77,7 +77,16 @@ let get_user_by_name_from_db ~name =
                pwd = p; 
                fullname = d; 
                email = e;
-               groups = pm } 
+               groups = pm }
+
+let get_user_by_id_from_db ~id =
+  User_sql.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+  Lwt.return { id = i; 
+               name = n; 
+               pwd = p; 
+               fullname = d; 
+               email = e;
+               groups = pm }
 
 
 let create_anonymous () =
@@ -169,12 +178,20 @@ let admin = Lwt_unix.run (create_admin ())
 
 
 let get_user_by_name ~name =
-  if name = "anonymous" 
+  if name = anonymous.name
   then Lwt.return anonymous
   else
-  if name = "admin" 
+  if name = admin.name
   then Lwt.return admin
   else get_user_by_name_from_db ~name
+
+let get_user_by_id ~id =
+  if id = anonymous.id
+  then Lwt.return anonymous
+  else
+  if id = admin.id
+  then Lwt.return admin
+  else get_user_by_id_from_db ~id
 
 let create_user ~name ~pwd ~fullname ~email ~groups =
   Lwt.catch 
@@ -250,8 +267,6 @@ let create_unique_user =
     Lwt_mutex.unlock lock;
     Lwt.return r
 
-let get_user_data ~user = user
-
 let update_user_data ~user 
     ?(pwd = user.pwd)
     ?(fullname = user.fullname) 
@@ -298,3 +313,25 @@ let add_to_group ~user ~group =
 
 let delete_user ~user =
   User_sql.delete_user user.id
+
+
+
+(****)
+let get_user_data ~sd =
+  match sd with
+    | Eliom_sessions.Data u -> u
+    | _ -> anonymous
+          
+let get_user_id ~sd =
+  match sd with
+    | Eliom_sessions.Data u -> u.id
+    | _ -> 0l
+        
+let get_user_name ~sd =
+  match sd with
+    | Eliom_sessions.Data u -> u.name
+    | _ -> anonymous.name
+        
+let is_logged_on ~sd = not (sd = Eliom_sessions.No_data)
+
+  

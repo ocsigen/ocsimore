@@ -28,8 +28,8 @@ object (self)
                    else
                      {{ [] }} :})] }}
       
-  method private logout_box sp user =
-    let u = parent#get_user_data in
+  method private logout_box ~sp ~sd user =
+    let u = Users.get_user_data sd in
       {{ [<table>[
              <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
              <tr>[<td>[{: Eliom_duce.Xhtml.string_input
@@ -38,18 +38,16 @@ object (self)
                           sp {{ "Manage your account" }} () :}]]
            ]] }}
         
-  method apply ~sp () =
+  method apply ~sp ~sd ~data:() =
     Ocsigen_messages.debug2 "[User_widgets] login#apply";
-    Eliom_sessions.get_persistent_session_data
-      Session_manager.user_table sp () >>= fun sess ->
     Lwt.return {{ <div class={: xhtml_class :}>
                 [{:
-                    match sess with
+                    match sd with
                       | Eliom_sessions.Data user ->
                           Eliom_duce.Xhtml.post_form
                             ~a:{{ { class="logbox logged"} }} 
                             ~service:parent#act_logout ~sp
-                            (fun _ -> self#logout_box sp user) ()
+                            (fun _ -> self#logout_box sp sd user) ()
                       | _ ->  let exn = Eliom_sessions.get_exn sp in
                           if List.mem Users.BadPassword exn || 
                             List.mem Users.NoSuchUser exn

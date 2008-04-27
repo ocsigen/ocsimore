@@ -1,3 +1,27 @@
+(* Ocsimore
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
+(**
+   @author Piero Furiesi
+   @author Jaap Boender
+   @author Vincent Balat
+*)
+
 (* open XHTML.M *)
 open Eliommod
 open Eliom_parameters
@@ -60,10 +84,7 @@ let create_forum
     (function
        | Not_found -> 
            Forum_sql.new_forum
-             title descr moderated arborescent 
-             (Users.id_of_group reader) 
-             (Users.id_of_group writer)
-             (Users.id_of_group moderator)
+             title descr moderated arborescent reader writer moderator
              >>= fun id -> 
            Lwt.return { id = id; 
                         title = title; 
@@ -85,17 +106,17 @@ let can_write forum user =
 let can_moderate forum user =
   Users.in_group user forum.moderated_by
 
-let get_role sm (forum_id : Forum_sql.forum) =
+let get_role ~sd (forum_id : Forum_sql.forum) =
   get_forum_by_id forum_id >>= fun f -> 
   Lwt.return
-    (match sm#get_user with
+    (match sd with
        | Data u -> 
            if can_moderate f u
            then Forum_sql.Moderator
-           else if can_write f u && sm#is_logged_on
-           then Forum_sql.Author sm#get_user_id
-           else if can_read f u && sm#is_logged_on
-           then Forum_sql.Lurker sm#get_user_name
+           else if can_write f u
+           then Forum_sql.Author u.Users.id
+           else if can_read f u
+           then Forum_sql.Lurker u.Users.name
            else Forum_sql.Unknown
        | _ -> Forum_sql.Unknown)
 

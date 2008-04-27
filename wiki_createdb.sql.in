@@ -34,9 +34,10 @@ CREATE TABLE wikis (
     id serial NOT NULL primary key,
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
-    reader integer NOT NULL,
-    writer integer NOT NULL,
-    acl boolean DEFAULT false NOT NULL
+    reader integer NOT NULL, -- default reader
+    writer integer NOT NULL, -- default writer
+    wikiadmin integer        -- the (default) group who can change rights
+                             -- for boxes. NULL = No one
 );
 
 
@@ -62,7 +63,6 @@ CREATE TABLE wikiboxreaders (
     wiki_id integer NOT NULL,
     id integer NOT NULL,
     reader integer NOT NULL,
-    PRIMARY KEY (wiki_id, id),
     CONSTRAINT uni_r UNIQUE (wiki_id, id, reader)
 );
 
@@ -70,7 +70,13 @@ CREATE TABLE wikiboxwriters (
     wiki_id integer NOT NULL,
     id integer NOT NULL,
     writer integer NOT NULL,
-    PRIMARY KEY (wiki_id, id),
     CONSTRAINT uni_w UNIQUE (wiki_id, id, writer)
+);
+
+CREATE TABLE wikiboxadmins (
+    wiki_id integer NOT NULL,
+    id integer NOT NULL,
+    wbadmin integer NOT NULL,
+    CONSTRAINT uni_a UNIQUE (wiki_id, id, wbadmin)
 );
 

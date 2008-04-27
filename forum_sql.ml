@@ -227,16 +227,10 @@ let find_forum ?id ?title () =
   commit db >>= fun _ -> 
   (match r with
      | [(id, title, descr, mo, a, r, w, m)] -> 
-         return (id, title, descr, mo, a, 
-                 Users.group_of_id r, 
-                 Users.group_of_id w, 
-                 Users.group_of_id m)
+         return (id, title, descr, mo, a, r, w, m)
      | (id, title, descr, mo, a, r, w, m)::_ -> 
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
-         return (id, title, descr, mo, a, 
-                 Users.group_of_id r, 
-                 Users.group_of_id w, 
-                 Users.group_of_id m)
+         return (id, title, descr, mo, a, r, w, m)
      | _ -> fail Not_found))
 
 let get_forums_list () =

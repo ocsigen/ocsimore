@@ -34,9 +34,9 @@ val new_forum :
   descr:string -> 
   moderated:bool ->
   arborescent:bool -> 
-  reader:int32 -> 
-  writer:int32 ->
-  moderator:int32 ->  
+  reader:Users.group -> 
+  writer:Users.group ->
+  moderator:Users.group ->  
   forum Lwt.t
 
 (** inserts a message starting a new thread; both thread and message

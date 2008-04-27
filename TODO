@@ -8,6 +8,10 @@ TODO
  notamment pour l'abstraction des types forum, group, user...
  - uniformize labels (put labels everywhere, and always the same name for the
  same type)
+ - Remove parent parameter for all classes
+ - Give up with ocamlduce? (for ex pb with empty <select> written <select />
+ not displayed correctly by firefox ...)
+ - Take care of exception (database ...) more carefully and write error messages
 
 Wiki:
  - What if two users modify the same page at the same time?
@@ -15,3 +19,13 @@ Wiki:
 Users:
  - encryption of password for the db
  - using PAM or LDAP for authentication
+
+Session manager:
+ - clean everything
+ - what is it? How does it work? Can we modularize?
+ - probably use a functor instead of the class?
+
+Problems due to Postgresql:
+ - Errors are just strings => only one exception
+ - very difficult to abstract types (like Users.group)
+ because the db returns int32

@@ -1,5 +1,6 @@
 (* Ocsimore
- * Copyright (C) 2005 Piero Furiesi, Jaap Boender and Vincent Balat
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,6 +16,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
+(**
+   @author Piero Furiesi
+   @author Jaap Boender
+   @author Vincent Balat
+*)
 
 type wiki = int32
 
@@ -24,15 +30,24 @@ open Ocsimorelib
 open CalendarLib
 open Sql
 
-(** Role of user in the wiki *)
-type role = Author of int32 | Lurker of string | Unknown;;
+(** Role of user in the wiki (for one box) *)
+type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
+(* Admin can changes the permissions on boxes *)
 
 (** inserts a new wiki *)
-let new_wiki ~title ~descr ~reader ~writer ~acl =
+let new_wiki ~title ~descr ~reader ~writer ?admin () =
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun _ ->
-       PGSQL(db) "INSERT INTO wikis (title, descr, reader, writer, acl) \
-                  VALUES ($title, $descr, $reader, $writer, $acl)" >>= fun () ->
+       (match admin with
+         | Some admin ->
+             PGSQL(db) "INSERT INTO wikis (title, descr, \
+                                           reader, writer, wikiadmin) \
+                        VALUES ($title, $descr, $reader, $writer, $admin)"
+         | None ->
+             PGSQL(db) "INSERT INTO wikis (title, descr, \
+                                           reader, writer) \
+                        VALUES ($title, $descr, $reader, $writer)")
+         >>= fun () ->
        serial4 db "wikis_id_seq" >>= fun wik_id ->
        commit db >>= fun _ ->
        return wik_id)
@@ -45,7 +60,6 @@ let populate_readers db wiki_id id readers =
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
           (fun reader ->
-             let reader = Users.id_of_group reader in
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxreaders \
@@ -67,7 +81,6 @@ let populate_writers db wiki_id id writers =
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
           (fun writer ->
-             let writer = Users.id_of_group writer in
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxwriters \
@@ -82,6 +95,27 @@ let populate_writers db wiki_id id writers =
           )
           writers
 
+let populate_wbadmins db wiki_id id admins =
+  match admins with
+    | [] -> Lwt.return ()
+    | _ ->
+(*VVV Can we do this more efficiently? *)
+        Lwt_util.iter_serial
+          (fun admin ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "INSERT INTO wikiboxadmins \
+                             VALUES ($wiki_id, $id, $admin)")
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while setting wikibox admins: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
+          )
+          admins
+
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox ~wiki ~author ~comment ~content ?rights () = 
   Lwt_pool.use Sql.pool (fun db ->
@@ -92,12 +126,45 @@ let new_wikibox ~wiki ~author ~comment ~content ?rights () =
        serial4 db "wikiboxes_id_seq" >>= fun wbx_id ->
        (match rights with
          | None -> Lwt.return ()
-         | Some (r, w) -> 
+         | Some (r, w, a) -> 
              populate_writers db wiki wbx_id w >>= fun () ->
-             populate_readers db wiki wbx_id r
+             populate_readers db wiki wbx_id r >>= fun () ->
+             populate_wbadmins db wiki wbx_id a
        ) >>= fun () ->
        commit db >>= fun () ->
        Lwt.return wbx_id)
+
+(** Inserts a new version of an existing wikibox in a wiki 
+    and return its version number. *)
+let update_wikibox ~wiki ~wikibox ~author ~comment ~content 
+    ?readers ?writers ?admins () = 
+  Lwt_pool.use Sql.pool (fun db ->
+       begin_work db >>= fun () ->
+       PGSQL(db) "INSERT INTO wikiboxes \
+                    (id, wiki_id, author, comment, content) \
+                  VALUES ($wikibox, $wiki, $author, \
+                          $comment, $content)" >>= fun () ->
+       serial4 db "wikiboxes_version_seq" >>= fun version ->
+       (match readers with
+         | None -> Lwt.return ()
+         | Some r -> 
+             PGSQL(db) "DELETE FROM wikiboxreaders \
+                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
+             populate_readers db wiki wikibox r) >>= fun () ->
+       (match writers with
+         | None -> Lwt.return ()
+         | Some w -> 
+             PGSQL(db) "DELETE FROM wikiboxwriters \
+                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
+             populate_writers db wiki wikibox w) >>= fun () ->
+       (match admins with
+         | None -> Lwt.return ()
+         | Some a -> 
+             PGSQL(db) "DELETE FROM wikiboxadmins \
+                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
+             populate_wbadmins db wiki wikibox a) >>= fun () ->
+       commit db >>= fun () ->
+       Lwt.return version)
 
 
 (** returns subject, text, author, datetime of a wikibox; 
@@ -144,16 +211,10 @@ let find_wiki ?id ?title () =
        commit db >>= fun () -> 
        (match r with
           | [(id, title, descr, r, w, a)] -> 
-              return (id, title, descr, 
-                      Users.group_of_id r, 
-                      Users.group_of_id w, 
-                      a)
+              return (id, title, descr, r, w, a)
           | (id, title, descr, r, w, a)::_ -> 
               Ocsigen_messages.warning "Ocsimore: More than one wiki have the same name or id (ignored)";
-              return (id, title, descr,
-                      Users.group_of_id r, 
-                      Users.group_of_id w, 
-                      a)
+              return (id, title, descr, r, w, a)
           | [] -> Lwt.fail Not_found))
 
 
@@ -164,8 +225,7 @@ let get_writers ~wiki ~id =
              WHERE id = $id AND wiki_id = $wiki"
     >>= fun r -> 
   commit db >>= fun () -> 
-(*VVV we should avoid this map: *)
-  Lwt.return (List.map Users.group_of_id r))
+  Lwt.return r)
 
 let get_readers ~wiki ~id =
   Lwt_pool.use Sql.pool (fun db ->
@@ -174,8 +234,33 @@ let get_readers ~wiki ~id =
              WHERE id = $id AND wiki_id = $wiki"
     >>= fun r -> 
   commit db >>= fun () -> 
-(*VVV we should avoid this map: *)
-  Lwt.return (List.map Users.group_of_id r))
+  Lwt.return r)
+
+let get_admins ~wiki ~id =
+  Lwt_pool.use Sql.pool (fun db ->
+  begin_work db >>= fun _ -> 
+  PGSQL(db) "SELECT wbadmin FROM wikiboxadmins \
+             WHERE id = $id AND wiki_id = $wiki"
+    >>= fun r -> 
+  commit db >>= fun () -> 
+  Lwt.return r)
+
+(****)
+let populate_readers wiki_id id readers =
+  Lwt_pool.use Sql.pool (fun db ->
+  populate_readers db wiki_id id readers >>= fun () ->
+  commit db)
+
+let populate_writers wiki_id id writers =
+  Lwt_pool.use Sql.pool (fun db ->
+  populate_writers db wiki_id id writers >>= fun () ->
+  commit db)
+
+let populate_wbadmins wiki_id id wbadmins =
+  Lwt_pool.use Sql.pool (fun db ->
+  populate_wbadmins db wiki_id id wbadmins >>= fun () ->
+  commit db)
+
 (*
 let new_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
   (* inserts a new wikipage in an existing wiki; returns [None] if

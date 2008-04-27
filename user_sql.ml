@@ -16,6 +16,11 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
+(**
+   @author Piero Furiesi
+   @author Jaap Boender
+   @author Vincent Balat
+*)
 
 let (>>=)= Lwt.bind
 
@@ -23,6 +28,9 @@ open Sql.PGOCaml
 open Ocsimorelib
 open CalendarLib
 open Sql
+
+type userid = int32
+type groupid = int32
 
 let populate_groups db id groups =
   match groups with

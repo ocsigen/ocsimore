@@ -3,18 +3,21 @@ open Eliom_parameters
 open Eliom_services
 open Eliom_sessions 
 open Eliom_duce.Xhtml
-val user_table : Users.user persistent_table
+val user_table : Users.userdata persistent_table
 
 type sessionmanager_in = 
 {
   url: string list;
   default_groups: Users.group list;
-  login_actions: server_params -> Users.user session_data -> unit Lwt.t;
+  login_actions: server_params -> Users.userdata session_data -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
   registration_mail_from: string * string;
   registration_mail_subject: string;
-  administrator: Users.user;
+  administrator: Users.userdata;
 }
+
+
+
       
 class sessionmanager: sessionmanagerinfo: sessionmanager_in ->
 object
@@ -64,23 +67,46 @@ object
      unit,
      [`Registrable ]) service
     
-  method set_user: Users.user session_data -> unit
+  method action_edit_wikibox :
+    (int32 * int32, 
+     unit,
+     get_service_kind,
+     [ `WithoutSuffix ], 
+     [ `One of int32 ] Eliom_parameters.param_name *
+     [ `One of int32 ] Eliom_parameters.param_name,
+     unit, 
+     [ `Registrable ])
+    Eliom_services.service
 
-  method is_logged_on: bool
+  method action_send_wikibox :
+    (unit,
+     ((int32 * int32) * string) *
+       (string option *
+          (string option *
+             (string option * 
+                (string option * 
+                   (string option * 
+                      string option))))),
+     post_service_kind,
+     [ `WithoutSuffix ], 
+     unit,
+     (([ `One of int32 ] Eliom_parameters.param_name *
+        [ `One of int32 ] Eliom_parameters.param_name) *
+        [ `One of string ] Eliom_parameters.param_name) *
+       ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name)))))),
+     [ `Registrable ])
+    Eliom_services.service 
 
-  method get_user: Users.user session_data
-
-  method get_user_data: Users.userdata
-
-  method get_user_id: int32
-
-  method get_user_name: string
-
-  method container: sp:server_params -> sess:Users.user session_data ->
+  method container: sp:server_params -> sd:Users.userdata session_data ->
     contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
 
   method add_login_actions: 
-      (server_params -> Users.user session_data -> unit Lwt.t) -> unit
+      (server_params -> Users.userdata session_data -> unit Lwt.t) -> unit
 
   method add_logout_actions: 
       (server_params -> unit Lwt.t) -> unit
@@ -98,7 +124,7 @@ val connect:
    'pn,
    [`Registrable]) service ->
   (sp:server_params -> 
-    sess:Users.user Eliom_sessions.session_data -> 
+    sd:Users.userdata Eliom_sessions.session_data -> 
     contents: Xhtmltypes_duce.blocks -> 
     Eliom_duce.Xhtml.page Lwt.t) ->
   ('get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list)

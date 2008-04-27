@@ -1,15 +1,18 @@
-type wiki
+type wiki = int32
 
 (** Role of user in the wiki *)
-type role = Author of int32 | Lurker of string | Unknown;;
+type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
+(** Admin can changes the permissions on boxes (if the wiki allows this) *)
+
 
 (** inserts a new wiki container *)
 val new_wiki : 
   title:string -> 
   descr:string -> 
-  reader:int32 -> 
-  writer:int32 ->
-  acl:bool ->
+  reader:Users.group -> 
+  writer:Users.group ->
+  ?admin:Users.group ->
+  unit ->
   wiki Lwt.t
 
 (** Find wiki information for a wiki, given its id or title *)
@@ -17,7 +20,8 @@ val find_wiki:
   ?id:wiki -> 
   ?title:string -> 
   unit -> 
-  (wiki * string * string * Users.group * Users.group * bool) Lwt.t
+  (wiki * string * string * Users.group * Users.group * Users.group option)
+    Lwt.t
 
 (** Inserts a new wikipage in an existing wiki and return the id of the 
     wikibox. *)
@@ -26,7 +30,21 @@ val new_wikibox :
   author:string ->
   comment:string ->
   content:string ->
-  ?rights:Users.group list * Users.group list ->
+  ?rights:Users.group list * Users.group list * Users.group list ->
+  unit ->
+  int32 Lwt.t
+
+(** Inserts a new version of an existing wikibox in a wiki 
+    and return its version number. *)
+val update_wikibox :
+  wiki:wiki ->
+  wikibox:int32 ->
+  author:string ->
+  comment:string ->
+  content:string ->
+  ?readers:Users.group list ->
+  ?writers:Users.group list ->
+  ?admins:Users.group list ->
   unit ->
   int32 Lwt.t
 
@@ -39,6 +57,15 @@ val get_wikibox_data :
 
 val get_readers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
 val get_writers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
+val get_admins : wiki:wiki -> id:int32 -> Users.group list Lwt.t
+
+val populate_readers : 
+  int32 -> int32 -> int32 list -> unit Lwt.t
+val populate_writers : 
+  int32 -> int32 -> int32 list -> unit Lwt.t
+val populate_wbadmins : 
+  int32 -> int32 -> int32 list -> unit Lwt.t
+
 
 (*
 (** inserts a new wikipage in an existing wiki; returns [None] if

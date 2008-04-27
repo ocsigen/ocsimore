@@ -33,9 +33,10 @@ val create_forum :
   forum_info Lwt.t
 
 (** *)
-val can_read : forum_info -> Users.user -> bool
-val can_write : forum_info -> Users.user -> bool
-val can_moderate : forum_info -> Users.user -> bool
+val can_read : forum_info -> Users.userdata -> bool
+val can_write : forum_info -> Users.userdata -> bool
+val can_moderate : forum_info -> Users.userdata -> bool
 
 val get_role : 
-  Session_manager.sessionmanager -> Forum_sql.forum -> Forum_sql.role Lwt.t
+  sd:Users.userdata Eliom_sessions.session_data -> 
+  Forum_sql.forum -> Forum_sql.role Lwt.t

@@ -4,23 +4,35 @@ open Eliom_services
 open Eliom_sessions
 open Eliom_predefmod
 open Eliom_duce.Xhtml
-open Xhtmltypes_duce
 open Lwt
 open Users
 
-let user_table: user persistent_table = 
+let user_table: Users.userdata persistent_table = 
   create_persistent_table "ocsimore_user_table_v1"
 
 type sessionmanager_in = 
 {
   url: string list;
   default_groups: Users.group list;
-  login_actions: server_params -> Users.user session_data -> unit Lwt.t;
+  login_actions: server_params -> Users.userdata session_data -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
   registration_mail_from: string * string;
   registration_mail_subject: string;
-  administrator: Users.user;
+  administrator: Users.userdata;
 }
+
+
+
+(* private: *)
+let valid_username usr =
+  Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
+    
+let valid_emailaddr email =
+  Str.string_match 
+    (Str.regexp ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
+    email 0
+      
+
 
 class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
 
@@ -60,11 +72,43 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
       ~post_params:(string "service_name" ** string "param_name") () 
   in
   let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
+
+
+(* Wiki: *)
+(*VVV Where to put this? *)
+(* The registration must be done during site loading, nor before! *)
+
+  let action_edit_wikibox =
+    Eliom_predefmod.Actions.register_new_service' 
+      ~name:"wiki_edit"
+      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+                     (Eliom_parameters.int32 "boxid"))
+      (fun sp g () -> Lwt.return [Wiki.Editbox g])
+  in
+
+  let action_send_wikibox =
+    Eliom_predefmod.Actions.register_new_post_service' 
+      ~name:"wiki_send"
+      ~post_params:
+      ((((Eliom_parameters.int32 "wikiid") ** 
+           (Eliom_parameters.int32 "boxid")) ** 
+          Eliom_parameters.string "content") **
+         (Eliom_parameters.opt (Eliom_parameters.string "addreaders") **
+            Eliom_parameters.opt (Eliom_parameters.string "addwriters") **
+            Eliom_parameters.opt (Eliom_parameters.string "addadmin") **
+            Eliom_parameters.opt (Eliom_parameters.string "delreaders") **
+            Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
+            Eliom_parameters.opt (Eliom_parameters.string "deladmin")
+         ))
+      (fun sp () p -> 
+         Eliom_sessions.get_persistent_session_data user_table sp ()
+           >>= fun sd -> 
+         Wiki.save_wikibox sp sd p)
+  in
+
     
 object (self)
   
-  val mutable current_user: user session_data = No_data
-    
   val widget_types = Hashtbl.create 1
     
   method act_login: 
@@ -81,12 +125,47 @@ object (self)
     
   method act_logout: (unit, unit, [`Nonattached of [`Post] Eliom_services.na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service =
     internal_act_logout
+
+
+  method action_edit_wikibox :
+    (int32 * int32, 
+     unit,
+     get_service_kind,
+     [ `WithoutSuffix ], 
+     [ `One of int32 ] Eliom_parameters.param_name *
+     [ `One of int32 ] Eliom_parameters.param_name,
+     unit, 
+     [ `Registrable ])
+    Eliom_services.service = action_edit_wikibox
       
-  method set_user u = current_user <- u
-    
+  method action_send_wikibox :
+    (unit,
+     ((int32 * int32) * string) *
+       (string option *
+          (string option *
+             (string option * 
+                (string option * 
+                   (string option * 
+                      string option))))),
+     post_service_kind,
+     [ `WithoutSuffix ], 
+     unit,
+     (([ `One of int32 ] Eliom_parameters.param_name *
+        [ `One of int32 ] Eliom_parameters.param_name) *
+        [ `One of string ] Eliom_parameters.param_name) *
+       ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name *
+          ([ `Opt of string ] Eliom_parameters.param_name)))))),
+     [ `Registrable ])
+    Eliom_services.service 
+    = action_send_wikibox
+      
   method container
     ~(sp: server_params)
-    ~(sess: user session_data)
+    ~(sd: Users.userdata session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     return {{ 
               <html>[
@@ -95,40 +174,10 @@ object (self)
               ]
             }}
       
-  method is_logged_on =
-    match current_user with
-      | Data _ -> true
-      | _ -> false
-          
-  method get_user = current_user
-    
-  method get_user_data =
-    match current_user with
-      | Data u -> Users.get_user_data ~user:u
-      | _ -> Users.get_user_data Users.anonymous
-          
-  method get_user_id =
-    match current_user with
-      | Data u -> (Users.get_user_data ~user:u).Users.id
-      | _ -> 0l
-          
-  method get_user_name =
-    match current_user with
-      | Data u -> (Users.get_user_data ~user:u).Users.name
-      | _ -> (Users.get_user_data anonymous).Users.name
-          
-  method private valid_username usr =
-    Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
-      
-  method private valid_emailaddr email =
-    Str.string_match 
-      (Str.regexp ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
-      email 0
-      
   method private page_register err = fun sp () ()-> 
     self#container
       ~sp
-      ~sess:No_data
+      ~sd:No_data
       ~contents:{{ [<h1>"Registration form"
                      <p>['Please fill in the following fields.'
                                          <br>[]
@@ -160,9 +209,9 @@ object (self)
                      <p>[<strong>{: err :}]]}} 
       
   method private page_register_done = fun sp () (usr, (fullname, email)) ->
-    if not (self#valid_username usr) then 
+    if not (valid_username usr) then 
       self#page_register "ERROR: Bad character(s) in login name!" sp () ()
-    else if not (self#valid_emailaddr email) then 
+    else if not (valid_emailaddr email) then 
       self#page_register "ERROR: Bad formed e-mail address!" sp () ()
     else 
       let pwd = generate_password () in
@@ -177,7 +226,7 @@ object (self)
       then begin
         self#container
           ~sp
-          ~sess:No_data
+          ~sd:No_data
           ~contents:{{ [<h1>"Registration ok."
                          <p>(['You\'ll soon receive an e-mail message at the \
                                 following address:'
@@ -191,7 +240,7 @@ object (self)
         Users.delete_user ~user >>= fun () ->
         self#container
           ~sp
-          ~sess:No_data
+          ~sd:No_data
           ~contents:{{ [<h1>"Registration failed."
                          <p>"Please try later."] }}
 
@@ -200,7 +249,7 @@ object (self)
   method private page_reminder err = fun sp () () -> 
     self#container
       ~sp
-      ~sess:No_data
+      ~sd:No_data
       ~contents:{{ [<h1>"Password reminder"
                      <p>['This service allows you to get an e-mail message \
                      with your connection password.'
@@ -219,8 +268,8 @@ object (self)
                      <p>[<strong>{: err :}]] }}
       
   method private page_reminder_done = fun sp () usr ->
-    self#page_reminder "Users are being impelemented (TODO)" sp () ()
-      (* if not (self#valid_username usr) then
+    self#page_reminder "Users are being implemented (TODO)" sp () ()
+      (* if not (valid_username usr) then
          self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
          else 
          mail_password 
@@ -230,7 +279,7 @@ object (self)
          then 
          self#container
          ~sp
-         ~sess:No_data
+         ~sd:No_data
          ~contents:{{ [<h1>"Password sent"
          <p>"You'll soon receive an e-mail message at \
          the address you entered when you \
@@ -238,7 +287,7 @@ object (self)
          else 
          self#container
          ~sp
-         ~sess:No_data
+         ~sd:No_data
          ~contents:{{ [<h1>"Failure"
          <p>"The username you entered doesn't exist, or \
          the service is unavailable at the moment."] }}) *)
@@ -246,11 +295,10 @@ object (self)
   method private page_edit err = fun sp () () ->
     get_persistent_session_data user_table sp () >>= fun sess -> 
     match sess with
-      | Data user -> 
-          let u = get_user_data ~user in
+      | Data u -> 
           self#container
             ~sp
-              ~sess:No_data
+              ~sd:No_data
               ~contents:{{ [<h1>"Your account"
                              <p>"Change your persional information:"
                              {: post_form srv_edit_done sp
@@ -287,7 +335,7 @@ object (self)
     get_persistent_session_data user_table sp () >>= fun sess -> 
       match sess with
         | Data user ->
-            if not (self#valid_emailaddr email) then  
+            if not (valid_emailaddr email) then  
               self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
             else if pwd <> pwd2 then
               self#page_edit "ERROR: Passwords don't match!" sp () ()
@@ -299,13 +347,13 @@ object (self)
                set_persistent_session_data user_table sp user;        
                self#container
                  ~sp
-                 ~sess:No_data
+                 ~sd:No_data
                  ~contents:{{ [<h1>"Personal information updated"] }})
                 
   method private page_not_allowed = fun sp () () ->
     self#container
       ~sp
-      ~sess:No_data
+      ~sd:No_data
       ~contents:{{ [<h1>"I can\'t do that, Dave."
                      <p>"In order to manipulate services, you must be an administrator."] }}        
       
@@ -314,7 +362,7 @@ object (self)
         fun sess -> 
                 self#container
                         ~sp
-                        ~sess
+                        ~sd
                         ~contents:({{ [<p>"being implemented"] }}
                                 (* if in_group user sessionmanagerinfo.administrator then
                                         begin
@@ -339,7 +387,7 @@ object (self)
                 fun () -> register_service ~sp ~url >>=
                 fun _ -> self#container
                         ~sp
-                        ~sess
+                        ~sd
                         ~contents:({{ [<p>"being implemented"] }}
                                 (* if in_group user sessionmanagerinfo.administrator then
                                         {{ [<h1>"The service has been created."] }}
@@ -384,7 +432,7 @@ object (self)
                         ] }} >>=
                 fun cts -> self#container
                         ~sp
-                        ~sess
+                        ~sd
                         ~contents:cts
 
         method private page_modify_service_done = fun sp url () ->
@@ -393,7 +441,7 @@ object (self)
           Ocsigen_messages.debug2 (Printf.sprintf "[page_modify_service] session name: %s" (match get_session_name ~sp with None -> "<NONE>" | Some x -> x));
                 self#container
                         ~sp
-                        ~sess
+                        ~sd
                         ~contents:{{ [<h1>"Your service has been modified."] }}
 
         method private page_list_services = fun sp () () ->
@@ -415,7 +463,7 @@ object (self)
                                         return {{ [<p>"being implemented"] }} >>=
                 fun cts -> self#container
                         ~sp
-                        ~sess
+                        ~sd
                         ~contents:cts
 
 *)
@@ -440,8 +488,8 @@ object (self)
           Lwt.catch
             (fun () -> 
                authenticate ~name:usr ~pwd  >>= fun user -> 
-                    set_persistent_session_data user_table sp user >>= fun () -> 
-               all_login_actions sp (Data user); 
+               set_persistent_session_data user_table sp user >>= fun () -> 
+               all_login_actions sp (Data user) >>= fun () ->
                Lwt.return []) 
             (fun e -> return [e])
       
@@ -503,11 +551,12 @@ let connect sm srv container
   begin
     register srv
       (fun sp get_params post_params ->
-         get_persistent_session_data ~table:user_table ~sp () >>= fun sess -> 
-         sm#set_user sess; 
-         Lwt_util.map_serial (fun w ->
-                                w ~sp
-                             ) (fwl get_params post_params) >>= fun c -> 
-         container ~sp ~sess ~contents:{{ {: c :} }}
+         get_persistent_session_data ~table:user_table ~sp () >>= fun sd -> 
+         Lwt_util.map_serial
+           (fun w -> w ~sp) 
+           (fwl get_params post_params) >>= fun c -> 
+           container ~sp ~sd ~contents:{{ {: c :} }}
       )
 end
+
+

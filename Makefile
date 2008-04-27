@@ -3,9 +3,9 @@ include Makefile.config
 # cannot use ocamlduce with camlp4 :-(
 OCSIMORE_SRC1 = ocsimore_config.ml
 OCSIMORE_SRC2 = users.ml
-OCSIMORE_SRC3 = forum.ml session_manager.ml \
+OCSIMORE_SRC3 = forum.ml wiki.ml session_manager.ml \
 	ocsimorelib.ml widget.ml user_widgets.ml forum_widgets.ml \
-	wiki_parser.ml wiki.ml wiki_widgets.ml
+	wiki_parser.ml wiki_widgets.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
