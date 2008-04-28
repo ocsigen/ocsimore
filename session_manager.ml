@@ -86,6 +86,13 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
       (fun sp g () -> Lwt.return [Wiki.Editbox g])
   in
 
+  let action_cancel =
+    Eliom_predefmod.Actions.register_new_post_service' 
+      ~name:"cancel"
+      ~post_params:unit
+      (fun sp () () -> Lwt.return [])
+  in
+
   let action_send_wikibox =
     Eliom_predefmod.Actions.register_new_post_service' 
       ~name:"wiki_send"
@@ -138,6 +145,12 @@ object (self)
      [ `Registrable ])
     Eliom_services.service = action_edit_wikibox
       
+  method action_cancel :
+    (unit, unit, post_service_kind,
+     [ `WithoutSuffix ], unit, unit, [ `Registrable ])
+    Eliom_services.service
+    = action_cancel
+
   method action_send_wikibox :
     (unit,
      ((int32 * int32) * string) *

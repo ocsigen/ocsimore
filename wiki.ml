@@ -132,19 +132,19 @@ let get_role ~sd (wiki_id : Wiki_sql.wiki) wikibox =
       | _ -> Users.anonymous
   in
   if u = Users.admin
-  then Lwt.return (Wiki_sql.Admin (Users.get_user_id sd))
+  then Lwt.return (Wiki_sql.Admin u.Users.id)
   else
     can_admin f wikibox u >>= fun cana ->
     if cana
-    then Lwt.return (Wiki_sql.Admin (Users.get_user_id sd))
+    then Lwt.return (Wiki_sql.Admin u.Users.id)
     else
       can_write f wikibox u >>= fun canw ->
       if canw
-      then Lwt.return (Wiki_sql.Author (Users.get_user_id sd))
+      then Lwt.return (Wiki_sql.Author u.Users.id)
       else 
         can_read f wikibox u >>= fun canr ->
         if canr
-        then Lwt.return (Wiki_sql.Lurker (Users.get_user_name sd))
+        then Lwt.return (Wiki_sql.Lurker u.Users.name)
         else Lwt.return Wiki_sql.Unknown
 
 

@@ -40,6 +40,8 @@ class editable_wikibox :
   unit ->
   [Wiki_sql.wiki * int32, 
    wiki_data option * Wiki_sql.role,
-   ?rows:int -> ?cols:int -> unit -> Xhtmltypes_duce._div Lwt.t] 
+   ?rows:int -> ?cols:int -> 
+    ?classe:string list -> 
+    unit -> Xhtmltypes_duce._div Lwt.t] 
     Widget.parametrized_widget_t
 

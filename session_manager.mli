@@ -78,6 +78,11 @@ object
      [ `Registrable ])
     Eliom_services.service
 
+  method action_cancel :
+    (unit, unit, post_service_kind,
+     [ `WithoutSuffix ], unit, unit, [ `Registrable ])
+    Eliom_services.service
+
   method action_send_wikibox :
     (unit,
      ((int32 * int32) * string) *

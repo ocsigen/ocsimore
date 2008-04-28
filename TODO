@@ -1,7 +1,9 @@
 TODO
 
  - groups are now basic (unix like). Not possible to put a group in another
- like before. To do that, we must think about how to do a DAG in a database
+ like before. To do that, we must think about how to do a DAG in a database.
+ Would be better to go back to a model where group and user are the same ...
+ See Drupal?
  - I removed all that depends on the module Services for now Vincent 2008/04/15
 (dynamic creation of services)
  - pas clair la distinction entre forum et forum_sql, user et usr_sql,
@@ -12,6 +14,8 @@ TODO
  - Give up with ocamlduce? (for ex pb with empty <select> written <select />
  not displayed correctly by firefox ...)
  - Take care of exception (database ...) more carefully and write error messages
+ - Faut tout revoir pour uniformiser. C'est vraiment le bordel.
+
 
 Wiki:
  - What if two users modify the same page at the same time?
@@ -24,8 +28,14 @@ Session manager:
  - clean everything
  - what is it? How does it work? Can we modularize?
  - probably use a functor instead of the class?
+ - how to make is extensible? Do we want that?
 
 Problems due to Postgresql:
  - Errors are just strings => only one exception
  - very difficult to abstract types (like Users.group)
  because the db returns int32
+
+Wikisyntax:
+ - extensible?
+ - AST interpreter must be configurable (for ex if we want to forbid images in
+ forum messages, or some kind of boxes (wikibox in forum message...))

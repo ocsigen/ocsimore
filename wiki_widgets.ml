@@ -93,14 +93,16 @@ object (self)
   inherit
     [Wiki_sql.wiki * int32, 
      wiki_data option * Wiki_sql.role,
-     ?rows:int -> ?cols:int -> unit -> Xhtmltypes_duce._div Lwt.t] 
+     ?rows:int -> 
+      ?cols:int -> 
+      ?classe:string list -> 
+      unit -> Xhtmltypes_duce._div Lwt.t] 
       Widget.parametrized_widget parent
 
   val ne_xhtml_class = "wikibox"
-
   val edit_xhtml_class = "wikibox editform"
-
   val xhtml_class = "wikibox editable"
+  val edit_link_class = "editlink"
 
   method private retrieve_data ~sd ((wiki_id, message_id) as a) =
     Wiki.get_role sd wiki_id message_id >>= fun role -> 
@@ -108,8 +110,9 @@ object (self)
     Lwt.return (d, role)
 
   method apply ~sp ~sd 
-    ~data:((wiki_id, message_id) as d) ?(rows=40) ?(cols=30) () =
+    ~data:((wiki_id, message_id) as d) ?(rows=40) ?(cols=30) ?(classe=[]) () =
     self#retrieve_data sd d >>= fun (data, role) -> 
+    let classe = List.fold_left (fun s e -> s^" "^e) "" classe in
     let content = match data with
       | Some data -> data.content 
       | None -> ""
@@ -118,7 +121,7 @@ object (self)
         (((wikiidname, boxidname), contentname),
          (addrn, (addwn, (addan, (delrn, (delwn, delan)))))) =
       let f =
-        {{ <p>[
+        {{ [
              {: Eliom_duce.Xhtml.int32_input
                 ~input_type:{: "hidden" :} 
                 ~name:wikiidname
@@ -133,16 +136,12 @@ object (self)
                   ~cols
                   ~value:{{ {: content :} }} () :}
              <br>[]
-               {: Eliom_duce.Xhtml.string_input
-                  ~input_type:{: "submit" :} 
-                  ~value:"Submit" () :}
            ]
          }}
       in
       match r with
         | Some (r, w, a) ->
-              {{ [f 
-                  <p>[ 
+              {{ [<p>[!f 
                     'Users who can read this wiki box: ' 
                     !{: r :}
                     <br>[]
@@ -188,10 +187,22 @@ object (self)
                          ~name:delan
                          () :}
                     <br>[]
-                  ]
+                      {: Eliom_duce.Xhtml.string_input
+                         ~input_type:{: "submit" :} 
+                         ~value:"Submit" () :}
+                    ]
                  ]
                }}
-        | _ -> {{ [f] }}
+        | _ -> {{ [<p>[!f
+                     {: Eliom_duce.Xhtml.string_input
+                        ~input_type:{: "submit" :} 
+                        ~value:"Submit" () :}
+                  ]] }}
+    in
+    let draw_form2 () =
+      {{ [<p>[ {: Eliom_duce.Xhtml.string_input
+                  ~input_type:{: "submit" :} 
+                  ~value:"Cancel" () :} ] ] }}
     in
     match role with
       | Wiki_sql.Admin _
@@ -219,25 +230,31 @@ object (self)
                            admins)))
               | _ -> Lwt.return None) >>= fun res ->
             Lwt.return
-              {{ <div class={: xhtml_class :}>
+              {{ <div class={: edit_xhtml_class ^ classe :}>
                    [ {:
                         Eliom_duce.Xhtml.post_form
                         parent#action_send_wikibox
                         sp (draw_form res) ()
+                        :}
+                       {:
+                        Eliom_duce.Xhtml.post_form
+                        parent#action_cancel
+                        sp draw_form2 ()
                         :}
                    ]
                }}
           else
             let exns = Eliom_sessions.get_exn sp in
             let c = 
-              {{ [ {: Eliom_duce.Xhtml.a 
-                        parent#action_edit_wikibox
-                        sp {{ "edit" }} d :}
-                      <br>[]
-                      !{: content :} ] }}
+              {{ [<p class={: edit_link_class :}>
+                     [ {: Eliom_duce.Xhtml.a 
+                          ~a:{{ { class={: edit_link_class :} } }}
+                          ~service:parent#action_edit_wikibox
+                          ~sp {{ "edit" }} d :}]
+                     !{: content :} ] }}
             in
             Lwt.return
-              {{ <div class={: edit_xhtml_class :}>
+              {{ <div class={: xhtml_class ^ classe :}>
                    {{
                       if
                         List.exists
@@ -268,7 +285,7 @@ object (self)
                }}
       | _ ->
           Lwt.return
-            {{ <div class={: ne_xhtml_class :}>
+            {{ <div class={: ne_xhtml_class ^ classe :}>
                  {: content :}
              }}
 

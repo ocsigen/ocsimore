@@ -58,14 +58,17 @@ let get_group ~name = list_cossa name !groups
 let group_of_id x = x
 let id_of_group x = x
 
+
+let new_group ~name =
+  User_sql.new_group name >>= fun id ->
+  groups := (id, name)::!groups;
+  Lwt.return id
+
 let create_group ~name =
   try
     Lwt.return (get_group name)
   with
-    | Not_found -> 
-        User_sql.new_group name >>= fun id ->
-        groups := (id, name)::!groups;
-        Lwt.return id
+    | Not_found -> new_group ~name
 
 let anonymous_group = Lwt_unix.run (create_group "anonymous")
 let admin_group = Lwt_unix.run (create_group "admin")
@@ -194,6 +197,11 @@ let get_user_by_id ~id =
   else get_user_by_id_from_db ~id
 
 let create_user ~name ~pwd ~fullname ~email ~groups =
+  try
+    ignore (get_group name);
+    Lwt.fail UserExists
+  with Not_found ->
+  new_group ~name >>= fun _ -> (* we create a group for each user *)
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
     (function 
@@ -325,7 +333,7 @@ let get_user_data ~sd =
 let get_user_id ~sd =
   match sd with
     | Eliom_sessions.Data u -> u.id
-    | _ -> 0l
+    | _ -> anonymous.id
         
 let get_user_name ~sd =
   match sd with
