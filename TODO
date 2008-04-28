@@ -4,24 +4,25 @@ TODO
  like before. To do that, we must think about how to do a DAG in a database.
  Would be better to go back to a model where group and user are the same ...
  See Drupal?
- - I removed all that depends on the module Services for now Vincent 2008/04/15
+ - I removed all that depends on module Services for now Vincent 2008/04/15
 (dynamic creation of services)
  - pas clair la distinction entre forum et forum_sql, user et usr_sql,
  notamment pour l'abstraction des types forum, group, user...
  - uniformize labels (put labels everywhere, and always the same name for the
  same type)
- - Remove parent parameter for all classes
  - Give up with ocamlduce? (for ex pb with empty <select> written <select />
  not displayed correctly by firefox ...)
  - Take care of exception (database ...) more carefully and write error messages
  - Faut tout revoir pour uniformiser. C'est vraiment le bordel.
- - Not really clear where to use objects or functors. Do we need overriding?
+ - Not really clear where to use objects or functors. 
+ Do we need overriding and late binding?
 
 How to make sure that:
  - user information is taken only once, for example role in the wiki, 
- in the forum and only if needed (lazy?). And even if it is after an action.
- - all widgets have a ?classe parameter
- - all database errors are taken into account
+ in the forum and only if needed (lazy?)? And even if it is after an action.
+ - all widgets have a ?classe parameter?
+ - all database errors are taken into account?
+ Wrap all db result in a kind of exception monad?
 
 Wiki:
  - What if two users modify the same page at the same time?

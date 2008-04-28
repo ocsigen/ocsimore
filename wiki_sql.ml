@@ -116,6 +116,75 @@ let populate_wbadmins db wiki_id id admins =
           )
           admins
 
+let remove_readers db wiki_id id readers =
+  match readers with
+    | [] -> Lwt.return ()
+    | _ ->
+(*VVV Can we do this more efficiently? *)
+        Lwt_util.iter_serial
+          (fun reader ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxreaders \
+                             WHERE wiki_id = $wiki_id \
+                             AND id = $id \
+                             AND reader = $reader")
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox readers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
+          )
+          readers
+
+let remove_writers db wiki_id id writers =
+  match writers with
+    | [] -> Lwt.return ()
+    | _ ->
+(*VVV Can we do this more efficiently? *)
+        Lwt_util.iter_serial
+          (fun writer ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxwriters \
+                             WHERE wiki_id = $wiki_id \
+                             AND id = $id \
+                             AND writer = $writer")
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox writers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
+          )
+          writers
+
+let remove_wbadmins db wiki_id id admins =
+  match admins with
+    | [] -> Lwt.return ()
+    | _ ->
+(*VVV Can we do this more efficiently? *)
+        Lwt_util.iter_serial
+          (fun admin ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxadmins \
+                             WHERE wiki_id = $wiki_id \
+                             AND id = $id \
+                             AND wbadmin = $admin")
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox admins: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
+          )
+          admins
+
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox ~wiki ~author ~comment ~content ?rights () = 
   Lwt_pool.use Sql.pool (fun db ->
@@ -259,6 +328,21 @@ let populate_writers wiki_id id writers =
 let populate_wbadmins wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
   populate_wbadmins db wiki_id id wbadmins >>= fun () ->
+  commit db)
+
+let remove_readers wiki_id id readers =
+  Lwt_pool.use Sql.pool (fun db ->
+  remove_readers db wiki_id id readers >>= fun () ->
+  commit db)
+
+let remove_writers wiki_id id writers =
+  Lwt_pool.use Sql.pool (fun db ->
+  remove_writers db wiki_id id writers >>= fun () ->
+  commit db)
+
+let remove_wbadmins wiki_id id wbadmins =
+  Lwt_pool.use Sql.pool (fun db ->
+  remove_wbadmins db wiki_id id wbadmins >>= fun () ->
   commit db)
 
 (*

@@ -201,27 +201,27 @@ let save_wikibox ~sp ~sd (((wiki_id, box_id), content),
               let r = Ocsigen_lib.split ' ' s in
               let a = List.map (fun x -> Users.get_group x) r in
               Wiki_sql.populate_wbadmins wiki_id box_id a)
-(*          >>= fun () ->
-        (match addr with
+          >>= fun () ->
+        (match delr with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
               let readers = List.map (fun x -> Users.get_group x) r in
-              Wiki_sql.populate_readers wiki_id box_id readers)
+              Wiki_sql.remove_readers wiki_id box_id readers)
           >>= fun () ->
-        (match addw with
+        (match delw with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
               let w = List.map (fun x -> Users.get_group x) r in
-              Wiki_sql.populate_writers wiki_id box_id w)
+              Wiki_sql.remove_writers wiki_id box_id w)
           >>= fun () ->
-        (match addr with
+        (match dela with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
               let a = List.map (fun x -> Users.get_group x) r in
-              Wiki_sql.populate_wbadmins wiki_id box_id a)
-          >>= fun () -> *)
+              Wiki_sql.remove_wbadmins wiki_id box_id a)
     | _ -> Lwt.return ()) >>= fun () ->
   Lwt.return r
+

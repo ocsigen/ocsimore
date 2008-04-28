@@ -66,6 +66,13 @@ val populate_writers :
 val populate_wbadmins : 
   int32 -> int32 -> int32 list -> unit Lwt.t
 
+val remove_readers : 
+  int32 -> int32 -> int32 list -> unit Lwt.t
+val remove_writers : 
+  int32 -> int32 -> int32 list -> unit Lwt.t
+val remove_wbadmins : 
+  int32 -> int32 -> int32 list -> unit Lwt.t
+
 
 (*
 (** inserts a new wikipage in an existing wiki; returns [None] if
