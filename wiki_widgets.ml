@@ -24,6 +24,7 @@
 
 
 let (>>=) = Lwt.bind
+let ( ** ) = Eliom_parameters.prod
 
 type wiki_data = {
   wiki_id: Wiki_sql.wiki;
@@ -53,10 +54,10 @@ let retrieve_wikibox_data (wiki_id, wikibox_id) =
                    comment = com })
 
 
-class wikibox ~(parent: Session_manager.sessionmanager) =
+class wikibox =
 object (self)
   inherit [(Wiki_sql.wiki * int32), wiki_data option] 
-    Widget.parametrized_div_widget parent
+    Widget.parametrized_div_widget
 
   val xhtml_class = "wikibox"
     
@@ -87,169 +88,207 @@ end;;
   
 
 
-class editable_wikibox ~(parent: Session_manager.sessionmanager) () =
-object (self)
+class editable_wikibox () =
+  (* The registration must be done during site loading, nor before! *)
+  
+  let action_edit_wikibox =
+    Eliom_predefmod.Actions.register_new_service' 
+      ~name:"wiki_edit"
+      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+                     (Eliom_parameters.int32 "boxid"))
+      (fun sp g () -> Lwt.return [Wiki.Editbox g])
+  in
+    
+  let action_cancel =
+    Eliom_predefmod.Actions.register_new_post_service' 
+      ~name:"cancel"
+      ~post_params:Eliom_parameters.unit
+      (fun sp () () -> Lwt.return [])
+  in
 
+  let action_send_wikibox =
+    Eliom_predefmod.Actions.register_new_post_service' 
+      ~name:"wiki_send"
+      ~post_params:
+      ((((Eliom_parameters.int32 "wikiid") ** 
+           (Eliom_parameters.int32 "boxid")) ** 
+          Eliom_parameters.string "content") **
+         (Eliom_parameters.opt (Eliom_parameters.string "addreaders") **
+            Eliom_parameters.opt (Eliom_parameters.string "addwriters") **
+            Eliom_parameters.opt (Eliom_parameters.string "addadmin") **
+            Eliom_parameters.opt (Eliom_parameters.string "delreaders") **
+            Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
+            Eliom_parameters.opt (Eliom_parameters.string "deladmin")
+         ))
+      (fun sp () p -> 
+         Eliom_sessions.get_persistent_session_data Users.user_table sp ()
+           >>= fun sd -> 
+         Wiki.save_wikibox sp sd p)
+  in
+(*  fun <other parameters if any> -> *)
+
+object (self)
+  
   inherit
     [Wiki_sql.wiki * int32, 
-     wiki_data option * Wiki_sql.role,
-     ?rows:int -> 
-      ?cols:int -> 
-      ?classe:string list -> 
-      unit -> Xhtmltypes_duce._div Lwt.t] 
-      Widget.parametrized_widget parent
+      wiki_data option * Wiki_sql.role,
+      ?rows:int -> 
+       ?cols:int -> 
+       ?classe:string list -> 
+       unit -> Xhtmltypes_duce._div Lwt.t] 
+       Widget.parametrized_widget
 
-  val ne_xhtml_class = "wikibox"
-  val edit_xhtml_class = "wikibox editform"
-  val xhtml_class = "wikibox editable"
-  val edit_link_class = "editlink"
+   val ne_xhtml_class = "wikibox"
+   val edit_xhtml_class = "wikibox editform"
+   val xhtml_class = "wikibox editable"
+   val edit_link_class = "editlink"
 
-  method private retrieve_data ~sd ((wiki_id, message_id) as a) =
-    Wiki.get_role sd wiki_id message_id >>= fun role -> 
-    retrieve_wikibox_data a >>= fun d ->
-    Lwt.return (d, role)
+   method private retrieve_data ~sd ((wiki_id, message_id) as a) =
+     Wiki.get_role sd wiki_id message_id >>= fun role -> 
+     retrieve_wikibox_data a >>= fun d ->
+     Lwt.return (d, role)
 
-  method apply ~sp ~sd 
-    ~data:((wiki_id, message_id) as d) ?(rows=40) ?(cols=30) ?(classe=[]) () =
-    self#retrieve_data sd d >>= fun (data, role) -> 
-    let classe = List.fold_left (fun s e -> s^" "^e) "" classe in
-    let content = match data with
-      | Some data -> data.content 
-      | None -> ""
-    in
-    let draw_form r
-        (((wikiidname, boxidname), contentname),
-         (addrn, (addwn, (addan, (delrn, (delwn, delan)))))) =
-      let f =
-        {{ [
-             {: Eliom_duce.Xhtml.int32_input
-                ~input_type:{: "hidden" :} 
-                ~name:wikiidname
-                ~value:wiki_id () :}
-               {: Eliom_duce.Xhtml.int32_input
-                  ~input_type:{: "hidden" :} 
-                  ~name:boxidname
-                  ~value:message_id () :}
-               {: Eliom_duce.Xhtml.textarea
-                  ~name:contentname
-                  ~rows
-                  ~cols
-                  ~value:{{ {: content :} }} () :}
-             <br>[]
-           ]
-         }}
-      in
-      match r with
-        | Some (r, w, a) ->
-              {{ [<p>[!f 
-                    'Users who can read this wiki box: ' 
-                    !{: r :}
-                    <br>[]
-                      'Add readers: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:addrn
-                         () :}
-                    <br>[]
-                      'Remove readers: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:delrn
-                         () :}
-                      <br>[]
-                      'Users who can modify this wiki box: ' 
-                      !{: w :}
-                    <br>[]
-                      'Add writers: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:addwn
-                         () :}
-                    <br>[]
-                      'Remove writers: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:delwn
-                         () :}
-                    <br>[]
-                      'Users who can administrate this wiki box: ' 
-                      !{: a :}
-                    <br>[]
-                      'Add readers: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:addan
-                         () :}
-                    <br>[]
-                      'Remove readers: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:delan
-                         () :}
-                    <br>[]
+   method apply ~sp ~sd 
+     ~data:((wiki_id, message_id) as d) ?(rows=40) ?(cols=30) ?(classe=[]) () =
+     self#retrieve_data sd d >>= fun (data, role) -> 
+     let classe = List.fold_left (fun s e -> s^" "^e) "" classe in
+     let content = match data with
+       | Some data -> data.content 
+       | None -> ""
+     in
+     let draw_form r
+         (((wikiidname, boxidname), contentname),
+          (addrn, (addwn, (addan, (delrn, (delwn, delan)))))) =
+       let f =
+         {{ [
+              {: Eliom_duce.Xhtml.int32_input
+                 ~input_type:{: "hidden" :} 
+                 ~name:wikiidname
+                 ~value:wiki_id () :}
+                {: Eliom_duce.Xhtml.int32_input
+                   ~input_type:{: "hidden" :} 
+                   ~name:boxidname
+                   ~value:message_id () :}
+                {: Eliom_duce.Xhtml.textarea
+                   ~name:contentname
+                   ~rows
+                   ~cols
+                   ~value:{{ {: content :} }} () :}
+              <br>[]
+            ]
+          }}
+       in
+       match r with
+         | Some (r, w, a) ->
+               {{ [<p>[!f 
+                     'Users who can read this wiki box: ' 
+                     !{: r :}
+                     <br>[]
+                       'Add readers: '
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "text" :}
+                          ~name:addrn
+                          () :}
+                     <br>[]
+                       'Remove readers: '
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "text" :}
+                          ~name:delrn
+                          () :}
+                       <br>[]
+                       'Users who can modify this wiki box: ' 
+                       !{: w :}
+                     <br>[]
+                       'Add writers: '
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "text" :}
+                          ~name:addwn
+                          () :}
+                     <br>[]
+                       'Remove writers: '
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "text" :}
+                          ~name:delwn
+                          () :}
+                     <br>[]
+                       'Users who can administrate this wiki box: ' 
+                       !{: a :}
+                     <br>[]
+                       'Add readers: '
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "text" :}
+                          ~name:addan
+                          () :}
+                     <br>[]
+                       'Remove readers: '
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "text" :}
+                          ~name:delan
+                          () :}
+                     <br>[]
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "submit" :} 
+                          ~value:"Submit" () :}
+                     ]
+                  ]
+                }}
+         | _ -> {{ [<p>[!f
                       {: Eliom_duce.Xhtml.string_input
                          ~input_type:{: "submit" :} 
                          ~value:"Submit" () :}
+                   ]] }}
+     in
+     let draw_form2 () =
+       {{ [<p>[ {: Eliom_duce.Xhtml.string_input
+                   ~input_type:{: "submit" :} 
+                   ~value:"Cancel" () :} ] ] }}
+     in
+     match role with
+       | Wiki_sql.Admin _
+       | Wiki_sql.Author _ ->
+           if Wiki.edit_in_progress ~sp d
+           then
+             (match role with
+               | Wiki_sql.Admin _ ->
+                   Wiki_sql.get_readers wiki_id message_id >>= fun readers ->
+                   Wiki_sql.get_writers wiki_id message_id >>= fun writers ->
+                   Wiki_sql.get_admins wiki_id message_id >>= fun admins ->
+                   Lwt.return
+                     (Some
+                        ((List.fold_left 
+                            (fun s r -> s^" "^Users.get_group_name r)
+                            ""
+                            readers),
+                         (List.fold_left 
+                            (fun s r -> s^" "^Users.get_group_name r)
+                            ""
+                            writers),
+                         (List.fold_left 
+                            (fun s r -> s^" "^Users.get_group_name r)
+                            ""
+                            admins)))
+               | _ -> Lwt.return None) >>= fun res ->
+             Lwt.return
+               {{ <div class={: edit_xhtml_class ^ classe :}>
+                    [ {:
+                         Eliom_duce.Xhtml.post_form
+                         action_send_wikibox
+                         sp (draw_form res) ()
+                         :}
+                        {:
+                         Eliom_duce.Xhtml.post_form
+                         action_cancel
+                         sp draw_form2 ()
+                         :}
                     ]
-                 ]
-               }}
-        | _ -> {{ [<p>[!f
-                     {: Eliom_duce.Xhtml.string_input
-                        ~input_type:{: "submit" :} 
-                        ~value:"Submit" () :}
-                  ]] }}
-    in
-    let draw_form2 () =
-      {{ [<p>[ {: Eliom_duce.Xhtml.string_input
-                  ~input_type:{: "submit" :} 
-                  ~value:"Cancel" () :} ] ] }}
-    in
-    match role with
-      | Wiki_sql.Admin _
-      | Wiki_sql.Author _ ->
-          if Wiki.edit_in_progress ~sp d
-          then
-            (match role with
-              | Wiki_sql.Admin _ ->
-                  Wiki_sql.get_readers wiki_id message_id >>= fun readers ->
-                  Wiki_sql.get_writers wiki_id message_id >>= fun writers ->
-                  Wiki_sql.get_admins wiki_id message_id >>= fun admins ->
-                  Lwt.return
-                    (Some
-                       ((List.fold_left 
-                           (fun s r -> s^" "^Users.get_group_name r)
-                           ""
-                           readers),
-                        (List.fold_left 
-                           (fun s r -> s^" "^Users.get_group_name r)
-                           ""
-                           writers),
-                        (List.fold_left 
-                           (fun s r -> s^" "^Users.get_group_name r)
-                           ""
-                           admins)))
-              | _ -> Lwt.return None) >>= fun res ->
-            Lwt.return
-              {{ <div class={: edit_xhtml_class ^ classe :}>
-                   [ {:
-                        Eliom_duce.Xhtml.post_form
-                        parent#action_send_wikibox
-                        sp (draw_form res) ()
-                        :}
-                       {:
-                        Eliom_duce.Xhtml.post_form
-                        parent#action_cancel
-                        sp draw_form2 ()
-                        :}
-                   ]
-               }}
-          else
-            let exns = Eliom_sessions.get_exn sp in
-            let c = 
-              {{ [<p class={: edit_link_class :}>
+                }}
+           else
+             let exns = Eliom_sessions.get_exn sp in
+             let c = 
+               {{ [<p class={: edit_link_class :}>
                      [ {: Eliom_duce.Xhtml.a 
                           ~a:{{ { class={: edit_link_class :} } }}
-                          ~service:parent#action_edit_wikibox
+                          ~service:action_edit_wikibox
                           ~sp {{ "edit" }} d :}]
                      !{: content :} ] }}
             in

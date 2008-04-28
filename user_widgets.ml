@@ -1,9 +1,9 @@
 let (>>=) = Lwt.bind
 
 
-class login_widget ~(parent: Session_manager.sessionmanager) =
+class login_widget ~(sessman: Session_manager.sessionmanager) =
 object (self)
-  inherit [unit] Widget.parametrized_unit_div_widget parent
+  inherit [unit] Widget.parametrized_unit_div_widget
     
   val xhtml_class = "logbox"
 
@@ -18,12 +18,12 @@ object (self)
                   <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                                ~input_type:{:"submit":} ~value:"Login" () :}]]
                   <tr>[<td colspan="2">[
-                          {: Eliom_duce.Xhtml.a parent#srv_register
+                          {: Eliom_duce.Xhtml.a sessman#srv_register
                              sp {{ "New user? Register now!" }} () :}]]] @
                   {: if error then
                      {{ [<tr>[<td colspan="2">"Wrong login or password"]
                           <tr>[<td colspan="2">[
-                                  {: Eliom_duce.Xhtml.a parent#srv_reminder sp
+                                  {: Eliom_duce.Xhtml.a sessman#srv_reminder sp
                                      {{ "Forgot your password?" }} () :}]]] }}
                    else
                      {{ [] }} :})] }}
@@ -34,7 +34,7 @@ object (self)
              <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
              <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                           ~input_type:{:"submit":} ~value:"logout" () :}]]
-             <tr>[<td>[{: Eliom_duce.Xhtml.a parent#srv_edit
+             <tr>[<td>[{: Eliom_duce.Xhtml.a sessman#srv_edit
                           sp {{ "Manage your account" }} () :}]]
            ]] }}
         
@@ -46,7 +46,7 @@ object (self)
                       | Eliom_sessions.Data user ->
                           Eliom_duce.Xhtml.post_form
                             ~a:{{ { class="logbox logged"} }} 
-                            ~service:parent#act_logout ~sp
+                            ~service:sessman#act_logout ~sp
                             (fun _ -> self#logout_box sp sd user) ()
                       | _ ->  let exn = Eliom_sessions.get_exn sp in
                           if List.mem Users.BadPassword exn || 
@@ -54,13 +54,13 @@ object (self)
                           then (* unsuccessful attempt *)
                             Eliom_duce.Xhtml.post_form
                               ~a:{{ {class="logbox error"} }}
-                              ~service:parent#act_login ~sp:sp 
+                              ~service:sessman#act_login ~sp:sp 
                               (fun (usr, pwd) ->
                                  (self#login_box sp true usr pwd)) ()
                           else (* no login attempt yet *)
                             Eliom_duce.Xhtml.post_form
                               ~a:{{ {class="logbox notlogged"} }}
-                              ~service:parent#act_login ~sp:sp
+                              ~service:sessman#act_login ~sp:sp
                               (fun (usr, pwd) ->
                                  (self#login_box sp false usr pwd)) () 
                               :}] 

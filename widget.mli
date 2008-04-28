@@ -30,13 +30,12 @@ This module contains general-use widgets for Ocsimore.
 @author Vincent Balat
 *)
 
-class widget : parent:sessionmanager ->
+class widget :
 object
   method name: string
 end;;
 
-class virtual ['param_type, 'data_type, 'result_type] parametrized_widget
-  : parent:sessionmanager ->
+class virtual ['param_type, 'data_type, 'result_type] parametrized_widget : 
 object
   inherit widget
 
@@ -70,8 +69,7 @@ object
 end
 
 
-class virtual ['param_type, 'data_type] parametrized_div_widget
-  : parent:sessionmanager ->
+class virtual ['param_type, 'data_type] parametrized_div_widget :
 object
   inherit ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget
 end
@@ -79,8 +77,7 @@ end
 class type ['param_type, 'data_type] parametrized_div_widget_t =
           ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
 
-class virtual ['param_type, 'result_type] parametrized_unit_widget
-  : parent:sessionmanager ->
+class virtual ['param_type, 'result_type] parametrized_unit_widget : 
 object
   inherit ['param_type, unit, 'result_type] parametrized_widget
   method private retrieve_data :
@@ -91,8 +88,7 @@ end
 class type ['param_type, 'result_type] parametrized_unit_widget_t =
           ['param_type, unit, 'result_type] parametrized_widget_t
 
-class virtual ['param_type] parametrized_unit_div_widget
-  : parent:sessionmanager ->
+class virtual ['param_type] parametrized_unit_div_widget : 
 object
   inherit ['param_type, unit] parametrized_div_widget
   inherit ['param_type, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
@@ -106,7 +102,7 @@ class type ['param_type] parametrized_unit_div_widget_t =
 
 
 (** The base parametrized_widget list class *)
-class ['child_type] list_widget : parent:sessionmanager ->
+class ['child_type] list_widget : 
 object
   inherit widget
     

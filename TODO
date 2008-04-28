@@ -15,7 +15,13 @@ TODO
  not displayed correctly by firefox ...)
  - Take care of exception (database ...) more carefully and write error messages
  - Faut tout revoir pour uniformiser. C'est vraiment le bordel.
+ - Not really clear where to use objects or functors. Do we need overriding?
 
+How to make sure that:
+ - user information is taken only once, for example role in the wiki, 
+ in the forum and only if needed (lazy?). And even if it is after an action.
+ - all widgets have a ?classe parameter
+ - all database errors are taken into account
 
 Wiki:
  - What if two users modify the same page at the same time?
@@ -23,6 +29,9 @@ Wiki:
 Users:
  - encryption of password for the db
  - using PAM or LDAP for authentication
+
+User widgets:
+ - clean everything
 
 Session manager:
  - clean everything
@@ -39,3 +48,6 @@ Wikisyntax:
  - extensible?
  - AST interpreter must be configurable (for ex if we want to forbid images in
  forum messages, or some kind of boxes (wikibox in forum message...))
+
+Forum:
+ - clean everything

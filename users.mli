@@ -89,6 +89,8 @@ val create_group : name:string -> group Lwt.t
 
 
 (****)
+val user_table : userdata Eliom_sessions.persistent_table
+
 val get_user_data : sd:userdata Eliom_sessions.session_data -> userdata
 
 val get_user_id : sd:userdata Eliom_sessions.session_data -> int32

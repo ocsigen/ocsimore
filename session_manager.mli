@@ -3,7 +3,6 @@ open Eliom_parameters
 open Eliom_services
 open Eliom_sessions 
 open Eliom_duce.Xhtml
-val user_table : Users.userdata persistent_table
 
 type sessionmanager_in = 
 {
@@ -67,46 +66,6 @@ object
      unit,
      [`Registrable ]) service
     
-  method action_edit_wikibox :
-    (int32 * int32, 
-     unit,
-     get_service_kind,
-     [ `WithoutSuffix ], 
-     [ `One of int32 ] Eliom_parameters.param_name *
-     [ `One of int32 ] Eliom_parameters.param_name,
-     unit, 
-     [ `Registrable ])
-    Eliom_services.service
-
-  method action_cancel :
-    (unit, unit, post_service_kind,
-     [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-    Eliom_services.service
-
-  method action_send_wikibox :
-    (unit,
-     ((int32 * int32) * string) *
-       (string option *
-          (string option *
-             (string option * 
-                (string option * 
-                   (string option * 
-                      string option))))),
-     post_service_kind,
-     [ `WithoutSuffix ], 
-     unit,
-     (([ `One of int32 ] Eliom_parameters.param_name *
-        [ `One of int32 ] Eliom_parameters.param_name) *
-        [ `One of string ] Eliom_parameters.param_name) *
-       ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name)))))),
-     [ `Registrable ])
-    Eliom_services.service 
-
   method container: sp:server_params -> sd:Users.userdata session_data ->
     contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
 
@@ -115,8 +74,7 @@ object
 
   method add_logout_actions: 
       (server_params -> unit Lwt.t) -> unit
-	method lwtinit: unit Lwt.t
-	method register: unit Lwt.t
+
 end;;
 
 val connect:

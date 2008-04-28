@@ -23,7 +23,7 @@
 *)
 
 (** A widget for the login/logout box *)
-class login_widget: parent:Session_manager.sessionmanager ->
+class login_widget: sessman:Session_manager.sessionmanager ->
 object
   inherit [unit, unit, Xhtmltypes_duce._div Lwt.t] Widget.parametrized_widget
 

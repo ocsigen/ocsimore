@@ -7,8 +7,6 @@ open Eliom_duce.Xhtml
 open Lwt
 open Users
 
-let user_table: Users.userdata persistent_table = 
-  create_persistent_table "ocsimore_user_table_v1"
 
 type sessionmanager_in = 
 {
@@ -29,13 +27,13 @@ let valid_username usr =
     
 let valid_emailaddr email =
   Str.string_match 
-    (Str.regexp ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
+    (Str.regexp
+       ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
     email 0
       
 
 
 class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
-
   let internal_act_login = 
     new_post_coservice' ~post_params:(string "usr" ** string "pwd") () 
   and internal_act_logout = new_post_coservice' ~post_params:unit ()
@@ -60,122 +58,67 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
       ~fallback:internal_srv_register
       ~post_params:(string "pwd" ** 
                       (string "pwd2" ** (string "descr" ** string "email"))) () 
-      (* and srv_create_service = new_service ~path:(sessionmanagerinfo.url @ ["create_service"]) ~get_params:unit () in
-         let srv_create_service_done = new_post_coservice ~fallback:srv_create_service ~post_params:(string "url") () in
-         let srv_modify_service = new_service ~path:(sessionmanagerinfo.url @ ["modify_service"]) ~get_params:(string "url") () in
-         let srv_modify_service_done = new_post_coservice ~fallback:srv_modify_service ~post_params:unit () in
-         let srv_list_services = new_service ~path:(sessionmanagerinfo.url @ ["list_services"]) ~get_params:unit () *)
   in
-    
   let act_add_parameter = 
     new_post_coservice'
       ~post_params:(string "service_name" ** string "param_name") () 
   in
   let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
-
-
-(* Wiki: *)
-(*VVV Where to put this? *)
-(* The registration must be done during site loading, nor before! *)
-
-  let action_edit_wikibox =
-    Eliom_predefmod.Actions.register_new_service' 
-      ~name:"wiki_edit"
-      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
-                     (Eliom_parameters.int32 "boxid"))
-      (fun sp g () -> Lwt.return [Wiki.Editbox g])
-  in
-
-  let action_cancel =
-    Eliom_predefmod.Actions.register_new_post_service' 
-      ~name:"cancel"
-      ~post_params:unit
-      (fun sp () () -> Lwt.return [])
-  in
-
-  let action_send_wikibox =
-    Eliom_predefmod.Actions.register_new_post_service' 
-      ~name:"wiki_send"
-      ~post_params:
-      ((((Eliom_parameters.int32 "wikiid") ** 
-           (Eliom_parameters.int32 "boxid")) ** 
-          Eliom_parameters.string "content") **
-         (Eliom_parameters.opt (Eliom_parameters.string "addreaders") **
-            Eliom_parameters.opt (Eliom_parameters.string "addwriters") **
-            Eliom_parameters.opt (Eliom_parameters.string "addadmin") **
-            Eliom_parameters.opt (Eliom_parameters.string "delreaders") **
-            Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
-            Eliom_parameters.opt (Eliom_parameters.string "deladmin")
-         ))
-      (fun sp () p -> 
-         Eliom_sessions.get_persistent_session_data user_table sp ()
-           >>= fun sd -> 
-         Wiki.save_wikibox sp sd p)
-  in
-
     
 object (self)
   
   val widget_types = Hashtbl.create 1
     
-  method act_login: 
+  method act_login : 
     (unit, string * string,
      [`Nonattached of [`Post] Eliom_services.na_s],
      [`WithoutSuffix], unit, 
      [`One of string] Eliom_parameters.param_name * 
        [`One of string] Eliom_parameters.param_name,
-     [`Registrable]) Eliom_services.service =
-    internal_act_login
-  method srv_register: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_register
-  method srv_reminder: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_reminder
-  method srv_edit: (unit, unit, get_service_kind, [`WithoutSuffix], unit, unit, [`Registrable]) service = internal_srv_edit
-    
-  method act_logout: (unit, unit, [`Nonattached of [`Post] Eliom_services.na_s], [`WithoutSuffix], unit, unit, [`Registrable]) service =
-    internal_act_logout
+     [`Registrable]) Eliom_services.service
+    = internal_act_login
 
-
-  method action_edit_wikibox :
-    (int32 * int32, 
-     unit,
-     get_service_kind,
-     [ `WithoutSuffix ], 
-     [ `One of int32 ] Eliom_parameters.param_name *
-     [ `One of int32 ] Eliom_parameters.param_name,
+  method srv_register : 
+    (unit, 
      unit, 
-     [ `Registrable ])
-    Eliom_services.service = action_edit_wikibox
-      
-  method action_cancel :
-    (unit, unit, post_service_kind,
-     [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-    Eliom_services.service
-    = action_cancel
+     get_service_kind, 
+     [`WithoutSuffix], 
+     unit, 
+     unit, 
+     [`Registrable]) service
+    = internal_srv_register
 
-  method action_send_wikibox :
-    (unit,
-     ((int32 * int32) * string) *
-       (string option *
-          (string option *
-             (string option * 
-                (string option * 
-                   (string option * 
-                      string option))))),
-     post_service_kind,
-     [ `WithoutSuffix ], 
-     unit,
-     (([ `One of int32 ] Eliom_parameters.param_name *
-        [ `One of int32 ] Eliom_parameters.param_name) *
-        [ `One of string ] Eliom_parameters.param_name) *
-       ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name *
-          ([ `Opt of string ] Eliom_parameters.param_name)))))),
-     [ `Registrable ])
-    Eliom_services.service 
-    = action_send_wikibox
-      
+  method srv_reminder : 
+    (unit, 
+     unit, 
+     get_service_kind, 
+     [`WithoutSuffix], 
+     unit, 
+     unit, 
+     [`Registrable]) service
+    = internal_srv_reminder
+    
+  method srv_edit : 
+    (unit, 
+     unit, 
+     get_service_kind,
+     [`WithoutSuffix], 
+     unit, 
+     unit, 
+     [`Registrable]) service 
+    = internal_srv_edit
+    
+  method act_logout :
+    (unit, 
+     unit, 
+     [`Nonattached of [`Post] Eliom_services.na_s],
+     [`WithoutSuffix], 
+     unit, 
+     unit, 
+     [`Registrable]) service
+    = internal_act_logout
+
+
   method container
     ~(sp: server_params)
     ~(sd: Users.userdata session_data)
@@ -191,35 +134,36 @@ object (self)
     self#container
       ~sp
       ~sd:No_data
-      ~contents:{{ [<h1>"Registration form"
-                     <p>['Please fill in the following fields.'
-                                         <br>[]
-                                         'You can freely choose your login name: it will be \
-                                         slightly modified automatically if it has already been chosen \
-                                           by another registered user.'
-                                           <br>[]
-                                           'Be very careful to enter a valid e-mail address, \
-                                             as the password for logging in will be sent there.']
-                     {: post_form srv_register_done sp
-                        (fun (usr,(desc,email)) -> 
-                           {{ [<table>[
-                                  <tr>[
-                                    <td>"login name: (letters & digits only)"
-                                    <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
-                                  ]
-                                  <tr>[
-                                    <td>"real name:"
-                                    <td>[{: string_input ~input_type:{:"text":} ~name:desc () :}]
-                                  ]
-                                  <tr>[
-                                    <td>"e-mail address:"
-                                    <td>[{: string_input ~input_type:{:"text":} ~name:email () :}]
-                                  ]
-                                  <tr>[
-                                    <td>[{: string_input ~input_type:{:"submit":} ~value:"Register" () :}]
-                                  ]]] }})
-                        () :}
-                     <p>[<strong>{: err :}]]}} 
+      ~contents:
+      {{ [<h1>"Registration form"
+           <p>['Please fill in the following fields.'
+               <br>[]
+               'You can freely choose your login name: it will be \
+               slightly modified automatically if it has already been chosen \
+                 by another registered user.'
+                 <br>[]
+                 'Be very careful to enter a valid e-mail address, \
+                   as the password for logging in will be sent there.']
+           {: post_form srv_register_done sp
+              (fun (usr,(desc,email)) -> 
+                 {{ [<table>[
+                        <tr>[
+                          <td>"login name: (letters & digits only)"
+                          <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
+                        ]
+                        <tr>[
+                          <td>"real name:"
+                          <td>[{: string_input ~input_type:{:"text":} ~name:desc () :}]
+                        ]
+                        <tr>[
+                          <td>"e-mail address:"
+                          <td>[{: string_input ~input_type:{:"text":} ~name:email () :}]
+                        ]
+                        <tr>[
+                          <td>[{: string_input ~input_type:{:"submit":} ~value:"Register" () :}]
+                        ]]] }})
+              () :}
+           <p>[<strong>{: err :}]]}} 
       
   method private page_register_done = fun sp () (usr, (fullname, email)) ->
     if not (valid_username usr) then 
@@ -240,13 +184,14 @@ object (self)
         self#container
           ~sp
           ~sd:No_data
-          ~contents:{{ [<h1>"Registration ok."
-                         <p>(['You\'ll soon receive an e-mail message at the \
-                                following address:'
-                              <br>[]] @
-                               {: email :} @
-                                [<br>[]
-                                    'reporting your login name and password.'])] }}
+          ~contents:
+          {{ [<h1>"Registration ok."
+               <p>(['You\'ll soon receive an e-mail message at the \
+                      following address:'
+                    <br>[]] @
+                     {: email :} @
+                      [<br>[]
+                          'reporting your login name and password.'])] }}
         
       end
       else 
@@ -263,22 +208,23 @@ object (self)
     self#container
       ~sp
       ~sd:No_data
-      ~contents:{{ [<h1>"Password reminder"
-                     <p>['This service allows you to get an e-mail message \
-                     with your connection password.'
-                         <br>[]
-                         'The message will be sent to the address you \
-                           entered when you registered your account.']
-                     {: post_form srv_reminder_done sp
-                        (fun usr -> 
-                           {{ [<table>[
-                                  <tr>[
-                                    <td>"Enter your login name:"
-                                    <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
-                                    <td>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
-                                  ]]]
-                            }}) ()        :}
-                     <p>[<strong>{: err :}]] }}
+      ~contents:
+      {{ [<h1>"Password reminder"
+           <p>['This service allows you to get an e-mail message \
+           with your connection password.'
+               <br>[]
+               'The message will be sent to the address you \
+                 entered when you registered your account.']
+           {: post_form srv_reminder_done sp
+              (fun usr -> 
+                 {{ [<table>[
+                        <tr>[
+                          <td>"Enter your login name:"
+                          <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
+                          <td>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
+                        ]]]
+                  }}) ()        :}
+           <p>[<strong>{: err :}]] }}
       
   method private page_reminder_done = fun sp () usr ->
     self#page_reminder "Users are being implemented (TODO)" sp () ()
@@ -312,38 +258,53 @@ object (self)
           self#container
             ~sp
               ~sd:No_data
-              ~contents:{{ [<h1>"Your account"
-                             <p>"Change your persional information:"
-                             {: post_form srv_edit_done sp
-                                (fun (pwd,(pwd2,(desc,email))) -> 
-                                   {{ [<table>[
-                                          <tr>[
-                                                <td>"login name: "
-                                                <td>[<strong>{: u.Users.name :}]
-                                        ]
-                                        <tr>[
-                                                <td>"real name: "
-                                                <td>[{: string_input ~input_type:{:"text":} ~value:u.Users.fullname ~name:desc () :}]
-                                        ]
-                                        <tr>[
-                                                <td>"e-mail address: "
-                                                <td>[{: string_input ~input_type:{:"text":} ~value:u.Users.email ~name:email () :}]
-                                        ]
-                                        <tr>[
-                                                <td colspan="2">"Enter a new password twice, or 
+              ~contents:
+            {{ [<h1>"Your account"
+                 <p>"Change your persional information:"
+                 {: post_form srv_edit_done sp
+                    (fun (pwd,(pwd2,(desc,email))) -> 
+                       {{ [<table>[
+                              <tr>[
+                                <td>"login name: "
+                                <td>[<strong>{: u.Users.name :}]
+                              ]
+                              <tr>[
+                                <td>"real name: "
+                                <td>[{: string_input
+                                        ~input_type:{:"text":} 
+                                        ~value:u.Users.fullname
+                                        ~name:desc () :}]
+                              ]
+                              <tr>[
+                                <td>"e-mail address: "
+                                <td>[{: string_input
+                                        ~input_type:{:"text":} 
+                                        ~value:u.Users.email
+                                        ~name:email () :}]
+                              ]
+                              <tr>[
+                                <td colspan="2">"Enter a new password twice, or 
                                                 leave blank for no changes:"
-                                        ]
-                                        <tr>[
-                                                <td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd () :}]
-                                                <td>[{: string_input ~input_type:{:"password":} ~value:"" ~name:pwd2 () :}]
-                                        ]
-                                        <tr>[
-                                                <td>[{: string_input ~input_type:{: "submit" :} ~value:"Confirm" () :}]
-                                        ]
-                                ]]
+                              ]
+                              <tr>[
+                                <td>[{: string_input
+                                        ~input_type:{:"password":} 
+                                        ~value:"" 
+                                        ~name:pwd () :}]
+                                <td>[{: string_input
+                                        ~input_type:{:"password":} 
+                                        ~value:"" 
+                                        ~name:pwd2 () :}]
+                              ]
+                              <tr>[
+                                <td>[{: string_input
+                                        ~input_type:{: "submit" :} 
+                                        ~value:"Confirm" () :}]
+                              ]
+                            ]]
                         }}) () :} 
-                  <p>[<strong>{: err :}]] }}
-
+                 <p>[<strong>{: err :}]] }}
+            
   method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
     get_persistent_session_data user_table sp () >>= fun sess -> 
       match sess with
@@ -356,20 +317,94 @@ object (self)
               (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
                ignore (if pwd = ""
                        then update_user_data ~user ~fullname ~email ()
-                       else update_user_data ~user ~fullname ~email ~pwd:(Some pwd) ());
+                       else update_user_data ~user ~fullname ~email
+                         ~pwd:(Some pwd) ());
                set_persistent_session_data user_table sp user;        
                self#container
                  ~sp
                  ~sd:No_data
                  ~contents:{{ [<h1>"Personal information updated"] }})
                 
-  method private page_not_allowed = fun sp () () ->
-    self#container
-      ~sp
-      ~sd:No_data
-      ~contents:{{ [<h1>"I can\'t do that, Dave."
-                     <p>"In order to manipulate services, you must be an administrator."] }}        
       
+
+  method private add_parameter_handler user = fun sp () (url, param_name) ->
+    (* if in_group user sessionmanagerinfo.administrator then
+       begin
+       Ocsigen_messages.debug2 "[add_parameter_handler] user is an administrator.";
+       add_parameter ~url ~param:{ name=param_name } >>=
+       fun _ -> return []
+       end
+       else *)
+    return [NotAllowed]
+      
+      
+  val mutable all_login_actions = sessionmanagerinfo.login_actions
+  val mutable all_logout_actions = sessionmanagerinfo.logout_actions
+    
+  method private mk_act_login sp () (usr, pwd) =
+    all_logout_actions sp >>= fun () -> 
+    close_session ~sp () >>= fun () -> 
+      Lwt.catch
+        (fun () -> 
+           authenticate ~name:usr ~pwd  >>= fun user -> 
+             set_persistent_session_data user_table sp user >>= fun () -> 
+               all_login_actions sp (Data user) >>= fun () ->
+                 Lwt.return []) 
+        (fun e -> return [e])
+        
+  method add_login_actions f =
+    let old_la = all_login_actions in
+    all_login_actions <- fun sp u -> 
+      old_la sp u >>= (fun () -> f sp u)
+                
+  method private mk_act_logout sp () () = 
+    all_logout_actions sp >>= fun () ->
+    close_session ~sp () >>= fun () -> return []
+      
+  method add_logout_actions f =
+    let old_la = all_logout_actions in
+    all_logout_actions <- fun sp -> 
+    old_la sp >>= fun () -> f sp
+          
+      
+  initializer
+  let _ =
+    Actions.register internal_act_login self#mk_act_login;
+    Actions.register internal_act_logout self#mk_act_logout;
+    Eliom_duce.Xhtml.register internal_srv_register (self#page_register "");
+    Eliom_duce.Xhtml.register srv_register_done self#page_register_done;
+    Eliom_duce.Xhtml.register internal_srv_reminder (self#page_reminder "");
+    Eliom_duce.Xhtml.register srv_reminder_done self#page_reminder_done;
+  in ()
+
+        
+end;;
+
+
+
+
+
+
+let connect sm srv container
+    (fwl: 'get -> 'post -> 
+      (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list) =
+  begin
+    register srv
+      (fun sp get_params post_params ->
+         get_persistent_session_data ~table:user_table ~sp () >>= fun sd -> 
+         Lwt_util.map_serial
+           (fun w -> w ~sp) 
+           (fwl get_params post_params) >>= fun c -> 
+           container ~sp ~sd ~contents:{{ {: c :} }}
+      )
+end
+
+
+      (* and srv_create_service = new_service ~path:(sessionmanagerinfo.url @ ["create_service"]) ~get_params:unit () in
+         let srv_create_service_done = new_post_coservice ~fallback:srv_create_service ~post_params:(string "url") () in
+         let srv_modify_service = new_service ~path:(sessionmanagerinfo.url @ ["modify_service"]) ~get_params:(string "url") () in
+         let srv_modify_service_done = new_post_coservice ~fallback:srv_modify_service ~post_params:unit () in
+         let srv_list_services = new_service ~path:(sessionmanagerinfo.url @ ["list_services"]) ~get_params:unit () *)
   (*        method private page_create_service = fun sp () () ->
         get_persistent_session_data user_table sp () >>=
         fun sess -> 
@@ -481,65 +516,7 @@ object (self)
 
 *)
 
-        method private add_parameter_handler user = fun sp () (url, param_name) ->
-                (* if in_group user sessionmanagerinfo.administrator then
-                begin
-                        Ocsigen_messages.debug2 "[add_parameter_handler] user is an administrator.";
-                        add_parameter ~url ~param:{ name=param_name } >>=
-                        fun _ -> return []
-                end
-                else *)
-                        return [NotAllowed]
-                
 
-        val mutable all_login_actions = sessionmanagerinfo.login_actions
-        val mutable all_logout_actions = sessionmanagerinfo.logout_actions
-          
-        method private mk_act_login sp () (usr, pwd) =
-          all_logout_actions sp >>= fun () -> 
-          close_session ~sp () >>= fun () -> 
-          Lwt.catch
-            (fun () -> 
-               authenticate ~name:usr ~pwd  >>= fun user -> 
-               set_persistent_session_data user_table sp user >>= fun () -> 
-               all_login_actions sp (Data user) >>= fun () ->
-               Lwt.return []) 
-            (fun e -> return [e])
-      
-        method add_login_actions f =
-          let old_la = all_login_actions in
-          all_login_actions <- 
-            fun sp u -> 
-              old_la sp u >>= (fun () -> f sp u)
-                
-        method private mk_act_logout sp () () = 
-          all_logout_actions sp >>= fun () ->
-          close_session ~sp () >>= fun () -> return []
-
-  method add_logout_actions f =
-    let old_la = all_logout_actions in
-    all_logout_actions <- fun sp -> 
-      old_la sp >>= fun () -> f sp
-        
-
-  method lwtinit =
-    return ()
-      
-  method register =
-    begin
-      Ocsigen_messages.debug2 "[sessionManager] registering I";
-      Actions.register internal_act_login self#mk_act_login;
-      Ocsigen_messages.debug2 "[sessionManager] registering II";
-      Actions.register internal_act_logout self#mk_act_logout;
-      Ocsigen_messages.debug2 "[sessionManager] registering III";
-      register internal_srv_register (self#page_register "");
-      Ocsigen_messages.debug2 "[sessionManager] registering IV";
-      register srv_register_done self#page_register_done;
-      Ocsigen_messages.debug2 "[sessionManager] registering V";
-      register internal_srv_reminder (self#page_reminder "");
-      Ocsigen_messages.debug2 "[sessionManager] registering VI";
-      register srv_reminder_done self#page_reminder_done;
-      Ocsigen_messages.debug2 "[sessionManager] registering VII";
       (*                        register srv_list_services self#page_list_services;
                         Ocsigen_messages.debug2 "[sessionManager] registering VIII";
                         register srv_create_service self#page_create_service;
@@ -553,23 +530,3 @@ object (self)
                         (* Services.register_services >>=
                         fun () -> *) Ocsigen_messages.debug2 "[sessionManager] registering done";
 *)
-                                return ()
-                end
-        
-end;;
-
-let connect sm srv container
-    (fwl: 'get -> 'post -> 
-      (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list) =
-  begin
-    register srv
-      (fun sp get_params post_params ->
-         get_persistent_session_data ~table:user_table ~sp () >>= fun sd -> 
-         Lwt_util.map_serial
-           (fun w -> w ~sp) 
-           (fwl get_params post_params) >>= fun c -> 
-           container ~sp ~sd ~contents:{{ {: c :} }}
-      )
-end
-
-

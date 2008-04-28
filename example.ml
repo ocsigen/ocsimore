@@ -31,22 +31,7 @@ end;;
 
 let _ =
   Lwt_unix.run
-    (let example_sminfo = {
-       Session_manager.url = ["users"];
-       default_groups = [];
-       administrator = Users.admin;
-       login_actions = (fun sp sess -> return ());
-       logout_actions = (fun sp -> return ());
-       registration_mail_from = ("EXAMPLE", 
-                                 "webmaster@example.jussieu.fr");
-       registration_mail_subject = ("EXAMPLE")
-     }
-     in
-     let s = new example_sessionmanager example_sminfo in
-     s#lwtinit >>= fun () -> 
-     return (s :> Session_manager.sessionmanager) >>= fun example_sm ->
-
-     (* creating a wiki: *)
+    ((* creating a wiki: *)
      Wiki.create_wiki 
        ~title:"EXAMPLE site wiki" ~descr:""
        ~reader:Users.anonymous_group
@@ -67,19 +52,31 @@ let _ =
               Lwt.return ()))
      >>= fun () ->
 
+     let example_sminfo = {
+       Session_manager.url = ["users"];
+       default_groups = [];
+       administrator = Users.admin;
+       login_actions = (fun sp sess -> return ());
+       logout_actions = (fun sp -> return ());
+       registration_mail_from = ("EXAMPLE", 
+                                 "webmaster@example.jussieu.fr");
+       registration_mail_subject = ("EXAMPLE")
+     }
+     in
+     let example_sm = new example_sessionmanager example_sminfo in
+
      (* widgets creation: *)
-     let login = new User_widgets.login_widget example_sm in
-     let essai = new Wiki_widgets.editable_wikibox ~parent:example_sm () in
+     let myloginbox = new User_widgets.login_widget example_sm in
+     let mywikibox = new Wiki_widgets.editable_wikibox () in
      (* all widgets created *)
 
-     example_sm#register >>= fun () -> 
      register
        srv_main
        (fun sp () () ->
           Eliom_sessions.get_persistent_session_data 
-            Session_manager.user_table sp () >>= fun sd -> 
-          login#apply ~sp ~sd ~data:() >>= fun login_box -> 
-          essai#apply ~sp ~sd ~classe:["mainbox"] 
+            Users.user_table sp () >>= fun sd -> 
+          myloginbox#apply ~sp ~sd ~data:() >>= fun login_box -> 
+          mywikibox#apply ~sp ~sd ~classe:["mainbox"] 
             ~cols:80 ~rows:30 ~data:(wiki.Wiki.id, 1l) ()
             >>= fun essai_wiki_box -> 
           example_sm#container ~sp ~sd

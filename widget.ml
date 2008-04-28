@@ -25,10 +25,9 @@ open Lwt
 open Eliommod
 open Eliom_duce.Xhtml
 open Eliom_sessions
-open Session_manager
 open Ocsimorelib
 
-class widget ~(parent: sessionmanager) =
+class widget =
 object (self)
 
   val xhtml_class = "widget"
@@ -36,10 +35,9 @@ object (self)
   method name = xhtml_class
 end;;
 
-class virtual ['param_type, 'data_type, 'result_type] parametrized_widget 
-  ~(parent: sessionmanager) =
+class virtual ['param_type, 'data_type, 'result_type] parametrized_widget =
 object (self)
-  inherit widget parent
+  inherit widget
     
   val xhtml_class = "parametrized_widget"
     
@@ -66,10 +64,9 @@ object
     data:'param_type -> 'result_type
 end
 
-class virtual ['param_type, 'data_type] parametrized_div_widget 
-  ~(parent: sessionmanager) =
+class virtual ['param_type, 'data_type] parametrized_div_widget =
 object (self)
-  inherit ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget parent
+  inherit ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget
     
   val xhtml_class = "parametrized_div_widget"
 
@@ -78,10 +75,9 @@ end
 class type ['param_type, 'data_type] parametrized_div_widget_t =
           ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
   
-class virtual ['param_type, 'result_type] parametrized_unit_widget 
-  ~(parent: sessionmanager) =
+class virtual ['param_type, 'result_type] parametrized_unit_widget =
 object (self)
-  inherit ['param_type, unit, 'result_type] parametrized_widget parent
+  inherit ['param_type, unit, 'result_type] parametrized_widget
     
   val xhtml_class = "parametrized_unit_widget"
 
@@ -92,11 +88,10 @@ end
 class type ['param_type, 'result_type] parametrized_unit_widget_t =
           ['param_type, unit, 'result_type] parametrized_widget_t
   
-class virtual ['param_type] parametrized_unit_div_widget 
-  ~(parent: sessionmanager) =
+class virtual ['param_type] parametrized_unit_div_widget =
 object (self)
-  inherit ['param_type, unit] parametrized_div_widget parent
-  inherit ['param_type, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget parent
+  inherit ['param_type, unit] parametrized_div_widget
+  inherit ['param_type, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
     
   val xhtml_class = "parametrized_unit_div_widget"
 
@@ -109,9 +104,9 @@ class type ['param_type] parametrized_unit_div_widget_t =
 
 
   
-class ['child_type] list_widget ~(parent: sessionmanager) =
+class ['child_type] list_widget =
 object (self)
-  inherit widget parent
+  inherit widget
     
   val xhtml_class = "list"
     

@@ -325,6 +325,9 @@ let delete_user ~user =
 
 
 (****)
+let user_table: userdata Eliom_sessions.persistent_table = 
+  Eliom_sessions.create_persistent_table "ocsimore_user_table_v1"
+
 let get_user_data ~sd =
   match sd with
     | Eliom_sessions.Data u -> u

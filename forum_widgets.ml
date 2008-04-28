@@ -18,9 +18,9 @@ type message_data =
   hidden: bool;
 };;
 
-class message_toggle_action ~(parent: sessionmanager) = 
+class message_toggle_action = 
 object (self)
-  inherit [Forum_sql.forum * int32] parametrized_unit_div_widget parent
+  inherit [Forum_sql.forum * int32] parametrized_unit_div_widget
     
   val xhtml_class = "thread_toggle"
     
@@ -31,11 +31,11 @@ object (self)
                   ] }}
 end
 
-class message_list_widget ~(parent: sessionmanager) = 
+class message_list_widget = 
 object (self)
-  inherit [message_data] list_widget parent
+  inherit [message_data] list_widget
   inherit [Forum_sql.forum * int32 * int64 option * int64 option, 
-           message_data list] parametrized_div_widget parent
+           message_data list] parametrized_div_widget
     
   val xhtml_class = "message_list"
     
@@ -78,7 +78,6 @@ object (self)
 end;;
 
 class message_navigation_widget
-  ~(parent: sessionmanager)
   ~(srv_thread:(int32 * (int32 * int64 option), 
                 unit, 
                 get_service_kind,
@@ -89,7 +88,7 @@ class message_navigation_widget
                 [`Registrable]) service) =
 object (self)
   inherit [Forum_sql.forum * int32 * int64 option * int64 option, int64] 
-    parametrized_div_widget parent
+    parametrized_div_widget
     
   val xhtml_class = "message_navigation"
     
@@ -175,7 +174,6 @@ object (self)
 end;;
 
 class message_forest_widget
-  ~(parent: sessionmanager)
   ~(srv_reply_message:(int32 * 
                          (int32 * (int32 option * int32)), 
                        unit,
@@ -200,7 +198,7 @@ class message_forest_widget
 object (self)
   inherit [Forum_sql.forum * int32 * int32 option, 
            message_data Ocsimorelib.tree list * Forum_sql.role] 
-    parametrized_div_widget parent
+    parametrized_div_widget
     
   val xhtml_class = "message_forest"
     
@@ -268,7 +266,6 @@ object (self)
 end;;
 
 class message_form_widget
-  ~(parent: sessionmanager)
   ~(srv_add_message: (int32 * (int32 * int32 option), 
                       string * (int32 option * bool), 
                       post_service_kind,
@@ -282,7 +279,7 @@ class message_form_widget
                       [`Registrable]) service) =
 object (self)
   inherit [Forum_sql.forum * int32 * int32 option * int32 option] 
-    parametrized_unit_div_widget parent
+    parametrized_unit_div_widget
     
   val xhtml_class = "message_form"
     
@@ -319,13 +316,13 @@ object (self)
               ] }}
 end
 
-class message_add_action ~(parent: sessionmanager) = 
+class message_add_action = 
 object (self)
   inherit [Forum_sql.forum * 
              int32 * 
              int32 option * 
              string * 
-             bool] parametrized_unit_div_widget parent
+             bool] parametrized_unit_div_widget
         
   val xhtml_class = "message_add"
     
@@ -340,10 +337,10 @@ object (self)
                 }}
 end
 
-class latest_messages_widget ~(parent: sessionmanager) =
+class latest_messages_widget =
 object (self)
   inherit [int64, (Forum_sql.forum * string * string) list]
-    parametrized_div_widget parent
+    parametrized_div_widget
     
   val xhtml_class = "latest_messages"
     
@@ -379,7 +376,6 @@ type thread_data =
     };;
 
 class thread_widget
-  ~(parent: sessionmanager)
   ~(srv_thread_toggle: (int32 * (int32 * int32 option), 
                         unit, 
                         post_service_kind,
@@ -393,7 +389,7 @@ object (self)
   inherit [Forum_sql.forum * int32,
            ((int32 * string * string * string option * 
                Calendar.t * bool * int64 * int64) * Forum_sql.role)
-          ] parametrized_div_widget parent
+          ] parametrized_div_widget
     
   val xhtml_class = "thread"
     
@@ -436,9 +432,9 @@ object (self)
          ] }}
 end
 
-class thread_toggle_action ~(parent: sessionmanager) = 
+class thread_toggle_action = 
 object (self)
-  inherit [Forum_sql.forum * int32] parametrized_unit_div_widget parent
+  inherit [Forum_sql.forum * int32] parametrized_unit_div_widget
     
   val xhtml_class = "thread_toggle"
     
@@ -450,7 +446,6 @@ object (self)
 end;;
 
 class thread_list_widget
-  ~(parent: sessionmanager)
   ~(srv_thread:(int32 * (int32 * int32 option), 
                 unit, 
                 get_service_kind, 
@@ -461,8 +456,8 @@ class thread_list_widget
                 [`Registrable]) service) =
 object (self)
   inherit [Forum_sql.forum, 
-           thread_data list * Forum_sql.role] parametrized_div_widget parent
-  inherit [thread_data] list_widget parent
+           thread_data list * Forum_sql.role] parametrized_div_widget
+  inherit [thread_data] list_widget
     
   val xhtml_class = "thread_list"
     
@@ -516,7 +511,6 @@ object (self)
 end
 
 class thread_form_widget
-  ~(parent: sessionmanager) 
   ~(srv_add_thread: (int32, 
                      bool * (string * string), 
                      post_service_kind,
@@ -527,7 +521,7 @@ class thread_form_widget
                           [`One of string] param_name), 
                      [`Registrable]) service) =
 object (self)
-  inherit [Forum_sql.forum] parametrized_unit_div_widget parent
+  inherit [Forum_sql.forum] parametrized_unit_div_widget
     
   val xhtml_class = "thread_form"
     
@@ -551,10 +545,10 @@ object (self)
               ] }}
 end;; 
 
-class thread_add_action ~(parent: sessionmanager) =
+class thread_add_action =
 object (self)
         inherit [Forum_sql.forum * bool * string * string] 
-          parametrized_unit_div_widget parent
+          parametrized_unit_div_widget
         
         val xhtml_class = "thread_add"
 
@@ -583,7 +577,6 @@ type forum_data =
     };;
 
 class forums_list_widget
-  ~(parent: sessionmanager)
   ~(srv_forum: (int32,
                 unit, 
                 get_service_kind, 
@@ -593,8 +586,8 @@ class forums_list_widget
                 [`Registrable]) service) =
 object (self)
 
-  inherit [unit, forum_data list] parametrized_div_widget parent
-  inherit [forum_data] list_widget parent
+  inherit [unit, forum_data list] parametrized_div_widget
+  inherit [forum_data] list_widget
 
   val xhtml_class = "forums_list"
 
@@ -634,7 +627,6 @@ object (self)
 end;;
 
 class forum_form_widget
-  ~(parent: sessionmanager)
   ~(srv_add_forum: (unit, string * 
                       (string * (string * (bool * bool))), 
                     post_service_kind, 
@@ -647,7 +639,7 @@ class forum_form_widget
                                [`One of bool] param_name))), 
                     [`Registrable]) service) =
 object (self)
-  inherit [unit] parametrized_unit_div_widget parent
+  inherit [unit] parametrized_unit_div_widget
     
   val xhtml_class = "forum_form"
     
@@ -671,10 +663,10 @@ object (self)
               ] }}
 end
   
-class forum_add_action ~(parent: sessionmanager) =
+class forum_add_action =
 object (self)
         inherit [string * string * string * bool * bool] 
-          parametrized_unit_div_widget parent
+          parametrized_unit_div_widget
         
         val xhtml_class = "forum_add"
 
@@ -691,9 +683,9 @@ end;;
 
 (* 
 
-class message_widget ~(parent: sessionmanager) ~(srv_message_toggle: unit) =
+class message_widget ~(srv_message_toggle: unit) =
 object (self)
-  inherit [Forum_sql.forum * int] parametrized_div_widget parent
+  inherit [Forum_sql.forum * int] parametrized_div_widget
     
   val xhtml_class = "message"
   val mutable subject = ""
