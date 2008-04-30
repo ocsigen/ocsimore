@@ -32,7 +32,6 @@ This module contains general-use widgets for Ocsimore.
 
 class widget :
 object
-  method name: string
 end;;
 
 class virtual ['param_type, 'data_type, 'result_type] parametrized_widget : 
@@ -47,12 +46,13 @@ object
      overridden in order to use another type of storage.
   *)
   method virtual private retrieve_data :
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
     'param_type -> 'data_type Lwt.t
     
-  method virtual apply: 
+  method virtual apply : 
     sp:server_params -> 
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sd:Ocsimore_common.session_data ->
     data:'param_type -> 'result_type
 end
 
@@ -60,11 +60,12 @@ class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
 object
   inherit widget
   method private retrieve_data :
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
     'param_type -> 'data_type Lwt.t
   method apply: 
     sp:server_params ->
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sd:Ocsimore_common.session_data ->
     data:'param_type -> 'result_type
 end
 
@@ -81,7 +82,8 @@ class virtual ['param_type, 'result_type] parametrized_unit_widget :
 object
   inherit ['param_type, unit, 'result_type] parametrized_widget
   method private retrieve_data :
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
     'a -> unit Lwt.t
 end
 
@@ -93,7 +95,8 @@ object
   inherit ['param_type, unit] parametrized_div_widget
   inherit ['param_type, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
   method private retrieve_data :
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
     'a -> unit Lwt.t
 end
 

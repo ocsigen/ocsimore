@@ -89,13 +89,24 @@ val create_group : name:string -> group Lwt.t
 
 
 (****)
-val user_table : userdata Eliom_sessions.persistent_table
+val get_user_data : 
+  sp:Eliom_sessions.server_params -> 
+  sd:Ocsimore_common.session_data -> userdata Lwt.t
 
-val get_user_data : sd:userdata Eliom_sessions.session_data -> userdata
+val get_user_id : 
+  sp:Eliom_sessions.server_params -> 
+  sd:Ocsimore_common.session_data -> int32 Lwt.t
 
-val get_user_id : sd:userdata Eliom_sessions.session_data -> int32
+val get_user_name : 
+  sp:Eliom_sessions.server_params -> 
+  sd:Ocsimore_common.session_data -> string Lwt.t
 
-val get_user_name : sd:userdata Eliom_sessions.session_data -> string
+val is_logged_on : 
+  sp:Eliom_sessions.server_params -> 
+  sd:Ocsimore_common.session_data -> bool Lwt.t
 
-val is_logged_on : sd:userdata Eliom_sessions.session_data -> bool
+val set_session_data : 
+  sp:Eliom_sessions.server_params -> 
+  sd:Ocsimore_common.session_data -> userdata -> unit Lwt.t
 
+val anonymous_sd : Ocsimore_common.session_data

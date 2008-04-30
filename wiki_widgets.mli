@@ -31,15 +31,100 @@ type wiki_data = {
   datetime: CalendarLib.Calendar.t;
 }
 
-class wikibox :
-  [Wiki_sql.wiki * int32, wiki_data option] Widget.parametrized_div_widget_t
+
+
+class noneditable_wikibox :
+  object
+
+    method private display_error_box : string -> Xhtmltypes_duce.p
+
+    method noneditable_wikibox :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      data:Wiki_sql.wiki * int32 ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method private retrieve_data : Wiki_sql.wiki * int32 -> string Lwt.t
+
+  end
 
 class editable_wikibox :
   unit ->
-  [Wiki_sql.wiki * int32, 
-   wiki_data option * Wiki_sql.role,
-   ?rows:int -> ?cols:int -> 
-    ?classe:string list -> 
-    unit -> Xhtmltypes_duce._div Lwt.t] 
-    Widget.parametrized_widget_t
+  object
 
+    method display_edit_box :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      ?rows:int ->
+      ?cols:int ->
+      classe:string ->
+      Wiki_sql.wiki * int32 ->
+      string ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method display_editable_box :
+      sp:Eliom_sessions.server_params ->
+      ?error:Wiki.wiki_errors ->
+      classe:string ->
+      Wiki_sql.wiki * int32 ->
+      string ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method private display_error_box :
+      string -> Xhtmltypes_duce.p
+
+    method private display_error_message :
+      Wiki.wiki_errors option -> {{ [Xhtmltypes_duce.p*] }}
+
+    method display_history :
+      sp:Eliom_sessions.server_params ->
+      Wiki_sql.wiki * int32 ->
+      (int32 * string * string * CalendarLib.Calendar.t) list ->
+      Xhtmltypes_duce.inlines Lwt.t
+
+    method display_history_box :
+      sp:Eliom_sessions.server_params ->
+      classe:string ->
+      Wiki_sql.wiki * int32 ->
+      ?first:int ->
+      ?last:int ->
+      (int32 * string * string * CalendarLib.Calendar.t) list ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method display_noneditable_box :
+      ?error:Wiki.wiki_errors ->
+      classe:string ->
+      string ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method display_old_wikibox :
+      sp:Eliom_sessions.server_params ->
+      classe:string ->
+      string ->
+      int32 ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method editable_wikibox :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      data:Wiki_sql.wiki * int32 ->
+      ?rows:int ->
+      ?cols:int ->
+      ?classe:string list ->
+      unit ->
+      Xhtmltypes_duce._div Lwt.t
+
+    method private retrieve_history :
+      sp:Eliom_sessions.server_params ->
+      Wiki_sql.wiki * int32 ->
+      ?first:int ->
+      ?last:int ->
+      unit -> (int32 * string * string * CalendarLib.Calendar.t) list Lwt.t
+
+    method retrieve_old_wikibox_content :
+      sp:Eliom_sessions.server_params ->
+      Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
+
+    method retrieve_wikibox_content : Wiki_sql.wiki * int32 -> string Lwt.t
+
+  end

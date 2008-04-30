@@ -49,3 +49,6 @@ let Node (p, cs) = tree in
 and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
         Lwt_util.map lwt_tree_flatten forest >>=
         fun f -> lwt_flatten f
+
+let build_class_attr ~classe =
+  List.fold_left (fun s e -> s^" "^e) "" classe

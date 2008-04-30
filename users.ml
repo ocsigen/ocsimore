@@ -310,9 +310,10 @@ let authenticate ~name ~pwd =
 
 
 let in_group ~user ~group =
-  group = anonymous_group ||
-  user = admin ||
-  List.mem group user.groups
+  not (user == anonymous) &&
+    (group == anonymous_group ||
+       user == admin ||
+       List.mem group user.groups)
 
 let add_to_group ~user ~group =
   User_sql.add_to_group user.id group >>= fun () ->
@@ -324,25 +325,52 @@ let delete_user ~user =
 
 
 
-(****)
-let user_table: userdata Eliom_sessions.persistent_table = 
+(** {2 Session data} *)
+
+let user_table: userdata option Eliom_sessions.persistent_table = 
   Eliom_sessions.create_persistent_table "ocsimore_user_table_v1"
 
-let get_user_data ~sd =
-  match sd with
-    | Eliom_sessions.Data u -> u
-    | _ -> anonymous
-          
-let get_user_id ~sd =
-  match sd with
-    | Eliom_sessions.Data u -> u.id
-    | _ -> anonymous.id
-        
-let get_user_name ~sd =
-  match sd with
-    | Eliom_sessions.Data u -> u.name
-    | _ -> anonymous.name
-        
-let is_logged_on ~sd = not (sd = Eliom_sessions.No_data)
+type user_sd = 
+    userdata Lwt.t (* Lazy.t not really useful to make it lazy here *)
 
-  
+(** The polytable key for retrieving user data inside session data *)
+let user_key : user_sd Polytables.key = Polytables.make_key ()
+
+let get_user_data ~sp =
+  Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
+  >>= function
+    | Eliom_sessions.Data (Some u) -> Lwt.return u
+    | Eliom_sessions.Data None -> Lwt.return admin
+    | _ -> Lwt.return anonymous
+
+let get_user_sd ~sp ~sd =
+  try
+    Polytables.get ~table:sd ~key:user_key
+  with Not_found -> 
+    let ud = get_user_data ~sp in
+    Polytables.set sd user_key ud;
+    ud
+
+let get_user_data ~sp ~sd = get_user_sd sp sd
+          
+let get_user_id ~sp ~sd = get_user_sd sp sd >>= fun u -> Lwt.return u.id
+        
+let get_user_name ~sp ~sd = get_user_sd sp sd >>= fun u -> Lwt.return u.name
+        
+let is_logged_on ~sp ~sd = 
+  get_user_sd sp sd >>= fun u -> 
+  Lwt.return (not (u == anonymous))
+
+
+let anonymous_sd = 
+  let sd = Polytables.create () in
+  Polytables.set sd user_key (Lwt.return anonymous);
+  sd
+
+let set_session_data ~sp ~sd user =
+  Polytables.set sd user_key (Lwt.return user);
+  if user == admin
+  then
+    Eliom_sessions.set_persistent_session_data user_table sp None
+  else
+    Eliom_sessions.set_persistent_session_data user_table sp (Some user)

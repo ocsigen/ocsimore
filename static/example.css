@@ -1,24 +1,56 @@
 .wikibox{
 }
 
-.editform{
-    border: 1px solid #aaaaaa;
-    padding: 4px;
-}
-
-.editable{
+.editform,
+.editable,
+.history{
     border: 1px solid #eeeeee;
     padding: 0px;
 }
 
-p.editlink{
-    text-align: right;
-    background-color: #eeeeee;
+.editable,
+.editform,
+.history div{
+    margin: 4px;
+}
+
+form.boxbutton{
     margin: 0px;
-    padding: 0px 4px;
+    padding: 0px;
+}
+
+p.boxbutton{
+    text-align: right;
+    margin: 0px;
+    padding: 0px;
     font-size: 80%;
 }
 
-p.editlink a{
-    color: #aaaaaa;
+p.boxbutton a,button{
+    display: inline-block;
+    border: 2px solid #ffffff;
+    background-color: #f1f1f1;
+    color: #999999;
+    margin: 0px;
+    padding: 0px 6px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+p.boxbutton a:hover{
+    background-color: #dddddd;
+    text-decoration: none;
+}
+
+p.boxbutton a:active{
+    background-color: #ffffff;
+    text-decoration: none;
+}
+
+p.boxbutton button:hover{
+    background-color: #dddddd;
+}
+
+p.boxbutton button:active{
+    background-color: #ffffff;
 }

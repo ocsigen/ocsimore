@@ -28,43 +28,45 @@ object (self)
                    else
                      {{ [] }} :})] }}
       
-  method private logout_box ~sp ~sd user =
-    let u = Users.get_user_data sd in
-      {{ [<table>[
-             <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
-             <tr>[<td>[{: Eliom_duce.Xhtml.string_input
-                          ~input_type:{:"submit":} ~value:"logout" () :}]]
-             <tr>[<td>[{: Eliom_duce.Xhtml.a sessman#srv_edit
-                          sp {{ "Manage your account" }} () :}]]
-           ]] }}
+  method private logout_box ~sp u =
+    {{ [<table>[
+           <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
+           <tr>[<td>[{: Eliom_duce.Xhtml.string_input
+                        ~input_type:{:"submit":} ~value:"logout" () :}]]
+           <tr>[<td>[{: Eliom_duce.Xhtml.a sessman#srv_edit
+                        sp {{ "Manage your account" }} () :}]]
+         ]] }}
         
   method apply ~sp ~sd ~data:() =
-    Ocsigen_messages.debug2 "[User_widgets] login#apply";
-    Lwt.return {{ <div class={: xhtml_class :}>
-                [{:
-                    match sd with
-                      | Eliom_sessions.Data user ->
-                          Eliom_duce.Xhtml.post_form
-                            ~a:{{ { class="logbox logged"} }} 
-                            ~service:sessman#act_logout ~sp
-                            (fun _ -> self#logout_box sp sd user) ()
-                      | _ ->  let exn = Eliom_sessions.get_exn sp in
-                          if List.mem Users.BadPassword exn || 
-                            List.mem Users.NoSuchUser exn
-                          then (* unsuccessful attempt *)
-                            Eliom_duce.Xhtml.post_form
-                              ~a:{{ {class="logbox error"} }}
-                              ~service:sessman#act_login ~sp:sp 
-                              (fun (usr, pwd) ->
-                                 (self#login_box sp true usr pwd)) ()
-                          else (* no login attempt yet *)
-                            Eliom_duce.Xhtml.post_form
-                              ~a:{{ {class="logbox notlogged"} }}
-                              ~service:sessman#act_login ~sp:sp
-                              (fun (usr, pwd) ->
-                                 (self#login_box sp false usr pwd)) () 
-                              :}] 
-                }}
-      
+    Users.get_user_data sp sd >>= fun u ->
+    Users.is_logged_on sp sd >>= fun logged ->
+    Lwt.return 
+      {{ <div class={: xhtml_class :}>
+           [{:
+               if logged
+               then
+                 Eliom_duce.Xhtml.post_form
+                   ~a:{{ { class="logbox logged"} }} 
+                   ~service:sessman#act_logout ~sp
+                   (fun _ -> self#logout_box sp u) ()
+               else
+                 let exn = Eliom_sessions.get_exn sp in
+                   if List.mem Users.BadPassword exn || 
+                     List.mem Users.NoSuchUser exn
+                   then (* unsuccessful attempt *)
+                     Eliom_duce.Xhtml.post_form
+                       ~a:{{ {class="logbox error"} }}
+                       ~service:sessman#act_login ~sp:sp 
+                       (fun (usr, pwd) ->
+                          (self#login_box sp true usr pwd)) ()
+                   else (* no login attempt yet *)
+                     Eliom_duce.Xhtml.post_form
+                       ~a:{{ {class="logbox notlogged"} }}
+                       ~service:sessman#act_login ~sp:sp
+                       (fun (usr, pwd) ->
+                          (self#login_box sp false usr pwd)) () 
+                       :}] 
+       }}
+
 end
 

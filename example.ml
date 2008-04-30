@@ -73,10 +73,9 @@ let _ =
      register
        srv_main
        (fun sp () () ->
-          Eliom_sessions.get_persistent_session_data 
-            Users.user_table sp () >>= fun sd -> 
+          let sd = Ocsimore_common.create_sd () in
           myloginbox#apply ~sp ~sd ~data:() >>= fun login_box -> 
-          mywikibox#apply ~sp ~sd ~classe:["mainbox"] 
+          mywikibox#editable_wikibox ~sp ~sd ~classe:["mainbox"] 
             ~cols:80 ~rows:30 ~data:(wiki.Wiki.id, 1l) ()
             >>= fun essai_wiki_box -> 
           example_sm#container ~sp ~sd

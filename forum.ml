@@ -106,17 +106,50 @@ let can_write forum user =
 let can_moderate forum user =
   Users.in_group user forum.moderated_by
 
-let get_role ~sd (forum_id : Forum_sql.forum) =
+let get_role ~sp ~sd (forum_id : Forum_sql.forum) =
   get_forum_by_id forum_id >>= fun f -> 
+  Users.get_user_data sp sd >>= fun u ->
   Lwt.return
-    (match sd with
-       | Data u -> 
-           if can_moderate f u
-           then Forum_sql.Moderator
-           else if can_write f u
-           then Forum_sql.Author u.Users.id
-           else if can_read f u
-           then Forum_sql.Lurker u.Users.name
-           else Forum_sql.Unknown
-       | _ -> Forum_sql.Unknown)
+    (if can_moderate f u
+    then Forum_sql.Moderator
+    else if can_write f u
+    then Forum_sql.Author u.Users.id
+    else if can_read f u
+    then Forum_sql.Lurker u.Users.name
+    else Forum_sql.Unknown)
 
+
+(** {2 Session data} *)
+
+module Roles = Map.Make(struct
+                          type t = Forum_sql.forum
+                          let compare = compare
+                        end)
+
+type forum_sd = Forum_sql.forum -> Forum_sql.role Lwt.t
+
+let default_forum_sd ~sp ~sd =
+  let cache = ref Roles.empty in
+  (* We cache the values to retrieve them only once *)
+  fun k -> 
+    try 
+      Lwt.return (Roles.find k !cache)
+    with Not_found -> 
+      get_role ~sp ~sd k >>= fun v ->
+      cache := Roles.add k v !cache;
+      Lwt.return v
+
+(** The polytable key for retrieving forum data inside session data *)
+let forum_key : forum_sd Polytables.key = Polytables.make_key ()
+
+let get_forum_sd ~sp ~sd =
+  try
+    Polytables.get ~table:sd ~key:forum_key
+  with Not_found -> 
+    let fsd = default_forum_sd ~sp ~sd in
+    Polytables.set sd forum_key fsd;
+    fsd
+
+let get_role ~sp ~sd k =
+  let forum_sd = get_forum_sd ~sp ~sd in
+  forum_sd k

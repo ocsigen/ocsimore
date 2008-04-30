@@ -34,10 +34,16 @@ type wiki_data = {
   datetime: CalendarLib.Calendar.t;
 }
 
-let retrieve_wikibox_data (wiki_id, wikibox_id) =
+let retrieve_wikibox_content (wiki_id, wikibox_id) =
   Wiki_sql.get_wikibox_data ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
   match result with
-    | None -> Lwt.return None
+    | None -> Lwt.fail Not_found
+    | Some (com, a, cont, d) -> Lwt.return cont
+
+let retrieve_full_wikibox_data (wiki_id, wikibox_id) =
+  Wiki_sql.get_wikibox_data ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
+  match result with
+    | None -> Lwt.fail Not_found
     | Some (com, a, cont, d) ->
         Lwt.catch
           (fun () -> 
@@ -47,45 +53,47 @@ let retrieve_wikibox_data (wiki_id, wikibox_id) =
              | Users.NoSuchUser -> Lwt.return None
              | e -> Lwt.fail e) >>= fun user ->
          Lwt.return
-           (Some { wiki_id = wiki_id;
-                   content = cont; 
-                   author = user; 
-                   datetime = d; 
-                   comment = com })
+           ({ wiki_id = wiki_id;
+              content = cont; 
+              author = user; 
+              datetime = d;
+              comment = com })
 
 
-class wikibox =
+let display_error_box message = 
+  {{ <p class="errormsg">[ !{: message :} ] }}
+
+class noneditable_wikibox =
 object (self)
-  inherit [(Wiki_sql.wiki * int32), wiki_data option] 
-    Widget.parametrized_div_widget
 
-  val xhtml_class = "wikibox"
+  val wikibox_class = "noned_wikibox"
     
-  method private retrieve_data ~sd a =
-    retrieve_wikibox_data a
+  method private display_error_box = display_error_box
 
-  method apply ~sp ~sd ~data:(wiki_id, message_id) =
-    self#retrieve_data sd (wiki_id, message_id) >>= fun data -> 
-    let content = match data with
-      | Some data -> data.content 
-      | None -> ""
-    in
-    Lwt.return
-      {{ <div class={: xhtml_class :}>
-           {: content :}
-          }}
+  method private retrieve_data a =
+    retrieve_wikibox_content a
+
+  method noneditable_wikibox ~sp ~sd ~data =
+    Wiki.get_role ~sp ~sd data >>= fun role ->
+    match role with
+      | Wiki.Admin _
+      | Wiki.Author _
+      | Wiki.Lurker _ -> 
+          self#retrieve_data data >>= fun content -> 
+          Lwt.return
+            {{ <div class={: wikibox_class :}>
+                 {: content :}
+             }}
+      | Wiki.Unknown ->
+          Lwt.return
+            {{ <div class={: wikibox_class :}>[
+                 {: self#display_error_box 
+                    "You are not allowed to see this content." :}
+               ]
+             }}
+
 
 end;;
-
-
-              let rec list_find_some f = function
-                | [] -> None
-                | a::l -> 
-                    match f a with
-                      | None -> list_find_some f l
-                      | v -> v
-                
-  
 
 
 class editable_wikibox () =
@@ -96,18 +104,31 @@ class editable_wikibox () =
       ~name:"wiki_edit"
       ~get_params:((Eliom_parameters.int32 "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
-      (fun sp g () -> Lwt.return [Wiki.Editbox g])
+      (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
   in
     
-  let action_cancel =
-    Eliom_predefmod.Actions.register_new_post_service' 
-      ~name:"cancel"
-      ~post_params:Eliom_parameters.unit
-      (fun sp () () -> Lwt.return [])
+  let action_wikibox_history =
+    Eliom_predefmod.Actions.register_new_service' 
+      ~name:"wiki_history"
+      ~get_params:(((Eliom_parameters.int32 "wikiid") ** 
+                      (Eliom_parameters.int32 "boxid")) **
+                     (Eliom_parameters.opt (Eliom_parameters.int "first") ** 
+                        Eliom_parameters.opt (Eliom_parameters.int "last")))
+      (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.History g)])
   in
-
+    
+  let action_old_wikibox =
+    Eliom_predefmod.Actions.register_new_service' 
+      ~name:"wiki_old_version"
+      ~get_params:(((Eliom_parameters.int32 "wikiid") ** 
+                      (Eliom_parameters.int32 "boxid")) **
+                     (Eliom_parameters.int32 "version"))
+      (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Oldversion g)])
+  in
+    
   let action_send_wikibox =
     Eliom_predefmod.Actions.register_new_post_service' 
+      ~keep_get_na_params:false
       ~name:"wiki_send"
       ~post_params:
       ((((Eliom_parameters.int32 "wikiid") ** 
@@ -121,41 +142,39 @@ class editable_wikibox () =
             Eliom_parameters.opt (Eliom_parameters.string "deladmin")
          ))
       (fun sp () p -> 
-         Eliom_sessions.get_persistent_session_data Users.user_table sp ()
-           >>= fun sd -> 
+         let sd = Ocsimore_common.create_sd () in
          Wiki.save_wikibox sp sd p)
   in
 (*  fun <other parameters if any> -> *)
 
 object (self)
   
-  inherit
-    [Wiki_sql.wiki * int32, 
-      wiki_data option * Wiki_sql.role,
-      ?rows:int -> 
-       ?cols:int -> 
-       ?classe:string list -> 
-       unit -> Xhtmltypes_duce._div Lwt.t] 
-       Widget.parametrized_widget
+   val ne_class = "wikibox"
+   val editform_class = "wikibox editform"
+   val history_class = "wikibox history"
+   val editable_class = "wikibox editable"
+   val oldwikibox_class = "wikibox editable oldversion"
+   val box_button_class = "boxbutton"
 
-   val ne_xhtml_class = "wikibox"
-   val edit_xhtml_class = "wikibox editform"
-   val xhtml_class = "wikibox editable"
-   val edit_link_class = "editlink"
+   method private display_error_message = function
+     | Some Wiki.Operation_not_allowed ->
+         {{ [ {{ self#display_error_box "Operation not allowed" }} ] }}
+     | Some (Wiki.Action_failed e) ->
+         {{ [ {{ self#display_error_box "Action failed" }} ] }}
+     | None ->
+         {{ [] }}
 
-   method private retrieve_data ~sd ((wiki_id, message_id) as a) =
-     Wiki.get_role sd wiki_id message_id >>= fun role -> 
-     retrieve_wikibox_data a >>= fun d ->
-     Lwt.return (d, role)
+   method private display_error_box = display_error_box
 
-   method apply ~sp ~sd 
-     ~data:((wiki_id, message_id) as d) ?(rows=40) ?(cols=30) ?(classe=[]) () =
-     self#retrieve_data sd d >>= fun (data, role) -> 
-     let classe = List.fold_left (fun s e -> s^" "^e) "" classe in
-     let content = match data with
-       | Some data -> data.content 
-       | None -> ""
-     in
+   method retrieve_wikibox_content = retrieve_wikibox_content
+
+   method display_edit_box
+     ~sp
+     ~sd
+     ?(rows=40)
+     ?(cols=80)
+     ~classe
+     ((wiki_id, message_id) as ids) content =
      let draw_form r
          (((wikiidname, boxidname), contentname),
           (addrn, (addwn, (addan, (delrn, (delwn, delan)))))) =
@@ -180,9 +199,9 @@ object (self)
        in
        match r with
          | Some (r, w, a) ->
-               {{ [<p>[!f 
-                     'Users who can read this wiki box: ' 
-                     !{: r :}
+             {{ [<p>[!f 
+                       'Users who can read this wiki box: ' 
+                       !{: r :}
                      <br>[]
                        'Add readers: '
                        {: Eliom_duce.Xhtml.string_input
@@ -195,7 +214,7 @@ object (self)
                           ~input_type:{: "text" :}
                           ~name:delrn
                           () :}
-                       <br>[]
+                     <br>[]
                        'Users who can modify this wiki box: ' 
                        !{: w :}
                      <br>[]
@@ -229,103 +248,202 @@ object (self)
                        {: Eliom_duce.Xhtml.string_input
                           ~input_type:{: "submit" :} 
                           ~value:"Submit" () :}
-                     ]
-                  ]
-                }}
-         | _ -> {{ [<p>[!f
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "submit" :} 
-                         ~value:"Submit" () :}
-                   ]] }}
-     in
-     let draw_form2 () =
-       {{ [<p>[ {: Eliom_duce.Xhtml.string_input
-                   ~input_type:{: "submit" :} 
-                   ~value:"Cancel" () :} ] ] }}
-     in
-     match role with
-       | Wiki_sql.Admin _
-       | Wiki_sql.Author _ ->
-           if Wiki.edit_in_progress ~sp d
-           then
-             (match role with
-               | Wiki_sql.Admin _ ->
-                   Wiki_sql.get_readers wiki_id message_id >>= fun readers ->
-                   Wiki_sql.get_writers wiki_id message_id >>= fun writers ->
-                   Wiki_sql.get_admins wiki_id message_id >>= fun admins ->
-                   Lwt.return
-                     (Some
-                        ((List.fold_left 
-                            (fun s r -> s^" "^Users.get_group_name r)
-                            ""
-                            readers),
-                         (List.fold_left 
-                            (fun s r -> s^" "^Users.get_group_name r)
-                            ""
-                            writers),
-                         (List.fold_left 
-                            (fun s r -> s^" "^Users.get_group_name r)
-                            ""
-                            admins)))
-               | _ -> Lwt.return None) >>= fun res ->
-             Lwt.return
-               {{ <div class={: edit_xhtml_class ^ classe :}>
-                    [ {:
-                         Eliom_duce.Xhtml.post_form
-                         action_send_wikibox
-                         sp (draw_form res) ()
-                         :}
-                        {:
-                         Eliom_duce.Xhtml.post_form
-                         action_cancel
-                         sp draw_form2 ()
-                         :}
                     ]
-                }}
-           else
-             let exns = Eliom_sessions.get_exn sp in
-             let c = 
-               {{ [<p class={: edit_link_class :}>
-                     [ {: Eliom_duce.Xhtml.a 
-                          ~a:{{ { class={: edit_link_class :} } }}
-                          ~service:action_edit_wikibox
-                          ~sp {{ "edit" }} d :}]
-                     !{: content :} ] }}
-            in
-            Lwt.return
-              {{ <div class={: xhtml_class ^ classe :}>
-                   {{
-                      if
-                        List.exists
-                          (fun e -> 
-                             match e with 
-                               | Wiki.Operation_not_allowed (wiki, box) ->
-                                   wiki = wiki_id && box = message_id
-                               | _ -> false)
-                          exns
-                      then
-                        {{ [<p>[ 'Operation not allowed' ] !c] }}
-                      else
-                        match
-                          list_find_some
-                            (fun e -> 
-                               match e with 
-                                 | Wiki.Action_failed (wiki, box, e)
-                                     when wiki = wiki_id && box = message_id
-                                       -> Some e
-                                 | _ -> None)
-                            exns
-                        with
-                          | Some e ->
-                              {{ [ <p> [ 'Edit failed: ' 
-                                         !{: (Printexc.to_string e) :} ] ] }}
-                          | None -> c
-                    }}
-               }}
-      | _ ->
-          Lwt.return
-            {{ <div class={: ne_xhtml_class ^ classe :}>
-                 {: content :}
-             }}
+                ]
+              }}
+         | _ -> {{ [<p>[!f
+                          {: Eliom_duce.Xhtml.string_input
+                             ~input_type:{: "submit" :} 
+                             ~value:"Submit" () :}
+                       ]] }}
+     in
+     Wiki.get_role ~sp ~sd ids >>= fun role ->
+     (match role with
+       | Wiki.Admin _ ->
+         Wiki_sql.get_readers wiki_id message_id >>= fun readers ->
+         Wiki_sql.get_writers wiki_id message_id >>= fun writers ->
+         Wiki_sql.get_admins wiki_id message_id >>= fun admins ->
+         Lwt.return
+           (Some
+              ((List.fold_left 
+                  (fun s r -> s^" "^Users.get_group_name r)
+                  ""
+                  readers),
+               (List.fold_left 
+                  (fun s r -> s^" "^Users.get_group_name r)
+                  ""
+                  writers),
+               (List.fold_left 
+                  (fun s r -> s^" "^Users.get_group_name r)
+                  ""
+                  admins)))
+       | _ -> Lwt.return None) >>= fun rightowners ->
+     Lwt.return
+       {{ <div class={: editform_class ^ classe :}>
+            [<p class={: box_button_class :}>[ 
+                {: Eliom_duce.Xhtml.a 
+                   ~a:{{ { class={: box_button_class :} } }}
+                   ~service:action_wikibox_history
+                   ~sp {{ "history" }} (ids, (None, None)) :}
+              {: Eliom_duce.Xhtml.a
+                   ~a:{{ { class={: box_button_class :} } }}
+                   ~service:Eliom_services.cancel_action
+                   ~sp
+                   {{ "cancel" }} () :} 
+              ]
+                <div>[
+                  {:
+                     Eliom_duce.Xhtml.post_form
+                     action_send_wikibox
+                     sp (draw_form rightowners) ()
+                     :}]
+            ]
+        }}
 
+   method display_noneditable_box ?error ~classe content =
+     let err = self#display_error_message error in
+     Lwt.return
+       {{ <div class={: ne_class ^ classe :}>[ !err !{: content :} ] }}
+
+   method display_editable_box ~sp
+     ?error ~classe ((wiki_id, message_id) as ids) content =
+     let err = self#display_error_message error in
+     Lwt.return
+       {{ <div class={: editable_class ^ classe :}>
+            [<p class={: box_button_class :}>
+                [ {: Eliom_duce.Xhtml.a 
+                     ~a:{{ { class={: box_button_class :} } }}
+                     ~service:action_wikibox_history
+                     ~sp {{ "history" }} (ids, (None, None)) :}
+                  {: Eliom_duce.Xhtml.a 
+                     ~a:{{ { class={: box_button_class :} } }}
+                     ~service:action_edit_wikibox
+                     ~sp {{ "edit" }} ids :}]
+             <div>[ !err !{: content :} ] ] }}
+
+
+   method retrieve_old_wikibox_content ~sp ids version =
+     Lwt.return "<Not implemented>"
+
+   method display_old_wikibox ~sp ~classe (content : string) version =
+     let title = "Version "^Int32.to_string version in
+     Lwt.return
+       {{ <div class={: oldwikibox_class ^ classe :}>
+            [<p class={: box_button_class :}>
+                [ !{: title :}
+                  {: Eliom_duce.Xhtml.a 
+                     ~a:{{ { class={: box_button_class :} } }}
+                     ~service:Eliom_services.cancel_action
+                     ~sp {{ "cancel" }} () :}
+                ]
+             <div>{: content :} ] }}
+
+
+   method private retrieve_history ~sp (wiki_id, message_id) ?first ?last () =
+     Wiki_sql.get_history wiki_id message_id
+
+   method display_history ~sp ids l =
+     Lwt.return
+       {{ map
+            {: List.map 
+               (fun (version, comment, author, date) -> 
+                  {{ {: Int32.to_string version :} }}) 
+               l
+               :}
+          with i -> 
+            [ {: Eliom_duce.Xhtml.a 
+                 ~service:action_old_wikibox
+                 ~sp
+                 i
+                 (ids, Int32.of_string {: i :})
+(*VVV How to get version without converting back!!! *)
+                 :}
+              <br>[] ]
+        }}
+
+   method display_history_box ~sp ~classe ids ?first ?last l =
+     self#display_history ~sp ids l >>= fun c ->
+     Lwt.return
+       {{ <div class={: history_class ^ classe :}>
+            [<p class={: box_button_class :}>[ 
+                {: Eliom_duce.Xhtml.a 
+                   ~a:{{ { class={: box_button_class :} } }}
+                   ~service:action_edit_wikibox
+                   ~sp {{ "edit" }} ids :}
+                  {: Eliom_duce.Xhtml.a
+                     ~a:{{ { class={: box_button_class :} } }}
+                     ~service:Eliom_services.cancel_action
+                     ~sp
+                     {{ "cancel" }} () :}
+              ]
+                <p>c ] }}
+
+
+   method editable_wikibox
+     ~sp
+     ~sd 
+     ~data
+     ?rows
+     ?cols
+     ?(classe=[])
+     ()
+     =
+     let rec find_action = function
+       | [] -> None
+       | (Wiki.Wiki_action_info e)::_ -> Some e
+       | _::l -> find_action l
+     in
+     let action = find_action (Eliom_sessions.get_exn sp) in
+     let classe = Ocsimorelib.build_class_attr classe in
+     Wiki.get_role ~sp ~sd data >>= fun role ->
+     (match role with
+        | Wiki.Admin _
+        | Wiki.Author _ ->
+            (match action with
+               | Some (Wiki.Edit_box i) when i = data ->
+                   self#retrieve_wikibox_content data >>= fun content ->
+                   self#display_edit_box ~sp ~sd ~classe 
+                     ?cols ?rows data content
+               | Some (Wiki.History (i, (first, last))) when i = data ->
+                   self#retrieve_history
+                     ~sp data ?first ?last () >>= fun l ->
+                   self#display_history_box ~sp ~classe data ?first ?last l
+(*VVV et en cas d'erreur ? *)
+               | Some (Wiki.Oldversion (i, version)) when i = data ->
+                   self#retrieve_old_wikibox_content ~sp data version
+                   >>= fun content ->
+                   self#display_old_wikibox ~sp ~classe content version
+(*VVV et en cas d'erreur ? *)
+               | Some (Wiki.Error (i, error)) when i = data ->
+                   self#retrieve_wikibox_content data >>= fun content ->
+                   self#display_editable_box ~sp ~error ~classe data content
+               | _ -> 
+                   self#retrieve_wikibox_content data >>= fun content ->
+                   self#display_editable_box ~sp ~classe data content
+            )
+        | Wiki.Lurker _ -> 
+            (match action with
+               | Some (Wiki.Edit_box i)
+               | Some (Wiki.History (i, _))
+               | Some (Wiki.Oldversion (i, _)) when i = data ->
+                   self#retrieve_wikibox_content data >>= fun content ->
+                   self#display_noneditable_box
+                     ~error:(Wiki.Operation_not_allowed)
+                     ~classe 
+                     content
+               | Some (Wiki.Error (i, error)) when i = data ->
+                   self#retrieve_wikibox_content data >>= fun content ->
+                   self#display_noneditable_box ~error ~classe content
+               | _ -> 
+                   self#retrieve_wikibox_content data >>= fun content ->
+                   self#display_noneditable_box ~classe content)
+       | Wiki.Unknown ->
+           Lwt.return
+             {{ <div class={: ne_class :}>[
+                  {: self#display_error_box 
+                     "You are not allowed to see this content." :}
+                ]
+              }}
+     )
+              
 end

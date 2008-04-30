@@ -1,5 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2005
+ * Copyright (C) 2008
  * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,25 +17,11 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   @author Piero Furiesi
-   @author Jaap Boender
    @author Vincent Balat
 *)
 
-(** A widget for the login/logout box *)
-class login_widget: sessman:Session_manager.sessionmanager ->
-object
-  inherit [unit, unit, Xhtmltypes_duce._div Lwt.t] Widget.parametrized_widget
+type session_data = Polytables.t
 
-  method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
-    'param_type -> 'data_type Lwt.t
-      
-  method apply : 
-    sp:Eliom_sessions.server_params -> 
-    sd:Ocsimore_common.session_data -> 
-    data:'param_type -> Xhtmltypes_duce._div Lwt.t
+val create_sd : unit -> session_data
 
-end;;
-
+exception Session_data of session_data

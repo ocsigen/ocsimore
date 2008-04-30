@@ -1,5 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2005
+ * Copyright (C) 2008
  * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,25 +17,29 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   @author Piero Furiesi
-   @author Jaap Boender
+   Polymorphic tables (using Map) 
    @author Vincent Balat
+   @author Jérôme Vouillon
 *)
 
-(** A widget for the login/logout box *)
-class login_widget: sessman:Session_manager.sessionmanager ->
-object
-  inherit [unit, unit, Xhtmltypes_duce._div Lwt.t] Widget.parametrized_widget
 
-  method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
-    'param_type -> 'data_type Lwt.t
-      
-  method apply : 
-    sp:Eliom_sessions.server_params -> 
-    sd:Ocsimore_common.session_data -> 
-    data:'param_type -> Xhtmltypes_duce._div Lwt.t
 
-end;;
+(** Warning: this module is not thread safe! *)
 
+(** The type of key for a piece of data of type 'a *)
+type 'a key
+
+(** The type of tables *)
+type t
+
+(** creates a new table *)
+val create : unit -> t
+
+(** create a new key for each data you want to save *)
+val make_key : unit -> 'a key
+
+(** [get t k] returns the current binding of [k] in [t] *)
+val set : table:t -> key:'a key -> value:'a -> unit
+
+(** [get t k] returns the current binding of [k] in [t] *)
+val get : table:t -> key:'a key -> 'a

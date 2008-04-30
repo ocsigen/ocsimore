@@ -33,10 +33,13 @@ val create_forum :
   forum_info Lwt.t
 
 (** *)
+(* remove
 val can_read : forum_info -> Users.userdata -> bool
 val can_write : forum_info -> Users.userdata -> bool
 val can_moderate : forum_info -> Users.userdata -> bool
+*)
 
 val get_role : 
-  sd:Users.userdata Eliom_sessions.session_data -> 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
   Forum_sql.forum -> Forum_sql.role Lwt.t

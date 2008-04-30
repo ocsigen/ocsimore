@@ -29,6 +29,11 @@ This is the wiki component of Ocsimore.
 
 let (>>=) = Lwt.bind
 
+(** Role of user in the wiki (for one box) *)
+type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
+(* Admin can changes the permissions on boxes *)
+
+
 type wiki_info = {
   id : Wiki_sql.wiki;
   title : string;
@@ -103,65 +108,109 @@ let new_wikibox ~wiki ~author ~comment ~content =
 
 
 let can_admin wiki wikibox user =
-  match wiki.default_admin with
-    | Some admin -> (* acl are activated *)
-        Lwt.return (Users.in_group user admin)
-    | None -> Lwt.return false
+  Lwt.return
+    ((not (user == Users.anonymous)) &&
+       ((user == Users.admin) ||
+          match wiki.default_admin with
+            | Some admin -> (* acl are activated *)
+                Users.in_group user admin
+            | None -> false))
 
 let can_read wiki wikibox user =
-  match wiki.default_admin with
-    | Some admin -> (* acl are activated *)
-        Wiki_sql.get_readers ~wiki:wiki.id ~id:wikibox >>= fun l ->
-        Lwt.return (List.exists (fun a -> Users.in_group user a) l)
-    | None -> (* acl are not activated *)
-        Lwt.return (Users.in_group user wiki.default_reader)
+  if user == Users.admin
+  then Lwt.return true
+  else
+    match wiki.default_admin with
+      | Some admin -> (* acl are activated *)
+          Wiki_sql.get_readers ~wiki:wiki.id ~id:wikibox >>= fun l ->
+          Lwt.return (List.exists (fun a -> Users.in_group user a) l)
+      | None -> (* acl are not activated *)
+          Lwt.return (Users.in_group user wiki.default_reader)
     
 let can_write wiki wikibox user =
-  match wiki.default_admin with
-    | Some admin -> (* acl are activated *)
-        Wiki_sql.get_writers ~wiki:wiki.id ~id:wikibox >>= fun l ->
-        Lwt.return (List.exists (fun a -> Users.in_group user a) l)
-    | None -> (* acl are not activated *)
-    Lwt.return (Users.in_group user wiki.default_writer)
-    
-let get_role ~sd (wiki_id : Wiki_sql.wiki) wikibox =
-  get_wiki_by_id wiki_id >>= fun f -> 
-  let u =
-    match sd with
-      | Eliom_sessions.Data u -> u
-      | _ -> Users.anonymous
-  in
-  if u = Users.admin
-  then Lwt.return (Wiki_sql.Admin u.Users.id)
+  if user == Users.admin
+  then Lwt.return true
   else
-    can_admin f wikibox u >>= fun cana ->
-    if cana
-    then Lwt.return (Wiki_sql.Admin u.Users.id)
-    else
-      can_write f wikibox u >>= fun canw ->
-      if canw
-      then Lwt.return (Wiki_sql.Author u.Users.id)
-      else 
-        can_read f wikibox u >>= fun canr ->
-        if canr
-        then Lwt.return (Wiki_sql.Lurker u.Users.name)
-        else Lwt.return Wiki_sql.Unknown
+    match wiki.default_admin with
+      | Some admin -> (* acl are activated *)
+          Wiki_sql.get_writers ~wiki:wiki.id ~id:wikibox >>= fun l ->
+          Lwt.return (List.exists (fun a -> Users.in_group user a) l)
+      | None -> (* acl are not activated *)
+          Lwt.return (Users.in_group user wiki.default_writer)
+    
+let get_role_ ~sp ~sd ((wiki_id : Wiki_sql.wiki), wikibox) =
+  get_wiki_by_id wiki_id >>= fun f -> 
+  Users.get_user_data sp sd >>= fun u ->
+  can_admin f wikibox u >>= fun cana ->
+  if cana
+  then Lwt.return (Admin u.Users.id)
+  else
+    can_write f wikibox u >>= fun canw ->
+    if canw
+    then Lwt.return (Author u.Users.id)
+    else 
+      can_read f wikibox u >>= fun canr ->
+      if canr
+      then Lwt.return (Lurker u.Users.name)
+      else Lwt.return Unknown
 
 
-(****)
-exception Editbox of (int32 * int32)
-exception Action_failed of (int32 * int32 * exn)
-exception Operation_not_allowed of (int32 * int32)
 
-let edit_in_progress ~sp d =
-  List.mem (Editbox d) (Eliom_sessions.get_exn sp)
+(** {2 Session data} *)
 
-let save_wikibox ~sp ~sd (((wiki_id, box_id), content), 
+module Roles = Map.Make(struct
+                          type t = int32 * int32
+                          let compare = compare
+                        end)
+
+type wiki_sd = (int32 * int32) -> role Lwt.t
+
+let default_wiki_sd ~sp ~sd =
+  let cache = ref Roles.empty in
+  (* We cache the values to retrieve them only once *)
+  fun k -> 
+    try 
+      Lwt.return (Roles.find k !cache)
+    with Not_found -> 
+      get_role_ ~sp ~sd k >>= fun v ->
+      cache := Roles.add k v !cache;
+      Lwt.return v
+
+(** The polytable key for retrieving wiki data inside session data *)
+let wiki_key : wiki_sd Polytables.key = Polytables.make_key ()
+
+let get_wiki_sd ~sp ~sd =
+  try
+    Polytables.get ~table:sd ~key:wiki_key
+  with Not_found -> 
+    let wsd = default_wiki_sd ~sp ~sd in
+    Polytables.set sd wiki_key wsd;
+    wsd
+
+let get_role ~sp ~sd k =
+  let wiki_sd = get_wiki_sd ~sp ~sd in
+  wiki_sd k
+
+
+(** {2 } *)
+type wiki_errors =
+  | Action_failed of exn
+  | Operation_not_allowed
+
+type wiki_action_info =
+  | Edit_box of (int32 * int32)
+  | History of ((int32 * int32) * (int option * int option))
+  | Oldversion of ((int32 * int32) * int32)
+  | Error of ((int32 * int32) * wiki_errors)
+
+exception Wiki_action_info of wiki_action_info
+
+let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content), 
                           (addr, (addw, (adda, (delr, (delw, dela)))))) =
-  get_role sd wiki_id box_id >>= fun role ->
+  get_role sp sd d >>= fun role ->
   (match role with
-    | Wiki_sql.Admin userid
-    | Wiki_sql.Author userid ->
+    | Admin userid
+    | Author userid ->
         get_wiki_by_id wiki_id >>= fun wiki_info ->
         Users.get_user_by_id userid >>= fun user ->
         can_write wiki_info box_id user >>= fun canw ->
@@ -174,13 +223,15 @@ let save_wikibox ~sp ~sd (((wiki_id, box_id), content),
                  user.Users.name
                  "" content () >>= fun _ ->
                Lwt.return [])
-          (fun e -> Lwt.return [Action_failed (wiki_id, box_id, e)])
+          (fun e -> 
+             Lwt.return 
+               [Wiki_action_info (Error (d, Action_failed e))])
         else
-          Lwt.return [Operation_not_allowed (wiki_id, box_id)]
-    | _ -> Lwt.return [Operation_not_allowed (wiki_id, box_id)])
+          Lwt.return [Wiki_action_info (Error (d, Operation_not_allowed))]
+    | _ -> Lwt.return [Wiki_action_info (Error (d, Operation_not_allowed))])
     >>= fun r ->
   (match role with
-    | Wiki_sql.Admin _ ->
+    | Admin _ ->
         (match addr with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
@@ -224,4 +275,3 @@ let save_wikibox ~sp ~sd (((wiki_id, box_id), content),
               Wiki_sql.remove_wbadmins wiki_id box_id a)
     | _ -> Lwt.return ()) >>= fun () ->
   Lwt.return r
-

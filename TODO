@@ -16,6 +16,11 @@ TODO
  - Faut tout revoir pour uniformiser. C'est vraiment le bordel.
  - Not really clear where to use objects or functors. 
  Do we need overriding and late binding?
+ - Uniformize the place where permissions are checked.
+ Is it in the widgets? In the db interface?
+ - Put sp in sd to avoid passing both parameters everywhere?
+ Warning: sd is transmitted by actions to subsequent services, but sp must not!
+ - Pourquoi les constructeur des types "role" de forum et wiki ont des valeurs ?
 
 How to make sure that:
  - user information is taken only once, for example role in the wiki, 
@@ -23,6 +28,9 @@ How to make sure that:
  - all widgets have a ?classe parameter?
  - all database errors are taken into account?
  Wrap all db result in a kind of exception monad?
+ - admin has all rights (just put admin in all groups by default?
+ of make the function in_group answer yes? or check if the user is admin
+ evrywhere? or all together?)
 
 Wiki:
  - What if two users modify the same page at the same time?
@@ -52,3 +60,9 @@ Wikisyntax:
 
 Forum:
  - clean everything
+ - type role is in forum_sql.ml whereas in wiki.ml
+ Can we put it in forum.ml
+
+Ocsimore_lib:
+ - De quoi on se sert ?
+ - interface

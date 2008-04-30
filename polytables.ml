@@ -1,5 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2005
+ * Copyright (C) 2008
  * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,25 +17,31 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   @author Piero Furiesi
-   @author Jaap Boender
    @author Vincent Balat
+   @author Jérôme Vouillon
 *)
 
-(** A widget for the login/logout box *)
-class login_widget: sessman:Session_manager.sessionmanager ->
-object
-  inherit [unit, unit, Xhtmltypes_duce._div Lwt.t] Widget.parametrized_widget
+type 'a key = int * 'a option ref
 
-  method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
-    'param_type -> 'data_type Lwt.t
-      
-  method apply : 
-    sp:Eliom_sessions.server_params -> 
-    sd:Ocsimore_common.session_data -> 
-    data:'param_type -> Xhtmltypes_duce._div Lwt.t
+module T = Map.Make(struct 
+                      type t = int
+                      let compare = compare
+                    end)
 
-end;;
+type t = (unit -> unit) T.t ref
 
+let create () = ref T.empty
+
+let c = ref (-1)
+let make_key () =
+  c := !c + 1;
+  (!c, ref None)
+
+let set ~(table : t) ~key:((k, r) : 'a key) ~(value : 'a) =
+  table := T.add k (fun () -> r := Some value) !table
+
+let get ~(table : t) ~key:((k, r) : 'a key) =
+  (T.find k !table) ();
+  match !r with
+    | Some v -> r:= None; v
+    | None -> failwith "Polytable.get"

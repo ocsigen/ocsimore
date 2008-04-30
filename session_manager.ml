@@ -12,7 +12,7 @@ type sessionmanager_in =
 {
   url: string list;
   default_groups: Users.group list;
-  login_actions: server_params -> Users.userdata session_data -> unit Lwt.t;
+  login_actions: server_params -> Users.userdata -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
   registration_mail_from: string * string;
   registration_mail_subject: string;
@@ -59,11 +59,6 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
       ~post_params:(string "pwd" ** 
                       (string "pwd2" ** (string "descr" ** string "email"))) () 
   in
-  let act_add_parameter = 
-    new_post_coservice'
-      ~post_params:(string "service_name" ** string "param_name") () 
-  in
-  let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
     
 object (self)
   
@@ -120,8 +115,8 @@ object (self)
 
 
   method container
-    ~(sp: server_params)
-    ~(sd: Users.userdata session_data)
+    ~(sp:Eliom_sessions.server_params)
+    ~(sd:Ocsimore_common.session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     return {{ 
               <html>[
@@ -133,7 +128,7 @@ object (self)
   method private page_register err = fun sp () ()-> 
     self#container
       ~sp
-      ~sd:No_data
+      ~sd:Users.anonymous_sd
       ~contents:
       {{ [<h1>"Registration form"
            <p>['Please fill in the following fields.'
@@ -183,7 +178,7 @@ object (self)
       then begin
         self#container
           ~sp
-          ~sd:No_data
+          ~sd:Users.anonymous_sd
           ~contents:
           {{ [<h1>"Registration ok."
                <p>(['You\'ll soon receive an e-mail message at the \
@@ -198,7 +193,7 @@ object (self)
         Users.delete_user ~user >>= fun () ->
         self#container
           ~sp
-          ~sd:No_data
+          ~sd:Users.anonymous_sd
           ~contents:{{ [<h1>"Registration failed."
                          <p>"Please try later."] }}
 
@@ -207,7 +202,7 @@ object (self)
   method private page_reminder err = fun sp () () -> 
     self#container
       ~sp
-      ~sd:No_data
+      ~sd:Users.anonymous_sd
       ~contents:
       {{ [<h1>"Password reminder"
            <p>['This service allows you to get an e-mail message \
@@ -238,7 +233,7 @@ object (self)
          then 
          self#container
          ~sp
-         ~sd:No_data
+         ~sd:Users.anonymous_sd
          ~contents:{{ [<h1>"Password sent"
          <p>"You'll soon receive an e-mail message at \
          the address you entered when you \
@@ -246,84 +241,90 @@ object (self)
          else 
          self#container
          ~sp
-         ~sd:No_data
+         ~sd:Users.anonymous_sd
          ~contents:{{ [<h1>"Failure"
          <p>"The username you entered doesn't exist, or \
          the service is unavailable at the moment."] }}) *)
       
   method private page_edit err = fun sp () () ->
-    get_persistent_session_data user_table sp () >>= fun sess -> 
-    match sess with
-      | Data u -> 
-          self#container
-            ~sp
-              ~sd:No_data
-              ~contents:
-            {{ [<h1>"Your account"
-                 <p>"Change your persional information:"
-                 {: post_form srv_edit_done sp
-                    (fun (pwd,(pwd2,(desc,email))) -> 
-                       {{ [<table>[
-                              <tr>[
-                                <td>"login name: "
-                                <td>[<strong>{: u.Users.name :}]
-                              ]
-                              <tr>[
-                                <td>"real name: "
-                                <td>[{: string_input
-                                        ~input_type:{:"text":} 
-                                        ~value:u.Users.fullname
-                                        ~name:desc () :}]
-                              ]
-                              <tr>[
-                                <td>"e-mail address: "
-                                <td>[{: string_input
-                                        ~input_type:{:"text":} 
-                                        ~value:u.Users.email
-                                        ~name:email () :}]
-                              ]
-                              <tr>[
-                                <td colspan="2">"Enter a new password twice, or 
+    let sd = Ocsimore_common.create_sd () in
+    Users.is_logged_on sp sd >>= fun logged ->
+    if logged
+    then
+      Users.get_user_data sp sd >>= fun u ->
+      self#container
+        ~sp
+        ~sd:Users.anonymous_sd
+        ~contents:
+        {{ [<h1>"Your account"
+             <p>"Change your persional information:"
+             {: post_form srv_edit_done sp
+                (fun (pwd,(pwd2,(desc,email))) -> 
+                   {{ [<table>[
+                          <tr>[
+                            <td>"login name: "
+                            <td>[<strong>{: u.Users.name :}]
+                          ]
+                          <tr>[
+                            <td>"real name: "
+                            <td>[{: string_input
+                                    ~input_type:{:"text":} 
+                                    ~value:u.Users.fullname
+                                    ~name:desc () :}]
+                          ]
+                          <tr>[
+                            <td>"e-mail address: "
+                            <td>[{: string_input
+                                    ~input_type:{:"text":} 
+                                    ~value:u.Users.email
+                                    ~name:email () :}]
+                          ]
+                          <tr>[
+                            <td colspan="2">"Enter a new password twice, or 
                                                 leave blank for no changes:"
-                              ]
-                              <tr>[
-                                <td>[{: string_input
-                                        ~input_type:{:"password":} 
-                                        ~value:"" 
-                                        ~name:pwd () :}]
-                                <td>[{: string_input
-                                        ~input_type:{:"password":} 
-                                        ~value:"" 
-                                        ~name:pwd2 () :}]
-                              ]
-                              <tr>[
-                                <td>[{: string_input
-                                        ~input_type:{: "submit" :} 
-                                        ~value:"Confirm" () :}]
-                              ]
-                            ]]
-                        }}) () :} 
-                 <p>[<strong>{: err :}]] }}
-            
+                          ]
+                          <tr>[
+                            <td>[{: string_input
+                                    ~input_type:{:"password":} 
+                                    ~value:"" 
+                                    ~name:pwd () :}]
+                            <td>[{: string_input
+                                    ~input_type:{:"password":} 
+                                    ~value:"" 
+                                    ~name:pwd2 () :}]
+                          ]
+                          <tr>[
+                            <td>[{: string_input
+                                    ~input_type:{: "submit" :} 
+                                    ~value:"Confirm" () :}]
+                          ]
+                        ]]
+                    }}) () :} 
+             <p>[<strong>{: err :}]] }}
+    else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
+
   method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
-    get_persistent_session_data user_table sp () >>= fun sess -> 
-      match sess with
-        | Data user ->
-            if not (valid_emailaddr email) then  
-              self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
-            else if pwd <> pwd2 then
-              self#page_edit "ERROR: Passwords don't match!" sp () ()
-            else
-              (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
-               ignore (if pwd = ""
-                       then update_user_data ~user ~fullname ~email ()
-                       else update_user_data ~user ~fullname ~email
-                         ~pwd:(Some pwd) ());
-               set_persistent_session_data user_table sp user;        
-               self#container
-                 ~sp
-                 ~sd:No_data
-                 ~contents:{{ [<h1>"Personal information updated"] }})
+    let sd = Ocsimore_common.create_sd () in
+    Users.is_logged_on sp sd >>= fun logged ->
+    if logged
+    then
+      Users.get_user_data sp sd >>= fun user ->
+      if not (valid_emailaddr email) then  
+        self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
+      else if pwd <> pwd2 then
+        self#page_edit "ERROR: Passwords don't match!" sp () ()
+      else
+        (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
+         ignore (if pwd = ""
+                 then update_user_data ~user ~fullname ~email ()
+                 else update_user_data ~user ~fullname ~email
+                   ~pwd:(Some pwd) ());
+         Users.set_session_data sp sd user >>= fun () ->
+         self#container
+           ~sp
+           ~sd:Users.anonymous_sd
+           ~contents:{{ [<h1>"Personal information updated"] }})
+    else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
                 
       
 
@@ -344,13 +345,14 @@ object (self)
   method private mk_act_login sp () (usr, pwd) =
     all_logout_actions sp >>= fun () -> 
     close_session ~sp () >>= fun () -> 
-      Lwt.catch
-        (fun () -> 
-           authenticate ~name:usr ~pwd  >>= fun user -> 
-             set_persistent_session_data user_table sp user >>= fun () -> 
-               all_login_actions sp (Data user) >>= fun () ->
-                 Lwt.return []) 
-        (fun e -> return [e])
+    Lwt.catch
+      (fun () -> 
+         authenticate ~name:usr ~pwd  >>= fun user -> 
+         let sd = Ocsimore_common.create_sd () in
+         Users.set_session_data sp sd user >>= fun () -> 
+         all_login_actions sp user >>= fun () ->
+         Lwt.return [Ocsimore_common.Session_data sd]) 
+      (fun e -> return [e])
         
   method add_login_actions f =
     let old_la = all_login_actions in
@@ -391,15 +393,21 @@ let connect sm srv container
   begin
     register srv
       (fun sp get_params post_params ->
-         get_persistent_session_data ~table:user_table ~sp () >>= fun sd -> 
+         let sd = Ocsimore_common.create_sd () in
          Lwt_util.map_serial
            (fun w -> w ~sp) 
            (fwl get_params post_params) >>= fun c -> 
            container ~sp ~sd ~contents:{{ {: c :} }}
       )
-end
+  end
 
-
+(*
+  let act_add_parameter = 
+    new_post_coservice'
+      ~post_params:(string "service_name" ** string "param_name") () 
+  in
+  let act_add_widget = new_post_coservice' ~post_params:(string "name") () in
+    *)
       (* and srv_create_service = new_service ~path:(sessionmanagerinfo.url @ ["create_service"]) ~get_params:unit () in
          let srv_create_service_done = new_post_coservice ~fallback:srv_create_service ~post_params:(string "url") () in
          let srv_modify_service = new_service ~path:(sessionmanagerinfo.url @ ["modify_service"]) ~get_params:(string "url") () in

@@ -28,11 +28,7 @@ open Eliom_sessions
 open Ocsimorelib
 
 class widget =
-object (self)
-
-  val xhtml_class = "widget"
-    
-  method name = xhtml_class
+object
 end;;
 
 class virtual ['param_type, 'data_type, 'result_type] parametrized_widget =
@@ -42,12 +38,13 @@ object (self)
   val xhtml_class = "parametrized_widget"
     
   method virtual private retrieve_data :
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
     'param_type -> 'data_type Lwt.t
       
   method virtual apply : 
     sp:server_params -> 
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sd:Ocsimore_common.session_data ->
     data:'param_type -> 'result_type
 
 end
@@ -56,11 +53,12 @@ class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
 object
   inherit widget
   method private retrieve_data :
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
     'param_type -> 'data_type Lwt.t
   method apply :
-    sp:server_params -> 
-    sd:Users.userdata Eliom_sessions.session_data ->
+    sp:Eliom_sessions.server_params -> 
+    sd:Ocsimore_common.session_data ->
     data:'param_type -> 'result_type
 end
 
@@ -81,7 +79,7 @@ object (self)
     
   val xhtml_class = "parametrized_unit_widget"
 
-  method private retrieve_data ~sd _ = Lwt.return ()
+  method private retrieve_data ~sp ~sd _ = Lwt.return ()
     
 end
 
@@ -95,7 +93,7 @@ object (self)
     
   val xhtml_class = "parametrized_unit_div_widget"
 
-  method private retrieve_data ~sd _ = Lwt.return ()
+  method private retrieve_data ~sp ~sd _ = Lwt.return ()
     
 end
 

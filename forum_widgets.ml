@@ -39,8 +39,8 @@ object (self)
     
   val xhtml_class = "message_list"
     
-  method private retrieve_data ~sd (forum_id, thr_id, offset, limit) =
-    Forum.get_role sd forum_id >>= fun role -> 
+  method private retrieve_data ~sp ~sd (forum_id, thr_id, offset, limit) =
+    Forum.get_role sp sd forum_id >>= fun role -> 
     Forum_sql.thread_get_messages_with_text
       ~thr_id ~role ?offset ?limit () >>= fun results ->
     Lwt_util.map
@@ -53,7 +53,7 @@ object (self)
       results
         
   method apply ~sp ~sd ~data:(forum_id, thread_id, offset, limit) =
-    self#retrieve_data sd
+    self#retrieve_data sp sd
       (forum_id, thread_id, offset, limit) >>= fun subjects -> 
     Lwt_util.map 
       (fun s -> 
@@ -92,12 +92,12 @@ object (self)
     
   val xhtml_class = "message_navigation"
     
-  method private retrieve_data ~sd (forum_id, thr_id, offset, limit) =
-    Forum.get_role sd forum_id >>= fun role -> 
+  method private retrieve_data ~sp ~sd (forum_id, thr_id, offset, limit) =
+    Forum.get_role sp sd forum_id >>= fun role -> 
     Forum_sql.thread_get_nr_messages ~thr_id ~role
 
   method apply ~sp ~sd ~data:(forum_id, thread_id, offset, limit) =
-    self#retrieve_data sd (forum_id, thread_id, offset, limit) 
+    self#retrieve_data sp sd (forum_id, thread_id, offset, limit) 
     >>= fun nr_messages -> 
     return {{
               <div class={: xhtml_class :}>
@@ -212,8 +212,8 @@ object (self)
                  ~value:(Forum_sql.get_id id) () :}
            ]] }}
       
-  method private retrieve_data ~sd (forum_id, thr_id, bottom) =
-    Forum.get_role sd forum_id >>= fun role -> 
+  method private retrieve_data ~sp ~sd (forum_id, thr_id, bottom) =
+    Forum.get_role sp sd forum_id >>= fun role -> 
     Forum_sql.thread_get_messages_with_text_forest ~thr_id ~role ?bottom () 
         >>= fun results -> 
       lwt_forest_map
@@ -236,7 +236,7 @@ object (self)
                                         !{: List.map (fun r -> {{ <li>[{: r :}] }}) rest :}
                                     ] }}) f
     in
-      self#retrieve_data sd (forum_id, thread_id, bottom) 
+      self#retrieve_data sp sd (forum_id, thread_id, bottom) 
       >>= fun (subjects, role) -> 
       lwt_forest_map 
         (fun s -> 
@@ -327,7 +327,7 @@ object (self)
   val xhtml_class = "message_add"
     
   method apply ~sp ~sd ~data:(forum_id, thr_id, parent_id, txt, sticky) =
-    let author_id = Users.get_user_id sd in
+    Users.get_user_id sp sd >>= fun author_id ->
     Forum_sql.new_message
       ~thr_id ?parent_id ~author_id ~txt ~sticky () >>= fun _ -> 
     Lwt.return {{
@@ -344,13 +344,13 @@ object (self)
     
   val xhtml_class = "latest_messages"
     
-  method private retrieve_data ~sd limit =
+  method private retrieve_data ~sp ~sd limit =
     Forum_sql.get_forums_list () >>= fun forums -> 
     let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
     Forum_sql.get_latest_messages ~frm_ids ~limit ()
 
   method apply ~sp ~sd ~data:limit =
-    self#retrieve_data sd limit >>= fun messages -> 
+    self#retrieve_data sp sd limit >>= fun messages -> 
     Lwt_util.map 
       (fun (id, msg, author) ->
          return {{ <tr>[<td>{: msg :} <td>{: author :}] }} ) messages
@@ -400,13 +400,13 @@ object (self)
               {: string_input ~input_type:{: "submit" :} ~value:"Toggle" () :}
            ]] }}
 
-  method private retrieve_data ~sd (forum_id, thr_id) =
-    Forum.get_role sd forum_id >>= fun role ->
+  method private retrieve_data ~sp ~sd (forum_id, thr_id) =
+    Forum.get_role sp sd forum_id >>= fun role ->
     Forum_sql.thread_get_data ~thr_id ~role >>= fun r ->
     Lwt.return (r, role)
 
   method apply ~sp ~sd ~data:(forum_id, thread_id) =
-    self#retrieve_data sd (forum_id, thread_id) 
+    self#retrieve_data sp sd (forum_id, thread_id) 
     >>= fun ((_, subject, author, article, datetime, 
               hidden, shown_messages, hidden_messages), role) -> 
     return
@@ -461,8 +461,8 @@ object (self)
     
   val xhtml_class = "thread_list"
     
-  method private retrieve_data ~sd frm_id =
-    Forum.get_role sd frm_id >>= fun role -> 
+  method private retrieve_data ~sp ~sd frm_id =
+    Forum.get_role sp sd frm_id >>= fun role -> 
     Forum_sql.forum_get_threads_list ~frm_id ~role () >>= fun result -> 
     Lwt_util.map (fun (i, s, a, d, _) ->
                     return { id = Forum_sql.of_id i; 
@@ -475,7 +475,7 @@ object (self)
   method apply ~sp ~sd ~data:(forum_id) =
     catch 
       (fun () -> 
-         self#retrieve_data sd forum_id >>= fun (subjects, role) -> 
+         self#retrieve_data sp sd forum_id >>= fun (subjects, role) -> 
          Ocsigen_messages.debug2
            (Printf.sprintf "[thread_list] apply: %d items" 
               (List.length subjects));
@@ -553,8 +553,8 @@ object (self)
         val xhtml_class = "thread_add"
 
         method apply ~sp ~sd ~data:(frm_id, is_article, sbj, txt) =
-          let author_id = Users.get_user_id sd
-          and subject = (if sbj = "" then "No subject" else sbj) in
+          Users.get_user_id sp sd >>= fun author_id ->
+          let subject = (if sbj = "" then "No subject" else sbj) in
           (if is_article 
            then
              Forum_sql.new_thread_and_article ~frm_id ~author_id ~subject ~txt
@@ -591,7 +591,7 @@ object (self)
 
   val xhtml_class = "forums_list"
 
-  method private retrieve_data ~sd () =
+  method private retrieve_data ~sp ~sd () =
     Forum_sql.get_forums_list () >>= fun result -> 
     Lwt_util.map (fun (i, n, d, m, a) ->
                     Lwt.return
@@ -603,7 +603,7 @@ object (self)
                  ) result
 
   method apply ~sp ~sd ~data:() =
-    self#retrieve_data sd () >>= fun subjects -> 
+    self#retrieve_data sp sd () >>= fun subjects -> 
     Lwt_util.map
       (fun s -> 
          return {{ <tr>[
@@ -703,8 +703,8 @@ object (self)
   method set_sticky s = sticky <- s
     
   method apply ~sp ~sd ~data:(forum_id, message_id) =
-    self#retrieve_data ~sd (forum_id, message_id) >>= fun () -> 
-    Forum.get_role sd forum_id >>= fun role -> 
+    self#retrieve_data ~sp ~sd (forum_id, message_id) >>= fun () -> 
+    Forum.get_role sp sd forum_id >>= fun role -> 
     return
       {{ <div class={: xhtml_class :}>[
            <h4>{: Format.sprintf "posted by: %s %s" author (sod datetime) :}

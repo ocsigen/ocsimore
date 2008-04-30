@@ -6,6 +6,11 @@ This is the wiki component of Ocsimore.
 @author Vincent Balat
 *)
 
+(** Role of user in the wiki *)
+type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
+(** Admin can changes the permissions on boxes (if the wiki allows this) *)
+
+
 type wiki_info = {
   id : Wiki_sql.wiki;
   title : string;
@@ -41,7 +46,7 @@ val new_wikibox :
 
 val save_wikibox :
   sp:Eliom_sessions.server_params ->
-  sd:Users.userdata Eliom_sessions.session_data -> 
+  sd:Ocsimore_common.session_data -> 
   (((int32 * int32) * string) *
      (string option *
         (string option *
@@ -54,13 +59,21 @@ val can_read : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
 val can_write : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
 
 val get_role : 
-  sd:Users.userdata Eliom_sessions.session_data -> 
-  Wiki_sql.wiki -> 
-  int32 -> Wiki_sql.role Lwt.t
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
+  (Wiki_sql.wiki * int32) ->
+  role Lwt.t
 
 (** *)
-exception Editbox of (int32 * int32)
-exception Action_failed of (int32 * int32 * exn)
-exception Operation_not_allowed of (int32 * int32)
+type wiki_errors =
+  | Action_failed of exn
+  | Operation_not_allowed
 
-val edit_in_progress : sp:Eliom_sessions.server_params -> int32 * int32 -> bool
+type wiki_action_info =
+  | Edit_box of (int32 * int32)
+  | History of ((int32 * int32) * (int option * int option))
+  | Oldversion of ((int32 * int32) * int32)
+  | Error of ((int32 * int32) * wiki_errors)
+
+exception Wiki_action_info of wiki_action_info
+

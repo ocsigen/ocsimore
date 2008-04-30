@@ -30,10 +30,6 @@ open Ocsimorelib
 open CalendarLib
 open Sql
 
-(** Role of user in the wiki (for one box) *)
-type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
-(* Admin can changes the permissions on boxes *)
-
 (** inserts a new wiki *)
 let new_wiki ~title ~descr ~reader ~writer ?admin () =
   Lwt_pool.use Sql.pool (fun db ->
@@ -258,6 +254,18 @@ let get_wikibox_data ~wiki ~id =
              Ocsigen_messages.warning
                "Ocsimore: database error (Wiki_sql.get_wikibox_data)";
              Lwt.return (Some x))
+
+(** returns subject, text, author, datetime of a wikibox; 
+    None if non-existant *)
+let get_history ~wiki ~id =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT version, comment, author, datetime \
+                  FROM wikiboxes \
+                  WHERE wiki_id = $wiki \
+                  AND id = $id \
+                  ORDER BY version DESC")
 
 let find_wiki ?id ?title () =
   Lwt_pool.use Sql.pool (fun db ->

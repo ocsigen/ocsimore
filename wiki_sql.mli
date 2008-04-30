@@ -1,9 +1,5 @@
 type wiki = int32
 
-(** Role of user in the wiki *)
-type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
-(** Admin can changes the permissions on boxes (if the wiki allows this) *)
-
 
 (** inserts a new wiki container *)
 val new_wiki : 
@@ -54,6 +50,12 @@ val get_wikibox_data :
   wiki:wiki -> 
   id:int32 ->
   (string * string * string * CalendarLib.Calendar.t) option Lwt.t
+
+(** return the history of a wikibox. *)
+val get_history : 
+  wiki:wiki -> 
+  id:int32 ->
+  (int32 * string * string * CalendarLib.Calendar.t) list Lwt.t
 
 val get_readers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
 val get_writers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
