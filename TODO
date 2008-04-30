@@ -41,6 +41,7 @@ Users:
 
 User widgets:
  - clean everything
+ - Use a class model closer to wiki and remove Widget.ml?
 
 Session manager:
  - clean everything
@@ -62,6 +63,8 @@ Forum:
  - clean everything
  - type role is in forum_sql.ml whereas in wiki.ml
  Can we put it in forum.ml
+ - Use a class model closer to wiki and remove Widget.ml?
+ - Use Widget.widget_with_error_box
 
 Ocsimore_lib:
  - De quoi on se sert ?

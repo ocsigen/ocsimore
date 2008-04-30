@@ -29,7 +29,38 @@ open Ocsimorelib
 
 class widget =
 object
-end;;
+end
+
+class widget_with_error_box =
+object(self)
+
+  val error_class = "errormsg"
+
+  method display_error_box ?(classe=[]) ?(message = "Error") ?exn () =
+    let classe = Ocsimorelib.build_class_attr (error_class::classe) in
+    let message = 
+      match exn with
+        | None -> {{ [<strong>{: message :}] }}
+        | Some exn ->
+            if Ocsigen_config.get_debugmode ()
+            then {{ [<strong>{: message :}
+                     <br>[]
+                     !{: Printexc.to_string exn :}
+                     <em>[ 'Ocsigen running in debug mode' ]
+                    ] }}
+            else {{ [<strong>{: message :}] }}
+    in
+    {{ <div class={:classe:}>[<p class={:error_class:}>message ] }}
+
+  method bind_or_display_error : 'a.
+    classe:string list -> 'a Lwt.t -> ('a -> Xhtmltypes_duce.block Lwt.t) -> 
+    Xhtmltypes_duce.block Lwt.t
+    = fun ~classe data f  ->
+      Lwt.catch
+        (fun () -> data >>= f)
+        (fun exn -> Lwt.return (self#display_error_box ~classe ~exn ()))
+        
+end
 
 class virtual ['param_type, 'data_type, 'result_type] parametrized_widget =
 object (self)

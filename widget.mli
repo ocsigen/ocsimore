@@ -34,6 +34,24 @@ class widget :
 object
 end;;
 
+class widget_with_error_box :
+  object
+
+    method bind_or_display_error :
+      'a.
+      classe:string list ->
+      'a Lwt.t ->
+      ('a -> Xhtmltypes_duce.block Lwt.t) -> Xhtmltypes_duce.block Lwt.t
+
+    method display_error_box :
+      ?classe:string list ->
+      ?message:string ->
+      ?exn:exn ->
+      unit ->
+      Xhtmltypes_duce._div
+
+  end
+
 class virtual ['param_type, 'data_type, 'result_type] parametrized_widget : 
 object
   inherit widget

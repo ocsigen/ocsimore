@@ -36,15 +36,16 @@ type wiki_data = {
 class noneditable_wikibox :
   object
 
-    method private display_error_box : string -> Xhtmltypes_duce.p
+    inherit Widget.widget_with_error_box
 
     method noneditable_wikibox :
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       data:Wiki_sql.wiki * int32 ->
-      Xhtmltypes_duce._div Lwt.t
+      Xhtmltypes_duce.block Lwt.t
 
-    method private retrieve_data : Wiki_sql.wiki * int32 -> string Lwt.t
+    method private retrieve_wikibox_content :
+      Wiki_sql.wiki * int32 -> string Lwt.t
 
   end
 
@@ -52,29 +53,29 @@ class editable_wikibox :
   unit ->
   object
 
+    inherit Widget.widget_with_error_box
+    inherit noneditable_wikibox
+
     method display_edit_box :
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       ?rows:int ->
       ?cols:int ->
-      classe:string ->
+      classe:string list ->
       Wiki_sql.wiki * int32 ->
       string ->
-      Xhtmltypes_duce._div Lwt.t
+      Xhtmltypes_duce.block Lwt.t
 
     method display_editable_box :
       sp:Eliom_sessions.server_params ->
       ?error:Wiki.wiki_errors ->
-      classe:string ->
+      classe:string list ->
       Wiki_sql.wiki * int32 ->
       string ->
-      Xhtmltypes_duce._div Lwt.t
-
-    method private display_error_box :
-      string -> Xhtmltypes_duce.p
+      Xhtmltypes_duce.block Lwt.t
 
     method private display_error_message :
-      Wiki.wiki_errors option -> {{ [Xhtmltypes_duce.p*] }}
+      Wiki.wiki_errors option -> {{ [Xhtmltypes_duce.block*] }}
 
     method display_history :
       sp:Eliom_sessions.server_params ->
@@ -84,26 +85,26 @@ class editable_wikibox :
 
     method display_history_box :
       sp:Eliom_sessions.server_params ->
-      classe:string ->
+      classe:string list ->
       Wiki_sql.wiki * int32 ->
       ?first:int ->
       ?last:int ->
       (int32 * string * string * CalendarLib.Calendar.t) list ->
-      Xhtmltypes_duce._div Lwt.t
+      Xhtmltypes_duce.block Lwt.t
 
     method display_noneditable_box :
       ?error:Wiki.wiki_errors ->
-      classe:string ->
+      classe:string list ->
       string ->
-      Xhtmltypes_duce._div Lwt.t
+      Xhtmltypes_duce.block Lwt.t
 
     method display_old_wikibox :
       sp:Eliom_sessions.server_params ->
-      classe:string ->
+      classe:string list ->
       Wiki_sql.wiki * int32 ->
-      string ->
       int32 ->
-      Xhtmltypes_duce._div Lwt.t
+      string ->
+      Xhtmltypes_duce.block Lwt.t
 
     method editable_wikibox :
       sp:Eliom_sessions.server_params ->
@@ -113,7 +114,7 @@ class editable_wikibox :
       ?cols:int ->
       ?classe:string list ->
       unit ->
-      Xhtmltypes_duce._div Lwt.t
+      Xhtmltypes_duce.block Lwt.t
 
     method private retrieve_history :
       sp:Eliom_sessions.server_params ->
@@ -126,6 +127,7 @@ class editable_wikibox :
       sp:Eliom_sessions.server_params ->
       Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
 
-    method retrieve_wikibox_content : Wiki_sql.wiki * int32 -> string Lwt.t
+    method private retrieve_wikibox_content : 
+      Wiki_sql.wiki * int32 -> string Lwt.t
 
   end

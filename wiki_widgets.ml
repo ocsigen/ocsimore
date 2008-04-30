@@ -34,44 +34,42 @@ type wiki_data = {
   datetime: CalendarLib.Calendar.t;
 }
 
-let retrieve_wikibox_content ids =
-  Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
-  match result with
-    | None -> Lwt.fail Not_found
-    | Some (com, a, cont, d) -> Lwt.return cont
-
+(*
 let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
-  Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
-  match result with
-    | None -> Lwt.fail Not_found
-    | Some (com, a, cont, d) ->
-        Lwt.catch
-          (fun () -> 
-             Users.get_user_by_name a >>= fun user ->
-             Lwt.return (Some user))
-          (function
-             | Users.NoSuchUser -> Lwt.return None
-             | e -> Lwt.fail e) >>= fun user ->
-         Lwt.return
-           ({ wiki_id = wiki_id;
-              content = cont; 
-              author = user; 
-              datetime = d;
-              comment = com })
+  self#bind_or_display_error
+    (Wiki_sql.get_wikibox_data ~wikibox:ids ())
+    (fun result ->
+       match result with
+         | None -> Lwt.fail Not_found
+         | Some (com, a, cont, d) ->
+             Lwt.catch
+               (fun () -> 
+                  Users.get_user_by_name a >>= fun user ->
+                    Lwt.return (Some user))
+               (function
+                  | Users.NoSuchUser -> Lwt.return None
+                  | e -> Lwt.fail e) >>= fun user ->
+                 Lwt.return
+                   ({ wiki_id = wiki_id;
+                      content = cont; 
+                      author = user; 
+                      datetime = d;
+                      comment = com }))
+*)
 
-
-let display_error_box message = 
-  {{ <p class="errormsg">[ !{: message :} ] }}
 
 class noneditable_wikibox =
 object (self)
 
-  val wikibox_class = "noned_wikibox"
-    
-  method private display_error_box = display_error_box
+  inherit Widget.widget_with_error_box
 
-  method private retrieve_data a =
-    retrieve_wikibox_content a
+  val wikibox_class = "noned_wikibox"
+
+  method private retrieve_wikibox_content ids =
+    Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
+    match result with
+      | None -> Lwt.fail Not_found
+      | Some (com, a, cont, d) -> Lwt.return cont
 
   method noneditable_wikibox ~sp ~sd ~data =
     Wiki.get_role ~sp ~sd data >>= fun role ->
@@ -79,18 +77,20 @@ object (self)
       | Wiki.Admin
       | Wiki.Author
       | Wiki.Lurker -> 
-          self#retrieve_data data >>= fun content -> 
-          Lwt.return
-            {{ <div class={: wikibox_class :}>
-                 {: content :}
-             }}
-      | Wiki.Nonauthorized ->
-          Lwt.return
-            {{ <div class={: wikibox_class :}>[
-                 {: self#display_error_box 
-                    "You are not allowed to see this content." :}
-               ]
-             }}
+          self#bind_or_display_error
+            ~classe:[wikibox_class]
+            (self#retrieve_wikibox_content data)
+            (fun content -> 
+               Lwt.return
+                 {{ <div class={: wikibox_class :}>
+                      {: content :}
+                  }})
+          | Wiki.Nonauthorized ->
+              Lwt.return
+                (self#display_error_box 
+                   ~classe:[wikibox_class]
+                   ~message:"You are not allowed to see this content."
+                   ())
 
 
 end;;
@@ -149,24 +149,23 @@ class editable_wikibox () =
 
 object (self)
   
-   val ne_class = "wikibox"
-   val editform_class = "wikibox editform"
-   val history_class = "wikibox history"
-   val editable_class = "wikibox editable"
-   val oldwikibox_class = "wikibox editable oldversion"
-   val box_button_class = "boxbutton"
+  inherit Widget.widget_with_error_box
+  inherit noneditable_wikibox
 
-   method private display_error_message = function
-     | Some Wiki.Operation_not_allowed ->
-         {{ [ {{ self#display_error_box "Operation not allowed" }} ] }}
-     | Some (Wiki.Action_failed e) ->
-         {{ [ {{ self#display_error_box "Action failed" }} ] }}
-     | None ->
-         {{ [] }}
+  val ne_class = "wikibox"
+  val editform_class = "wikibox editform"
+  val history_class = "wikibox history"
+  val editable_class = "wikibox editable"
+  val oldwikibox_class = "wikibox editable oldversion"
+  val box_button_class = "boxbutton"
 
-   method private display_error_box = display_error_box
-
-   method retrieve_wikibox_content = retrieve_wikibox_content
+  method private display_error_message = function
+    | Some Wiki.Operation_not_allowed ->
+        {{ [ {{ self#display_error_box ~message:"Operation not allowed" () }} ] }}
+    | Some (Wiki.Action_failed e) ->
+        {{ [ {{ self#display_error_box ~message:"Action failed" () }} ] }}
+    | None ->
+        {{ [] }}
 
    method display_edit_box
      ~sp
@@ -174,7 +173,8 @@ object (self)
      ?(rows=40)
      ?(cols=80)
      ~classe
-     ((wiki_id, message_id) as ids) content =
+     ((wiki_id, message_id) as ids) 
+     (content : string) =
      let draw_form r
          (((wikiidname, boxidname), contentname),
           (addrn, (addwn, (addan, (delrn, (delwn, delan)))))) =
@@ -278,8 +278,9 @@ object (self)
                   ""
                   admins)))
        | _ -> Lwt.return None) >>= fun rightowners ->
+     let classe = Ocsimorelib.build_class_attr (editform_class::classe) in
      Lwt.return
-       {{ <div class={: editform_class ^ classe :}>
+       {{ <div class={: classe :}>
             [<p class={: box_button_class :}>[ 
               {: Eliom_duce.Xhtml.a
                    ~a:{{ { class={: box_button_class :} } }}
@@ -303,14 +304,16 @@ object (self)
 
    method display_noneditable_box ?error ~classe content =
      let err = self#display_error_message error in
+     let classe = Ocsimorelib.build_class_attr (ne_class::classe) in
      Lwt.return
-       {{ <div class={: ne_class ^ classe :}>[ !err !{: content :} ] }}
+       {{ <div class={: classe :}>[ !err !{: content :} ] }}
 
    method display_editable_box ~sp
      ?error ~classe ((wiki_id, message_id) as ids) content =
      let err = self#display_error_message error in
+     let classe = Ocsimorelib.build_class_attr (editable_class::classe) in
      Lwt.return
-       {{ <div class={: editable_class ^ classe :}>
+       {{ <div class={: classe :}>
             [<p class={: box_button_class :}>
                 [ 
                   <span class={: box_button_class :}>[ 'view' ]
@@ -333,10 +336,11 @@ object (self)
        | None -> Lwt.fail Not_found
        | Some (com, a, cont, d) -> Lwt.return cont
 
-   method display_old_wikibox ~sp ~classe ids (content : string) version =
+   method display_old_wikibox ~sp ~classe ids version (content : string) =
      let title = "Version "^Int32.to_string version in
+     let classe = Ocsimorelib.build_class_attr (oldwikibox_class::classe) in
      Lwt.return
-       {{ <div class={: oldwikibox_class ^ classe :}>
+       {{ <div class={: classe :}>
             [<p class={: box_button_class :}>
                 [ !{: title :}
                     {: Eliom_duce.Xhtml.a
@@ -369,7 +373,7 @@ object (self)
                (fun (version, comment, author, date) -> 
                   {{ [ 
                        !{: Int32.to_string version :}
-                       ' '
+                       '. '
                        !{: CalendarLib.Printer.Calendar.to_string date :}
                        ' '
                        <em>[ 'by ' !{: author :} ]
@@ -408,8 +412,9 @@ object (self)
 
    method display_history_box ~sp ~classe ids ?first ?last l =
      self#display_history ~sp ids l >>= fun c ->
+     let classe = Ocsimorelib.build_class_attr (history_class::classe) in
      Lwt.return
-       {{ <div class={: history_class ^ classe :}>
+       {{ <div class={: classe :}>
             [<p class={: box_button_class :}>[ 
                 {: Eliom_duce.Xhtml.a
                    ~a:{{ { class={: box_button_class :} } }}
@@ -440,56 +445,67 @@ object (self)
        | _::l -> find_action l
      in
      let action = find_action (Eliom_sessions.get_exn sp) in
-     let classe = Ocsimorelib.build_class_attr classe in
      Wiki.get_role ~sp ~sd data >>= fun role ->
      (match role with
         | Wiki.Admin
         | Wiki.Author ->
             (match action with
                | Some (Wiki.Edit_box i) when i = data ->
-                   self#retrieve_wikibox_content data >>= fun content ->
-                   self#display_edit_box ~sp ~sd ~classe 
-                     ?cols ?rows data content
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_wikibox_content data)
+                     (self#display_edit_box ~sp ~sd ~classe ?cols ?rows data)
                | Some (Wiki.History (i, (first, last))) when i = data ->
-                   self#retrieve_history
-                     ~sp data ?first ?last () >>= fun l ->
-                   self#display_history_box ~sp ~classe data ?first ?last l
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_history ~sp data ?first ?last ())
+                     (self#display_history_box ~sp ~classe data ?first ?last)
 (*VVV et en cas d'erreur ? *)
                | Some (Wiki.Oldversion (i, version)) when i = data ->
-                   self#retrieve_old_wikibox_content ~sp data version
-                   >>= fun content ->
-                   self#display_old_wikibox ~sp ~classe data content version
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_old_wikibox_content ~sp data version)
+                     (self#display_old_wikibox ~sp ~classe data version)
 (*VVV et en cas d'erreur ? *)
                | Some (Wiki.Error (i, error)) when i = data ->
-                   self#retrieve_wikibox_content data >>= fun content ->
-                   self#display_editable_box ~sp ~error ~classe data content
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_wikibox_content data)
+                     (self#display_editable_box ~sp ~error ~classe data)
                | _ -> 
-                   self#retrieve_wikibox_content data >>= fun content ->
-                   self#display_editable_box ~sp ~classe data content
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_wikibox_content data)
+                     (self#display_editable_box ~sp ~classe data)
             )
         | Wiki.Lurker -> 
             (match action with
                | Some (Wiki.Edit_box i)
                | Some (Wiki.History (i, _))
                | Some (Wiki.Oldversion (i, _)) when i = data ->
-                   self#retrieve_wikibox_content data >>= fun content ->
-                   self#display_noneditable_box
-                     ~error:(Wiki.Operation_not_allowed)
-                     ~classe 
-                     content
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_wikibox_content data)
+                     (self#display_noneditable_box
+                        ~error:(Wiki.Operation_not_allowed)
+                        ~classe)
                | Some (Wiki.Error (i, error)) when i = data ->
-                   self#retrieve_wikibox_content data >>= fun content ->
-                   self#display_noneditable_box ~error ~classe content
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_wikibox_content data)
+                     (self#display_noneditable_box ~error ~classe)
                | _ -> 
-                   self#retrieve_wikibox_content data >>= fun content ->
-                   self#display_noneditable_box ~classe content)
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_wikibox_content data)
+                     (self#display_noneditable_box ~classe)
+            )
        | Wiki.Nonauthorized ->
            Lwt.return
-             {{ <div class={: ne_class :}>[
-                  {: self#display_error_box 
-                     "You are not allowed to see this content." :}
-                ]
-              }}
+             (self#display_error_box 
+                ~classe:(ne_class::classe)
+                ~message:"You are not allowed to see this content."
+                ())
      )
               
 end
