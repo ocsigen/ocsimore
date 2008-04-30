@@ -76,15 +76,15 @@ object (self)
   method noneditable_wikibox ~sp ~sd ~data =
     Wiki.get_role ~sp ~sd data >>= fun role ->
     match role with
-      | Wiki.Admin _
-      | Wiki.Author _
-      | Wiki.Lurker _ -> 
+      | Wiki.Admin
+      | Wiki.Author
+      | Wiki.Lurker -> 
           self#retrieve_data data >>= fun content -> 
           Lwt.return
             {{ <div class={: wikibox_class :}>
                  {: content :}
              }}
-      | Wiki.Unknown ->
+      | Wiki.Nonauthorized ->
           Lwt.return
             {{ <div class={: wikibox_class :}>[
                  {: self#display_error_box 
@@ -259,7 +259,7 @@ object (self)
      in
      Wiki.get_role ~sp ~sd ids >>= fun role ->
      (match role with
-       | Wiki.Admin _ ->
+       | Wiki.Admin ->
          Wiki_sql.get_readers wiki_id message_id >>= fun readers ->
          Wiki_sql.get_writers wiki_id message_id >>= fun writers ->
          Wiki_sql.get_admins wiki_id message_id >>= fun admins ->
@@ -443,8 +443,8 @@ object (self)
      let classe = Ocsimorelib.build_class_attr classe in
      Wiki.get_role ~sp ~sd data >>= fun role ->
      (match role with
-        | Wiki.Admin _
-        | Wiki.Author _ ->
+        | Wiki.Admin
+        | Wiki.Author ->
             (match action with
                | Some (Wiki.Edit_box i) when i = data ->
                    self#retrieve_wikibox_content data >>= fun content ->
@@ -467,7 +467,7 @@ object (self)
                    self#retrieve_wikibox_content data >>= fun content ->
                    self#display_editable_box ~sp ~classe data content
             )
-        | Wiki.Lurker _ -> 
+        | Wiki.Lurker -> 
             (match action with
                | Some (Wiki.Edit_box i)
                | Some (Wiki.History (i, _))
@@ -483,7 +483,7 @@ object (self)
                | _ -> 
                    self#retrieve_wikibox_content data >>= fun content ->
                    self#display_noneditable_box ~classe content)
-       | Wiki.Unknown ->
+       | Wiki.Nonauthorized ->
            Lwt.return
              {{ <div class={: ne_class :}>[
                   {: self#display_error_box 

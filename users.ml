@@ -310,10 +310,10 @@ let authenticate ~name ~pwd =
 
 
 let in_group ~user ~group =
-  not (user == anonymous) &&
-    (group == anonymous_group ||
-       user == admin ||
-       List.mem group user.groups)
+  ((group = anonymous_group) ||
+     (not (user == anonymous) &&
+        (user == admin ||
+           List.mem group user.groups)))
 
 let add_to_group ~user ~group =
   User_sql.add_to_group user.id group >>= fun () ->

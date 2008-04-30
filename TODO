@@ -20,7 +20,7 @@ TODO
  Is it in the widgets? In the db interface?
  - Put sp in sd to avoid passing both parameters everywhere?
  Warning: sd is transmitted by actions to subsequent services, but sp must not!
- - Pourquoi les constructeur des types "role" de forum et wiki ont des valeurs ?
+ - Pourquoi les constructeurs des types "role" de forum ont des valeurs ?
 
 How to make sure that:
  - user information is taken only once, for example role in the wiki, 

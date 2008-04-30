@@ -30,7 +30,7 @@ This is the wiki component of Ocsimore.
 let (>>=) = Lwt.bind
 
 (** Role of user in the wiki (for one box) *)
-type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
+type role = Admin | Author | Lurker | Nonauthorized;;
 (* Admin can changes the permissions on boxes *)
 
 
@@ -143,16 +143,16 @@ let get_role_ ~sp ~sd ((wiki_id : Wiki_sql.wiki), wikibox) =
   Users.get_user_data sp sd >>= fun u ->
   can_admin f wikibox u >>= fun cana ->
   if cana
-  then Lwt.return (Admin u.Users.id)
+  then Lwt.return Admin
   else
     can_write f wikibox u >>= fun canw ->
     if canw
-    then Lwt.return (Author u.Users.id)
+    then Lwt.return Author
     else 
       can_read f wikibox u >>= fun canr ->
       if canr
-      then Lwt.return (Lurker u.Users.name)
-      else Lwt.return Unknown
+      then Lwt.return Lurker
+      else Lwt.return Nonauthorized
 
 
 
@@ -209,10 +209,10 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
                           (addr, (addw, (adda, (delr, (delw, dela)))))) =
   get_role sp sd d >>= fun role ->
   (match role with
-    | Admin userid
-    | Author userid ->
+    | Admin
+    | Author ->
         get_wiki_by_id wiki_id >>= fun wiki_info ->
-        Users.get_user_by_id userid >>= fun user ->
+        Users.get_user_data sp sd >>= fun user ->
         can_write wiki_info box_id user >>= fun canw ->
         if canw
         then
@@ -231,7 +231,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
     | _ -> Lwt.return [Wiki_action_info (Error (d, Operation_not_allowed))])
     >>= fun r ->
   (match role with
-    | Admin _ ->
+    | Admin ->
         (match addr with
           | None | Some "" -> Lwt.return ()
           | Some s -> 

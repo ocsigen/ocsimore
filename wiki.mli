@@ -7,7 +7,7 @@ This is the wiki component of Ocsimore.
 *)
 
 (** Role of user in the wiki *)
-type role = Admin of int32 | Author of int32 | Lurker of string | Unknown;;
+type role = Admin | Author | Lurker | Nonauthorized;;
 (** Admin can changes the permissions on boxes (if the wiki allows this) *)
 
 
