@@ -1,0 +1,52 @@
+Guidelines
+(work in progress)
+
+If  you  want  to  contribute   to  Ocsimore  and/or  write  your  own
+extensions, we recommend to follow these guidelines:
+
+ - The use of classes allows to extend widgets or modify their behaviours.
+Decompose each of them into several methods, one for each subtask to perform
+(retrieve data, display ...) and for each widget kind.
+
+ - Decompose your module in 4 parts:
+_createdb.sql SQL creation of databases
+_sql.ml database requests, using lwt-pgocaml and lwt_pool
+.ml defining and exporting session data for the module (see below)
+_widgets.ml your widgets
+
+ - Use as much as possible the same naming scheme for methods.
+For example:
+* private retrieve_data or retrieve_...
+* private display or display_... for displaying the widget from retrieved data
+* public methods for each widget you want to be able to put in your pages
+(possibly in wikipages), that will:
+  1. check permissions
+  2. call retrieve_...
+  3. call display_...
+For example: public method oldversion_wikibox will call retrieve_old_wikibox
+and display_old_wikibox
+
+ - Use as much as possible the same names for labels.
+
+ - Each widget takes an optional ?classe label of type string list
+for the class xhtml attribute. Each widget has its own attribute names
+
+ - Session data:
+most widgets take ~sp as parameter (Eliom's server parameters) and also
+a ~sd parameter (session data).
+This ~sd parameter is a cache of session data, to avoid retrieving
+them from the db for each box, if several boxes need them.
+It has type Ocsimore_common.session_data = Polytables.t
+(polymorphic table).
+This allows each module (forum, wiki...) to save its own data inside.
+To do that, each module must create its own polytable key.
+This data is usually a record with lazy values or tables inside 
+to prevent data to be retrieved if not necessary of if it has already been done.
+You must create a new ~sd for each request using
+Ocsimore_common.create_sd (it is destroyed at the end).
+See for example wiki.ml.
+
+Warning: Polytables is not thread-safe. Do not use function that access ~sd
+inside Lwt_preemptive.detach!
+
+ - Catching exceptions:
