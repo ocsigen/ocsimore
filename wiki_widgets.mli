@@ -100,6 +100,7 @@ class editable_wikibox :
     method display_old_wikibox :
       sp:Eliom_sessions.server_params ->
       classe:string ->
+      Wiki_sql.wiki * int32 ->
       string ->
       int32 ->
       Xhtmltypes_duce._div Lwt.t

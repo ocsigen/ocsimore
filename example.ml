@@ -40,7 +40,7 @@ let _ =
        () >>= fun wiki ->
 
      (* Filling the first wikibox if it does not exist: *)
-     (Wiki_sql.get_wikibox_data wiki.Wiki.id 1l 
+     (Wiki_sql.get_wikibox_data (wiki.Wiki.id, 1l) ()
      >>= function
        | Some _ -> Lwt.return ()
        | _ -> (Wiki.new_wikibox 

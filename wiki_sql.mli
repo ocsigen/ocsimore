@@ -47,8 +47,9 @@ val update_wikibox :
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
 val get_wikibox_data : 
-  wiki:wiki -> 
-  id:int32 ->
+  ?version:int32 ->
+  wikibox:(wiki * int32) ->
+  unit ->
   (string * string * string * CalendarLib.Calendar.t) option Lwt.t
 
 (** return the history of a wikibox. *)

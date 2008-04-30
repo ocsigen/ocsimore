@@ -34,14 +34,14 @@ type wiki_data = {
   datetime: CalendarLib.Calendar.t;
 }
 
-let retrieve_wikibox_content (wiki_id, wikibox_id) =
-  Wiki_sql.get_wikibox_data ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
+let retrieve_wikibox_content ids =
+  Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
   match result with
     | None -> Lwt.fail Not_found
     | Some (com, a, cont, d) -> Lwt.return cont
 
-let retrieve_full_wikibox_data (wiki_id, wikibox_id) =
-  Wiki_sql.get_wikibox_data ~wiki:wiki_id ~id:wikibox_id >>= fun result ->
+let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
+  Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
   match result with
     | None -> Lwt.fail Not_found
     | Some (com, a, cont, d) ->
@@ -281,15 +281,16 @@ object (self)
      Lwt.return
        {{ <div class={: editform_class ^ classe :}>
             [<p class={: box_button_class :}>[ 
-                {: Eliom_duce.Xhtml.a 
-                   ~a:{{ { class={: box_button_class :} } }}
-                   ~service:action_wikibox_history
-                   ~sp {{ "history" }} (ids, (None, None)) :}
               {: Eliom_duce.Xhtml.a
                    ~a:{{ { class={: box_button_class :} } }}
                    ~service:Eliom_services.cancel_action
                    ~sp
-                   {{ "cancel" }} () :} 
+                   {{ "view" }} () :} 
+                <span class={: box_button_class :}>[ 'edit' ]
+                {: Eliom_duce.Xhtml.a 
+                   ~a:{{ { class={: box_button_class :} } }}
+                   ~service:action_wikibox_history
+                   ~sp {{ "history" }} (ids, (None, None)) :}
               ]
                 <div>[
                   {:
@@ -311,30 +312,48 @@ object (self)
      Lwt.return
        {{ <div class={: editable_class ^ classe :}>
             [<p class={: box_button_class :}>
-                [ {: Eliom_duce.Xhtml.a 
-                     ~a:{{ { class={: box_button_class :} } }}
-                     ~service:action_wikibox_history
-                     ~sp {{ "history" }} (ids, (None, None)) :}
+                [ 
+                  <span class={: box_button_class :}>[ 'view' ]
                   {: Eliom_duce.Xhtml.a 
                      ~a:{{ { class={: box_button_class :} } }}
                      ~service:action_edit_wikibox
-                     ~sp {{ "edit" }} ids :}]
+                     ~sp {{ "edit" }} ids :}
+                  {: Eliom_duce.Xhtml.a 
+                     ~a:{{ { class={: box_button_class :} } }}
+                     ~service:action_wikibox_history
+                     ~sp {{ "history" }} (ids, (None, None)) :}
+                ]
              <div>[ !err !{: content :} ] ] }}
 
 
    method retrieve_old_wikibox_content ~sp ids version =
-     Lwt.return "<Not implemented>"
+     Wiki_sql.get_wikibox_data ~version ~wikibox:ids ()
+     >>= fun result ->
+     match result with
+       | None -> Lwt.fail Not_found
+       | Some (com, a, cont, d) -> Lwt.return cont
 
-   method display_old_wikibox ~sp ~classe (content : string) version =
+   method display_old_wikibox ~sp ~classe ids (content : string) version =
      let title = "Version "^Int32.to_string version in
      Lwt.return
        {{ <div class={: oldwikibox_class ^ classe :}>
             [<p class={: box_button_class :}>
                 [ !{: title :}
-                  {: Eliom_duce.Xhtml.a 
-                     ~a:{{ { class={: box_button_class :} } }}
-                     ~service:Eliom_services.cancel_action
-                     ~sp {{ "cancel" }} () :}
+                    {: Eliom_duce.Xhtml.a
+                       ~a:{{ { class={: box_button_class :} } }}
+                       ~service:Eliom_services.cancel_action
+                       ~sp
+                       {{ "view" }} () :} 
+                    {: Eliom_duce.Xhtml.a 
+                       ~a:{{ { class={: box_button_class :} } }}
+                       ~service:action_edit_wikibox
+                       ~sp 
+                       {{ "edit" }} ids :}
+                    {: Eliom_duce.Xhtml.a 
+                       ~a:{{ { class={: box_button_class :} } }}
+                       ~service:action_wikibox_history
+                       ~sp 
+                       {{ "history" }} (ids, (None, None)) :}
                 ]
              <div>{: content :} ] }}
 
@@ -345,6 +364,31 @@ object (self)
    method display_history ~sp ids l =
      Lwt.return
        {{ map
+            {: 
+               List.map 
+               (fun (version, comment, author, date) -> 
+                  {{ [ 
+                       !{: Int32.to_string version :}
+                       ' '
+                       !{: CalendarLib.Printer.Calendar.to_string date :}
+                       ' '
+                       <em>[ 'by ' !{: author :} ]
+                       ' '
+                       {: 
+                          Eliom_duce.Xhtml.a 
+                          ~service:action_old_wikibox
+                          ~sp
+                          {{ "view" }}
+                          (ids, version)
+                          :}
+                       <br>[] 
+                     ]
+                   }})
+               l
+               :}
+          with i -> i
+        }}
+(*       {{ map
             {: List.map 
                (fun (version, comment, author, date) -> 
                   {{ {: Int32.to_string version :} }}) 
@@ -360,23 +404,25 @@ object (self)
                  :}
               <br>[] ]
         }}
+*)
 
    method display_history_box ~sp ~classe ids ?first ?last l =
      self#display_history ~sp ids l >>= fun c ->
      Lwt.return
        {{ <div class={: history_class ^ classe :}>
             [<p class={: box_button_class :}>[ 
+                {: Eliom_duce.Xhtml.a
+                   ~a:{{ { class={: box_button_class :} } }}
+                   ~service:Eliom_services.cancel_action
+                   ~sp
+                   {{ "view" }} () :}
                 {: Eliom_duce.Xhtml.a 
                    ~a:{{ { class={: box_button_class :} } }}
                    ~service:action_edit_wikibox
                    ~sp {{ "edit" }} ids :}
-                  {: Eliom_duce.Xhtml.a
-                     ~a:{{ { class={: box_button_class :} } }}
-                     ~service:Eliom_services.cancel_action
-                     ~sp
-                     {{ "cancel" }} () :}
+                <span class={: box_button_class :}>[ 'history' ]
               ]
-                <p>c ] }}
+                <div>[<p>c] ] }}
 
 
    method editable_wikibox
@@ -412,7 +458,7 @@ object (self)
                | Some (Wiki.Oldversion (i, version)) when i = data ->
                    self#retrieve_old_wikibox_content ~sp data version
                    >>= fun content ->
-                   self#display_old_wikibox ~sp ~classe content version
+                   self#display_old_wikibox ~sp ~classe data content version
 (*VVV et en cas d'erreur ? *)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#retrieve_wikibox_content data >>= fun content ->

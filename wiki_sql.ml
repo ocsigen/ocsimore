@@ -234,19 +234,27 @@ let update_wikibox ~wiki ~wikibox ~author ~comment ~content
 
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
-let get_wikibox_data ~wiki ~id =
+let get_wikibox_data ?version ~wikibox:(wiki, id) () =
   Lwt_pool.use 
     Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT comment, author, content, datetime \
-                  FROM wikiboxes \
-                  WHERE wiki_id = $wiki \
-                  AND id = $id \
-                  AND version = \
-                     (SELECT max(version) \
-                      FROM wikiboxes \
-                      WHERE wiki_id = $wiki \
-                      AND id = $id)"
+       (match version with
+         | None ->
+             PGSQL(db) "SELECT comment, author, content, datetime \
+                        FROM wikiboxes \
+                        WHERE wiki_id = $wiki \
+                        AND id = $id \
+                        AND version = \
+                           (SELECT max(version) \
+                            FROM wikiboxes \
+                            WHERE wiki_id = $wiki \
+                            AND id = $id)"
+         | Some version ->
+             PGSQL(db) "SELECT comment, author, content, datetime \
+                        FROM wikiboxes \
+                        WHERE wiki_id = $wiki \
+                        AND id = $id \
+                        AND version = $version")
        >>= function
          | [] -> Lwt.return None
          | [x] -> Lwt.return (Some x)

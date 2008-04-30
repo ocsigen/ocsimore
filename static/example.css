@@ -8,33 +8,32 @@
     padding: 0px;
 }
 
-.editable,
-.editform,
+.editable div,
+.editform div,
 .history div{
     margin: 4px;
 }
 
-form.boxbutton{
-    margin: 0px;
-    padding: 0px;
-}
-
 p.boxbutton{
-    text-align: right;
+    text-align: left;
     margin: 0px;
-    padding: 0px;
+    padding: 0px 0px 0px 4px;
     font-size: 80%;
 }
 
-p.boxbutton a,button{
+p.boxbutton a,span{
     display: inline-block;
-    border: 2px solid #ffffff;
-    background-color: #f1f1f1;
     color: #999999;
-    margin: 0px;
+    margin: 2px;
     padding: 0px 6px;
     font-weight: bold;
     text-decoration: none;
+    vertical-align: bottom;
+    float: right;
+}
+
+p.boxbutton a{
+    background-color: #f1f1f1;
 }
 
 p.boxbutton a:hover{
