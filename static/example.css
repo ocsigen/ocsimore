@@ -1,9 +1,9 @@
 .wikibox{
 }
 
-.editform,
-.editable,
-.history{
+div.editform,
+div.editable,
+div.history{
     border: 1px solid #eeeeee;
     padding: 0px;
 }
@@ -14,42 +14,42 @@
     margin: 4px;
 }
 
-p.boxbutton{
+p.boxtitle{
     text-align: left;
     margin: 0px;
     padding: 0px 0px 0px 4px;
     font-size: 80%;
 }
 
-p.boxbutton a,span{
+ul.boxbutton{
+    margin: 0px;
+    padding: 0px;
+}
+
+.boxbutton li{
     display: inline-block;
-    color: #999999;
     margin: 2px;
-    padding: 0px 6px;
+    padding: 0px;
     font-weight: bold;
-    text-decoration: none;
     vertical-align: bottom;
     float: right;
+    color: #999999;
 }
 
-p.boxbutton a{
+.boxbutton a{
+    color: #999999;
     background-color: #f1f1f1;
+    padding: 0px 6px;
+    text-decoration: none;
 }
 
-p.boxbutton a:hover{
+.boxbutton a:hover{
     background-color: #dddddd;
     text-decoration: none;
 }
 
-p.boxbutton a:active{
+.boxbutton a:active{
     background-color: #ffffff;
     text-decoration: none;
 }
 
-p.boxbutton button:hover{
-    background-color: #dddddd;
-}
-
-p.boxbutton button:active{
-    background-color: #ffffff;
-}

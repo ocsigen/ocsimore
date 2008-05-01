@@ -37,18 +37,30 @@ end;;
 class widget_with_error_box :
   object
 
+    (** Takes a threads that gets data (e.g. from a database),
+        then a function that transforms this data into something printable
+        of type flows,
+        then a function that will build the box with the result, and/or
+        possibly also error messages if something went wrong during
+        data retrieval, or if an error parameter is given.
+    *)
     method bind_or_display_error :
       'a.
-      classe:string list ->
-      'a Lwt.t ->
-      ('a -> Xhtmltypes_duce.block Lwt.t) -> Xhtmltypes_duce.block Lwt.t
+      classe:string list -> 
+      ?error: string ->
+      'a Lwt.t -> 
+      ('a -> Xhtmltypes_duce.flows Lwt.t) -> 
+      (classe:string list -> 
+        Xhtmltypes_duce.flows -> 
+        Xhtmltypes_duce.block Lwt.t) -> 
+      Xhtmltypes_duce.block Lwt.t
 
     method display_error_box :
       ?classe:string list ->
       ?message:string ->
       ?exn:exn ->
       unit ->
-      Xhtmltypes_duce._div
+      Xhtmltypes_duce.block
 
   end
 

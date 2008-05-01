@@ -36,6 +36,12 @@ object(self)
 
   val error_class = "errormsg"
 
+  method private display_error_message = function
+    | Some message ->
+        {{ [ {{ self#display_error_box ~message () }} ] }}
+    | None ->
+        {{ [] }}
+
   method display_error_box ?(classe=[]) ?(message = "Error") ?exn () =
     let classe = Ocsimorelib.build_class_attr (error_class::classe) in
     let message = 
@@ -46,20 +52,31 @@ object(self)
             then {{ [<strong>{: message :}
                      <br>[]
                      !{: Printexc.to_string exn :}
-                     <em>[ 'Ocsigen running in debug mode' ]
+                     <br>[]
+                     <em>[ '(Ocsigen running in debug mode)' ]
                     ] }}
-            else {{ [<strong>{: message :}] }}
+            else {{ [<strong>{: message :} ] }}
     in
-    {{ <div class={:classe:}>[<p class={:error_class:}>message ] }}
+    {{ <p class={:error_class:}>message }}
 
   method bind_or_display_error : 'a.
-    classe:string list -> 'a Lwt.t -> ('a -> Xhtmltypes_duce.block Lwt.t) -> 
+    classe:string list -> 
+    ?error: string ->
+    'a Lwt.t -> 
+    ('a -> Xhtmltypes_duce.flows Lwt.t) -> 
+    (classe:string list -> 
+      Xhtmltypes_duce.flows -> 
+      Xhtmltypes_duce.block Lwt.t) -> 
     Xhtmltypes_duce.block Lwt.t
-    = fun ~classe data f  ->
-      Lwt.catch
-        (fun () -> data >>= f)
-        (fun exn -> Lwt.return (self#display_error_box ~classe ~exn ()))
-        
+    = fun ~classe ?error data transform_data display_box  ->
+      (Lwt.catch
+         (fun () -> data >>= transform_data)
+         (fun exn -> 
+            Lwt.return {{ [ {{ self#display_error_box ~exn () }} ] }} ))
+      >>= fun content ->
+      let err = self#display_error_message error in
+      display_box ~classe {{ [ !err !content ] }}
+
 end
 
 class virtual ['param_type, 'data_type, 'result_type] parametrized_widget =
