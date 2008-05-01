@@ -31,6 +31,7 @@ How to make sure that:
  - admin has all rights (just put admin in all groups by default?
  of make the function in_group answer yes? or check if the user is admin
  evrywhere? or all together?)
+ - all actions will send session-data to the following service?
 
 Wiki:
  - What if two users modify the same page at the same time?
@@ -42,6 +43,8 @@ Users:
 User widgets:
  - clean everything
  - Use a class model closer to wiki and remove Widget.ml?
+ - Probably define connection/deconnection actions here and not in 
+ session_manager? (cf wiki_widgets).
 
 Session manager:
  - clean everything
@@ -63,7 +66,9 @@ Forum:
  - clean everything
  - type role is in forum_sql.ml whereas in wiki.ml
  Can we put it in forum.ml
- - Use a class model closer to wiki and remove Widget.ml?
+ - Use a class and service model closer to wiki and remove Widget.ml?
+ For example use actions for sending messages?
+ (Do not forget to transmit session_data!)
  - Use Widget.widget_with_error_box
 
 Ocsimore_lib:

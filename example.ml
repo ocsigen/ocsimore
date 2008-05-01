@@ -1,4 +1,4 @@
-(** EXAMPLE *)
+(** Example site for Ocsimore *)
 
 open Lwt
 open Eliom_duce.Xhtml
@@ -15,7 +15,7 @@ object (self)
     return {{
               <html>[
                 <head>[
-                  <title>"EXAMPLE - Preuves, Programmes et Systèmes"
+                  <title>"Ocsimore example"
                     {: css_link 
                        (make_uri
                           (Eliom_services.static_dir sp) 
@@ -73,7 +73,7 @@ let _ =
      register
        srv_main
        (fun sp () () ->
-          let sd = Ocsimore_common.create_sd () in
+          let sd = Ocsimore_common.get_sd sp in
           myloginbox#apply ~sp ~sd ~data:() >>= fun login_box -> 
           mywikibox#editable_wikibox ~sp ~sd ~classe:["mainbox"] 
             ~cols:80 ~rows:30 ~data:(wiki.Wiki.id, 1l) ()

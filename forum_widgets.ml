@@ -243,13 +243,15 @@ object (self)
            return {{
                      <div class="message_data">
                        [
-                         <h4>['posted by: ' !{: s.author :} ' ' !{: sod s.datetime :}]
+                         <h4>['posted by: ' !{: s.author :} ' ' 
+                                !{: sod s.datetime :}]
                          <pre>{: s.text :}
                            !{: match role with
                                | Forum_sql.Moderator -> 
                                    {{ [{: post_form ~service:srv_message_toggle
                                           ~sp (self#toggle_form s.hidden s.id)
-                                          ((Forum_sql.get_id forum_id), (thread_id, None)) :}] }}
+                                          ((Forum_sql.get_id forum_id), 
+                                           (thread_id, None)) :}] }}
                                | _ -> {{ [] }}
                                    :}
                            {: a srv_reply_message sp

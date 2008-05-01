@@ -247,7 +247,7 @@ object (self)
          the service is unavailable at the moment."] }}) *)
       
   method private page_edit err = fun sp () () ->
-    let sd = Ocsimore_common.create_sd () in
+    let sd = Ocsimore_common.get_sd sp in
     Users.is_logged_on sp sd >>= fun logged ->
     if logged
     then
@@ -302,9 +302,9 @@ object (self)
                     }}) () :} 
              <p>[<strong>{: err :}]] }}
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
-
+      
   method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
-    let sd = Ocsimore_common.create_sd () in
+    let sd = Ocsimore_common.get_sd sp in
     Users.is_logged_on sp sd >>= fun logged ->
     if logged
     then
@@ -322,10 +322,10 @@ object (self)
          Users.set_session_data sp sd user >>= fun () ->
          self#container
            ~sp
-           ~sd:Users.anonymous_sd
+           ~sd (*VVV was: Users.anonymous_sd, but why? *)
            ~contents:{{ [<h1>"Personal information updated"] }})
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
-                
+(*VVV: Must be accessible only to logged users *)
       
 
   method private add_parameter_handler user = fun sp () (url, param_name) ->
@@ -348,7 +348,7 @@ object (self)
     Lwt.catch
       (fun () -> 
          authenticate ~name:usr ~pwd  >>= fun user -> 
-         let sd = Ocsimore_common.create_sd () in
+         let sd = Ocsimore_common.create_empty_sd () in
          Users.set_session_data sp sd user >>= fun () -> 
          all_login_actions sp user >>= fun () ->
          Lwt.return [Ocsimore_common.Session_data sd]) 
@@ -357,11 +357,12 @@ object (self)
   method add_login_actions f =
     let old_la = all_login_actions in
     all_login_actions <- fun sp u -> 
-      old_la sp u >>= (fun () -> f sp u)
+    old_la sp u >>= (fun () -> f sp u)
                 
   method private mk_act_logout sp () () = 
     all_logout_actions sp >>= fun () ->
-    close_session ~sp () >>= fun () -> return []
+    close_session ~sp () >>= fun () -> 
+    return [] (* do not send sd here! *)
       
   method add_logout_actions f =
     let old_la = all_logout_actions in
@@ -393,7 +394,7 @@ let connect sm srv container
   begin
     register srv
       (fun sp get_params post_params ->
-         let sd = Ocsimore_common.create_sd () in
+         let sd = Ocsimore_common.get_sd sp in
          Lwt_util.map_serial
            (fun w -> w ~sp) 
            (fwl get_params post_params) >>= fun c -> 

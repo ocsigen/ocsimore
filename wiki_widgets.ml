@@ -142,7 +142,7 @@ class editable_wikibox () =
             Eliom_parameters.opt (Eliom_parameters.string "deladmin")
          ))
       (fun sp () p -> 
-         let sd = Ocsimore_common.create_sd () in
+         let sd = Ocsimore_common.get_sd sp in
          Wiki.save_wikibox sp sd p)
   in
 (*  fun <other parameters if any> -> *)

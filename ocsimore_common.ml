@@ -22,6 +22,16 @@
 
 type session_data = Polytables.t
 
-let create_sd = Polytables.create
-
 exception Session_data of session_data
+
+let create_empty_sd = Polytables.create
+
+let get_sd ~sp =
+  let rec f = function
+    | [] -> None
+    | (Session_data sd)::_ -> Some sd
+    | _::l -> f l
+  in
+  match f (Eliom_sessions.get_exn sp) with
+    | None -> create_empty_sd ()
+    | Some sd -> sd

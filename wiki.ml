@@ -225,10 +225,13 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
                Lwt.return [])
           (fun e -> 
              Lwt.return 
-               [Wiki_action_info (Error (d, Action_failed e))])
+               [Ocsimore_common.Session_data sd;
+                Wiki_action_info (Error (d, Action_failed e))])
         else
-          Lwt.return [Wiki_action_info (Error (d, Operation_not_allowed))]
-    | _ -> Lwt.return [Wiki_action_info (Error (d, Operation_not_allowed))])
+          Lwt.return [Ocsimore_common.Session_data sd;
+                      Wiki_action_info (Error (d, Operation_not_allowed))]
+    | _ -> Lwt.return [Ocsimore_common.Session_data sd;
+                       Wiki_action_info (Error (d, Operation_not_allowed))])
     >>= fun r ->
   (match role with
     | Admin ->

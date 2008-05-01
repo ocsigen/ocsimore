@@ -49,4 +49,12 @@ See for example wiki.ml.
 Warning: Polytables is not thread-safe. Do not use function that access ~sd
 inside Lwt_preemptive.detach!
 
+When doing an action, DO NOT FORGET to send the session data to the
+subsequent service by returning the exception Ocsimore_common.Session_data.
+At the beginning of a service handler, call Ocsimore_common.get_sd
+that will get the previous sd if it exists, or create a new one otherwise.
+
  - Catching exceptions:
+To be sure that all exceptions occurring during a db request are catched
+and result in an error message in the box, I use the method
+Widget.widget_with_error_box#bind_or_display_error
