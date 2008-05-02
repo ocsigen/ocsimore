@@ -15,6 +15,6 @@ of your ocsigen.conf file.
     <extension module="/path-to/ocsimore.cma"/>
 
     <host>
-      <module file="/path_to/ocsimoreexample.cmo" />
+      <module file="/path_to/example.cmo" />
       <static dir="/path_to/ocsimore/static" />    
     </host>

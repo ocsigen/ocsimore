@@ -32,8 +32,11 @@ http://merjis.com/developers/pgocaml
 make depend
 make
 
+6. Write and compile your site
+or use example.ml:
+make example.cmo
 
-6. Adapt your ocsigen.conf using ocsigen.conf.example
+7. Adapt your ocsigen.conf using ocsigen.conf.example
 and run Ocsigen with user ocsigen
 
 

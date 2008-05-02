@@ -18,9 +18,7 @@ OCSIMORE_SRC_NOSQL = $(OCSIMORE_SRC1) $(OCSIMORE_SRC2) $(OCSIMORE_SRC3)
 OCSIMORE_SQL = $(OCSIMORE_SQL1) $(OCSIMORE_SQL2)
 
 # services.ml
-OCSIMORE_MLI = widget.mli forum_widgets.mli forum.mli \
-	session_manager.mli setOfSets.mli users.mli user_widgets.mli \
-	wiki.mli wiki_parser.mli wiki_widgets.mli
+OCSIMORE_MLI = $(OCSIMORE_SRC:.ml=.mli)
 #services.mli 
 OCSIMORE_CMO = $(OCSIMORE_SRC:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
