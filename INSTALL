@@ -1,5 +1,10 @@
-
-1. Install postgresql if needed
+1. Requirements
+ - postgresql (even for compiling)
+ - ocaml
+ - ocamlduce
+ - ocsigen and eliom with compiled ocamlduce support
+ - pgocaml with lwt support
+ - menhir
 
 2. Run 
 

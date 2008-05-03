@@ -39,7 +39,7 @@ type db_t = (string, bool) Hashtbl.t PGOCaml.t
 let connect () =
   PGOCaml.connect ~database:"ocsimore" ~user:Ocsimore_config.user ();;
 
-let pool = Lwt_pool.create 50 connect
+let pool = Lwt_pool.create 40 connect
 
 (*
 type db_int_t = int32;;

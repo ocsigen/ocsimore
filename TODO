@@ -35,6 +35,10 @@ How to make sure that:
 
 Wiki:
  - What if two users modify the same page at the same time?
+ - Revoir le changement des droits.
+ En particulier il ne faut pas enegistrer une nouvelle version si l'on a 
+ seulement changé les droits, pas le contenu.
+ Ou alors faut-il sauver les droits pour chaque version ???
 
 Users:
  - encryption of password for the db
@@ -61,6 +65,7 @@ Wikisyntax:
  - extensible?
  - AST interpreter must be configurable (for ex if we want to forbid images in
  forum messages, or some kind of boxes (wikibox in forum message...))
+ - We need a way to escape symbols. How does it work in mediawiki?
 
 Forum:
  - clean everything

@@ -66,7 +66,7 @@ object (self)
   val ne_class = "noned_wikibox"
        
   method pretty_print_wikisyntax content =
-    Lwt.return {{ {: content :} }}
+    Lwt.return (Ocamlduce.Utf8.make content)
 
   method private retrieve_wikibox_content ids =
     Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
@@ -327,8 +327,9 @@ object (self)
        {{[
            {:
               Eliom_duce.Xhtml.post_form
-              action_send_wikibox
-              sp (draw_form rightowners) ()
+              ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wikibox
+              ~sp (draw_form rightowners) ()
               :}]
         }}
 
