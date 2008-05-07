@@ -196,25 +196,33 @@ let get_user_by_id ~id =
   then Lwt.return admin
   else get_user_by_id_from_db ~id
 
+let add_to_group ~user ~group =
+  User_sql.add_to_group user.id group >>= fun () ->
+  user.groups <- list_add group user.groups;
+  Lwt.return ()
+
 let create_user ~name ~pwd ~fullname ~email ~groups =
   try
     ignore (get_group name);
     Lwt.fail UserExists
   with Not_found ->
-  new_group ~name >>= fun _ -> (* we create a group for each user *)
+  new_group ~name >>= fun g -> (* we create a group for each user *)
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
     (function 
        | Not_found ->
            (User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups
            >>= fun i ->
-           Lwt.return { id = i;
-                        name = name; 
-                        pwd = pwd; 
-                        fullname = fullname; 
-                        email = email;
-                        groups = groups
-                      })
+           let u = { id = i;
+                     name = name; 
+                     pwd = pwd; 
+                     fullname = fullname; 
+                     email = email;
+                     groups = groups
+                   }
+           in
+           add_to_group ~user:u ~group:g >>= fun () ->
+           Lwt.return u)
        | e -> Lwt.fail e)
 
 
@@ -314,11 +322,6 @@ let in_group ~user ~group =
      (not (user == anonymous) &&
         (user == admin ||
            List.mem group user.groups)))
-
-let add_to_group ~user ~group =
-  User_sql.add_to_group user.id group >>= fun () ->
-  user.groups <- list_add group user.groups;
-  Lwt.return ()
 
 let delete_user ~user =
   User_sql.delete_user user.id
