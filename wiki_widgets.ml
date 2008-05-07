@@ -237,7 +237,7 @@ object (self)
                    ~name:contentname
                    ~rows
                    ~cols
-                   ~value:{{ {: content :} }} () :}
+                   ~value:(Ocamlduce.Utf8.make content) () :}
               <br>[]
             ]
           }}
