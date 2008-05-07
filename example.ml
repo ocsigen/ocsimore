@@ -29,6 +29,14 @@ object (self)
 
 end;;
 
+class creole_wikibox () = object
+  inherit Wiki_widgets.editable_wikibox ()
+
+  method pretty_print_wikisyntax content =
+    Lwt.return (Wiki_syntax.xml_of_wiki content)
+
+end
+
 let _ =
   Lwt_unix.run
     ((* creating a wiki: *)
@@ -67,7 +75,7 @@ let _ =
 
      (* widgets creation: *)
      let myloginbox = new User_widgets.login_widget example_sm in
-     let mywikibox = new Wiki_widgets.editable_wikibox () in
+     let mywikibox = new creole_wikibox () in
      (* all widgets created *)
 
      register

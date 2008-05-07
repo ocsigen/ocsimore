@@ -79,3 +79,13 @@ Forum:
 Ocsimore_lib:
  - De quoi on se sert ?
  - interface
+
+Ocamlduce:
+ - I am worried about the efficiency of sequence concatenation in ocamlduce
+ for example in the creole parser ... They seem to be pairs so it must be ok, 
+ but ... (pairs of what?)
+ For example in creole_parser.mly there is several times:
+ {{ map {: s :} with i -> i }}. Is it ok?
+
+Creole:
+ - There are shift/reduce conflicts. Is it ok?

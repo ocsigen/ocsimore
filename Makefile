@@ -8,7 +8,7 @@ OCSIMORE_SRC1 = polytables.ml ocsimore_config.ml ocsimore_common.ml
 OCSIMORE_SRC2 = users.ml
 OCSIMORE_SRC3 = forum.ml wiki.ml session_manager.ml \
 	ocsimorelib.ml widget.ml user_widgets.ml forum_widgets.ml \
-	wiki_parser.ml wiki_widgets.ml
+	wikicreole.ml wiki_syntax.ml wiki_widgets.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
@@ -22,6 +22,9 @@ OCSIMORE_SQL = $(OCSIMORE_SQL1) $(OCSIMORE_SQL2)
 
 # services.ml
 OCSIMORE_MLI = $(OCSIMORE_SRC:.ml=.mli)
+#widget.mli forum_widgets.mli forum.mli \
+#	session_manager.mli setOfSets.mli users.mli user_widgets.mli \
+#	wiki.mli wiki_parser.mli wiki_widgets.mli
 #services.mli 
 OCSIMORE_CMO = $(OCSIMORE_SRC:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
@@ -104,6 +107,20 @@ sql: createdb.sql.in user_createdb.sql.in forum_createdb.sql.in wiki_createdb.sq
 %.cmi: %.mli
 	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	
 
+.SUFFIXES: .mll .mly .mli .ml .cmi .cmo .cmx
+
+.mll.mli:
+	$(CAMLLEX) $<
+
+.mll.ml:
+	$(CAMLLEX) $<
+
+.mly.ml:
+	$(MENHIR) $<
+
+.mly.mli:
+	$(CAMLYACC) $<
+
 depend:
 	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
@@ -111,6 +128,7 @@ depend:
 	ocamlfind ocamldep $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
-	rm -f *.cmo *.cmi *.cma *.sql ocsimore_config.ml
+	rm -f *.cmo *.cmi *.cma *.sql creole_lexer.ml creole_parser.ml \
+	ocsimore_config.ml
 
 include .depend
