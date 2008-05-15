@@ -125,7 +125,7 @@ depend:
 	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
-	ocamlfind ocamldep $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
+	ocamlfind ocamldep wikicreole.mll $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
 	rm -f *.cmo *.cmi *.cma *.sql creole_lexer.ml creole_parser.ml \

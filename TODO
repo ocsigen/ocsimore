@@ -65,7 +65,6 @@ Wikisyntax:
  - extensible?
  - AST interpreter must be configurable (for ex if we want to forbid images in
  forum messages, or some kind of boxes (wikibox in forum message...))
- - We need a way to escape symbols. How does it work in mediawiki?
 
 Forum:
  - clean everything
@@ -88,4 +87,4 @@ Ocamlduce:
  {{ map {: s :} with i -> i }}. Is it ok?
 
 Creole:
- - There are shift/reduce conflicts. Is it ok?
+ - Extend the to Wikicreole extensions

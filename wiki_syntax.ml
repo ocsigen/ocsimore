@@ -23,6 +23,7 @@
 
 module W = Wikicreole
 
+(*AEFFFFFFF
 type pre_cont = 
   {{
      (Char | Xhtmltypes_duce.a | Xhtmltypes_duce.fontstyle
@@ -35,7 +36,7 @@ type pre_content =
   {{
      [ pre_cont* ]
    }}
-
+*)
 
 let make_string s = Ocamlduce.Utf8.make s
 
@@ -43,7 +44,7 @@ let element (c : Xhtmltypes_duce.inlines list) = {{ (map {: c :} with i -> i) }}
 
 let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) = {{ (map {: c :} with i -> i) }}
 
-let elementt (c : pre_content list) = {{ (map {: c :} with i -> i) }}
+let elementt (c : string list) = {{ (map {: c :} with i -> i) }}
 
 let element4 c = {{ (map {: c :} with i -> i) }}
 
@@ -59,23 +60,9 @@ let list_builder = function
       in
       {{ [ (f a) !{: List.map f l :} ] }}
 
-let rev_pre l = 
-  let rec aux acc = function 
-  | [] -> acc
-  | a::l -> match a with
-      | {{ [ a::pre_cont* ] }} -> aux (a::acc) l
-      | {{ _ }} -> aux acc l (*VVV ??? *)
-  in
-  aux [] l
-
-let rev_a l =
-  let rec aux (acc : {{ [ Xhtmltypes_duce.a_content* ]}} list) = function 
-  | [] -> acc
-  | a::l -> match a with
-      | {{ [ a::Xhtmltypes_duce.a_content* ] }} -> aux (a::acc) l
-      | {{ _ }} -> aux acc l (*VVV ??? *)
-  in
-  aux [] l
+let inline (x : Xhtmltypes_duce.a_content)
+    : Xhtmltypes_duce.inlines
+    = {{ {: [ x ] :} }}
 
 let builder =
   { W.chars = make_string;
@@ -84,20 +71,20 @@ let builder =
     W.a_elem =
       (fun addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) -> 
-         {{ [ <a href={: addr :}>{: element2 c :} ] }});
+         {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
     W.br_elem = (fun () -> {{ [<br>[]] }});
     W.img_elem =
       (fun addr alt -> 
-         {{ [<img src={: addr :} alt={: alt :}>[] ] }});
+         {{ [<img src={: Ocamlduce.Utf8.make addr :} alt={: Ocamlduce.Utf8.make alt :}>[] ] }});
     W.tt_elem = (fun a -> {{ [<tt>(element a) ] }});
     W.p_elem = (fun a -> {{ <p>(element a) }});
     W.pre_elem = (fun a -> {{ <pre>(elementt a) }});
-    W.h1_elem = (fun l a -> {{ <h1>(element a) }});
-    W.h2_elem = (fun l a -> {{ <h2>(element a) }});
-    W.h3_elem = (fun l a -> {{ <h3>(element a) }});
-    W.h4_elem = (fun l a -> {{ <h4>(element a) }});
-    W.h5_elem = (fun l a -> {{ <h5>(element a) }});
-    W.h6_elem = (fun l a -> {{ <h6>(element a) }});
+    W.h1_elem = (fun a -> {{ <h1>(element a) }});
+    W.h2_elem = (fun a -> {{ <h2>(element a) }});
+    W.h3_elem = (fun a -> {{ <h3>(element a) }});
+    W.h4_elem = (fun a -> {{ <h4>(element a) }});
+    W.h5_elem = (fun a -> {{ <h5>(element a) }});
+    W.h6_elem = (fun a -> {{ <h6>(element a) }});
     W.ul_elem = (fun a -> {{ <ul>(list_builder a) }});
     W.ol_elem = (fun a -> {{ <ol>(list_builder a) }});
     W.hr_elem = (fun () -> {{ <hr>[] }});
@@ -117,8 +104,7 @@ let builder =
              let row = f2 row in
              let rows = List.map f2 rows in
              {{ <table>[<tbody>[ row !{: rows :} ] ] }});
-    rev_pre = rev_pre;
-    rev_a = rev_a;
+    W.inline = fun x -> Obj.magic x;
   }
 
 let xml_of_wiki s = {{ {: Wikicreole.from_string builder s :} }}
