@@ -21,4 +21,22 @@
    @author Vincent Balat
 *)
 
-val xml_of_wiki : string -> Xhtmltypes_duce.flows
+(** Define new extensions to the wiki syntax. *)
+val add_inline_extension : 
+  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+              (string * string) list -> 
+              string option -> 
+              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t) -> unit
+
+val add_block_extension : 
+  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+              (string * string) list -> 
+              string option -> 
+              Xhtmltypes_duce.block Lwt.t) -> unit
+
+(** Returns the XHTML corresponding to a wiki page. *)
+val xml_of_wiki :
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  string -> 
+  Xhtmltypes_duce.flows Lwt.t

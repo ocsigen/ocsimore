@@ -32,8 +32,8 @@ end;;
 class creole_wikibox () = object
   inherit Wiki_widgets.editable_wikibox ()
 
-  method pretty_print_wikisyntax content =
-    Lwt.return (Wiki_syntax.xml_of_wiki content)
+  method pretty_print_wikisyntax ~sp ~sd content =
+    Wiki_syntax.xml_of_wiki ~sp ~sd content
 
 end
 
@@ -56,6 +56,19 @@ let _ =
                 "admin"
                 "First wikibox" 
                 "Welcome!"
+                () >>= fun _ ->
+              Lwt.return ()))
+     >>= fun () ->
+
+     (* Filling the second wikibox if it does not exist: *)
+     (Wiki_sql.get_wikibox_data (wiki.Wiki.id, 2l) ()
+     >>= function
+       | Some _ -> Lwt.return ()
+       | _ -> (Wiki.new_wikibox 
+                wiki
+                "admin"
+                "Second wikibox" 
+                "Second wiki box"
                 () >>= fun _ ->
               Lwt.return ()))
      >>= fun () ->

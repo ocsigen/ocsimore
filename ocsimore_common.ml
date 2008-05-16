@@ -35,3 +35,4 @@ let get_sd ~sp =
   match f (Eliom_sessions.get_exn sp) with
     | None -> create_empty_sd ()
     | Some sd -> sd
+

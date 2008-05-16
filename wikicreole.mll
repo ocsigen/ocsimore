@@ -22,7 +22,7 @@
    @author Jérôme Vouillon
 *)
 
-type ('flow, 'inline, 'a_content) builder =
+type ('flow, 'inline, 'a_content, 'param) builder =
   { chars : string -> 'a_content;
     strong_elem : 'inline list -> 'a_content;
     em_elem : 'inline list -> 'a_content;
@@ -42,11 +42,20 @@ type ('flow, 'inline, 'a_content) builder =
     ol_elem : ('inline list * 'flow option) list -> 'flow;
     hr_elem : unit -> 'flow;
     table_elem : (bool * 'inline list) list list -> 'flow;
-    inline : 'a_content -> 'inline }
+    inline : 'a_content -> 'inline;
+    inline_plugin : 
+      string -> 'param -> (string * string) list -> string option -> 'a_content;
+    (*VVV what if we want to create links? *)
+    block_plugin : 
+      string -> 'param -> (string * string) list -> string option -> 'flow;
+    error : string -> 'a_content;
+  }
 
 type style = Bold | Italic
 
 type list_kind = Unordered | Ordered
+
+type ('b, 'i) ext_kind = Block of 'b | Inline of 'i
 
 type ('inline, 'flow) stack =
     Style of style * 'inline list * ('inline, 'flow) stack
@@ -62,8 +71,9 @@ type ('inline, 'flow) stack =
   | Row of (bool * 'inline list) list * ('inline, 'flow) stack
   | Entry of bool * ('inline, 'flow) stack
 
-type ('flow, 'inline, 'a_content) ctx =
-  { build : ('flow, 'inline, 'a_content) builder;
+type ('flow, 'inline, 'a_content, 'param) ctx =
+  { build : ('flow, 'inline, 'a_content, 'param) builder;
+    param : 'param;
     mutable italic : bool;
     mutable bold : bool;
     mutable heading : bool;
@@ -260,7 +270,7 @@ let white_space = [ ' ' '\t' ]
    spaces as well ? *)
 
 let not_line_break = [^ '\n' '\r']
-let reserved_chars = [ '*' '/' '\\' '=' '[' ']' '{' '~' '|' 'h' 'f' ]
+let reserved_chars = [ '*' '/' '\\' '=' '[' ']' '{' '~' '|' 'h' 'f' '<' ]
 let punctuation = [ ',' '.' '?' '!' ':' ';' '"' '\'' ]
 
 let first_char = (not_line_break # ['~' '|']) | ('=' +)
@@ -387,7 +397,7 @@ and parse_rem c =
       push c (c.build.br_elem ());
       parse_rem c lexbuf
     }
-  | "{{" (not_line_break # ['|' '{'])  (not_line_break # '|') * '|'
+  | "{{" (not_line_break # ['|' '{']) (not_line_break # '|') * '|'
          ('}' ? (not_line_break # '}')) * "}}" {
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
@@ -395,6 +405,21 @@ and parse_rem c =
       let alt = String.sub s (i + 1) (String.length s - i - 3) in
       push c (c.build.img_elem url alt);
       parse_rem c lexbuf
+    }
+  | "<<" ((not_line_break # white_space) # '|') * {
+      let s = Lexing.lexeme lexbuf in
+      let l = String.length s in
+      let name = String.sub s 2 (l - 2) in
+      match parse_extension name [] c lexbuf with
+      | Inline i -> 
+          push c i;
+          parse_rem c lexbuf
+      | Block b ->
+          c.flow <- b :: c.flow;
+          c.inline_mix <- [];
+          c.heading <- false;
+          c.stack <- Paragraph;
+          parse_bol c lexbuf
     }
   | "{{{" ('}' ? '}' ? (not_line_break # '}')) * '}' * "}}" {
       let s = Lexing.lexeme lexbuf in
@@ -456,21 +481,95 @@ and parse_nowiki c =
       parse_nowiki c lexbuf
     }
 
+and parse_extension name args c =
+    parse
+      (white_space *) | (line_break *) {
+        parse_extension name args c lexbuf
+      }
+    | '|' {
+        parse_extension_content name args "" c lexbuf
+      }
+    | ">>" {
+        match
+          try
+            Some (c.build.block_plugin name)
+          with Not_found -> None
+        with
+          | Some f -> Block (f c.param (List.rev args) None)
+          | None -> 
+              Inline (c.build.inline_plugin name c.param (List.rev args) None)
+      }
+    | (not_line_break # white_space # '=') * '=' 
+        ((white_space | line_break) *) '\'' {
+        let s = Lexing.lexeme lexbuf in
+        let i = String.index s '=' in
+        let arg_name = String.sub s 0 i in
+        let arg_value = parse_arg_value "" c lexbuf in
+        parse_extension name ((arg_name, arg_value)::args) c lexbuf
+      }
+    | _ {
+        ignore (parse_extension_content name args "" c lexbuf);
+        Inline (c.build.error ("Syntax error in extension "^name))
+      }
+
+and parse_extension_content name args beg c =
+    parse
+      '~' (_ as ch) {
+        parse_extension_content name args (beg^(String.make 1 ch)) c lexbuf
+      }
+    | ">>" {
+        match
+          try
+            Some (c.build.block_plugin name)
+          with Not_found -> None
+        with
+          | Some f -> Block (f c.param (List.rev args) None)
+          | None -> 
+              Inline (c.build.inline_plugin name c.param (List.rev args) None)
+      }
+    | '>' ? [^ '~' '>' ] * {
+        let s = Lexing.lexeme lexbuf in
+        parse_extension_content name args (beg^s) c lexbuf
+      }
+
+and parse_arg_value beg c =
+    parse
+      '~' (_ as ch) {
+        parse_arg_value (beg^(String.make 1 ch)) c lexbuf
+      }
+    | '\'' {
+        beg
+      }
+    | [^ '~' '\'' ] * {
+        let s = Lexing.lexeme lexbuf in
+        parse_arg_value (beg^s) c lexbuf
+      }
+
+
 {
 
-let context b =
-  { build = b; italic = false; bold = false;
-    heading = false; link = false; list_level = 0;
-    inline_mix = []; link_content = []; pre_content = []; list = []; flow = [];
+let context param b =
+  { build = b; 
+    param = param;
+    italic = false; 
+    bold = false;
+    heading = false; 
+    link = false; 
+    list_level = 0;
+    inline_mix = []; 
+    link_content = []; 
+    pre_content = []; 
+    list = []; 
+    flow = [];
     stack = Paragraph }
 
-let from_lexbuf b lexbuf =
-  let c = context b in
+let from_lexbuf param b lexbuf =
+  let c = context param b in
   parse_bol c lexbuf;
   List.rev c.flow
 
-let from_channel b ch = from_lexbuf b (Lexing.from_channel ch)
+let from_channel param b ch = from_lexbuf param b (Lexing.from_channel ch)
 
-let from_string b s = from_lexbuf b (Lexing.from_string s)
+let from_string param b s = from_lexbuf param b (Lexing.from_string s)
 
 }

@@ -65,7 +65,7 @@ object (self)
 
   val ne_class = "noned_wikibox"
        
-  method pretty_print_wikisyntax content =
+  method pretty_print_wikisyntax ~sp ~sd content =
     Lwt.return (Ocamlduce.Utf8.make content)
 
   method private retrieve_wikibox_content ids =
@@ -88,7 +88,7 @@ object (self)
           self#bind_or_display_error
             ~classe
             (self#retrieve_wikibox_content data)
-            (self#pretty_print_wikisyntax)
+            (self#pretty_print_wikisyntax ~sp ~sd)
             (self#display_noneditable_box)
           | Wiki.Nonauthorized ->
               Lwt.return
@@ -464,20 +464,20 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_old_wikibox_content ~sp data version)
-                     (self#pretty_print_wikisyntax)
+                     (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_old_wikibox ~sp data version)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
                      ~classe
                      ~error:(self#create_error_message error)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax)
+                     (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_editable_box ~sp data)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax)
+                     (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_editable_box ~sp data)
             )
         | Wiki.Lurker -> 
@@ -490,7 +490,7 @@ object (self)
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax)
+                     (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_noneditable_box)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
@@ -498,13 +498,13 @@ object (self)
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax)
+                     (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_noneditable_box)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax)
+                     (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_noneditable_box)
             )
        | Wiki.Nonauthorized ->
@@ -514,5 +514,33 @@ object (self)
                 ~message:"You are not allowed to see this content."
                 ())
      )
+
+   initializer
+     Wiki_syntax.add_block_extension "wikibox"
+       (fun (sp, sd) args c -> 
+          try
+            let wiki = Int32.of_string (List.assoc "wiki" args) in
+            try
+              let box = Int32.of_string (List.assoc "box" args) in
+              self#editable_wikibox 
+                ?rows:(Ocsimorelib.int_of_string_opt
+                         (Ocsimorelib.list_assoc_opt "rows" args))
+                ?cols:(Ocsimorelib.int_of_string_opt
+                         (Ocsimorelib.list_assoc_opt "cols" args))
+                ?classe:(try Some [List.assoc "class" args] 
+                         with Not_found -> None) 
+                ~data:(wiki, box)
+                ~sp
+                ~sd
+                ()
+            with Not_found ->
+              Lwt.return
+                (self#display_error_box
+                   ~message:"Wiki error: argument \"box\" missing in wikibox extension" ())
+          with Not_found ->
+            Lwt.return
+              (self#display_error_box ~message:"Wiki error: argument \"wiki\" missing in wikibox extension" ())
+            
+       )
               
 end

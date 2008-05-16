@@ -52,3 +52,17 @@ and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
 
 let build_class_attr ~classe =
   List.fold_left (fun s e -> s^" "^e) "" classe
+
+
+let list_assoc_opt a l =
+  try
+    Some (List.assoc a l)
+  with Not_found -> None
+
+let bind_opt o f = match o with
+  | None -> None
+  | Some s -> f s
+
+let int_of_string_opt s = 
+  bind_opt s (fun i -> Some (int_of_string i))
+

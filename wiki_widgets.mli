@@ -49,7 +49,10 @@ class noneditable_wikibox :
       ?classe:string list ->
       data:Wiki_sql.wiki * int32 -> Xhtmltypes_duce.block Lwt.t
 
-    method pretty_print_wikisyntax : string -> Xhtmltypes_duce.flows Lwt.t
+    method pretty_print_wikisyntax : 
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      string -> Xhtmltypes_duce.flows Lwt.t
     
     method private retrieve_wikibox_content :
       Wiki_sql.wiki * int32 -> string Lwt.t

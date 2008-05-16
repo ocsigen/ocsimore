@@ -21,44 +21,50 @@
    @author Vincent Balat
 *)
 
+let (>>=) = Lwt.bind
+
 module W = Wikicreole
 
-(*AEFFFFFFF
-type pre_cont = 
-  {{
-     (Char | Xhtmltypes_duce.a | Xhtmltypes_duce.fontstyle
-     | Xhtmltypes_duce.phrase | Xhtmltypes_duce.special_pre
-     | Xhtmltypes_duce.misc_inline
-     | Xhtmltypes_duce.inline_forms)
-   }}
+module H = Hashtbl.Make(struct
+                          type t = string
+                          let equal = (=)
+                          let hash = Hashtbl.hash 
+                        end)
 
-type pre_content = 
-  {{
-     [ pre_cont* ]
-   }}
-*)
+let block_extension_table = H.create 8
+let inline_extension_table = H.create 8
 
-let make_string s = Ocamlduce.Utf8.make s
+let add_block_extension k f = H.add block_extension_table k f
 
-let element (c : Xhtmltypes_duce.inlines list) = {{ (map {: c :} with i -> i) }}
+let add_inline_extension k f = H.add inline_extension_table k f
 
-let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) = {{ (map {: c :} with i -> i) }}
+let make_string s = Lwt.return (Ocamlduce.Utf8.make s)
+
+let element (c : Xhtmltypes_duce.inlines Lwt.t list) = 
+  Lwt_util.map (fun x -> x) c >>= fun c ->
+  Lwt.return {{ (map {: c :} with i -> i) }}
+
+let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) = 
+  {{ (map {: c :} with i -> i) }}
 
 let elementt (c : string list) = {{ (map {: c :} with i -> i) }}
 
-let element4 c = {{ (map {: c :} with i -> i) }}
-
 let list_builder = function
-  | [] -> {{ [ <li>[] ] }} (*VVV ??? *)
+  | [] -> Lwt.return {{ [ <li>[] ] }} (*VVV ??? *)
   | a::l ->
       let f (c, 
-             (l : Xhtmltypes_duce.block option)) =
-        {{ <li>[ !(element c)  
-                   !{: match l with
-                       | Some v -> [v]
-                       | None -> [] :}  ] }}
+             (l : Xhtmltypes_duce.block Lwt.t option)) =
+        element c >>= fun r ->
+        (match l with
+          | Some v -> v >>= fun v -> Lwt.return [v]
+          | None -> Lwt.return []) >>= fun l ->
+        Lwt.return
+          {{ <li>[ !r
+                   !{: l :} ] }}
       in
-      {{ [ (f a) !{: List.map f l :} ] }}
+      f a >>= fun r ->
+      Lwt_util.map f l >>= fun l ->
+      Lwt.return {{ [ r !{: l :} ] }}
 
 let inline (x : Xhtmltypes_duce.a_content)
     : Xhtmltypes_duce.inlines
@@ -66,45 +72,105 @@ let inline (x : Xhtmltypes_duce.a_content)
 
 let builder =
   { W.chars = make_string;
-    W.strong_elem = (fun a -> {{ [<strong>(element a) ] }});
-    W.em_elem = (fun a -> {{ [<em>(element a) ] }});
+    W.strong_elem = (fun a -> 
+                       element a >>= fun r ->
+                       Lwt.return {{ [<strong>r ] }});
+    W.em_elem = (fun a -> 
+                   element a >>= fun r ->
+                   Lwt.return {{ [<em>r ] }});
     W.a_elem =
       (fun addr 
-         (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) -> 
-         {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
-    W.br_elem = (fun () -> {{ [<br>[]] }});
+         (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
+           Lwt_util.map (fun x -> x) c >>= fun c ->
+           Lwt.return 
+             {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
+    W.br_elem = (fun () -> Lwt.return {{ [<br>[]] }});
     W.img_elem =
       (fun addr alt -> 
-         {{ [<img src={: Ocamlduce.Utf8.make addr :} alt={: Ocamlduce.Utf8.make alt :}>[] ] }});
-    W.tt_elem = (fun a -> {{ [<tt>(element a) ] }});
-    W.p_elem = (fun a -> {{ <p>(element a) }});
-    W.pre_elem = (fun a -> {{ <pre>(elementt a) }});
-    W.h1_elem = (fun a -> {{ <h1>(element a) }});
-    W.h2_elem = (fun a -> {{ <h2>(element a) }});
-    W.h3_elem = (fun a -> {{ <h3>(element a) }});
-    W.h4_elem = (fun a -> {{ <h4>(element a) }});
-    W.h5_elem = (fun a -> {{ <h5>(element a) }});
-    W.h6_elem = (fun a -> {{ <h6>(element a) }});
-    W.ul_elem = (fun a -> {{ <ul>(list_builder a) }});
-    W.ol_elem = (fun a -> {{ <ol>(list_builder a) }});
-    W.hr_elem = (fun () -> {{ <hr>[] }});
+         Lwt.return 
+           {{ [<img
+                  src={: Ocamlduce.Utf8.make addr :} 
+                  alt={: Ocamlduce.Utf8.make alt :}>[] ] }});
+    W.tt_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ [<tt>r ] }});
+    W.p_elem = (fun a -> 
+                  element a >>= fun r ->
+                  Lwt.return {{ <p>r }});
+    W.pre_elem = (fun a ->  Lwt.return {{ <pre>(elementt a) }});
+    W.h1_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ <h1>r }});
+    W.h2_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ <h2>r }});
+    W.h3_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ <h3>r }});
+    W.h4_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ <h4>r }});
+    W.h5_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ <h5>r }});
+    W.h6_elem = (fun a ->
+                   element a >>= fun r ->
+                   Lwt.return {{ <h6>r }});
+    W.ul_elem = (fun a ->
+                   list_builder a >>= fun r ->
+                   Lwt.return {{ <ul>r }});
+    W.ol_elem = (fun a ->
+                   list_builder a >>= fun r ->
+                   Lwt.return {{ <ol>r }});
+    W.hr_elem = (fun () -> Lwt.return {{ <hr>[] }});
     W.table_elem =
       (function 
-         | [] -> {{ <p>[] }} (*VVV ??? *)
+         | [] -> Lwt.return {{ <p>[] }} (*VVV ??? *)
          | row::rows ->
              let f (h, c) =
-               if h 
-               then {{ <th>(element4 c) }}
-               else {{ <td>(element4 c) }}
+               element c >>= fun r ->
+               Lwt.return
+                 (if h 
+                 then {{ <th>r }}
+                 else {{ <td>r }})
              in
              let f2 = function
-               | [] -> {{ <tr>[<td>[]] }} (*VVV ??? *)
-               | a::l -> {{ <tr>[ (f a) !{: List.map f l :} ] }}
+               | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
+               | a::l -> 
+                   f a >>= fun r ->
+                   Lwt_util.map f l >>= fun l ->
+                   Lwt.return {{ <tr>[ r !{: l :} ] }}
              in
-             let row = f2 row in
-             let rows = List.map f2 rows in
-             {{ <table>[<tbody>[ row !{: rows :} ] ] }});
-    W.inline = fun x -> Obj.magic x;
+             f2 row >>= fun row ->
+             Lwt_util.map f2 rows >>= fun rows ->
+             Lwt.return {{ <table>[<tbody>[ row !{: rows :} ] ] }});
+    W.inline = (fun x -> x >>= fun x -> Lwt.return x);
+    W.block_plugin = H.find block_extension_table;
+    W.inline_plugin =
+      (fun name param args content -> 
+         let f = 
+           try H.find inline_extension_table name
+           with Not_found -> 
+             (fun _ _ _ ->
+                Lwt.return
+                  {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
+                                  !{: name :} ] ] ] }})
+         in f param args content);
+(*
+      (fun name param args content -> 
+         let s = "PLUGIN "^name^"\n"^
+           (List.fold_left
+              (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
+           (match content with
+              | None -> "" 
+              | Some content -> "\n|\n"^content)
+         in
+         Lwt.return {{ [ <b>{: s :} ] }});
+*)
+    W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let xml_of_wiki s = {{ {: Wikicreole.from_string builder s :} }}
+let xml_of_wiki ~sp ~sd s = 
+  Lwt_util.map (fun x -> x) (Wikicreole.from_string (sp, sd) builder s) 
+  >>= fun r ->
+  Lwt.return {{ {: r :} }}
