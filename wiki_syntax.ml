@@ -156,17 +156,6 @@ let builder =
                   {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
                                   !{: name :} ] ] ] }})
          in f param args content);
-(*
-      (fun name param args content -> 
-         let s = "PLUGIN "^name^"\n"^
-           (List.fold_left
-              (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
-           (match content with
-              | None -> "" 
-              | Some content -> "\n|\n"^content)
-         in
-         Lwt.return {{ [ <b>{: s :} ] }});
-*)
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
@@ -198,4 +187,14 @@ let _ =
        in
        Lwt.return 
          {{ <div (classe ++ id) >content }}
-    )
+    );
+  add_block_extension "raw"
+    (fun (sp, sd) args content ->
+       let s = "<<raw"^
+         (List.fold_left
+            (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
+         (match content with
+            | None -> "" 
+            | Some content -> "|"^content)^">>"
+       in
+       Lwt.return {{ <p>[ <b>{: s :} ] }})
