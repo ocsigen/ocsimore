@@ -87,4 +87,4 @@ Ocamlduce:
  {{ map {: s :} with i -> i }}. Is it ok?
 
 Creole:
- - Extend the to Wikicreole extensions
+ - How to write a <<span>> extension? (inline)

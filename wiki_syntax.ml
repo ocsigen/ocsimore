@@ -174,3 +174,28 @@ let xml_of_wiki ~sp ~sd s =
   Lwt_util.map (fun x -> x) (Wikicreole.from_string (sp, sd) builder s) 
   >>= fun r ->
   Lwt.return {{ {: r :} }}
+
+
+let _ =
+  add_block_extension "div"
+    (fun (sp, sd) args c -> 
+       let content = match c with
+         | Some c -> c
+         | None -> ""
+       in
+       xml_of_wiki ~sp ~sd content >>= fun content ->
+       let classe = 
+         try
+           let a = List.assoc "class" args in
+           {{ { class={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       let id = 
+         try
+           let a = List.assoc "id" args in
+           {{ { id={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       Lwt.return 
+         {{ <div (classe ++ id) >content }}
+    )
