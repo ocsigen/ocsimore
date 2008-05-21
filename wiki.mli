@@ -34,6 +34,14 @@ val create_wiki :
   unit -> 
   wiki_info Lwt.t
 
+(** Returns wiki information from an id. 
+    Wiki information is kept in memory (and savec in the database)
+*)
+val get_wiki_by_id : int32 -> wiki_info Lwt.t
+
+(** Returns wiki information from a name. *)
+val get_wiki_by_name : string -> wiki_info Lwt.t
+
 val new_wikibox :
   wiki:wiki_info ->
   author:string ->

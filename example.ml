@@ -73,6 +73,19 @@ let _ =
               Lwt.return ()))
      >>= fun () ->
 
+     (* Filling the third wikibox if it does not exist: *)
+     (Wiki_sql.get_wikibox_data (wiki.Wiki.id, 3l) ()
+     >>= function
+       | Some _ -> Lwt.return ()
+       | _ -> (Wiki.new_wikibox 
+                wiki
+                "admin"
+                "3rd wikibox" 
+                "3rd wiki box"
+                () >>= fun _ ->
+              Lwt.return ()))
+     >>= fun () ->
+
      let example_sminfo = {
        Session_manager.url = ["users"];
        default_groups = [];

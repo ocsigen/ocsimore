@@ -43,6 +43,7 @@ Wiki:
 Users:
  - encryption of password for the db
  - using PAM or LDAP for authentication
+ - All groups are kept in memory. Not good if too much users.
 
 User widgets:
  - clean everything

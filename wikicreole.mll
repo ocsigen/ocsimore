@@ -22,6 +22,8 @@
    @author Jérôme Vouillon
 *)
 
+type ('b, 'i) ext_kind = Block of 'b | Inline of 'i
+
 type ('flow, 'inline, 'a_content, 'param) builder =
   { chars : string -> 'a_content;
     strong_elem : 'inline list -> 'a_content;
@@ -44,18 +46,21 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     table_elem : (bool * 'inline list) list list -> 'flow;
     inline : 'a_content -> 'inline;
     inline_plugin : 
-      string -> 'param -> (string * string) list -> string option -> 'a_content;
+      string ->
+      'param -> (string * string) list -> string option -> 'a_content;
     (*VVV what if we want to create links? *)
     block_plugin : 
-      string -> 'param -> (string * string) list -> string option -> 'flow;
+      string ->
+      'param -> (string * string) list -> string option -> 'flow;
+    plugin_action : 
+      string -> int -> int -> 
+      'param -> (string * string) list -> string option -> unit;
     error : string -> 'a_content;
   }
 
 type style = Bold | Italic
 
 type list_kind = Unordered | Ordered
-
-type ('b, 'i) ext_kind = Block of 'b | Inline of 'i
 
 type ('inline, 'flow) stack =
     Style of style * 'inline list * ('inline, 'flow) stack
@@ -410,7 +415,8 @@ and parse_rem c =
       let s = Lexing.lexeme lexbuf in
       let l = String.length s in
       let name = String.sub s 2 (l - 2) in
-      match parse_extension name [] c lexbuf with
+      let start = Lexing.lexeme_start lexbuf in
+      match parse_extension start name [] c lexbuf with
       | Inline i -> 
           push c i;
           parse_rem c lexbuf
@@ -479,23 +485,28 @@ and parse_nowiki c =
       parse_nowiki c lexbuf
     }
 
-and parse_extension name args c =
+and parse_extension start name args c =
     parse
       (white_space *) | (line_break *) {
-        parse_extension name args c lexbuf
+        parse_extension start name args c lexbuf
       }
     | '|' {
-        parse_extension_content 0 name args "" c lexbuf
+        parse_extension_content start 0 name args "" c lexbuf
       }
     | ">>" {
+        let args = List.rev args in
+        c.build.plugin_action name 
+          start
+          (Lexing.lexeme_end lexbuf) 
+          c.param args None;
         match
           try
             Some (c.build.block_plugin name)
           with Not_found -> None
         with
-          | Some f -> Block (f c.param (List.rev args) None)
+          | Some f -> Block (f c.param args None)
           | None -> 
-              Inline (c.build.inline_plugin name c.param (List.rev args) None)
+              Inline (c.build.inline_plugin name c.param args None)
       }
     | (not_line_break # white_space # '=') * '=' 
         ((white_space | line_break) *) '\'' {
@@ -503,26 +514,31 @@ and parse_extension name args c =
         let i = String.index s '=' in
         let arg_name = String.sub s 0 i in
         let arg_value = parse_arg_value "" c lexbuf in
-        parse_extension name ((arg_name, arg_value)::args) c lexbuf
+        parse_extension start name ((arg_name, arg_value)::args) c lexbuf
       }
     | _ {
-        ignore (parse_extension_content 0 name args "" c lexbuf);
+        ignore (parse_extension_content start 0 name args "" c lexbuf);
         Inline (c.build.error ("Syntax error in extension "^name))
       }
 
-and parse_extension_content lev name args beg c =
+and parse_extension_content start lev name args beg c =
     parse
       '~' (_ as ch) {
-        parse_extension_content lev name args (beg^(String.make 1 ch)) c lexbuf
+        parse_extension_content start lev name args (beg^(String.make 1 ch)) c lexbuf
       }
     | "<<" {
-        parse_extension_content (lev+1) name args (beg^"<<") c lexbuf
+        parse_extension_content start (lev+1) name args (beg^"<<") c lexbuf
       }
     | ">>" {
         if lev>0
         then
-          parse_extension_content (lev-1) name args (beg^">>") c lexbuf
-        else
+          parse_extension_content start (lev-1) name args (beg^">>") c lexbuf
+        else begin
+          let args = List.rev args in
+          c.build.plugin_action name 
+            start
+            (Lexing.lexeme_end lexbuf) 
+            c.param args (Some beg);
           match
             try
               Some (c.build.block_plugin name)
@@ -533,10 +549,15 @@ and parse_extension_content lev name args beg c =
                 Inline (c.build.inline_plugin name c.param 
                           (List.rev args) 
                           (Some beg))
+        end
       }
     | ([ '>' '<' ] ? [^ '~' '>' '<' ]+) {
         let s = Lexing.lexeme lexbuf in
-        parse_extension_content lev name args (beg^s) c lexbuf
+        parse_extension_content start lev name args (beg^s) c lexbuf
+      }
+    | [ '>' '<' ] {
+        let s = Lexing.lexeme lexbuf in
+        parse_extension_content start lev name args (beg^s) c lexbuf
       }
 
 and parse_arg_value beg c =

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   Wiki AST to OcamlDuce
+   Pretty print wiki to OcamlDuce
    @author Vincent Balat
 *)
 
@@ -41,7 +41,7 @@ let add_inline_extension k f = H.add inline_extension_table k f
 let make_string s = Lwt.return (Ocamlduce.Utf8.make s)
 
 let element (c : Xhtmltypes_duce.inlines Lwt.t list) = 
-  Lwt_util.map (fun x -> x) c >>= fun c ->
+  Lwt_util.map_serial (fun x -> x) c >>= fun c ->
   Lwt.return {{ (map {: c :} with i -> i) }}
 
 let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) = 
@@ -63,7 +63,7 @@ let list_builder = function
                    !{: l :} ] }}
       in
       f a >>= fun r ->
-      Lwt_util.map f l >>= fun l ->
+      Lwt_util.map_serial f l >>= fun l ->
       Lwt.return {{ [ r !{: l :} ] }}
 
 let inline (x : Xhtmltypes_duce.a_content)
@@ -81,7 +81,7 @@ let builder =
     W.a_elem =
       (fun addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
-           Lwt_util.map (fun x -> x) c >>= fun c ->
+           Lwt_util.map_serial (fun x -> x) c >>= fun c ->
            Lwt.return 
              {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
     W.br_elem = (fun () -> Lwt.return {{ [<br>[]] }});
@@ -138,11 +138,11 @@ let builder =
                | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
                | a::l -> 
                    f a >>= fun r ->
-                   Lwt_util.map f l >>= fun l ->
+                   Lwt_util.map_serial f l >>= fun l ->
                    Lwt.return {{ <tr>[ r !{: l :} ] }}
              in
              f2 row >>= fun row ->
-             Lwt_util.map f2 rows >>= fun rows ->
+             Lwt_util.map_serial f2 rows >>= fun rows ->
              Lwt.return {{ <table>[<tbody>[ row !{: rows :} ] ] }});
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
     W.block_plugin = H.find block_extension_table;
@@ -155,16 +155,25 @@ let builder =
                 Lwt.return
                   {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
                                   !{: name :} ] ] ] }})
-         in f param args content);
+         in 
+         f param args content);
+    W.plugin_action = (fun _ _ _ _ _ _ -> ());
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
 let xml_of_wiki ~sp ~sd s = 
-  Lwt_util.map (fun x -> x) (Wikicreole.from_string (sp, sd) builder s) 
+  Lwt_util.map_serial (fun x -> x) (Wikicreole.from_string (sp, sd) builder s) 
   >>= fun r ->
   Lwt.return {{ {: r :} }}
 
-
+let string_of_extension name args content =
+  "<<"^name^
+    (List.fold_left
+       (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
+    (match content with
+       | None -> "" 
+       | Some content -> "|"^content)^">>"
+  
 let _ =
   add_block_extension "div"
     (fun (sp, sd) args c -> 
@@ -188,13 +197,39 @@ let _ =
        Lwt.return 
          {{ <div (classe ++ id) >content }}
     );
+
+  Wiki_filter.add_preparser_extension "div"
+(*VVV may be done automatically 
+  (with an optional parameter of add_block_extension/add_inline_extension?) *)
+    (fun param args -> function
+       | None -> Lwt.return None
+       | Some c ->
+(*
+print_endline "DIV avant preparse :";
+print_endline c;
+*)
+           Wiki_filter.preparse_extension param c >>= fun c ->
+(*
+print_endline "DIV après preparse :";
+print_endline c;
+*)
+           Lwt.return (Some (string_of_extension "div" args (Some c)))
+    )
+  ;
+
+
   add_block_extension "raw"
     (fun (sp, sd) args content ->
-       let s = "<<raw"^
-         (List.fold_left
-            (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
-         (match content with
-            | None -> "" 
-            | Some content -> "|"^content)^">>"
-       in
-       Lwt.return {{ <p>[ <b>{: s :} ] }})
+       let s = string_of_extension "raw" args content in
+       Lwt.return {{ <p>[ <b>{: s :} ] }});
+
+  Wiki_filter.add_preparser_extension "raw"
+(*VVV may be done automatically 
+  (with an optional parameter of add_block_extension/add_inline_extension?) *)
+    (fun param args -> function
+       | None -> Lwt.return None
+       | Some c ->
+           Wiki_filter.preparse_extension param c >>= fun c ->
+           Lwt.return (Some (string_of_extension "raw" args (Some c)))
+    )
+  ;

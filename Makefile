@@ -8,7 +8,7 @@ OCSIMORE_SRC1 = polytables.ml ocsimore_config.ml ocsimore_common.ml
 OCSIMORE_SRC2 = users.ml
 OCSIMORE_SRC3 = forum.ml wiki.ml session_manager.ml \
 	ocsimorelib.ml widget.ml user_widgets.ml forum_widgets.ml \
-	wikicreole.ml wiki_syntax.ml wiki_widgets.ml
+	wikicreole.ml wiki_filter.ml wiki_syntax.ml wiki_widgets.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
@@ -128,7 +128,7 @@ depend:
 	ocamlfind ocamldep wikicreole.mll $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
-	rm -f *.cmo *.cmi *.cma *.sql creole_lexer.ml creole_parser.ml \
+	rm -f *.cmo *.cmi *.cma *.sql wiki_filter.ml wikicreole.ml \
 	ocsimore_config.ml
 
 include .depend

@@ -17,32 +17,24 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   Wiki AST to OcamlDuce
+   Filtering wiki syntax to perform special actions
+   (before saving it to the database)
    @author Vincent Balat
 *)
 
-(** Define new extensions to the wiki syntax. *)
-val add_inline_extension : 
-  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
-              (string * string) list -> 
-              string option -> 
-              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t) -> unit
-
-val add_block_extension : 
-  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
-              (string * string) list -> 
-              string option -> 
-              Xhtmltypes_duce.block Lwt.t) -> unit
-
-(** Returns the XHTML corresponding to a wiki page. *)
-val xml_of_wiki :
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
-  string -> 
-  Xhtmltypes_duce.flows Lwt.t
-
-(** Returns the wiki syntax for an extension box
-    from its name, arguments and content.
+(** The filters registered with that function are called on
+    the wikibox content before registering it in the database.
 *)
-val string_of_extension : 
-  string -> (string * string) list -> string option -> string
+val add_preparser_extension : 
+  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+              (string * string) list -> 
+              string option -> 
+              string option Lwt.t) -> unit
+
+
+(** Filters the wiki syntax and replace extensions according to 
+    preparsers recorded with [add_preparser_extension].
+*)
+val preparse_extension :
+  (Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+  string -> string Lwt.t

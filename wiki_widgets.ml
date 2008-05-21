@@ -146,9 +146,10 @@ class editable_wikibox () =
             Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
             Eliom_parameters.opt (Eliom_parameters.string "deladmin")
          ))
-      (fun sp () p -> 
+      (fun sp () ((a, content), b) -> 
          let sd = Ocsimore_common.get_sd sp in
-         Wiki.save_wikibox sp sd p)
+         Wiki_filter.preparse_extension (sp, sd) content >>= fun content ->
+         Wiki.save_wikibox sp sd ((a, content), b))
   in
 (*  fun <other parameters if any> -> *)
 
@@ -516,31 +517,59 @@ object (self)
      )
 
    initializer
-     Wiki_syntax.add_block_extension "wikibox"
-       (fun (sp, sd) args c -> 
-          try
-            let wiki = Int32.of_string (List.assoc "wiki" args) in
+     begin
+       Wiki_syntax.add_block_extension "wikibox"
+         (fun (sp, sd) args c -> 
             try
-              let box = Int32.of_string (List.assoc "box" args) in
-              self#editable_wikibox 
-                ?rows:(Ocsimorelib.int_of_string_opt
-                         (Ocsimorelib.list_assoc_opt "rows" args))
-                ?cols:(Ocsimorelib.int_of_string_opt
-                         (Ocsimorelib.list_assoc_opt "cols" args))
-                ?classe:(try Some [List.assoc "class" args] 
-                         with Not_found -> None) 
-                ~data:(wiki, box)
-                ~sp
-                ~sd
-                ()
+              let wiki = Int32.of_string (List.assoc "wiki" args) in
+              try
+                let box = Int32.of_string (List.assoc "box" args) in
+                self#editable_wikibox 
+                  ?rows:(Ocsimorelib.int_of_string_opt
+                           (Ocsimorelib.list_assoc_opt "rows" args))
+                  ?cols:(Ocsimorelib.int_of_string_opt
+                           (Ocsimorelib.list_assoc_opt "cols" args))
+                  ?classe:(try Some [List.assoc "class" args] 
+                           with Not_found -> None) 
+                  ~data:(wiki, box)
+                  ~sp
+                  ~sd
+                  ()
+              with Not_found ->
+                Lwt.return
+                  (self#display_error_box
+                     ~message:"Wiki error: argument \"box\" missing in wikibox extension" ())
             with Not_found ->
               Lwt.return
-                (self#display_error_box
-                   ~message:"Wiki error: argument \"box\" missing in wikibox extension" ())
-          with Not_found ->
-            Lwt.return
-              (self#display_error_box ~message:"Wiki error: argument \"wiki\" missing in wikibox extension" ())
-            
-       )
+                (self#display_error_box ~message:"Wiki error: argument \"wiki\" missing in wikibox extension" ())
+                
+         );
+       
+       Wiki_filter.add_preparser_extension "wikibox"
+         (fun (sp, sd) args c -> 
+            (try
+              let wiki = Int32.of_string (List.assoc "wiki" args) in
+              let box,args2 = Ocsigen_lib.list_assoc_remove "box" args in
+              if box = "new"
+              then 
+                Wiki.get_wiki_by_id wiki >>= fun wiki ->
+                Users.get_user_name ~sp ~sd >>= fun name ->
+                Wiki.new_wikibox 
+                  wiki
+                  name
+                  "new wikibox" 
+                  "**//new wikibox//**"
+(*VVV readers, writers, admins? *)
+                  () >>= fun box ->
+                Lwt.return (Some 
+                              (Wiki_syntax.string_of_extension 
+                                 "wikibox" 
+                                 (("box", Int32.to_string box)::args2)
+                                 c))
+              else Lwt.return None
+            with Not_found -> Lwt.return None)
+
+         )
+     end
               
 end

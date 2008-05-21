@@ -45,8 +45,21 @@ type wiki_info = {
                                          if acl enabled *)
 }
 
+module H = Hashtbl.Make(struct
+                          type t = int32
+                          let equal = (=)
+                          let hash = Hashtbl.hash 
+                        end)
+
+let wiki_info_table = H.create 8
+
+let find_wiki id =
+  try
+    Lwt.return (H.find wiki_info_table id)
+  with Not_found -> Wiki_sql.find_wiki ~id ()
+
 let get_wiki_by_id id =
-  Wiki_sql.find_wiki ~id ()
+  find_wiki id
   >>= fun (id, title, descr, r, w, a) -> 
   Lwt.return { id = id; 
                title = title; 
