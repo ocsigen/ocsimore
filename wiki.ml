@@ -214,6 +214,7 @@ type wiki_action_info =
   | Edit_box of (int32 * int32)
   | History of ((int32 * int32) * (int option * int option))
   | Oldversion of ((int32 * int32) * int32)
+  | Src of ((int32 * int32) * int32)
   | Error of ((int32 * int32) * wiki_errors)
 
 exception Wiki_action_info of wiki_action_info

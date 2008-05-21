@@ -131,6 +131,15 @@ class editable_wikibox () =
       (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Oldversion g)])
   in
     
+  let action_src_wikibox =
+    Eliom_predefmod.Actions.register_new_service' 
+      ~name:"wiki_src"
+      ~get_params:(((Eliom_parameters.int32 "wikiid") ** 
+                      (Eliom_parameters.int32 "boxid")) **
+                     (Eliom_parameters.int32 "version"))
+      (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Src g)])
+  in
+    
   let action_send_wikibox =
     Eliom_predefmod.Actions.register_new_post_service' 
       ~keep_get_na_params:false
@@ -162,6 +171,7 @@ object (self)
   val history_class = "wikibox history"
   val editable_class = "wikibox editable"
   val oldwikibox_class = "wikibox editable oldversion"
+  val srcwikibox_class = "wikibox editable src"
   val box_button_class = "boxbutton"
   val box_title_class = "boxtitle"
 
@@ -371,6 +381,14 @@ object (self)
        {{ [ <p class={: box_title_class :}>{: title :}
               !content ] }}
 
+   method display_src_wikibox ~sp ids version ~classe content =
+     let title = "Version "^Int32.to_string version in
+     self#display_menu_box
+       ~classe:(srcwikibox_class::classe)
+       ~sp
+       ids
+       {{ [ <p class={: box_title_class :}>{: title :}
+            !content ] }}
 
    method private retrieve_history ~sp (wiki_id, message_id) ?first ?last () =
      Wiki_sql.get_history wiki_id message_id
@@ -395,6 +413,15 @@ object (self)
                           {{ "view" }}
                           (ids, version)
                           :}
+                         ' ('
+                       {: 
+                          Eliom_duce.Xhtml.a 
+                          ~service:action_src_wikibox
+                          ~sp
+                          {{ "source" }}
+                          (ids, version)
+                          :}
+                          ')'
                        <br>[] 
                      ]
                    }})
@@ -467,6 +494,14 @@ object (self)
                      (self#retrieve_old_wikibox_content ~sp data version)
                      (self#pretty_print_wikisyntax ~sp ~sd)
                      (self#display_old_wikibox ~sp data version)
+               | Some (Wiki.Src (i, version)) when i = data ->
+                   self#bind_or_display_error
+                     ~classe
+                     (self#retrieve_old_wikibox_content ~sp data version)
+                     (fun c -> 
+                        let c = Ocamlduce.Utf8.make c in
+                        Lwt.return {{ [ <pre>c ] }})
+                     (self#display_src_wikibox ~sp data version)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
                      ~classe
