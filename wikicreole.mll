@@ -411,7 +411,7 @@ and parse_rem c =
       push c (c.build.img_elem url alt);
       parse_rem c lexbuf
     }
-  | "<<" ((not_line_break # white_space) # '|') * {
+  | "<<" ((not_line_break # white_space) # ['|' '>']) * {
       let s = Lexing.lexeme lexbuf in
       let l = String.length s in
       let name = String.sub s 2 (l - 2) in

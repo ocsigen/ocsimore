@@ -26,7 +26,8 @@
     the wikibox content before registering it in the database.
 *)
 val add_preparser_extension : 
-  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+  string -> ((Eliom_sessions.server_params * 
+                Ocsimore_common.session_data) ->
               (string * string) list -> 
               string option -> 
               string option Lwt.t) -> unit
@@ -36,5 +37,6 @@ val add_preparser_extension :
     preparsers recorded with [add_preparser_extension].
 *)
 val preparse_extension :
-  (Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+  (Eliom_sessions.server_params * 
+     Ocsimore_common.session_data) ->
   string -> string Lwt.t

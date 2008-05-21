@@ -42,15 +42,15 @@ type c = {
   buf : Buffer.t;
 }
 
-let nothing _ = Lwt.return ()
+let nothing _ = ()
 
 let make_plugin_action () =
   let subst = ref [] in
-  ((fun name start end_ (sp, sd) args content ->
+  ((fun name start end_ params args content ->
       subst := (start, 
                 end_, 
                 (try
-                   H.find preparser_extension_table name (sp, sd) args content 
+                   H.find preparser_extension_table name params args content 
                  with Not_found -> Lwt.return None))::!subst)
    ,
    fun () -> !subst
@@ -60,9 +60,9 @@ let builder plugin_action =
   { W.chars = nothing;
     W.strong_elem = nothing;
     W.em_elem = nothing;
-    W.a_elem = (fun _ _ -> Lwt.return ());
+    W.a_elem = (fun _ _ -> ());
     W.br_elem = nothing;
-    W.img_elem = (fun _ _ -> Lwt.return ());
+    W.img_elem = (fun _ _ -> ());
     W.tt_elem = nothing;
     W.p_elem = nothing;
     W.pre_elem = nothing;
@@ -77,8 +77,8 @@ let builder plugin_action =
     W.hr_elem = nothing;
     W.table_elem = nothing;
     W.inline = nothing;
-    W.block_plugin = (fun _ _ _ _ -> Lwt.return ());
-    W.inline_plugin = (fun _ _ _ _ -> Lwt.return ());
+    W.block_plugin = (fun _ _ _ _ -> ());
+    W.inline_plugin = (fun _ _ _ _ -> ());
     W.plugin_action = plugin_action;
     W.error = nothing;
   }
@@ -86,8 +86,7 @@ let builder plugin_action =
 let preparse_extension param content =
   let (plugin_action, get_subst) = make_plugin_action () in
   let builder = builder plugin_action in
-  Lwt_util.map_serial
-    (fun x -> x) (Wikicreole.from_string param builder content) >>= fun _ ->
+  ignore (Wikicreole.from_string param builder content);
   let buf = Buffer.create 1024 in
   Lwt_util.fold_left
     (fun pos (start, end_, replacement) -> 

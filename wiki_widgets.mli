@@ -44,12 +44,14 @@ class noneditable_wikibox :
       Xhtmltypes_duce.block Lwt.t
 
     method noneditable_wikibox :
+      ?subbox:Xhtmltypes_duce.flows ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       ?classe:string list ->
       data:Wiki_sql.wiki * int32 -> Xhtmltypes_duce.block Lwt.t
 
     method pretty_print_wikisyntax : 
+      ?subbox:Xhtmltypes_duce.flows ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       string -> Xhtmltypes_duce.flows Lwt.t
@@ -126,7 +128,9 @@ class editable_wikibox :
       data:Wiki_sql.wiki * int32 ->
       ?rows:int ->
       ?cols:int ->
-      ?classe:string list -> unit -> Xhtmltypes_duce.block Lwt.t
+      ?classe:string list -> 
+      ?subbox:Xhtmltypes_duce.flows ->
+      unit -> Xhtmltypes_duce.block Lwt.t
 
     method private retrieve_history :
       sp:Eliom_sessions.server_params ->

@@ -65,7 +65,7 @@ object (self)
 
   val ne_class = "noned_wikibox"
        
-  method pretty_print_wikisyntax ~sp ~sd content =
+  method pretty_print_wikisyntax ?subbox ~sp ~sd content =
     Lwt.return (Ocamlduce.Utf8.make content)
 
   method private retrieve_wikibox_content ids =
@@ -79,7 +79,9 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method noneditable_wikibox ~sp ~sd ?(classe=[]) ~data =
+  method noneditable_wikibox
+    ?(subbox : Xhtmltypes_duce.flows option)
+    ~sp ~sd ?(classe=[]) ~data =
     Wiki.get_role ~sp ~sd data >>= fun role ->
     match role with
       | Wiki.Admin
@@ -88,7 +90,7 @@ object (self)
           self#bind_or_display_error
             ~classe
             (self#retrieve_wikibox_content data)
-            (self#pretty_print_wikisyntax ~sp ~sd)
+            (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
             (self#display_noneditable_box)
           | Wiki.Nonauthorized ->
               Lwt.return
@@ -157,7 +159,8 @@ class editable_wikibox () =
          ))
       (fun sp () ((a, content), b) -> 
          let sd = Ocsimore_common.get_sd sp in
-         Wiki_filter.preparse_extension (sp, sd) content >>= fun content ->
+         Wiki_filter.preparse_extension (sp, sd) content
+         >>= fun content ->
          Wiki.save_wikibox sp sd ((a, content), b))
   in
 (*  fun <other parameters if any> -> *)
@@ -463,6 +466,7 @@ object (self)
      ?rows
      ?cols
      ?(classe=[])
+     ?subbox (* a box may be a container for another box *)
      ()
      =
      let rec find_action = function
@@ -492,7 +496,7 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_old_wikibox_content ~sp data version)
-                     (self#pretty_print_wikisyntax ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
                      (self#display_old_wikibox ~sp data version)
                | Some (Wiki.Src (i, version)) when i = data ->
                    self#bind_or_display_error
@@ -507,13 +511,13 @@ object (self)
                      ~classe
                      ~error:(self#create_error_message error)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
                      (self#display_editable_box ~sp data)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
                      (self#display_editable_box ~sp data)
             )
         | Wiki.Lurker -> 
@@ -526,7 +530,7 @@ object (self)
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
                      (self#display_noneditable_box)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
@@ -534,13 +538,13 @@ object (self)
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
                      (self#display_noneditable_box)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
                      (self#display_noneditable_box)
             )
        | Wiki.Nonauthorized ->
@@ -554,11 +558,16 @@ object (self)
    initializer
      begin
        Wiki_syntax.add_block_extension "wikibox"
-         (fun (sp, sd) args c -> 
+         (fun (sp, sd, subbox) args c -> 
             try
               let wiki = Int32.of_string (List.assoc "wiki" args) in
               try
                 let box = Int32.of_string (List.assoc "box" args) in
+                (match c with
+                   | None -> Lwt.return None
+                   | Some c -> 
+                       Wiki_syntax.xml_of_wiki ~sp ~sd c >>= fun r ->
+                       Lwt.return (Some r)) >>= fun subbox ->
                 self#editable_wikibox 
                   ?rows:(Ocsimorelib.int_of_string_opt
                            (Ocsimorelib.list_assoc_opt "rows" args))
@@ -569,6 +578,7 @@ object (self)
                   ~data:(wiki, box)
                   ~sp
                   ~sd
+                  ?subbox
                   ()
               with Not_found ->
                 Lwt.return

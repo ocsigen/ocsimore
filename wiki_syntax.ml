@@ -161,8 +161,10 @@ let builder =
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let xml_of_wiki ~sp ~sd s = 
-  Lwt_util.map_serial (fun x -> x) (Wikicreole.from_string (sp, sd) builder s) 
+let xml_of_wiki ?subbox ~sp ~sd s = 
+  Lwt_util.map_serial
+    (fun x -> x) 
+    (Wikicreole.from_string (sp, sd, subbox) builder s) 
   >>= fun r ->
   Lwt.return {{ {: r :} }}
 
@@ -175,13 +177,14 @@ let string_of_extension name args content =
        | Some content -> "|"^content)^">>"
   
 let _ =
+
   add_block_extension "div"
-    (fun (sp, sd) args c -> 
+    (fun (sp, sd, subbox) args c -> 
        let content = match c with
          | Some c -> c
          | None -> ""
        in
-       xml_of_wiki ~sp ~sd content >>= fun content ->
+       xml_of_wiki ?subbox ~sp ~sd content >>= fun content ->
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -204,22 +207,14 @@ let _ =
     (fun param args -> function
        | None -> Lwt.return None
        | Some c ->
-(*
-print_endline "DIV avant preparse :";
-print_endline c;
-*)
            Wiki_filter.preparse_extension param c >>= fun c ->
-(*
-print_endline "DIV après preparse :";
-print_endline c;
-*)
            Lwt.return (Some (string_of_extension "div" args (Some c)))
     )
   ;
 
 
   add_block_extension "raw"
-    (fun (sp, sd) args content ->
+    (fun (sp, sd, _) args content ->
        let s = string_of_extension "raw" args content in
        Lwt.return {{ <p>[ <b>{: s :} ] }});
 
@@ -233,3 +228,24 @@ print_endline c;
            Lwt.return (Some (string_of_extension "raw" args (Some c)))
     )
   ;
+
+  add_block_extension "content"
+    (fun (sp, sd, subbox) args c -> 
+       let classe = 
+         try
+           let a = List.assoc "class" args in
+           {{ { class={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       let id = 
+         try
+           let a = List.assoc "id" args in
+           {{ { id={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       match subbox with
+         | None -> Lwt.return {{ <div (classe ++ id) >
+                                   [<strong>[<em>"<<content>>"]] }}
+         | Some subbox -> Lwt.return {{ <div (classe ++ id) >subbox }}
+    );
+

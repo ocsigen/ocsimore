@@ -23,19 +23,24 @@
 
 (** Define new extensions to the wiki syntax. *)
 val add_inline_extension : 
-  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+  string -> ((Eliom_sessions.server_params * 
+                Ocsimore_common.session_data *
+                Xhtmltypes_duce.flows option) ->
               (string * string) list -> 
               string option -> 
               {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t) -> unit
 
 val add_block_extension : 
-  string -> ((Eliom_sessions.server_params * Ocsimore_common.session_data) ->
+  string -> ((Eliom_sessions.server_params * 
+                Ocsimore_common.session_data *
+                Xhtmltypes_duce.flows option) ->
               (string * string) list -> 
               string option -> 
               Xhtmltypes_duce.block Lwt.t) -> unit
 
 (** Returns the XHTML corresponding to a wiki page. *)
 val xml_of_wiki :
+  ?subbox: Xhtmltypes_duce.flows ->
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   string -> 
