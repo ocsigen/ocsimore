@@ -53,14 +53,14 @@ let list_builder = function
   | [] -> Lwt.return {{ [ <li>[] ] }} (*VVV ??? *)
   | a::l ->
       let f (c, 
-             (l : Xhtmltypes_duce.block Lwt.t option)) =
+             (l : Xhtmltypes_duce.flows Lwt.t option)) =
         element c >>= fun r ->
         (match l with
-          | Some v -> v >>= fun v -> Lwt.return [v]
-          | None -> Lwt.return []) >>= fun l ->
+          | Some v -> v >>= fun v -> Lwt.return v
+          | None -> Lwt.return {{ [] }}) >>= fun l ->
         Lwt.return
           {{ <li>[ !r
-                   !{: l :} ] }}
+                   !l ] }}
       in
       f a >>= fun r ->
       Lwt_util.map_serial f l >>= fun l ->
@@ -77,7 +77,7 @@ let builder =
                        Lwt.return {{ [<strong>r ] }});
     W.em_elem = (fun a -> 
                    element a >>= fun r ->
-                   Lwt.return {{ [<em>r ] }});
+                   Lwt.return {{ [<em>r] }});
     W.a_elem =
       (fun addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
@@ -96,36 +96,36 @@ let builder =
                    Lwt.return {{ [<tt>r ] }});
     W.p_elem = (fun a -> 
                   element a >>= fun r ->
-                  Lwt.return {{ <p>r }});
-    W.pre_elem = (fun a ->  Lwt.return {{ <pre>(elementt a) }});
+                  Lwt.return {{ [<p>r] }});
+    W.pre_elem = (fun a ->  Lwt.return {{ [<pre>(elementt a)] }});
     W.h1_elem = (fun a ->
                    element a >>= fun r ->
-                   Lwt.return {{ <h1>r }});
+                   Lwt.return {{ [<h1>r] }});
     W.h2_elem = (fun a ->
                    element a >>= fun r ->
-                   Lwt.return {{ <h2>r }});
+                   Lwt.return {{ [<h2>r] }});
     W.h3_elem = (fun a ->
                    element a >>= fun r ->
-                   Lwt.return {{ <h3>r }});
+                   Lwt.return {{ [<h3>r] }});
     W.h4_elem = (fun a ->
                    element a >>= fun r ->
-                   Lwt.return {{ <h4>r }});
+                   Lwt.return {{ [<h4>r] }});
     W.h5_elem = (fun a ->
                    element a >>= fun r ->
-                   Lwt.return {{ <h5>r }});
+                   Lwt.return {{ [<h5>r] }});
     W.h6_elem = (fun a ->
                    element a >>= fun r ->
-                   Lwt.return {{ <h6>r }});
+                   Lwt.return {{ [<h6>r] }});
     W.ul_elem = (fun a ->
                    list_builder a >>= fun r ->
-                   Lwt.return {{ <ul>r }});
+                   Lwt.return {{ [<ul>r] }});
     W.ol_elem = (fun a ->
                    list_builder a >>= fun r ->
-                   Lwt.return {{ <ol>r }});
-    W.hr_elem = (fun () -> Lwt.return {{ <hr>[] }});
+                   Lwt.return {{ [<ol>r] }});
+    W.hr_elem = (fun () -> Lwt.return {{ [<hr>[]] }});
     W.table_elem =
       (function 
-         | [] -> Lwt.return {{ <p>[] }} (*VVV ??? *)
+         | [] -> Lwt.return {{ [] }}
          | row::rows ->
              let f (h, c) =
                element c >>= fun r ->
@@ -143,7 +143,7 @@ let builder =
              in
              f2 row >>= fun row ->
              Lwt_util.map_serial f2 rows >>= fun rows ->
-             Lwt.return {{ <table>[<tbody>[ row !{: rows :} ] ] }});
+             Lwt.return {{ [<table>[<tbody>[ row !{: rows :} ] ] ] }});
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
     W.block_plugin = H.find block_extension_table;
     W.inline_plugin =
@@ -166,7 +166,7 @@ let xml_of_wiki ?subbox ~sp ~sd s =
     (fun x -> x) 
     (Wikicreole.from_string (sp, sd, subbox) builder s) 
   >>= fun r ->
-  Lwt.return {{ {: r :} }}
+  Lwt.return {{ (map {: r :} with i -> i) }}
 
 let string_of_extension name args content =
   "<<"^name^
@@ -198,11 +198,11 @@ let _ =
          with Not_found -> {{ {} }} 
        in
        Lwt.return 
-         {{ <div (classe ++ id) >content }}
+         {{ [ <div (classe ++ id) >content ] }}
     );
 
   Wiki_filter.add_preparser_extension "div"
-(*VVV may be done automatically 
+(*VVV may be done automatically for all extensions with wiki content
   (with an optional parameter of add_block_extension/add_inline_extension?) *)
     (fun param args -> function
        | None -> Lwt.return None
@@ -216,10 +216,10 @@ let _ =
   add_block_extension "raw"
     (fun (sp, sd, _) args content ->
        let s = string_of_extension "raw" args content in
-       Lwt.return {{ <p>[ <b>{: s :} ] }});
+       Lwt.return {{ [ <p>[ <b>{: s :} ] ] }});
 
   Wiki_filter.add_preparser_extension "raw"
-(*VVV may be done automatically 
+(*VVV may be done automatically for all extensions with wiki content 
   (with an optional parameter of add_block_extension/add_inline_extension?) *)
     (fun param args -> function
        | None -> Lwt.return None
@@ -244,8 +244,64 @@ let _ =
          with Not_found -> {{ {} }} 
        in
        match subbox with
-         | None -> Lwt.return {{ <div (classe ++ id) >
-                                   [<strong>[<em>"<<content>>"]] }}
-         | Some subbox -> Lwt.return {{ <div (classe ++ id) >subbox }}
+         | None -> Lwt.return {{ [ <div (classe ++ id) >
+                                     [<strong>[<em>"<<content>>"]]] }}
+         | Some subbox -> Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
     );
+
+  add_block_extension "menu"
+    (fun (sp, sd, _) args c -> 
+       let classe = 
+         let c =
+           "wikimenu"^
+             (try
+                " "^(List.assoc "class" args)
+              with Not_found -> "")
+         in {{ { class={: c :} } }} 
+       in
+       let id = 
+         try
+           let a = List.assoc "id" args in
+           {{ { id={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       let f ?classe s =
+         let link, text = 
+           try 
+             Ocsigen_lib.sep '|' s 
+           with Not_found -> s, s
+         in
+         let link = Ocamlduce.Utf8.make link in
+         let text = Ocamlduce.Utf8.make text in
+         let classe = match classe with
+           | None -> {{ {} }}
+           | Some c -> 
+               let c = Ocamlduce.Utf8.make c in
+               {{ { class=c } }}
+         in
+         {{ <li (classe)>[<a href=link>text]}}
+       in
+       let rec mapf = function
+           | [] -> []
+           | [a] -> [f ~classe:"wikimenu_last" a]
+           | a::ll -> (f a)::mapf ll
+       in
+       match
+         List.rev
+           (List.fold_left
+              (fun beg (n, v) -> if n="item" then v::beg else beg)
+              [] args)
+       with
+         | [] -> Lwt.return {: [] :}
+         | [a] ->  
+             let first = f ~classe:"wikimenu_first wikimenu_last" a in
+             Lwt.return {{ [ <ul (classe ++ id) >[ {: first :} ] ] }}
+         | a::ll -> 
+             let first = f ~classe:"wikimenu_first" a in
+             let poi = mapf ll in
+             Lwt.return 
+               {{ [ <ul (classe ++ id) >[ first !{: poi :} ] ] }}
+    );
+
+
 

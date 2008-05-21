@@ -36,7 +36,7 @@ val add_block_extension :
                 Xhtmltypes_duce.flows option) ->
               (string * string) list -> 
               string option -> 
-              Xhtmltypes_duce.block Lwt.t) -> unit
+              Xhtmltypes_duce.flows Lwt.t) -> unit
 
 (** Returns the XHTML corresponding to a wiki page. *)
 val xml_of_wiki :

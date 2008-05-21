@@ -579,16 +579,20 @@ object (self)
                   ~sp
                   ~sd
                   ?subbox
-                  ()
+                  () >>= fun b ->
+                Lwt.return {{ [ b ] }}
               with Not_found ->
-                Lwt.return
-                  (self#display_error_box
-                     ~message:"Wiki error: argument \"box\" missing in wikibox extension" ())
+                let b = 
+                  self#display_error_box
+                    ~message:"Wiki error: argument \"box\" missing in wikibox extension" ()
+                in
+                Lwt.return {{ [ b ] }}
             with Not_found ->
-              Lwt.return
-                (self#display_error_box ~message:"Wiki error: argument \"wiki\" missing in wikibox extension" ())
-                
-         );
+              let b =
+                self#display_error_box
+                  ~message:"Wiki error: argument \"wiki\" missing in wikibox extension" ()
+              in
+              Lwt.return {{ [ b ] }});
        
        Wiki_filter.add_preparser_extension "wikibox"
          (fun (sp, sd) args c -> 
