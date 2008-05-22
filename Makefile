@@ -107,6 +107,8 @@ sql: createdb.sql.in user_createdb.sql.in forum_createdb.sql.in wiki_createdb.sq
 %.cmi: %.mli
 	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	
 
+wikicreole.ml: wikicreole.cmi
+
 .SUFFIXES: .mll .mly .mli .ml .cmi .cmo .cmx
 
 .mll.mli:
@@ -119,16 +121,16 @@ sql: createdb.sql.in user_createdb.sql.in forum_createdb.sql.in wiki_createdb.sq
 	$(MENHIR) $<
 
 .mly.mli:
-	$(CAMLYACC) $<
+	$(MENHIR) $<
 
 depend:
 	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
-	ocamlfind ocamldep wikicreole.mll $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
+	ocamlfind ocamldep wikicreole.mll wikicreole.mli $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
-	rm -f *.cmo *.cmi *.cma *.sql wiki_filter.ml wikicreole.ml \
+	rm -f *.cmo *.cmi *.cma *.sql wikicreole.ml \
 	ocsimore_config.ml
 
 include .depend

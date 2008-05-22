@@ -79,26 +79,6 @@ let get_wiki_by_name title =
                default_admin = a
              }
 
-let create_wiki ~title ~descr
-    ?(reader = Users.anonymous_group)
-    ?(writer = Users.anonymous_group)
-    ?admin
-    () =
-  Lwt.catch 
-    (fun () -> get_wiki_by_name title)
-    (function
-       | Not_found -> 
-           Wiki_sql.new_wiki ~title ~descr ~reader ~writer ?admin ()
-               >>= fun id -> 
-           Lwt.return { id = id; 
-                        title = title; 
-                        descr = descr; 
-                        default_reader = reader;
-                        default_writer = writer; 
-                        default_admin = admin;
-                      }
-       | e -> Lwt.fail e)
-
 let new_wikibox ~wiki ~author ~comment ~content =
   fun
     ?(readers = [wiki.default_reader]) 
@@ -118,6 +98,41 @@ let new_wikibox ~wiki ~author ~comment ~content =
                                    | Some a -> a)
                | None -> None)
     ()
+
+
+let create_wiki ~title ~descr
+    ?(reader = Users.anonymous_group)
+    ?(writer = Users.anonymous_group)
+    ?admin
+    () =
+  Lwt.catch 
+    (fun () -> get_wiki_by_name title)
+    (function
+       | Not_found -> 
+           (Wiki_sql.new_wiki ~title ~descr ~reader ~writer ?admin ()
+           >>= fun id -> 
+             let w =
+               { id = id; 
+                 title = title; 
+                 descr = descr; 
+                 default_reader = reader;
+                 default_writer = writer; 
+                 default_admin = admin;
+               }
+             in
+           
+           (* Filling the first wikibox with admin container *)
+           new_wikibox 
+             w
+             "admin"
+             "Admin container" 
+             "= Ocsimore administration\r\n<<content>>"
+             ()
+           >>= fun _ ->
+
+           Lwt.return w)
+
+       | e -> Lwt.fail e)
 
 
 let can_admin wiki wikibox user =

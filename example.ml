@@ -41,7 +41,8 @@ let _ =
   Lwt_unix.run
     ((* creating a wiki: *)
      Wiki.create_wiki 
-       ~title:"EXAMPLE site wiki" ~descr:""
+       ~title:"EXAMPLE site wiki"
+       ~descr:""
        ~reader:Users.anonymous_group
        ~writer:Users.admin_group
        ~admin:Users.admin_group

@@ -58,3 +58,16 @@ that will get the previous sd if it exists, or create a new one otherwise.
 To be sure that all exceptions occurring during a db request are catched
 and result in an error message in the box, I use the method
 Widget.widget_with_error_box#bind_or_display_error
+
+ - Creating new wiki extensions:
+If you create a new box, you probably want to have a syntax to place it
+inside a wikibox. To so that, use the functions Wiki_syntax.add_block_extension
+and Wiki_syntax.add_inline_extension. 
+If you want a preparsing (i.e. do some action before saving the wikibox in
+the database, like creating a new wikibox for <<wikibox box='new'>>),
+use the function Wiki_filter.add_preparser_extension.
+If your box can contain wiki syntax,
+(for example <<div|content>>) do not forget to call
+Wiki_filter.add_preparser_extension as in Wiki_syntax.ml (div)
+to preparse the content recursively.
+See examples in wiki_syntax.ml ans wiki_widgets.ml

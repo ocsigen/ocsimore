@@ -271,15 +271,25 @@ let _ =
              Ocsigen_lib.sep '|' s 
            with Not_found -> s, s
          in
-         let link = Ocamlduce.Utf8.make link in
-         let text = Ocamlduce.Utf8.make text in
-         let classe = match classe with
-           | None -> {{ {} }}
-           | Some c -> 
-               let c = Ocamlduce.Utf8.make c in
-               {{ { class=c } }}
-         in
-         {{ <li (classe)>[<a href=link>text]}}
+         let text2 = Ocamlduce.Utf8.make text in
+         if Eliom_sessions.get_current_sub_path_string sp = link
+         then 
+           let classe = match classe with
+             | None -> {{ { class="wikimenu_current" } }}
+             | Some c -> 
+                 let c = Ocamlduce.Utf8.make ("wikimenu_current "^c) in
+                 {{ { class=c } }}
+           in
+           {{ <li (classe)>text2}}
+         else 
+           let link2 = Ocamlduce.Utf8.make link in
+           let classe = match classe with
+             | None -> {{ {} }}
+             | Some c -> 
+                 let c = Ocamlduce.Utf8.make c in
+                 {{ { class=c } }}
+           in
+           {{ <li (classe)>[<a href=link2>text2]}}
        in
        let rec mapf = function
            | [] -> []

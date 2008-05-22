@@ -106,12 +106,21 @@ end;;
 class editable_wikibox () =
   (* The registration must be done during site loading, nor before! *)
   
+  let service_edit_wikibox =
+    Eliom_services.new_service
+      ~path:["ocsimore";"wiki_edit"]
+      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+                     (Eliom_parameters.int32 "boxid"))
+      ()
+  in
+    
   let action_edit_wikibox =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_edit"
       ~get_params:((Eliom_parameters.int32 "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
-      (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
+      (fun sp g () -> 
+         Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
   in
     
   let action_wikibox_history =
@@ -474,7 +483,7 @@ object (self)
        | (Wiki.Wiki_action_info e)::_ -> Some e
        | _::l -> find_action l
      in
-     let action = find_action (Eliom_sessions.get_exn sp) in
+     let action = find_action (Eliom_sessions.get_exn sp) in 
      Wiki.get_role ~sp ~sd data >>= fun role ->
      (match role with
         | Wiki.Admin
@@ -555,6 +564,7 @@ object (self)
                 ())
      )
 
+
    initializer
      begin
        Wiki_syntax.add_block_extension "wikibox"
@@ -618,7 +628,33 @@ object (self)
               else Lwt.return None
             with Not_found -> Lwt.return None)
 
+         );
+
+       Eliom_duce.Xhtml.register
+         service_edit_wikibox
+         (fun sp ((w, b) as g) () -> 
+            let sd = Ocsimore_common.get_sd sp in
+            self#editable_wikibox ~sp ~sd 
+              ~data:g () >>= fun subbox ->
+            self#editable_wikibox ~sp ~sd
+              ~data:(w, 1l) ~subbox:{{ [ subbox ] }} () >>= fun page ->
+            Lwt.return
+              {{
+                 <html>[
+                   <head>[
+                     <title>"Ocsimore administration"
+                       {: Eliom_duce.Xhtml.css_link 
+                          (Eliom_duce.Xhtml.make_uri
+                             (Eliom_services.static_dir sp) 
+                             sp ["example.css"]) () :}
+(*VVV quel css ? quel layout de page ? *)
+                   ]
+                   <body>[ page ]
+                 ]
+               }}
+
          )
+
      end
               
 end

@@ -39,6 +39,8 @@ Wiki:
  En particulier il ne faut pas enegistrer une nouvelle version si l'on a 
  seulement changé les droits, pas le contenu.
  Ou alors faut-il sauver les droits pour chaque version ???
+ - Hierarchical menu box
+ - <<if editable>> <<if connected>>
 
 Users:
  - encryption of password for the db

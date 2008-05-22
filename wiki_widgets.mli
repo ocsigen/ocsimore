@@ -144,5 +144,4 @@ class editable_wikibox :
       sp:Eliom_sessions.server_params ->
       Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
 
-
   end
