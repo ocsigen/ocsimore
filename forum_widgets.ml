@@ -5,7 +5,7 @@ open Eliom_services
 open Eliom_sessions
 open Eliom_duce.Xhtml
 open Session_manager
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 open Widget
 
@@ -197,7 +197,7 @@ class message_forest_widget
                         [`Registrable]) service) =
 object (self)
   inherit [Forum_sql.forum * int32 * int32 option, 
-           message_data Ocsimorelib.tree list * Forum_sql.role] 
+           message_data Ocsimore_lib.tree list * Forum_sql.role] 
     parametrized_div_widget
     
   val xhtml_class = "message_forest"

@@ -4,10 +4,10 @@ CAMLLEX = ocamllex
 MENHIR = menhir
 
 # cannot use ocamlduce with camlp4 :-(
-OCSIMORE_SRC1 = polytables.ml ocsimore_config.ml ocsimore_common.ml
+OCSIMORE_SRC1 = polytables.ml ocsimore_config.ml ocsimore_common.ml ocsimore_lib.ml
 OCSIMORE_SRC2 = users.ml
 OCSIMORE_SRC3 = forum.ml wiki.ml session_manager.ml \
-	ocsimorelib.ml widget.ml user_widgets.ml forum_widgets.ml \
+	widget.ml user_widgets.ml forum_widgets.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml wiki_widgets.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml

@@ -38,6 +38,7 @@ type wiki_info = {
   id : Wiki_sql.wiki;
   title : string;
   descr : string;
+  path : string list option;
   default_reader: Users.group;
   default_writer: Users.group;
   default_admin: Users.group option; (** the (default) group of users
@@ -60,20 +61,22 @@ let find_wiki id =
 
 let get_wiki_by_id id =
   find_wiki id
-  >>= fun (id, title, descr, r, w, a) -> 
+  >>= fun (id, title, descr,path, r, w, a) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
+               path = path;
                default_reader = r;
                default_writer = w; 
                default_admin = a;
              }
 
 let get_wiki_by_name title =
-  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, r, w, a) -> 
+  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, path, r, w, a) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
+               path = path;
                default_reader = r;
                default_writer = w; 
                default_admin = a
@@ -101,9 +104,12 @@ let new_wikibox ~wiki ~author ~comment ~content =
 
 
 let create_wiki ~title ~descr
+    ?sp
+    ?path
     ?(reader = Users.anonymous_group)
     ?(writer = Users.anonymous_group)
     ?admin
+    ~wikibox
     () =
   Lwt.catch 
     (fun () -> get_wiki_by_name title)
@@ -114,7 +120,8 @@ let create_wiki ~title ~descr
              let w =
                { id = id; 
                  title = title; 
-                 descr = descr; 
+                 descr = descr;
+                 path = path;
                  default_reader = reader;
                  default_writer = writer; 
                  default_admin = admin;
@@ -130,9 +137,109 @@ let create_wiki ~title ~descr
              ()
            >>= fun _ ->
 
+           (* Filling the first wikibox with wikipage container *)
+           new_wikibox 
+             w
+             "admin"
+             "Wikipage" 
+             "= Ocsimore wikipage\r\n<<content>>"
+             ()
+           >>= fun _ ->
+
            Lwt.return w)
 
        | e -> Lwt.fail e)
+  >>= fun w ->
+
+  (* Registering the service with suffix for wikipages *)
+  (match path with
+     | None -> ()
+     | Some path ->
+
+         let action_create_page =
+           Eliom_predefmod.Actions.register_new_post_service' 
+             ~name:("wiki_page_create"^Int32.to_string w.id)
+             ~post_params:(Eliom_parameters.string "page")
+             (fun sp () page ->
+                let sd = Ocsimore_common.get_sd sp in
+                Users.get_user_name ~sp ~sd >>= fun name ->
+                new_wikibox 
+                  w
+                  name
+                  "new wikipage" 
+                  "**//new wikipage//**"
+(*VVV readers, writers, admins? *)
+                  () >>= fun box ->
+                Wiki_sql.set_box_for_page ~wiki:w.id ~id:box ~page >>= fun () ->
+                Lwt.return [])
+         in
+         ignore
+           (Eliom_duce.Xhtml.register_new_service
+              ~path
+              ?sp
+              ~get_params:(Eliom_parameters.suffix 
+                             (Eliom_parameters.all_suffix_string "page"))
+              (fun sp path () -> 
+                 let sd = Ocsimore_common.get_sd sp in
+                 Lwt.catch
+                   (fun () ->
+                      Wiki_sql.get_box_for_page w.id path >>= fun box ->
+                        
+                      wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
+(*VVV it does not work if I do not put optional parameters !!?? *)
+                        ?rows:None ?cols:None ?classe:None ?subbox:None
+                        () >>= fun subbox -> 
+                      Lwt.return {{ [ subbox ] }}
+                   )
+                   (function
+                      | Not_found -> 
+                          let draw_form name =
+                            {{ [<p>[
+                                   {: Eliom_duce.Xhtml.string_input
+                                      ~input_type:{: "hidden" :} 
+                                      ~name
+                                      ~value:path () :}
+                                     {: Eliom_duce.Xhtml.string_input
+                                        ~input_type:{: "submit" :} 
+                                        ~value:"Create it!" () :}
+                                 ]] }}
+
+                          in
+                          let form =
+                            Eliom_duce.Xhtml.post_form
+                              ~service:action_create_page
+                              ~sp draw_form ()
+                          in
+                          Lwt.return
+                            {{ [ <p>"That page does not exist." form ] }}
+                      | e -> Lwt.fail e
+                   )
+               >>= fun subbox ->
+                 
+               wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 2l)
+                 ?rows:None ?cols:None ?classe:None
+                 ?subbox:(Some subbox)
+                 ()
+               >>= fun page ->
+
+               Lwt.return
+                 {{
+                    <html>[
+                      <head>[
+                        <title>"Ocsimore administration"
+                          {: Eliom_duce.Xhtml.css_link 
+                             (Eliom_duce.Xhtml.make_uri
+                                (Eliom_services.static_dir sp) 
+                                sp ["example.css"]) () :}
+(*VVV quel css ? quel layout de page ? *)
+                      ]
+                                <body>[ page ]
+                    ]
+                  }}
+              )
+           )
+  );
+  Lwt.return w
 
 
 let can_admin wiki wikibox user =

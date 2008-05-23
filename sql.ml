@@ -29,7 +29,7 @@ open PGOCaml
      'int64 option' and not 'int64', as expected. *)
 
 open Lwt
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 
 (* let db = PGOCaml.connect ~host:"courbet.kerguelen.org" ~database:"ocsimore" ~user:"ocsigen" () *)

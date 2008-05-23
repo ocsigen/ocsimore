@@ -75,7 +75,7 @@ object (self)
       | Some (com, a, cont, d) -> Lwt.return cont
 
   method display_noneditable_box ~classe content =
-    let classe = Ocsimorelib.build_class_attr (ne_class::classe) in
+    let classe = Ocsimore_lib.build_class_attr (ne_class::classe) in
     Lwt.return
       {{ <div class={: classe :}>content }}
 
@@ -230,7 +230,7 @@ object (self)
        ?service
 
    method display_menu_box ~classe ?service ~sp ids content =
-     let classe = Ocsimorelib.build_class_attr classe in
+     let classe = Ocsimore_lib.build_class_attr classe in
      Lwt.return
        {{ <div class={: classe :}>
             [ {: self#box_menu ?service ids ~sp :}
@@ -579,10 +579,10 @@ object (self)
                        Wiki_syntax.xml_of_wiki ~sp ~sd c >>= fun r ->
                        Lwt.return (Some r)) >>= fun subbox ->
                 self#editable_wikibox 
-                  ?rows:(Ocsimorelib.int_of_string_opt
-                           (Ocsimorelib.list_assoc_opt "rows" args))
-                  ?cols:(Ocsimorelib.int_of_string_opt
-                           (Ocsimorelib.list_assoc_opt "cols" args))
+                  ?rows:(Ocsimore_lib.int_of_string_opt
+                           (Ocsimore_lib.list_assoc_opt "rows" args))
+                  ?cols:(Ocsimore_lib.int_of_string_opt
+                           (Ocsimore_lib.list_assoc_opt "cols" args))
                   ?classe:(try Some [List.assoc "class" args] 
                            with Not_found -> None) 
                   ~data:(wiki, box)
@@ -634,8 +634,7 @@ object (self)
          service_edit_wikibox
          (fun sp ((w, b) as g) () -> 
             let sd = Ocsimore_common.get_sd sp in
-            self#editable_wikibox ~sp ~sd 
-              ~data:g () >>= fun subbox ->
+            self#editable_wikibox ~sp ~sd ~data:g () >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
               ~data:(w, 1l) ~subbox:{{ [ subbox ] }} () >>= fun page ->
             Lwt.return

@@ -25,7 +25,7 @@ open Lwt
 open Eliommod
 open Eliom_duce.Xhtml
 open Eliom_sessions
-open Ocsimorelib
+open Ocsimore_lib
 
 class widget =
 object
@@ -43,7 +43,7 @@ object(self)
         {{ [] }}
 
   method display_error_box ?(classe=[]) ?(message = "Error") ?exn () =
-    let classe = Ocsimorelib.build_class_attr (error_class::classe) in
+    let classe = Ocsimore_lib.build_class_attr (error_class::classe) in
     let message = 
       match exn with
         | None -> {{ [<strong>{: message :}] }}

@@ -25,7 +25,7 @@
 let (>>=)= Lwt.bind
 
 open Sql.PGOCaml
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 open Sql
 

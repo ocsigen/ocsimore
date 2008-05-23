@@ -4,6 +4,7 @@ TODO
  like before. To do that, we must think about how to do a DAG in a database.
  Would be better to go back to a model where group and user are the same ...
  See Drupal?
+ - Use Lwt.finalize for all commit db!!!!!!!!!!!!!!!!!!!!!!!!?
  - I removed all that depends on module Services for now Vincent 2008/04/15
 (dynamic creation of services)
  - pas clair la distinction entre forum et forum_sql, user et usr_sql,

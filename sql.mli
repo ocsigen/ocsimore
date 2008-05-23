@@ -1,7 +1,7 @@
 (** Database interface. 
     All SQL commands go here. *)
 
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 
 module PGOCaml : sig 

@@ -3,7 +3,7 @@ open Eliommod
 open Eliom_parameters
 open Eliom_services
 open Eliom_duce
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 open Session_manager
 open Widget
@@ -70,7 +70,7 @@ class message_forest_widget :
                           [`One of int32] param_name,
                           [ `Registrable ]) service ->
       [Forum_sql.forum * int32 * int32 option, 
-       (message_data Ocsimorelib.tree list * Forum_sql.role)] 
+       (message_data Ocsimore_lib.tree list * Forum_sql.role)] 
         parametrized_div_widget_t
         
 

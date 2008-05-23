@@ -15,6 +15,7 @@ type wiki_info = {
   id : Wiki_sql.wiki;
   title : string;
   descr : string;
+  path : string list option;
   default_reader: Users.group;
   default_writer: Users.group;
   default_admin: Users.group option; (** the (default) group of users
@@ -24,13 +25,19 @@ type wiki_info = {
 
 
 (** Creates a new wiki or returns its id without modification
-    if it already exists. *)
+    if it already exists. 
+    If the optional argument [path] is present, 
+    the wiki will be bound to an URL.
+*)
 val create_wiki :
   title:string ->
   descr:string ->
+  ?sp: Eliom_sessions.server_params ->
+  ?path: string list ->
   ?reader:Users.group -> 
   ?writer:Users.group -> 
   ?admin:Users.group ->
+  wikibox: Wiki_widgets.editable_wikibox ->
   unit -> 
   wiki_info Lwt.t
 

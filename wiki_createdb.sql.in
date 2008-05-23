@@ -14,7 +14,8 @@ CREATE TABLE wikiboxes (
 ALTER TABLE public.wikiboxes OWNER TO %%USER%%;
 
 CREATE TABLE wikipages (
-    id integer PRIMARY KEY, --  REFERENCES wikiboxes(id)
+    wiki integer NOT NULL, --  REFERENCES wikis(id)
+    id integer NOT NULL, --  REFERENCES wikiboxes(id)
     pagename text DEFAULT ''::text NOT NULL UNIQUE
 );
 
@@ -34,6 +35,7 @@ CREATE TABLE wikis (
     id serial NOT NULL primary key,
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
+    path text,
     reader integer NOT NULL, -- default reader
     writer integer NOT NULL, -- default writer
     wikiadmin integer        -- the (default) group who can change rights

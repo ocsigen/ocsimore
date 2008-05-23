@@ -39,29 +39,7 @@ end
 
 let _ =
   Lwt_unix.run
-    ((* creating a wiki: *)
-     Wiki.create_wiki 
-       ~title:"EXAMPLE site wiki"
-       ~descr:""
-       ~reader:Users.anonymous_group
-       ~writer:Users.admin_group
-       ~admin:Users.admin_group
-       () >>= fun wiki ->
-
-     (* Filling the first wikibox if it does not exist: *)
-     (Wiki_sql.get_wikibox_data (wiki.Wiki.id, 1l) ()
-     >>= function
-       | Some _ -> Lwt.return ()
-       | _ -> (Wiki.new_wikibox 
-                wiki
-                "admin"
-                "First wikibox" 
-                "Welcome!"
-                () >>= fun _ ->
-              Lwt.return ()))
-     >>= fun () ->
-
-     let example_sminfo = {
+    (let example_sminfo = {
        Session_manager.url = ["users"];
        default_groups = [];
        administrator = Users.admin;
@@ -78,6 +56,30 @@ let _ =
      let myloginbox = new User_widgets.login_widget example_sm in
      let mywikibox = new creole_wikibox () in
      (* all widgets created *)
+
+     (* creating a wiki: *)
+     Wiki.create_wiki 
+       ~title:"EXAMPLE site wiki"
+       ~descr:""
+       ~reader:Users.anonymous_group
+       ~writer:Users.admin_group
+       ~admin:Users.admin_group
+       ~wikibox:mywikibox
+       ~path:[]
+       () >>= fun wiki ->
+
+     (* Filling the first wikibox if it does not exist: *)
+     (Wiki_sql.get_wikibox_data (wiki.Wiki.id, 1l) ()
+     >>= function
+       | Some _ -> Lwt.return ()
+       | _ -> (Wiki.new_wikibox 
+                wiki
+                "admin"
+                "First wikibox" 
+                "Welcome!"
+                () >>= fun _ ->
+              Lwt.return ()))
+     >>= fun () ->
 
      register
        srv_main

@@ -26,7 +26,7 @@ type wiki = int32
 
 open Lwt
 open Sql.PGOCaml
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 open Sql
 
@@ -275,6 +275,33 @@ let get_history ~wiki ~id =
                   AND id = $id \
                   ORDER BY version DESC")
 
+(** return the box corresponding to a wikipage *)
+let get_box_for_page ~wiki ~page =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT id \
+                  FROM wikipages \
+                  WHERE wiki = $wiki \
+                  AND pagename = $page") >>= function
+      | [] -> Lwt.fail Not_found
+      | id::_ -> Lwt.return id
+
+(** Sets the box corresponding to a wikipage *)
+let set_box_for_page ~wiki ~id ~page =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db -> 
+       begin_work db >>= fun _ -> 
+       Lwt.finalize
+         (fun () ->
+            PGSQL(db) "DELETE FROM wikipages WHERE pagename = $page" 
+            >>= fun () ->
+            PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $id, $page)")
+         (fun () -> commit db; Lwt.return ())
+    )
+
+
 let find_wiki ?id ?title () =
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun _ -> 
@@ -295,11 +322,18 @@ let find_wiki ?id ?title () =
          >>= fun r -> 
        commit db >>= fun () -> 
        (match r with
-          | [(id, title, descr, r, w, a)] -> 
-              return (id, title, descr, r, w, a)
-          | (id, title, descr, r, w, a)::_ -> 
-              Ocsigen_messages.warning "Ocsimore: More than one wiki have the same name or id (ignored)";
-              return (id, title, descr, r, w, a)
+          | [(id, title, descr, path, r, w, a)] ->
+              let path = 
+                Ocsimore_lib.bind_opt path Neturl.split_path 
+              in
+              Lwt.return (id, title, descr, path, r, w, a)
+          | (id, title, descr, path, r, w, a)::_ -> 
+              Ocsigen_messages.warning
+                "Ocsimore: More than one wiki have the same name or id (ignored)";
+              let path = 
+                Ocsimore_lib.bind_opt path Neturl.split_path 
+              in
+              Lwt.return (id, title, descr, path, r, w, a)
           | [] -> Lwt.fail Not_found))
 
 

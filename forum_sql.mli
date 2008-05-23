@@ -183,7 +183,7 @@ val thread_get_messages_with_text_forest :
      bool * 
      bool * 
      int32 * 
-     int32) Ocsimorelib.tree list Lwt.t
+     int32) Ocsimore_lib.tree list Lwt.t
 
 val get_latest_messages:
   frm_ids:forum list -> 

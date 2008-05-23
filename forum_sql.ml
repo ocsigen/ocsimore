@@ -31,7 +31,7 @@ type forum = int32
 
 open Lwt
 open Sql.PGOCaml
-open Ocsimorelib
+open Ocsimore_lib
 open CalendarLib
 open Sql
 

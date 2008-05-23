@@ -16,7 +16,8 @@ val find_wiki:
   ?id:wiki -> 
   ?title:string -> 
   unit -> 
-  (wiki * string * string * Users.group * Users.group * Users.group option)
+  (wiki * string * string * string list option *
+     Users.group * Users.group * Users.group option)
     Lwt.t
 
 (** Inserts a new wikipage in an existing wiki and return the id of the 
@@ -57,6 +58,13 @@ val get_history :
   wiki:wiki -> 
   id:int32 ->
   (int32 * string * string * CalendarLib.Calendar.t) list Lwt.t
+
+(** return the box corresponding to a wikipage *)
+val get_box_for_page : wiki:int32 -> page:string -> int32 Lwt.t
+
+(** sets the box corresponding to a wikipage *)
+val set_box_for_page : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
+
 
 val get_readers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
 val get_writers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
