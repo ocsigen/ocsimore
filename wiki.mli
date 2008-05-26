@@ -69,15 +69,34 @@ val save_wikibox :
               (string option * (string option * string option)))))) ->
   exn list Lwt.t
 
-(** *)
+(*
 val can_read : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
 val can_write : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
+*)
 
 val get_role : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
   (Wiki_sql.wiki * int32) ->
   role Lwt.t
+
+val get_readers : 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
+  (Wiki_sql.wiki * int32) ->
+  Users.group list Lwt.t
+
+val get_writers : 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
+  (Wiki_sql.wiki * int32) ->
+  Users.group list Lwt.t
+
+val get_admins : 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
+  (Wiki_sql.wiki * int32) ->
+  Users.group list Lwt.t
 
 (** *)
 type wiki_errors =
@@ -86,6 +105,11 @@ type wiki_errors =
 
 type wiki_action_info =
   | Edit_box of (int32 * int32)
+  | Preview of (((int32 * int32) * string) * 
+                  (string option * 
+                     (string option * 
+                        (string option * 
+                           (string option * (string option * string option))))))
   | History of ((int32 * int32) * (int option * int option))
   | Oldversion of ((int32 * int32) * int32)
   | Src of ((int32 * int32) * int32)

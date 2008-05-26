@@ -79,6 +79,10 @@ class editable_wikibox :
       sd:Ocsimore_common.session_data ->
       ?rows:int ->
       ?cols:int ->
+      previewonly:bool ->
+      ?rights:string option *
+        (string option *
+           (string option * (string option * (string option * string option)))) ->
       Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
 
     method display_editable_box :

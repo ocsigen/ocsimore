@@ -94,6 +94,7 @@ let builder =
     W.tt_elem = (fun a ->
                    element a >>= fun r ->
                    Lwt.return {{ [<tt>r ] }});
+    W.nbsp = Lwt.return {{ [ '&nbsp;' ] }};
     W.p_elem = (fun a -> 
                   element a >>= fun r ->
                   Lwt.return {{ [<p>r] }});

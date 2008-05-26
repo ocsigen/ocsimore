@@ -31,6 +31,7 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     br_elem : unit -> 'a_content;
     img_elem : string -> string -> 'a_content;
     tt_elem : 'inline list -> 'a_content;
+    nbsp : 'a_content;
     a_elem : string -> 'a_content list -> 'inline;
     p_elem : 'inline list -> 'flow;
     pre_elem : string list -> 'flow;
@@ -435,6 +436,10 @@ and parse_rem c =
       let s = Lexing.lexeme lexbuf in
       (* It amounts to the same to quote a UTF-8 char or its first byte *)
       push_string c (String.sub s 1 1);
+      parse_rem c lexbuf
+    }
+  | "~ " {
+      push c c.build.nbsp;
       parse_rem c lexbuf
     }
   | '|' white_space* (line_break | eof) {

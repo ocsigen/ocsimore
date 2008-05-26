@@ -66,9 +66,9 @@ val get_box_for_page : wiki:int32 -> page:string -> int32 Lwt.t
 val set_box_for_page : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
 
 
-val get_readers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
-val get_writers : wiki:wiki -> id:int32 -> Users.group list Lwt.t
-val get_admins : wiki:wiki -> id:int32 -> Users.group list Lwt.t
+val get_readers : (wiki * int32) -> Users.group list Lwt.t
+val get_writers : (wiki * int32) -> Users.group list Lwt.t
+val get_admins : (wiki * int32) -> Users.group list Lwt.t
 
 val populate_readers : 
   int32 -> int32 -> int32 list -> unit Lwt.t

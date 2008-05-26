@@ -54,3 +54,6 @@ ul.boxbutton{
     text-decoration: none;
 }
 
+div.preview{
+    border: 1px solid #ff8888;
+}

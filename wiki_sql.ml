@@ -292,13 +292,9 @@ let set_box_for_page ~wiki ~id ~page =
   Lwt_pool.use 
     Sql.pool
     (fun db -> 
-       begin_work db >>= fun _ -> 
-       Lwt.finalize
-         (fun () ->
-            PGSQL(db) "DELETE FROM wikipages WHERE pagename = $page" 
-            >>= fun () ->
-            PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $id, $page)")
-         (fun () -> commit db; Lwt.return ())
+       PGSQL(db) "DELETE FROM wikipages WHERE pagename = $page" 
+       >>= fun () ->
+       PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $id, $page)"
     )
 
 
@@ -337,7 +333,7 @@ let find_wiki ?id ?title () =
           | [] -> Lwt.fail Not_found))
 
 
-let get_writers ~wiki ~id =
+let get_writers (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT writer FROM wikiboxwriters \
@@ -346,7 +342,7 @@ let get_writers ~wiki ~id =
   commit db >>= fun () -> 
   Lwt.return r)
 
-let get_readers ~wiki ~id =
+let get_readers (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT reader FROM wikiboxreaders \
@@ -355,7 +351,7 @@ let get_readers ~wiki ~id =
   commit db >>= fun () -> 
   Lwt.return r)
 
-let get_admins ~wiki ~id =
+let get_admins (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT wbadmin FROM wikiboxadmins \

@@ -3,8 +3,10 @@
 open Lwt
 open Eliom_duce.Xhtml
 
+(*
 let srv_main = 
   Eliom_services.new_service ~path:[""] ~get_params:Eliom_parameters.unit ()
+*)
 
 class example_sessionmanager ~sessionmanagerinfo =
 object (self)
@@ -79,6 +81,7 @@ let _ =
                 "Welcome!"
                 () >>= fun _ ->
               Lwt.return ()))
+(*
      >>= fun () ->
 
      register
@@ -111,4 +114,5 @@ let _ =
              message_form#apply (forum_id, thread_id, None, start)]);
        *)
        return ()
+*)
     )

@@ -64,6 +64,7 @@ let builder plugin_action =
     W.br_elem = nothing;
     W.img_elem = (fun _ _ -> ());
     W.tt_elem = nothing;
+    W.nbsp = ();
     W.p_elem = nothing;
     W.pre_elem = nothing;
     W.h1_elem = nothing;
