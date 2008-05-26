@@ -55,7 +55,7 @@ let _ =
      let example_sm = new example_sessionmanager example_sminfo in
 
      (* widgets creation: *)
-     let myloginbox = new User_widgets.login_widget example_sm in
+     let _ = new User_widgets.login_widget example_sm in
      let mywikibox = new creole_wikibox () in
      (* all widgets created *)
 

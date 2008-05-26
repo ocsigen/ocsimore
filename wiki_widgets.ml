@@ -246,7 +246,7 @@ object (self)
    method display_edit_form
      ~sp
      ~sd
-     ?(rows=40)
+     ?(rows=20)
      ?(cols=80)
      ~previewonly
      ?(rights = (None, (None, (None, (None, (None, None))))))
