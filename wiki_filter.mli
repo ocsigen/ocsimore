@@ -26,11 +26,13 @@
     the wikibox content before registering it in the database.
 *)
 val add_preparser_extension : 
-  string -> ((Eliom_sessions.server_params * 
-                Ocsimore_common.session_data) ->
-              (string * string) list -> 
-              string option -> 
-              string option Lwt.t) -> unit
+  string -> 
+  (int32 ->
+     (Eliom_sessions.server_params * 
+        Ocsimore_common.session_data) ->
+       (string * string) list -> 
+         string option -> 
+           string option Lwt.t) -> unit
 
 
 (** Filters the wiki syntax and replace extensions according to 
@@ -39,4 +41,5 @@ val add_preparser_extension :
 val preparse_extension :
   (Eliom_sessions.server_params * 
      Ocsimore_common.session_data) ->
+  int32 -> 
   string -> string Lwt.t

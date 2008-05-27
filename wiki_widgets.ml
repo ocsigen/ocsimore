@@ -57,21 +57,33 @@ let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
                       comment = com }))
 *)
 
+exception Unknown_box of (int32 * int32)
 
 class noneditable_wikibox =
 object (self)
 
-  inherit Widget.widget_with_error_box
+  inherit Widget.widget_with_error_box as papa
 
   val ne_class = "noned_wikibox"
+
+  method display_error_box ?classe ?message ?exn () =
+    match exn with
+      | Some (Unknown_box (w, i)) ->
+          papa#display_error_box
+            ?classe
+            ~message:("The box "^Int32.to_string i^
+                        " does not exist in wiki "^Int32.to_string w^".")
+            ?exn
+            ()
+      | _ -> papa#display_error_box ?classe ?message ?exn ()
        
-  method pretty_print_wikisyntax ?subbox ~sp ~sd content =
+  method pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id content =
     Lwt.return (Ocamlduce.Utf8.make content)
 
   method private retrieve_wikibox_content ids =
     Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
     match result with
-      | None -> Lwt.fail Not_found
+      | None -> Lwt.fail (Unknown_box ids)
       | Some (com, a, cont, d) -> Lwt.return cont
 
   method display_noneditable_box ~classe content =
@@ -90,14 +102,14 @@ object (self)
           self#bind_or_display_error
             ~classe
             (self#retrieve_wikibox_content data)
-            (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+            (self#pretty_print_wikisyntax ?subbox ~sp ~sd (fst data))
             (self#display_noneditable_box)
-          | Wiki.Nonauthorized ->
-              Lwt.return
-                (self#display_error_box 
-                   ~classe:(ne_class::classe)
-                   ~message:"You are not allowed to see this content."
-                   ())
+      | Wiki.Nonauthorized ->
+          Lwt.return
+            (self#display_error_box 
+               ~classe:(ne_class::classe)
+               ~message:"You are not allowed to see this content."
+               ())
 
 
 end;;
@@ -157,8 +169,8 @@ class editable_wikibox () =
       ~name:"wiki_send"
       ~post_params:
       (Eliom_parameters.string "actionname" **
-         ((((Eliom_parameters.int32 "wikiid") ** 
-              (Eliom_parameters.int32 "boxid")) ** 
+         (((Eliom_parameters.int32 "wikiid" ** 
+              Eliom_parameters.int32 "boxid") ** 
              Eliom_parameters.string "content") **
             (Eliom_parameters.opt (Eliom_parameters.string "addreaders") **
                Eliom_parameters.opt (Eliom_parameters.string "addwriters") **
@@ -167,11 +179,11 @@ class editable_wikibox () =
                Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
                Eliom_parameters.opt (Eliom_parameters.string "deladmin")
             )))
-      (fun sp () (actionname, (((a, content), b) as p)) -> 
+      (fun sp () (actionname, ((((wikiid, _) as a, content), b) as p)) -> 
          if actionname = "save"
          then
            let sd = Ocsimore_common.get_sd sp in
-           Wiki_filter.preparse_extension (sp, sd) content
+           Wiki_filter.preparse_extension (sp, sd) wikiid content
            >>= fun content ->
            Wiki.save_wikibox sp sd ((a, content), b)
          else
@@ -198,12 +210,12 @@ object (self)
     | Wiki.Operation_not_allowed -> "Operation not allowed"
     | Wiki.Action_failed e -> "Action failed"
 
-   val preapply_edit = 
-     fun ids -> 
-       (Eliom_services.preapply action_edit_wikibox ids
-          :
-          (Eliom_services.get_service_kind, [ `Unregistrable ]) 
-          Eliom_duce_tools.one_page)
+  val preapply_edit = 
+    fun ids -> 
+      (Eliom_services.preapply action_edit_wikibox ids
+         :
+         (Eliom_services.get_service_kind, [ `Unregistrable ]) 
+         Eliom_duce_tools.one_page)
 
    val preapply_history =
      fun ids ->
@@ -512,6 +524,7 @@ object (self)
        | (Wiki.Wiki_action_info e)::_ -> Some e
        | _::l -> find_action l
      in
+     let (wiki_id, _) = data in
      let action = find_action (Eliom_sessions.get_exn sp) in 
      Wiki.get_role ~sp ~sd data >>= fun role ->
      (match role with
@@ -530,7 +543,7 @@ object (self)
                      ~classe
                      (Lwt.return content)
                      (fun c ->
-                        self#pretty_print_wikisyntax ?subbox ~sp ~sd c >>= fun pp ->
+                        self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id c >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
                         self#display_edit_form ~sp ~sd ?cols ?rows ~rights
@@ -550,7 +563,7 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_old_wikibox_content ~sp data version)
-                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id)
                      (self#display_old_wikibox ~sp data version)
                | Some (Wiki.Src (i, version)) when i = data ->
                    self#bind_or_display_error
@@ -565,13 +578,13 @@ object (self)
                      ~classe
                      ~error:(self#create_error_message error)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id)
                      (self#display_editable_box ~sp data)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id)
                      (self#display_editable_box ~sp data)
             )
         | Wiki.Lurker -> 
@@ -584,7 +597,7 @@ object (self)
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
@@ -592,13 +605,13 @@ object (self)
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd)
+                     (self#pretty_print_wikisyntax ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
             )
        | Wiki.Nonauthorized ->
@@ -613,15 +626,18 @@ object (self)
    initializer
      begin
        Wiki_syntax.add_block_extension "wikibox"
-         (fun (sp, sd, subbox) args c -> 
+         (fun wiki_id (sp, sd, subbox) args c -> 
             try
-              let wiki = Int32.of_string (List.assoc "wiki" args) in
+              let wiki = 
+                try Int32.of_string (List.assoc "wiki" args) 
+                with Not_found -> wiki_id 
+              in
               try
                 let box = Int32.of_string (List.assoc "box" args) in
                 (match c with
                    | None -> Lwt.return None
                    | Some c -> 
-                       Wiki_syntax.xml_of_wiki ~sp ~sd c >>= fun r ->
+                       Wiki_syntax.xml_of_wiki ~sp ~sd wiki_id c >>= fun r ->
                        Lwt.return (Some r)) >>= fun subbox ->
                 self#editable_wikibox 
                   ?rows:(Ocsimore_lib.int_of_string_opt
@@ -637,25 +653,27 @@ object (self)
                   () >>= fun b ->
                 Lwt.return {{ [ b ] }}
               with Not_found ->
-                let b = 
-                  self#display_error_box
-                    ~message:"Wiki error: argument \"box\" missing in wikibox extension" ()
-                in
-                Lwt.return {{ [ b ] }}
-            with Not_found ->
-              let b =
-                self#display_error_box
-                  ~message:"Wiki error: argument \"wiki\" missing in wikibox extension" ()
-              in
-              Lwt.return {{ [ b ] }});
+                Lwt.return {{ [ <code>"<<wikibox>>" ] }}
+            with
+              | Failure _ ->
+                  let b =
+                    self#display_error_box
+                      ~message:"Wiki error: error in wikibox extension" ()
+                  in
+                  Lwt.return {{ [ b ] }});
        
        Wiki_filter.add_preparser_extension "wikibox"
-         (fun (sp, sd) args c -> 
+         (fun wiki_id (sp, sd) args c -> 
             (try
-              let wiki = Int32.of_string (List.assoc "wiki" args) in
-              let box,args2 = Ocsigen_lib.list_assoc_remove "box" args in
-              if box = "new"
-              then 
+              let wiki = 
+                try
+                  Int32.of_string (List.assoc "wiki" args)
+                with Not_found -> wiki_id
+              in
+              try
+                ignore (List.assoc "box" args);
+                Lwt.return None
+              with Not_found ->
                 Wiki.get_wiki_by_id wiki >>= fun wiki ->
                 Users.get_user_name ~sp ~sd >>= fun name ->
                 Wiki.new_wikibox 
@@ -668,10 +686,9 @@ object (self)
                 Lwt.return (Some 
                               (Wiki_syntax.string_of_extension 
                                  "wikibox" 
-                                 (("box", Int32.to_string box)::args2)
+                                 (("box", Int32.to_string box)::args)
                                  c))
-              else Lwt.return None
-            with Not_found -> Lwt.return None)
+            with Failure _ -> Lwt.return None)
 
          );
 

@@ -70,7 +70,7 @@ let inline (x : Xhtmltypes_duce.a_content)
     : Xhtmltypes_duce.inlines
     = {{ {: [ x ] :} }}
 
-let builder =
+let builder wiki_id =
   { W.chars = make_string;
     W.strong_elem = (fun a -> 
                        element a >>= fun r ->
@@ -146,26 +146,27 @@ let builder =
              Lwt_util.map_serial f2 rows >>= fun rows ->
              Lwt.return {{ [<table>[<tbody>[ row !{: rows :} ] ] ] }});
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
-    W.block_plugin = H.find block_extension_table;
+    W.block_plugin = 
+      (fun name -> H.find block_extension_table name wiki_id);
     W.inline_plugin =
       (fun name param args content -> 
          let f = 
            try H.find inline_extension_table name
            with Not_found -> 
-             (fun _ _ _ ->
+             (fun _ _ _ _ ->
                 Lwt.return
                   {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
                                   !{: name :} ] ] ] }})
          in 
-         f param args content);
+         f wiki_id param args content);
     W.plugin_action = (fun _ _ _ _ _ _ -> ());
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let xml_of_wiki ?subbox ~sp ~sd s = 
+let xml_of_wiki ?subbox ~sp ~sd wiki_id s = 
   Lwt_util.map_serial
     (fun x -> x) 
-    (Wikicreole.from_string (sp, sd, subbox) builder s) 
+    (Wikicreole.from_string (sp, sd, subbox) (builder wiki_id) s) 
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
@@ -180,12 +181,12 @@ let string_of_extension name args content =
 let _ =
 
   add_block_extension "div"
-    (fun (sp, sd, subbox) args c -> 
+    (fun w (sp, sd, subbox) args c -> 
        let content = match c with
          | Some c -> c
          | None -> ""
        in
-       xml_of_wiki ?subbox ~sp ~sd content >>= fun content ->
+       xml_of_wiki ?subbox ~sp ~sd w content >>= fun content ->
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -205,33 +206,33 @@ let _ =
   Wiki_filter.add_preparser_extension "div"
 (*VVV may be done automatically for all extensions with wiki content
   (with an optional parameter of add_block_extension/add_inline_extension?) *)
-    (fun param args -> function
+    (fun w param args -> function
        | None -> Lwt.return None
        | Some c ->
-           Wiki_filter.preparse_extension param c >>= fun c ->
+           Wiki_filter.preparse_extension param w c >>= fun c ->
            Lwt.return (Some (string_of_extension "div" args (Some c)))
     )
   ;
 
 
   add_block_extension "raw"
-    (fun (sp, sd, _) args content ->
+    (fun _ (sp, sd, _) args content ->
        let s = string_of_extension "raw" args content in
        Lwt.return {{ [ <p>[ <b>{: s :} ] ] }});
 
   Wiki_filter.add_preparser_extension "raw"
 (*VVV may be done automatically for all extensions with wiki content 
   (with an optional parameter of add_block_extension/add_inline_extension?) *)
-    (fun param args -> function
+    (fun w param args -> function
        | None -> Lwt.return None
        | Some c ->
-           Wiki_filter.preparse_extension param c >>= fun c ->
+           Wiki_filter.preparse_extension param w c >>= fun c ->
            Lwt.return (Some (string_of_extension "raw" args (Some c)))
     )
   ;
 
   add_block_extension "content"
-    (fun (sp, sd, subbox) args c -> 
+    (fun _ (sp, sd, subbox) args c -> 
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -251,7 +252,7 @@ let _ =
     );
 
   add_block_extension "menu"
-    (fun (sp, sd, _) args c -> 
+    (fun _ (sp, sd, _) args c -> 
        let classe = 
          let c =
            "wikimenu"^

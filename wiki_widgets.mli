@@ -54,6 +54,7 @@ class noneditable_wikibox :
       ?subbox:Xhtmltypes_duce.flows ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
+      int32 ->
       string -> Xhtmltypes_duce.flows Lwt.t
     
     method private retrieve_wikibox_content :

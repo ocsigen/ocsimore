@@ -136,7 +136,7 @@ let create_wiki ~title ~descr
              w
              "admin"
              "Admin container" 
-             "= Ocsimore administration\r\n<<content>>"
+             "= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
              ()
            >>= fun _ ->
 
@@ -145,7 +145,7 @@ let create_wiki ~title ~descr
              w
              "admin"
              "Wikipage" 
-             "= Ocsimore wikipage\r\n<<content>>"
+             "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
              ()
            >>= fun _ ->
 

@@ -71,7 +71,7 @@ object (self)
   initializer
 
       Wiki_syntax.add_block_extension "loginbox"
-        (fun (sp, sd, subbox) args c -> 
+        (fun _ (sp, sd, subbox) args c -> 
            self#display_login_widget ~sp ~sd >>= fun b ->
            Lwt.return {{ [ b ] }})
 

@@ -44,13 +44,14 @@ type c = {
 
 let nothing _ = ()
 
-let make_plugin_action () =
+let make_plugin_action wiki_id =
   let subst = ref [] in
   ((fun name start end_ params args content ->
       subst := (start, 
                 end_, 
                 (try
-                   H.find preparser_extension_table name params args content 
+                   H.find preparser_extension_table name
+                     wiki_id params args content 
                  with Not_found -> Lwt.return None))::!subst)
    ,
    fun () -> !subst
@@ -84,8 +85,8 @@ let builder plugin_action =
     W.error = nothing;
   }
 
-let preparse_extension param content =
-  let (plugin_action, get_subst) = make_plugin_action () in
+let preparse_extension param wiki_id content =
+  let (plugin_action, get_subst) = make_plugin_action wiki_id in
   let builder = builder plugin_action in
   ignore (Wikicreole.from_string param builder content);
   let buf = Buffer.create 1024 in

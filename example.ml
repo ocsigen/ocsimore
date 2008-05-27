@@ -34,8 +34,8 @@ end;;
 class creole_wikibox () = object
   inherit Wiki_widgets.editable_wikibox ()
 
-  method pretty_print_wikisyntax ?subbox ~sp ~sd content =
-    Wiki_syntax.xml_of_wiki ?subbox ~sp ~sd content
+  method pretty_print_wikisyntax ?subbox ~sp ~sd w content =
+    Wiki_syntax.xml_of_wiki ?subbox ~sp ~sd w content
 
 end
 
