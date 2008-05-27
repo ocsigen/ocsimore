@@ -73,7 +73,31 @@ object (self)
       Wiki_syntax.add_block_extension "loginbox"
         (fun _ (sp, sd, subbox) args c -> 
            self#display_login_widget ~sp ~sd >>= fun b ->
-           Lwt.return {{ [ b ] }})
+           Lwt.return {{ [ b ] }});
+
+      ignore 
+        (Eliom_duce.Xhtml.register_new_service
+           ~path:["ocsimore";"login"]
+           ~get_params:Eliom_parameters.unit
+           (fun sp () () -> 
+              let sd = Ocsimore_common.get_sd sp in
+              self#display_login_widget ~sp ~sd >>= fun lb ->
+              Lwt.return
+                {{
+                   <html>[
+                     <head>[
+                       <title>"Ocsimore login"
+                         {: Eliom_duce.Xhtml.css_link 
+                            (Eliom_duce.Xhtml.make_uri
+                               (Eliom_services.static_dir sp) 
+                               sp ["example.css"]) () :}
+(*VVV css ??? *)
+                     ]
+                     <body>[ lb ]
+                   ]
+                 }}
+           )
+        )
 
 
 end
