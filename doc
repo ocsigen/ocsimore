@@ -1,0 +1,43 @@
+Wiki syntax:
+
+The wiki is using wikicreole's syntax (but it is possible to plug another
+syntax). It supports extensions with the following syntax:
+
+<<extensionname arg1='value1' arg2='value2' >>
+or
+<<extensionname arg1='value1' arg2='value2' | data >>
+
+Predefined extensions:
+
+<<div class='...' id='...' | data >>
+creates a <div> box.
+
+<<wikibox box='j' >>
+displays the wikibox number j from current wiki.
+Other optional arguments are possible:
+wiki='i' to display a box from another wiki
+cols='i' (number of columns of the edition window)
+rows='i' (number of rows of the edition window)
+class='...' (class xml attribute to use for the box)
+If you want to create a new wikibox, do not put the box argument.
+A wikibox may be a container. Just put <<content>> inside it.
+To use a container, use the syntax:
+<<wikibox box='j' | put here the content >>
+
+<<menu item='link|text of the item' item='...' ... >>
+displays a menu
+
+<<loginbox>>
+displays a login box
+
+<<raw arg1='value1' arg2='value2' | data >>
+displays the string  "<<arg1='value1' arg2='value2' | data >>"
+(for debugging purpose).
+
+
+Predefined services:
+
+ocsimore/login a connection box (useful for example if you removed by
+mistake the login box from all pages)
+
+ocsimore/wiki_edit?wikiid=n&boxid=m to edit a wikibox
