@@ -401,16 +401,18 @@ object (self)
 
    method display_edit_box
      ~sp
-     ids
+     ((w, b) as ids)
      ~classe
      content
      =
+     let title = "Wiki "^Int32.to_string w^", box "^Int32.to_string b in
      self#display_menu_box
        ~classe:(editform_class::classe)
        ~service:preapply_edit
        ~sp
        ids
-       content
+       {{ [ <p class={: box_title_class :}>{: title :}
+              !content ] }}
 
    method display_editable_box ~sp ids ~classe content =
      self#display_menu_box 
@@ -427,8 +429,9 @@ object (self)
        | None -> Lwt.fail Not_found
        | Some (com, a, cont, d) -> Lwt.return cont
 
-   method display_old_wikibox ~sp ids version ~classe content =
-     let title = "Version "^Int32.to_string version in
+   method display_old_wikibox ~sp ((w, b) as ids) version ~classe content =
+     let title = "Wiki "^Int32.to_string w^", box "^Int32.to_string b^
+       ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(oldwikibox_class::classe)
        ~sp
@@ -547,7 +550,8 @@ object (self)
                      (Lwt.return content)
                      (fun c ->
                         self#pretty_print_wikisyntax
-                          ?subbox ~ancestors
+                          ?subbox 
+                          ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
                           ~sp ~sd wiki_id c >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
@@ -568,7 +572,8 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_old_wikibox_content ~sp data version)
-                     (self#pretty_print_wikisyntax ?subbox ~ancestors
+                     (self#pretty_print_wikisyntax ?subbox
+                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
                         ~sp ~sd wiki_id)
                      (self#display_old_wikibox ~sp data version)
                | Some (Wiki.Src (i, version)) when i = data ->
@@ -585,14 +590,16 @@ object (self)
                      ~error:(self#create_error_message error)
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ?subbox ~ancestors ~sp ~sd wiki_id)
+                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
+                        ?subbox ~sp ~sd wiki_id)
                      (self#display_editable_box ~sp data)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ?subbox ~ancestors ~sp ~sd wiki_id)
+                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
+                        ?subbox ~sp ~sd wiki_id)
                      (self#display_editable_box ~sp data)
             )
         | Wiki.Lurker -> 
@@ -606,7 +613,8 @@ object (self)
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ?subbox ~ancestors ~sp ~sd wiki_id)
+                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
+                        ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
@@ -615,14 +623,16 @@ object (self)
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ?subbox ~ancestors ~sp ~sd wiki_id)
+                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
+                        ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ?subbox ~ancestors ~sp ~sd wiki_id)
+                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
+                        ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
             )
        | Wiki.Nonauthorized ->
