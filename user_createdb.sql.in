@@ -7,20 +7,16 @@ CREATE TABLE users (
     login text NOT NULL,
     password text,
     fullname text NOT NULL,
-    email text NOT NULL
+    email text
 );
 
 
 ALTER TABLE public.users OWNER TO %%USER%%;
 
-CREATE TABLE groups (
-    id serial PRIMARY KEY,
-    name text NOT NULL UNIQUE
-);
 
 CREATE TABLE userrights (
     id integer NOT NULL REFERENCES users(id),
-    groupid integer NOT NULL REFERENCES groups(id),
+    groupid integer NOT NULL REFERENCES users(id),
     CONSTRAINT uni UNIQUE (id, groupid)
 );
 

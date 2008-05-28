@@ -19,59 +19,21 @@
 
 let (>>=) = Lwt.bind
 
-type group = User_sql.groupid
-
 type userdata = 
     { id: User_sql.userid;
       name: string;
       mutable pwd: string option;
       mutable fullname: string;
       mutable email: string;
-      mutable groups: group list }
+    }
       
 exception UserExists
-exception GroupExists
 exception NotAllowed
 exception BadPassword
 exception NoSuchUser
 exception Users_error of string
 
 type user = userdata
-
-(* We keep all groups in memory AND in db *)
-let groups = ref (Lwt_unix.run (User_sql.get_groups ()))
-
-let get_group_name id = List.assoc id !groups
-
-let rec list_cossa e = function
-  | [] -> raise Not_found
-  | (a, b)::_ when e = b -> a
-  | _::l -> list_cossa e l
-
-let list_add v l =
-  if List.mem v l
-  then l
-  else v::l
-
-let get_group ~name = list_cossa name !groups
-
-let group_of_id x = x
-let id_of_group x = x
-
-
-let new_group ~name =
-  User_sql.new_group name >>= fun id ->
-  groups := (id, name)::!groups;
-  Lwt.return id
-
-let create_group ~name =
-  try
-    Lwt.return (get_group name)
-  with
-    | Not_found -> new_group ~name
-
-let anonymous_group = Lwt_unix.run (create_group "anonymous")
-let admin_group = Lwt_unix.run (create_group "admin")
 
 let get_user_by_name_from_db ~name =
   User_sql.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
@@ -80,7 +42,15 @@ let get_user_by_name_from_db ~name =
                pwd = p; 
                fullname = d; 
                email = e;
-               groups = pm }
+             }
+
+let get_user_id_by_name name =
+  User_sql.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+  Lwt.return i
+
+let get_user_name_by_id id =
+  User_sql.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+  Lwt.return n
 
 let get_user_by_id_from_db ~id =
   User_sql.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
@@ -89,7 +59,7 @@ let get_user_by_id_from_db ~id =
                pwd = p; 
                fullname = d; 
                email = e;
-               groups = pm }
+             }
 
 
 let create_anonymous () =
@@ -109,7 +79,6 @@ let create_anonymous () =
                         pwd = None; 
                         fullname = "Anonymous"; 
                         email = "";
-                        groups = []
                       })
        | e -> Lwt.fail e)
 
@@ -173,7 +142,6 @@ let create_admin () =
                         pwd = Some pwd; 
                         fullname = "Admin"; 
                         email = email;
-                        groups = []
                       })
        | e -> Lwt.fail e)
 
@@ -197,32 +165,23 @@ let get_user_by_id ~id =
   else get_user_by_id_from_db ~id
 
 let add_to_group ~user ~group =
-  User_sql.add_to_group user.id group >>= fun () ->
-  user.groups <- list_add group user.groups;
-  Lwt.return ()
+  User_sql.add_to_group user.id group
 
 let create_user ~name ~pwd ~fullname ~email ~groups =
-  try
-    ignore (get_group name);
-    Lwt.fail UserExists
-  with Not_found ->
-  new_group ~name >>= fun g -> (* we create a group for each user *)
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
     (function 
        | Not_found ->
            (User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups
            >>= fun i ->
-           let u = { id = i;
-                     name = name; 
-                     pwd = pwd; 
-                     fullname = fullname; 
-                     email = email;
-                     groups = groups
-                   }
-           in
-           add_to_group ~user:u ~group:g >>= fun () ->
-           Lwt.return u)
+           Lwt.return 
+             { id = i;
+               name = name; 
+               pwd = pwd; 
+               fullname = fullname; 
+               email = email;
+             }
+           )
        | e -> Lwt.fail e)
 
 
@@ -291,9 +250,6 @@ let update_user_data ~user
   user.pwd <- pwd;
   user.fullname <- fullname;
   user.email <- email;
-  (match groups with
-    | Some groups -> user.groups <- groups
-    | None -> ());
   User_sql.update_data
     ~id:user.id
     ~name:user.name
@@ -318,13 +274,28 @@ let authenticate ~name ~pwd =
 
 
 let in_group ~user ~group =
-  ((group = anonymous_group) ||
-     (not (user == anonymous) &&
-        (user == admin ||
-           List.mem group user.groups)))
+  let rec aux2 g = function
+    | [] -> Lwt.return false
+    | g2::l -> 
+        aux g2 g >>= function
+          | true -> Lwt.return true
+          | false -> aux2 g l
+  and aux u g =
+    User_sql.get_groups u >>= fun gl ->
+    if List.mem g gl
+    then Lwt.return true
+    else aux2 g gl
+  in
+  if (user = group) || (group = anonymous.id)
+  then Lwt.return true
+  else if user = anonymous.id
+  then Lwt.return false
+  else if user = admin.id
+  then Lwt.return true
+  else aux user group
 
 let delete_user ~user =
-  User_sql.delete_user user.id
+  User_sql.delete_user user
 
 
 

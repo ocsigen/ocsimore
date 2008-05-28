@@ -39,9 +39,9 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
-  default_reader: Users.group;
-  default_writer: Users.group;
-  default_admin: Users.group option; (** the (default) group of users
+  default_reader: User_sql.userid;
+  default_writer: User_sql.userid;
+  default_admin: User_sql.userid option; (** the (default) group of users
                                          who can change rights for boxes
                                          if acl enabled. 
                                          Putting something here means that
@@ -109,8 +109,8 @@ let new_wikibox ~wiki ~author ~comment ~content =
 let create_wiki ~title ~descr
     ?sp
     ?path
-    ?(reader = Users.anonymous_group)
-    ?(writer = Users.anonymous_group)
+    ?(reader = Users.anonymous.Users.id)
+    ?(writer = Users.anonymous.Users.id)
     ?admin
     ~wikibox
     () =
@@ -255,7 +255,13 @@ let can_admin get_admins wiki id user =
     match wiki.default_admin with
       | Some _ -> (* acl are activated *)
           (get_admins (wiki.id, id) >>= fun l ->
-          Lwt.return (List.exists (fun a -> Users.in_group user a) l))
+           List.fold_left 
+             (fun b a -> 
+                b >>= fun b ->
+                if b then Lwt.return true
+                else Users.in_group user.Users.id a)
+             (Lwt.return false) 
+             l)
             (* was: Users.in_group user admin *)
       | None -> Lwt.return false
 
@@ -266,9 +272,15 @@ let can_read get_readers wiki id user =
     match wiki.default_admin with
       | Some admin -> (* acl are activated *)
           get_readers (wiki.id, id) >>= fun l ->
-          Lwt.return (List.exists (fun a -> Users.in_group user a) l)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group user.Users.id a)
+            (Lwt.return false) 
+            l
       | None -> (* acl are not activated *)
-          Lwt.return (Users.in_group user wiki.default_reader)
+          Users.in_group user.Users.id wiki.default_reader
     
 let can_write get_writers wiki id user =
   if user == Users.admin
@@ -277,9 +289,15 @@ let can_write get_writers wiki id user =
     match wiki.default_admin with
       | Some admin -> (* acl are activated *)
           get_writers (wiki.id, id) >>= fun l ->
-          Lwt.return (List.exists (fun a -> Users.in_group user a) l)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group user.Users.id a)
+            (Lwt.return false) 
+            l
       | None -> (* acl are not activated *)
-          Lwt.return (Users.in_group user wiki.default_writer)
+          Users.in_group user.Users.id wiki.default_writer
     
 
 let get_role_ readers writers admins ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
@@ -311,9 +329,9 @@ module Roles = Map.Make(struct
 type wiki_sd = 
     {
       role : (int32 * int32) -> role Lwt.t;
-      readers : (int32 * int32) -> Users.group list Lwt.t;
-      writers : (int32 * int32) -> Users.group list Lwt.t;
-      admins : (int32 * int32) -> Users.group list Lwt.t;
+      readers : (int32 * int32) -> User_sql.userid list Lwt.t;
+      writers : (int32 * int32) -> User_sql.userid list Lwt.t;
+      admins : (int32 * int32) -> User_sql.userid list Lwt.t;
     }
 
 let cache_find table f box =
@@ -417,42 +435,48 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              let readers = List.map (fun x -> Users.get_group x) r in
+              Lwt_util.map Users.get_user_id_by_name r 
+              >>= fun readers ->
               Wiki_sql.populate_readers wiki_id box_id readers)
           >>= fun () ->
         (match addw with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              let w = List.map (fun x -> Users.get_group x) r in
+              Lwt_util.map Users.get_user_id_by_name r 
+              >>= fun w ->
               Wiki_sql.populate_writers wiki_id box_id w)
           >>= fun () ->
         (match adda with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              let a = List.map (fun x -> Users.get_group x) r in
+              Lwt_util.map Users.get_user_id_by_name r 
+              >>= fun a ->
               Wiki_sql.populate_wbadmins wiki_id box_id a)
           >>= fun () ->
         (match delr with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              let readers = List.map (fun x -> Users.get_group x) r in
+              Lwt_util.map Users.get_user_id_by_name r 
+              >>= fun readers ->
               Wiki_sql.remove_readers wiki_id box_id readers)
           >>= fun () ->
         (match delw with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              let w = List.map (fun x -> Users.get_group x) r in
+              Lwt_util.map Users.get_user_id_by_name r 
+              >>= fun w ->
               Wiki_sql.remove_writers wiki_id box_id w)
           >>= fun () ->
         (match dela with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              let a = List.map (fun x -> Users.get_group x) r in
+              Lwt_util.map Users.get_user_id_by_name r 
+              >>= fun a ->
               Wiki_sql.remove_wbadmins wiki_id box_id a)
     | _ -> Lwt.return ()) >>= fun () ->
   Lwt.return r

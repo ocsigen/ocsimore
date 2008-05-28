@@ -16,9 +16,9 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
-  default_reader: Users.group;
-  default_writer: Users.group;
-  default_admin: Users.group option; (** the (default) group of users
+  default_reader: User_sql.userid;
+  default_writer: User_sql.userid;
+  default_admin: User_sql.userid option; (** the (default) group of users
                                          who can change rights for boxes
                                          if acl enabled *)
 }
@@ -34,9 +34,9 @@ val create_wiki :
   descr:string ->
   ?sp: Eliom_sessions.server_params ->
   ?path: string list ->
-  ?reader:Users.group -> 
-  ?writer:Users.group -> 
-  ?admin:Users.group ->
+  ?reader:User_sql.userid -> 
+  ?writer:User_sql.userid -> 
+  ?admin:User_sql.userid ->
   wikibox: Wiki_widgets.editable_wikibox ->
   unit -> 
   wiki_info Lwt.t
@@ -54,9 +54,9 @@ val new_wikibox :
   author:string ->
   comment:string ->
   content:string ->
-  ?readers:Users.group list ->
-  ?writers:Users.group list -> 
-  ?admins: Users.group list ->
+  ?readers:User_sql.userid list ->
+  ?writers:User_sql.userid list -> 
+  ?admins: User_sql.userid list ->
   unit -> int32 Lwt.t
 
 val save_wikibox :
@@ -84,19 +84,19 @@ val get_readers :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
   (Wiki_sql.wiki * int32) ->
-  Users.group list Lwt.t
+  User_sql.userid list Lwt.t
 
 val get_writers : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
   (Wiki_sql.wiki * int32) ->
-  Users.group list Lwt.t
+  User_sql.userid list Lwt.t
 
 val get_admins : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
   (Wiki_sql.wiki * int32) ->
-  Users.group list Lwt.t
+  User_sql.userid list Lwt.t
 
 (** *)
 type wiki_errors =

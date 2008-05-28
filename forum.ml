@@ -39,9 +39,9 @@ type forum_info = {
   descr: string;
   moderated: bool;
   arborescent: bool;
-  readable_by: Users.group;
-  writable_by: Users.group;
-  moderated_by: Users.group;
+  readable_by: User_sql.userid;
+  writable_by: User_sql.userid;
+  moderated_by: User_sql.userid;
 }
 
 let get_forum_by_id id =
@@ -75,9 +75,9 @@ let create_forum
     ~descr
     ~moderated
     ~arborescent
-    ?(reader = Users.anonymous_group)
-    ?(writer = Users.anonymous_group)
-    ?(moderator = Users.anonymous_group) (*VVV anonymous_group??? *)
+    ?(reader = Users.anonymous.Users.id)
+    ?(writer = Users.anonymous.Users.id)
+    ?(moderator = Users.anonymous.Users.id) (*VVV anonymous??? *)
     () =
   catch
     (fun () -> get_forum_by_name title)
@@ -109,14 +109,17 @@ let can_moderate forum user =
 let get_role ~sp ~sd (forum_id : Forum_sql.forum) =
   get_forum_by_id forum_id >>= fun f -> 
   Users.get_user_data sp sd >>= fun u ->
-  Lwt.return
-    (if can_moderate f u
-    then Forum_sql.Moderator
-    else if can_write f u
-    then Forum_sql.Author u.Users.id
-    else if can_read f u
-    then Forum_sql.Lurker u.Users.name
-    else Forum_sql.Unknown)
+  can_moderate f u.Users.id >>= fun b ->
+  if b
+  then Lwt.return Forum_sql.Moderator
+  else (can_write f u.Users.id >>= fun b ->
+        if b
+        then Lwt.return (Forum_sql.Author u.Users.id)
+        else (can_read f u.Users.id >>= fun b ->
+              if b
+              then Lwt.return (Forum_sql.Lurker u.Users.name)
+              else Lwt.return Forum_sql.Unknown)
+          )
 
 
 (** {2 Session data} *)

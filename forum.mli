@@ -11,9 +11,9 @@ type forum_info = {
   descr: string;
   moderated: bool;
   arborescent: bool;
-  readable_by : Users.group;
-  writable_by : Users.group;
-  moderated_by : Users.group;
+  readable_by : User_sql.userid;
+  writable_by : User_sql.userid;
+  moderated_by : User_sql.userid;
 }
     
 val get_forum_by_name : string -> forum_info Lwt.t
@@ -26,9 +26,9 @@ val create_forum :
   descr:string -> 
   moderated:bool -> 
   arborescent:bool -> 
-  ?reader:Users.group -> 
-  ?writer:Users.group -> 
-  ?moderator:Users.group -> 
+  ?reader:User_sql.userid -> 
+  ?writer:User_sql.userid -> 
+  ?moderator:User_sql.userid -> 
   unit -> 
   forum_info Lwt.t
 

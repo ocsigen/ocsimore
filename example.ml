@@ -63,9 +63,9 @@ let _ =
      Wiki.create_wiki 
        ~title:"EXAMPLE site wiki"
        ~descr:""
-       ~reader:Users.anonymous_group
-       ~writer:Users.admin_group
-       ~admin:Users.admin_group
+       ~reader:Users.anonymous.Users.id
+       ~writer:Users.admin.Users.id
+       ~admin:Users.admin.Users.id
        ~wikibox:mywikibox
        ~path:[]
        () >>= fun wiki ->

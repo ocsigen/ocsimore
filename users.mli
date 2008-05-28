@@ -15,9 +15,6 @@ exception BadPassword
 exception NoSuchUser
 
 
-(** The type of groups *)
-type group = int32
-
 (** user information *)
 type userdata = 
     private
@@ -26,19 +23,15 @@ type userdata =
         mutable pwd: string option;
         mutable fullname: string;
         mutable email: string;
-        mutable groups: group list }
+      }
 
 val anonymous : userdata
 val admin : userdata
 
-val anonymous_group : group
-val admin_group : group
-
 val get_user_by_name : name:string -> userdata Lwt.t
+val get_user_id_by_name : string -> int32 Lwt.t
+val get_user_name_by_id : int32 -> string Lwt.t
 val get_user_by_id : id:int32 -> userdata Lwt.t
-
-val get_group : name:string -> group
-val get_group_name : group -> string
 
 val generate_password: unit -> string option
 
@@ -55,7 +48,7 @@ val create_user:
   pwd:string option -> 
   fullname:string -> 
   email:string -> 
-  groups:group list ->
+  groups: User_sql.userid list ->
   userdata Lwt.t
 
 val create_unique_user: 
@@ -63,29 +56,25 @@ val create_unique_user:
   pwd:string option -> 
   fullname:string -> 
   email:string -> 
-  groups:group list ->
+  groups: User_sql.userid list ->
   (userdata * string) Lwt.t
 
-val delete_user : user:userdata -> unit Lwt.t
+val delete_user : user:User_sql.userid -> unit Lwt.t
 
 val update_user_data: 
   user:userdata -> 
   ?pwd:string option -> 
   ?fullname:string -> 
   ?email:string -> 
-  ?groups:group list ->
+  ?groups: User_sql.userid list ->
   unit -> 
   unit Lwt.t
 
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
-val in_group: user:userdata -> group:group -> bool
+val in_group: user:User_sql.userid -> group:User_sql.userid -> bool Lwt.t
 
-val add_to_group : user:userdata -> group:group -> unit Lwt.t
-
-(** Creates a group if it does not exist. Returns its value in all cases. *)
-val create_group : name:string -> group Lwt.t
-
+val add_to_group : user:userdata -> group:User_sql.userid -> unit Lwt.t
 
 
 (****)

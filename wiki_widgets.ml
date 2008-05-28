@@ -374,21 +374,29 @@ object (self)
            Wiki.get_readers ~sp ~sd ids >>= fun readers ->
            Wiki.get_writers ~sp ~sd ids >>= fun writers ->
            Wiki.get_admins ~sp ~sd ids >>= fun admins ->
-           Lwt.return
-             (Some
-                ((List.fold_left 
-                    (fun s r -> s^" "^Users.get_group_name r)
-                    ""
-                    readers),
-                 (List.fold_left 
-                    (fun s r -> s^" "^Users.get_group_name r)
-                    ""
-                    writers),
-                 (List.fold_left 
-                    (fun s r -> s^" "^Users.get_group_name r)
-                    ""
-                    admins)))
-           | _ -> Lwt.return None) >>= fun rightowners ->
+           List.fold_left 
+             (fun s r -> 
+                s >>= fun s -> 
+                Users.get_user_name_by_id r >>= fun s2 ->
+                Lwt.return (s^" "^s2))
+             (Lwt.return "")
+             readers >>= fun r ->
+           List.fold_left 
+             (fun s r -> 
+                s >>= fun s -> 
+                Users.get_user_name_by_id r >>= fun s2 ->
+                Lwt.return (s^" "^s2))
+             (Lwt.return "")
+             writers >>= fun w ->
+           List.fold_left 
+             (fun s r -> 
+                s >>= fun s -> 
+                Users.get_user_name_by_id r >>= fun s2 ->
+                Lwt.return (s^" "^s2))
+             (Lwt.return "")
+             admins >>= fun a ->
+           Lwt.return (Some (r, w, a))
+       | _ -> Lwt.return None) >>= fun rightowners ->
      Lwt.return
        {{[
            {:

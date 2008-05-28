@@ -19,29 +19,22 @@
 (** The abstract type of user ids *)
 type userid = int32
 
-(** The abstract type of groups *)
-type groupid = int32
-
 val new_user: 
   name:string -> 
   password:string option -> 
   fullname:string -> 
   email:string -> 
-  groups:groupid list ->
+  groups:userid list ->
   userid Lwt.t
 
 val delete_user : user:userid -> unit Lwt.t
-
-val new_group: 
-  name:string -> 
-  groupid Lwt.t
 
 val find_user: 
   ?db:Sql.db_t ->
   ?id:userid -> 
   ?name:string -> 
   unit -> 
-  ((userid * string * string option * string * string) * groupid list) Lwt.t
+  ((userid * string * string option * string * string) * userid list) Lwt.t
 
 val update_data: 
   id:userid -> 
@@ -49,13 +42,14 @@ val update_data:
   password:string option -> 
   fullname:string -> 
   email:string -> 
-  ?groups:groupid list ->
+  ?groups:userid list ->
   unit ->
   unit Lwt.t
 
-val add_to_group : userid:userid -> groupid:groupid -> unit Lwt.t
+val add_to_group : userid:userid -> groupid:userid -> unit Lwt.t
 
-val remove_from_group : userid:userid -> groupid:groupid -> unit Lwt.t
+val remove_from_group : userid:userid -> groupid:userid -> unit Lwt.t
 
-(** Returns all groups (names and ids) from the database *)
-val get_groups : unit -> (groupid * string) list Lwt.t
+(** Returns the groups for one user (level 1) *)
+val get_groups : userid:userid -> userid list Lwt.t
+

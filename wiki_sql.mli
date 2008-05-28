@@ -5,9 +5,9 @@ type wiki = int32
 val new_wiki : 
   title:string -> 
   descr:string -> 
-  reader:Users.group -> 
-  writer:Users.group ->
-  ?admin:Users.group ->
+  reader:User_sql.userid -> 
+  writer:User_sql.userid ->
+  ?admin:User_sql.userid ->
   unit ->
   wiki Lwt.t
 
@@ -17,7 +17,7 @@ val find_wiki:
   ?title:string -> 
   unit -> 
   (wiki * string * string * string list option *
-     Users.group * Users.group * Users.group option)
+     User_sql.userid * User_sql.userid * User_sql.userid option)
     Lwt.t
 
 (** Inserts a new wikipage in an existing wiki and return the id of the 
@@ -27,7 +27,7 @@ val new_wikibox :
   author:string ->
   comment:string ->
   content:string ->
-  ?rights:Users.group list * Users.group list * Users.group list ->
+  ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list ->
   unit ->
   int32 Lwt.t
 
@@ -39,9 +39,9 @@ val update_wikibox :
   author:string ->
   comment:string ->
   content:string ->
-  ?readers:Users.group list ->
-  ?writers:Users.group list ->
-  ?admins:Users.group list ->
+  ?readers:User_sql.userid list ->
+  ?writers:User_sql.userid list ->
+  ?admins:User_sql.userid list ->
   unit ->
   int32 Lwt.t
 
@@ -66,9 +66,9 @@ val get_box_for_page : wiki:int32 -> page:string -> int32 Lwt.t
 val set_box_for_page : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
 
 
-val get_readers : (wiki * int32) -> Users.group list Lwt.t
-val get_writers : (wiki * int32) -> Users.group list Lwt.t
-val get_admins : (wiki * int32) -> Users.group list Lwt.t
+val get_readers : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_writers : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_admins : (wiki * int32) -> User_sql.userid list Lwt.t
 
 val populate_readers : 
   int32 -> int32 -> int32 list -> unit Lwt.t

@@ -34,9 +34,9 @@ val new_forum :
   descr:string -> 
   moderated:bool ->
   arborescent:bool -> 
-  reader:Users.group -> 
-  writer:Users.group ->
-  moderator:Users.group ->  
+  reader:User_sql.userid -> 
+  writer:User_sql.userid ->
+  moderator:User_sql.userid ->  
   forum Lwt.t
 
 (** inserts a message starting a new thread; both thread and message
@@ -88,7 +88,7 @@ val find_forum:
   ?title:string -> 
   unit -> 
   (forum * string * string * bool * bool * 
-     Users.group * Users.group * Users.group) Lwt.t
+     User_sql.userid * User_sql.userid * User_sql.userid) Lwt.t
 
 (** returns the list of available forums *)
 val get_forums_list : unit ->

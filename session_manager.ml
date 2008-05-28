@@ -11,7 +11,7 @@ open Users
 type sessionmanager_in = 
 {
   url: string list;
-  default_groups: Users.group list;
+  default_groups: User_sql.userid list;
   login_actions: server_params -> Users.userdata -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
   registration_mail_from: string * string;
@@ -190,7 +190,7 @@ object (self)
         
       end
       else 
-        Users.delete_user ~user >>= fun () ->
+        Users.delete_user ~user:user.Users.id >>= fun () ->
         self#container
           ~sp
           ~sd:Users.anonymous_sd

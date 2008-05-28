@@ -30,7 +30,6 @@ open CalendarLib
 open Sql
 
 type userid = int32
-type groupid = int32
 
 let populate_groups db id groups =
   match groups with
@@ -66,14 +65,6 @@ let new_user ~name ~password ~fullname ~email ~groups =
   serial4 db "users_id_seq" >>= fun id ->
   populate_groups db id groups >>= fun () ->
   commit db >>= fun _ -> 
-  return id)
-
-let new_group ~name =
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ ->
-  PGSQL(db) "INSERT INTO groups (name) VALUES ($name)" >>= fun () ->
-  serial4 db "groups_id_seq" >>= fun id -> 
-  commit db >>= fun () ->
   return id)
 
 let find_user ?db ?id ?name () =
@@ -148,6 +139,9 @@ let update_data ~id ~name ~password ~fullname ~email ?groups () =
   commit db >>= fun _ -> 
   Lwt.return ())
 
-let get_groups () = 
-  Lwt_pool.use Sql.pool (fun db ->
-  PGSQL(db) "SELECT * FROM groups")
+let get_groups ~userid =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT groupid FROM userrights WHERE id = $userid"
+    )
+
