@@ -190,6 +190,7 @@ let create_wiki ~title ~descr
                       wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
                         ?rows:None ?cols:None ?classe:None ?subbox:None
+                        ~ancestors:Wiki_syntax.no_ancestors
                         () >>= fun subbox -> 
                       Lwt.return {{ [ subbox ] }}
                    )
@@ -220,7 +221,7 @@ let create_wiki ~title ~descr
                  
                wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 2l)
                  ?rows:None ?cols:None ?classe:None
-                 ?subbox:(Some subbox)
+                 ?subbox:(Some subbox) ~ancestors:Wiki_syntax.no_ancestors
                  ()
                >>= fun page ->
 

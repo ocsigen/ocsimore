@@ -45,6 +45,7 @@ class noneditable_wikibox :
 
     method noneditable_wikibox :
       ?subbox:Xhtmltypes_duce.flows ->
+      ancestors:Wiki_syntax.ancestors ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       ?classe:string list ->
@@ -52,6 +53,7 @@ class noneditable_wikibox :
 
     method pretty_print_wikisyntax : 
       ?subbox:Xhtmltypes_duce.flows ->
+      ancestors:Wiki_syntax.ancestors ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       int32 ->
@@ -135,6 +137,7 @@ class editable_wikibox :
       ?cols:int ->
       ?classe:string list -> 
       ?subbox:Xhtmltypes_duce.flows ->
+      ancestors:Wiki_syntax.ancestors ->
       unit -> Xhtmltypes_duce.block Lwt.t
 
     method private retrieve_history :

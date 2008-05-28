@@ -21,13 +21,22 @@
    @author Vincent Balat
 *)
 
+(** Type used to avoid wikibox loops *)
+type ancestors
+
+val no_ancestors : ancestors
+
+val in_ancestors : (int32 * int32) -> ancestors -> bool
+
+val add_ancestor : (int32 * int32) -> ancestors -> ancestors
+
 (** Define new extensions to the wiki syntax. *)
 val add_inline_extension : 
   string -> 
   (int32 ->
      (Eliom_sessions.server_params * 
       Ocsimore_common.session_data *
-      Xhtmltypes_duce.flows option) ->
+      (Xhtmltypes_duce.flows option * ancestors)) ->
      (string * string) list -> 
        string option -> 
          {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t) -> unit
@@ -37,7 +46,7 @@ val add_block_extension :
   (int32 ->
      (Eliom_sessions.server_params * 
       Ocsimore_common.session_data *
-      Xhtmltypes_duce.flows option) ->
+      (Xhtmltypes_duce.flows option * ancestors)) ->
      (string * string) list -> 
        string option -> 
          Xhtmltypes_duce.flows Lwt.t) -> unit
@@ -48,6 +57,7 @@ val add_block_extension :
 *)
 val xml_of_wiki :
   ?subbox: Xhtmltypes_duce.flows ->
+  ancestors:ancestors ->
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   int32 ->

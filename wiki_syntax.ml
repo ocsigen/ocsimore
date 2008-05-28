@@ -34,6 +34,16 @@ module H = Hashtbl.Make(struct
 let block_extension_table = H.create 8
 let inline_extension_table = H.create 8
 
+(** Type used to avoid wikibox loops *)
+type ancestors = (int32 * int32) list
+
+let in_ancestors box ancestors =
+  List.mem box ancestors
+
+let no_ancestors = []
+
+let add_ancestor x a = x::a
+
 let add_block_extension k f = H.add block_extension_table k f
 
 let add_inline_extension k f = H.add inline_extension_table k f
@@ -163,10 +173,10 @@ let builder wiki_id =
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let xml_of_wiki ?subbox ~sp ~sd wiki_id s = 
+let xml_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
   Lwt_util.map_serial
     (fun x -> x) 
-    (Wikicreole.from_string (sp, sd, subbox) (builder wiki_id) s) 
+    (Wikicreole.from_string (sp, sd, (subbox, ancestors)) (builder wiki_id) s) 
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
@@ -181,12 +191,12 @@ let string_of_extension name args content =
 let _ =
 
   add_block_extension "div"
-    (fun w (sp, sd, subbox) args c -> 
+    (fun w (sp, sd, (subbox, ancestors)) args c -> 
        let content = match c with
          | Some c -> c
          | None -> ""
        in
-       xml_of_wiki ?subbox ~sp ~sd w content >>= fun content ->
+       xml_of_wiki ?subbox ~ancestors ~sp ~sd w content >>= fun content ->
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -232,7 +242,7 @@ let _ =
   ;
 
   add_block_extension "content"
-    (fun _ (sp, sd, subbox) args c -> 
+    (fun _ (sp, sd, (subbox, ancestors)) args c -> 
        let classe = 
          try
            let a = List.assoc "class" args in
