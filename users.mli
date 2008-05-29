@@ -25,8 +25,14 @@ type userdata =
         mutable email: string;
       }
 
+(** A user that does not belong to any group *)
 val anonymous : userdata
+
+(** A user that belongs to all groups *)
 val admin : userdata
+
+(** A group containing all real users (not groups) *)
+val users_group : userdata
 
 val get_user_by_name : name:string -> userdata Lwt.t
 val get_user_id_by_name : string -> int32 Lwt.t

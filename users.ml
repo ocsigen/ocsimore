@@ -93,6 +93,28 @@ let create_anonymous () =
 
 let anonymous = Lwt_unix.run (create_anonymous ())
 
+let create_users_group () =
+  Lwt.catch
+    (fun () -> get_user_by_name_from_db ~name:"users")
+    (function
+       | Not_found ->
+           (User_sql.new_user 
+              ~name:"users" 
+              ~password:None
+              ~fullname:"Users"
+              ~email:""
+              ~groups:[]
+            >>= fun i ->
+           Lwt.return { id = i;
+                        name = "users"; 
+                        pwd = None; 
+                        fullname = "Users"; 
+                        email = "";
+                      })
+       | e -> Lwt.fail e)
+
+let users_group = Lwt_unix.run (create_users_group ())
+
 
 let create_admin () =
   let rec get_pwd message =
@@ -181,7 +203,12 @@ let create_user ~name ~pwd ~fullname ~email ~groups =
     (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
     (function 
        | Not_found ->
-           (User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups
+           let groups =
+             if pwd = None || List.mem users_group.id groups
+             then groups
+             else users_group.id::groups
+           in
+           User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups
            >>= fun i ->
            Lwt.return 
              { id = i;
@@ -190,7 +217,6 @@ let create_user ~name ~pwd ~fullname ~email ~groups =
                fullname = fullname; 
                email = email;
              }
-           )
        | e -> Lwt.fail e)
 
 
