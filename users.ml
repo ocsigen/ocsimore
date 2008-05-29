@@ -40,6 +40,7 @@ exception UserExists
 exception NotAllowed
 exception BadPassword
 exception NoSuchUser
+exception CircularGroups
 exception Users_error of string
 
 type user = userdata
@@ -219,9 +220,6 @@ let get_user_by_id ~id =
   then Lwt.return admin
   else get_user_by_id_from_db ~id
 
-let add_to_group ~user ~group =
-  User_cache.add_to_group user.id group
-
 let create_user ~name ~pwd ~fullname ~email ~groups =
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
@@ -349,6 +347,13 @@ let in_group ~user ~group =
   else if user = admin.id
   then Lwt.return true
   else aux user group
+
+
+let add_to_group ~user ~group =
+  in_group group user.id >>= fun b ->
+  if b
+  then Lwt.fail CircularGroups
+  else User_cache.add_to_group user.id group
 
 let delete_user ~userid =
   User_cache.delete_user userid

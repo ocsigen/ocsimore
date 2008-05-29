@@ -13,6 +13,7 @@ exception UserExists
 exception NotAllowed
 exception BadPassword
 exception NoSuchUser
+exception CircularGroups
 
 
 (** user information *)
