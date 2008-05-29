@@ -174,7 +174,7 @@ let get_user_by_id ~id =
   else get_user_by_id_from_db ~id
 
 let add_to_group ~user ~group =
-  User_sql.add_to_group user.id group
+  User_cache.add_to_group user.id group
 
 let create_user ~name ~pwd ~fullname ~email ~groups =
   Lwt.catch 
@@ -259,8 +259,8 @@ let update_user_data ~user
   user.pwd <- pwd;
   user.fullname <- fullname;
   user.email <- email;
-  User_sql.update_data
-    ~id:user.id
+  User_cache.update_data
+    ~userid:user.id
     ~name:user.name
     ~password:pwd
     ~fullname
@@ -303,8 +303,8 @@ let in_group ~user ~group =
   then Lwt.return true
   else aux user group
 
-let delete_user ~user =
-  User_sql.delete_user user
+let delete_user ~userid =
+  User_cache.delete_user userid
 
 
 

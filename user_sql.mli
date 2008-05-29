@@ -27,7 +27,13 @@ val new_user:
   groups:userid list ->
   userid Lwt.t
 
-val delete_user : user:userid -> unit Lwt.t
+
+(**/**)
+(* DO NOT USE THE FOLLOWING BUT THOSE IN user_cache.ml *)
+
+
+(** Returns the groups for one user (level 1) *)
+val get_groups : userid:userid -> userid list Lwt.t
 
 val find_user: 
   ?db:Sql.db_t ->
@@ -37,7 +43,7 @@ val find_user:
   ((userid * string * string option * string * string) * userid list) Lwt.t
 
 val update_data: 
-  id:userid -> 
+  userid:userid -> 
   name:string -> 
   password:string option -> 
   fullname:string -> 
@@ -50,6 +56,5 @@ val add_to_group : userid:userid -> groupid:userid -> unit Lwt.t
 
 val remove_from_group : userid:userid -> groupid:userid -> unit Lwt.t
 
-(** Returns the groups for one user (level 1) *)
-val get_groups : userid:userid -> userid list Lwt.t
+val delete_user : userid:userid -> unit Lwt.t
 

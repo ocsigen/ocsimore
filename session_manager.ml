@@ -190,7 +190,7 @@ object (self)
         
       end
       else 
-        Users.delete_user ~user:user.Users.id >>= fun () ->
+        Users.delete_user ~userid:user.Users.id >>= fun () ->
         self#container
           ~sp
           ~sd:Users.anonymous_sd

@@ -115,27 +115,24 @@ let remove_from_group ~userid ~groupid =
   PGSQL(db)
     "DELETE FROM userrights WHERE id = $userid AND groupid = $groupid")
 
-let delete_user ~user =
+let delete_user ~userid =
   Lwt_pool.use Sql.pool (fun db ->
-  PGSQL(db) "DELETE FROM users WHERE id = $user")
+  PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
-let update_data ~id ~name ~password ~fullname ~email ?groups () =
+let update_data ~userid ~name ~password ~fullname ~email ?groups () =
   Lwt_pool.use Sql.pool (fun db ->
-  Ocsigen_messages.debug2 "[Sql] update_data";
-  find_user ~db ~id ~name () >>= fun ((id, _, _, _, _), _) -> 
   begin_work db >>= fun _ -> 
   (match password with
      | None -> 
-         PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $id"
+         PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $userid"
      | Some pwd -> 
-         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $id") 
+         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $userid") 
     >>= fun () ->
   (match groups with
     | Some groups ->
-        PGSQL(db) "DELETE FROM userrights WHERE id=$id" >>= fun () ->
-        populate_groups db id groups;
+        PGSQL(db) "DELETE FROM userrights WHERE id=$userid" >>= fun () ->
+        populate_groups db userid groups;
     | None -> Lwt.return ()) >>= fun () ->
-  Ocsigen_messages.debug2 "[Sql] update_data: finish"; 
   commit db >>= fun _ -> 
   Lwt.return ())
 

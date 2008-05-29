@@ -34,8 +34,6 @@ let get_wikibox_data, update_wikibox =
   in
   let cache = C.create 64 in
   ((fun ?version ~wikibox () ->
-    print_int (C.size cache);
-    print_endline " wikibox";
     match version with
       | None ->
           (try

@@ -59,7 +59,7 @@ val create_unique_user:
   groups: User_sql.userid list ->
   (userdata * string) Lwt.t
 
-val delete_user : user:User_sql.userid -> unit Lwt.t
+val delete_user : userid:User_sql.userid -> unit Lwt.t
 
 val update_user_data: 
   user:userdata -> 

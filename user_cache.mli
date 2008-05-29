@@ -26,3 +26,19 @@ val find_user:
 (** Returns the groups for one user (level 1) *)
 val get_groups : userid:User_sql.userid -> User_sql.userid list Lwt.t
 
+val update_data: 
+  userid:User_sql.userid -> 
+  name:string -> 
+  password:string option -> 
+  fullname:string -> 
+  email:string -> 
+  ?groups:User_sql.userid list ->
+  unit ->
+  unit Lwt.t
+
+val add_to_group : userid:User_sql.userid -> groupid:User_sql.userid -> unit Lwt.t
+
+val remove_from_group : userid:User_sql.userid -> groupid:User_sql.userid -> unit Lwt.t
+
+val delete_user : userid:User_sql.userid -> unit Lwt.t
+

@@ -1,6 +1,5 @@
 TODO
 
- - Performance enhancement in users.ml and groups!!!
  - IMPORTANT WARNING: the cache may cause inconsistencies of data
  if several processes are modifying the database
  - Cache or not to cache?
@@ -8,6 +7,7 @@ TODO
  How to be sure that data are removed from the cache when they are modified?
  Wiki_sql.get_readers (set ... writers ... admins)
  are not cached for now!
+ User_sql.find_user is not cached with ~name parameter for now.
  - Use userid instead of userdata wherever it is possible
  - Use Lwt.finalize for all commit db!!!!!!!!!!!!!!!!!!!!!!!!
  or piutosto abort if it fails
