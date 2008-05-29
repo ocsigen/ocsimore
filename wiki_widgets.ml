@@ -37,7 +37,7 @@ type wiki_data = {
 (*
 let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
   self#bind_or_display_error
-    (Wiki_sql.get_wikibox_data ~wikibox:ids ())
+    (Wiki_cache.get_wikibox_data ~wikibox:ids ())
     (fun result ->
        match result with
          | None -> Lwt.fail Not_found
@@ -82,7 +82,7 @@ object (self)
     Lwt.return (Ocamlduce.Utf8.make content)
 
   method private retrieve_wikibox_content ids =
-    Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
+    Wiki_cache.get_wikibox_data ~wikibox:ids () >>= fun result ->
     match result with
       | None -> Lwt.fail (Unknown_box ids)
       | Some (com, a, cont, d) -> Lwt.return cont
@@ -363,9 +363,20 @@ object (self)
                 ]
               }}
          | _ -> {{ [<p>[!f
-                          {: Eliom_duce.Xhtml.string_input
-                             ~input_type:{: "submit" :} 
-                             ~value:"Submit" () :}
+                          !{: 
+                            let prev =
+                              Eliom_duce.Xhtml.string_button
+                                ~name:actionname
+                                ~value:"preview" {{ "Preview" }}
+                            in
+                            if previewonly
+                            then [prev]
+                            else
+                              [prev;
+                               Eliom_duce.Xhtml.string_button
+                                 ~name:actionname
+                                 ~value:"save" {{ "Save" }}
+                              ] :}
                        ]] }}
      in
      Wiki.get_role ~sp ~sd ids >>= fun role ->
@@ -431,7 +442,7 @@ object (self)
        content
 
    method retrieve_old_wikibox_content ~sp ids version =
-     Wiki_sql.get_wikibox_data ~version ~wikibox:ids ()
+     Wiki_cache.get_wikibox_data ~version ~wikibox:ids ()
      >>= fun result ->
      match result with
        | None -> Lwt.fail Not_found

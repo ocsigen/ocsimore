@@ -49,21 +49,8 @@ type wiki_info = {
                                      *)
 }
 
-module H = Hashtbl.Make(struct
-                          type t = int32
-                          let equal = (=)
-                          let hash = Hashtbl.hash 
-                        end)
-
-let wiki_info_table = H.create 8
-
-let find_wiki id =
-  try
-    Lwt.return (H.find wiki_info_table id)
-  with Not_found -> Wiki_sql.find_wiki ~id ()
-
 let get_wiki_by_id id =
-  find_wiki id
+  Wiki_cache.find_wiki id
   >>= fun (id, title, descr,path, r, w, a) -> 
   Lwt.return { id = id; 
                title = title; 
@@ -173,7 +160,7 @@ let create_wiki ~title ~descr
                   "**//new wikipage//**"
 (*VVV readers, writers, admins? *)
                   () >>= fun box ->
-                Wiki_sql.set_box_for_page ~wiki:w.id ~id:box ~page >>= fun () ->
+                Wiki_cache.set_box_for_page ~wiki:w.id ~id:box ~page >>= fun () ->
                 Lwt.return [])
          in
          ignore
@@ -186,7 +173,7 @@ let create_wiki ~title ~descr
                  let sd = Ocsimore_common.get_sd sp in
                  Lwt.catch
                    (fun () ->
-                      Wiki_sql.get_box_for_page w.id path >>= fun box ->
+                      Wiki_cache.get_box_for_page w.id path >>= fun box ->
                       wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
                         ?rows:None ?cols:None ?classe:None ?subbox:None
@@ -246,10 +233,10 @@ let create_wiki ~title ~descr
 
 
 
-let can_admin get_admins wiki id user =
-  if user == Users.anonymous
+let can_admin get_admins wiki id userid =
+  if userid = Users.anonymous.Users.id
   then Lwt.return false
-  else if user == Users.admin
+  else if userid == Users.admin.Users.id
   then Lwt.return true
   else
     match wiki.default_admin with
@@ -259,14 +246,14 @@ let can_admin get_admins wiki id user =
              (fun b a -> 
                 b >>= fun b ->
                 if b then Lwt.return true
-                else Users.in_group user.Users.id a)
+                else Users.in_group userid a)
              (Lwt.return false) 
              l)
             (* was: Users.in_group user admin *)
       | None -> Lwt.return false
 
-let can_read get_readers wiki id user =
-  if user == Users.admin
+let can_read get_readers wiki id userid =
+  if userid = Users.admin.Users.id
   then Lwt.return true
   else
     match wiki.default_admin with
@@ -276,14 +263,14 @@ let can_read get_readers wiki id user =
             (fun b a -> 
                b >>= fun b ->
                if b then Lwt.return true
-               else Users.in_group user.Users.id a)
+               else Users.in_group userid a)
             (Lwt.return false) 
             l
       | None -> (* acl are not activated *)
-          Users.in_group user.Users.id wiki.default_reader
+          Users.in_group userid wiki.default_reader
     
-let can_write get_writers wiki id user =
-  if user == Users.admin
+let can_write get_writers wiki id userid =
+  if userid = Users.admin.Users.id
   then Lwt.return true
   else
     match wiki.default_admin with
@@ -293,16 +280,17 @@ let can_write get_writers wiki id user =
             (fun b a -> 
                b >>= fun b ->
                if b then Lwt.return true
-               else Users.in_group user.Users.id a)
+               else Users.in_group userid a)
             (Lwt.return false) 
             l
       | None -> (* acl are not activated *)
-          Users.in_group user.Users.id wiki.default_writer
+          Users.in_group userid wiki.default_writer
     
 
 let get_role_ readers writers admins ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
   get_wiki_by_id wiki >>= fun w ->
   Users.get_user_data sp sd >>= fun u ->
+  let u = u.Users.id in
   can_admin admins w id u >>= fun cana ->
   if cana
   then Lwt.return Admin
@@ -417,7 +405,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
         Lwt.catch
           (fun () ->
               Users.get_user_data sp sd >>= fun user ->
-              Wiki_sql.update_wikibox
+              Wiki_cache.update_wikibox
                wiki_id box_id
                user.Users.name
                "" content () >>= fun _ ->
@@ -431,11 +419,20 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
     >>= fun r ->
   (match role with
     | Admin ->
+        let f a =
+          Lwt.catch
+            (fun () -> 
+               Users.get_user_id_by_name a >>= fun v -> 
+               Lwt.return (Some v))
+            (function 
+               | Not_found -> Lwt.return None
+               | e -> Lwt.fail e)
+        in
         (match addr with
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              Lwt_util.map Users.get_user_id_by_name r 
+              Lwt_util.map f r 
               >>= fun readers ->
               Wiki_sql.populate_readers wiki_id box_id readers)
           >>= fun () ->
@@ -443,7 +440,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              Lwt_util.map Users.get_user_id_by_name r 
+              Lwt_util.map f r 
               >>= fun w ->
               Wiki_sql.populate_writers wiki_id box_id w)
           >>= fun () ->
@@ -451,7 +448,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              Lwt_util.map Users.get_user_id_by_name r 
+              Lwt_util.map f r 
               >>= fun a ->
               Wiki_sql.populate_wbadmins wiki_id box_id a)
           >>= fun () ->
@@ -459,7 +456,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              Lwt_util.map Users.get_user_id_by_name r 
+              Lwt_util.map f r 
               >>= fun readers ->
               Wiki_sql.remove_readers wiki_id box_id readers)
           >>= fun () ->
@@ -467,7 +464,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              Lwt_util.map Users.get_user_id_by_name r 
+              Lwt_util.map f r 
               >>= fun w ->
               Wiki_sql.remove_writers wiki_id box_id w)
           >>= fun () ->
@@ -475,7 +472,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           | None | Some "" -> Lwt.return ()
           | Some s -> 
               let r = Ocsigen_lib.split ' ' s in
-              Lwt_util.map Users.get_user_id_by_name r 
+              Lwt_util.map f r 
               >>= fun a ->
               Wiki_sql.remove_wbadmins wiki_id box_id a)
     | _ -> Lwt.return ()) >>= fun () ->

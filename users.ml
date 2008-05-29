@@ -17,6 +17,15 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+(**
+User management
+
+@author Jaap Boender
+@author Piero Furiesi
+@author Vincent Balat
+*)
+
+
 let (>>=) = Lwt.bind
 
 type userdata = 
@@ -36,7 +45,7 @@ exception Users_error of string
 type user = userdata
 
 let get_user_by_name_from_db ~name =
-  User_sql.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+  User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
   Lwt.return { id = i; 
                name = n; 
                pwd = p; 
@@ -45,15 +54,15 @@ let get_user_by_name_from_db ~name =
              }
 
 let get_user_id_by_name name =
-  User_sql.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+  User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
   Lwt.return i
 
 let get_user_name_by_id id =
-  User_sql.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+  User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
   Lwt.return n
 
 let get_user_by_id_from_db ~id =
-  User_sql.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+  User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
   Lwt.return { id = i; 
                name = n; 
                pwd = p; 
@@ -281,7 +290,7 @@ let in_group ~user ~group =
           | true -> Lwt.return true
           | false -> aux2 g l
   and aux u g =
-    User_sql.get_groups u >>= fun gl ->
+    User_cache.get_groups u >>= fun gl ->
     if List.mem g gl
     then Lwt.return true
     else aux2 g gl
@@ -301,7 +310,7 @@ let delete_user ~user =
 
 (** {2 Session data} *)
 
-let user_table: userdata option Eliom_sessions.persistent_table = 
+let user_table: User_sql.userid option Eliom_sessions.persistent_table = 
   Eliom_sessions.create_persistent_table "ocsimore_user_table_v1"
 
 type user_sd = 
@@ -310,10 +319,10 @@ type user_sd =
 (** The polytable key for retrieving user data inside session data *)
 let user_key : user_sd Polytables.key = Polytables.make_key ()
 
-let get_user_data ~sp =
+let get_user_data_ ~sp =
   Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
   >>= function
-    | Eliom_sessions.Data (Some u) -> Lwt.return u
+    | Eliom_sessions.Data (Some u) -> get_user_by_id_from_db u
     | Eliom_sessions.Data None -> Lwt.return admin
     | _ -> Lwt.return anonymous
 
@@ -321,7 +330,7 @@ let get_user_sd ~sp ~sd =
   try
     Polytables.get ~table:sd ~key:user_key
   with Not_found -> 
-    let ud = get_user_data ~sp in
+    let ud = get_user_data_ ~sp in
     Polytables.set sd user_key ud;
     ud
 
@@ -347,4 +356,4 @@ let set_session_data ~sp ~sd user =
   then
     Eliom_sessions.set_persistent_session_data user_table sp None
   else
-    Eliom_sessions.set_persistent_session_data user_table sp (Some user)
+    Eliom_sessions.set_persistent_session_data user_table sp (Some user.id)
