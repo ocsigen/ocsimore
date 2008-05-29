@@ -55,13 +55,20 @@ let populate_groups db id groups =
 let new_user ~name ~password ~fullname ~email ~groups =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
-  (match password with
-     | None -> 
-         PGSQL(db) "INSERT INTO users (login, fullname, email)\
+  (match password, email with
+     | None, None -> 
+         PGSQL(db) "INSERT INTO users (login, fullname)\
+                    VALUES ($name, $fullname)"
+     | Some pwd, None -> 
+         PGSQL(db) "INSERT INTO users (login, password, fullname) \
+                    VALUES ($name, $pwd, $fullname)"
+     | None, Some email -> 
+         PGSQL(db) "INSERT INTO users (login, fullname, email) \
                     VALUES ($name, $fullname, $email)"
-     | Some pwd -> 
+     | Some pwd, Some email -> 
          PGSQL(db) "INSERT INTO users (login, password, fullname, email) \
-                    VALUES ($name, $pwd, $fullname, $email)") >>= fun () -> 
+                    VALUES ($name, $pwd, $fullname, $email)"
+  ) >>= fun () -> 
   serial4 db "users_id_seq" >>= fun id ->
   populate_groups db id groups >>= fun () ->
   commit db >>= fun _ -> 
@@ -122,11 +129,17 @@ let delete_user ~userid =
 let update_data ~userid ~name ~password ~fullname ~email ?groups () =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
-  (match password with
-     | None -> 
+  (match password, email with
+     | None, None -> 
+         PGSQL(db) "UPDATE users SET fullname = $fullname WHERE id = $userid"
+     | None, Some email -> 
          PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $userid"
-     | Some pwd -> 
-         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $userid") 
+(*VVV is it ok when pwd/email becomes NULL? *)
+     | Some pwd, None -> 
+         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname WHERE id = $userid"
+     | Some pwd, Some email -> 
+         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $userid"
+  ) 
     >>= fun () ->
   (match groups with
     | Some groups ->

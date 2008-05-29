@@ -23,7 +23,7 @@ val new_user:
   name:string -> 
   password:string option -> 
   fullname:string -> 
-  email:string -> 
+  email:string option -> 
   groups:userid list ->
   userid Lwt.t
 
@@ -40,14 +40,15 @@ val find_user:
   ?id:userid -> 
   ?name:string -> 
   unit -> 
-  ((userid * string * string option * string * string) * userid list) Lwt.t
+  ((userid * string * string option * string * string option) * 
+     userid list) Lwt.t
 
 val update_data: 
   userid:userid -> 
   name:string -> 
   password:string option -> 
   fullname:string -> 
-  email:string -> 
+  email:string option -> 
   ?groups:userid list ->
   unit ->
   unit Lwt.t

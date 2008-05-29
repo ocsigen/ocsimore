@@ -41,3 +41,7 @@ val get_sd : sp:Eliom_sessions.server_params -> session_data
 *)
 val create_empty_sd : unit -> session_data
 
+(** Call this function just after closing the session
+*)
+val clear_sd : sd:session_data -> unit
+

@@ -20,7 +20,7 @@ val find_user:
   ?id:User_sql.userid -> 
   ?name:string -> 
   unit -> 
-  ((User_sql.userid * string * string option * string * string) * 
+  ((User_sql.userid * string * string option * string * string option) * 
      User_sql.userid list) Lwt.t
 
 (** Returns the groups for one user (level 1) *)
@@ -31,7 +31,7 @@ val update_data:
   name:string -> 
   password:string option -> 
   fullname:string -> 
-  email:string -> 
+  email:string option -> 
   ?groups:User_sql.userid list ->
   unit ->
   unit Lwt.t

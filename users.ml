@@ -33,7 +33,7 @@ type userdata =
       name: string;
       mutable pwd: string option;
       mutable fullname: string;
-      mutable email: string;
+      mutable email: string option;
     }
       
 exception UserExists
@@ -45,49 +45,73 @@ exception Users_error of string
 type user = userdata
 
 let get_user_by_name_from_db ~name =
-  User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
-  Lwt.return { id = i; 
-               name = n; 
-               pwd = p; 
-               fullname = d; 
-               email = e;
-             }
+  Lwt.catch
+  (fun () ->
+     User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+     Lwt.return { id = i; 
+                  name = n; 
+                  pwd = p; 
+                  fullname = d; 
+                  email = e;
+                }
+  )
+  (function
+     | Not_found -> Lwt.fail NoSuchUser
+     | e -> Lwt.fail e)
 
 let get_user_id_by_name name =
-  User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
-  Lwt.return i
+  Lwt.catch
+  (fun () ->
+     User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+     Lwt.return i
+  )
+  (function
+     | Not_found -> Lwt.fail NoSuchUser
+     | e -> Lwt.fail e)
 
 let get_user_name_by_id id =
-  User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
-  Lwt.return n
+  Lwt.catch
+  (fun () ->
+     User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+     Lwt.return n
+  )
+  (function
+     | Not_found -> Lwt.fail NoSuchUser
+     | e -> Lwt.fail e)
 
 let get_user_by_id_from_db ~id =
-  User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
-  Lwt.return { id = i; 
-               name = n; 
-               pwd = p; 
-               fullname = d; 
-               email = e;
-             }
+  Lwt.catch
+  (fun () ->
+     User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+     Lwt.return { id = i; 
+                  name = n; 
+                  pwd = p; 
+                  fullname = d; 
+                  email = e;
+                }
+  )
+  (function
+     | Not_found -> Lwt.fail NoSuchUser
+     | e -> Lwt.fail e)
 
 
 let create_anonymous () =
   Lwt.catch
     (fun () -> get_user_by_name_from_db ~name:"anonymous")
     (function
-       | Not_found ->
+       | NoSuchUser ->
            (User_sql.new_user 
               ~name:"anonymous" 
               ~password:None
               ~fullname:"Anonymous"
-              ~email:""
+              ~email:None
               ~groups:[]
             >>= fun i ->
            Lwt.return { id = i;
                         name = "anonymous"; 
                         pwd = None; 
                         fullname = "Anonymous"; 
-                        email = "";
+                        email = None;
                       })
        | e -> Lwt.fail e)
 
@@ -97,23 +121,23 @@ let create_users_group () =
   Lwt.catch
     (fun () -> get_user_by_name_from_db ~name:"users")
     (function
-       | Not_found ->
+       | NoSuchUser ->
            (User_sql.new_user 
               ~name:"users" 
               ~password:None
               ~fullname:"Users"
-              ~email:""
+              ~email:None
               ~groups:[]
             >>= fun i ->
            Lwt.return { id = i;
                         name = "users"; 
                         pwd = None; 
                         fullname = "Users"; 
-                        email = "";
+                        email = None;
                       })
        | e -> Lwt.fail e)
 
-let users_group = Lwt_unix.run (create_users_group ())
+let authenticated_users = Lwt_unix.run (create_users_group ())
 
 
 let create_admin () =
@@ -158,21 +182,21 @@ let create_admin () =
   Lwt.catch
     (fun () -> get_user_by_name_from_db ~name:"admin")
     (function
-       | Not_found ->
+       | NoSuchUser ->
            let pwd = ask_pwd () in
            let email = ask_email () in
            (User_sql.new_user 
               ~name:"admin" 
               ~password:(Some pwd)
               ~fullname:"Admin"
-              ~email:email
+              ~email:(Some email)
               ~groups:[]
             >>= fun i ->
            Lwt.return { id = i;
                         name = "admin"; 
                         pwd = Some pwd; 
                         fullname = "Admin"; 
-                        email = email;
+                        email = Some email;
                       })
        | e -> Lwt.fail e)
 
@@ -202,11 +226,11 @@ let create_user ~name ~pwd ~fullname ~email ~groups =
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
     (function 
-       | Not_found ->
+       | NoSuchUser ->
            let groups =
-             if pwd = None || List.mem users_group.id groups
+             if pwd = None || List.mem authenticated_users.id groups
              then groups
-             else users_group.id::groups
+             else authenticated_users.id::groups
            in
            User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups
            >>= fun i ->
@@ -237,23 +261,26 @@ let mail_password ~name ~from_addr ~subject =
        get_user_by_name ~name >>= fun user -> 
        Lwt_preemptive.detach
          (fun () -> 
-            ignore(Netaddress.parse user.email);
-            Netsendmail.sendmail
-              ~mailer:"/usr/sbin/sendmail"
-              (Netsendmail.compose
-                 ~from_addr
-                 ~to_addrs:[(user.fullname, user.email)]
-                 ~subject
-                 ("This is an auto-generated message. "
-                  ^ "Please do not reply to it.\n"
-                  ^ "\n"
-                  ^ "Your account is:\n"
-                  ^ "\tUsername:\t" ^ name ^ "\n"
-                  ^ "\tPassword:\t" ^ (match user.pwd with 
-                                         | Some p -> p
-                                         | _ -> "(NONE)")
-                  ^ "\n"));
-            true) ())
+            match user.email with
+              | Some email ->
+                  ignore(Netaddress.parse email);
+                  Netsendmail.sendmail
+                    ~mailer:"/usr/sbin/sendmail"
+                    (Netsendmail.compose
+                       ~from_addr
+                       ~to_addrs:[(user.fullname, email)]
+                       ~subject
+                       ("This is an auto-generated message. "
+                        ^ "Please do not reply to it.\n"
+                        ^ "\n"
+                        ^ "Your account is:\n"
+                        ^ "\tUsername:\t" ^ name ^ "\n"
+                        ^ "\tPassword:\t" ^ (match user.pwd with 
+                                               | Some p -> p
+                                               | _ -> "(NONE)")
+                        ^ "\n"));
+                  true
+              | None -> false) ())
     (function _ -> Lwt.return false)
 
 let create_unique_user =
@@ -266,7 +293,7 @@ let create_unique_user =
            get_user_by_name ~name:n >>= fun _ -> 
            suffix (n ^ (digit "X")))
         (function
-           | Not_found -> 
+           | NoSuchUser -> 
                (create_user
                   ~name:n ~pwd ~fullname ~email ~groups >>= fun x -> 
                   Lwt.return (x, n))
@@ -297,16 +324,10 @@ let update_user_data ~user
 
 
 let authenticate ~name ~pwd =
-  Lwt.catch
-    (fun () -> 
-       get_user_by_name name >>= fun u -> 
-       if u.pwd = (Some pwd) 
-       then Lwt.return u
-       else Lwt.fail BadPassword)
-    (function
-       | Not_found -> Lwt.fail NoSuchUser
-       | e -> Lwt.fail e)
-
+  get_user_by_name name >>= fun u -> 
+  if u.pwd = (Some pwd) 
+  then Lwt.return u
+  else Lwt.fail BadPassword
 
 let in_group ~user ~group =
   let rec aux2 g = function
@@ -345,10 +366,18 @@ type user_sd =
 (** The polytable key for retrieving user data inside session data *)
 let user_key : user_sd Polytables.key = Polytables.make_key ()
 
-let get_user_data_ ~sp =
+let get_user_data_ ~sp ~sd =
   Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
   >>= function
-    | Eliom_sessions.Data (Some u) -> get_user_by_id_from_db u
+    | Eliom_sessions.Data (Some u) -> 
+        Lwt.catch
+          (fun () -> get_user_by_id_from_db u)
+          (function
+             | NoSuchUser -> 
+                 Eliom_sessions.close_session ~sp () >>= fun () ->
+                 Ocsimore_common.clear_sd ~sd;
+                 Lwt.return anonymous
+             | e -> Lwt.fail e)
     | Eliom_sessions.Data None -> Lwt.return admin
     | _ -> Lwt.return anonymous
 
@@ -356,7 +385,7 @@ let get_user_sd ~sp ~sd =
   try
     Polytables.get ~table:sd ~key:user_key
   with Not_found -> 
-    let ud = get_user_data_ ~sp in
+    let ud = get_user_data_ ~sp ~sd in
     Polytables.set sd user_key ud;
     ud
 

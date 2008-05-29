@@ -30,6 +30,7 @@ type wiki = int32
 val new_wiki : 
   title:string -> 
   descr:string -> 
+  page_creators:User_sql.userid ->
   reader:User_sql.userid -> 
   writer:User_sql.userid ->
   ?admin:User_sql.userid ->
@@ -107,7 +108,8 @@ val find_wiki:
   ?title:string -> 
   unit -> 
   (wiki * string * string * string list option *
-     User_sql.userid * User_sql.userid * User_sql.userid option)
+     User_sql.userid * User_sql.userid * User_sql.userid * 
+     User_sql.userid option)
     Lwt.t
 
 (** looks for a wikibox and returns [Some (subject, text, author,

@@ -12,9 +12,9 @@ CREATE TABLE forums (
     descr text DEFAULT ''::text NOT NULL,
     moderated boolean DEFAULT false NOT NULL,
     arborescent boolean NOT NULL,
-    reader integer NOT NULL REFERENCES groups(id),
-    writer integer NOT NULL REFERENCES groups(id),
-    moderator integer NOT NULL REFERENCES groups(id)
+    reader integer NOT NULL REFERENCES users(id),
+    writer integer NOT NULL REFERENCES users(id),
+    moderator integer NOT NULL REFERENCES users(id)
 );
 
 

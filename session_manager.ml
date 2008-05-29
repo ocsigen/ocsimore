@@ -168,7 +168,7 @@ object (self)
     else 
       let pwd = generate_password () in
       Users.create_unique_user
-        ~name:usr ~pwd ~fullname ~email 
+        ~name:usr ~pwd ~fullname ~email:(Some email)
         ~groups:sessionmanagerinfo.default_groups >>= fun (user, n) ->
       mail_password
         ~name:n
@@ -259,7 +259,7 @@ object (self)
         {{ [<h1>"Your account"
              <p>"Change your persional information:"
              {: post_form srv_edit_done sp
-                (fun (pwd,(pwd2,(desc,email))) -> 
+                (fun (pwd, (pwd2, (desc, email))) -> 
                    {{ [<table>[
                           <tr>[
                             <td>"login name: "
@@ -276,7 +276,9 @@ object (self)
                             <td>"e-mail address: "
                             <td>[{: string_input
                                     ~input_type:{:"text":} 
-                                    ~value:u.Users.email
+                                    ~value:(match u.Users.email with
+                                              | None -> ""
+                                              | Some e -> e)
                                     ~name:email () :}]
                           ]
                           <tr>[
@@ -315,6 +317,7 @@ object (self)
         self#page_edit "ERROR: Passwords don't match!" sp () ()
       else
         (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
+         let email = Some email in
          ignore (if pwd = ""
                  then update_user_data ~user ~fullname ~email ()
                  else update_user_data ~user ~fullname ~email

@@ -51,7 +51,7 @@ module IUserCache = Cache.Make (struct
                                           string * 
                                           string option * 
                                           string * 
-                                          string) *
+                                          string option) *
                               User_sql.userid list 
                         end) 
 

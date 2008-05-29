@@ -51,5 +51,5 @@ val set_box_for_page : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
 (** *)
 val find_wiki : Wiki_sql.wiki -> 
   (Wiki_sql.wiki * string * string * string list option * User_sql.userid *
-     User_sql.userid * User_sql.userid option)
+     User_sql.userid * User_sql.userid * User_sql.userid option)
     Lwt.t

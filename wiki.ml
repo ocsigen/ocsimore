@@ -39,6 +39,7 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
+  page_creators: User_sql.userid;
   default_reader: User_sql.userid;
   default_writer: User_sql.userid;
   default_admin: User_sql.userid option; (** the (default) group of users
@@ -51,22 +52,24 @@ type wiki_info = {
 
 let get_wiki_by_id id =
   Wiki_cache.find_wiki id
-  >>= fun (id, title, descr,path, r, w, a) -> 
+  >>= fun (id, title, descr,path, pc, r, w, a) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                path = path;
+               page_creators = pc;
                default_reader = r;
                default_writer = w; 
                default_admin = a;
              }
 
 let get_wiki_by_name title =
-  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, path, r, w, a) -> 
+  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, path, pc, r, w, a) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                path = path;
+               page_creators = pc;
                default_reader = r;
                default_writer = w; 
                default_admin = a
@@ -96,8 +99,9 @@ let new_wikibox ~wiki ~author ~comment ~content =
 let create_wiki ~title ~descr
     ?sp
     ?path
+    ?(page_creators = Users.authenticated_users.Users.id)
     ?(reader = Users.anonymous.Users.id)
-    ?(writer = Users.anonymous.Users.id)
+    ?(writer = Users.authenticated_users.Users.id)
     ?admin
     ~wikibox
     () =
@@ -105,13 +109,15 @@ let create_wiki ~title ~descr
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found -> 
-           (Wiki_sql.new_wiki ~title ~descr ~reader ~writer ?admin ()
+           (Wiki_sql.new_wiki 
+              ~title ~descr ~page_creators ~reader ~writer ?admin ()
            >>= fun id -> 
              let w =
                { id = id; 
                  title = title; 
                  descr = descr;
                  path = path;
+                 page_creators = page_creators;
                  default_reader = reader;
                  default_writer = writer; 
                  default_admin = admin;
@@ -183,6 +189,7 @@ let create_wiki ~title ~descr
                    )
                    (function
                       | Not_found -> 
+                          Users.get_user_id ~sp ~sd >>= fun userid ->
                           let draw_form name =
                             {{ [<p>[
                                    {: Eliom_duce.Xhtml.string_input
@@ -195,13 +202,19 @@ let create_wiki ~title ~descr
                                  ]] }}
 
                           in
+                          Users.in_group userid page_creators 
+                          >>= fun c ->
                           let form =
-                            Eliom_duce.Xhtml.post_form
-                              ~service:action_create_page
-                              ~sp draw_form ()
+                            if c
+                            then
+                              {{ [ {: Eliom_duce.Xhtml.post_form
+                                      ~service:action_create_page
+                                      ~sp draw_form () :} ] }}
+                            else {{ [] }}
                           in
+print_endline "a";
                           Lwt.return
-                            {{ [ <p>"That page does not exist." form ] }}
+                            {{ [ <p>"That page does not exist." !form ] }}
                       | e -> Lwt.fail e
                    )
                >>= fun subbox ->

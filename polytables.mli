@@ -43,3 +43,7 @@ val set : table:t -> key:'a key -> value:'a -> unit
 
 (** [get t k] returns the current binding of [k] in [t] *)
 val get : table:t -> key:'a key -> 'a
+
+(** [clear t] remove all data from t *)
+val clear : table:t -> unit
+

@@ -36,3 +36,5 @@ let get_sd ~sp =
     | None -> create_empty_sd ()
     | Some sd -> sd
 
+let clear_sd ~sd =
+  Polytables.clear sd

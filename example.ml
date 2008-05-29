@@ -64,7 +64,7 @@ let _ =
        ~title:"EXAMPLE site wiki"
        ~descr:""
        ~reader:Users.anonymous.Users.id
-       ~writer:Users.admin.Users.id
+       ~writer:Users.authenticated_users.Users.id
        ~admin:Users.admin.Users.id
        ~wikibox:mywikibox
        ~path:[]

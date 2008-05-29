@@ -16,6 +16,7 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
+  page_creators: User_sql.userid;
   default_reader: User_sql.userid;
   default_writer: User_sql.userid;
   default_admin: User_sql.userid option; (** the (default) group of users
@@ -28,12 +29,15 @@ type wiki_info = {
     if it already exists. 
     If the optional argument [path] is present, 
     the wiki will be bound to an URL.
+    In that case, only users in group [page_creators] can create a new page
+    (default: [Users.users_group])
 *)
 val create_wiki :
   title:string ->
   descr:string ->
   ?sp: Eliom_sessions.server_params ->
   ?path: string list ->
+  ?page_creators:User_sql.userid ->
   ?reader:User_sql.userid -> 
   ?writer:User_sql.userid -> 
   ?admin:User_sql.userid ->

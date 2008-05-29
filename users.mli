@@ -22,7 +22,7 @@ type userdata =
         name: string;
         mutable pwd: string option;
         mutable fullname: string;
-        mutable email: string;
+        mutable email: string option;
       }
 
 (** A user that does not belong to any group *)
@@ -32,7 +32,7 @@ val anonymous : userdata
 val admin : userdata
 
 (** A group containing all real users (not groups) *)
-val users_group : userdata
+val authenticated_users : userdata
 
 val get_user_by_name : name:string -> userdata Lwt.t
 val get_user_id_by_name : string -> int32 Lwt.t
@@ -53,7 +53,7 @@ val create_user:
   name:string -> 
   pwd:string option -> 
   fullname:string -> 
-  email:string -> 
+  email:string option -> 
   groups: User_sql.userid list ->
   userdata Lwt.t
 
@@ -61,7 +61,7 @@ val create_unique_user:
   name:string -> 
   pwd:string option -> 
   fullname:string -> 
-  email:string -> 
+  email:string option -> 
   groups: User_sql.userid list ->
   (userdata * string) Lwt.t
 
@@ -71,7 +71,7 @@ val update_user_data:
   user:userdata -> 
   ?pwd:string option -> 
   ?fullname:string -> 
-  ?email:string -> 
+  ?email:string option -> 
   ?groups: User_sql.userid list ->
   unit -> 
   unit Lwt.t

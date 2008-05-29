@@ -36,6 +36,7 @@ CREATE TABLE wikis (
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
     path text,
+    pagecreators integer NOT NULL, -- group of users who can create pages
     reader integer NOT NULL, -- default reader
     writer integer NOT NULL, -- default writer
     wikiadmin integer        -- the (default) group who can change rights

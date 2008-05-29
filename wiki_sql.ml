@@ -31,18 +31,20 @@ open CalendarLib
 open Sql
 
 (** inserts a new wiki *)
-let new_wiki ~title ~descr ~reader ~writer ?admin () =
+let new_wiki ~title ~descr ~page_creators ~reader ~writer ?admin () =
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun _ ->
        (match admin with
          | Some admin ->
-             PGSQL(db) "INSERT INTO wikis (title, descr, \
+             PGSQL(db) "INSERT INTO wikis (title, descr, pagecreators, \
                                            reader, writer, wikiadmin) \
-                        VALUES ($title, $descr, $reader, $writer, $admin)"
+                        VALUES ($title, $descr, $page_creators, \
+                                $reader, $writer, $admin)"
          | None ->
-             PGSQL(db) "INSERT INTO wikis (title, descr, \
+             PGSQL(db) "INSERT INTO wikis (title, descr, pagecreators, \
                                            reader, writer) \
-                        VALUES ($title, $descr, $reader, $writer)")
+                        VALUES ($title, $descr, $page_creators, \
+                                $reader, $writer)")
          >>= fun () ->
        serial4 db "wikis_id_seq" >>= fun wik_id ->
        commit db >>= fun _ ->
@@ -332,18 +334,18 @@ let find_wiki ?id ?title () =
          >>= fun r -> 
        commit db >>= fun () -> 
        (match r with
-          | [(id, title, descr, path, r, w, a)] ->
+          | [(id, title, descr, path, pc, r, w, a)] ->
               let path = 
                 Ocsimore_lib.bind_opt path Neturl.split_path 
               in
-              Lwt.return (id, title, descr, path, r, w, a)
-          | (id, title, descr, path, r, w, a)::_ -> 
+              Lwt.return (id, title, descr, path, pc, r, w, a)
+          | (id, title, descr, path, pc, r, w, a)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same name or id (ignored)";
               let path = 
                 Ocsimore_lib.bind_opt path Neturl.split_path 
               in
-              Lwt.return (id, title, descr, path, r, w, a)
+              Lwt.return (id, title, descr, path, pc, r, w, a)
           | [] -> Lwt.fail Not_found))
 
 
