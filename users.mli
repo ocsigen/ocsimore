@@ -3,10 +3,13 @@
     
     Users, authentication, protection. 
     
-    In this model, users and groups are the same concept; we only
-    distinguish, for practical matters, between "login enabled" users
-    and "group only" users: the former has [Some] (eventually void)
-    password, the latter has [None]. *)
+    In this model, users and groups are the same concept. A group can
+    belong to another group. We only distinguish, for practical
+    matters, between "login enabled" users and "group only" users: the
+    former has [Some] (eventually void) password, the latter has
+    [None].
+
+*)
 
 
 
@@ -26,13 +29,13 @@ exception BadPassword
 exception NoSuchUser
 exception CircularGroups of (int32 * int32)
 
-(** A user that does not belong to any group *)
+(** Non atuthenticated users *)
 val anonymous : userdata
 
 (** A user that belongs to all groups *)
 val admin : userdata
 
-(** A group containing all real users (not groups) *)
+(** A group containing all authenticated users (not groups) *)
 val authenticated_users : userdata
 
 val get_user_by_name : name:string -> userdata Lwt.t

@@ -181,11 +181,11 @@ class editable_wikibox () =
                Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
                Eliom_parameters.opt (Eliom_parameters.string "deladmin")
             )))
-      (fun sp () (actionname, ((((wikiid, _) as a, content), b) as p)) -> 
+      (fun sp () (actionname, ((((wikiid, boxid) as a, content), b) as p)) -> 
          if actionname = "save"
          then
            let sd = Ocsimore_common.get_sd sp in
-           Wiki_filter.preparse_extension (sp, sd) wikiid content
+           Wiki_filter.preparse_extension (sp, sd, boxid) wikiid content
            >>= fun content ->
            Wiki.save_wikibox sp sd ((a, content), b)
          else
@@ -713,7 +713,7 @@ object (self)
                   Lwt.return {{ [ b ] }});
        
        Wiki_filter.add_preparser_extension "wikibox"
-         (fun wiki_id (sp, sd) args c -> 
+         (fun wiki_id (sp, sd, father) args c -> 
             (try
               let wiki = 
                 try
@@ -726,12 +726,18 @@ object (self)
               with Not_found ->
                 Wiki.get_wiki_by_id wiki >>= fun wiki ->
                 Users.get_user_id ~sp ~sd >>= fun userid ->
+                let ids = (wiki_id, father) in
+                Wiki.get_readers ~sp ~sd ids >>= fun readers ->
+                Wiki.get_writers ~sp ~sd ids >>= fun writers ->
+                Wiki.get_admins ~sp ~sd ids >>= fun admins ->
                 Wiki.new_wikibox 
-                  wiki
-                  userid
-                  "new wikibox" 
-                  "**//new wikibox//**"
-(*VVV readers, writers, admins? *)
+                  ~wiki
+                  ~author:userid
+                  ~comment:"new wikibox" 
+                  ~content:"**//new wikibox//**"
+                  ~readers
+                  ~writers
+                  ~admins
                   () >>= fun box ->
                 Lwt.return (Some 
                               (Wiki_syntax.string_of_extension 

@@ -29,7 +29,7 @@ val add_preparser_extension :
   string -> 
   (int32 ->
      (Eliom_sessions.server_params * 
-        Ocsimore_common.session_data) ->
+        Ocsimore_common.session_data * int32) ->
        (string * string) list -> 
          string option -> 
            string option Lwt.t) -> unit
@@ -40,6 +40,6 @@ val add_preparser_extension :
 *)
 val preparse_extension :
   (Eliom_sessions.server_params * 
-     Ocsimore_common.session_data) ->
+     Ocsimore_common.session_data * int32) ->
   int32 -> 
   string -> string Lwt.t

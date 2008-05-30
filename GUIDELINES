@@ -71,3 +71,13 @@ If your box can contain wiki syntax,
 Wiki_filter.add_preparser_extension as in Wiki_syntax.ml (div)
 to preparse the content recursively.
 See examples in wiki_syntax.ml ans wiki_widgets.ml
+
+ - Groups
+Groups and users are the same notion. The only difference is that users have
+a password. A user can belong to a group that belongs to another group, etc.
+It is recommanded to create groups for each task you want. For example:
+readers of wiki 1, writers of wiki 1, and then put users inside.
+Predefined users/groups:
+ - admin: a special user who belongs to all groups
+ - anonymous: non authenticated user
+ - users: group of authenticated users
