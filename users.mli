@@ -9,12 +9,6 @@
     password, the latter has [None]. *)
 
 
-exception UserExists
-exception NotAllowed
-exception BadPassword
-exception NoSuchUser
-exception CircularGroups
-
 
 (** user information *)
 type userdata = 
@@ -25,6 +19,12 @@ type userdata =
         mutable fullname: string;
         mutable email: string option;
       }
+
+exception UserExists of userdata
+exception NotAllowed
+exception BadPassword
+exception NoSuchUser
+exception CircularGroups of (int32 * int32)
 
 (** A user that does not belong to any group *)
 val anonymous : userdata
@@ -81,7 +81,7 @@ val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
 val in_group: user:User_sql.userid -> group:User_sql.userid -> bool Lwt.t
 
-val add_to_group : user:userdata -> group:User_sql.userid -> unit Lwt.t
+val add_to_group : user:User_sql.userid -> group:User_sql.userid -> unit Lwt.t
 
 
 (****)

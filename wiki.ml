@@ -39,91 +39,139 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
-  page_creators: User_sql.userid;
-  default_reader: User_sql.userid;
-  default_writer: User_sql.userid;
-  default_admin: User_sql.userid option; (** the (default) group of users
-                                         who can change rights for boxes
-                                         if acl enabled. 
-                                         Putting something here means that
-                                         acl are enabled.
-                                     *)
+  boxrights : bool
 }
 
 let get_wiki_by_id id =
   Wiki_cache.find_wiki id
-  >>= fun (id, title, descr,path, pc, r, w, a) -> 
+  >>= fun (id, title, descr, path, br) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                path = path;
-               page_creators = pc;
-               default_reader = r;
-               default_writer = w; 
-               default_admin = a;
+               boxrights = br
              }
 
 let get_wiki_by_name title =
-  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, path, pc, r, w, a) -> 
+  Wiki_sql.find_wiki ~title () >>= fun (id, title, descr, path, br) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                path = path;
-               page_creators = pc;
-               default_reader = r;
-               default_writer = w; 
-               default_admin = a
+               boxrights = br;
              }
 
-let new_wikibox ~wiki ~author ~comment ~content =
-  fun
-    ?(readers = [wiki.default_reader]) 
-    ?(writers = [wiki.default_writer]) 
-    ?admins 
-    () ->
-  Wiki_sql.new_wikibox
-    ~wiki:wiki.id
-    ~author
-    ~comment
-    ~content
-    ?rights:(match wiki.default_admin with
-               | Some a -> Some (readers, 
-                                 writers, 
-                                 match admins with
-                                   | None -> [a]
-                                   | Some a -> a)
-               | None -> None)
-    ()
+let readers_group_name i = "wiki"^Int32.to_string i^"_readers"
+let writers_group_name i = "wiki"^Int32.to_string i^"_writers"
+let admins_group_name i = "wiki"^Int32.to_string i^"_admins"
+let page_creators_group_name i = "wiki"^Int32.to_string i^"_page_creators"
 
+let readers_group i = Users.get_user_id_by_name (readers_group_name i)
+let writers_group i = Users.get_user_id_by_name (writers_group_name i)
+let admins_group  i = Users.get_user_id_by_name (admins_group_name  i)
+let page_creators_group i = 
+                      Users.get_user_id_by_name (page_creators_group_name i)
+
+let new_wikibox ~wiki ~author ~comment ~content
+    ?readers ?writers ?admins () =
+  (if wiki.boxrights
+  then (
+    (match readers with 
+       | Some r -> Lwt.return r
+       | None -> 
+           readers_group wiki.id >>= fun r -> 
+           Lwt.return [r]) >>= fun readers ->
+    (match writers with 
+       | Some r -> Lwt.return r
+       | None -> 
+           writers_group wiki.id >>= fun r -> 
+           Lwt.return [r]) >>= fun writers ->
+    (match admins with 
+       | Some r -> Lwt.return r
+       | None -> 
+           admins_group wiki.id >>= fun r -> 
+           Lwt.return [r]) >>= fun admins ->
+    Lwt.return (Some (readers, writers, admins)))
+  else Lwt.return None) >>= fun rights ->
+    Wiki_sql.new_wikibox
+      ~wiki:wiki.id
+      ~author
+      ~comment
+      ~content
+      ?rights
+      ()
+      
+
+let create_group_ name fullname =
+  Lwt.catch
+    (fun () -> 
+       Users.create_user 
+         ~name
+         ~pwd:None
+         ~fullname
+         ~email:None
+         ~groups:[])
+    (function
+       | Users.UserExists u -> Lwt.return u
+       | e -> Lwt.fail e)
+
+let add_to_group_ l g =
+  List.fold_left
+    (fun beg u -> 
+       beg >>= fun () ->
+       Users.add_to_group ~user:u ~group:g)
+    (Lwt.return ())
+    l
 
 let create_wiki ~title ~descr
     ?sp
     ?path
-    ?(page_creators = Users.authenticated_users.Users.id)
-    ?(reader = Users.anonymous.Users.id)
-    ?(writer = Users.authenticated_users.Users.id)
-    ?admin
+    ?(page_creators = [Users.authenticated_users.Users.id])
+    ?(readers = [Users.anonymous.Users.id])
+    ?(writers = [Users.authenticated_users.Users.id])
+    ?(admins = [Users.admin.Users.id])
+    ?(boxrights = true)
     ~wikibox
     () =
   Lwt.catch 
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found -> 
-           (Wiki_sql.new_wiki 
-              ~title ~descr ~page_creators ~reader ~writer ?admin ()
+           (Wiki_sql.new_wiki ~title ~descr ~boxrights ()
            >>= fun id -> 
              let w =
                { id = id; 
                  title = title; 
                  descr = descr;
                  path = path;
-                 page_creators = page_creators;
-                 default_reader = reader;
-                 default_writer = writer; 
-                 default_admin = admin;
+                 boxrights = boxrights
                }
              in
            
+           (* Creating groups *)
+           create_group_
+             (readers_group_name id) 
+             ("Users who can read wiki "^Int32.to_string id)
+           >>= fun readers_data ->
+           create_group_
+             (writers_group_name id) 
+             ("Users who can write in wiki "^Int32.to_string id)
+           >>= fun writers_data ->
+           create_group_
+             (admins_group_name id) 
+             ("Users who can change rights in wiki "^Int32.to_string id)
+           >>= fun admins_data ->
+           create_group_
+             (page_creators_group_name id) 
+             ("Users who can create pages in wiki "^Int32.to_string id)
+           >>= fun creators_data ->
+
+           (* Putting users in groups *)
+           add_to_group_ readers readers_data.Users.id >>= fun () ->
+           add_to_group_ writers writers_data.Users.id >>= fun () ->
+           add_to_group_ admins admins_data.Users.id >>= fun () ->
+           add_to_group_ page_creators creators_data.Users.id >>= fun () ->
+
            (* Filling the first wikibox with admin container *)
            new_wikibox 
              w
@@ -202,7 +250,8 @@ let create_wiki ~title ~descr
                                  ]] }}
 
                           in
-                          Users.in_group userid page_creators 
+                          page_creators_group w.id >>= fun creators ->
+                          Users.in_group userid creators
                           >>= fun c ->
                           let form =
                             if c
@@ -247,57 +296,52 @@ print_endline "a";
 
 
 let can_admin get_admins wiki id userid =
-  if userid = Users.anonymous.Users.id
-  then Lwt.return false
-  else if userid == Users.admin.Users.id
+  if userid == Users.admin.Users.id
   then Lwt.return true
   else
-    match wiki.default_admin with
-      | Some _ -> (* acl are activated *)
-          (get_admins (wiki.id, id) >>= fun l ->
-           List.fold_left 
-             (fun b a -> 
-                b >>= fun b ->
-                if b then Lwt.return true
-                else Users.in_group userid a)
-             (Lwt.return false) 
-             l)
-            (* was: Users.in_group user admin *)
-      | None -> Lwt.return false
+    if wiki.boxrights
+    then (* acl are activated *)
+      (get_admins (wiki.id, id) >>= fun l ->
+       List.fold_left 
+         (fun b a -> 
+            b >>= fun b ->
+            if b then Lwt.return true
+            else Users.in_group userid a)
+         (Lwt.return false) 
+         l)
+    else admins_group wiki.id >>= fun g -> Users.in_group userid g
 
 let can_read get_readers wiki id userid =
   if userid = Users.admin.Users.id
   then Lwt.return true
   else
-    match wiki.default_admin with
-      | Some admin -> (* acl are activated *)
-          get_readers (wiki.id, id) >>= fun l ->
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group userid a)
-            (Lwt.return false) 
-            l
-      | None -> (* acl are not activated *)
-          Users.in_group userid wiki.default_reader
+    if wiki.boxrights
+    then (* acl are activated *)
+      get_readers (wiki.id, id) >>= fun l ->
+      List.fold_left 
+        (fun b a -> 
+           b >>= fun b ->
+           if b then Lwt.return true
+           else Users.in_group userid a)
+        (Lwt.return false) 
+        l
+    else readers_group wiki.id >>= fun g -> Users.in_group userid g
     
 let can_write get_writers wiki id userid =
   if userid = Users.admin.Users.id
   then Lwt.return true
   else
-    match wiki.default_admin with
-      | Some admin -> (* acl are activated *)
-          get_writers (wiki.id, id) >>= fun l ->
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group userid a)
-            (Lwt.return false) 
-            l
-      | None -> (* acl are not activated *)
-          Users.in_group userid wiki.default_writer
+    if wiki.boxrights
+    then (* acl are activated *)
+      get_writers (wiki.id, id) >>= fun l ->
+      List.fold_left 
+        (fun b a -> 
+           b >>= fun b ->
+           if b then Lwt.return true
+           else Users.in_group userid a)
+        (Lwt.return false) 
+        l
+    else writers_group wiki.id >>= fun g -> Users.in_group userid g
     
 
 let get_role_ readers writers admins ~sp ~sd ((wiki : Wiki_sql.wiki), id) =

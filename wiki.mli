@@ -16,34 +16,76 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
-  page_creators: User_sql.userid;
-  default_reader: User_sql.userid;
-  default_writer: User_sql.userid;
-  default_admin: User_sql.userid option; (** the (default) group of users
-                                         who can change rights for boxes
-                                         if acl enabled *)
+  boxrights : bool;
 }
 
 
 (** Creates a new wiki or returns its id without modification
-    if it already exists. 
+    if it already exists.
     If the optional argument [path] is present, 
     the wiki will be bound to an URL.
-    In that case, only users in group [page_creators] can create a new page
-    (default: [Users.users_group])
+    If [boxrights] is true (default), it is possible to set the rights on
+    each box individually.
+    For each wiki, four groups of users are created:
+    [wiki]i[_readers] (users who can read the boxes by default),
+    [wiki]i[_writers] (users who can write the boxes by default),
+    [wiki]i[_admins] (users who can changes rights for boxes, if [boxrights] is true),
+    [wiki]i[_page_creators] (users who can create new wiki pages, if [path] is present).
+    Put users or other groups inside these groups to change permissions on
+    the wiki.
+    The optional parameters [readers], [writers], [admins] and [page_creators]
+    allow to put some users inside these groups.
+    Default, respectively: [anonymous], [users], [admin], [users].
 *)
 val create_wiki :
   title:string ->
   descr:string ->
   ?sp: Eliom_sessions.server_params ->
   ?path: string list ->
-  ?page_creators:User_sql.userid ->
-  ?reader:User_sql.userid -> 
-  ?writer:User_sql.userid -> 
-  ?admin:User_sql.userid ->
+  ?page_creators:User_sql.userid list ->
+  ?readers:User_sql.userid list -> 
+  ?writers:User_sql.userid list -> 
+  ?admins:User_sql.userid list ->
+  ?boxrights:bool ->
   wikibox: Wiki_widgets.editable_wikibox ->
   unit -> 
   wiki_info Lwt.t
+
+(** [readers_group i] returns the id of the group of users
+    who can read wiki [i] by default. *)
+val readers_group : int32 -> int32 Lwt.t
+
+(** [writers_group i] returns the id of the group of users
+    who can write in wiki [i] by default. *)
+val writers_group : int32 -> int32 Lwt.t
+
+(** [admins_group i] returns the id of the group of users
+    who can change permissions of boxes in wiki [i] by default 
+    (if boxrights activated). *)
+val admins_group : int32 -> int32 Lwt.t
+
+(** [page_creators_group i] returns the id of the group of users
+    who can create page in wiki [i] by default
+    (if activated). *)
+val page_creators_group : int32 -> int32 Lwt.t
+
+(** [readers_group_name i] returns the name of the group of users
+    who can read wiki [i] by default. *)
+val readers_group_name : int32 -> string
+
+(** [writers_group_name i] returns the name of the group of users
+    who can write in wiki [i] by default. *)
+val writers_group_name : int32 -> string
+
+(** [admins_group_name i] returns the name of the group of users
+    who can change permissions of boxes in wiki [i] by default 
+    (if boxrights activated). *)
+val admins_group_name : int32 -> string
+
+(** [page_creators_group_name i] returns the name of the group of users
+    who can create page in wiki [i] by default
+    (if activated). *)
+val page_creators_group_name : int32 -> string
 
 (** Returns wiki information from an id. 
     Wiki information is kept in memory (and savec in the database)

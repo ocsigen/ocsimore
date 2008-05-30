@@ -36,11 +36,11 @@ type userdata =
       mutable email: string option;
     }
       
-exception UserExists
+exception UserExists of userdata
 exception NotAllowed
 exception BadPassword
 exception NoSuchUser
-exception CircularGroups
+exception CircularGroups of (int32 * int32)
 exception Users_error of string
 
 type user = userdata
@@ -128,7 +128,7 @@ let create_users_group () =
               ~password:None
               ~fullname:"Users"
               ~email:None
-              ~groups:[]
+              ~groups:[anonymous.id]
             >>= fun i ->
            Lwt.return { id = i;
                         name = "users"; 
@@ -222,7 +222,7 @@ let get_user_by_id ~id =
 
 let create_user ~name ~pwd ~fullname ~email ~groups =
   Lwt.catch 
-    (fun () -> get_user_by_name ~name >>= fun _ -> Lwt.fail UserExists)
+    (fun () -> get_user_by_name ~name >>= fun u -> Lwt.fail (UserExists u))
     (function 
        | NoSuchUser ->
            let groups =
@@ -340,20 +340,26 @@ let in_group ~user ~group =
     then Lwt.return true
     else aux2 g gl
   in
-  if (user = group) || (group = anonymous.id)
+  if (user = group)
   then Lwt.return true
-  else if user = anonymous.id
-  then Lwt.return false
   else if user = admin.id
   then Lwt.return true
   else aux user group
 
 
 let add_to_group ~user ~group =
-  in_group group user.id >>= fun b ->
+  in_group group user >>= fun b ->
   if b
-  then Lwt.fail CircularGroups
-  else User_cache.add_to_group user.id group
+  then begin
+    Ocsigen_messages.debug2
+      ("Circular group when inserting user "^
+         Int32.to_string user^
+         " in group "^
+         Int32.to_string group^
+         ".");
+    Lwt.fail (CircularGroups (user, group))
+  end
+  else User_cache.add_to_group user group
 
 let delete_user ~userid =
   User_cache.delete_user userid
