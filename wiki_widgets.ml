@@ -533,6 +533,23 @@ object (self)
        {{ [ <p class={: box_title_class :}>{: title :}
               !content ] }}
 
+   method display_edit_perm
+     ~sp
+     ~sd
+     ((w, b) as ids)
+     ~classe
+     content
+     =
+     let title = "Permissions - Wiki "^Int32.to_string w^", box "^Int32.to_string b in
+     self#display_menu_box
+       ~classe:(editform_class::classe)
+       ~service:preapply_edit_perm
+       ~sp
+       ~sd
+       ids
+       {{ [ <p class={: box_title_class :}>{: title :}
+              !content ] }}
+
    method display_editable_box ~sp ~sd ids ~classe content =
      self#display_menu_box 
        ~classe:(editable_class::classe)
@@ -669,7 +686,7 @@ object (self)
                      ~classe
                      (Lwt.return data)
                      (self#display_edit_perm_form ~sp ~sd)
-                     (self#display_edit_box ~sp ~sd data)
+                     (self#display_edit_perm ~sp ~sd data)
                | Some (Wiki.Preview (i, content)) when i = data ->
                    self#bind_or_display_error
                      ~classe

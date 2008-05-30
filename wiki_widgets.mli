@@ -78,6 +78,13 @@ class editable_wikibox :
       classe:string list ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
+    method display_edit_perm :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      Wiki_sql.wiki * int32 ->
+      classe:string list ->
+      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
+
     method display_edit_form :
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
