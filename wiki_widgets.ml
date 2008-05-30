@@ -471,40 +471,39 @@ object (self)
      Wiki_sql.get_history wiki_id message_id
 
    method display_history ~sp ids l =
-     Lwt.return
-       {{ map
-            {: 
-               List.map 
-               (fun (version, comment, author, date) -> 
-                  {{ [ 
-                       !{: Int32.to_string version :}
-                       '. '
-                       !{: CalendarLib.Printer.Calendar.to_string date :}
-                       ' '
-                       <em>[ 'by ' !{: author :} ]
-                       ' '
-                       {: 
-                          Eliom_duce.Xhtml.a 
-                          ~service:action_old_wikibox
-                          ~sp
-                          {{ "view" }}
-                          (ids, version)
-                          :}
-                         ' ('
-                       {: 
-                          Eliom_duce.Xhtml.a 
-                          ~service:action_src_wikibox
-                          ~sp
-                          {{ "source" }}
-                          (ids, version)
-                          :}
-                          ')'
-                       <br>[] 
+     Lwt_util.map
+       (fun (version, comment, author, date) -> 
+          Users.get_user_name_by_id author >>= fun author ->
+          Lwt.return
+            {{ [ 
+                 !{: Int32.to_string version :}
+                   '. '
+                   !{: CalendarLib.Printer.Calendar.to_string date :}
+                   ' '
+                 <em>[ 'by ' !{: author :} ]
+                   ' '
+                   {: 
+                      Eliom_duce.Xhtml.a 
+                      ~service:action_old_wikibox
+                      ~sp
+                      {{ "view" }}
+                      (ids, version)
+                      :}
+                   ' ('
+                        {: 
+                           Eliom_duce.Xhtml.a 
+                           ~service:action_src_wikibox
+                           ~sp
+                           {{ "source" }}
+                           (ids, version)
+                           :}
+                        ')'
+                      <br>[] 
                      ]
-                   }})
-               l
-               :}
-          with i -> i
+               }})
+            l
+            >>= fun l ->
+     Lwt.return {{ map {: l :} with i -> i
         }}
 (*       {{ map
             {: List.map 
@@ -726,10 +725,10 @@ object (self)
                 Lwt.return None
               with Not_found ->
                 Wiki.get_wiki_by_id wiki >>= fun wiki ->
-                Users.get_user_name ~sp ~sd >>= fun name ->
+                Users.get_user_id ~sp ~sd >>= fun userid ->
                 Wiki.new_wikibox 
                   wiki
-                  name
+                  userid
                   "new wikibox" 
                   "**//new wikibox//**"
 (*VVV readers, writers, admins? *)

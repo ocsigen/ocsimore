@@ -174,19 +174,21 @@ let create_wiki ~title ~descr
 
            (* Filling the first wikibox with admin container *)
            new_wikibox 
-             w
-             "admin"
-             "Admin container" 
-             "= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+             ~wiki:w
+             ~author:Users.admin.Users.id
+             ~comment:"Admin container" 
+             ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+             ~writers:[admins_data.Users.id]
              ()
            >>= fun _ ->
 
            (* Filling the first wikibox with wikipage container *)
            new_wikibox 
-             w
-             "admin"
-             "Wikipage" 
-             "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+             ~wiki:w
+             ~author:Users.admin.Users.id
+             ~comment:"Wikipage" 
+             ~content:"= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+             ~writers:[admins_data.Users.id]
              ()
            >>= fun _ ->
 
@@ -206,10 +208,10 @@ let create_wiki ~title ~descr
              ~post_params:(Eliom_parameters.string "page")
              (fun sp () page ->
                 let sd = Ocsimore_common.get_sd sp in
-                Users.get_user_name ~sp ~sd >>= fun name ->
+                Users.get_user_id ~sp ~sd >>= fun id ->
                 new_wikibox 
                   w
-                  name
+                  id
                   "new wikipage" 
                   "**//new wikipage//**"
 (*VVV readers, writers, admins? *)
@@ -261,7 +263,6 @@ let create_wiki ~title ~descr
                                       ~sp draw_form () :} ] }}
                             else {{ [] }}
                           in
-print_endline "a";
                           Lwt.return
                             {{ [ <p>"That page does not exist." !form ] }}
                       | e -> Lwt.fail e
@@ -464,7 +465,7 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
               Users.get_user_data sp sd >>= fun user ->
               Wiki_cache.update_wikibox
                wiki_id box_id
-               user.Users.name
+               user.Users.id
                "" content () >>= fun _ ->
                  Lwt.return [])
           (fun e -> 

@@ -38,7 +38,7 @@ val new_wiki :
     wikibox. *)
 val new_wikibox :
   wiki:wiki ->
-  author:string ->
+  author:User_sql.userid ->
   comment:string ->
   content:string ->
   ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list ->
@@ -49,7 +49,7 @@ val new_wikibox :
 val get_history : 
   wiki:wiki -> 
   id:int32 ->
-  (int32 * string * string * CalendarLib.Calendar.t) list Lwt.t
+  (int32 * string * User_sql.userid * CalendarLib.Calendar.t) list Lwt.t
 
 
 val get_readers : (wiki * int32) -> User_sql.userid list Lwt.t
@@ -113,14 +113,14 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:(wiki * int32) ->
   unit ->
-  (string * string * string * CalendarLib.Calendar.t) option Lwt.t
+  (string * User_sql.userid * string * CalendarLib.Calendar.t) option Lwt.t
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 val update_wikibox :
   wiki:wiki ->
   wikibox:int32 ->
-  author:string ->
+  author:User_sql.userid ->
   comment:string ->
   content:string ->
   ?readers:User_sql.userid list ->

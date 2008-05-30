@@ -27,7 +27,7 @@ let get_wikibox_data, update_wikibox =
   let module C = Cache.Make (struct 
                                type key = (int32 * int32)
                                type value = (string * 
-                                               string * 
+                                               User_sql.userid * 
                                                string * 
                                                CalendarLib.Calendar.t) option
                              end) 

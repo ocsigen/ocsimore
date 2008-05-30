@@ -25,14 +25,14 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:(Wiki_sql.wiki * int32) ->
   unit ->
-  (string * string * string * CalendarLib.Calendar.t) option Lwt.t
+  (string * User_sql.userid * string * CalendarLib.Calendar.t) option Lwt.t
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 val update_wikibox :
   wiki:Wiki_sql.wiki ->
   wikibox:int32 ->
-  author:string ->
+  author:User_sql.userid ->
   comment:string ->
   content:string ->
   ?readers:User_sql.userid list ->

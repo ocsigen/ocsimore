@@ -97,7 +97,7 @@ class editable_wikibox :
     method display_history :
       sp:Eliom_sessions.server_params ->
       Wiki_sql.wiki * int32 ->
-      (int32 * string * string * CalendarLib.Printer.Calendar.t) list ->
+      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
       Xhtmltypes_duce.flows Lwt.t
 
     method display_history_box :
@@ -146,7 +146,7 @@ class editable_wikibox :
       ?first:int ->
       ?last:int ->
       unit ->
-      (int32 * string * string * CalendarLib.Printer.Calendar.t) list Lwt.t
+      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list Lwt.t
 
     method retrieve_old_wikibox_content :
       sp:Eliom_sessions.server_params ->

@@ -4,7 +4,7 @@ CREATE TABLE wikiboxes (
     wiki_id integer NOT NULL,
     version serial NOT NULL,
     comment text DEFAULT ''::text NOT NULL,
-    author text DEFAULT ''::text NOT NULL,
+    author integer NOT NULL,
     content text NOT NULL,
     datetime timestamp without time zone DEFAULT now() NOT NULL,
     PRIMARY KEY (id, version)

@@ -67,18 +67,31 @@ let _ =
        ~path:[]
        () >>= fun wiki ->
 
+
+     Lwt.return () )
+
+
+(* THE END *)
+
+
+
+
+
+(*
+
      (* Filling the first wikibox if it does not exist: *)
      (Wiki_cache.get_wikibox_data (wiki.Wiki.id, 1l) ()
      >>= function
        | Some _ -> Lwt.return ()
        | _ -> (Wiki.new_wikibox 
                 wiki
-                "admin"
+                Users.admin.id
                 "First wikibox" 
                 "Welcome!"
                 () >>= fun _ ->
               Lwt.return ()))
-(*
+
+
      >>= fun () ->
 
      register
@@ -112,4 +125,4 @@ let _ =
        *)
        return ()
 *)
-    )
+    

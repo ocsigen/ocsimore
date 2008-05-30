@@ -97,7 +97,7 @@ val get_wiki_by_name : string -> wiki_info Lwt.t
 
 val new_wikibox :
   wiki:wiki_info ->
-  author:string ->
+  author:User_sql.userid ->
   comment:string ->
   content:string ->
   ?readers:User_sql.userid list ->
