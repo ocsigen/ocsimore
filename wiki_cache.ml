@@ -28,6 +28,14 @@ let get_wikibox_data,
   get_writers_,
   get_rights_adm_,
   get_wikiboxes_creators_,
+  populate_readers,
+  populate_writers,
+  populate_rights_adm,
+  populate_wikiboxes_creators,
+  remove_readers,
+  remove_writers,
+  remove_rights_adm,
+  remove_wikiboxes_creators,
   update_wikibox =
   let module C = Cache.Make (struct 
                                type key = (int32 * int32)
@@ -42,32 +50,38 @@ let get_wikibox_data,
                                 type value = User_sql.userid list
                              end) 
   in
-  let cache = C.create (fun a -> Wiki_sql.get_wikibox_data a ()) 64 in
-  let cacher = C2.create Wiki_sql.get_readers 64 in
-  let cachew = C2.create Wiki_sql.get_writers 64 in
-  let cachera = C2.create Wiki_sql.get_rights_adm 64 in
-  let cachewc = C2.create Wiki_sql.get_wikiboxes_creators 64 in
+  let cache = C.create (fun a -> Wiki_sql.get_wikibox_data_ a ()) 64 in
+  let cacher = C2.create Wiki_sql.get_readers_ 64 in
+  let cachew = C2.create Wiki_sql.get_writers_ 64 in
+  let cachera = C2.create Wiki_sql.get_rights_adm_ 64 in
+  let cachewc = C2.create Wiki_sql.get_wikiboxes_creators_ 64 in
   ((fun ?version ~wikibox () ->
     match version with
       | None -> C.find cache wikibox
       | Some v ->
           print_string (Int32.to_string (snd wikibox));
           print_endline " (with version) -> wikibox: db access";
-          Wiki_sql.get_wikibox_data ?version ~wikibox ()
+          Wiki_sql.get_wikibox_data_ ?version ~wikibox ()
    ),
    C2.find cacher,
    C2.find cachew,
    C2.find cachera,
    C2.find cachewc,
-  (fun ~wiki ~wikibox ~author ~comment ~content 
-    ?readers ?writers ?rights_adm ?wikiboxes_creators () ->
+  (fun a b r -> C2.remove cacher (a, b);  Wiki_sql.populate_readers_ a b r),
+  (fun a b r -> C2.remove cachew (a, b);  Wiki_sql.populate_writers_ a b r),
+  (fun a b r -> C2.remove cachera (a, b);  Wiki_sql.populate_rights_adm_ a b r),
+  (fun a b r -> C2.remove cachewc (a, b);  Wiki_sql.populate_wikiboxes_creators_ a b r),
+  (fun a b r -> C2.remove cacher (a, b);  Wiki_sql.remove_readers_ a b r),
+  (fun a b r -> C2.remove cachew (a, b);  Wiki_sql.remove_writers_ a b r),
+  (fun a b r -> C2.remove cachera (a, b);  Wiki_sql.remove_rights_adm_ a b r),
+  (fun a b r -> C2.remove cachewc (a, b);  Wiki_sql.remove_wikiboxes_creators_ a b r),
+  (fun ~wiki ~wikibox ~author ~comment ~content ->
      C.remove cache (wiki, wikibox);
      C2.remove cacher (wiki, wikibox);
      C2.remove cachew (wiki, wikibox);
      C2.remove cachera (wiki, wikibox);
      C2.remove cachewc (wiki, wikibox);
-     Wiki_sql.update_wikibox ~wiki ~wikibox ~author ~comment ~content 
-       ?readers ?writers ?rights_adm ?wikiboxes_creators ()))
+     Wiki_sql.update_wikibox_ ~wiki ~wikibox ~author ~comment ~content))
 
 let get_box_for_page, set_box_for_page =
   let module C = Cache.Make (struct 
@@ -76,12 +90,12 @@ let get_box_for_page, set_box_for_page =
                              end) 
   in
   let cache = 
-    C.create (fun (wiki, page) -> Wiki_sql.get_box_for_page ~wiki ~page) 64 
+    C.create (fun (wiki, page) -> Wiki_sql.get_box_for_page_ ~wiki ~page) 64 
   in
   ((fun ~wiki ~page -> C.find cache (wiki, page)),
    (fun ~wiki ~id ~page ->
       C.remove cache (wiki, page);
-      Wiki_sql.set_box_for_page ~wiki ~id ~page
+      Wiki_sql.set_box_for_page_ ~wiki ~id ~page
    ))
 
 
@@ -98,5 +112,5 @@ let wiki_info_table = H.create 8
 let find_wiki id =
   try
     Lwt.return (H.find wiki_info_table id)
-  with Not_found -> Wiki_sql.find_wiki ~id ()
+  with Not_found -> Wiki_sql.find_wiki_ ~id ()
 

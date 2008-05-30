@@ -52,28 +52,6 @@ val get_history :
   (int32 * string * User_sql.userid * CalendarLib.Calendar.t) list Lwt.t
 
 
-val get_readers : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_writers : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_rights_adm : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_wikiboxes_creators : (wiki * int32) -> User_sql.userid list Lwt.t
-
-val populate_readers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-val populate_writers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-val populate_rights_adm : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-val populate_wikiboxes_creators : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-
-val remove_readers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-val remove_writers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-val remove_rights_adm : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
-val remove_wikiboxes_creators : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
 
 
 (*
@@ -99,13 +77,13 @@ val wiki_get_pages_list : wik_id:int32 ->
 (* DO NOT USE THE FOLLOWING BUT THOSE IN WIKI_CACHE.ML *)
 
 (** return the box corresponding to a wikipage *)
-val get_box_for_page : wiki:int32 -> page:string -> int32 Lwt.t
+val get_box_for_page_ : wiki:int32 -> page:string -> int32 Lwt.t
 
 (** sets the box corresponding to a wikipage *)
-val set_box_for_page : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
+val set_box_for_page_ : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id or title *)
-val find_wiki: 
+val find_wiki_ : 
   ?id:wiki -> 
   ?title:string -> 
   unit -> 
@@ -114,7 +92,7 @@ val find_wiki:
 
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
-val get_wikibox_data : 
+val get_wikibox_data_ : 
   ?version:int32 ->
   wikibox:(wiki * int32) ->
   unit ->
@@ -122,16 +100,36 @@ val get_wikibox_data :
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-val update_wikibox :
+val update_wikibox_ :
   wiki:wiki ->
   wikibox:int32 ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->
-  ?readers:User_sql.userid list ->
-  ?writers:User_sql.userid list ->
-  ?rights_adm:User_sql.userid list ->
-  ?wikiboxes_creators:User_sql.userid list ->
-  unit ->
   int32 Lwt.t
+
+
+val populate_readers_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_writers_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_rights_adm_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_wikiboxes_creators_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+
+val remove_readers_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_writers_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_rights_adm_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_wikiboxes_creators_ : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+
+
+val get_readers_ : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_writers_ : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_rights_adm_ : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_wikiboxes_creators_ : (wiki * int32) -> User_sql.userid list Lwt.t
 

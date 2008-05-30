@@ -73,6 +73,7 @@ class editable_wikibox :
 
     method display_edit_box :
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
@@ -83,13 +84,17 @@ class editable_wikibox :
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      ?rights:string *
-        (string *
-           (string * (string * (string * (string * (string * string)))))) ->
       Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
+
+    method display_edit_perm_form :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      Wiki_sql.wiki * int32 -> 
+      Xhtmltypes_duce.flows Lwt.t
 
     method display_editable_box :
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
@@ -102,6 +107,7 @@ class editable_wikibox :
 
     method display_history_box :
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
@@ -112,11 +118,13 @@ class editable_wikibox :
                   (Eliom_services.get_service_kind, [ `Unregistrable ])
                     Eliom_duce_tools.one_page) ->
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 -> 
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_old_wikibox :
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       int32 ->
       classe:string list ->
@@ -124,6 +132,7 @@ class editable_wikibox :
       
     method display_src_wikibox :
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       int32 ->
       classe:string list ->
@@ -150,6 +159,7 @@ class editable_wikibox :
 
     method retrieve_old_wikibox_content :
       sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
 
   end

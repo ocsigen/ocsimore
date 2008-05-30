@@ -30,7 +30,7 @@ module GroupCache = Cache.Make (struct
                              type value = int32 list 
                            end) 
 
-let group_cache = GroupCache.create (fun u -> User_sql.get_groups u) 256
+let group_cache = GroupCache.create (fun u -> User_sql.get_groups_ u) 256
 
 let get_groups ~userid = GroupCache.find group_cache userid
 
@@ -48,32 +48,32 @@ module IUserCache = Cache.Make (struct
                         end) 
 
 let iusercache = 
-  IUserCache.create (fun id -> User_sql.find_user ~id ()) 64
+  IUserCache.create (fun id -> User_sql.find_user_ ~id ()) 64
 
   
 let find_user =
   fun ?id ?name () ->
     match id, name with
       | Some i, _ -> IUserCache.find iusercache i
-      | _ -> User_sql.find_user ?id ?name ()
+      | _ -> User_sql.find_user_ ?id ?name ()
 
 
 let add_to_group ~userid ~groupid =
   IUserCache.remove iusercache userid;
   GroupCache.remove group_cache userid;
-  User_sql.add_to_group ~userid ~groupid
+  User_sql.add_to_group_ ~userid ~groupid
 
 let remove_from_group ~userid ~groupid =
   IUserCache.remove iusercache userid;
   GroupCache.remove group_cache userid;
-  User_sql.remove_from_group ~userid ~groupid
+  User_sql.remove_from_group_ ~userid ~groupid
 
 let delete_user ~userid =
   IUserCache.remove iusercache userid;
   GroupCache.remove group_cache userid;
-  User_sql.delete_user ~userid
+  User_sql.delete_user_ ~userid
 
 let update_data ~userid ~name ~password ~fullname ~email ?groups () =
   IUserCache.remove iusercache userid;
   GroupCache.remove group_cache userid;
-  User_sql.update_data ~userid ~name ~password ~fullname ~email ?groups ()
+  User_sql.update_data_ ~userid ~name ~password ~fullname ~email ?groups ()

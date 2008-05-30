@@ -33,9 +33,9 @@ val new_user:
 
 
 (** Returns the groups for one user (level 1) *)
-val get_groups : userid:userid -> userid list Lwt.t
+val get_groups_ : userid:userid -> userid list Lwt.t
 
-val find_user: 
+val find_user_: 
   ?db:Sql.db_t ->
   ?id:userid -> 
   ?name:string -> 
@@ -43,7 +43,7 @@ val find_user:
   ((userid * string * string option * string * string option) * 
      userid list) Lwt.t
 
-val update_data: 
+val update_data_: 
   userid:userid -> 
   name:string -> 
   password:string option -> 
@@ -53,9 +53,9 @@ val update_data:
   unit ->
   unit Lwt.t
 
-val add_to_group : userid:userid -> groupid:userid -> unit Lwt.t
+val add_to_group_ : userid:userid -> groupid:userid -> unit Lwt.t
 
-val remove_from_group : userid:userid -> groupid:userid -> unit Lwt.t
+val remove_from_group_ : userid:userid -> groupid:userid -> unit Lwt.t
 
-val delete_user : userid:userid -> unit Lwt.t
+val delete_user_ : userid:userid -> unit Lwt.t
 

@@ -137,6 +137,21 @@ class editable_wikibox () =
          Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
   in
     
+  let action_edit_wikibox_permissions =
+    Eliom_predefmod.Actions.register_new_service' 
+      ~name:"wiki_edit_perm"
+      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+                     (Eliom_parameters.int32 "boxid"))
+      (fun sp g () ->
+         let sd = Ocsimore_common.get_sd sp in
+         Wiki.get_role sp sd g >>= fun role ->
+         if role = Wiki.Admin
+         then
+           Lwt.return [Ocsimore_common.Session_data sd;
+                       Wiki.Wiki_action_info (Wiki.Edit_perm g)]
+         else Lwt.return [Ocsimore_common.Session_data sd])
+  in
+    
   let action_wikibox_history =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_history"
@@ -173,26 +188,38 @@ class editable_wikibox () =
       (Eliom_parameters.string "actionname" **
          (((Eliom_parameters.int32 "wikiid" ** 
               Eliom_parameters.int32 "boxid") ** 
-             Eliom_parameters.string "content") **
-            (Eliom_parameters.opt
-               (Eliom_parameters.string "addreaders" **
-               (Eliom_parameters.string "addwriters" **
-               (Eliom_parameters.string "addrightadm" **
-               (Eliom_parameters.string "addwbcr" **
-               (Eliom_parameters.string "delreaders" **
-               (Eliom_parameters.string "delwriters" **
-               (Eliom_parameters.string "delrightadm" **
-                   Eliom_parameters.string "delwbcr")
-            )))))))))
-      (fun sp () (actionname, ((((wikiid, boxid) as a, content), b) as p)) -> 
+             Eliom_parameters.string "content")))
+      (fun sp () (actionname, (((wikiid, boxid) as a, content) as p)) -> 
          if actionname = "save"
          then
            let sd = Ocsimore_common.get_sd sp in
            Wiki_filter.preparse_extension (sp, sd, boxid) wikiid content
            >>= fun content ->
-           Wiki.save_wikibox sp sd ((a, content), b)
+           Wiki.save_wikibox sp sd (a, content)
          else
            Lwt.return [Wiki.Wiki_action_info (Wiki.Preview p)]
+      )
+  in
+
+  let action_send_wikibox_permissions =
+    Eliom_predefmod.Actions.register_new_post_service' 
+      ~keep_get_na_params:false
+      ~name:"wiki_send_permissions"
+      ~post_params:
+      ((Eliom_parameters.int32 "wikiid" ** 
+              Eliom_parameters.int32 "boxid") ** 
+         (Eliom_parameters.string "addreaders" **
+            (Eliom_parameters.string "addwriters" **
+               (Eliom_parameters.string "addrightadm" **
+                  (Eliom_parameters.string "addwbcr" **
+                     (Eliom_parameters.string "delreaders" **
+                        (Eliom_parameters.string "delwriters" **
+                           (Eliom_parameters.string "delrightadm" **
+                              Eliom_parameters.string "delwbcr")
+            )))))))
+      (fun sp () p -> 
+         let sd = Ocsimore_common.get_sd sp in
+         Wiki.save_wikibox_permissions sp sd p
       )
   in
 
@@ -226,12 +253,17 @@ object (self)
      fun ids ->
        Eliom_services.preapply action_wikibox_history (ids, (None, None))
 
+   val preapply_edit_perm =
+     fun ids ->
+       Eliom_services.preapply action_edit_wikibox_permissions ids
+
    val preapply_view =
      fun ids -> Eliom_services.cancel_action
 
-   method private box_menu ?service ids =
+   method private box_menu ?(perm = false) ?service ids =
      let history = preapply_history ids in
      let edit = preapply_edit ids in
+     let edit_perm = preapply_edit_perm ids in
      let view = preapply_view ids in
      let service = 
        match service with
@@ -242,22 +274,35 @@ object (self)
              else
                if current == preapply_edit
                then Some edit
-               else Some history
+               else 
+                 if current == preapply_edit_perm
+                 then Some edit_perm
+                 else Some history
      in
-     Eliom_duce_tools.menu
-       ~classe:[box_button_class]
-       (history, {{ "history" }})
+     let l = 
        [
          (edit, {{ "edit" }});
          (view, {{ "view" }});
        ]
+     in
+     let l = 
+       if perm 
+       then (edit_perm, {{ "edit permissions" }})::l
+       else l
+     in
+     Eliom_duce_tools.menu
+       ~classe:[box_button_class]
+       (history, {{ "history" }})
+       l
        ?service
 
-   method display_menu_box ~classe ?service ~sp ids content =
+   method display_menu_box ~classe ?service ~sp ~sd ids content =
      let classe = Ocsimore_lib.build_class_attr classe in
+     Wiki.get_role ~sp ~sd ids >>= fun role ->
+     let perm = role = Wiki.Admin in
      Lwt.return
        {{ <div class={: classe :}>
-            [ {: self#box_menu ?service ids ~sp :}
+            [ {: self#box_menu ~perm ?service ids ~sp :}
               <div>content ] }}
      
    method display_edit_form
@@ -266,15 +311,10 @@ object (self)
      ?(rows=20)
      ?(cols=80)
      ~previewonly
-     ?rights
-     ((wiki_id, message_id) as ids) 
+     (wiki_id, message_id)
      (content : string)
      =
-     let draw_form r
-         (actionname,
-          (((wikiidname, boxidname), contentname),
-           (addrn, (addwn, (addan, (addc, 
-                                    (delrn, (delwn, (delan, delc))))))))) =
+     let draw_form (actionname, (((wikiidname, boxidname), contentname))) =
        let f =
          {{ [
               {: Eliom_duce.Xhtml.int32_input
@@ -294,182 +334,191 @@ object (self)
             ]
           }}
        in
-       match r with
-         | Some (r, w, a, c) ->
-             let r = Ocsimore_lib.string_of_string_opt r in
-             let w = Ocsimore_lib.string_of_string_opt w in
-             let a = Ocsimore_lib.string_of_string_opt a in
-             let c = Ocsimore_lib.string_of_string_opt c in
-             let (ar, (aw, (aa, (ac, (dr, (dw, (da, dc))))))) =
-               (match rights with
-                  | Some (ar, (aw, (aa, (ac, (dr, (dw, (da, dc))))))) ->
-                      (* Preview *)
-                      (Some ar, 
-                       (Some aw, 
-                        (Some aa, (Some ac, 
-                                   (Some dr, (Some dw, (Some da, Some dc)))))))
-                  | None -> (None, (None, (None, (None, (None, (None, (None, None))))))))
-             in
-             {{ [<p>[!f 
-                       'Users who can read this wiki box: ' 
-                       !{: r :}
-                     <br>[]
-                       'Add readers: '
-                       {: Eliom_duce.Xhtml.string_input
-                          ~input_type:{: "text" :}
-                          ~name:addrn
-                          ?value:ar
-                          () :}
-                     <br>[]
-                       'Remove readers: '
-                       {: Eliom_duce.Xhtml.string_input
-                          ~input_type:{: "text" :}
-                          ~name:delrn
-                          ?value:dr
-                          () :}
-                     <br>[]
-                       'Users who can modify this wiki box: ' 
-                       !{: w :}
-                     <br>[]
-                       'Add writers: '
-                       {: Eliom_duce.Xhtml.string_input
-                          ~input_type:{: "text" :}
-                          ~name:addwn
-                          ?value:aw
-                          () :}
-                     <br>[]
-                       'Remove writers: '
-                       {: Eliom_duce.Xhtml.string_input
-                          ~input_type:{: "text" :}
-                          ~name:delwn
-                          ?value:dw
-                          () :}
-                     <br>[]
-                       'Users who can change rights of this wiki box: ' 
-                         !{: a :}
-                         <br>[]
-                         'Add: '
-                         {: Eliom_duce.Xhtml.string_input
-                            ~input_type:{: "text" :}
-                            ~name:addan
-                            ?value:aa
-                            () :}
-                         <br>[]
-                         'Remove: '
-                         {: Eliom_duce.Xhtml.string_input
-                            ~input_type:{: "text" :}
-                            ~name:delan
-                            ?value:da
-                            () :}
-                         <br>[]
-                         'Users who can create wikiboxes inside this wiki box: ' 
-                         !{: c :}
-                         <br>[]
-                         'Add: '
-                         {: Eliom_duce.Xhtml.string_input
-                            ~input_type:{: "text" :}
-                            ~name:addc
-                            ?value:ac
-                            () :}
-                         <br>[]
-                         'Remove: '
-                         {: Eliom_duce.Xhtml.string_input
-                            ~input_type:{: "text" :}
-                            ~name:delc
-                            ?value:dc
-                            () :}
-                         <br>[]
-                         !{: 
-                           let prev =
-                             Eliom_duce.Xhtml.string_button
-                               ~name:actionname
-                               ~value:"preview" {{ "Preview" }}
-                           in
-                           if previewonly
-                           then [prev]
-                           else
-                             [prev;
-                              Eliom_duce.Xhtml.string_button
-                                ~name:actionname
-                                ~value:"save" {{ "Save" }}
-                             ] :}
-                    ]
-                ]
-              }}
-         | _ -> {{ [<p>[!f
-                          !{: 
-                            let prev =
-                              Eliom_duce.Xhtml.string_button
-                                ~name:actionname
-                                ~value:"preview" {{ "Preview" }}
-                            in
-                            if previewonly
-                            then [prev]
-                            else
-                              [prev;
-                               Eliom_duce.Xhtml.string_button
-                                 ~name:actionname
-                                 ~value:"save" {{ "Save" }}
-                              ] :}
-                       ]] }}
+       {{ [<p>[!f
+                 !{: 
+                   let prev =
+                     Eliom_duce.Xhtml.string_button
+                       ~name:actionname
+                       ~value:"preview" {{ "Preview" }}
+                   in
+                   if previewonly
+                   then [prev]
+                   else
+                     [prev;
+                      Eliom_duce.Xhtml.string_button
+                        ~name:actionname
+                        ~value:"save" {{ "Save" }}
+                     ] :}
+              ]] }}
      in
-     Wiki.get_role ~sp ~sd ids >>= fun role ->
-     (match role with
-       | Wiki.Admin ->
-           Wiki.get_readers ids >>= fun readers ->
-           Wiki.get_writers ids >>= fun writers ->
-           Wiki.get_rights_adm ids >>= fun rights_adm ->
-           Wiki.get_wikiboxes_creators ids >>= fun creators ->
-           Ocsimore_lib.lwt_bind_opt
-             readers
-             (List.fold_left 
-                (fun s r -> 
-                   s >>= fun s -> 
-                   Users.get_user_name_by_id r >>= fun s2 ->
-                   Lwt.return (s^" "^s2))
-                (Lwt.return ""))
-            >>= fun r ->
-           Ocsimore_lib.lwt_bind_opt
-             writers
-             (List.fold_left 
-                (fun s r -> 
-                   s >>= fun s -> 
-                   Users.get_user_name_by_id r >>= fun s2 ->
-                   Lwt.return (s^" "^s2))
-                (Lwt.return ""))
-              >>= fun w ->
-           Ocsimore_lib.lwt_bind_opt
-             rights_adm
-             (List.fold_left 
-                (fun s r -> 
-                   s >>= fun s -> 
-                   Users.get_user_name_by_id r >>= fun s2 ->
-                   Lwt.return (s^" "^s2))
-                (Lwt.return ""))
-              >>= fun a ->
-           Ocsimore_lib.lwt_bind_opt
-             creators 
-             (List.fold_left
-                (fun s r -> 
-                   s >>= fun s -> 
-                   Users.get_user_name_by_id r >>= fun s2 ->
-                   Lwt.return (s^" "^s2))
-                (Lwt.return ""))
-              >>= fun c ->
-           Lwt.return (Some (r, w, a, c))
-       | _ -> Lwt.return None) >>= fun rightowners ->
      Lwt.return
        {{[
            {:
               Eliom_duce.Xhtml.post_form
               ~a:{{ { accept-charset="utf-8" } }}
               ~service:action_send_wikibox
-              ~sp (draw_form rightowners) ()
+              ~sp draw_form ()
               :}]
         }}
 
+   method display_edit_perm_form
+     ~sp
+     ~(sd : Ocsimore_common.session_data)
+     ((wiki_id, message_id) as ids)
+     =
+     Wiki.get_readers ids >>= fun readers ->
+     Wiki.get_writers ids >>= fun writers ->
+     Wiki.get_rights_adm ids >>= fun rights_adm ->
+     Wiki.get_wikiboxes_creators ids >>= fun creators ->
+     Ocsimore_lib.lwt_bind_opt
+       readers
+       (List.fold_left 
+          (fun s r -> 
+             s >>= fun s -> 
+             Users.get_user_name_by_id r >>= fun s2 ->
+             Lwt.return (s^" "^s2))
+          (Lwt.return ""))
+     >>= fun r ->
+     Ocsimore_lib.lwt_bind_opt
+       writers
+       (List.fold_left 
+          (fun s r -> 
+             s >>= fun s -> 
+             Users.get_user_name_by_id r >>= fun s2 ->
+             Lwt.return (s^" "^s2))
+          (Lwt.return ""))
+     >>= fun w ->
+     Ocsimore_lib.lwt_bind_opt
+       rights_adm
+       (List.fold_left 
+          (fun s r -> 
+             s >>= fun s -> 
+             Users.get_user_name_by_id r >>= fun s2 ->
+             Lwt.return (s^" "^s2))
+          (Lwt.return ""))
+     >>= fun a ->
+     Ocsimore_lib.lwt_bind_opt
+       creators 
+       (List.fold_left
+          (fun s r -> 
+             s >>= fun s -> 
+             Users.get_user_name_by_id r >>= fun s2 ->
+             Lwt.return (s^" "^s2))
+          (Lwt.return ""))
+     >>= fun c ->
+     let r = Ocsimore_lib.string_of_string_opt r in
+     let w = Ocsimore_lib.string_of_string_opt w in
+     let a = Ocsimore_lib.string_of_string_opt a in
+     let c = Ocsimore_lib.string_of_string_opt c in
+     
+     let draw_form
+         ((wikiidname, boxidname),
+          (addrn, (addwn, (addan, (addc, 
+                                   (delrn, (delwn, (delan, delc)))))))) =
+           {{ [<p>[
+                  {: Eliom_duce.Xhtml.int32_input
+                     ~input_type:{: "hidden" :} 
+                     ~name:wikiidname
+                     ~value:wiki_id () :}
+                    {: Eliom_duce.Xhtml.int32_input
+                       ~input_type:{: "hidden" :} 
+                       ~name:boxidname
+                       ~value:message_id () :}
+                  'Users who can read this wiki box: ' 
+                    !{: r :}
+                  <br>[]
+                    'Add readers: '
+                    {: Eliom_duce.Xhtml.string_input
+                       ~input_type:{: "text" :}
+                       ~name:addrn
+                       () :}
+                  <br>[]
+                    'Remove readers: '
+                    {: Eliom_duce.Xhtml.string_input
+                       ~input_type:{: "text" :}
+                       ~name:delrn
+                       () :}
+                  <br>[]
+                    'Users who can modify this wiki box: ' 
+                    !{: w :}
+                  <br>[]
+                    'Add writers: '
+                    {: Eliom_duce.Xhtml.string_input
+                       ~input_type:{: "text" :}
+                       ~name:addwn
+                       () :}
+                  <br>[]
+                    'Remove writers: '
+                    {: Eliom_duce.Xhtml.string_input
+                       ~input_type:{: "text" :}
+                       ~name:delwn
+                       () :}
+                  <br>[]
+                    'Users who can change rights of this wiki box: ' 
+                      !{: a :}
+                      <br>[]
+                      'Add: '
+                      {: Eliom_duce.Xhtml.string_input
+                         ~input_type:{: "text" :}
+                         ~name:addan
+                         () :}
+                      <br>[]
+                      'Remove: '
+                      {: Eliom_duce.Xhtml.string_input
+                         ~input_type:{: "text" :}
+                         ~name:delan
+                         () :}
+                      <br>[]
+                      'Users who can create wikiboxes inside this wiki box: ' 
+                      !{: c :}
+                      <br>[]
+                      'Add: '
+                      {: Eliom_duce.Xhtml.string_input
+                         ~input_type:{: "text" :}
+                         ~name:addc
+                         () :}
+                      <br>[]
+                      'Remove: '
+                      {: Eliom_duce.Xhtml.string_input
+                         ~input_type:{: "text" :}
+                         ~name:delc
+                         () :}
+                      <br>[]
+                      {: 
+                         Eliom_duce.Xhtml.button
+                         ~button_type:{: "submit" :}
+                         {{ "Save" }}
+                         :}
+                ]
+              ]
+            }}
+           
+     in
+     Lwt.return
+       {{[
+           {:
+              Eliom_duce.Xhtml.post_form
+              ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wikibox_permissions
+              ~sp draw_form ()
+              :}]
+        }}
+
+
+(*
+*****
+
+       Wiki.get_role ~sp ~sd ids >>= fun role ->
+       (if role = Wiki.Admin 
+        then begin
+        end
+        else self#display_error_box ?classe 
+          ~message:"You are not allowed to changes permissions" ()
+ *)
+
    method display_edit_box
      ~sp
+     ~sd
      ((w, b) as ids)
      ~classe
      content
@@ -479,40 +528,43 @@ object (self)
        ~classe:(editform_class::classe)
        ~service:preapply_edit
        ~sp
+       ~sd
        ids
        {{ [ <p class={: box_title_class :}>{: title :}
               !content ] }}
 
-   method display_editable_box ~sp ids ~classe content =
+   method display_editable_box ~sp ~sd ids ~classe content =
      self#display_menu_box 
        ~classe:(editable_class::classe)
        ~service:preapply_view
        ~sp
+       ~sd
        ids
        content
 
-   method retrieve_old_wikibox_content ~sp ids version =
+   method retrieve_old_wikibox_content ~sp ~sd ids version =
      Wiki_cache.get_wikibox_data ~version ~wikibox:ids ()
      >>= fun result ->
      match result with
        | None -> Lwt.fail Not_found
        | Some (com, a, cont, d) -> Lwt.return cont
 
-   method display_old_wikibox ~sp ((w, b) as ids) version ~classe content =
+   method display_old_wikibox ~sp ~sd ((w, b) as ids) version ~classe content =
      let title = "Wiki "^Int32.to_string w^", box "^Int32.to_string b^
        ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(oldwikibox_class::classe)
        ~sp
+       ~sd
        ids
        {{ [ <p class={: box_title_class :}>{: title :}
               !content ] }}
 
-   method display_src_wikibox ~sp ids version ~classe content =
+   method display_src_wikibox ~sp ~sd ids version ~classe content =
      let title = "Version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(srcwikibox_class::classe)
-       ~sp
+       ~sp ~sd
        ids
        {{ [ <p class={: box_title_class :}>{: title :}
             !content ] }}
@@ -573,11 +625,11 @@ object (self)
         }}
 *)
 
-   method display_history_box ~sp ids ~classe content =
+   method display_history_box ~sp ~sd ids ~classe content =
      self#display_menu_box
        ~classe:(history_class::classe)
        ~service:preapply_history
-       ~sp
+       ~sp ~sd
        ids
        content
 
@@ -611,8 +663,14 @@ object (self)
                      (self#retrieve_wikibox_content data)
                      (self#display_edit_form ~sp ~sd ?cols ?rows 
                         ~previewonly:true data)
-                     (self#display_edit_box ~sp data)
-               | Some (Wiki.Preview ((i, content), rights)) when i = data ->
+                     (self#display_edit_box ~sp ~sd data)
+               | Some (Wiki.Edit_perm i) when i = data ->
+                   self#bind_or_display_error
+                     ~classe
+                     (Lwt.return data)
+                     (self#display_edit_perm_form ~sp ~sd)
+                     (self#display_edit_box ~sp ~sd data)
+               | Some (Wiki.Preview (i, content)) when i = data ->
                    self#bind_or_display_error
                      ~classe
                      (Lwt.return content)
@@ -623,35 +681,35 @@ object (self)
                           ~sp ~sd wiki_id c >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
-                        self#display_edit_form ~sp ~sd ?cols ?rows ?rights
+                        self#display_edit_form ~sp ~sd ?cols ?rows
                           ~previewonly:false data c >>= fun form ->
                         Lwt.return {{ [<p class={: box_title_class :}>"Preview"
                                        preview
                                        !form ] }}
                      )
-                     (self#display_edit_box ~sp data)
+                     (self#display_edit_box ~sp ~sd data)
                | Some (Wiki.History (i, (first, last))) when i = data ->
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_history ~sp data ?first ?last ())
                      (self#display_history ~sp data)
-                     (self#display_history_box ~sp data)
+                     (self#display_history_box ~sp ~sd data)
                | Some (Wiki.Oldversion (i, version)) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_old_wikibox_content ~sp data version)
+                     (self#retrieve_old_wikibox_content ~sp ~sd data version)
                      (self#pretty_print_wikisyntax ?subbox
                         ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
                         ~sp ~sd wiki_id)
-                     (self#display_old_wikibox ~sp data version)
+                     (self#display_old_wikibox ~sp ~sd data version)
                | Some (Wiki.Src (i, version)) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_old_wikibox_content ~sp data version)
+                     (self#retrieve_old_wikibox_content ~sp ~sd data version)
                      (fun c -> 
                         let c = Ocamlduce.Utf8.make c in
                         Lwt.return {{ [ <pre>c ] }})
-                     (self#display_src_wikibox ~sp data version)
+                     (self#display_src_wikibox ~sp ~sd data version)
                | Some (Wiki.Error (i, error)) when i = data ->
                    self#bind_or_display_error
                      ~classe
@@ -660,7 +718,7 @@ object (self)
                      (self#pretty_print_wikisyntax
                         ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
                         ?subbox ~sp ~sd wiki_id)
-                     (self#display_editable_box ~sp data)
+                     (self#display_editable_box ~sp ~sd data)
                | _ -> 
                    self#bind_or_display_error
                      ~classe
@@ -668,7 +726,7 @@ object (self)
                      (self#pretty_print_wikisyntax
                         ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
                         ?subbox ~sp ~sd wiki_id)
-                     (self#display_editable_box ~sp data)
+                     (self#display_editable_box ~sp ~sd data)
             )
         | Wiki.Lurker -> 
             (match action with

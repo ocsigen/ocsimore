@@ -42,7 +42,7 @@ let new_wiki ~title ~descr ~boxrights () =
        return wik_id)
 
 
-let populate_readers db wiki_id id readers =
+let populate_readers_ db wiki_id id readers =
   match readers with
     | [] -> Lwt.return ()
     | _ ->
@@ -65,7 +65,7 @@ let populate_readers db wiki_id id readers =
           )
           readers
 
-let populate_writers db wiki_id id writers =
+let populate_writers_ db wiki_id id writers =
   match writers with
     | [] -> Lwt.return ()
     | _ ->
@@ -88,7 +88,7 @@ let populate_writers db wiki_id id writers =
           )
           writers
 
-let populate_rights_adm db wiki_id id ra =
+let populate_rights_adm_ db wiki_id id ra =
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -111,7 +111,7 @@ let populate_rights_adm db wiki_id id ra =
           )
           ra
 
-let populate_wikiboxes_creators db wiki_id id ra =
+let populate_wikiboxes_creators_ db wiki_id id ra =
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -134,7 +134,7 @@ let populate_wikiboxes_creators db wiki_id id ra =
           )
           ra
 
-let remove_readers db wiki_id id readers =
+let remove_readers_ db wiki_id id readers =
   match readers with
     | [] -> Lwt.return ()
     | _ ->
@@ -159,7 +159,7 @@ let remove_readers db wiki_id id readers =
           )
           readers
 
-let remove_writers db wiki_id id writers =
+let remove_writers_ db wiki_id id writers =
   match writers with
     | [] -> Lwt.return ()
     | _ ->
@@ -184,7 +184,7 @@ let remove_writers db wiki_id id writers =
           )
           writers
 
-let remove_rights_adm db wiki_id id ra =
+let remove_rights_adm_ db wiki_id id ra =
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -209,7 +209,7 @@ let remove_rights_adm db wiki_id id ra =
           )
           ra
 
-let remove_wikiboxes_creators db wiki_id id ra =
+let remove_wikiboxes_creators_ db wiki_id id ra =
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -247,18 +247,17 @@ let new_wikibox ~wiki ~author ~comment ~content ?rights () =
        (match rights with
          | None -> Lwt.return ()
          | Some (r, w, ra, wc) -> 
-             populate_writers db wiki wbx_id (optionize w) >>= fun () ->
-             populate_readers db wiki wbx_id (optionize r) >>= fun () ->
-             populate_rights_adm db wiki wbx_id (optionize ra) >>= fun () ->
-             populate_wikiboxes_creators db wiki wbx_id (optionize wc)
+             populate_writers_ db wiki wbx_id (optionize w) >>= fun () ->
+             populate_readers_ db wiki wbx_id (optionize r) >>= fun () ->
+             populate_rights_adm_ db wiki wbx_id (optionize ra) >>= fun () ->
+             populate_wikiboxes_creators_ db wiki wbx_id (optionize wc)
        ) >>= fun () ->
        commit db >>= fun () ->
        Lwt.return wbx_id)
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-let update_wikibox ~wiki ~wikibox ~author ~comment ~content 
-    ?readers ?writers ?rights_adm ?wikiboxes_creators () = 
+let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content = 
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun () ->
        PGSQL(db) "INSERT INTO wikiboxes \
@@ -266,37 +265,39 @@ let update_wikibox ~wiki ~wikibox ~author ~comment ~content
                   VALUES ($wikibox, $wiki, $author, \
                           $comment, $content)" >>= fun () ->
        serial4 db "wikiboxes_version_seq" >>= fun version ->
+(*
        (match readers with
          | None -> Lwt.return ()
          | Some r -> 
              PGSQL(db) "DELETE FROM wikiboxreaders \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_readers db wiki wikibox (optionize r)) >>= fun () ->
+             populate_readers_ db wiki wikibox (optionize r)) >>= fun () ->
        (match writers with
          | None -> Lwt.return ()
          | Some w -> 
              PGSQL(db) "DELETE FROM wikiboxwriters \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_writers db wiki wikibox (optionize w)) >>= fun () ->
+             populate_writers_ db wiki wikibox (optionize w)) >>= fun () ->
        (match rights_adm with
          | None -> Lwt.return ()
          | Some a -> 
              PGSQL(db) "DELETE FROM wikiboxrightsgivers \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_rights_adm db wiki wikibox (optionize a)) >>= fun () ->
+             populate_rights_adm_ db wiki wikibox (optionize a)) >>= fun () ->
        (match wikiboxes_creators with
          | None -> Lwt.return ()
          | Some a -> 
              PGSQL(db) "DELETE FROM wikiboxcreators \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_wikiboxes_creators db wiki wikibox (optionize a)) >>= fun () ->
+             populate_wikiboxes_creators_ db wiki wikibox (optionize a)) >>= fun () ->
+*)
        commit db >>= fun () ->
        Lwt.return version)
 
 
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
-let get_wikibox_data ?version ~wikibox:(wiki, id) () =
+let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -338,7 +339,7 @@ let get_history ~wiki ~id =
                   ORDER BY version DESC")
 
 (** return the box corresponding to a wikipage *)
-let get_box_for_page ~wiki ~page =
+let get_box_for_page_ ~wiki ~page =
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -350,7 +351,7 @@ let get_box_for_page ~wiki ~page =
       | id::_ -> Lwt.return id
 
 (** Sets the box corresponding to a wikipage *)
-let set_box_for_page ~wiki ~id ~page =
+let set_box_for_page_ ~wiki ~id ~page =
   Lwt_pool.use 
     Sql.pool
     (fun db -> 
@@ -360,7 +361,7 @@ let set_box_for_page ~wiki ~id ~page =
     )
 
 
-let find_wiki ?id ?title () =
+let find_wiki_ ?id ?title () =
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun _ -> 
        (match (title, id) with
@@ -395,7 +396,7 @@ let find_wiki ?id ?title () =
           | [] -> Lwt.fail Not_found))
 
 
-let get_writers (wiki, id) =
+let get_writers_ (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT writer FROM wikiboxwriters \
@@ -404,7 +405,7 @@ let get_writers (wiki, id) =
   commit db >>= fun () -> 
   Lwt.return r)
 
-let get_readers (wiki, id) =
+let get_readers_ (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT reader FROM wikiboxreaders \
@@ -413,7 +414,7 @@ let get_readers (wiki, id) =
   commit db >>= fun () -> 
   Lwt.return r)
 
-let get_rights_adm (wiki, id) =
+let get_rights_adm_ (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT wbadmin FROM wikiboxrightsgivers \
@@ -422,7 +423,7 @@ let get_rights_adm (wiki, id) =
   commit db >>= fun () -> 
   Lwt.return r)
 
-let get_wikiboxes_creators (wiki, id) =
+let get_wikiboxes_creators_ (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   PGSQL(db) "SELECT creator FROM wikiboxcreators \
@@ -432,44 +433,44 @@ let get_wikiboxes_creators (wiki, id) =
   Lwt.return r)
 
 (****)
-let populate_readers wiki_id id readers =
+let populate_readers_ wiki_id id readers =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_readers db wiki_id id readers >>= fun () ->
+  populate_readers_ db wiki_id id readers >>= fun () ->
   commit db)
 
-let populate_writers wiki_id id writers =
+let populate_writers_ wiki_id id writers =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_writers db wiki_id id writers >>= fun () ->
+  populate_writers_ db wiki_id id writers >>= fun () ->
   commit db)
 
-let populate_rights_adm wiki_id id wbadmins =
+let populate_rights_adm_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_rights_adm db wiki_id id wbadmins >>= fun () ->
+  populate_rights_adm_ db wiki_id id wbadmins >>= fun () ->
   commit db)
 
-let populate_wikiboxes_creators wiki_id id wbadmins =
+let populate_wikiboxes_creators_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_wikiboxes_creators db wiki_id id wbadmins >>= fun () ->
+  populate_wikiboxes_creators_ db wiki_id id wbadmins >>= fun () ->
   commit db)
 
-let remove_readers wiki_id id readers =
+let remove_readers_ wiki_id id readers =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_readers db wiki_id id readers >>= fun () ->
+  remove_readers_ db wiki_id id readers >>= fun () ->
   commit db)
 
-let remove_writers wiki_id id writers =
+let remove_writers_ wiki_id id writers =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_writers db wiki_id id writers >>= fun () ->
+  remove_writers_ db wiki_id id writers >>= fun () ->
   commit db)
 
-let remove_rights_adm wiki_id id wbadmins =
+let remove_rights_adm_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_rights_adm db wiki_id id wbadmins >>= fun () ->
+  remove_rights_adm_ db wiki_id id wbadmins >>= fun () ->
   commit db)
 
-let remove_wikiboxes_creators wiki_id id wbadmins =
+let remove_wikiboxes_creators_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_wikiboxes_creators db wiki_id id wbadmins >>= fun () ->
+  remove_wikiboxes_creators_ db wiki_id id wbadmins >>= fun () ->
   commit db)
 
 (*

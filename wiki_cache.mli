@@ -35,11 +35,6 @@ val update_wikibox :
   author:User_sql.userid ->
   comment:string ->
   content:string ->
-  ?readers:User_sql.userid list ->
-  ?writers:User_sql.userid list ->
-  ?rights_adm:User_sql.userid list ->
-  ?wikiboxes_creators:User_sql.userid list ->
-  unit ->
   int32 Lwt.t
 
 
@@ -52,6 +47,24 @@ val set_box_for_page : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
 (** *)
 val find_wiki : Wiki_sql.wiki -> 
   (Wiki_sql.wiki * string * string * string list option * bool) Lwt.t
+
+val populate_readers : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_writers : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_rights_adm : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_wikiboxes_creators : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+
+val remove_readers : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_writers : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_rights_adm : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_wikiboxes_creators : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
 
 (**/**)
 val get_readers_ : int32 * int32 -> User_sql.userid list Lwt.t

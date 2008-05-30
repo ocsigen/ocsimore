@@ -74,7 +74,7 @@ let new_user ~name ~password ~fullname ~email ~groups =
   commit db >>= fun _ -> 
   return id)
 
-let find_user ?db ?id ?name () =
+let find_user_ ?db ?id ?name () =
   (match db with
     | None -> Lwt_pool.use Sql.pool
     | Some db -> (fun f -> f db))
@@ -105,7 +105,7 @@ let find_user ?db ?id ?name () =
      Lwt.return (u, perm)
     )
 
-let add_to_group ~userid ~groupid =
+let add_to_group_ ~userid ~groupid =
   Lwt_pool.use Sql.pool (fun db ->
   Lwt.catch
     (fun () -> PGSQL(db) "INSERT INTO userrights VALUES ($userid, $groupid)")
@@ -117,16 +117,16 @@ let add_to_group ~userid ~groupid =
        | e -> Lwt.fail e
     ))
 
-let remove_from_group ~userid ~groupid =
+let remove_from_group_ ~userid ~groupid =
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db)
     "DELETE FROM userrights WHERE id = $userid AND groupid = $groupid")
 
-let delete_user ~userid =
+let delete_user_ ~userid =
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
-let update_data ~userid ~name ~password ~fullname ~email ?groups () =
+let update_data_ ~userid ~name ~password ~fullname ~email ?groups () =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   (match password, email with
@@ -149,7 +149,7 @@ let update_data ~userid ~name ~password ~fullname ~email ?groups () =
   commit db >>= fun _ -> 
   Lwt.return ())
 
-let get_groups ~userid =
+let get_groups_ ~userid =
   Lwt_pool.use Sql.pool
     (fun db ->
        PGSQL(db) "SELECT groupid FROM userrights WHERE id = $userid"

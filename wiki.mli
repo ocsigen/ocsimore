@@ -152,11 +152,17 @@ val new_wikibox :
 val save_wikibox :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
-  (((int32 * int32) * string) *
+  ((int32 * int32) * string) ->
+  exn list Lwt.t
+
+val save_wikibox_permissions :
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
+  ((int32 * int32) *
      (string *
         (string *
            (string * 
-              (string * (string * (string * (string * string))))))) option) ->
+              (string * (string * (string * (string * string)))))))) ->
   exn list Lwt.t
 
 (*
@@ -199,15 +205,8 @@ type wiki_errors =
 
 type wiki_action_info =
   | Edit_box of (int32 * int32)
-  | Preview of (((int32 * int32) * string) * 
-                  (string * 
-                     (string * 
-                        (string * 
-                           (string * 
-                              (string * 
-                                 (string * 
-                                    (string * string))))))) option
-               )
+  | Edit_perm of (int32 * int32)
+  | Preview of ((int32 * int32) * string)
   | History of ((int32 * int32) * (int option * int option))
   | Oldversion of ((int32 * int32) * int32)
   | Src of ((int32 * int32) * int32)
