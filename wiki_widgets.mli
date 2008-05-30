@@ -83,9 +83,9 @@ class editable_wikibox :
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      ?rights:string option *
-        (string option *
-           (string option * (string option * (string option * string option)))) ->
+      ?rights:string *
+        (string *
+           (string * (string * (string * (string * (string * string)))))) ->
       Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
 
     method display_editable_box :

@@ -41,7 +41,7 @@ val new_wikibox :
   author:User_sql.userid ->
   comment:string ->
   content:string ->
-  ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list ->
+  ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list * User_sql.userid list ->
   unit ->
   int32 Lwt.t
 
@@ -54,20 +54,25 @@ val get_history :
 
 val get_readers : (wiki * int32) -> User_sql.userid list Lwt.t
 val get_writers : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_admins : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_rights_adm : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_wikiboxes_creators : (wiki * int32) -> User_sql.userid list Lwt.t
 
 val populate_readers : 
   int32 -> int32 -> int32 option list -> unit Lwt.t
 val populate_writers : 
   int32 -> int32 -> int32 option list -> unit Lwt.t
-val populate_wbadmins : 
+val populate_rights_adm : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val populate_wikiboxes_creators : 
   int32 -> int32 -> int32 option list -> unit Lwt.t
 
 val remove_readers : 
   int32 -> int32 -> int32 option list -> unit Lwt.t
 val remove_writers : 
   int32 -> int32 -> int32 option list -> unit Lwt.t
-val remove_wbadmins : 
+val remove_rights_adm : 
+  int32 -> int32 -> int32 option list -> unit Lwt.t
+val remove_wikiboxes_creators : 
   int32 -> int32 -> int32 option list -> unit Lwt.t
 
 
@@ -125,7 +130,8 @@ val update_wikibox :
   content:string ->
   ?readers:User_sql.userid list ->
   ?writers:User_sql.userid list ->
-  ?admins:User_sql.userid list ->
+  ?rights_adm:User_sql.userid list ->
+  ?wikiboxes_creators:User_sql.userid list ->
   unit ->
   int32 Lwt.t
 

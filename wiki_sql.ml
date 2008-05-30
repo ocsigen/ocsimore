@@ -88,28 +88,51 @@ let populate_writers db wiki_id id writers =
           )
           writers
 
-let populate_wbadmins db wiki_id id admins =
-  match admins with
+let populate_rights_adm db wiki_id id ra =
+  match ra with
     | [] -> Lwt.return ()
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
           (function
-             | Some admin ->
+             | Some ra ->
                  Lwt.catch
                    (fun () ->
-                      PGSQL(db) "INSERT INTO wikiboxadmins \
-                             VALUES ($wiki_id, $id, $admin)")
+                      PGSQL(db) "INSERT INTO wikiboxrightsgivers \
+                             VALUES ($wiki_id, $id, $ra)")
                    (function
                       | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
                           Ocsigen_messages.warning 
-                            ("Ocsimore: while setting wikibox admins: "^s);
+                            ("Ocsimore: while setting wikibox rights givers: "^s);
                           Lwt.return ()
                       | e -> Lwt.fail e
                    )
              | _ -> Lwt.return ()
           )
-          admins
+          ra
+
+let populate_wikiboxes_creators db wiki_id id ra =
+  match ra with
+    | [] -> Lwt.return ()
+    | _ ->
+(*VVV Can we do this more efficiently? *)
+        Lwt_util.iter_serial
+          (function
+             | Some ra ->
+                 Lwt.catch
+                   (fun () ->
+                      PGSQL(db) "INSERT INTO wikiboxcreators \
+                             VALUES ($wiki_id, $id, $ra)")
+                   (function
+                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                          Ocsigen_messages.warning 
+                            ("Ocsimore: while setting wikibox creators: "^s);
+                          Lwt.return ()
+                      | e -> Lwt.fail e
+                   )
+             | _ -> Lwt.return ()
+          )
+          ra
 
 let remove_readers db wiki_id id readers =
   match readers with
@@ -161,30 +184,55 @@ let remove_writers db wiki_id id writers =
           )
           writers
 
-let remove_wbadmins db wiki_id id admins =
-  match admins with
+let remove_rights_adm db wiki_id id ra =
+  match ra with
     | [] -> Lwt.return ()
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
           (function
-             | Some admin ->
+             | Some ra ->
                  Lwt.catch
                    (fun () ->
-                      PGSQL(db) "DELETE FROM wikiboxadmins \
+                      PGSQL(db) "DELETE FROM wikiboxrightsgivers \
                              WHERE wiki_id = $wiki_id \
                              AND id = $id \
-                             AND wbadmin = $admin")
+                             AND wbadmin = $ra")
                    (function
                       | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
                           Ocsigen_messages.warning 
-                            ("Ocsimore: while removing wikibox admins: "^s);
+                            ("Ocsimore: while removing wikibox rights givers: "^s);
                           Lwt.return ()
                       | e -> Lwt.fail e
                    )
              | _ -> Lwt.return ()
           )
-          admins
+          ra
+
+let remove_wikiboxes_creators db wiki_id id ra =
+  match ra with
+    | [] -> Lwt.return ()
+    | _ ->
+(*VVV Can we do this more efficiently? *)
+        Lwt_util.iter_serial
+          (function
+             | Some ra ->
+                 Lwt.catch
+                   (fun () ->
+                      PGSQL(db) "DELETE FROM wikiboxcreators \
+                             WHERE wiki_id = $wiki_id \
+                             AND id = $id \
+                             AND creator = $ra")
+                   (function
+                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                          Ocsigen_messages.warning 
+                            ("Ocsimore: while removing wikibox creators: "^s);
+                          Lwt.return ()
+                      | e -> Lwt.fail e
+                   )
+             | _ -> Lwt.return ()
+          )
+          ra
 
 let optionize l = List.map (fun o -> Some o) l
 
@@ -198,10 +246,11 @@ let new_wikibox ~wiki ~author ~comment ~content ?rights () =
        serial4 db "wikiboxes_id_seq" >>= fun wbx_id ->
        (match rights with
          | None -> Lwt.return ()
-         | Some (r, w, a) -> 
+         | Some (r, w, ra, wc) -> 
              populate_writers db wiki wbx_id (optionize w) >>= fun () ->
              populate_readers db wiki wbx_id (optionize r) >>= fun () ->
-             populate_wbadmins db wiki wbx_id (optionize a)
+             populate_rights_adm db wiki wbx_id (optionize ra) >>= fun () ->
+             populate_wikiboxes_creators db wiki wbx_id (optionize wc)
        ) >>= fun () ->
        commit db >>= fun () ->
        Lwt.return wbx_id)
@@ -209,7 +258,7 @@ let new_wikibox ~wiki ~author ~comment ~content ?rights () =
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 let update_wikibox ~wiki ~wikibox ~author ~comment ~content 
-    ?readers ?writers ?admins () = 
+    ?readers ?writers ?rights_adm ?wikiboxes_creators () = 
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun () ->
        PGSQL(db) "INSERT INTO wikiboxes \
@@ -229,12 +278,18 @@ let update_wikibox ~wiki ~wikibox ~author ~comment ~content
              PGSQL(db) "DELETE FROM wikiboxwriters \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
              populate_writers db wiki wikibox (optionize w)) >>= fun () ->
-       (match admins with
+       (match rights_adm with
          | None -> Lwt.return ()
          | Some a -> 
-             PGSQL(db) "DELETE FROM wikiboxadmins \
+             PGSQL(db) "DELETE FROM wikiboxrightsgivers \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_wbadmins db wiki wikibox (optionize a)) >>= fun () ->
+             populate_rights_adm db wiki wikibox (optionize a)) >>= fun () ->
+       (match wikiboxes_creators with
+         | None -> Lwt.return ()
+         | Some a -> 
+             PGSQL(db) "DELETE FROM wikiboxcreators \
+                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
+             populate_wikiboxes_creators db wiki wikibox (optionize a)) >>= fun () ->
        commit db >>= fun () ->
        Lwt.return version)
 
@@ -358,10 +413,19 @@ let get_readers (wiki, id) =
   commit db >>= fun () -> 
   Lwt.return r)
 
-let get_admins (wiki, id) =
+let get_rights_adm (wiki, id) =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
-  PGSQL(db) "SELECT wbadmin FROM wikiboxadmins \
+  PGSQL(db) "SELECT wbadmin FROM wikiboxrightsgivers \
+             WHERE id = $id AND wiki_id = $wiki"
+    >>= fun r -> 
+  commit db >>= fun () -> 
+  Lwt.return r)
+
+let get_wikiboxes_creators (wiki, id) =
+  Lwt_pool.use Sql.pool (fun db ->
+  begin_work db >>= fun _ -> 
+  PGSQL(db) "SELECT creator FROM wikiboxcreators \
              WHERE id = $id AND wiki_id = $wiki"
     >>= fun r -> 
   commit db >>= fun () -> 
@@ -378,9 +442,14 @@ let populate_writers wiki_id id writers =
   populate_writers db wiki_id id writers >>= fun () ->
   commit db)
 
-let populate_wbadmins wiki_id id wbadmins =
+let populate_rights_adm wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_wbadmins db wiki_id id wbadmins >>= fun () ->
+  populate_rights_adm db wiki_id id wbadmins >>= fun () ->
+  commit db)
+
+let populate_wikiboxes_creators wiki_id id wbadmins =
+  Lwt_pool.use Sql.pool (fun db ->
+  populate_wikiboxes_creators db wiki_id id wbadmins >>= fun () ->
   commit db)
 
 let remove_readers wiki_id id readers =
@@ -393,9 +462,14 @@ let remove_writers wiki_id id writers =
   remove_writers db wiki_id id writers >>= fun () ->
   commit db)
 
-let remove_wbadmins wiki_id id wbadmins =
+let remove_rights_adm wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_wbadmins db wiki_id id wbadmins >>= fun () ->
+  remove_rights_adm db wiki_id id wbadmins >>= fun () ->
+  commit db)
+
+let remove_wikiboxes_creators wiki_id id wbadmins =
+  Lwt_pool.use Sql.pool (fun db ->
+  remove_wikiboxes_creators db wiki_id id wbadmins >>= fun () ->
   commit db)
 
 (*

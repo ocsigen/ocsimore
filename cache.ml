@@ -23,6 +23,7 @@ Cache.
 @author Vincent Balat
 *)
 
+let (>>=) = Lwt.bind
 
 module Dlist = (struct
 
@@ -178,11 +179,14 @@ struct
 
   type t =
       { mutable pointers : A.key Dlist.t;
-        mutable table : (A.value * A.key Dlist.node) H.t }
+        mutable table : (A.value * A.key Dlist.node) H.t;
+        finder : A.key -> A.value Lwt.t
+      }
 
-  let create size =
+  let create f size =
     {pointers = Dlist.create size;
      table = H.create size;
+     finder = f
     }
 
   let clear cache =
@@ -193,7 +197,7 @@ struct
   let poke r node =
     r.pointers <- Dlist.up r.pointers node
 
-  let find cache k =
+  let find_in_cache cache k =
     let (v, node) = H.find cache.table k in
     poke cache node;
     v
@@ -222,4 +226,14 @@ struct
   let size c =
     Dlist.length c.pointers
 
+  let find cache k =
+    (try
+       Lwt.return (find_in_cache cache k)
+     with Not_found ->
+print_endline "cache: db access";
+       cache.finder k >>= fun r ->
+       add cache k r;
+       Lwt.return r)
+
 end
+

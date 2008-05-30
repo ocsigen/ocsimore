@@ -30,18 +30,10 @@ module GroupCache = Cache.Make (struct
                              type value = int32 list 
                            end) 
 
-let group_cache = GroupCache.create 256
+let group_cache = GroupCache.create (fun u -> User_sql.get_groups u) 256
 
-let get_groups =
-  fun ~userid ->
-    try
-      Lwt.return (GroupCache.find group_cache userid)
-    with Not_found ->
-      print_string (Int32.to_string userid);
-      print_endline " -> groups: db access";
-      User_sql.get_groups userid >>= fun r ->
-      GroupCache.add group_cache userid r;
-      Lwt.return r
+let get_groups ~userid = GroupCache.find group_cache userid
+
 
 
 
@@ -55,23 +47,16 @@ module IUserCache = Cache.Make (struct
                               User_sql.userid list 
                         end) 
 
-let iusercache = IUserCache.create 64
+let iusercache = 
+  IUserCache.create (fun id -> User_sql.find_user ~id ()) 64
 
   
 let find_user =
   fun ?id ?name () ->
-    try
-      match id, name with
-        | Some i, _ -> Lwt.return (IUserCache.find iusercache i)
-        | _ -> User_sql.find_user ?id ?name ()
-    with Not_found ->
-      (match id with Some i -> print_string (Int32.to_string i) | _ -> ());
-      (match name with Some n -> print_string n | _ -> ());
-      print_endline " -> find_user: db access";
-      User_sql.find_user ?id ?name () 
-      >>= fun (((i, n, _, _, _), _) as r) ->
-      IUserCache.add iusercache i r;
-      Lwt.return r
+    match id, name with
+      | Some i, _ -> IUserCache.find iusercache i
+      | _ -> User_sql.find_user ?id ?name ()
+
 
 let add_to_group ~userid ~groupid =
   IUserCache.remove iusercache userid;

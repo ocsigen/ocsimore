@@ -39,8 +39,7 @@ type userdata =
 exception UserExists of userdata
 exception NotAllowed
 exception BadPassword
-exception NoSuchUser
-exception CircularGroups of (int32 * int32)
+exception NoSuchUser of (string, int32) Ocsigen_lib.leftright
 exception Users_error of string
 
 type user = userdata
@@ -57,7 +56,7 @@ let get_user_by_name_from_db ~name =
                 }
   )
   (function
-     | Not_found -> Lwt.fail NoSuchUser
+     | Not_found -> Lwt.fail (NoSuchUser (Ocsigen_lib.Left name))
      | e -> Lwt.fail e)
 
 let get_user_id_by_name name =
@@ -67,7 +66,7 @@ let get_user_id_by_name name =
      Lwt.return i
   )
   (function
-     | Not_found -> Lwt.fail NoSuchUser
+     | Not_found -> Lwt.fail (NoSuchUser (Ocsigen_lib.Left name))
      | e -> Lwt.fail e)
 
 let get_user_name_by_id id =
@@ -77,7 +76,7 @@ let get_user_name_by_id id =
      Lwt.return n
   )
   (function
-     | Not_found -> Lwt.fail NoSuchUser
+     | Not_found -> Lwt.fail (NoSuchUser (Ocsigen_lib.Right id))
      | e -> Lwt.fail e)
 
 let get_user_by_id_from_db ~id =
@@ -92,7 +91,7 @@ let get_user_by_id_from_db ~id =
                 }
   )
   (function
-     | Not_found -> Lwt.fail NoSuchUser
+     | Not_found -> Lwt.fail (NoSuchUser (Ocsigen_lib.Right id))
      | e -> Lwt.fail e)
 
 
@@ -100,7 +99,7 @@ let create_anonymous () =
   Lwt.catch
     (fun () -> get_user_by_name_from_db ~name:"anonymous")
     (function
-       | NoSuchUser ->
+       | NoSuchUser _ ->
            (User_sql.new_user 
               ~name:"anonymous" 
               ~password:None
@@ -122,7 +121,7 @@ let create_users_group () =
   Lwt.catch
     (fun () -> get_user_by_name_from_db ~name:"users")
     (function
-       | NoSuchUser ->
+       | NoSuchUser _ ->
            (User_sql.new_user 
               ~name:"users" 
               ~password:None
@@ -183,7 +182,7 @@ let create_admin () =
   Lwt.catch
     (fun () -> get_user_by_name_from_db ~name:"admin")
     (function
-       | NoSuchUser ->
+       | NoSuchUser _ ->
            let pwd = ask_pwd () in
            let email = ask_email () in
            (User_sql.new_user 
@@ -224,7 +223,7 @@ let create_user ~name ~pwd ~fullname ~email ~groups =
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun u -> Lwt.fail (UserExists u))
     (function 
-       | NoSuchUser ->
+       | NoSuchUser _ ->
            let groups =
              if pwd = None || List.mem authenticated_users.id groups
              then groups
@@ -291,7 +290,7 @@ let create_unique_user =
            get_user_by_name ~name:n >>= fun _ -> 
            suffix (n ^ (digit "X")))
         (function
-           | NoSuchUser -> 
+           | NoSuchUser _ -> 
                (create_user
                   ~name:n ~pwd ~fullname ~email ~groups >>= fun x -> 
                   Lwt.return (x, n))
@@ -340,26 +339,28 @@ let in_group ~user ~group =
     then Lwt.return true
     else aux2 g gl
   in
-  if (user = group)
-  then Lwt.return true
-  else if user = admin.id
+  if (user = group) || (user = admin.id)
   then Lwt.return true
   else aux user group
 
 
 let add_to_group ~user ~group =
-  in_group group user >>= fun b ->
-  if b
-  then begin
-    Ocsigen_messages.debug2
-      ("Circular group when inserting user "^
-         Int32.to_string user^
-         " in group "^
-         Int32.to_string group^
-         ".");
-    Lwt.fail (CircularGroups (user, group))
-  end
-  else User_cache.add_to_group user group
+  in_group user group >>= fun b ->
+  if not b
+  then
+    in_group group user >>= fun b ->
+    if b
+    then begin
+      Ocsigen_messages.warning
+        ("Circular group when inserting user "^
+           Int32.to_string user^
+           " in group "^
+           Int32.to_string group^
+           " (ignoring).");
+      Lwt.return ()
+    end
+    else User_cache.add_to_group user group
+  else Lwt.return ()
 
 let delete_user ~userid =
   User_cache.delete_user userid
@@ -384,7 +385,7 @@ let get_user_data_ ~sp ~sd =
         Lwt.catch
           (fun () -> get_user_by_id_from_db u)
           (function
-             | NoSuchUser -> 
+             | NoSuchUser _ -> 
                  Eliom_sessions.close_session ~sp () >>= fun () ->
                  Ocsimore_common.clear_sd ~sd;
                  Lwt.return anonymous

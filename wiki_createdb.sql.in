@@ -72,10 +72,17 @@ CREATE TABLE wikiboxwriters (
     CONSTRAINT uni_w UNIQUE (wiki_id, id, writer)
 );
 
-CREATE TABLE wikiboxadmins (
+CREATE TABLE wikiboxrightsgivers (
     wiki_id integer NOT NULL,
     id integer NOT NULL,
     wbadmin integer NOT NULL,
     CONSTRAINT uni_a UNIQUE (wiki_id, id, wbadmin)
+);
+
+CREATE TABLE wikiboxcreators (
+    wiki_id integer NOT NULL,
+    id integer NOT NULL,
+    creator integer NOT NULL,
+    CONSTRAINT uni_c UNIQUE (wiki_id, id, creator)
 );
 

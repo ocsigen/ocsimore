@@ -65,6 +65,14 @@ let bind_opt o f = match o with
   | None -> None
   | Some s -> Some (f s)
 
+let lwt_bind_opt o f = match o with
+  | None -> Lwt.return None
+  | Some s -> f s >>= fun r -> Lwt.return (Some r)
+
 let int_of_string_opt s = 
   bind_opt s int_of_string
+
+let string_of_string_opt = function
+  | None -> ""
+  | Some s -> s
 

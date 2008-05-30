@@ -174,13 +174,16 @@ class editable_wikibox () =
          (((Eliom_parameters.int32 "wikiid" ** 
               Eliom_parameters.int32 "boxid") ** 
              Eliom_parameters.string "content") **
-            (Eliom_parameters.opt (Eliom_parameters.string "addreaders") **
-               Eliom_parameters.opt (Eliom_parameters.string "addwriters") **
-               Eliom_parameters.opt (Eliom_parameters.string "addadmin") **
-               Eliom_parameters.opt (Eliom_parameters.string "delreaders") **
-               Eliom_parameters.opt (Eliom_parameters.string "delwriters") **
-               Eliom_parameters.opt (Eliom_parameters.string "deladmin")
-            )))
+            (Eliom_parameters.opt
+               (Eliom_parameters.string "addreaders" **
+               (Eliom_parameters.string "addwriters" **
+               (Eliom_parameters.string "addrightadm" **
+               (Eliom_parameters.string "addwbcr" **
+               (Eliom_parameters.string "delreaders" **
+               (Eliom_parameters.string "delwriters" **
+               (Eliom_parameters.string "delrightadm" **
+                   Eliom_parameters.string "delwbcr")
+            )))))))))
       (fun sp () (actionname, ((((wikiid, boxid) as a, content), b) as p)) -> 
          if actionname = "save"
          then
@@ -263,14 +266,15 @@ object (self)
      ?(rows=20)
      ?(cols=80)
      ~previewonly
-     ?(rights = (None, (None, (None, (None, (None, None))))))
+     ?rights
      ((wiki_id, message_id) as ids) 
      (content : string)
      =
      let draw_form r
          (actionname,
           (((wikiidname, boxidname), contentname),
-           (addrn, (addwn, (addan, (delrn, (delwn, delan))))))) =
+           (addrn, (addwn, (addan, (addc, 
+                                    (delrn, (delwn, (delan, delc))))))))) =
        let f =
          {{ [
               {: Eliom_duce.Xhtml.int32_input
@@ -291,8 +295,21 @@ object (self)
           }}
        in
        match r with
-         | Some (r, w, a) ->
-             let (ar, (aw, (aa, (dr, (dw, da))))) = rights in 
+         | Some (r, w, a, c) ->
+             let r = Ocsimore_lib.string_of_string_opt r in
+             let w = Ocsimore_lib.string_of_string_opt w in
+             let a = Ocsimore_lib.string_of_string_opt a in
+             let c = Ocsimore_lib.string_of_string_opt c in
+             let (ar, (aw, (aa, (ac, (dr, (dw, (da, dc))))))) =
+               (match rights with
+                  | Some (ar, (aw, (aa, (ac, (dr, (dw, (da, dc))))))) ->
+                      (* Preview *)
+                      (Some ar, 
+                       (Some aw, 
+                        (Some aa, (Some ac, 
+                                   (Some dr, (Some dw, (Some da, Some dc)))))))
+                  | None -> (None, (None, (None, (None, (None, (None, (None, None))))))))
+             in
              {{ [<p>[!f 
                        'Users who can read this wiki box: ' 
                        !{: r :}
@@ -328,37 +345,54 @@ object (self)
                           ?value:dw
                           () :}
                      <br>[]
-                       'Users who can administrate this wiki box: ' 
-                       !{: a :}
-                     <br>[]
-                       'Add box administrators: '
-                       {: Eliom_duce.Xhtml.string_input
-                          ~input_type:{: "text" :}
-                          ~name:addan
-                          ?value:aa
-                          () :}
-                     <br>[]
-                       'Remove box administrators: '
-                       {: Eliom_duce.Xhtml.string_input
-                          ~input_type:{: "text" :}
-                          ~name:delan
-                          ?value:da
-                          () :}
-                     <br>[]
-                       !{: 
-                        let prev =
-                          Eliom_duce.Xhtml.string_button
-                            ~name:actionname
-                            ~value:"preview" {{ "Preview" }}
-                        in
-                        if previewonly
-                        then [prev]
-                        else
-                          [prev;
-                           Eliom_duce.Xhtml.string_button
-                             ~name:actionname
-                             ~value:"save" {{ "Save" }}
-                          ] :}
+                       'Users who can change rights of this wiki box: ' 
+                         !{: a :}
+                         <br>[]
+                         'Add: '
+                         {: Eliom_duce.Xhtml.string_input
+                            ~input_type:{: "text" :}
+                            ~name:addan
+                            ?value:aa
+                            () :}
+                         <br>[]
+                         'Remove: '
+                         {: Eliom_duce.Xhtml.string_input
+                            ~input_type:{: "text" :}
+                            ~name:delan
+                            ?value:da
+                            () :}
+                         <br>[]
+                         'Users who can create wikiboxes inside this wiki box: ' 
+                         !{: c :}
+                         <br>[]
+                         'Add: '
+                         {: Eliom_duce.Xhtml.string_input
+                            ~input_type:{: "text" :}
+                            ~name:addc
+                            ?value:ac
+                            () :}
+                         <br>[]
+                         'Remove: '
+                         {: Eliom_duce.Xhtml.string_input
+                            ~input_type:{: "text" :}
+                            ~name:delc
+                            ?value:dc
+                            () :}
+                         <br>[]
+                         !{: 
+                           let prev =
+                             Eliom_duce.Xhtml.string_button
+                               ~name:actionname
+                               ~value:"preview" {{ "Preview" }}
+                           in
+                           if previewonly
+                           then [prev]
+                           else
+                             [prev;
+                              Eliom_duce.Xhtml.string_button
+                                ~name:actionname
+                                ~value:"save" {{ "Save" }}
+                             ] :}
                     ]
                 ]
               }}
@@ -382,31 +416,47 @@ object (self)
      Wiki.get_role ~sp ~sd ids >>= fun role ->
      (match role with
        | Wiki.Admin ->
-           Wiki.get_readers ~sp ~sd ids >>= fun readers ->
-           Wiki.get_writers ~sp ~sd ids >>= fun writers ->
-           Wiki.get_admins ~sp ~sd ids >>= fun admins ->
-           List.fold_left 
-             (fun s r -> 
-                s >>= fun s -> 
-                Users.get_user_name_by_id r >>= fun s2 ->
-                Lwt.return (s^" "^s2))
-             (Lwt.return "")
-             readers >>= fun r ->
-           List.fold_left 
-             (fun s r -> 
-                s >>= fun s -> 
-                Users.get_user_name_by_id r >>= fun s2 ->
-                Lwt.return (s^" "^s2))
-             (Lwt.return "")
-             writers >>= fun w ->
-           List.fold_left 
-             (fun s r -> 
-                s >>= fun s -> 
-                Users.get_user_name_by_id r >>= fun s2 ->
-                Lwt.return (s^" "^s2))
-             (Lwt.return "")
-             admins >>= fun a ->
-           Lwt.return (Some (r, w, a))
+           Wiki.get_readers ids >>= fun readers ->
+           Wiki.get_writers ids >>= fun writers ->
+           Wiki.get_rights_adm ids >>= fun rights_adm ->
+           Wiki.get_wikiboxes_creators ids >>= fun creators ->
+           Ocsimore_lib.lwt_bind_opt
+             readers
+             (List.fold_left 
+                (fun s r -> 
+                   s >>= fun s -> 
+                   Users.get_user_name_by_id r >>= fun s2 ->
+                   Lwt.return (s^" "^s2))
+                (Lwt.return ""))
+            >>= fun r ->
+           Ocsimore_lib.lwt_bind_opt
+             writers
+             (List.fold_left 
+                (fun s r -> 
+                   s >>= fun s -> 
+                   Users.get_user_name_by_id r >>= fun s2 ->
+                   Lwt.return (s^" "^s2))
+                (Lwt.return ""))
+              >>= fun w ->
+           Ocsimore_lib.lwt_bind_opt
+             rights_adm
+             (List.fold_left 
+                (fun s r -> 
+                   s >>= fun s -> 
+                   Users.get_user_name_by_id r >>= fun s2 ->
+                   Lwt.return (s^" "^s2))
+                (Lwt.return ""))
+              >>= fun a ->
+           Ocsimore_lib.lwt_bind_opt
+             creators 
+             (List.fold_left
+                (fun s r -> 
+                   s >>= fun s -> 
+                   Users.get_user_name_by_id r >>= fun s2 ->
+                   Lwt.return (s^" "^s2))
+                (Lwt.return ""))
+              >>= fun c ->
+           Lwt.return (Some (r, w, a, c))
        | _ -> Lwt.return None) >>= fun rightowners ->
      Lwt.return
        {{[
@@ -573,7 +623,7 @@ object (self)
                           ~sp ~sd wiki_id c >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
-                        self#display_edit_form ~sp ~sd ?cols ?rows ~rights
+                        self#display_edit_form ~sp ~sd ?cols ?rows ?rights
                           ~previewonly:false data c >>= fun form ->
                         Lwt.return {{ [<p class={: box_title_class :}>"Preview"
                                        preview
@@ -727,23 +777,31 @@ object (self)
                 Wiki.get_wiki_by_id wiki >>= fun wiki ->
                 Users.get_user_id ~sp ~sd >>= fun userid ->
                 let ids = (wiki_id, father) in
-                Wiki.get_readers ~sp ~sd ids >>= fun readers ->
-                Wiki.get_writers ~sp ~sd ids >>= fun writers ->
-                Wiki.get_admins ~sp ~sd ids >>= fun admins ->
-                Wiki.new_wikibox 
-                  ~wiki
-                  ~author:userid
-                  ~comment:"new wikibox" 
-                  ~content:"**//new wikibox//**"
-                  ~readers
-                  ~writers
-                  ~admins
-                  () >>= fun box ->
-                Lwt.return (Some 
-                              (Wiki_syntax.string_of_extension 
-                                 "wikibox" 
-                                 (("box", Int32.to_string box)::args)
-                                 c))
+                Wiki.can_create_wikibox wiki father userid >>= fun b ->
+                if b
+                then begin
+                  Wiki.get_readers ~wiki ids >>= fun readers ->
+                  Wiki.get_writers ~wiki ids >>= fun writers ->
+                  Wiki.get_rights_adm ~wiki ids >>= fun rights_adm ->
+                  Wiki.get_wikiboxes_creators ~wiki ids 
+                    >>= fun wikiboxes_creators ->
+                  Wiki.new_wikibox 
+                    ~wiki
+                    ~author:userid
+                    ~comment:"new wikibox" 
+                    ~content:"**//new wikibox//**"
+                    ?readers
+                    ?writers
+                    ?rights_adm
+                    ?wikiboxes_creators
+                    () >>= fun box ->
+                  Lwt.return (Some 
+                                (Wiki_syntax.string_of_extension 
+                                   "wikibox" 
+                                   (("box", Int32.to_string box)::args)
+                                   c))
+                end
+                else Lwt.return None
             with Failure _ -> Lwt.return None)
 
          );

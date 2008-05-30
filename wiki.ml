@@ -61,19 +61,53 @@ let get_wiki_by_name title =
                boxrights = br;
              }
 
+let get_sthg_ f ?wiki ((w, i) as k) =
+  (match wiki with
+    | Some w -> Lwt.return w
+    | None -> get_wiki_by_id w)
+  >>= fun wiki_info ->
+  if wiki_info.boxrights
+  then
+    f k >>= fun r -> Lwt.return (Some r)
+  else Lwt.return None
+
+let get_readers =
+  get_sthg_ Wiki_cache.get_readers_
+
+let get_writers =
+  get_sthg_ Wiki_cache.get_writers_
+
+let get_rights_adm =
+  get_sthg_ Wiki_cache.get_rights_adm_
+
+let get_wikiboxes_creators =
+  get_sthg_ Wiki_cache.get_wikiboxes_creators_
+
+
 let readers_group_name i = "wiki"^Int32.to_string i^"_readers"
 let writers_group_name i = "wiki"^Int32.to_string i^"_writers"
-let admins_group_name i = "wiki"^Int32.to_string i^"_admins"
+let rights_adm_group_name i = "wiki"^Int32.to_string i^"_rights_givers"
 let page_creators_group_name i = "wiki"^Int32.to_string i^"_page_creators"
+let wikiboxes_creators_group_name i = "wiki"^Int32.to_string i^"_wikiboxes_creators"
+let container_adm_group_name i = "wiki"^Int32.to_string i^"_container_adm"
+let admin_group_name i = "wiki"^Int32.to_string i^"_admin"
 
 let readers_group i = Users.get_user_id_by_name (readers_group_name i)
 let writers_group i = Users.get_user_id_by_name (writers_group_name i)
-let admins_group  i = Users.get_user_id_by_name (admins_group_name  i)
+let rights_adm_group  i = Users.get_user_id_by_name (rights_adm_group_name  i)
 let page_creators_group i = 
                       Users.get_user_id_by_name (page_creators_group_name i)
+let wikiboxes_creators_group i = 
+                      Users.get_user_id_by_name
+                        (wikiboxes_creators_group_name i)
+let container_adm_group i =
+                      Users.get_user_id_by_name (container_adm_group_name i)
+let admin_group i =   Users.get_user_id_by_name (admin_group_name i)
+
+
 
 let new_wikibox ~wiki ~author ~comment ~content
-    ?readers ?writers ?admins () =
+    ?readers ?writers ?rights_adm ?wikiboxes_creators () =
   (if wiki.boxrights
   then (
     (match readers with 
@@ -86,12 +120,17 @@ let new_wikibox ~wiki ~author ~comment ~content
        | None -> 
            writers_group wiki.id >>= fun r -> 
            Lwt.return [r]) >>= fun writers ->
-    (match admins with 
+    (match rights_adm with 
        | Some r -> Lwt.return r
        | None -> 
-           admins_group wiki.id >>= fun r -> 
-           Lwt.return [r]) >>= fun admins ->
-    Lwt.return (Some (readers, writers, admins)))
+           rights_adm_group wiki.id >>= fun r -> 
+           Lwt.return [r]) >>= fun rights_adm ->
+    (match wikiboxes_creators with 
+       | Some r -> Lwt.return r
+       | None -> 
+           wikiboxes_creators_group wiki.id >>= fun r -> 
+           Lwt.return [r]) >>= fun wikiboxes_creators ->
+    Lwt.return (Some (readers, writers, rights_adm, wikiboxes_creators)))
   else Lwt.return None) >>= fun rights ->
     Wiki_sql.new_wikibox
       ~wiki:wiki.id
@@ -126,10 +165,13 @@ let add_to_group_ l g =
 let create_wiki ~title ~descr
     ?sp
     ?path
-    ?(page_creators = [Users.authenticated_users.Users.id])
     ?(readers = [Users.anonymous.Users.id])
     ?(writers = [Users.authenticated_users.Users.id])
-    ?(admins = [Users.admin.Users.id])
+    ?(rights_adm = [])
+    ?(wikiboxes_creators = [Users.authenticated_users.Users.id])
+    ?(container_adm = [])
+    ?(page_creators = [Users.authenticated_users.Users.id])
+    ?(admins = [])
     ?(boxrights = true)
     ~wikibox
     () =
@@ -158,19 +200,53 @@ let create_wiki ~title ~descr
              ("Users who can write in wiki "^Int32.to_string id)
            >>= fun writers_data ->
            create_group_
-             (admins_group_name id) 
+             (rights_adm_group_name id) 
              ("Users who can change rights in wiki "^Int32.to_string id)
-           >>= fun admins_data ->
+           >>= fun rights_adm_data ->
            create_group_
              (page_creators_group_name id) 
              ("Users who can create pages in wiki "^Int32.to_string id)
-           >>= fun creators_data ->
+           >>= fun page_creators_data ->
+           create_group_
+             (wikiboxes_creators_group_name id) 
+             ("Users who can create wikiboxes in wiki "^Int32.to_string id)
+           >>= fun wikiboxes_creators_data ->
+           create_group_
+             (container_adm_group_name id)
+             ("Users who can change the layout of pages "^Int32.to_string id)
+           >>= fun container_adm_data ->
+           create_group_
+             (admin_group_name id) 
+             ("Wiki administrator "^Int32.to_string id)
+           >>= fun admin_data ->
 
            (* Putting users in groups *)
+           add_to_group_ [admin_data.Users.id] 
+             wikiboxes_creators_data.Users.id
+             >>= fun () ->
+           add_to_group_ [admin_data.Users.id] 
+             page_creators_data.Users.id
+             >>= fun () ->
+           add_to_group_ [admin_data.Users.id] 
+             rights_adm_data.Users.id
+             >>= fun () ->
+           add_to_group_ [admin_data.Users.id] 
+             container_adm_data.Users.id
+             >>= fun () ->
+           add_to_group_ [wikiboxes_creators_data.Users.id;
+                          page_creators_data.Users.id;
+                          rights_adm_data.Users.id;
+                          container_adm_data.Users.id] 
+             writers_data.Users.id
+             >>= fun () ->
+           add_to_group_ [writers_data.Users.id] readers_data.Users.id
+             >>= fun () ->
            add_to_group_ readers readers_data.Users.id >>= fun () ->
            add_to_group_ writers writers_data.Users.id >>= fun () ->
-           add_to_group_ admins admins_data.Users.id >>= fun () ->
-           add_to_group_ page_creators creators_data.Users.id >>= fun () ->
+           add_to_group_ rights_adm rights_adm_data.Users.id >>= fun () ->
+           add_to_group_ page_creators page_creators_data.Users.id >>= fun () ->
+           add_to_group_ wikiboxes_creators wikiboxes_creators_data.Users.id
+           >>= fun () ->
 
            (* Filling the first wikibox with admin container *)
            new_wikibox 
@@ -178,7 +254,7 @@ let create_wiki ~title ~descr
              ~author:Users.admin.Users.id
              ~comment:"Admin container" 
              ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-             ~writers:[admins_data.Users.id]
+             ~writers:[container_adm_data.Users.id]
              ()
            >>= fun _ ->
 
@@ -188,7 +264,7 @@ let create_wiki ~title ~descr
              ~author:Users.admin.Users.id
              ~comment:"Wikipage" 
              ~content:"= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-             ~writers:[admins_data.Users.id]
+             ~writers:[container_adm_data.Users.id]
              ()
            >>= fun _ ->
 
@@ -214,7 +290,7 @@ let create_wiki ~title ~descr
                   id
                   "new wikipage" 
                   "**//new wikipage//**"
-(*VVV readers, writers, admins? *)
+(*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                   () >>= fun box ->
                 Wiki_cache.set_box_for_page ~wiki:w.id ~id:box ~page >>= fun () ->
                 Lwt.return [])
@@ -296,68 +372,81 @@ let create_wiki ~title ~descr
 
 
 
-let can_admin get_admins wiki id userid =
+let can_change_rights wiki id userid =
   if userid == Users.admin.Users.id
   then Lwt.return true
   else
-    if wiki.boxrights
-    then (* acl are activated *)
-      (get_admins (wiki.id, id) >>= fun l ->
-       List.fold_left 
-         (fun b a -> 
-            b >>= fun b ->
-            if b then Lwt.return true
-            else Users.in_group userid a)
-         (Lwt.return false) 
-         l)
-    else admins_group wiki.id >>= fun g -> Users.in_group userid g
+    get_rights_adm ~wiki (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group userid a)
+            (Lwt.return false) 
+            l
+      | None -> rights_adm_group wiki.id >>= fun g -> Users.in_group userid g
 
-let can_read get_readers wiki id userid =
+let can_read wiki id userid =
   if userid = Users.admin.Users.id
   then Lwt.return true
   else
-    if wiki.boxrights
-    then (* acl are activated *)
-      get_readers (wiki.id, id) >>= fun l ->
-      List.fold_left 
-        (fun b a -> 
-           b >>= fun b ->
-           if b then Lwt.return true
-           else Users.in_group userid a)
-        (Lwt.return false) 
-        l
-    else readers_group wiki.id >>= fun g -> Users.in_group userid g
+    get_readers ~wiki (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group userid a)
+            (Lwt.return false) 
+            l
+      | None -> readers_group wiki.id >>= fun g -> Users.in_group userid g
     
-let can_write get_writers wiki id userid =
+let can_write wiki id userid =
   if userid = Users.admin.Users.id
   then Lwt.return true
   else
-    if wiki.boxrights
-    then (* acl are activated *)
-      get_writers (wiki.id, id) >>= fun l ->
-      List.fold_left 
-        (fun b a -> 
-           b >>= fun b ->
-           if b then Lwt.return true
-           else Users.in_group userid a)
-        (Lwt.return false) 
-        l
-    else writers_group wiki.id >>= fun g -> Users.in_group userid g
+    get_writers (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group userid a)
+            (Lwt.return false) 
+            l
+      | None -> writers_group wiki.id >>= fun g -> Users.in_group userid g
     
+let can_create_wikibox wiki id userid =
+  if userid == Users.admin.Users.id
+  then Lwt.return true
+  else
+    get_wikiboxes_creators (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group userid a)
+            (Lwt.return false) 
+            l
+      | None -> wikiboxes_creators_group wiki.id >>= fun g -> 
+                Users.in_group userid g
 
-let get_role_ readers writers admins ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
+
+let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
   get_wiki_by_id wiki >>= fun w ->
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
-  can_admin admins w id u >>= fun cana ->
+  can_change_rights w id u >>= fun cana ->
   if cana
   then Lwt.return Admin
   else
-    can_write writers w id u >>= fun canw ->
+    can_write w id u >>= fun canw ->
     if canw
     then Lwt.return Author
     else 
-      can_read readers w id u >>= fun canr ->
+      can_read w id u >>= fun canr ->
       if canr
       then Lwt.return Lurker
       else Lwt.return Nonauthorized
@@ -375,9 +464,6 @@ module Roles = Map.Make(struct
 type wiki_sd = 
     {
       role : (int32 * int32) -> role Lwt.t;
-      readers : (int32 * int32) -> User_sql.userid list Lwt.t;
-      writers : (int32 * int32) -> User_sql.userid list Lwt.t;
-      admins : (int32 * int32) -> User_sql.userid list Lwt.t;
     }
 
 let cache_find table f box =
@@ -390,17 +476,8 @@ let cache_find table f box =
 
 let default_wiki_sd ~sp ~sd =
   let cache = ref Roles.empty in
-  let readers = ref Roles.empty in
-  let writers = ref Roles.empty in
-  let admins = ref Roles.empty in
   (* We cache the values to retrieve them only once *)
-  let readers = cache_find readers Wiki_sql.get_readers in
-  let writers = cache_find writers Wiki_sql.get_writers in
-  let admins = cache_find admins Wiki_sql.get_admins in
-  {role = cache_find cache (get_role_ readers writers admins ~sp ~sd);
-   readers = readers;
-   writers = writers;
-   admins = admins;
+  {role = cache_find cache (get_role_ ~sp ~sd);
   }
 
 (** The polytable key for retrieving wiki data inside session data *)
@@ -421,17 +498,6 @@ let get_role ~sp ~sd k =
   let wiki_sd = get_wiki_sd ~sp ~sd in
   wiki_sd.role k
 
-let get_readers ~sp ~sd k =
-  let wiki_sd = get_wiki_sd ~sp ~sd in
-  wiki_sd.readers k
-
-let get_writers ~sp ~sd k =
-  let wiki_sd = get_wiki_sd ~sp ~sd in
-  wiki_sd.writers k
-
-let get_admins ~sp ~sd k =
-  let wiki_sd = get_wiki_sd ~sp ~sd in
-  wiki_sd.admins k
 
 
 
@@ -443,10 +509,14 @@ type wiki_errors =
 type wiki_action_info =
   | Edit_box of (int32 * int32)
   | Preview of (((int32 * int32) * string) * 
-                  (string option * 
-                     (string option * 
-                        (string option * 
-                           (string option * (string option * string option))))))
+                  (string * 
+                     (string * 
+                        (string * 
+                           (string * 
+                              (string * 
+                                 (string * 
+                                    (string * string))))))) option
+               )
   | History of ((int32 * int32) * (int option * int option))
   | Oldversion of ((int32 * int32) * int32)
   | Src of ((int32 * int32) * int32)
@@ -454,8 +524,7 @@ type wiki_action_info =
 
 exception Wiki_action_info of wiki_action_info
 
-let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content), 
-                          (addr, (addw, (adda, (delr, (delw, dela)))))) =
+let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content), rights) =
   get_role sp sd d >>= fun role ->
   (match role with
     | Admin
@@ -464,10 +533,10 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
           (fun () ->
               Users.get_user_data sp sd >>= fun user ->
               Wiki_cache.update_wikibox
-               wiki_id box_id
-               user.Users.id
-               "" content () >>= fun _ ->
-                 Lwt.return [])
+                wiki_id box_id
+                user.Users.id
+                "" content () >>= fun _ ->
+              Lwt.return [])
           (fun e -> 
              Lwt.return 
                [Ocsimore_common.Session_data sd;
@@ -477,61 +546,57 @@ let save_wikibox ~sp ~sd ((((wiki_id, box_id) as d), content),
     >>= fun r ->
   (match role with
     | Admin ->
-        let f a =
-          Lwt.catch
-            (fun () -> 
-               Users.get_user_id_by_name a >>= fun v -> 
-               Lwt.return (Some v))
-            (function 
-               | Not_found -> Lwt.return None
-               | e -> Lwt.fail e)
-        in
-        (match addr with
-          | None | Some "" -> Lwt.return ()
-          | Some s -> 
-              let r = Ocsigen_lib.split ' ' s in
+        (match rights with
+          | Some (addr, (addw, (adda, (addc, 
+                                       (delr, (delw, (dela, delc))))))) ->
+              let f a =
+                Lwt.catch
+                  (fun () -> 
+                     Users.get_user_id_by_name a >>= fun v -> 
+                     Lwt.return (Some v))
+                  (function 
+                     | Users.NoSuchUser _ -> Lwt.return None
+                     | e -> Lwt.fail e)
+              in
+              let r = Ocsigen_lib.split ' ' addr in
               Lwt_util.map f r 
               >>= fun readers ->
-              Wiki_sql.populate_readers wiki_id box_id readers)
-          >>= fun () ->
-        (match addw with
-          | None | Some "" -> Lwt.return ()
-          | Some s -> 
-              let r = Ocsigen_lib.split ' ' s in
+              Wiki_sql.populate_readers wiki_id box_id readers
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' addw in
               Lwt_util.map f r 
               >>= fun w ->
-              Wiki_sql.populate_writers wiki_id box_id w)
-          >>= fun () ->
-        (match adda with
-          | None | Some "" -> Lwt.return ()
-          | Some s -> 
-              let r = Ocsigen_lib.split ' ' s in
+              Wiki_sql.populate_writers wiki_id box_id w
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' adda in
               Lwt_util.map f r 
               >>= fun a ->
-              Wiki_sql.populate_wbadmins wiki_id box_id a)
-          >>= fun () ->
-        (match delr with
-          | None | Some "" -> Lwt.return ()
-          | Some s -> 
-              let r = Ocsigen_lib.split ' ' s in
+              Wiki_sql.populate_rights_adm wiki_id box_id a
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' addc in
+              Lwt_util.map f r 
+              >>= fun a ->
+              Wiki_sql.populate_wikiboxes_creators wiki_id box_id a
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' delr in
               Lwt_util.map f r 
               >>= fun readers ->
-              Wiki_sql.remove_readers wiki_id box_id readers)
-          >>= fun () ->
-        (match delw with
-          | None | Some "" -> Lwt.return ()
-          | Some s -> 
-              let r = Ocsigen_lib.split ' ' s in
+              Wiki_sql.remove_readers wiki_id box_id readers
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' delw in
               Lwt_util.map f r 
               >>= fun w ->
-              Wiki_sql.remove_writers wiki_id box_id w)
-          >>= fun () ->
-        (match dela with
-          | None | Some "" -> Lwt.return ()
-          | Some s -> 
-              let r = Ocsigen_lib.split ' ' s in
+              Wiki_sql.remove_writers wiki_id box_id w
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' dela in
               Lwt_util.map f r 
               >>= fun a ->
-              Wiki_sql.remove_wbadmins wiki_id box_id a)
+              Wiki_sql.remove_rights_adm wiki_id box_id a
+              >>= fun () ->
+              let r = Ocsigen_lib.split ' ' delc in
+              Lwt_util.map f r 
+              >>= fun a ->
+              Wiki_sql.remove_wikiboxes_creators wiki_id box_id a
+         | _ -> Lwt.return ())
     | _ -> Lwt.return ()) >>= fun () ->
   Lwt.return r

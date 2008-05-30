@@ -26,8 +26,7 @@ type userdata =
 exception UserExists of userdata
 exception NotAllowed
 exception BadPassword
-exception NoSuchUser
-exception CircularGroups of (int32 * int32)
+exception NoSuchUser of (string, int32) Ocsigen_lib.leftright
 
 (** Non atuthenticated users *)
 val anonymous : userdata

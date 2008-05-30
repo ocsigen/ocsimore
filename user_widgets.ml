@@ -51,7 +51,8 @@ object (self)
                else
                  let exn = Eliom_sessions.get_exn sp in
                    if List.mem Users.BadPassword exn || 
-                     List.mem Users.NoSuchUser exn
+                     (List.exists 
+                        (function Users.NoSuchUser _ -> true | _ -> false) exn)
                    then (* unsuccessful attempt *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox error"} }}

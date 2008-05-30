@@ -28,8 +28,9 @@ module Make :
   functor (A : sig type key type value end) ->
     sig
       type t
-      val create : int -> t
-      val find : t -> A.key -> A.value
+      val create : (A.key -> A.value Lwt.t) -> int -> t
+      val find : t -> A.key -> A.value Lwt.t
+      val find_in_cache : t -> A.key -> A.value
       val remove : t -> A.key -> unit
       val add : t -> A.key -> A.value -> unit
       val clear : t -> unit
