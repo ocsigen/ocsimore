@@ -37,6 +37,10 @@ ul.boxbutton{
     color: #999999;
 }
 
+.boxbutton li.eliomtools_current{
+    padding: 0px 6px;
+}
+
 .boxbutton a{
     color: #999999;
     background-color: #f1f1f1;

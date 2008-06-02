@@ -10,7 +10,7 @@ TODO
  User_sql.find_user is not cached with ~name parameter for now.
  - Use userid instead of userdata wherever it is possible
  - Use Lwt.finalize for all commit db!!!!!!!!!!!!!!!!!!!!!!!!
- or piutosto abort if it fails
+ or piutosto Pgocaml.abort if it fails
  - I removed all that depends on module Services for now Vincent 2008/04/15
 (dynamic creation of services)
  - pas clair la distinction entre forum et forum_sql, user et usr_sql,
@@ -28,6 +28,7 @@ TODO
  - Put sp in sd to avoid passing both parameters everywhere?
  Warning: sd is transmitted by actions to subsequent services, but sp must not!
  - Pourquoi les constructeurs des types "role" de forum ont des valeurs ?
+ - internationalisation
 
 How to make sure that:
  - user information is taken only once, for example role in the wiki, 
@@ -48,6 +49,11 @@ Wiki:
  Ou alors faut-il sauver les droits pour chaque version ???
  - Hierarchical menu box
  - <<if editable>> <<if connected>>
+ - CSS have no history for now. Link css history with page/box history?
+ - No right verification on css. Everyone can get them.
+ - not possible to change the css for one wikibox for now, just for the whole
+ page. Users cannot personnalize the css if they do not have the right to 
+ modify the whole page css :-(
 
 Users:
  - encryption of password for the db
@@ -59,6 +65,10 @@ User widgets:
  - Use a class model closer to wiki and remove Widget.ml?
  - Probably define connection/deconnection actions here and not in 
  session_manager? (cf wiki_widgets).
+ - account creation: it is recommended to ask for an email 
+(and create an account) only when necessary, for example if the users 
+want to perform an action that is not possible without beeing connected. 
+Avoid a large registration form to fill before beeing able to do anything ...
 
 Session manager:
  - clean everything

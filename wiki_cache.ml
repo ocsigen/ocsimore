@@ -57,16 +57,18 @@ let get_wikibox_data,
   let cachewc = C2.create Wiki_sql.get_wikiboxes_creators_ 64 in
   ((fun ?version ~wikibox () ->
     match version with
-      | None -> C.find cache wikibox
+      | None -> 
+          print_endline "cache wikibox ";
+          C.find cache wikibox
       | Some v ->
           print_string (Int32.to_string (snd wikibox));
           print_endline " (with version) -> wikibox: db access";
           Wiki_sql.get_wikibox_data_ ?version ~wikibox ()
    ),
-   C2.find cacher,
-   C2.find cachew,
-   C2.find cachera,
-   C2.find cachewc,
+   (fun a -> print_endline "cache readers "; C2.find cacher a),
+   (fun a -> print_endline "cache writers "; C2.find cachew a),
+   (fun a -> print_endline "cache ra "; C2.find cachera a),
+   (fun a -> print_endline "cache wc "; C2.find cachewc a),
   (fun a b r -> C2.remove cacher (a, b);  Wiki_sql.populate_readers_ a b r),
   (fun a b r -> C2.remove cachew (a, b);  Wiki_sql.populate_writers_ a b r),
   (fun a b r -> C2.remove cachera (a, b);  Wiki_sql.populate_rights_adm_ a b r),
@@ -92,7 +94,9 @@ let get_box_for_page, set_box_for_page =
   let cache = 
     C.create (fun (wiki, page) -> Wiki_sql.get_box_for_page_ ~wiki ~page) 64 
   in
-  ((fun ~wiki ~page -> C.find cache (wiki, page)),
+  ((fun ~wiki ~page -> 
+      print_endline "cache wikipage ";
+      C.find cache (wiki, page)),
    (fun ~wiki ~id ~page ->
       C.remove cache (wiki, page);
       Wiki_sql.set_box_for_page_ ~wiki ~id ~page
@@ -111,6 +115,46 @@ let wiki_info_table = H.create 8
 
 let find_wiki id =
   try
+    print_endline "cache wiki ";
     Lwt.return (H.find wiki_info_table id)
   with Not_found -> Wiki_sql.find_wiki_ ~id ()
 
+(***)
+let get_css_for_page, set_css_for_page =
+  let module C = Cache.Make (struct 
+                               type key = (int32 * string)
+                               type value = string option
+                             end) 
+  in
+  let cache = 
+    C.create (fun (wiki, page) -> Wiki_sql.get_css_for_page_ ~wiki ~page) 64 
+  in
+  ((fun ~wiki ~page -> 
+      print_endline "cache css";
+      C.find cache (wiki, page) >>= function
+        | None -> Lwt.fail Not_found
+        | Some p -> Lwt.return p),
+   (fun ~wiki ~page content ->
+      C.remove cache (wiki, page);
+      Wiki_sql.set_css_for_page_ ~wiki ~page content
+   ))
+
+(***)
+let get_css_for_wiki, set_css_for_wiki =
+  let module C = Cache.Make (struct 
+                               type key = int32
+                               type value = string option
+                             end) 
+  in
+  let cache = 
+    C.create (fun wiki -> Wiki_sql.get_css_for_wiki_ ~wiki) 8
+  in
+  ((fun ~wiki -> 
+      print_endline "cache wikicss";
+      C.find cache wiki >>= function
+        | None -> Lwt.fail Not_found
+        | Some p -> Lwt.return p),
+   (fun ~wiki content ->
+      C.remove cache wiki;
+      Wiki_sql.set_css_for_wiki_ ~wiki content
+   ))

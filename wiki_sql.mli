@@ -82,6 +82,19 @@ val get_box_for_page_ : wiki:int32 -> page:string -> int32 Lwt.t
 (** sets the box corresponding to a wikipage *)
 val set_box_for_page_ : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
 
+(** returns the css for a page or fails with [Not_found] if it does not exist *)
+val get_css_for_page_ : wiki:int32 -> page:string -> string option Lwt.t
+
+(** Sets the css for a wikipage *)
+val set_css_for_page_ : wiki:int32 -> page:string -> string -> unit Lwt.t
+
+(** returns the global css for a wiki 
+    or fails with [Not_found] if it does not exist *)
+val get_css_for_wiki_ : wiki:int32 -> string option Lwt.t
+
+(** Sets the global css for a wiki *)
+val set_css_for_wiki_ : wiki:int32 -> string -> unit Lwt.t
+
 (** Find wiki information for a wiki, given its id or title *)
 val find_wiki_ : 
   ?id:wiki -> 

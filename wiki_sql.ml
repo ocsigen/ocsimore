@@ -473,6 +473,49 @@ let remove_wikiboxes_creators_ wiki_id id wbadmins =
   remove_wikiboxes_creators_ db wiki_id id wbadmins >>= fun () ->
   commit db)
 
+(** returns the css for a page or fails with [Not_found] if it does not exist *)
+let get_css_for_page_ ~wiki ~page =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT css FROM css \
+                  WHERE wiki = $wiki AND page = $page"
+       >>= function
+         | [] -> Lwt.return None
+         | x::_ -> Lwt.return (Some x))
+
+(** Sets the css for a wikipage *)
+let set_css_for_page_ ~wiki ~page content =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db -> 
+       PGSQL(db) "DELETE FROM css WHERE wiki = $wiki AND page = $page" 
+       >>= fun () ->
+       PGSQL(db) "INSERT INTO css VALUES ($wiki, $page, $content)"
+    )
+
+(** returns the global css for a wiki or fails with [Not_found] if it does not exist *)
+let get_css_for_wiki_ ~wiki =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT css FROM wikicss \
+                  WHERE wiki = $wiki"
+       >>= function
+         | [] -> Lwt.return None
+         | x::_ -> Lwt.return (Some x))
+
+(** Sets the global css for a wiki *)
+let set_css_for_wiki_ ~wiki content =
+  Lwt_pool.use 
+    Sql.pool
+    (fun db -> 
+       PGSQL(db) "DELETE FROM wikicss WHERE wiki = $wiki" 
+       >>= fun () ->
+       PGSQL(db) "INSERT INTO wikicss VALUES ($wiki, $content)"
+    )
+
+
 (*
 let new_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
   (* inserts a new wikipage in an existing wiki; returns [None] if

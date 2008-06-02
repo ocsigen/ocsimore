@@ -26,16 +26,21 @@ type wiki_info = {
     the wiki will be bound to an URL.
     If [boxrights] is true (default), it is possible to set the rights on
     each box individually.
-    For each wiki, four groups of users are created:
+    For each wiki, some groups of users are created:
     [wiki]i[_readers] (users who can read the boxes by default),
     [wiki]i[_writers] (users who can write the boxes by default),
-    [wiki]i[_admins] (users who can changes rights for boxes, if [boxrights] is true),
+    [wiki]i[_rights_givers] (users who can changes rights for boxes, if [boxrights] is true),
     [wiki]i[_page_creators] (users who can create new wiki pages, if [path] is present).
+    [wiki]i[_css_editors] (users who can modify css of wiki pages, if [path] is present),
+    [wiki]i[_wikiboxes_creators] (users who can create new wikiboxes),
+    [wiki]i[_container_adm] (users who can modify the layout of pages (containers)),
+    [wiki]i[_admins] (all rights for wiki [i]),
     Put users or other groups inside these groups to change permissions on
     the wiki.
-    The optional parameters [readers], [writers], [admins] and [page_creators]
+    The optional parameters [readers], [writers], etc.
     allow to put some users inside these groups.
-    Default, respectively: [anonymous], [users], [admin], [users].
+    Default, respectively: [anonymous], [users], [admin], [users], [admin], 
+    [users], [users], [admin].
 *)
 val create_wiki :
   title:string ->
@@ -48,6 +53,7 @@ val create_wiki :
   ?wikiboxes_creators:User_sql.userid list ->
   ?container_adm:User_sql.userid list ->
   ?page_creators:User_sql.userid list ->
+  ?css_editors:User_sql.userid list ->
   ?admins:User_sql.userid list ->
   ?boxrights:bool ->
   wikibox: Wiki_widgets.editable_wikibox ->
@@ -55,16 +61,27 @@ val create_wiki :
   wiki_info Lwt.t
 
 
+
+(** The id of the wikipage container *)
+val wikipage_container_id : int32
+
+(** The id of the wiki administration page container *)
+val wikiadmin_container_id : int32
+
 (** {2 Groups } *)
 
 (**  
-     [admin] belongs to [page_creators], [wikiboxes_creators], 
-     [right_adm] and [container_adm],
+     [wiki1_admin] belongs to
+     [wiki1_css_editors], 
+     [wiki1_page_creators], [wiki1_wikiboxes_creators], 
+     [wiki1_right_givers] and [wiki1_container_adm],
 
-     [page_creators], [wikiboxes_creators], 
-     [right_adm] and [container_adm] belong to [writers],
+     [wiki1_css_editors], 
+     [wiki1_page_creators], [wiki1_wikiboxes_creators], 
+     [wiki1_right_givers] and [wiki1_container_adm]
+     belong to [wiki1_writers],
 
-     [writers] belongs to [readers].
+     [wiki1_writers] belongs to [wiki1_readers].
 *)
 
 (** [readers_group i] returns the id of the group of users
@@ -88,6 +105,10 @@ val wikiboxes_creators_group : int32 -> int32 Lwt.t
     who can create page in wiki [i] by default
     (if activated). *)
 val page_creators_group : int32 -> int32 Lwt.t
+
+(** [css_editors_group i] returns the id of the group of users
+    who can modify css of pages in wiki [i]. *)
+val css_editors_group : int32 -> int32 Lwt.t
 
 (** [container_adm_group i] returns the id of the group of users
     who can change the layout (container) of wikipages in wiki [i]. *)
@@ -118,6 +139,10 @@ val wikiboxes_creators_group_name : int32 -> string
     who can create page in wiki [i] by default
     (if activated). *)
 val page_creators_group_name : int32 -> string
+
+(** [css_editors_group_name i] returns the name of the group of users
+    who can modify css of pages in wiki [i]. *)
+val css_editors_group_name : int32 -> string
 
 (** [container_adm_group_name i] returns the name of the group of users
     who can change the layout (container) of wikipages in wiki [i]. *)

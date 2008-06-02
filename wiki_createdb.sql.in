@@ -21,6 +21,25 @@ CREATE TABLE wikipages (
 
 ALTER TABLE public.wikipages OWNER TO %%USER%%;
 
+
+-- css for whole wiki:
+CREATE TABLE wikicss (
+    wiki integer NOT NULL, --  REFERENCES wikis(id)
+    css text DEFAULT ''::text NOT NULL
+);
+
+ALTER TABLE public.wikicss OWNER TO %%USER%%;
+
+
+-- css for each page
+CREATE TABLE css (
+    wiki integer NOT NULL, --  REFERENCES wikis(id)
+    page text NOT NULL UNIQUE,
+    css text DEFAULT ''::text NOT NULL
+);
+
+ALTER TABLE public.css OWNER TO %%USER%%;
+
 --
 -- Name: COLUMN wikiboxes.wik_id; Type: COMMENT; Schema: public; Owner: %%USER%%
 --

@@ -230,7 +230,7 @@ struct
     (try
        Lwt.return (find_in_cache cache k)
      with Not_found ->
-print_endline "cache: db access";
+print_endline "               cache: db access";
        cache.finder k >>= fun r ->
        add cache k r;
        Lwt.return r)

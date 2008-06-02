@@ -31,7 +31,12 @@ type wiki_data = {
   datetime: CalendarLib.Calendar.t;
 }
 
-
+type menu_item =
+  | Edit
+  | Edit_perm
+  | Edit_css
+  | History
+  | View
 
 class noneditable_wikibox :
   object
@@ -76,6 +81,7 @@ class editable_wikibox :
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
+      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_edit_perm :
@@ -83,6 +89,7 @@ class editable_wikibox :
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
+      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_edit_form :
@@ -104,6 +111,7 @@ class editable_wikibox :
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
+      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_history :
@@ -117,13 +125,13 @@ class editable_wikibox :
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 ->
       classe:string list ->
+      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_menu_box :
       classe:string list ->
-      ?service:(Wiki_sql.wiki * int32 ->
-                  (Eliom_services.get_service_kind, [ `Unregistrable ])
-                    Eliom_duce_tools.one_page) ->
+      ?service:menu_item ->
+      ?cssmenu:string option ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 -> 
@@ -135,6 +143,7 @@ class editable_wikibox :
       Wiki_sql.wiki * int32 ->
       int32 ->
       classe:string list ->
+      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
       
     method display_src_wikibox :
@@ -143,6 +152,7 @@ class editable_wikibox :
       Wiki_sql.wiki * int32 ->
       int32 ->
       classe:string list ->
+      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
       
     method editable_wikibox :
@@ -153,6 +163,7 @@ class editable_wikibox :
       ?cols:int ->
       ?classe:string list -> 
       ?subbox:Xhtmltypes_duce.flows ->
+      ?cssmenu:string option ->
       ancestors:Wiki_syntax.ancestors ->
       unit -> Xhtmltypes_duce.block Lwt.t
 
@@ -168,5 +179,71 @@ class editable_wikibox :
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
+
+    method display_edit_css_form :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      ?rows:int ->
+      ?cols:int ->
+      data:Wiki_sql.wiki * string -> 
+      Ocamlduce.Utf8.repr -> 
+      Xhtmltypes_duce.flows Lwt.t
+
+    method display_edit_css_box :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      Wiki_sql.wiki * int32 ->
+      string ->
+      classe:string list ->
+      ?cssmenu:string option ->
+      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
+      
+    method display_edit_form :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      ?rows:int ->
+      ?cols:int ->
+      previewonly:bool ->
+      Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
+
+    method edit_css_box :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      data:Wiki_sql.wiki * string ->
+      ?rows:int -> 
+      ?cols:int -> 
+      ?classe:string list -> 
+      unit -> Xhtmltypes_duce.block Lwt.t
+    
+    method display_edit_wikicss_box :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      Wiki_sql.wiki * int32 ->
+      classe:string list ->
+      ?cssmenu:string option ->
+      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
+      
+    method display_edit_wikicss_form :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      ?rows:int ->
+      ?cols:int ->
+      wiki:Wiki_sql.wiki ->
+      Ocamlduce.Utf8.repr -> Xhtmltypes_duce.flows Lwt.t
+
+    method edit_wikicss_box :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      wiki:Wiki_sql.wiki ->
+      ?rows:int ->
+      ?cols:int ->
+      ?classe:string list -> unit -> Xhtmltypes_duce.block Lwt.t
+
+    (** returns the css headers for one wiki and optionally one page *)
+    method get_css_header : 
+      sp:Eliom_sessions.server_params ->
+      wiki:int32 -> 
+      ?page:string -> unit ->
+      {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
   end

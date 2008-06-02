@@ -39,7 +39,7 @@ type wiki_info = {
   title : string;
   descr : string;
   path : string list option;
-  boxrights : bool
+  boxrights : bool;
 }
 
 let get_wiki_by_id id =
@@ -88,6 +88,7 @@ let readers_group_name i = "wiki"^Int32.to_string i^"_readers"
 let writers_group_name i = "wiki"^Int32.to_string i^"_writers"
 let rights_adm_group_name i = "wiki"^Int32.to_string i^"_rights_givers"
 let page_creators_group_name i = "wiki"^Int32.to_string i^"_page_creators"
+let css_editors_group_name i = "wiki"^Int32.to_string i^"_css_editors"
 let wikiboxes_creators_group_name i = "wiki"^Int32.to_string i^"_wikiboxes_creators"
 let container_adm_group_name i = "wiki"^Int32.to_string i^"_container_adm"
 let admin_group_name i = "wiki"^Int32.to_string i^"_admin"
@@ -97,6 +98,8 @@ let writers_group i = Users.get_user_id_by_name (writers_group_name i)
 let rights_adm_group  i = Users.get_user_id_by_name (rights_adm_group_name  i)
 let page_creators_group i = 
                       Users.get_user_id_by_name (page_creators_group_name i)
+let css_editors_group i = 
+                      Users.get_user_id_by_name (css_editors_group_name i)
 let wikiboxes_creators_group i = 
                       Users.get_user_id_by_name
                         (wikiboxes_creators_group_name i)
@@ -162,6 +165,14 @@ let add_to_group_ l g =
     (Lwt.return ())
     l
 
+let wikiadmin_container_id = 1l
+let wikipage_container_id = 2l
+
+
+
+
+
+
 let create_wiki ~title ~descr
     ?sp
     ?path
@@ -171,6 +182,7 @@ let create_wiki ~title ~descr
     ?(wikiboxes_creators = [Users.authenticated_users.Users.id])
     ?(container_adm = [])
     ?(page_creators = [Users.authenticated_users.Users.id])
+    ?(css_editors = [Users.authenticated_users.Users.id])
     ?(admins = [])
     ?(boxrights = true)
     ~wikibox
@@ -208,6 +220,10 @@ let create_wiki ~title ~descr
              ("Users who can create pages in wiki "^Int32.to_string id)
            >>= fun page_creators_data ->
            create_group_
+             (css_editors_group_name id) 
+             ("Users who can edit css for wikipages of wiki "^Int32.to_string id)
+           >>= fun css_editors_data ->
+           create_group_
              (wikiboxes_creators_group_name id) 
              ("Users who can create wikiboxes in wiki "^Int32.to_string id)
            >>= fun wikiboxes_creators_data ->
@@ -228,6 +244,9 @@ let create_wiki ~title ~descr
              page_creators_data.Users.id
              >>= fun () ->
            add_to_group_ [admin_data.Users.id] 
+             css_editors_data.Users.id
+             >>= fun () ->
+           add_to_group_ [admin_data.Users.id] 
              rights_adm_data.Users.id
              >>= fun () ->
            add_to_group_ [admin_data.Users.id] 
@@ -235,6 +254,7 @@ let create_wiki ~title ~descr
              >>= fun () ->
            add_to_group_ [wikiboxes_creators_data.Users.id;
                           page_creators_data.Users.id;
+                          css_editors_data.Users.id;
                           rights_adm_data.Users.id;
                           container_adm_data.Users.id] 
              writers_data.Users.id
@@ -245,6 +265,7 @@ let create_wiki ~title ~descr
            add_to_group_ writers writers_data.Users.id >>= fun () ->
            add_to_group_ rights_adm rights_adm_data.Users.id >>= fun () ->
            add_to_group_ page_creators page_creators_data.Users.id >>= fun () ->
+           add_to_group_ css_editors css_editors_data.Users.id >>= fun () ->
            add_to_group_ wikiboxes_creators wikiboxes_creators_data.Users.id
            >>= fun () ->
 
@@ -258,7 +279,7 @@ let create_wiki ~title ~descr
              ()
            >>= fun _ ->
 
-           (* Filling the first wikibox with wikipage container *)
+           (* Filling the second wikibox with wikipage container *)
            new_wikibox 
              ~wiki:w
              ~author:Users.admin.Users.id
@@ -273,7 +294,9 @@ let create_wiki ~title ~descr
        | e -> Lwt.fail e)
   >>= fun w ->
 
-  (* Registering the service with suffix for wikipages *)
+
+
+  (* *** Wikipages *** *)
   (match path with
      | None -> ()
      | Some path ->
@@ -284,31 +307,54 @@ let create_wiki ~title ~descr
              ~post_params:(Eliom_parameters.string "page")
              (fun sp () page ->
                 let sd = Ocsimore_common.get_sd sp in
-                Users.get_user_id ~sp ~sd >>= fun id ->
-                new_wikibox 
-                  w
-                  id
-                  "new wikipage" 
-                  "**//new wikipage//**"
-(*VVV readers, writers, rights_adm, wikiboxes_creators? *)
-                  () >>= fun box ->
-                Wiki_cache.set_box_for_page ~wiki:w.id ~id:box ~page >>= fun () ->
-                Lwt.return [])
+                Users.get_user_id ~sp ~sd >>= fun userid ->
+                page_creators_group w.id >>= fun creators ->
+                Users.in_group userid creators >>= fun c ->
+                if c
+                then
+                  Lwt.catch
+                    (fun () -> 
+                       Wiki_cache.get_box_for_page w.id page >>= fun _ ->
+                       (* The page already exists *)
+                       Lwt.return [Ocsimore_common.Session_data sd]
+(*VVV Put an error message *)                     
+                    )
+                    (function 
+                       | Not_found ->
+                           new_wikibox 
+                             w
+                             userid
+                             "new wikipage" 
+                             "**//new wikipage//**"
+                             (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
+                             () >>= fun box ->
+                           Wiki_cache.set_box_for_page
+                             ~wiki:w.id ~id:box ~page >>= fun () ->
+                           Lwt.return [Ocsimore_common.Session_data sd]
+                       | e -> Lwt.fail e)
+                else Lwt.return [Ocsimore_common.Session_data sd]
+(*VVV Put an error message *)
+                  )
          in
+
+
+         
+         (* Registering the service with suffix for wikipages *)
          ignore
            (Eliom_duce.Xhtml.register_new_service
               ~path
               ?sp
               ~get_params:(Eliom_parameters.suffix 
                              (Eliom_parameters.all_suffix_string "page"))
-              (fun sp path () -> 
+              (fun sp page () -> 
                  let sd = Ocsimore_common.get_sd sp in
                  Lwt.catch
                    (fun () ->
-                      Wiki_cache.get_box_for_page w.id path >>= fun box ->
+                      Wiki_cache.get_box_for_page w.id page >>= fun box ->
                       wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
                         ?rows:None ?cols:None ?classe:None ?subbox:None
+                        ?cssmenu:(Some (Some page)) 
                         ~ancestors:Wiki_syntax.no_ancestors
                         () >>= fun subbox -> 
                       Lwt.return {{ [ subbox ] }}
@@ -321,7 +367,7 @@ let create_wiki ~title ~descr
                                    {: Eliom_duce.Xhtml.string_input
                                       ~input_type:{: "hidden" :} 
                                       ~name
-                                      ~value:path () :}
+                                      ~value:page () :}
                                      {: Eliom_duce.Xhtml.string_input
                                         ~input_type:{: "submit" :} 
                                         ~value:"Create it!" () :}
@@ -345,28 +391,33 @@ let create_wiki ~title ~descr
                    )
                >>= fun subbox ->
                  
-               wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 2l)
+               wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 
+                                                       wikipage_container_id)
                  ?rows:None ?cols:None ?classe:None
-                 ?subbox:(Some subbox) ~ancestors:Wiki_syntax.no_ancestors
+                 ?subbox:(Some subbox) ?cssmenu:(Some None)
+                 ~ancestors:Wiki_syntax.no_ancestors
                  ()
-               >>= fun page ->
+               >>= fun pagecontent ->
 
+               wikibox#get_css_header ~sp ~wiki:w.id ?page:(Some page) ()
+
+               >>= fun css ->
                Lwt.return
                  {{
                     <html>[
                       <head>[
                         <title>"Ocsimore administration"
-                          {: Eliom_duce.Xhtml.css_link 
-                             (Eliom_duce.Xhtml.make_uri
-                                (Eliom_services.static_dir sp) 
-                                sp ["example.css"]) () :}
+                          !css
 (*VVV quel css ? quel layout de page ? *)
                       ]
-                                <body>[ page ]
+                                <body>[ pagecontent ]
                     ]
                   }}
               )
-           )
+           );
+
+
+
   );
   Lwt.return w
 

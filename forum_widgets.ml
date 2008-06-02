@@ -83,7 +83,7 @@ class message_navigation_widget
                 get_service_kind,
                 [`WithoutSuffix], 
                 [`One of int32] param_name * 
-                  ([`One of int32] param_name * [`Opt of int64] param_name), 
+                  ([`One of int32] param_name * [`Radio of int64] param_name), 
                 unit, 
                 [`Registrable]) service) =
 object (self)
@@ -181,7 +181,7 @@ class message_forest_widget
                        [`WithoutSuffix],
                        [`One of int32] param_name *
                          ([`One of int32] param_name * 
-                            ([`Opt of int32] param_name *
+                            ([`Radio of int32] param_name *
                                [`One of int32] param_name)), 
                        unit,
                        [`Registrable]) service)
@@ -192,7 +192,7 @@ class message_forest_widget
                         [`WithoutSuffix], 
                         [`One of int32] param_name * 
                           ([`One of int32] param_name *
-                             [`Opt of int32] param_name), 
+                             [`Radio of int32] param_name), 
                         [`One of int32] param_name,
                         [`Registrable]) service) =
 object (self)
@@ -274,9 +274,9 @@ class message_form_widget
                       [`WithoutSuffix], 
                       [`One of int32] param_name *
                         ([`One of int32] param_name * 
-                           [`Opt of int32] param_name), 
+                           [`Radio of int32] param_name), 
                       [`One of string] param_name * 
-                        ([`Opt of int32] param_name * 
+                        ([`Radio of int32] param_name * 
                            [`One of bool] param_name), 
                       [`Registrable]) service) =
 object (self)
@@ -384,7 +384,7 @@ class thread_widget
                         [`WithoutSuffix],
                         [`One of int32] param_name * 
                           ([`One of int32] param_name * 
-                             [`Opt of int32] param_name), 
+                             [`Radio of int32] param_name), 
                         unit, 
                         [`Registrable]) service) =
 object (self)
@@ -453,7 +453,7 @@ class thread_list_widget
                 get_service_kind, 
                 [`WithoutSuffix],
                 [`One of int32] param_name * 
-                  ([`One of int32] param_name * [`Opt of int32] param_name),
+                  ([`One of int32] param_name * [`Radio of int32] param_name),
                 unit,
                 [`Registrable]) service) =
 object (self)
