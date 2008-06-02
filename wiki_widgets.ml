@@ -67,6 +67,22 @@ object (self)
 
   val ne_class = "noned_wikibox"
 
+  method container ?css content =
+    let css = match css with
+      | None -> {{ [] }}
+      | Some c -> c
+    in
+    {{
+       <html>[
+         <head>[
+           <title>"Ocsimore wiki"
+             !css
+         ]
+         <body>content
+       ]
+     }}
+
+
   method display_error_box ?classe ?message ?exn () =
     match exn with
       | Some (Unknown_box (w, i)) ->
@@ -1249,17 +1265,7 @@ object (self)
               ?cssmenu:(Some None)
               ~subbox:{{ [ subbox ] }} () >>= fun page ->
             self#get_css_header ~sp ~wiki:w ?page:None () >>= fun css ->
-            Lwt.return
-              {{
-                 <html>[
-                   <head>[
-                     <title>"Ocsimore administration"
-                     !css
-(*VVV quel css ? quel layout de page ? *)
-                   ]
-                   <body>[ page ]
-                 ]
-               }}
+            Lwt.return (self#container ~css {{ [ page ] }})
 
          );
 
@@ -1274,17 +1280,7 @@ object (self)
               ?cssmenu:(Some None)
               ~subbox:{{ [ subbox ] }} () >>= fun pagecontent ->
             self#get_css_header ~sp ~wiki ?page:(Some page) () >>= fun css ->
-            Lwt.return
-              {{
-                 <html>[
-                   <head>[
-                     <title>"Ocsimore administration"
-                     !css
-(*VVV quel css ? quel layout de page ? *)
-                   ]
-                   <body>[ pagecontent ]
-                 ]
-               }}
+            Lwt.return (self#container ~css {{ [ pagecontent ] }})
 
          );
 
@@ -1302,17 +1298,7 @@ object (self)
 *)
             >>= fun pagecontent ->
             self#get_css_header ~sp ~wiki ?page:None () >>= fun css ->
-            Lwt.return
-              {{
-                 <html>[
-                   <head>[
-                     <title>"Ocsimore administration"
-                     !css
-(*VVV quel css ? quel layout de page ? *)
-                   ]
-                   <body>[ pagecontent ]
-                 ]
-               }}
+            Lwt.return (self#container ~css {{ [ pagecontent ] }})
 
          )
 

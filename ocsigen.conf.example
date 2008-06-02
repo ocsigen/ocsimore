@@ -15,6 +15,8 @@ of your ocsigen.conf file.
     <extension module="/path-to/ocsimore.cma"/>
 
     <host>
-      <module file="/path_to/example.cmo" />
       <static dir="/path_to/ocsimore/static" />    
+      <eliom module="/path_to/ocsiwiki.cmo">
+        <name>My wiki</name>
+      </eliom>
     </host>

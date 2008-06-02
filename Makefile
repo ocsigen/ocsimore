@@ -12,6 +12,7 @@ OCSIMORE_SRC3 = forum.ml session_manager.ml widget.ml \
 	wiki_cache.ml wiki.ml wiki_widgets.ml \
         user_widgets.ml forum_widgets.ml
 
+
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
 
@@ -60,7 +61,7 @@ LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
 .PHONY: all depend clean
 
-all: sql ocsimore.cma
+all: sql ocsimore.cma ocsiwiki.cmo
 
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)

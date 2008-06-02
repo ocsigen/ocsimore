@@ -43,7 +43,12 @@ class noneditable_wikibox :
 
     inherit Widget.widget_with_error_box
 
-    method display_noneditable_box :
+     method container :
+       ?css:{{ [ Xhtmltypes_duce.link* ] }} -> 
+       Xhtmltypes_duce.blocks -> 
+       Xhtmltypes_duce.html
+
+     method display_noneditable_box :
       classe:string list ->
       Xhtmltypes_duce.flows -> 
       Xhtmltypes_duce.block Lwt.t
