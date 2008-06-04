@@ -60,25 +60,25 @@ val set_css_for_wiki : wiki:int32 -> string -> unit Lwt.t
 
 (** *)
 val find_wiki : Wiki_sql.wiki -> 
-  (Wiki_sql.wiki * string * string * string list option * bool) Lwt.t
+  (Wiki_sql.wiki * string * string * bool) Lwt.t
 
 val populate_readers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val populate_writers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val populate_rights_adm : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val populate_wikiboxes_creators : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 
 val remove_readers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val remove_writers : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val remove_rights_adm : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val remove_wikiboxes_creators : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 
 (**/**)
 val get_readers_ : int32 * int32 -> User_sql.userid list Lwt.t

@@ -15,7 +15,6 @@ type wiki_info = {
   id : Wiki_sql.wiki;
   title : string;
   descr : string;
-  path : string list option;
   boxrights : bool;
 }
 

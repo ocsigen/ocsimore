@@ -48,20 +48,18 @@ let populate_readers_ db wiki_id id readers =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some reader ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "INSERT INTO wikiboxreaders \
+          (fun reader ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "INSERT INTO wikiboxreaders \
                              VALUES ($wiki_id, $id, $reader)")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while setting wikibox readers: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while setting wikibox readers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           readers
 
@@ -71,20 +69,18 @@ let populate_writers_ db wiki_id id writers =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some writer ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "INSERT INTO wikiboxwriters \
+          (fun writer ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "INSERT INTO wikiboxwriters \
                              VALUES ($wiki_id, $id, $writer)")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while setting wikibox writers: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while setting wikibox writers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           writers
 
@@ -94,20 +90,18 @@ let populate_rights_adm_ db wiki_id id ra =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some ra ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "INSERT INTO wikiboxrightsgivers \
+          (fun ra ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "INSERT INTO wikiboxrightsgivers \
                              VALUES ($wiki_id, $id, $ra)")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while setting wikibox rights givers: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while setting wikibox rights givers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           ra
 
@@ -117,20 +111,18 @@ let populate_wikiboxes_creators_ db wiki_id id ra =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some ra ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "INSERT INTO wikiboxcreators \
+          (fun ra ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "INSERT INTO wikiboxcreators \
                              VALUES ($wiki_id, $id, $ra)")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while setting wikibox creators: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while setting wikibox creators: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           ra
 
@@ -140,22 +132,20 @@ let remove_readers_ db wiki_id id readers =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some reader ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "DELETE FROM wikiboxreaders \
+          (fun reader ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxreaders \
                              WHERE wiki_id = $wiki_id \
                              AND id = $id \
                              AND reader = $reader")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while removing wikibox readers: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox readers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           readers
 
@@ -165,22 +155,20 @@ let remove_writers_ db wiki_id id writers =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some writer ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "DELETE FROM wikiboxwriters \
+          (fun writer ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxwriters \
                              WHERE wiki_id = $wiki_id \
                              AND id = $id \
                              AND writer = $writer")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while removing wikibox writers: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox writers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           writers
 
@@ -190,22 +178,20 @@ let remove_rights_adm_ db wiki_id id ra =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some ra ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "DELETE FROM wikiboxrightsgivers \
+          (fun ra ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxrightsgivers \
                              WHERE wiki_id = $wiki_id \
                              AND id = $id \
                              AND wbadmin = $ra")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while removing wikibox rights givers: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox rights givers: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           ra
 
@@ -215,26 +201,22 @@ let remove_wikiboxes_creators_ db wiki_id id ra =
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
-          (function
-             | Some ra ->
-                 Lwt.catch
-                   (fun () ->
-                      PGSQL(db) "DELETE FROM wikiboxcreators \
+          (fun ra ->
+             Lwt.catch
+               (fun () ->
+                  PGSQL(db) "DELETE FROM wikiboxcreators \
                              WHERE wiki_id = $wiki_id \
                              AND id = $id \
                              AND creator = $ra")
-                   (function
-                      | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                          Ocsigen_messages.warning 
-                            ("Ocsimore: while removing wikibox creators: "^s);
-                          Lwt.return ()
-                      | e -> Lwt.fail e
-                   )
-             | _ -> Lwt.return ()
+               (function
+                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
+                      Ocsigen_messages.warning 
+                        ("Ocsimore: while removing wikibox creators: "^s);
+                      Lwt.return ()
+                  | e -> Lwt.fail e
+               )
           )
           ra
-
-let optionize l = List.map (fun o -> Some o) l
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox ~wiki ~author ~comment ~content ?rights () = 
@@ -247,10 +229,10 @@ let new_wikibox ~wiki ~author ~comment ~content ?rights () =
        (match rights with
          | None -> Lwt.return ()
          | Some (r, w, ra, wc) -> 
-             populate_writers_ db wiki wbx_id (optionize w) >>= fun () ->
-             populate_readers_ db wiki wbx_id (optionize r) >>= fun () ->
-             populate_rights_adm_ db wiki wbx_id (optionize ra) >>= fun () ->
-             populate_wikiboxes_creators_ db wiki wbx_id (optionize wc)
+             populate_writers_ db wiki wbx_id w >>= fun () ->
+             populate_readers_ db wiki wbx_id r >>= fun () ->
+             populate_rights_adm_ db wiki wbx_id ra >>= fun () ->
+             populate_wikiboxes_creators_ db wiki wbx_id wc
        ) >>= fun () ->
        commit db >>= fun () ->
        Lwt.return wbx_id)
@@ -271,25 +253,25 @@ let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content =
          | Some r -> 
              PGSQL(db) "DELETE FROM wikiboxreaders \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_readers_ db wiki wikibox (optionize r)) >>= fun () ->
+             populate_readers_ db wiki wikibox r) >>= fun () ->
        (match writers with
          | None -> Lwt.return ()
          | Some w -> 
              PGSQL(db) "DELETE FROM wikiboxwriters \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_writers_ db wiki wikibox (optionize w)) >>= fun () ->
+             populate_writers_ db wiki wikibox w) >>= fun () ->
        (match rights_adm with
          | None -> Lwt.return ()
          | Some a -> 
              PGSQL(db) "DELETE FROM wikiboxrightsgivers \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_rights_adm_ db wiki wikibox (optionize a)) >>= fun () ->
+             populate_rights_adm_ db wiki wikibox a) >>= fun () ->
        (match wikiboxes_creators with
          | None -> Lwt.return ()
          | Some a -> 
              PGSQL(db) "DELETE FROM wikiboxcreators \
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_wikiboxes_creators_ db wiki wikibox (optionize a)) >>= fun () ->
+             populate_wikiboxes_creators_ db wiki wikibox a) >>= fun () ->
 *)
        commit db >>= fun () ->
        Lwt.return version)
@@ -381,18 +363,12 @@ let find_wiki_ ?id ?title () =
          >>= fun r -> 
        commit db >>= fun () -> 
        (match r with
-          | [(id, title, descr, path, br)] ->
-              let path = 
-                Ocsimore_lib.bind_opt path Neturl.split_path 
-              in
-              Lwt.return (id, title, descr, path, br)
-          | (id, title, descr, path, br)::_ -> 
+          | [(id, title, descr, br)] ->
+              Lwt.return (id, title, descr, br)
+          | (id, title, descr, br)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same name or id (ignored)";
-              let path = 
-                Ocsimore_lib.bind_opt path Neturl.split_path 
-              in
-              Lwt.return (id, title, descr, path, br)
+              Lwt.return (id, title, descr, br)
           | [] -> Lwt.fail Not_found))
 
 

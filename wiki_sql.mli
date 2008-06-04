@@ -100,8 +100,7 @@ val find_wiki_ :
   ?id:wiki -> 
   ?title:string -> 
   unit -> 
-  (wiki * string * string * string list option * bool)
-    Lwt.t
+  (wiki * string * string * bool) Lwt.t
 
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
@@ -123,22 +122,22 @@ val update_wikibox_ :
 
 
 val populate_readers_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val populate_writers_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val populate_rights_adm_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val populate_wikiboxes_creators_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 
 val remove_readers_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val remove_writers_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val remove_rights_adm_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 val remove_wikiboxes_creators_ : 
-  int32 -> int32 -> int32 option list -> unit Lwt.t
+  int32 -> int32 -> int32 list -> unit Lwt.t
 
 
 val get_readers_ : (wiki * int32) -> User_sql.userid list Lwt.t

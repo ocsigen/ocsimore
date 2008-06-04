@@ -99,6 +99,7 @@ val in_group :
 
 val add_to_group : user:User_sql.userid -> group:User_sql.userid -> unit Lwt.t
 
+val group_list_of_string : string -> User_sql.userid list Lwt.t
 
 (****)
 val get_user_data : 

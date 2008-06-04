@@ -38,26 +38,23 @@ type wiki_info = {
   id : Wiki_sql.wiki;
   title : string;
   descr : string;
-  path : string list option;
   boxrights : bool;
 }
 
 let get_wiki_by_id id =
   Wiki_cache.find_wiki id
-  >>= fun (id, title, descr, path, br) -> 
+  >>= fun (id, title, descr, br) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
-               path = path;
                boxrights = br
              }
 
 let get_wiki_by_name title =
-  Wiki_sql.find_wiki_ ~title () >>= fun (id, title, descr, path, br) -> 
+  Wiki_sql.find_wiki_ ~title () >>= fun (id, title, descr, br) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
-               path = path;
                boxrights = br;
              }
 
@@ -198,7 +195,6 @@ let create_wiki ~title ~descr
                { id = id; 
                  title = title; 
                  descr = descr;
-                 path = path;
                  boxrights = boxrights
                }
              in
@@ -604,53 +600,21 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
     | Admin ->
         let (addr, (addw, (adda, (addc, 
                                   (delr, (delw, (dela, delc))))))) = rights in
-        let f a =
-          Lwt.catch
-            (fun () -> 
-               Users.get_user_id_by_name a >>= fun v -> 
-               Lwt.return (Some v))
-            (function 
-               | Users.NoSuchUser _ -> Lwt.return None
-               | e -> Lwt.fail e)
-        in
-        let r = Ocsigen_lib.split ' ' addr in
-        Lwt_util.map f r 
-        >>= fun readers ->
-        Wiki_cache.populate_readers wiki_id box_id readers
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' addw in
-        Lwt_util.map f r 
-        >>= fun w ->
-        Wiki_cache.populate_writers wiki_id box_id w
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' adda in
-        Lwt_util.map f r 
-        >>= fun a ->
-        Wiki_cache.populate_rights_adm wiki_id box_id a
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' addc in
-        Lwt_util.map f r 
-        >>= fun a ->
-        Wiki_cache.populate_wikiboxes_creators wiki_id box_id a
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' delr in
-        Lwt_util.map f r 
-        >>= fun readers ->
-        Wiki_cache.remove_readers wiki_id box_id readers
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' delw in
-        Lwt_util.map f r 
-        >>= fun w ->
-        Wiki_cache.remove_writers wiki_id box_id w
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' dela in
-        Lwt_util.map f r 
-        >>= fun a ->
-        Wiki_cache.remove_rights_adm wiki_id box_id a
-        >>= fun () ->
-        let r = Ocsigen_lib.split ' ' delc in
-        Lwt_util.map f r 
-        >>= fun a ->
+        Users.group_list_of_string addr >>= fun readers ->
+        Wiki_cache.populate_readers wiki_id box_id readers >>= fun () ->
+        Users.group_list_of_string addw >>= fun w ->
+        Wiki_cache.populate_writers wiki_id box_id w >>= fun () ->
+        Users.group_list_of_string adda >>= fun a ->
+        Wiki_cache.populate_rights_adm wiki_id box_id a >>= fun () ->
+        Users.group_list_of_string addc >>= fun a ->
+        Wiki_cache.populate_wikiboxes_creators wiki_id box_id a >>= fun () ->
+        Users.group_list_of_string delr >>= fun readers ->
+        Wiki_cache.remove_readers wiki_id box_id readers >>= fun () ->
+        Users.group_list_of_string delw >>= fun w ->
+        Wiki_cache.remove_writers wiki_id box_id w >>= fun () ->
+        Users.group_list_of_string dela >>= fun a ->
+        Wiki_cache.remove_rights_adm wiki_id box_id a >>= fun () ->
+        Users.group_list_of_string delc >>= fun a ->
         Wiki_cache.remove_wikiboxes_creators wiki_id box_id a
     | _ -> Lwt.return ()) >>= fun () ->
 (*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)

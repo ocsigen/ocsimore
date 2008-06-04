@@ -54,7 +54,6 @@ CREATE TABLE wikis (
     id serial NOT NULL primary key,
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
-    path text,
     boxrights boolean NOT NULL
 );
 

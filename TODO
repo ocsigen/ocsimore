@@ -65,6 +65,12 @@ Wiki:
  - not possible to change the css for one wikibox for now, just for the whole
  page. Users cannot personnalize the css if they do not have the right to 
  modify the whole page css :-(
+ - Most of options for ocsiwiki in ocsigen.conf have effect only the first
+ time (when the wiki is not created). We should better: either give the 
+ possibility to change the values from the config file (more difficult) or
+ remove these config options and rely on defaults and a admin page
+ to change rights (but for now that page does not exist, 
+ so I leave this as this).
 
 Users:
  - encryption of password for the db

@@ -537,3 +537,17 @@ let in_group ~sp ~sd ?user ~group () =
   in_group_ ~sp ~sd ?user ~group ()
 
 
+let group_list_of_string s =
+  let f beg a =
+    beg >>= fun beg ->
+    Lwt.catch
+      (fun () ->
+         get_user_id_by_name a >>= fun v -> 
+         Lwt.return (v::beg))
+      (function 
+         | NoSuchUser _ -> Lwt.return beg
+         | e -> Lwt.fail e)
+  in
+  let r = Ocsigen_lib.split ' ' s in
+  List.fold_left f (Lwt.return []) r 
+
