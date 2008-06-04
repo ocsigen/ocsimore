@@ -152,7 +152,8 @@ let create_group_ name fullname =
          ~pwd:None
          ~fullname
          ~email:None
-         ~groups:[])
+         ~groups:[]
+         ())
     (function
        | Users.UserExists u -> Lwt.return u
        | e -> Lwt.fail e)
@@ -309,7 +310,8 @@ let create_wiki ~title ~descr
                 let sd = Ocsimore_common.get_sd sp in
                 Users.get_user_id ~sp ~sd >>= fun userid ->
                 page_creators_group w.id >>= fun creators ->
-                Users.in_group userid creators >>= fun c ->
+                Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+                  >>= fun c ->
                 if c
                 then
                   Lwt.catch
@@ -375,7 +377,7 @@ let create_wiki ~title ~descr
 
                           in
                           page_creators_group w.id >>= fun creators ->
-                          Users.in_group userid creators
+                          Users.in_group ~sp ~sd ~user:userid ~group:creators ()
                           >>= fun c ->
                           let form =
                             if c
@@ -423,7 +425,7 @@ let create_wiki ~title ~descr
 
 
 
-let can_change_rights wiki id userid =
+let can_change_rights ~sp ~sd wiki id userid =
   if userid == Users.admin.Users.id
   then Lwt.return true
   else
@@ -433,12 +435,14 @@ let can_change_rights wiki id userid =
             (fun b a -> 
                b >>= fun b ->
                if b then Lwt.return true
-               else Users.in_group userid a)
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
             (Lwt.return false) 
             l
-      | None -> rights_adm_group wiki.id >>= fun g -> Users.in_group userid g
+      | None -> 
+          rights_adm_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
 
-let can_read wiki id userid =
+let can_read ~sp ~sd wiki id userid =
   if userid = Users.admin.Users.id
   then Lwt.return true
   else
@@ -448,12 +452,14 @@ let can_read wiki id userid =
             (fun b a -> 
                b >>= fun b ->
                if b then Lwt.return true
-               else Users.in_group userid a)
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
             (Lwt.return false) 
             l
-      | None -> readers_group wiki.id >>= fun g -> Users.in_group userid g
+      | None -> 
+          readers_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
     
-let can_write wiki id userid =
+let can_write ~sp ~sd wiki id userid =
   if userid = Users.admin.Users.id
   then Lwt.return true
   else
@@ -463,12 +469,14 @@ let can_write wiki id userid =
             (fun b a -> 
                b >>= fun b ->
                if b then Lwt.return true
-               else Users.in_group userid a)
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
             (Lwt.return false) 
             l
-      | None -> writers_group wiki.id >>= fun g -> Users.in_group userid g
+      | None -> 
+          writers_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
     
-let can_create_wikibox wiki id userid =
+let can_create_wikibox ~sp ~sd wiki id userid =
   if userid == Users.admin.Users.id
   then Lwt.return true
   else
@@ -478,26 +486,27 @@ let can_create_wikibox wiki id userid =
             (fun b a -> 
                b >>= fun b ->
                if b then Lwt.return true
-               else Users.in_group userid a)
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
             (Lwt.return false) 
             l
-      | None -> wikiboxes_creators_group wiki.id >>= fun g -> 
-                Users.in_group userid g
+      | None -> 
+          wikiboxes_creators_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
 
 
 let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
   get_wiki_by_id wiki >>= fun w ->
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
-  can_change_rights w id u >>= fun cana ->
+  can_change_rights ~sp ~sd w id u >>= fun cana ->
   if cana
   then Lwt.return Admin
   else
-    can_write w id u >>= fun canw ->
+    can_write ~sp ~sd w id u >>= fun canw ->
     if canw
     then Lwt.return Author
     else 
-      can_read w id u >>= fun canr ->
+      can_read ~sp ~sd w id u >>= fun canr ->
       if canr
       then Lwt.return Lurker
       else Lwt.return Nonauthorized

@@ -21,7 +21,9 @@ type userdata =
         mutable pwd: string option;
         mutable fullname: string;
         mutable email: string option;
+        dyn: bool;
       }
+
 
 exception UserExists of userdata
 exception NotAllowed
@@ -33,6 +35,10 @@ val anonymous : userdata
 
 (** A user that belongs to all groups *)
 val admin : userdata
+
+(** A user/group that does not belong to any group, 
+    and nobody can be put in it.  *)
+val nobody : userdata
 
 (** A group containing all authenticated users (not groups) *)
 val authenticated_users : userdata
@@ -58,6 +64,9 @@ val create_user:
   fullname:string -> 
   email:string option -> 
   groups: User_sql.userid list ->
+  ?test:(sp:Eliom_sessions.server_params ->
+          sd:Ocsimore_common.session_data -> bool Lwt.t) ->
+  unit ->
   userdata Lwt.t
 
 val create_unique_user: 
@@ -81,7 +90,12 @@ val update_user_data:
 
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
-val in_group: user:User_sql.userid -> group:User_sql.userid -> bool Lwt.t
+val in_group : 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  ?user:User_sql.userid -> 
+  group:User_sql.userid -> 
+  unit -> bool Lwt.t
 
 val add_to_group : user:User_sql.userid -> group:User_sql.userid -> unit Lwt.t
 

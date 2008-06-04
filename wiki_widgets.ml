@@ -989,7 +989,7 @@ object (self)
      let (wiki, page) = data in
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
-     Users.in_group userid editors >>= fun c ->
+     Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
      Wiki_cache.get_box_for_page wiki page >>= fun box ->
      self#bind_or_display_error
        ~classe
@@ -1088,7 +1088,7 @@ object (self)
      =
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
-     Users.in_group userid editors >>= fun c ->
+     Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
      self#bind_or_display_error
        ~classe
        (if c
@@ -1114,7 +1114,7 @@ object (self)
        Eliom_duce.Xhtml.css_link 
          (Eliom_duce.Xhtml.make_uri
             (Eliom_services.static_dir sp) 
-            sp ["example.css"]) ()
+            sp ["style.css"]) ()
 (*VVV CSS? *)
      in
      Lwt.catch
@@ -1223,7 +1223,7 @@ object (self)
                 Wiki.get_wiki_by_id wiki >>= fun wiki ->
                 Users.get_user_id ~sp ~sd >>= fun userid ->
                 let ids = (wiki_id, father) in
-                Wiki.can_create_wikibox wiki father userid >>= fun b ->
+                Wiki.can_create_wikibox ~sp ~sd wiki father userid >>= fun b ->
                 if b
                 then begin
                   Wiki.get_readers ~wiki ids >>= fun readers ->

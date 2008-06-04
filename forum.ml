@@ -97,25 +97,25 @@ let create_forum
                       }
        | e -> fail e)
 
-let can_read forum user =
-  Users.in_group user forum.readable_by
+let can_read ~sp ~sd forum user =
+  Users.in_group ~sp ~sd ~user ~group:forum.readable_by ()
     
-let can_write forum user =
-  Users.in_group user forum.writable_by
+let can_write ~sp ~sd forum user =
+  Users.in_group ~sp ~sd ~user ~group:forum.writable_by ()
     
-let can_moderate forum user =
-  Users.in_group user forum.moderated_by
+let can_moderate ~sp ~sd forum user =
+  Users.in_group ~sp ~sd ~user ~group:forum.moderated_by ()
 
 let get_role ~sp ~sd (forum_id : Forum_sql.forum) =
   get_forum_by_id forum_id >>= fun f -> 
   Users.get_user_data sp sd >>= fun u ->
-  can_moderate f u.Users.id >>= fun b ->
+  can_moderate ~sp ~sd f u.Users.id >>= fun b ->
   if b
   then Lwt.return Forum_sql.Moderator
-  else (can_write f u.Users.id >>= fun b ->
+  else (can_write ~sp ~sd f u.Users.id >>= fun b ->
         if b
         then Lwt.return (Forum_sql.Author u.Users.id)
-        else (can_read f u.Users.id >>= fun b ->
+        else (can_read ~sp ~sd f u.Users.id >>= fun b ->
               if b
               then Lwt.return (Forum_sql.Lurker u.Users.name)
               else Lwt.return Forum_sql.Unknown)

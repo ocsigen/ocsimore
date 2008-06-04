@@ -34,6 +34,7 @@ type userdata =
       mutable pwd: string option;
       mutable fullname: string;
       mutable email: string option;
+      dyn: bool;
     }
       
 exception UserExists of userdata
@@ -42,17 +43,17 @@ exception BadPassword
 exception NoSuchUser of (string, int32) Ocsigen_lib.leftright
 exception Users_error of string
 
-type user = userdata
 
 let get_user_by_name_from_db ~name =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+     User_cache.find_user ~name () >>= fun ((i, n, p, d, e, dy), pm) -> 
      Lwt.return { id = i; 
                   name = n; 
                   pwd = p; 
                   fullname = d; 
                   email = e;
+                  dyn = dy
                 }
   )
   (function
@@ -62,7 +63,7 @@ let get_user_by_name_from_db ~name =
 let get_user_id_by_name name =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~name () >>= fun ((i, n, p, d, e), pm) -> 
+     User_cache.find_user ~name () >>= fun ((i, n, p, d, e, dy), pm) -> 
      Lwt.return i
   )
   (function
@@ -72,7 +73,7 @@ let get_user_id_by_name name =
 let get_user_name_by_id id =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+     User_cache.find_user ~id () >>= fun ((i, n, p, d, e, dy), pm) -> 
      Lwt.return n
   )
   (function
@@ -82,12 +83,13 @@ let get_user_name_by_id id =
 let get_user_by_id_from_db ~id =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~id () >>= fun ((i, n, p, d, e), pm) -> 
+     User_cache.find_user ~id () >>= fun ((i, n, p, d, e, dy), pm) -> 
      Lwt.return { id = i; 
                   name = n; 
                   pwd = p; 
                   fullname = d; 
                   email = e;
+                  dyn = dy;
                 }
   )
   (function
@@ -106,16 +108,42 @@ let create_anonymous () =
               ~fullname:"Anonymous"
               ~email:None
               ~groups:[]
+              ~dyn:false
             >>= fun i ->
            Lwt.return { id = i;
                         name = "anonymous"; 
                         pwd = None; 
                         fullname = "Anonymous"; 
                         email = None;
+                        dyn = false;
                       })
        | e -> Lwt.fail e)
 
 let anonymous = Lwt_unix.run (create_anonymous ())
+
+let create_nobody () =
+  Lwt.catch
+    (fun () -> get_user_by_name_from_db ~name:"nobody")
+    (function
+       | NoSuchUser _ ->
+           (User_sql.new_user 
+              ~name:"nobody" 
+              ~password:None
+              ~fullname:"Nobody"
+              ~email:None
+              ~groups:[]
+              ~dyn:false
+            >>= fun i ->
+           Lwt.return { id = i;
+                        name = "nobody"; 
+                        pwd = None; 
+                        fullname = "Nobody"; 
+                        email = None;
+                        dyn = false;
+                      })
+       | e -> Lwt.fail e)
+
+let nobody = Lwt_unix.run (create_nobody ())
 
 let create_users_group () =
   Lwt.catch
@@ -128,12 +156,14 @@ let create_users_group () =
               ~fullname:"Users"
               ~email:None
               ~groups:[anonymous.id]
+              ~dyn:false
             >>= fun i ->
            Lwt.return { id = i;
                         name = "users"; 
                         pwd = None; 
                         fullname = "Users"; 
                         email = None;
+                        dyn = false;
                       })
        | e -> Lwt.fail e)
 
@@ -191,12 +221,14 @@ let create_admin () =
               ~fullname:"Admin"
               ~email:(Some email)
               ~groups:[]
+              ~dyn:false
             >>= fun i ->
            Lwt.return { id = i;
                         name = "admin"; 
                         pwd = Some pwd; 
                         fullname = "Admin"; 
                         email = Some email;
+                        dyn = false;
                       })
        | e -> Lwt.fail e)
 
@@ -209,6 +241,9 @@ let get_user_by_name ~name =
   else
   if name = admin.name
   then Lwt.return admin
+  else
+  if name = nobody.name
+  then Lwt.return nobody
   else get_user_by_name_from_db ~name
 
 let get_user_by_id ~id =
@@ -217,9 +252,32 @@ let get_user_by_id ~id =
   else
   if id = admin.id
   then Lwt.return admin
+  else
+  if id = nobody.id
+  then Lwt.return nobody
   else get_user_by_id_from_db ~id
 
-let create_user ~name ~pwd ~fullname ~email ~groups =
+(* dynamic groups: *)
+module DynGroups = Hashtbl.Make(
+  struct
+    type t = int32
+    let equal a a' = a = a'
+    let hash = Hashtbl.hash
+  end)
+
+let add_dyn_group, in_dyn_group, fold_dyn_groups =
+  let table = DynGroups.create 5 in
+  (DynGroups.add table,
+   (fun k ~sp ~sd -> 
+      try 
+        DynGroups.find table k ~sp ~sd
+      with Not_found -> Lwt.return false),
+   fun f -> DynGroups.fold f table
+  )
+
+
+
+let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
   Lwt.catch 
     (fun () -> get_user_by_name ~name >>= fun u -> Lwt.fail (UserExists u))
     (function 
@@ -229,14 +287,19 @@ let create_user ~name ~pwd ~fullname ~email ~groups =
              then groups
              else authenticated_users.id::groups
            in
-           User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups
+           let dyn = not (test = None) in
+           User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups ~dyn
            >>= fun i ->
+           (match test with
+             | None -> ()
+             | Some f -> add_dyn_group i f);
            Lwt.return 
              { id = i;
                name = name; 
                pwd = pwd; 
                fullname = fullname; 
                email = email;
+               dyn = dyn;
              }
        | e -> Lwt.fail e)
 
@@ -292,7 +355,7 @@ let create_unique_user =
         (function
            | NoSuchUser _ -> 
                (create_user
-                  ~name:n ~pwd ~fullname ~email ~groups >>= fun x -> 
+                  ~name:n ~pwd ~fullname ~email ~groups () >>= fun x -> 
                   Lwt.return (x, n))
            | e -> Lwt.fail e)
     in
@@ -326,7 +389,10 @@ let authenticate ~name ~pwd =
   then Lwt.return u
   else Lwt.fail BadPassword
 
-let in_group ~user ~group =
+
+
+
+let in_group_ ?sp ?sd ~user ~group () =
   let rec aux2 g = function
     | [] -> Lwt.return false
     | g2::l -> 
@@ -339,28 +405,65 @@ let in_group ~user ~group =
     then Lwt.return true
     else aux2 g gl
   in
-  if (user = group) || (user = admin.id)
-  then Lwt.return true
-  else aux user group
+  if (user = nobody.id) || (group = nobody.id)
+  then Lwt.return false
+  else
+    if (user = group) || (user = admin.id)
+    then Lwt.return true
+    else aux user group >>= function
+      | true -> Lwt.return true
+      | false -> 
+          match sp, sd with
+            | Some sp, Some sd ->
+                (in_dyn_group group ~sp ~sd >>= function
+                  | true -> Lwt.return true
+                  | false ->
+                      fold_dyn_groups
+                        (fun k f b -> 
+                           b >>= fun b -> 
+                           if b 
+                           then Lwt.return true
+                           else if k <> group
+                           then (f ~sp ~sd >>= function
+                                   | false -> Lwt.return false
+(*                                 | true when k = group -> Lwt.return true *)
+                                   | true -> aux k group
+                                )
+                           else Lwt.return false
+                        )
+                        (Lwt.return false)
+                )
+            | _ -> Lwt.return false
+
+
+
 
 
 let add_to_group ~user ~group =
-  in_group user group >>= fun b ->
-  if not b
-  then
-    in_group group user >>= fun b ->
-    if b
-    then begin
-      Ocsigen_messages.warning
-        ("Circular group when inserting user "^
-           Int32.to_string user^
-           " in group "^
-           Int32.to_string group^
-           " (ignoring).");
-      Lwt.return ()
-    end
-    else User_cache.add_to_group user group
-  else Lwt.return ()
+  User_cache.find_user ~id:group () >>= fun ((i, n, p, d, e, dy), pm) ->
+  if dy
+  then begin
+    Ocsigen_messages.warning
+      ("Not possible to insert user "^Int32.to_string user^
+         " in group "^Int32.to_string group^
+         ". This group is dynamic (risk of loops). (ignoring)");
+    Lwt.return ()
+  end
+  else
+    in_group_ user group () >>= fun b ->
+    if not b
+    then
+      in_group_ group user () >>= fun b ->
+      if b
+      then begin
+        Ocsigen_messages.warning
+          ("Circular group when inserting user "^Int32.to_string user^
+             " in group "^Int32.to_string group^
+             ". (ignoring)");
+        Lwt.return ()
+      end
+      else User_cache.add_to_group user group
+    else Lwt.return ()
 
 let delete_user ~userid =
   User_cache.delete_user userid
@@ -424,3 +527,13 @@ let set_session_data ~sp ~sd user =
     Eliom_sessions.set_persistent_session_data user_table sp None
   else
     Eliom_sessions.set_persistent_session_data user_table sp (Some user.id)
+
+
+let in_group ~sp ~sd ?user ~group () =
+  (match user with
+    | None -> get_user_id ~sp ~sd
+    | Some user -> Lwt.return user)
+  >>= fun user ->
+  in_group_ ~sp ~sd ?user ~group ()
+
+

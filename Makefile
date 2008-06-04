@@ -11,7 +11,7 @@ OCSIMORE_SRC3 = forum.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
 	wiki_cache.ml wiki.ml wiki_widgets.ml \
         user_widgets.ml forum_widgets.ml
-
+OCSIMORE_OTHER_SRC = ocsiwiki.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
@@ -31,6 +31,7 @@ OCSIMORE_MLI = $(OCSIMORE_SRC:.ml=.mli)
 #services.mli 
 OCSIMORE_CMO = $(OCSIMORE_SRC:.ml=.cmo)
 OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
+OCSIMORE_OTHER_CMO = $(OCSIMORE_OTHER_SRC:.ml=.cmo)
 
 #HOST = localhost
 DATABASE = ocsimore
@@ -61,7 +62,7 @@ LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
 .PHONY: all depend clean
 
-all: sql ocsimore.cma ocsiwiki.cmo
+all: sql ocsimore.cma $(OCSIMORE_OTHER_CMO)
 
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
@@ -127,7 +128,7 @@ wikicreole.ml: wikicreole.cmi
 	$(MENHIR) $<
 
 depend:
-	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_MLI) > .depend
+	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_OTHER_SRC) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
 	ocamlfind ocamldep wikicreole.mll wikicreole.mli $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend

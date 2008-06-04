@@ -52,22 +52,22 @@ let populate_groups db id groups =
           )
           groups
 
-let new_user ~name ~password ~fullname ~email ~groups =
+let new_user ~name ~password ~fullname ~email ~groups ~dyn =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   (match password, email with
      | None, None -> 
-         PGSQL(db) "INSERT INTO users (login, fullname)\
-                    VALUES ($name, $fullname)"
+         PGSQL(db) "INSERT INTO users (login, fullname, dyn)\
+                    VALUES ($name, $fullname, $dyn)"
      | Some pwd, None -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname) \
-                    VALUES ($name, $pwd, $fullname)"
+         PGSQL(db) "INSERT INTO users (login, password, fullname, dyn) \
+                    VALUES ($name, $pwd, $fullname, $dyn)"
      | None, Some email -> 
-         PGSQL(db) "INSERT INTO users (login, fullname, email) \
-                    VALUES ($name, $fullname, $email)"
+         PGSQL(db) "INSERT INTO users (login, fullname, email, dyn) \
+                    VALUES ($name, $fullname, $email, $dyn)"
      | Some pwd, Some email -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname, email) \
-                    VALUES ($name, $pwd, $fullname, $email)"
+         PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn) \
+                    VALUES ($name, $pwd, $fullname, $email, $dyn)"
   ) >>= fun () -> 
   serial4 db "users_id_seq" >>= fun id ->
   populate_groups db id groups >>= fun () ->
@@ -82,13 +82,13 @@ let find_user_ ?db ?id ?name () =
        (match (name, id) with
           | (Some n, Some i) -> 
               PGSQL(db)
-                "SELECT id, login, password, fullname, email FROM users \
+                "SELECT id, login, password, fullname, email, dyn FROM users \
                  WHERE id = $i AND login = $n"
           | (None, Some i) -> 
-              PGSQL(db) "SELECT id, login, password, fullname, email \
+              PGSQL(db) "SELECT id, login, password, fullname, email, dyn \
                          FROM users WHERE id = $i"
           | (Some n, None) -> 
-              PGSQL(db) "SELECT id, login, password, fullname, email \
+              PGSQL(db) "SELECT id, login, password, fullname, email, dyn \
                          FROM users WHERE login = $n"
           | (None, None) -> 
               Lwt.fail (Failure
@@ -100,7 +100,7 @@ let find_user_ ?db ?id ?name () =
             Ocsigen_messages.warning
               "Ocsimore: Two users have the same name or id"; 
             Lwt.return u
-        | _ -> Lwt.fail Not_found) >>= fun ((id, _, _, _, _) as u) ->
+        | _ -> Lwt.fail Not_found) >>= fun ((id, _, _, _, _, _) as u) ->
      PGSQL(db) "SELECT groupid FROM userrights WHERE id = $id" >>= fun perm ->
      Lwt.return (u, perm)
     )
@@ -126,7 +126,7 @@ let delete_user_ ~userid =
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
-let update_data_ ~userid ~name ~password ~fullname ~email ?groups () =
+let update_data_ ~userid ~name ~password ~fullname ~email ?groups ?dyn () =
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   (match password, email with
@@ -141,6 +141,11 @@ let update_data_ ~userid ~name ~password ~fullname ~email ?groups () =
          PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $userid"
   ) 
     >>= fun () ->
+  (match dyn with
+     | Some dyn -> 
+         PGSQL(db) "UPDATE users SET dyn = $dyn WHERE id = $userid"
+     | None -> Lwt.return ())
+  >>= fun () ->
   (match groups with
     | Some groups ->
         PGSQL(db) "DELETE FROM userrights WHERE id=$userid" >>= fun () ->

@@ -221,7 +221,10 @@ val get_wikiboxes_creators :
   (Wiki_sql.wiki * int32) ->
   User_sql.userid list option Lwt.t
 
-val can_create_wikibox : wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
+val can_create_wikibox : 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
 
 (** *)
 type wiki_errors =

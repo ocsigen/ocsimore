@@ -45,7 +45,8 @@ module IUserCache = Cache.Make (struct
                                           string * 
                                           string option * 
                                           string * 
-                                          string option) *
+                                          string option *
+                                          bool) *
                               User_sql.userid list 
                         end) 
 
@@ -55,7 +56,8 @@ module NUserCache = Cache.Make (struct
                                           string * 
                                           string option * 
                                           string * 
-                                          string option) *
+                                          string option *
+                                          bool) *
                               User_sql.userid list 
                         end) 
 
@@ -76,7 +78,7 @@ let find_user =
              Lwt.return (IUserCache.find_in_cache iusercache i)
            with Not_found ->
 print_endline "            cache: db access (iu)";
-             User_sql.find_user_ ~id:i () >>= fun (((_, n, _, _, _), _) as r) ->
+             User_sql.find_user_ ~id:i () >>= fun (((_, n, _, _, _, _), _) as r) ->
              IUserCache.add iusercache i r;
              NUserCache.add nusercache n r;
              Lwt.return r)
@@ -87,7 +89,7 @@ print_endline "            cache: db access (iu)";
              Lwt.return (NUserCache.find_in_cache nusercache n)
            with Not_found ->
              print_endline "           cache: db access (nu)";
-             User_sql.find_user_ ~name:n () >>= fun (((i, _, _, _, _), _) as r) ->
+             User_sql.find_user_ ~name:n () >>= fun (((i, _, _, _, _, _), _) as r) ->
              IUserCache.add iusercache i r;
              NUserCache.add nusercache n r;
              Lwt.return r)
@@ -96,28 +98,28 @@ print_endline "            cache: db access (iu)";
 
 
 let add_to_group ~userid ~groupid =
-  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _), _) ->
+  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
   IUserCache.remove iusercache userid;
   NUserCache.remove nusercache n;
   GroupCache.remove group_cache userid;
   User_sql.add_to_group_ ~userid ~groupid
 
 let remove_from_group ~userid ~groupid =
-  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _), _) ->
+  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
   IUserCache.remove iusercache userid;
   NUserCache.remove nusercache n;
   GroupCache.remove group_cache userid;
   User_sql.remove_from_group_ ~userid ~groupid
 
 let delete_user ~userid =
-  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _), _) ->
+  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
   IUserCache.remove iusercache userid;
   NUserCache.remove nusercache n;
   GroupCache.remove group_cache userid;
   User_sql.delete_user_ ~userid
 
 let update_data ~userid ~name ~password ~fullname ~email ?groups () =
-  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _), _) ->
+  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
   IUserCache.remove iusercache userid;
   NUserCache.remove nusercache n;
   GroupCache.remove group_cache userid;
