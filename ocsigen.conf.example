@@ -1,7 +1,21 @@
-<!--
-Edit the lines below and place them into the "server" section 
-of your ocsigen.conf file.
--->
+<!-- Example of ocsigen.conf. Adapt it to your configuration -->
+
+<ocsigen>
+
+  <server>
+
+    <port>8080</port>              <!-- The port for the server -->
+    <logdir>/home/balat/ocsimore/var/log</logdir>
+    <datadir>/home/balat/ocsimore/var/lib</datadir>
+    <user>balat</user>
+    <group>permanents-2g</group>
+    <charset>utf-8</charset>
+    <commandpipe>/tmp/cpipe</commandpipe>
+
+    <debugmode/>
+
+    <findlib path="/usr/local/lib/ocsigen/METAS"/>
+
     <extension findlib-package="ocsigen_ext.staticmod"/>
     <extension findlib-package="ocsigen_ext.ocsipersist-sqlite">
       <!-- If you want to specify the SQLITE database file yourself:
@@ -11,6 +25,7 @@ of your ocsigen.conf file.
 
     <extension findlib-package="ocsigen_ext.eliom"/>
     <extension findlib-package="ocsigen_ext.eliom_duce"/>
+    <extension findlib-package="ocsigen_ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
     <extension module="/path-to/ocsimore.cma"/>
 
@@ -35,10 +50,12 @@ of your ocsigen.conf file.
         <admins>admin</admins>
         <boxrights/>
       </eliom>
-    </host>
+
     <!-- It is possible to define several wikis with several
     <eliom module="...ocsiwiki"> 
     -->
+
+    </host>
 
 <!-- It is possible to define new groups from the config file:
 
@@ -54,3 +71,9 @@ of your ocsigen.conf file.
     </extension>
 
 -->
+
+
+
+  </server>
+
+</ocsigen>
