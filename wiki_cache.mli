@@ -60,7 +60,7 @@ val set_css_for_wiki : wiki:int32 -> string -> unit Lwt.t
 
 (** *)
 val find_wiki : Wiki_sql.wiki -> 
-  (Wiki_sql.wiki * string * string * bool) Lwt.t
+  (Wiki_sql.wiki * string * string * bool * int32 ref) Lwt.t
 
 val populate_readers : 
   int32 -> int32 -> int32 list -> unit Lwt.t

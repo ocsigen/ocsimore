@@ -38,6 +38,7 @@ val new_wiki :
     wikibox. *)
 val new_wikibox :
   wiki:wiki ->
+  ?box:int32 ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->
@@ -95,12 +96,11 @@ val get_css_for_wiki_ : wiki:int32 -> string option Lwt.t
 (** Sets the global css for a wiki *)
 val set_css_for_wiki_ : wiki:int32 -> string -> unit Lwt.t
 
-(** Find wiki information for a wiki, given its id or title *)
-val find_wiki_ : 
-  ?id:wiki -> 
-  ?title:string -> 
-  unit -> 
-  (wiki * string * string * bool) Lwt.t
+(** Find wiki information for a wiki, given its id *)
+val find_wiki_ : id:wiki -> (wiki * string * string * bool * int32 ref) Lwt.t
+
+(** Find wiki information for a wiki, given its name *)
+val find_wiki_id_by_name : name:string -> wiki Lwt.t
 
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)

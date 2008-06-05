@@ -10,8 +10,10 @@ OCSIMORE_SRC2 = user_cache.ml users.ml
 OCSIMORE_SRC3 = forum.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
 	wiki_cache.ml wiki.ml wiki_widgets.ml \
-        user_widgets.ml forum_widgets.ml
-OCSIMORE_OTHER_SRC = ocsiwiki.ml
+        user_widgets.ml forum_widgets.ml \
+        dyngroups.ml
+
+OCSIMORE_OTHER_SRC = ocsisite.ml ocsiwiki.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml

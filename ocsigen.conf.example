@@ -35,3 +35,19 @@ of your ocsigen.conf file.
         <boxrights/>
       </eliom>
     </host>
+
+
+<!-- It is possible to define new groups from the config file:
+
+    <extension module="/home/balat/kroko/ocsimore/ocsimore.cma">
+      <group name="intranet">
+        <!-- Use one condition with accesscontrol's syntax: -->
+        <or>
+          <ip value="134.157.168.0/25" />
+          <ip value="192.168.0.0/24" />
+          <ip value="2001:660:3301:8061::/64" />
+        </or>
+      </group>
+    </extension>
+
+-->

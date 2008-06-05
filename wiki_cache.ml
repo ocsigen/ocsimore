@@ -117,7 +117,7 @@ let find_wiki id =
   try
     print_endline "cache wiki ";
     Lwt.return (H.find wiki_info_table id)
-  with Not_found -> Wiki_sql.find_wiki_ ~id ()
+  with Not_found -> Wiki_sql.find_wiki_ ~id
 
 (***)
 let get_css_for_page, set_css_for_page =

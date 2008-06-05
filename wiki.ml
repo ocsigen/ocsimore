@@ -39,24 +39,22 @@ type wiki_info = {
   title : string;
   descr : string;
   boxrights : bool;
+  last: int32 ref
 }
 
 let get_wiki_by_id id =
-  Wiki_cache.find_wiki id
-  >>= fun (id, title, descr, br) -> 
-  Lwt.return { id = id; 
-               title = title; 
-               descr = descr;
-               boxrights = br
-             }
-
-let get_wiki_by_name title =
-  Wiki_sql.find_wiki_ ~title () >>= fun (id, title, descr, br) -> 
+  Wiki_cache.find_wiki id >>= fun (id, title, descr, br, last) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                boxrights = br;
+               last = last
              }
+
+let get_wiki_by_name name =
+  Wiki_sql.find_wiki_id_by_name name >>= fun id -> 
+  get_wiki_by_id id
+
 
 let get_sthg_ f ?wiki ((w, i) as k) =
   (match wiki with
@@ -132,28 +130,26 @@ let new_wikibox ~wiki ~author ~comment ~content
            Lwt.return [r]) >>= fun wikiboxes_creators ->
     Lwt.return (Some (readers, writers, rights_adm, wikiboxes_creators)))
   else Lwt.return None) >>= fun rights ->
-    Wiki_sql.new_wikibox
-      ~wiki:wiki.id
-      ~author
-      ~comment
-      ~content
-      ?rights
-      ()
+  wiki.last := Int32.add !(wiki.last) 1l;
+  Wiki_sql.new_wikibox
+    ~wiki:wiki.id
+    ~box:!(wiki.last)
+    ~author
+    ~comment
+    ~content
+    ?rights
+    ()
       
 
 let create_group_ name fullname =
-  Lwt.catch
-    (fun () -> 
-       Users.create_user 
-         ~name
-         ~pwd:None
-         ~fullname
-         ~email:None
-         ~groups:[]
-         ())
-    (function
-       | Users.UserExists u -> Lwt.return u
-       | e -> Lwt.fail e)
+  Users.create_user 
+    ~name
+    ~pwd:None
+    ~fullname
+    ~email:None
+    ~groups:[]
+    ()
+
 
 let add_to_group_ l g =
   List.fold_left
@@ -190,47 +186,40 @@ let create_wiki ~title ~descr
     (function
        | Not_found -> 
            (Wiki_sql.new_wiki ~title ~descr ~boxrights ()
-           >>= fun id -> 
-             let w =
-               { id = id; 
-                 title = title; 
-                 descr = descr;
-                 boxrights = boxrights
-               }
-             in
+           >>= fun wiki_id -> 
            
            (* Creating groups *)
            create_group_
-             (readers_group_name id) 
-             ("Users who can read wiki "^Int32.to_string id)
+             (readers_group_name wiki_id) 
+             ("Users who can read wiki "^Int32.to_string wiki_id)
            >>= fun readers_data ->
            create_group_
-             (writers_group_name id) 
-             ("Users who can write in wiki "^Int32.to_string id)
+             (writers_group_name wiki_id) 
+             ("Users who can write in wiki "^Int32.to_string wiki_id)
            >>= fun writers_data ->
            create_group_
-             (rights_adm_group_name id) 
-             ("Users who can change rights in wiki "^Int32.to_string id)
+             (rights_adm_group_name wiki_id) 
+             ("Users who can change rights in wiki "^Int32.to_string wiki_id)
            >>= fun rights_adm_data ->
            create_group_
-             (page_creators_group_name id) 
-             ("Users who can create pages in wiki "^Int32.to_string id)
+             (page_creators_group_name wiki_id) 
+             ("Users who can create pages in wiki "^Int32.to_string wiki_id)
            >>= fun page_creators_data ->
            create_group_
-             (css_editors_group_name id) 
-             ("Users who can edit css for wikipages of wiki "^Int32.to_string id)
+             (css_editors_group_name wiki_id) 
+             ("Users who can edit css for wikipages of wiki "^Int32.to_string wiki_id)
            >>= fun css_editors_data ->
            create_group_
-             (wikiboxes_creators_group_name id) 
-             ("Users who can create wikiboxes in wiki "^Int32.to_string id)
+             (wikiboxes_creators_group_name wiki_id) 
+             ("Users who can create wikiboxes in wiki "^Int32.to_string wiki_id)
            >>= fun wikiboxes_creators_data ->
            create_group_
-             (container_adm_group_name id)
-             ("Users who can change the layout of pages "^Int32.to_string id)
+             (container_adm_group_name wiki_id)
+             ("Users who can change the layout of pages "^Int32.to_string wiki_id)
            >>= fun container_adm_data ->
            create_group_
-             (admin_group_name id) 
-             ("Wiki administrator "^Int32.to_string id)
+             (admin_group_name wiki_id) 
+             ("Wiki administrator "^Int32.to_string wiki_id)
            >>= fun admin_data ->
 
            (* Putting users in groups *)
@@ -266,9 +255,12 @@ let create_wiki ~title ~descr
            add_to_group_ wikiboxes_creators wikiboxes_creators_data.Users.id
            >>= fun () ->
 
+           get_wiki_by_id wiki_id >>= fun wiki ->
+
            (* Filling the first wikibox with admin container *)
            new_wikibox 
-             ~wiki:w
+             ~wiki
+             (* ~box:wikiadmin_container_id *)
              ~author:Users.admin.Users.id
              ~comment:"Admin container" 
              ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
@@ -278,7 +270,8 @@ let create_wiki ~title ~descr
 
            (* Filling the second wikibox with wikipage container *)
            new_wikibox 
-             ~wiki:w
+             ~wiki
+             (* ~box:wikipage_container_id *)
              ~author:Users.admin.Users.id
              ~comment:"Wikipage" 
              ~content:"= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
@@ -286,7 +279,7 @@ let create_wiki ~title ~descr
              ()
            >>= fun _ ->
 
-           Lwt.return w)
+           Lwt.return wiki)
 
        | e -> Lwt.fail e)
   >>= fun w ->
@@ -417,7 +410,7 @@ let create_wiki ~title ~descr
 
 
   );
-  Lwt.return w
+  Lwt.return ()
 
 
 
@@ -619,3 +612,4 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
     | _ -> Lwt.return ()) >>= fun () ->
 (*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)
   Lwt.return []
+

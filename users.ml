@@ -37,7 +37,6 @@ type userdata =
       dyn: bool;
     }
       
-exception UserExists of userdata
 exception NotAllowed
 exception BadPassword
 exception NoSuchUser of (string, int32) Ocsigen_lib.leftright
@@ -279,7 +278,12 @@ let add_dyn_group, in_dyn_group, fold_dyn_groups =
 
 let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
   Lwt.catch 
-    (fun () -> get_user_by_name ~name >>= fun u -> Lwt.fail (UserExists u))
+    (fun () -> 
+       get_user_by_name ~name >>= fun u -> 
+       (match test with
+          | None -> ()
+          | Some f -> add_dyn_group u.id f);
+       Lwt.return u)
     (function 
        | NoSuchUser _ ->
            let groups =
@@ -434,7 +438,6 @@ let in_group_ ?sp ?sd ~user ~group () =
                         (Lwt.return false)
                 )
             | _ -> Lwt.return false
-
 
 
 

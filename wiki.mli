@@ -16,6 +16,7 @@ type wiki_info = {
   title : string;
   descr : string;
   boxrights : bool;
+  last: int32 ref
 }
 
 
@@ -57,7 +58,7 @@ val create_wiki :
   ?boxrights:bool ->
   wikibox: Wiki_widgets.editable_wikibox ->
   unit -> 
-  wiki_info Lwt.t
+  unit Lwt.t
 
 
 

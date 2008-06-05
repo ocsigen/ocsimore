@@ -4,7 +4,6 @@
  - ocamlduce
  - ocsigen and eliom with compiled ocamlduce support
  - pgocaml with lwt support
- - menhir
 
 2. Run 
 
@@ -30,7 +29,7 @@ sudo -u ocsigen psql -f wiki_createdb.sql ocsimore
 If something goes wrong, you can delete the database by typing:
 sudo su postgres -c "dropdb ocsimore"
 
-4. Install pgocaml
+4. Install pgocaml with lwt support (lwt branch of cvs)
 http://merjis.com/developers/pgocaml
 
 5. Compile ocsimore

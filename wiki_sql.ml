@@ -219,13 +219,23 @@ let remove_wikiboxes_creators_ db wiki_id id ra =
           ra
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox ~wiki ~author ~comment ~content ?rights () = 
-  Lwt_pool.use Sql.pool (fun db ->
+let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () = 
+  Lwt_pool.use Sql.pool 
+    (fun db ->
        begin_work db >>= fun () ->
-       PGSQL(db) "INSERT INTO wikiboxes \
+       (match box with
+          | None ->
+              PGSQL(db) "INSERT INTO wikiboxes \
                     (wiki_id, author, comment, content) \
-                  VALUES ($wiki, $author, $comment, $content)" >>= fun () ->
-       serial4 db "wikiboxes_id_seq" >>= fun wbx_id ->
+                  VALUES ($wiki, $author, $comment, $content)"
+              >>= fun () ->
+              serial4 db "wikiboxes_id_seq"
+          | Some box ->
+              PGSQL(db) "INSERT INTO wikiboxes \
+                    (id, wiki_id, author, comment, content) \
+                  VALUES ($box, $wiki, $author, $comment, $content)"
+              >>= fun () ->
+              Lwt.return box) >>= fun wbx_id ->
        (match rights with
          | None -> Lwt.return ()
          | Some (r, w, ra, wc) -> 
@@ -343,32 +353,46 @@ let set_box_for_page_ ~wiki ~id ~page =
     )
 
 
-let find_wiki_ ?id ?title () =
+let find_wiki_ ~id =
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun _ -> 
-       (match (title, id) with
-          | (Some t, Some i) -> 
-              PGSQL(db) "SELECT * \
-                FROM wikis \
-                WHERE title = $t AND id = $i"
-          | (Some t, None) -> 
-              PGSQL(db) "SELECT * \
-                FROM wikis \
-                WHERE title = $t"
-          | (None, Some i) -> 
-              PGSQL(db) "SELECT * \
-                FROM wikis \
-                WHERE id = $i"
-          | (None, None) -> fail (Invalid_argument "Wiki_sql.find_wiki")) 
-         >>= fun r -> 
+       PGSQL(db) "SELECT * \
+                  FROM wikis \
+                  WHERE id = $id"
+       >>= fun r -> 
+       PGSQL(db) "SELECT max(id) \
+                FROM wikiboxes \
+                WHERE wiki_id = $id"
+       >>= fun last -> 
        commit db >>= fun () -> 
+       (match last with
+         | [] | [None] -> Lwt.return 0l
+         | [Some l] -> Lwt.return l
+         | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
+       >>= fun last -> 
        (match r with
           | [(id, title, descr, br)] ->
-              Lwt.return (id, title, descr, br)
+              Lwt.return (id, title, descr, br, ref last)
           | (id, title, descr, br)::_ -> 
               Ocsigen_messages.warning
-                "Ocsimore: More than one wiki have the same name or id (ignored)";
-              Lwt.return (id, title, descr, br)
+                "Ocsimore: More than one wiki have the same id (ignored)";
+              Lwt.return (id, title, descr, br, ref last)
+          | [] -> Lwt.fail Not_found))
+
+let find_wiki_id_by_name ~name =
+  Lwt_pool.use Sql.pool 
+    (fun db ->
+       PGSQL(db) "SELECT * \
+                  FROM wikis \
+                  WHERE title = $name"
+       >>= fun r -> 
+       (match r with
+          | [(id, title, descr, br)] ->
+              Lwt.return id
+          | (id, title, descr, br)::_ -> 
+              Ocsigen_messages.warning
+                "Ocsimore: More than one wiki have the same name (ignored)";
+              Lwt.return id
           | [] -> Lwt.fail Not_found))
 
 
