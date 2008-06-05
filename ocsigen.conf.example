@@ -15,7 +15,8 @@ of your ocsigen.conf file.
     <extension module="/path-to/ocsimore.cma"/>
 
     <host>
-      <static dir="/path_to/ocsimore/static" />    
+      <static dir="/path_to/ocsimore/static" />
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo"/>
       <eliom module="/path_to/ocsiwiki.cmo">
         <name>My wiki</name>
         <path>/</path>
@@ -35,7 +36,9 @@ of your ocsigen.conf file.
         <boxrights/>
       </eliom>
     </host>
-
+    <!-- It is possible to define several wikis with several
+    <eliom module="...ocsiwiki"> 
+    -->
 
 <!-- It is possible to define new groups from the config file:
 
