@@ -1044,8 +1044,6 @@ object (self)
      ~wiki
      (content : string)
      =
-     let content = if content = "" then " " else content in
-(*VVV ^ TO BE REMOVED WITH THE NEW PRETTY PRINTER *)
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
               {: Eliom_duce.Xhtml.int32_input

@@ -104,7 +104,7 @@ let builder wiki_id =
     W.tt_elem = (fun a ->
                    element a >>= fun r ->
                    Lwt.return {{ [<tt>r ] }});
-    W.nbsp = Lwt.return {{ [ '&nbsp;' ] }};
+    W.nbsp = Lwt.return {{ [ ' ' ] }};
     W.p_elem = (fun a -> 
                   element a >>= fun r ->
                   Lwt.return {{ [<p>r] }});
