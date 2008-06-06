@@ -293,7 +293,8 @@ let _ =
                  {{ { class=c } }}
            in
            {{ <li (classe)>text2}}
-         else 
+         else
+           let link = if link = "" then "./" else link in
            let link2 = Ocamlduce.Utf8.make link in
            let classe = match classe with
              | None -> {{ {} }}
