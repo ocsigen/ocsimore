@@ -16,6 +16,7 @@ type wiki_info = {
   title : string;
   descr : string;
   boxrights : bool;
+  pages : bool;
   last: int32 ref
 }
 
@@ -61,6 +62,11 @@ val create_wiki :
   unit Lwt.t
 
 
+val find_naservpage : int32 ->
+  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
+   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
+   unit, [`Registrable ])
+    Eliom_services.service
 
 (** The id of the wikipage container *)
 val wikipage_container_id : int32

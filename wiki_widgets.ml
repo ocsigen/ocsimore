@@ -1250,6 +1250,27 @@ object (self)
 
          );
 
+       Wiki_syntax.add_link_extension "nonattachedlink"
+        (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
+           let href = 
+             try 
+               List.assoc "href" args
+             with Not_found -> ""
+           in
+           let content = match c with
+             | Some c -> c
+             | None -> href
+           in
+           ((Eliom_duce.Xhtml.make_uri
+               ~service:(Wiki.find_naservpage wiki_id)
+               ~sp
+               href
+            ),
+            Lwt.return (Ocamlduce.Utf8.make content))
+        );
+
+
+
        Eliom_duce.Xhtml.register
          service_edit_wikibox
          (fun sp ((w, b) as g) () -> 

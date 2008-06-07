@@ -39,15 +39,17 @@ type wiki_info = {
   title : string;
   descr : string;
   boxrights : bool;
+  pages : bool;
   last: int32 ref
 }
 
 let get_wiki_by_id id =
-  Wiki_cache.find_wiki id >>= fun (id, title, descr, br, last) -> 
+  Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                boxrights = br;
+               pages = pages;
                last = last
              }
 
@@ -165,6 +167,87 @@ let wikipage_container_id = 2l
 
 
 
+let display_page w wikibox action_create_page sp page () =
+  if not w.pages
+  then Lwt.fail Eliom_common.Eliom_404
+  else
+    let sd = Ocsimore_common.get_sd sp in
+    Lwt.catch
+          (fun () ->
+             Wiki_cache.get_box_for_page w.id page >>= fun box ->
+             wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
+(*VVV it does not work if I do not put optional parameters !!?? *)
+               ?rows:None ?cols:None ?classe:None ?subbox:None
+               ?cssmenu:(Some (Some page)) 
+               ~ancestors:Wiki_syntax.no_ancestors
+               () >>= fun subbox -> 
+           Lwt.return {{ [ subbox ] }}
+        )
+        (function
+           | Not_found -> 
+               Users.get_user_id ~sp ~sd >>= fun userid ->
+                 let draw_form name =
+                   {{ [<p>[
+                          {: Eliom_duce.Xhtml.string_input
+                             ~input_type:{: "hidden" :} 
+                             ~name
+                             ~value:page () :}
+                            {: Eliom_duce.Xhtml.string_input
+                               ~input_type:{: "submit" :} 
+                               ~value:"Create it!" () :}
+                        ]] }}
+
+                 in
+                 page_creators_group w.id >>= fun creators ->
+                   Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+                   >>= fun c ->
+                   let form =
+                     if c
+                     then
+                       {{ [ {: Eliom_duce.Xhtml.post_form
+                               ~service:action_create_page
+                               ~sp draw_form () :} ] }}
+                     else {{ [] }}
+                   in
+                   Lwt.return
+                     {{ [ <p>"That page does not exist." !form ] }}
+                   | e -> Lwt.fail e
+        )
+      >>= fun subbox ->
+
+      wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 
+                                              wikipage_container_id)
+        ?rows:None ?cols:None ?classe:None
+        ?subbox:(Some subbox) ?cssmenu:(Some None)
+        ~ancestors:Wiki_syntax.no_ancestors
+        ()
+      >>= fun pagecontent ->
+
+      wikibox#get_css_header ~sp ~wiki:w.id ?page:(Some page) ()
+
+      >>= fun css ->
+      Lwt.return
+        {{
+           <html>[
+             <head>[
+               <title>"Ocsimore administration"
+                 !css
+    (*VVV quel css ? quel layout de page ? *)
+             ]
+             <body>[ pagecontent ]
+           ]
+         }}
+
+module Naservpages = 
+  Hashtbl.Make(struct 
+                 type t = int32 
+                 let equal = (=) 
+                 let hash = Hashtbl.hash 
+               end)
+
+let naservpages = Naservpages.create 5
+
+let find_naservpage = Naservpages.find naservpages
 
 
 let create_wiki ~title ~descr
@@ -185,7 +268,7 @@ let create_wiki ~title ~descr
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found -> 
-           (Wiki_sql.new_wiki ~title ~descr ~boxrights ()
+           (Wiki_sql.new_wiki ~title ~descr ~pages:(not (path = None)) ~boxrights ()
            >>= fun wiki_id -> 
            
            (* Creating groups *)
@@ -337,76 +420,16 @@ let create_wiki ~title ~descr
               ?sp
               ~get_params:(Eliom_parameters.suffix 
                              (Eliom_parameters.all_suffix_string "page"))
-              (fun sp page () -> 
-                 let sd = Ocsimore_common.get_sd sp in
-                 Lwt.catch
-                   (fun () ->
-                      Wiki_cache.get_box_for_page w.id page >>= fun box ->
-                      wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
-(*VVV it does not work if I do not put optional parameters !!?? *)
-                        ?rows:None ?cols:None ?classe:None ?subbox:None
-                        ?cssmenu:(Some (Some page)) 
-                        ~ancestors:Wiki_syntax.no_ancestors
-                        () >>= fun subbox -> 
-                      Lwt.return {{ [ subbox ] }}
-                   )
-                   (function
-                      | Not_found -> 
-                          Users.get_user_id ~sp ~sd >>= fun userid ->
-                          let draw_form name =
-                            {{ [<p>[
-                                   {: Eliom_duce.Xhtml.string_input
-                                      ~input_type:{: "hidden" :} 
-                                      ~name
-                                      ~value:page () :}
-                                     {: Eliom_duce.Xhtml.string_input
-                                        ~input_type:{: "submit" :} 
-                                        ~value:"Create it!" () :}
-                                 ]] }}
-
-                          in
-                          page_creators_group w.id >>= fun creators ->
-                          Users.in_group ~sp ~sd ~user:userid ~group:creators ()
-                          >>= fun c ->
-                          let form =
-                            if c
-                            then
-                              {{ [ {: Eliom_duce.Xhtml.post_form
-                                      ~service:action_create_page
-                                      ~sp draw_form () :} ] }}
-                            else {{ [] }}
-                          in
-                          Lwt.return
-                            {{ [ <p>"That page does not exist." !form ] }}
-                      | e -> Lwt.fail e
-                   )
-               >>= fun subbox ->
-                 
-               wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 
-                                                       wikipage_container_id)
-                 ?rows:None ?cols:None ?classe:None
-                 ?subbox:(Some subbox) ?cssmenu:(Some None)
-                 ~ancestors:Wiki_syntax.no_ancestors
-                 ()
-               >>= fun pagecontent ->
-
-               wikibox#get_css_header ~sp ~wiki:w.id ?page:(Some page) ()
-
-               >>= fun css ->
-               Lwt.return
-                 {{
-                    <html>[
-                      <head>[
-                        <title>"Ocsimore administration"
-                          !css
-(*VVV quel css ? quel layout de page ? *)
-                      ]
-                                <body>[ pagecontent ]
-                    ]
-                  }}
-              )
+              (display_page w wikibox action_create_page)
            );
-
+         (* the same, but non attached: *)
+         let naservpage =
+           Eliom_duce.Xhtml.register_new_service'
+             ~name:("display"^Int32.to_string w.id)
+             ?sp
+             ~get_params:(Eliom_parameters.string "page")
+             (display_page w wikibox action_create_page)
+         in Naservpages.add naservpages w.id naservpage;
 
 
   );

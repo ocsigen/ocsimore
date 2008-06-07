@@ -31,11 +31,11 @@ open CalendarLib
 open Sql
 
 (** inserts a new wiki *)
-let new_wiki ~title ~descr ~boxrights () =
+let new_wiki ~title ~descr ~pages ~boxrights () =
   Lwt_pool.use Sql.pool (fun db ->
        begin_work db >>= fun _ ->
-         PGSQL(db) "INSERT INTO wikis (title, descr, boxrights) \
-                    VALUES ($title, $descr, $boxrights)"
+         PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights) \
+                    VALUES ($title, $descr, $pages, $boxrights)"
        >>= fun () ->
        serial4 db "wikis_id_seq" >>= fun wik_id ->
        commit db >>= fun _ ->
@@ -371,12 +371,12 @@ let find_wiki_ ~id =
          | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
        >>= fun last -> 
        (match r with
-          | [(id, title, descr, br)] ->
-              Lwt.return (id, title, descr, br, ref last)
-          | (id, title, descr, br)::_ -> 
+          | [(id, title, descr, pages, br)] ->
+              Lwt.return (id, title, descr, pages, br, ref last)
+          | (id, title, descr, pages, br)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same id (ignored)";
-              Lwt.return (id, title, descr, br, ref last)
+              Lwt.return (id, title, descr, pages, br, ref last)
           | [] -> Lwt.fail Not_found))
 
 let find_wiki_id_by_name ~name =
@@ -387,9 +387,9 @@ let find_wiki_id_by_name ~name =
                   WHERE title = $name"
        >>= fun r -> 
        (match r with
-          | [(id, title, descr, br)] ->
+          | [(id, title, descr, pages, br)] ->
               Lwt.return id
-          | (id, title, descr, br)::_ -> 
+          | (id, title, descr, pages, br)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same name (ignored)";
               Lwt.return id

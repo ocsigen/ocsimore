@@ -71,6 +71,11 @@ Wiki:
  remove these config options and rely on defaults and a admin page
  to change rights (but for now that page does not exist, 
  so I leave this as this).
+ - There is an experimental non-attached service that displays wikipages
+ as if it were the usual (suffix) service. But editing wikiboxes does not
+ work inside this page!!!!!!!!!!!
+ To fix this, we probably need a new feature in Eliom:
+ "non-attached parameters"???
 
 Users:
  - encryption of password for the db
@@ -107,6 +112,9 @@ Wiki extensions:
  - add_a_content_extension a_link_extension add_block_extension ...
  complex and not completely satisfactory. For example a_link_extension returns
  (string * XML Lwt.t) instead of (string * XML) Lwt.t
+ - I don't know how to put wikisyntax inside inline extensions!
+ (as xml_of_wiki returns block!)
+ => not possible to use wikisyntax in <<logoutlink>> or <<nonattachedlink>>
 
 Forum:
  - clean everything

@@ -30,6 +30,10 @@ displays a menu
 <<loginbox>>
 displays a login box
 
+<<logoutlink>>
+<<logoutbutton>>
+display a logout link or button
+
 <<raw arg1='value1' arg2='value2' | data >>
 displays the string  "<<arg1='value1' arg2='value2' | data >>"
 (for debugging purpose).
@@ -40,6 +44,10 @@ Conditional display w.r.t. groups: (EXPERIMENTAL)
 
 <<username>> displays the name of the user.
 
+<<nonattachedlink href='...'|...>> is like [[...|...]] for internal links,
+but instead of using a link towards another page, it uses a non-attached
+service (i.e. the path in the URL won't change, only parameters).
+Use this if you do not want to go to another URL.
 
 
 
