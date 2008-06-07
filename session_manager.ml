@@ -35,8 +35,13 @@ let valid_emailaddr email =
 
 class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
   let internal_act_login = 
-    new_post_coservice' ~post_params:(string "usr" ** string "pwd") () 
-  and internal_act_logout = new_post_coservice' ~post_params:unit ()
+    new_post_coservice' 
+      ~keep_get_na_params:false
+      ~post_params:(string "usr" ** string "pwd") () 
+  and internal_act_logout = 
+    new_post_coservice' 
+      ~keep_get_na_params:false
+      ~post_params:unit ()
   and internal_act_logout_get = new_coservice' ~get_params:unit ()
 (*VVV I add this GET service because it is not possible to make a link 
   towards a POST service ... I use a redirection instead of an action *)
