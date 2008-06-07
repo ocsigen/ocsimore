@@ -1179,6 +1179,7 @@ object (self)
                      | None -> Lwt.return None
                      | Some c -> 
                          Wiki_syntax.xml_of_wiki
+                           ?subbox
                            ~sp ~sd ~ancestors wiki_id c >>= fun r ->
                          Lwt.return (Some r)) >>= fun subbox ->
                   self#editable_wikibox 
