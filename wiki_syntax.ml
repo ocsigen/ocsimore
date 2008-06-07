@@ -327,4 +327,26 @@ let _ =
     );
 
 
+  add_block_extension "cond"
+    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+       let content = match c with
+         | Some c -> c
+         | None -> ""
+       in
+       (match args with
+         | [("ingroup", g)] -> 
+             Users.get_user_id_by_name g >>= fun group ->
+             Users.in_group ~sp ~sd ~group ()
+         | [("notingroup", g)] ->
+             Users.get_user_id_by_name g >>= fun group ->
+             Users.in_group ~sp ~sd ~group ()
+             >>= fun b ->
+             Lwt.return (not b)
+         | _ -> Lwt.return false)
+(*VVV syntax??? How to do a OR or AND?? a THEN? *)
+       >>= function
+         | true -> xml_of_wiki ?subbox ~ancestors ~sp ~sd w content
+         | false -> Lwt.return {{ [] }}
+    );
+
 

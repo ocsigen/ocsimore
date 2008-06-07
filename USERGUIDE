@@ -34,6 +34,13 @@ displays a login box
 displays the string  "<<arg1='value1' arg2='value2' | data >>"
 (for debugging purpose).
 
+Conditional display w.r.t. groups: (EXPERIMENTAL)
+<<cond ingroup='users'|data>>
+<<cond notingroup='users'|data>>
+
+
+
+
 
 Predefined services:
 
