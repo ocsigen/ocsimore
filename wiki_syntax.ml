@@ -349,4 +349,21 @@ let _ =
          | false -> Lwt.return {{ [] }}
     );
 
+  Wiki_filter.add_preparser_extension "cond"
+(*VVV may be done automatically for all extensions with wiki content 
+  (with an optional parameter of add_block_extension/add_inline_extension?) *)
+    (fun w param args -> function
+       | None -> Lwt.return None
+       | Some c ->
+           Wiki_filter.preparse_extension param w c >>= fun c ->
+           Lwt.return (Some (string_of_extension "cond" args (Some c)))
+    )
+  ;
+
+  add_inline_extension "username"
+    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+       Users.get_user_data ~sp ~sd >>= fun ud ->
+       Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
+    );
+
 
