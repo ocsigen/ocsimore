@@ -98,7 +98,64 @@ object (self)
                    ]
                  }}
            )
+        );
+
+
+      Wiki_syntax.add_a_content_extension "username"
+        (fun w (sp, sd, (subbox, ancestors)) args c -> 
+           Users.get_user_data ~sp ~sd >>= fun ud ->
+             Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
+        );
+      
+      Wiki_syntax.add_block_extension "logoutbutton"
+        (fun w (sp, sd, (subbox, ancestors)) args c -> 
+           let content = match c with
+             | Some c -> c
+             | None -> "logout"
+           in
+           Wiki_syntax.xml_of_wiki
+             ?subbox ~ancestors ~sp ~sd w content >>= fun c ->
+           Lwt.return
+             {{ [ {:
+                     Eliom_duce.Xhtml.post_form
+                     ~a:{{ { class="logoutbutton"} }} 
+                     ~service:sessman#act_logout ~sp
+                     (fun () -> 
+                        {{ [<p>[ 
+                               {: Eliom_duce.Xhtml.button
+                                  ~button_type:{:"submit":}
+                                  {: [ <div class="ocsimore_button">c ] :}
+(*VVV How to avoid the <div> here??? *)
+                                    :}] ] }}) ()
+                     :} ] }}
+                );
+
+      Wiki_filter.add_preparser_extension "logoutbutton"
+(*VVV may be done automatically for all extensions with wiki content 
+  (with an optional parameter of add_*_extension?) *)
+        (fun w param args -> function
+           | None -> Lwt.return None
+           | Some c ->
+               Wiki_filter.preparse_extension param w c >>= fun c ->
+                 Lwt.return (Some (Wiki_syntax.string_of_extension
+                                     "logoutbutton" args (Some c)))
         )
+      ;
+
+      Wiki_syntax.add_link_extension "logoutlink"
+        (fun w (sp, sd, (subbox, ancestors)) args c -> 
+           let content = match c with
+             | Some c -> c
+             | None -> "logout"
+           in
+           ((Eliom_duce.Xhtml.make_uri
+               ~service:sessman#act_logout_get ~sp
+               ()
+            ),
+            Lwt.return (Ocamlduce.Utf8.make content))
+        );
+
+
 
 
 end

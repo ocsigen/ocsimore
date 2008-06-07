@@ -80,7 +80,8 @@ let builder plugin_action =
     W.table_elem = nothing;
     W.inline = nothing;
     W.block_plugin = (fun _ _ _ _ -> ());
-    W.inline_plugin = (fun _ _ _ _ -> ());
+    W.a_content_plugin = (fun _ _ _ _ -> ());
+    W.link_plugin = (fun _ _ _ _ -> ("", ()));
     W.plugin_action = plugin_action;
     W.error = nothing;
   }

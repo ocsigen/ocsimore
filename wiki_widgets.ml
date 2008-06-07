@@ -360,7 +360,7 @@ object (self)
      let edit_perm = Eliom_services.preapply 
        action_edit_wikibox_permissions ids 
      in
-     let view = Eliom_services.cancel_action in
+     let view = Eliom_services.void_action in
      let edit_css =
        match cssmenu with
          | Some (Some page) -> 

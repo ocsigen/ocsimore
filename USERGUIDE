@@ -38,6 +38,9 @@ Conditional display w.r.t. groups: (EXPERIMENTAL)
 <<cond ingroup='users'|data>>
 <<cond notingroup='users'|data>>
 
+<<username>> displays the name of the user.
+
+
 
 
 

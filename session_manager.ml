@@ -37,6 +37,9 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
   let internal_act_login = 
     new_post_coservice' ~post_params:(string "usr" ** string "pwd") () 
   and internal_act_logout = new_post_coservice' ~post_params:unit ()
+  and internal_act_logout_get = new_coservice' ~get_params:unit ()
+(*VVV I add this GET service because it is not possible to make a link 
+  towards a POST service ... I use a redirection instead of an action *)
   and internal_srv_register = 
     new_service
       ~path:(sessionmanagerinfo.url @ ["register"]) 
@@ -112,6 +115,16 @@ object (self)
      unit, 
      [`Registrable]) service
     = internal_act_logout
+
+  method act_logout_get :
+    (unit, 
+     unit, 
+     [`Nonattached of [`Get] Eliom_services.na_s],
+     [`WithoutSuffix], 
+     unit, 
+     unit, 
+     [`Registrable]) service
+    = internal_act_logout_get
 
 
   method container
@@ -377,6 +390,12 @@ object (self)
   let _ =
     Actions.register internal_act_login self#mk_act_login;
     Actions.register internal_act_logout self#mk_act_logout;
+    Redirections.register internal_act_logout_get
+      (fun sp () () ->
+         ignore (self#mk_act_logout sp () ());
+         Eliom_predefmod.Xhtml.make_full_string_uri
+           Eliom_services.void_action sp ()
+      );
     Eliom_duce.Xhtml.register internal_srv_register (self#page_register "");
     Eliom_duce.Xhtml.register srv_register_done self#page_register_done;
     Eliom_duce.Xhtml.register internal_srv_reminder (self#page_reminder "");

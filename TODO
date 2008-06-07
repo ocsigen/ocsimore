@@ -103,6 +103,11 @@ Wikisyntax:
  - AST interpreter must be configurable (for ex if we want to forbid images in
  forum messages, or some kind of boxes (wikibox in forum message...))
 
+Wiki extensions:
+ - add_a_content_extension a_link_extension add_block_extension ...
+ complex and not completely satisfactory. For example a_link_extension returns
+ (string * XML Lwt.t) instead of (string * XML) Lwt.t
+
 Forum:
  - clean everything
  - type role is in forum_sql.ml whereas in wiki.ml

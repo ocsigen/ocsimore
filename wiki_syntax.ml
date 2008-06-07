@@ -32,7 +32,8 @@ module H = Hashtbl.Make(struct
                         end)
 
 let block_extension_table = H.create 8
-let inline_extension_table = H.create 8
+let a_content_extension_table = H.create 8
+let link_extension_table = H.create 8
 
 (** Type used to avoid wikibox loops *)
 type ancestors = (int32 * int32) list
@@ -46,7 +47,9 @@ let add_ancestor x a = x::a
 
 let add_block_extension k f = H.add block_extension_table k f
 
-let add_inline_extension k f = H.add inline_extension_table k f
+let add_a_content_extension k f = H.add a_content_extension_table k f
+
+let add_link_extension k f = H.add link_extension_table k f
 
 let make_string s = Lwt.return (Ocamlduce.Utf8.make s)
 
@@ -158,10 +161,12 @@ let builder wiki_id =
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
     W.block_plugin = 
       (fun name -> H.find block_extension_table name wiki_id);
-    W.inline_plugin =
+    W.link_plugin =
+      (fun name -> H.find link_extension_table name wiki_id);
+    W.a_content_plugin =
       (fun name param args content -> 
          let f = 
-           try H.find inline_extension_table name
+           try H.find a_content_extension_table name
            with Not_found -> 
              (fun _ _ _ _ ->
                 Lwt.return
@@ -215,7 +220,7 @@ let _ =
 
   Wiki_filter.add_preparser_extension "div"
 (*VVV may be done automatically for all extensions with wiki content
-  (with an optional parameter of add_block_extension/add_inline_extension?) *)
+  (with an optional parameter of add_*_extension?) *)
     (fun w param args -> function
        | None -> Lwt.return None
        | Some c ->
@@ -232,7 +237,7 @@ let _ =
 
   Wiki_filter.add_preparser_extension "raw"
 (*VVV may be done automatically for all extensions with wiki content 
-  (with an optional parameter of add_block_extension/add_inline_extension?) *)
+  (with an optional parameter of add_*_extension?) *)
     (fun w param args -> function
        | None -> Lwt.return None
        | Some c ->
@@ -351,7 +356,7 @@ let _ =
 
   Wiki_filter.add_preparser_extension "cond"
 (*VVV may be done automatically for all extensions with wiki content 
-  (with an optional parameter of add_block_extension/add_inline_extension?) *)
+  (with an optional parameter of add_*_extension?) *)
     (fun w param args -> function
        | None -> Lwt.return None
        | Some c ->
@@ -359,11 +364,4 @@ let _ =
            Lwt.return (Some (string_of_extension "cond" args (Some c)))
     )
   ;
-
-  add_inline_extension "username"
-    (fun w (sp, sd, (subbox, ancestors)) args c -> 
-       Users.get_user_data ~sp ~sd >>= fun ud ->
-       Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
-    );
-
 

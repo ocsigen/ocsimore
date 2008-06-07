@@ -61,3 +61,9 @@ ul.boxbutton{
 div.preview{
     border: 1px solid #ff8888;
 }
+
+.ocsimore_button,div.ocsimore_button>p {
+    margin: 0px;
+    padding: 0px;
+    display: inline;
+}

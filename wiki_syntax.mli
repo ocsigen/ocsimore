@@ -31,16 +31,6 @@ val in_ancestors : (int32 * int32) -> ancestors -> bool
 val add_ancestor : (int32 * int32) -> ancestors -> ancestors
 
 (** Define new extensions to the wiki syntax. *)
-val add_inline_extension : 
-  string -> 
-  (int32 ->
-     (Eliom_sessions.server_params * 
-      Ocsimore_common.session_data *
-      (Xhtmltypes_duce.flows option * ancestors)) ->
-     (string * string) list -> 
-       string option -> 
-         {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t) -> unit
-
 val add_block_extension : 
   string -> 
   (int32 ->
@@ -50,6 +40,27 @@ val add_block_extension :
      (string * string) list -> 
        string option -> 
          Xhtmltypes_duce.flows Lwt.t) -> unit
+
+val add_a_content_extension : 
+  string -> 
+  (int32 ->
+     (Eliom_sessions.server_params * 
+      Ocsimore_common.session_data *
+      (Xhtmltypes_duce.flows option * ancestors)) ->
+     (string * string) list -> 
+       string option -> 
+         {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> unit
+
+val add_link_extension : 
+  string -> 
+  (int32 ->
+     (Eliom_sessions.server_params * 
+      Ocsimore_common.session_data *
+      (Xhtmltypes_duce.flows option * ancestors)) ->
+     (string * string) list -> 
+       string option -> 
+         string * {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> unit
+
 
 (** Returns the XHTML corresponding to a wiki page.
     The int32 is the id of the wiki (a wikibox may contain another one,

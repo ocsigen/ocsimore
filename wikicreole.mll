@@ -20,9 +20,13 @@
 (**
    Parser for Wikicreole
    @author Jérôme Vouillon
+   @author Vincent Balat
 *)
 
-type ('b, 'i) ext_kind = Block of 'b | Inline of 'i
+type ('b, 'a) ext_kind = 
+  | Block of 'b
+  | A_content of 'a 
+  | Link_plugin of (string * 'a)
 
 type ('flow, 'inline, 'a_content, 'param) builder =
   { chars : string -> 'a_content;
@@ -46,13 +50,15 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     hr_elem : unit -> 'flow;
     table_elem : (bool * 'inline list) list list -> 'flow;
     inline : 'a_content -> 'inline;
-    inline_plugin : 
-      string ->
-      'param -> (string * string) list -> string option -> 'a_content;
-    (*VVV what if we want to create links? *)
     block_plugin : 
       string ->
       'param -> (string * string) list -> string option -> 'flow;
+    link_plugin : 
+      string ->
+      'param -> (string * string) list -> string option -> (string * 'a_content);
+    a_content_plugin : 
+      string ->
+      'param -> (string * string) list -> string option -> 'a_content;
     plugin_action : 
       string -> int -> int -> 
       'param -> (string * string) list -> string option -> unit;
@@ -418,8 +424,12 @@ and parse_rem c =
       let name = String.sub s 2 (l - 2) in
       let start = Lexing.lexeme_start lexbuf in
       match parse_extension start name [] c lexbuf with
-      | Inline i -> 
+      | A_content i -> 
           push c i;
+          parse_rem c lexbuf
+      | Link_plugin (addr, content) ->
+          c.link_content <- [ content ];
+          pop_link c addr c.stack;
           parse_rem c lexbuf
       | Block b ->
           end_paragraph c 0;
@@ -511,7 +521,14 @@ and parse_extension start name args c =
         with
           | Some f -> Block (f c.param args None)
           | None -> 
-              Inline (c.build.inline_plugin name c.param args None)
+              match
+                try
+                  Some (c.build.link_plugin name)
+                with Not_found -> None
+              with
+                | Some f -> Link_plugin (f c.param args None)
+                | None -> 
+                    A_content (c.build.a_content_plugin name c.param args None)
       }
     | (not_line_break # white_space # '=') * '=' 
         ((white_space | line_break) *) '\'' {
@@ -523,7 +540,7 @@ and parse_extension start name args c =
       }
     | _ {
         ignore (parse_extension_content start 0 name args "" c lexbuf);
-        Inline (c.build.error ("Syntax error in extension "^name))
+        A_content (c.build.error ("Syntax error in extension "^name))
       }
 
 and parse_extension_content start lev name args beg c =
@@ -551,9 +568,16 @@ and parse_extension_content start lev name args beg c =
           with
             | Some f -> Block (f c.param (List.rev args) (Some beg))
             | None -> 
-                Inline (c.build.inline_plugin name c.param 
-                          (List.rev args) 
-                          (Some beg))
+                match
+                  try
+                    Some (c.build.link_plugin name)
+                  with Not_found -> None
+                with
+                  | Some f -> Link_plugin (f c.param (List.rev args) (Some beg))
+                  | None -> 
+                      A_content (c.build.a_content_plugin name c.param 
+                                     (List.rev args) 
+                                     (Some beg))
         end
       }
     | ([ '>' '<' ] ? [^ '~' '>' '<' ]+) {

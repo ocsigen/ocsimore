@@ -46,17 +46,25 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     hr_elem : unit -> 'flow;
     table_elem : (bool * 'inline list) list list -> 'flow;
     inline : 'a_content -> 'inline;
-    inline_plugin : 
-      string ->
-      'param -> (string * string) list -> string option -> 'a_content;
-(** Syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
-[<<name arg1='value1' ... argn="valuen' | content >> ] *)
     block_plugin : 
       string ->
      'param -> (string * string) list -> 
                   string option -> 'flow;
+(** Syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
+[<<name arg1='value1' ... argn="valuen' |content>> ] *)
     (** Must raise [Not_found] if the name does not exist.
-        In that case, will try [inline_plugin].
+        In that case, will try [a_content_plugin].
+    *)
+    link_plugin : 
+      string ->
+      'param -> (string * string) list -> string option -> (string * 'a_content);
+    (** Must raise [Not_found] if the name does not exist.
+        In that case, will try [a_content_plugin].
+    *)
+    a_content_plugin : 
+      string ->
+      'param -> (string * string) list -> string option -> 'a_content;
+    (** Must display sthg (error message?) if the name does not exist.
     *)
     plugin_action : 
       string -> int -> int -> 

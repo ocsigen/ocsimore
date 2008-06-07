@@ -39,6 +39,17 @@ object
      unit,
      [`Registrable]) service
 
+  method act_logout_get: 
+    (unit, 
+     unit,
+     [`Nonattached of [`Get] na_s],
+     [`WithoutSuffix],
+     unit,
+     unit,
+     [`Registrable]) service
+(** Use GET service if you want to make a link 
+    towards a POST service ... It uses a redirection instead of an action. *)
+
   method srv_register: 
     (unit, 
      unit, 
