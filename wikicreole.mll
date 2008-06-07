@@ -498,11 +498,11 @@ and parse_extension start name args c =
     | '|' {
         parse_extension_content start 0 name args "" c lexbuf
       }
-    | ">>" {
+    | (">>" | eof) {
         let args = List.rev args in
         c.build.plugin_action name 
           start
-          (Lexing.lexeme_end lexbuf) 
+          (Lexing.lexeme_end lexbuf)
           c.param args None;
         match
           try
@@ -534,7 +534,7 @@ and parse_extension_content start lev name args beg c =
     | "<<" {
         parse_extension_content start (lev+1) name args (beg^"<<") c lexbuf
       }
-    | ">>" {
+    | (">>" | eof) {
         if lev>0
         then
           parse_extension_content start (lev-1) name args (beg^">>") c lexbuf
@@ -570,7 +570,7 @@ and parse_arg_value beg c =
       '~' (_ as ch) {
         parse_arg_value (beg^(String.make 1 ch)) c lexbuf
       }
-    | '\'' {
+    | ('\'' | eof) {
         beg
       }
     | [^ '~' '\'' ] * {
