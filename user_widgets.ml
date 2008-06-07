@@ -50,16 +50,15 @@ object (self)
                    (fun _ -> self#display_logout_box sp u) ()
                else
                  let exn = Eliom_sessions.get_exn sp in
-                   if List.mem Users.BadPassword exn || 
-                     (List.exists 
-                        (function Users.NoSuchUser _ -> true | _ -> false) exn)
-                   then (* unsuccessful attempt *)
+                 if List.mem Users.BadPassword exn
+(*VVV and no such user???  *)
+                 then (* unsuccessful attempt *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox error"} }}
                        ~service:sessman#act_login ~sp:sp 
                        (fun (usr, pwd) ->
                           (self#display_login_box sp true usr pwd)) ()
-                   else (* no login attempt yet *)
+                 else (* no login attempt yet *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox notlogged"} }}
                        ~service:sessman#act_login ~sp:sp

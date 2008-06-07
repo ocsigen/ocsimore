@@ -59,6 +59,7 @@ Wiki:
  seulement changé les droits, pas le contenu.
  Ou alors faut-il sauver les droits pour chaque version ???
  - Hierarchical menu box
+ - basic menu does not work properly if the page is in a subdirectory :-(
  - <<if editable>> <<if connected>>
  - CSS have no history for now. Link css history with page/box history?
  - No right verification on css. Everyone can get them.

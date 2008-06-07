@@ -27,7 +27,6 @@ type userdata =
 
 exception NotAllowed
 exception BadPassword
-exception NoSuchUser of (string, int32) Ocsigen_lib.leftright
 
 (** Non atuthenticated users *)
 val anonymous : userdata
