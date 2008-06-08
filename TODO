@@ -95,9 +95,7 @@ Avoid a large registration form to fill before beeing able to do anything ...
 
 Session manager:
  - clean everything
- - what is it? How does it work? Can we modularize?
- - probably use a functor instead of the class?
- - how to make is extensible? Do we want that?
+ - probably merge into user_widgets? or users? or not ...
 
 Problems due to Postgresql:
  - Errors are just strings => only one exception

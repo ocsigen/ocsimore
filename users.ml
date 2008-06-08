@@ -311,44 +311,6 @@ let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
   end
 
 
-let generate_password () = 
-  let chars = "0123456789"^
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"^
-    "abcdefghijklmnopqrstuvwxyz" in
-  let pwd = String.create 8 in
-    for i = 0 to 7 do
-      pwd.[i] <- String.get chars (Random.int (10+2*26))
-    done;
-    Some pwd
-
-
-let mail_password ~name ~from_addr ~subject =
-  Lwt.catch
-    (fun () -> 
-       get_user_by_name ~name >>= fun user -> 
-       Lwt_preemptive.detach
-         (fun () -> 
-            match user.email with
-              | Some email ->
-                  ignore(Netaddress.parse email);
-                  Netsendmail.sendmail
-                    ~mailer:"/usr/sbin/sendmail"
-                    (Netsendmail.compose
-                       ~from_addr
-                       ~to_addrs:[(user.fullname, email)]
-                       ~subject
-                       ("This is an auto-generated message. "
-                        ^ "Please do not reply to it.\n"
-                        ^ "\n"
-                        ^ "Your account is:\n"
-                        ^ "\tUsername:\t" ^ name ^ "\n"
-                        ^ "\tPassword:\t" ^ (match user.pwd with 
-                                               | Some p -> p
-                                               | _ -> "(NONE)")
-                        ^ "\n"));
-                  true
-              | None -> false) ())
-    (function _ -> Lwt.return false)
 
 let create_unique_user =
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in

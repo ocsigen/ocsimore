@@ -33,3 +33,42 @@ object
 
 end;;
 
+class login_widget_basic_user_creation 
+  : sessman:Session_manager.sessionmanager ->
+  (string * string) * string * User_sql.userid list ->
+object
+  inherit login_widget
+
+  method srv_register: 
+    (unit, 
+     unit, 
+     Eliom_services.get_service_kind, 
+     [`WithoutSuffix],
+     unit, 
+     unit, 
+     [`Registrable ]) Eliom_services.service
+
+  method srv_reminder: 
+    (unit, 
+     unit, 
+     Eliom_services.get_service_kind,
+     [`WithoutSuffix], 
+     unit, 
+     unit,
+     [`Registrable ]) Eliom_services.service
+    
+  method srv_edit: 
+    (unit, 
+     unit, 
+     Eliom_services.get_service_kind, 
+     [`WithoutSuffix], 
+     unit, 
+     unit,
+     [`Registrable ]) Eliom_services.service
+    
+  method container: 
+    sp:Eliom_sessions.server_params -> 
+    sd:Ocsimore_common.session_data ->
+    contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
+
+end

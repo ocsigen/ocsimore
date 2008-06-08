@@ -17,16 +17,23 @@ let container ?css content =
      ]
    }}
 
-
-class example_sessionmanager ~sessionmanagerinfo =
+(*
+class login_widget ~sessman =
 object (self)
 
-  inherit Session_manager.sessionmanager ~sessionmanagerinfo
-    
+  inherit User_widgets.login_widget ~sessman
+(*VVV or login_widget_basic_user_creation, etc. make this configurable *)
+(*       default_groups = [];
+       registration_mail_from = ("Ocsimore", 
+                                 "webmaster@example.jussieu.fr");
+       registration_mail_subject = "Ocsimore"
+*)
+(*
   method container ~sp ~sd ~contents = Lwt.return (container contents)
+*)
 
 end;;
-
+*)
 class creole_wikibox () = object
   inherit Wiki_widgets.editable_wikibox ()
 
@@ -39,21 +46,18 @@ end
 
 let wikibox =
   Lwt_unix.run
-    (let example_sminfo = {
+    (let sminfo = {
        Session_manager.url = ["users"];
-       default_groups = [];
        administrator = Users.admin;
        login_actions = (fun sp sess -> return ());
        logout_actions = (fun sp -> return ());
-       registration_mail_from = ("Ocsimore", 
-                                 "webmaster@example.jussieu.fr");
-       registration_mail_subject = "Ocsimore"
+
      }
      in
-     let example_sm = new example_sessionmanager example_sminfo in
+     let sm = new Session_manager.sessionmanager sminfo in
 
      (* widgets creation: *)
-     let _ = new User_widgets.login_widget example_sm in
+     let _ = new User_widgets.login_widget sm in
      let mywikibox = new creole_wikibox () in
      (* all widgets created *)
 

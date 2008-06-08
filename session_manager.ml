@@ -1,3 +1,26 @@
+(* Ocsimore
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
+(**
+   @author Piero Furiesi
+   @author Jaap Boender
+*)
+
 open Eliommod
 open Eliom_parameters
 open Eliom_services
@@ -11,26 +34,12 @@ open Users
 type sessionmanager_in = 
 {
   url: string list;
-  default_groups: User_sql.userid list;
   login_actions: server_params -> Users.userdata -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
-  registration_mail_from: string * string;
-  registration_mail_subject: string;
   administrator: Users.userdata;
 }
 
 
-
-(* private: *)
-let valid_username usr =
-  Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
-    
-let valid_emailaddr email =
-  Str.string_match 
-    (Str.regexp
-       ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
-    email 0
-      
 
 
 class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
@@ -45,27 +54,6 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
   and internal_act_logout_get = new_coservice' ~get_params:unit ()
 (*VVV I add this GET service because it is not possible to make a link 
   towards a POST service ... I use a redirection instead of an action *)
-  and internal_srv_register = 
-    new_service
-      ~path:(sessionmanagerinfo.url @ ["register"]) 
-      ~get_params:unit () in
-  let srv_register_done = 
-    new_post_coservice
-      ~fallback:internal_srv_register
-      ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
-  and internal_srv_reminder = 
-    new_service
-      ~path:(sessionmanagerinfo.url @ ["reminder"]) ~get_params:unit ()
-  and srv_reminder_done = 
-    new_post_coservice
-      ~fallback:internal_srv_register ~post_params:(string "usr") ()
-  and internal_srv_edit = 
-    new_coservice ~fallback:internal_srv_register ~get_params:unit ()
-  and srv_edit_done = 
-    new_post_coservice
-      ~fallback:internal_srv_register
-      ~post_params:(string "pwd" ** 
-                      (string "pwd2" ** (string "descr" ** string "email"))) () 
   in
     
 object (self)
@@ -81,36 +69,6 @@ object (self)
      [`Registrable]) Eliom_services.service
     = internal_act_login
 
-  method srv_register : 
-    (unit, 
-     unit, 
-     get_service_kind, 
-     [`WithoutSuffix], 
-     unit, 
-     unit, 
-     [`Registrable]) service
-    = internal_srv_register
-
-  method srv_reminder : 
-    (unit, 
-     unit, 
-     get_service_kind, 
-     [`WithoutSuffix], 
-     unit, 
-     unit, 
-     [`Registrable]) service
-    = internal_srv_reminder
-    
-  method srv_edit : 
-    (unit, 
-     unit, 
-     get_service_kind,
-     [`WithoutSuffix], 
-     unit, 
-     unit, 
-     [`Registrable]) service 
-    = internal_srv_edit
-    
   method act_logout :
     (unit, 
      unit, 
@@ -132,222 +90,6 @@ object (self)
     = internal_act_logout_get
 
 
-  method container
-    ~(sp:Eliom_sessions.server_params)
-    ~(sd:Ocsimore_common.session_data)
-    ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
-    return {{ 
-              <html>[
-                <head>[<title>"Temporary title"]
-                <body>{: contents :}
-              ]
-            }}
-      
-  method private page_register err = fun sp () ()-> 
-    self#container
-      ~sp
-      ~sd:Users.anonymous_sd
-      ~contents:
-      {{ [<h1>"Registration form"
-           <p>['Please fill in the following fields.'
-               <br>[]
-               'You can freely choose your login name: it will be \
-               slightly modified automatically if it has already been chosen \
-                 by another registered user.'
-                 <br>[]
-                 'Be very careful to enter a valid e-mail address, \
-                   as the password for logging in will be sent there.']
-           {: post_form srv_register_done sp
-              (fun (usr,(desc,email)) -> 
-                 {{ [<table>[
-                        <tr>[
-                          <td>"login name: (letters & digits only)"
-                          <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
-                        ]
-                        <tr>[
-                          <td>"real name:"
-                          <td>[{: string_input ~input_type:{:"text":} ~name:desc () :}]
-                        ]
-                        <tr>[
-                          <td>"e-mail address:"
-                          <td>[{: string_input ~input_type:{:"text":} ~name:email () :}]
-                        ]
-                        <tr>[
-                          <td>[{: string_input ~input_type:{:"submit":} ~value:"Register" () :}]
-                        ]]] }})
-              () :}
-           <p>[<strong>{: err :}]]}} 
-      
-  method private page_register_done = fun sp () (usr, (fullname, email)) ->
-    if not (valid_username usr) then 
-      self#page_register "ERROR: Bad character(s) in login name!" sp () ()
-    else if not (valid_emailaddr email) then 
-      self#page_register "ERROR: Bad formed e-mail address!" sp () ()
-    else 
-      let pwd = generate_password () in
-      Users.create_unique_user
-        ~name:usr ~pwd ~fullname ~email:(Some email)
-        ~groups:sessionmanagerinfo.default_groups >>= fun (user, n) ->
-      mail_password
-        ~name:n
-        ~from_addr:sessionmanagerinfo.registration_mail_from 
-        ~subject:sessionmanagerinfo.registration_mail_subject >>= fun b ->
-      if b
-      then begin
-        self#container
-          ~sp
-          ~sd:Users.anonymous_sd
-          ~contents:
-          {{ [<h1>"Registration ok."
-               <p>(['You\'ll soon receive an e-mail message at the \
-                      following address:'
-                    <br>[]] @
-                     {: email :} @
-                      [<br>[]
-                          'reporting your login name and password.'])] }}
-        
-      end
-      else 
-        Users.delete_user ~userid:user.Users.id >>= fun () ->
-        self#container
-          ~sp
-          ~sd:Users.anonymous_sd
-          ~contents:{{ [<h1>"Registration failed."
-                         <p>"Please try later."] }}
-
-
-              
-  method private page_reminder err = fun sp () () -> 
-    self#container
-      ~sp
-      ~sd:Users.anonymous_sd
-      ~contents:
-      {{ [<h1>"Password reminder"
-           <p>['This service allows you to get an e-mail message \
-           with your connection password.'
-               <br>[]
-               'The message will be sent to the address you \
-                 entered when you registered your account.']
-           {: post_form srv_reminder_done sp
-              (fun usr -> 
-                 {{ [<table>[
-                        <tr>[
-                          <td>"Enter your login name:"
-                          <td>[{: string_input ~input_type:{:"text":} ~name:usr () :}]
-                          <td>[{: string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
-                        ]]]
-                  }}) ()        :}
-           <p>[<strong>{: err :}]] }}
-      
-  method private page_reminder_done = fun sp () usr ->
-    self#page_reminder "Users are being implemented (TODO)" sp () ()
-      (* if not (valid_username usr) then
-         self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
-         else 
-         mail_password 
-         ~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
-         ~subject:sessionmanagerinfo.registration_mail_subject >>= (fun b ->
-         if b
-         then 
-         self#container
-         ~sp
-         ~sd:Users.anonymous_sd
-         ~contents:{{ [<h1>"Password sent"
-         <p>"You'll soon receive an e-mail message at \
-         the address you entered when you \
-         registered your account."] }}
-         else 
-         self#container
-         ~sp
-         ~sd:Users.anonymous_sd
-         ~contents:{{ [<h1>"Failure"
-         <p>"The username you entered doesn't exist, or \
-         the service is unavailable at the moment."] }}) *)
-      
-  method private page_edit err = fun sp () () ->
-    let sd = Ocsimore_common.get_sd sp in
-    Users.is_logged_on sp sd >>= fun logged ->
-    if logged
-    then
-      Users.get_user_data sp sd >>= fun u ->
-      self#container
-        ~sp
-        ~sd:Users.anonymous_sd
-        ~contents:
-        {{ [<h1>"Your account"
-             <p>"Change your persional information:"
-             {: post_form srv_edit_done sp
-                (fun (pwd, (pwd2, (desc, email))) -> 
-                   {{ [<table>[
-                          <tr>[
-                            <td>"login name: "
-                            <td>[<strong>{: u.Users.name :}]
-                          ]
-                          <tr>[
-                            <td>"real name: "
-                            <td>[{: string_input
-                                    ~input_type:{:"text":} 
-                                    ~value:u.Users.fullname
-                                    ~name:desc () :}]
-                          ]
-                          <tr>[
-                            <td>"e-mail address: "
-                            <td>[{: string_input
-                                    ~input_type:{:"text":} 
-                                    ~value:(match u.Users.email with
-                                              | None -> ""
-                                              | Some e -> e)
-                                    ~name:email () :}]
-                          ]
-                          <tr>[
-                            <td colspan="2">"Enter a new password twice, or 
-                                                leave blank for no changes:"
-                          ]
-                          <tr>[
-                            <td>[{: string_input
-                                    ~input_type:{:"password":} 
-                                    ~value:"" 
-                                    ~name:pwd () :}]
-                            <td>[{: string_input
-                                    ~input_type:{:"password":} 
-                                    ~value:"" 
-                                    ~name:pwd2 () :}]
-                          ]
-                          <tr>[
-                            <td>[{: string_input
-                                    ~input_type:{: "submit" :} 
-                                    ~value:"Confirm" () :}]
-                          ]
-                        ]]
-                    }}) () :} 
-             <p>[<strong>{: err :}]] }}
-    else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
-      
-  method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
-    let sd = Ocsimore_common.get_sd sp in
-    Users.is_logged_on sp sd >>= fun logged ->
-    if logged
-    then
-      Users.get_user_data sp sd >>= fun user ->
-      if not (valid_emailaddr email) then  
-        self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
-      else if pwd <> pwd2 then
-        self#page_edit "ERROR: Passwords don't match!" sp () ()
-      else
-        (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
-         let email = Some email in
-         ignore (if pwd = ""
-                 then update_user_data ~user ~fullname ~email ()
-                 else update_user_data ~user ~fullname ~email
-                   ~pwd:(Some pwd) ());
-         Users.set_session_data sp sd user >>= fun () ->
-         self#container
-           ~sp
-           ~sd (*VVV was: Users.anonymous_sd, but why? *)
-           ~contents:{{ [<h1>"Personal information updated"] }})
-    else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
-(*VVV: Must be accessible only to logged users *)
-      
 
   method private add_parameter_handler user = fun sp () (url, param_name) ->
     (* if in_group user sessionmanagerinfo.administrator then
@@ -392,20 +134,16 @@ object (self)
           
       
   initializer
-  let _ =
-    Actions.register internal_act_login self#mk_act_login;
-    Actions.register internal_act_logout self#mk_act_logout;
-    Redirections.register internal_act_logout_get
-      (fun sp () () ->
-         ignore (self#mk_act_logout sp () ());
-         Eliom_predefmod.Xhtml.make_full_string_uri
-           Eliom_services.void_action sp ()
-      );
-    Eliom_duce.Xhtml.register internal_srv_register (self#page_register "");
-    Eliom_duce.Xhtml.register srv_register_done self#page_register_done;
-    Eliom_duce.Xhtml.register internal_srv_reminder (self#page_reminder "");
-    Eliom_duce.Xhtml.register srv_reminder_done self#page_reminder_done;
-  in ()
+    begin
+      Actions.register internal_act_login self#mk_act_login;
+      Actions.register internal_act_logout self#mk_act_logout;
+      Redirections.register internal_act_logout_get
+        (fun sp () () ->
+           ignore (self#mk_act_logout sp () ());
+           Eliom_predefmod.Xhtml.make_full_string_uri
+             Eliom_services.void_action sp ()
+        );
+    end
 
         
 end;;
