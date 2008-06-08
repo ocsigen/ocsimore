@@ -44,11 +44,16 @@ Conditional display w.r.t. groups: (EXPERIMENTAL)
 
 <<username>> displays the name of the user.
 
-<<nonattachedlink href='...'|...>> is like [[...|...]] for internal links,
+<<link wiki='...' href='...'|...>> is like [[...|...]] for internal links,
+but allows links towards other wikis.
+The wiki argument is optional.
+
+<<nonattachedlink wiki='...' href='...'|...>> is like [[...|...]] 
+for internal links,
 but instead of using a link towards another page, it uses a non-attached
 service (i.e. the path in the URL won't change, only parameters).
 Use this if you do not want to go to another URL.
-
+The wiki argument is optional.
 
 
 

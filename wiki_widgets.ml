@@ -1251,12 +1251,50 @@ object (self)
 
          );
 
+       Wiki_syntax.add_link_extension "link"
+        (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
+           let href = 
+             try 
+               List.assoc "href" args
+             with Not_found -> ""
+           in
+           let wiki_id = 
+             try 
+               Int32.of_string (List.assoc "wiki" args)
+             with 
+               | Failure _
+               | Not_found -> wiki_id
+           in
+           let content = match c with
+             | Some c -> c
+             | None -> href
+           in
+           let href =
+             Ocsigen_lib.remove_slash_at_end
+               (Ocsigen_lib.remove_slash_at_beginning
+                  (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
+           in
+           ((Eliom_duce.Xhtml.make_uri
+               ~service:(Wiki_syntax.find_servpage wiki_id)
+               ~sp
+               href
+            ),
+            Lwt.return (Ocamlduce.Utf8.make content))
+        );
+
        Wiki_syntax.add_link_extension "nonattachedlink"
         (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
            let href = 
              try 
                List.assoc "href" args
              with Not_found -> ""
+           in
+           let wiki_id = 
+             try 
+               Int32.of_string (List.assoc "wiki" args)
+             with 
+               | Failure _
+               | Not_found -> wiki_id
            in
            let content = match c with
              | Some c -> c

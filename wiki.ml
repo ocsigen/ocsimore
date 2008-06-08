@@ -423,7 +423,14 @@ let create_wiki ~title ~descr
              ~name:("display"^Int32.to_string w.id)
              ?sp
              ~get_params:(Eliom_parameters.string "page")
-             (display_page w wikibox action_create_page)
+             (fun sp path () ->
+                let path =
+                  Ocsigen_lib.string_of_url_path
+                    (Ocsigen_lib.remove_slash_at_end
+                       (Ocsigen_lib.remove_slash_at_beginning
+                          (Ocsigen_lib.remove_dotdot (Neturl.split_path path))))
+                in
+                display_page w wikibox action_create_page sp path ())
          in Wiki_syntax.add_naservpage w.id naservpage;
 
 
