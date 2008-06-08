@@ -1263,7 +1263,7 @@ object (self)
              | None -> href
            in
            ((Eliom_duce.Xhtml.make_uri
-               ~service:(Wiki.find_naservpage wiki_id)
+               ~service:(Wiki_syntax.find_naservpage wiki_id)
                ~sp
                href
             ),

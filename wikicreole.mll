@@ -28,7 +28,7 @@ type ('b, 'a) ext_kind =
   | A_content of 'a 
   | Link_plugin of (string * 'a)
 
-type ('flow, 'inline, 'a_content, 'param) builder =
+type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
     strong_elem : 'inline list -> 'a_content;
     em_elem : 'inline list -> 'a_content;
@@ -36,7 +36,7 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     img_elem : string -> string -> 'a_content;
     tt_elem : 'inline list -> 'a_content;
     nbsp : 'a_content;
-    a_elem : string -> 'a_content list -> 'inline;
+    a_elem : 'sp -> string -> 'a_content list -> 'inline;
     p_elem : 'inline list -> 'flow;
     pre_elem : string list -> 'flow;
     h1_elem : 'inline list -> 'flow;
@@ -83,9 +83,10 @@ type ('inline, 'flow) stack =
   | Row of (bool * 'inline list) list * ('inline, 'flow) stack
   | Entry of bool * ('inline, 'flow) stack
 
-type ('flow, 'inline, 'a_content, 'param) ctx =
-  { build : ('flow, 'inline, 'a_content, 'param) builder;
+type ('flow, 'inline, 'a_content, 'param, 'sp) ctx =
+  { build : ('flow, 'inline, 'a_content, 'param, 'sp) builder;
     param : 'param;
+    sp : 'sp;
     mutable italic : bool;
     mutable bold : bool;
     mutable heading : bool;
@@ -146,7 +147,7 @@ let style_change c style =
 let pop_link c addr stack =
   c.stack <- stack;
   c.inline_mix <-
-    c.build.a_elem addr (List.rev c.link_content) :: c.inline_mix;
+    c.build.a_elem c.sp addr (List.rev c.link_content) :: c.inline_mix;
   c.link_content <- [];
   c.link <- false
 
@@ -365,17 +366,17 @@ and parse_rem c =
         push_chars c lexbuf;
       parse_bol c lexbuf
     }
-  | "[[" (']' ? (not_line_break # [ ']' '|' ])) + "]]" {
+  | "[[" (']' ? (not_line_break # [ ']' '|' ])) * "]]" {
       if c.link then
         push_chars c lexbuf
       else
         let s = Lexing.lexeme lexbuf in
         let addr = String.sub s 2 (String.length s - 4) in
         c.inline_mix <-
-         c.build.a_elem addr [c.build.chars addr] :: c.inline_mix;
+         c.build.a_elem c.sp addr [c.build.chars addr] :: c.inline_mix;
       parse_rem c lexbuf
   }
-  | "[[" (']' ? (not_line_break # [ ']' '|' ])) + "|" {
+  | "[[" (']' ? (not_line_break # [ ']' '|' ])) * "|" {
       if c.link then
         push_chars c lexbuf
       else begin
@@ -402,7 +403,7 @@ and parse_rem c =
       else
         let addr = Lexing.lexeme lexbuf in
         c.inline_mix <-
-          c.build.a_elem addr [c.build.chars addr] :: c.inline_mix;
+          c.build.a_elem c.sp addr [c.build.chars addr] :: c.inline_mix;
       parse_rem c lexbuf
   }
   | "\\\\" {
@@ -605,9 +606,10 @@ and parse_arg_value beg c =
 
 {
 
-let context param b =
+let context sp param b =
   { build = b; 
     param = param;
+    sp = sp;
     italic = false; 
     bold = false;
     heading = false; 
@@ -620,14 +622,14 @@ let context param b =
     flow = [];
     stack = Paragraph }
 
-let from_lexbuf param b lexbuf =
-  let c = context param b in
+let from_lexbuf sp param b lexbuf =
+  let c = context sp  param b in
   parse_bol c lexbuf;
   List.rev c.flow
 
-let from_channel param b ch = from_lexbuf param b (Lexing.from_channel ch)
+let from_channel sp param b ch = from_lexbuf sp param b (Lexing.from_channel ch)
 
-let from_string param b s = from_lexbuf param b (Lexing.from_string s)
+let from_string sp param b s = from_lexbuf sp param b (Lexing.from_string s)
 
 
 }

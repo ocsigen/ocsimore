@@ -24,7 +24,7 @@
 
 type ('b, 'i) ext_kind
 
-type ('flow, 'inline, 'a_content, 'param) builder =
+type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
     strong_elem : 'inline list -> 'a_content;
     em_elem : 'inline list -> 'a_content;
@@ -32,7 +32,7 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     img_elem : string -> string -> 'a_content;
     tt_elem : 'inline list -> 'a_content;
     nbsp : 'a_content;
-    a_elem : string -> 'a_content list -> 'inline;
+    a_elem : 'sp -> string -> 'a_content list -> 'inline;
     p_elem : 'inline list -> 'flow;
     pre_elem : string list -> 'flow;
     h1_elem : 'inline list -> 'flow;
@@ -73,11 +73,14 @@ type ('flow, 'inline, 'a_content, 'param) builder =
  }
 
 val from_channel :
+  'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param) builder -> in_channel -> 'flow list
+  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> in_channel -> 'flow list
 val from_string :
+  'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param) builder -> string -> 'flow list
+  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> string -> 'flow list
 val from_lexbuf :
+  'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param) builder -> Lexing.lexbuf -> 'flow list
+  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> Lexing.lexbuf -> 'flow list

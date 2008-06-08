@@ -61,7 +61,7 @@ let builder plugin_action =
   { W.chars = nothing;
     W.strong_elem = nothing;
     W.em_elem = nothing;
-    W.a_elem = (fun _ _ -> ());
+    W.a_elem = (fun _ _ _ -> ());
     W.br_elem = nothing;
     W.img_elem = (fun _ _ -> ());
     W.tt_elem = nothing;
@@ -86,10 +86,10 @@ let builder plugin_action =
     W.error = nothing;
   }
 
-let preparse_extension param wiki_id content =
+let preparse_extension ((sp, _, _) as param) wiki_id content =
   let (plugin_action, get_subst) = make_plugin_action wiki_id in
   let builder = builder plugin_action in
-  ignore (Wikicreole.from_string param builder content);
+  ignore (Wikicreole.from_string sp param builder content);
   let buf = Buffer.create 1024 in
   Lwt_util.fold_left
     (fun pos (start, end_, replacement) -> 

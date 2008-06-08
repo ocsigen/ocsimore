@@ -30,6 +30,35 @@ val in_ancestors : (int32 * int32) -> ancestors -> bool
 
 val add_ancestor : (int32 * int32) -> ancestors -> ancestors
 
+
+(** find services for each wiki *)
+val find_naservpage : int32 ->
+  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
+   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
+   unit, [`Registrable ])
+    Eliom_services.service
+
+val find_servpage : int32 ->
+  (string list, unit,
+   Eliom_services.get_service_kind,
+   [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
+     unit, [ `Registrable ])
+    Eliom_services.service
+
+val add_naservpage : int32 ->
+  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
+   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
+   unit, [`Registrable ])
+    Eliom_services.service -> unit
+
+val add_servpage : int32 ->
+  (string list, unit,
+   Eliom_services.get_service_kind,
+   [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
+     unit, [ `Registrable ])
+    Eliom_services.service -> unit
+
+
 (** Define new extensions to the wiki syntax. *)
 val add_block_extension : 
   string -> 

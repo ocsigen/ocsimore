@@ -51,6 +51,27 @@ let add_a_content_extension k f = H.add a_content_extension_table k f
 
 let add_link_extension k f = H.add link_extension_table k f
 
+
+(***)
+module Servpages = 
+  Hashtbl.Make(struct 
+                 type t = int32 
+                 let equal = (=) 
+                 let hash = Hashtbl.hash 
+               end)
+
+let naservpages = Servpages.create 5
+let servpages = Servpages.create 5
+
+let add_naservpage = Servpages.add naservpages
+let add_servpage = Servpages.add servpages
+let find_naservpage = Servpages.find naservpages
+let find_servpage = Servpages.find servpages
+
+
+
+
+(***)
 let make_string s = Lwt.return (Ocamlduce.Utf8.make s)
 
 let element (c : Xhtmltypes_duce.inlines Lwt.t list) = 
@@ -84,6 +105,7 @@ let inline (x : Xhtmltypes_duce.a_content)
     = {{ {: [ x ] :} }}
 
 let builder wiki_id =
+  let servpage = find_servpage wiki_id in
   { W.chars = make_string;
     W.strong_elem = (fun a -> 
                        element a >>= fun r ->
@@ -92,10 +114,16 @@ let builder wiki_id =
                    element a >>= fun r ->
                    Lwt.return {{ [<em>r] }});
     W.a_elem =
-      (fun addr 
+      (fun sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
-           Lwt.return 
+           let addr =
+             Ocsigen_lib.remove_slash_at_end
+               (Ocsigen_lib.remove_slash_at_beginning
+                  (Ocsigen_lib.remove_dotdot (Neturl.split_path addr)))
+           in
+           let addr = Eliom_predefmod.Xhtml.make_string_uri servpage sp addr in
+           Lwt.return
              {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
     W.br_elem = (fun () -> Lwt.return {{ [<br>[]] }});
     W.img_elem =
@@ -181,7 +209,7 @@ let builder wiki_id =
 let xml_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
   Lwt_util.map_serial
     (fun x -> x) 
-    (Wikicreole.from_string (sp, sd, (subbox, ancestors)) (builder wiki_id) s) 
+    (Wikicreole.from_string sp (sp, sd, (subbox, ancestors)) (builder wiki_id) s) 
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 

@@ -43,6 +43,8 @@ type wiki_info = {
   last: int32 ref
 }
 
+
+
 let get_wiki_by_id id =
   Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last) -> 
   Lwt.return { id = id; 
@@ -238,16 +240,6 @@ let display_page w wikibox action_create_page sp page () =
            ]
          }}
 
-module Naservpages = 
-  Hashtbl.Make(struct 
-                 type t = int32 
-                 let equal = (=) 
-                 let hash = Hashtbl.hash 
-               end)
-
-let naservpages = Naservpages.create 5
-
-let find_naservpage = Naservpages.find naservpages
 
 
 let create_wiki ~title ~descr
@@ -414,14 +406,17 @@ let create_wiki ~title ~descr
 
          
          (* Registering the service with suffix for wikipages *)
-         ignore
-           (Eliom_duce.Xhtml.register_new_service
-              ~path
-              ?sp
-              ~get_params:(Eliom_parameters.suffix 
-                             (Eliom_parameters.all_suffix_string "page"))
-              (display_page w wikibox action_create_page)
-           );
+         let servpage =
+           Eliom_duce.Xhtml.register_new_service
+             ~path
+             ?sp
+             ~get_params:(Eliom_parameters.suffix 
+                            (Eliom_parameters.all_suffix "page"))
+             (fun sp path () ->
+                display_page w wikibox action_create_page sp 
+                  (Ocsigen_lib.string_of_url_path path) ())
+         in Wiki_syntax.add_servpage w.id servpage;
+
          (* the same, but non attached: *)
          let naservpage =
            Eliom_duce.Xhtml.register_new_service'
@@ -429,7 +424,7 @@ let create_wiki ~title ~descr
              ?sp
              ~get_params:(Eliom_parameters.string "page")
              (display_page w wikibox action_create_page)
-         in Naservpages.add naservpages w.id naservpage;
+         in Wiki_syntax.add_naservpage w.id naservpage;
 
 
   );
