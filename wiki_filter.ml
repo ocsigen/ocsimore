@@ -62,6 +62,7 @@ let builder plugin_action =
     W.strong_elem = nothing;
     W.em_elem = nothing;
     W.a_elem = (fun _ _ _ -> ());
+    W.make_href = (fun _ a -> a);
     W.br_elem = nothing;
     W.img_elem = (fun _ _ -> ());
     W.tt_elem = nothing;

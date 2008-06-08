@@ -117,14 +117,16 @@ let builder wiki_id =
       (fun sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
-           let addr =
-             Ocsigen_lib.remove_slash_at_end
-               (Ocsigen_lib.remove_slash_at_beginning
-                  (Ocsigen_lib.remove_dotdot (Neturl.split_path addr)))
-           in
-           let addr = Eliom_predefmod.Xhtml.make_string_uri servpage sp addr in
            Lwt.return
              {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
+    W.make_href =
+      (fun sp addr ->
+         let addr =
+           Ocsigen_lib.remove_slash_at_end
+             (Ocsigen_lib.remove_slash_at_beginning
+                (Ocsigen_lib.remove_dotdot (Neturl.split_path addr)))
+         in
+         Eliom_predefmod.Xhtml.make_string_uri servpage sp addr);
     W.br_elem = (fun () -> Lwt.return {{ [<br>[]] }});
     W.img_elem =
       (fun addr alt -> 

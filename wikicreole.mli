@@ -33,6 +33,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     tt_elem : 'inline list -> 'a_content;
     nbsp : 'a_content;
     a_elem : 'sp -> string -> 'a_content list -> 'inline;
+    make_href : 'sp -> string -> string;
     p_elem : 'inline list -> 'flow;
     pre_elem : string list -> 'flow;
     h1_elem : 'inline list -> 'flow;

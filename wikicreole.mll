@@ -37,6 +37,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     tt_elem : 'inline list -> 'a_content;
     nbsp : 'a_content;
     a_elem : 'sp -> string -> 'a_content list -> 'inline;
+    make_href : 'sp -> string -> string;
     p_elem : 'inline list -> 'flow;
     pre_elem : string list -> 'flow;
     h1_elem : 'inline list -> 'flow;
@@ -371,7 +372,7 @@ and parse_rem c =
         push_chars c lexbuf
       else
         let s = Lexing.lexeme lexbuf in
-        let addr = String.sub s 2 (String.length s - 4) in
+        let addr = c.build.make_href c.sp (String.sub s 2 (String.length s - 4)) in
         c.inline_mix <-
          c.build.a_elem c.sp addr [c.build.chars addr] :: c.inline_mix;
       parse_rem c lexbuf
@@ -381,7 +382,7 @@ and parse_rem c =
         push_chars c lexbuf
       else begin
         let s = Lexing.lexeme lexbuf in
-        let addr = String.sub s 2 (String.length s - 3) in
+        let addr = c.build.make_href c.sp (String.sub s 2 (String.length s - 3)) in
         c.stack <- Link (addr, c.stack);
         c.link <- true
       end;
