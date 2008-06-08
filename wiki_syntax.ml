@@ -297,7 +297,7 @@ let _ =
     );
 
   add_block_extension "menu"
-    (fun _ (sp, sd, _) args c -> 
+    (fun wiki_id (sp, sd, _) args c -> 
        let classe = 
          let c =
            "wikimenu"^
@@ -329,8 +329,17 @@ let _ =
            in
            {{ <li (classe)>text2}}
          else
-           let link = if link = "" then "./" else link in
-           let link2 = Ocamlduce.Utf8.make link in
+           let path =
+             Ocsigen_lib.remove_slash_at_end
+               (Ocsigen_lib.remove_slash_at_beginning
+                  (Ocsigen_lib.remove_dotdot (Neturl.split_path link)))
+           in
+           let href = Eliom_duce.Xhtml.make_uri
+             ~service:(find_servpage wiki_id)
+             ~sp
+             path
+           in
+           let link2 = Ocamlduce.Utf8.make href in
            let classe = match classe with
              | None -> {{ {} }}
              | Some c -> 

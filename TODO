@@ -59,7 +59,7 @@ Wiki:
  seulement changé les droits, pas le contenu.
  Ou alors faut-il sauver les droits pour chaque version ???
  - Hierarchical menu box
- - basic menu does not work properly if the page is in a subdirectory :-(
+ - not possible to make interwikis links in menus for now
  - <<if editable>> <<if connected>>
  - CSS have no history for now. Link css history with page/box history?
  - No right verification on css. Everyone can get them.
@@ -116,6 +116,7 @@ Wiki extensions:
  - I don't know how to put wikisyntax inside inline extensions!
  (as xml_of_wiki returns block!)
  => not possible to use wikisyntax in <<logoutlink>> or <<nonattachedlink>>
+ or <<link>> or <<menu>>!!!!!!!!!!!!!!!!!!
 
 Forum:
  - clean everything
