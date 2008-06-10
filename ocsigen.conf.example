@@ -34,9 +34,19 @@
       <static dir="/path_to/ocsimore/static" />
       <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
         <!-- optional arguments: -->
+
+        <notsecure/> <!-- accept login with http or https (DANGEROUS!)
+                          If you do not want that option, 
+                          you need to configure HTTPS. -->
+
+<!-- PAM authentication
         <pam/>
+-->
+
         <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>
+
       </eliom>
+
       <eliom module="/path_to/ocsiwiki.cmo">
         <name>My wiki</name>
         <path>/</path>

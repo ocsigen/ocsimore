@@ -14,6 +14,9 @@ let (pam, basicusercreation) =
     | [] -> Lwt.return data
     | (Simplexmlparser.Element ("pam", [], []))::l -> 
         find_wikidata (true, basicusercreation) l
+    | (Simplexmlparser.Element ("notsecure", [], []))::l -> 
+        Session_manager.set_secure false;
+        find_wikidata data l
     | (Simplexmlparser.Element ("basicusercreation", atts, []))::l -> 
         let registration_mail_from = 
           try
@@ -52,7 +55,6 @@ let (pam, basicusercreation) =
   in
   let c = Eliom_sessions.get_config () in
   Lwt_unix.run (find_wikidata default_data c)
-
 
 
 

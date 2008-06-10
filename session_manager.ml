@@ -40,18 +40,26 @@ type sessionmanager_in =
 }
 
 
+(* use https for login? *)
+let secure = ref true
+let set_secure b = secure := b
+let get_secure () = !secure
 
 
 class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
   let internal_act_login = 
-    new_post_coservice' 
+    new_post_service'
+      ~https:!secure
+      ~name:"login"
       ~keep_get_na_params:false
       ~post_params:(string "usr" ** string "pwd") () 
   and internal_act_logout = 
-    new_post_coservice' 
+    new_post_service'
+      ~name:"logoutpost"
       ~keep_get_na_params:false
       ~post_params:unit ()
-  and internal_act_logout_get = new_coservice' ~get_params:unit ()
+  and internal_act_logout_get = 
+    new_service' ~name:"logout" ~get_params:unit ()
 (*VVV I add this GET service because it is not possible to make a link 
   towards a POST service ... I use a redirection instead of an action *)
   in
@@ -140,8 +148,9 @@ object (self)
       Redirections.register internal_act_logout_get
         (fun sp () () ->
            ignore (self#mk_act_logout sp () ());
-           Eliom_predefmod.Xhtml.make_full_string_uri
-             Eliom_services.void_action sp ()
+           Lwt.return
+             (Eliom_predefmod.Xhtml.make_full_uri
+                Eliom_services.void_action sp ())
         );
     end
 

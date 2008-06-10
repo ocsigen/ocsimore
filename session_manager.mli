@@ -37,7 +37,10 @@ type sessionmanager_in =
 }
 
 
-
+(** do you want https for login/password? 
+   (see option <notsecure/> in ocsisite) *)
+val set_secure : bool -> unit
+val get_secure : unit -> bool
       
 class sessionmanager : sessionmanagerinfo: sessionmanager_in ->
 object

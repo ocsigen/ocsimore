@@ -66,7 +66,8 @@ object (self)
                then
                  Eliom_duce.Xhtml.post_form
                    ~a:{{ { class="logbox logged"} }} 
-                   ~service:sessman#act_logout ~sp
+                   ~service:sessman#act_logout
+                   ~sp
                    (fun _ -> self#display_logout_box sp u) ()
                else
                  let exn = Eliom_sessions.get_exn sp in
@@ -76,13 +77,15 @@ object (self)
                  then (* unsuccessful attempt *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox error"} }}
-                       ~service:sessman#act_login ~sp:sp 
+                       ~service:sessman#act_login
+                       ~sp
                        (fun (usr, pwd) ->
                           (self#display_login_box sp true usr pwd)) ()
                  else (* no login attempt yet *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox notlogged"} }}
-                       ~service:sessman#act_login ~sp:sp
+                       ~service:sessman#act_login
+                       ~sp
                        (fun (usr, pwd) ->
                           (self#display_login_box sp false usr pwd)) () 
                        :}] 
@@ -262,11 +265,15 @@ class login_widget_basic_user_creation
       ~get_params:unit ()
   and srv_reminder_done = 
     Eliom_services.new_post_coservice
-      ~fallback:internal_srv_register ~post_params:(string "usr") ()
+      ~fallback:internal_srv_register
+      ~post_params:(string "usr") ()
   and internal_srv_edit = 
-    Eliom_services.new_coservice ~fallback:internal_srv_register ~get_params:unit ()
+    Eliom_services.new_coservice
+      ~fallback:internal_srv_register
+      ~get_params:unit ()
   and srv_edit_done = 
     Eliom_services.new_post_coservice
+      ~https:(Session_manager.get_secure ())
       ~fallback:internal_srv_register
       ~post_params:(string "pwd" ** 
                       (string "pwd2" ** (string "descr" ** string "email"))) () 
@@ -366,7 +373,9 @@ object (self)
                  <br>[]
                  'Be very careful to enter a valid e-mail address, \
                    as the password for logging in will be sent there.']
-           {: Eliom_duce.Xhtml.post_form srv_register_done sp
+           {: Eliom_duce.Xhtml.post_form 
+              ~service:srv_register_done
+              ~sp
               (fun (usr,(desc,email)) -> 
                  {{ [<table>[
                         <tr>[
@@ -439,7 +448,9 @@ object (self)
                <br>[]
                'The message will be sent to the address you \
                  entered when you registered your account.']
-           {: Eliom_duce.Xhtml.post_form srv_reminder_done sp
+           {: Eliom_duce.Xhtml.post_form
+              ~service:srv_reminder_done 
+              ~sp
               (fun usr -> 
                  {{ [<table>[
                         <tr>[
@@ -487,7 +498,9 @@ object (self)
         ~contents:
         {{ [<h1>"Your account"
              <p>"Change your persional information:"
-             {: Eliom_duce.Xhtml.post_form srv_edit_done sp
+             {: Eliom_duce.Xhtml.post_form
+                ~service:srv_edit_done
+                ~sp
                 (fun (pwd, (pwd2, (desc, email))) -> 
                    {{ [<table>[
                           <tr>[
