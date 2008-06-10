@@ -1258,6 +1258,17 @@ object (self)
                List.assoc "href" args
              with Not_found -> ""
            in
+           let https = 
+             try 
+               let a = List.assoc "protocol" args in
+               if a = "http"
+               then Some false
+               else 
+                 if a = "https"
+                 then Some true
+                 else None
+             with Not_found -> None
+           in
            let wiki_id = 
              try 
                Int32.of_string (List.assoc "wiki" args)
@@ -1275,6 +1286,7 @@ object (self)
                   (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
            in
            ((Eliom_duce.Xhtml.make_uri
+               ?https
                ~service:(Wiki_syntax.find_servpage wiki_id)
                ~sp
                href
@@ -1289,6 +1301,17 @@ object (self)
                List.assoc "href" args
              with Not_found -> ""
            in
+           let https = 
+             try 
+               let a = List.assoc "protocol" args in
+               if a = "http"
+               then Some false
+               else 
+                 if a = "https"
+                 then Some true
+                 else None
+             with Not_found -> None
+           in
            let wiki_id = 
              try 
                Int32.of_string (List.assoc "wiki" args)
@@ -1301,6 +1324,7 @@ object (self)
              | None -> href
            in
            ((Eliom_duce.Xhtml.make_uri
+               ?https
                ~service:(Wiki_syntax.find_naservpage wiki_id)
                ~sp
                href
