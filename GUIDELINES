@@ -12,7 +12,12 @@ Decompose each of them into several methods, one for each subtask to perform
 _createdb.sql SQL creation of databases
 _sql.ml database requests, using lwt-pgocaml and lwt_pool
 .ml defining and exporting session data for the module (see below)
+_cache.ml cache on database requests, using the Cache module
 _widgets.ml your widgets
+
+For all cached requests, I use a name ending with _ in *_sql.ml to and without
+the _ in *cache.ml to remember that we must not call the functions from
+_sql.ml directly.
 
  - Use as much as possible the same naming scheme for methods.
 For example:
@@ -46,6 +51,9 @@ You must create a new ~sd for each request using
 Ocsimore_common.create_sd (it is destroyed at the end).
 See for example wiki.ml.
 
+Is it really useful? Actually I use it only for few things. For most cases,
+we use a cache of sql requests.
+
 Warning: Polytables is not thread-safe. Do not use function that access ~sd
 inside Lwt_preemptive.detach!
 
@@ -70,6 +78,7 @@ If your box can contain wiki syntax,
 (for example <<div|content>>) do not forget to call
 Wiki_filter.add_preparser_extension as in Wiki_syntax.ml (div)
 to preparse the content recursively.
+(!!!Very dangerous: should be done automatically!!!)
 See examples in wiki_syntax.ml ans wiki_widgets.ml
 
  - Groups
