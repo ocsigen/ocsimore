@@ -101,6 +101,7 @@ object (self)
 
       ignore 
         (Eliom_duce.Xhtml.register_new_service
+           ~https:(Session_manager.get_secure ())
            ~path:["ocsimore";"login"]
            ~get_params:Eliom_parameters.unit
            (fun sp () () -> 
