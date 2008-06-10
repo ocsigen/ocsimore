@@ -32,7 +32,7 @@ let _ =
         let test = Accesscontrol.parse_condition s in
         Users.create_user
           ~name
-          ~pwd:None
+          ~pwd:User_sql.Connect_forbidden
           ~fullname:name
           ~email:None
           ~groups:[]

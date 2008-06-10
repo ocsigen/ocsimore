@@ -31,6 +31,11 @@ open Sql
 
 type userid = int32
 
+type pwd = 
+  | Connect_forbidden
+  | Ocsimore_user of string
+  | Pam
+
 let populate_groups db id groups =
   match groups with
     | [] -> Lwt.return ()
@@ -53,21 +58,27 @@ let populate_groups db id groups =
           groups
 
 let new_user ~name ~password ~fullname ~email ~groups ~dyn =
+  let password, authtype =
+    match password with
+      | Connect_forbidden -> None, "l"
+      | Ocsimore_user p -> (Some p), "l"
+      | Pam -> None, "p"
+  in
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   (match password, email with
      | None, None -> 
-         PGSQL(db) "INSERT INTO users (login, fullname, dyn)\
-                    VALUES ($name, $fullname, $dyn)"
+         PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
+                    VALUES ($name, $fullname, $dyn, $authtype)"
      | Some pwd, None -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname, dyn) \
-                    VALUES ($name, $pwd, $fullname, $dyn)"
+         PGSQL(db) "INSERT INTO users (login, password, fullname, dyn, authtype) \
+                    VALUES ($name, $pwd, $fullname, $dyn, $authtype)"
      | None, Some email -> 
-         PGSQL(db) "INSERT INTO users (login, fullname, email, dyn) \
-                    VALUES ($name, $fullname, $email, $dyn)"
+         PGSQL(db) "INSERT INTO users (login, fullname, email, dyn, authtype) \
+                    VALUES ($name, $fullname, $email, $dyn, $authtype)"
      | Some pwd, Some email -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn) \
-                    VALUES ($name, $pwd, $fullname, $email, $dyn)"
+         PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn, authtype) \
+                    VALUES ($name, $pwd, $fullname, $email, $dyn, $authtype)"
   ) >>= fun () -> 
   serial4 db "users_id_seq" >>= fun id ->
   populate_groups db id groups >>= fun () ->
@@ -82,13 +93,13 @@ let find_user_ ?db ?id ?name () =
        (match (name, id) with
           | (Some n, Some i) -> 
               PGSQL(db)
-                "SELECT id, login, password, fullname, email, dyn FROM users \
+                "SELECT id, login, password, fullname, email, dyn, authtype FROM users \
                  WHERE id = $i AND login = $n"
           | (None, Some i) -> 
-              PGSQL(db) "SELECT id, login, password, fullname, email, dyn \
+              PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
                          FROM users WHERE id = $i"
           | (Some n, None) -> 
-              PGSQL(db) "SELECT id, login, password, fullname, email, dyn \
+              PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
                          FROM users WHERE login = $n"
           | (None, None) -> 
               Lwt.fail (Failure
@@ -100,9 +111,17 @@ let find_user_ ?db ?id ?name () =
             Ocsigen_messages.warning
               "Ocsimore: Two users have the same name or id"; 
             Lwt.return u
-        | _ -> Lwt.fail Not_found) >>= fun ((id, _, _, _, _, _) as u) ->
+        | _ -> Lwt.fail Not_found) 
+     >>= fun (id, login, pwd, name, email, dyn, authtype) ->
      PGSQL(db) "SELECT groupid FROM userrights WHERE id = $id" >>= fun perm ->
-     Lwt.return (u, perm)
+     let password = 
+       if authtype = "p"
+       then Pam
+       else match pwd with
+         | None -> Connect_forbidden
+         | Some p -> Ocsimore_user p
+     in
+     Lwt.return ((id, login, password, name, email, dyn), perm)
     )
 
 let add_to_group_ ~userid ~groupid =
@@ -127,18 +146,24 @@ let delete_user_ ~userid =
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
 let update_data_ ~userid ~name ~password ~fullname ~email ?groups ?dyn () =
+  let password, authtype =
+    match password with
+      | Connect_forbidden -> None, "l"
+      | Ocsimore_user p -> (Some p), "l"
+      | Pam -> None, "p"
+  in
   Lwt_pool.use Sql.pool (fun db ->
   begin_work db >>= fun _ -> 
   (match password, email with
      | None, None -> 
-         PGSQL(db) "UPDATE users SET fullname = $fullname WHERE id = $userid"
+         PGSQL(db) "UPDATE users SET fullname = $fullname, email = DEFAULT, password = DEFAULT, authtype = $authtype WHERE id = $userid"
      | None, Some email -> 
-         PGSQL(db) "UPDATE users SET fullname = $fullname, email = $email WHERE id = $userid"
+         PGSQL(db) "UPDATE users SET fullname = $fullname, password = DEFAULT, email = $email, authtype = $authtype WHERE id = $userid"
 (*VVV is it ok when pwd/email becomes NULL? *)
      | Some pwd, None -> 
-         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname WHERE id = $userid"
+         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = DEFAULT, authtype = $authtype WHERE id = $userid"
      | Some pwd, Some email -> 
-         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email WHERE id = $userid"
+         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email, authtype = $authtype WHERE id = $userid"
   ) 
     >>= fun () ->
   (match dyn with

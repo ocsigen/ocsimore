@@ -1,6 +1,61 @@
 
 open Lwt
 
+(*       default_groups = [];
+       registration_mail_from = ("Ocsimore", 
+                                 "webmaster@example.jussieu.fr");
+       registration_mail_subject = "Ocsimore"
+*)
+
+let default_data = (false, None)
+
+let (pam, basicusercreation) =
+  let rec find_wikidata ((pam, basicusercreation) as data) = function
+    | [] -> Lwt.return data
+    | (Simplexmlparser.Element ("pam", [], []))::l -> 
+        find_wikidata (true, basicusercreation) l
+    | (Simplexmlparser.Element ("basicusercreation", atts, []))::l -> 
+        let registration_mail_from = 
+          try
+            List.assoc "registration_mail_from" atts
+          with Not_found -> 
+            raise
+              (Ocsigen_config.Config_file_error
+                 "Missing registration_mail_from attribute inside <basicusercreation>")
+        in
+        let registration_mail_addr = 
+          try
+            List.assoc "registration_mail_addr" atts
+          with Not_found -> 
+            raise
+              (Ocsigen_config.Config_file_error
+                 "Missing registration_mail_addr attribute inside <basicusercreation>")
+        in
+        let registration_mail_subject = 
+          try
+            List.assoc "registration_mail_subject" atts
+          with Not_found -> "Ocsimore registration"
+        in
+        (try
+          Users.group_list_of_string (List.assoc "groups" atts)
+        with Not_found -> Lwt.return [Users.authenticated_users.Users.id])
+        >>= fun default_groups ->
+        find_wikidata 
+          (pam, 
+           Some ((registration_mail_from, registration_mail_addr),
+                 registration_mail_subject, 
+                 default_groups)) 
+          l
+    | _ ->
+        Lwt.fail (Ocsigen_extensions.Error_in_config_file
+                       ("Unexpected content inside Ocsisite config"))
+  in
+  let c = Eliom_sessions.get_config () in
+  Lwt_unix.run (find_wikidata default_data c)
+
+
+
+
 
 let container ?css content =
   let css = match css with
@@ -17,23 +72,20 @@ let container ?css content =
      ]
    }}
 
-(*
-class login_widget ~sessman =
+
+class login_widget_basic_user_creation ~sessman data =
 object (self)
 
-  inherit User_widgets.login_widget ~sessman
-(*VVV or login_widget_basic_user_creation, etc. make this configurable *)
-(*       default_groups = [];
-       registration_mail_from = ("Ocsimore", 
-                                 "webmaster@example.jussieu.fr");
-       registration_mail_subject = "Ocsimore"
-*)
-(*
+  inherit User_widgets.login_widget_basic_user_creation ~sessman data
+
+
   method container ~sp ~sd ~contents = Lwt.return (container contents)
-*)
+
 
 end;;
-*)
+
+
+
 class creole_wikibox () = object
   inherit Wiki_widgets.editable_wikibox ()
 
@@ -51,13 +103,23 @@ let wikibox =
        administrator = Users.admin;
        login_actions = (fun sp sess -> return ());
        logout_actions = (fun sp -> return ());
-
      }
      in
-     let sm = new Session_manager.sessionmanager sminfo in
+     let sm = 
+       if pam
+       then new Session_manager.sessionmanager_pam sminfo 
+       else new Session_manager.sessionmanager sminfo 
+     in
 
      (* widgets creation: *)
-     let _ = new User_widgets.login_widget sm in
+     (match basicusercreation with
+       | Some data ->
+           let _ = new User_widgets.login_widget_basic_user_creation sm data in
+           ()
+       | None -> 
+           let _ = new User_widgets.login_widget sm in
+           ());
+
      let mywikibox = new creole_wikibox () in
      (* all widgets created *)
 

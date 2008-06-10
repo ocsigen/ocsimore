@@ -4,6 +4,7 @@
  - ocamlduce
  - ocsigen and eliom with compiled ocamlduce support
  - pgocaml with lwt support
+ - ocamlpam
 
 2. Run 
 

@@ -27,11 +27,16 @@
     <extension findlib-package="ocsigen_ext.eliom_duce"/>
     <extension findlib-package="ocsigen_ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
+    <extension findlib-package="pam"/>
     <extension module="/path-to/ocsimore.cma"/>
 
     <host>
       <static dir="/path_to/ocsimore/static" />
-      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo"/>
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+        <!-- optional arguments: -->
+        <pam/>
+        <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>
+      </eliom>
       <eliom module="/path_to/ocsiwiki.cmo">
         <name>My wiki</name>
         <path>/</path>

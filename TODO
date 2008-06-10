@@ -39,7 +39,8 @@ TODO
  - session data: the mechnanism is too complex, dangerous (we must think to 
  keep it up to date) and not really useful for now.
  Remove it completely and rely on global cache?
-
+ - warning: if we load ocsisite several times in the same site, it will fail.
+ Is it a problem? Can we write a better error message?
 
 How to make sure that:
  - user information is taken only once, for example role in the wiki, 
@@ -80,7 +81,10 @@ Wiki:
 
 Users:
  - encryption of password for the db
- - using PAM or LDAP for authentication
+ - PAM or LDAP: not really clean,
+ modularize (use objects?)
+ make this configurable from config file,
+ implement LDAP.
  - All groups are kept in memory. Not good if too much users.
 
 User widgets:
@@ -92,6 +96,9 @@ User widgets:
 (and create an account) only when necessary, for example if the users 
 want to perform an action that is not possible without beeing connected. 
 Avoid a large registration form to fill before beeing able to do anything ...
+ - there is a version of the class login_widget with registration of
+ users, called login_widget_basic_user_creation. Make possible to choose
+ which one we want from config file of ocsisite.
 
 Session manager:
  - clean everything

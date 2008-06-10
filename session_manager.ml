@@ -167,6 +167,84 @@ let connect sm srv container
       )
   end
 
+let pam_auth ~name ~pwd =
+  Lwt_preemptive.detach
+    (fun () ->
+       try
+         let pam = Pam.pam_start "" ~user:name (fun _ _ -> pwd) in
+         Pam.pam_authenticate pam [] ~silent:true;
+         ignore (Pam.pam_end pam)
+       with Pam.Pam_Error _ -> raise Users.BadPassword
+    )
+    ()
+
+class sessionmanager_pam ~(sessionmanagerinfo: sessionmanager_in) =
+object
+  inherit sessionmanager sessionmanagerinfo
+
+  method private mk_act_login sp () (usr, pwd) =
+    all_logout_actions sp >>= fun () -> 
+    close_session ~sp () >>= fun () -> 
+    Lwt.catch
+      (fun () -> 
+         Lwt.catch
+           (fun () -> Users.authenticate ~name:usr ~pwd)
+           (function
+              | Users.UsePam u -> 
+                  (* check PAM pwd *)
+                  pam_auth ~name:usr ~pwd >>= fun () ->
+                  Lwt.return u
+              | Users.BadUser -> 
+                  (* check PAM pwd, and create user if ok *)
+                  pam_auth ~name:usr ~pwd >>= fun () ->
+                  Users.create_user
+                    ~name:usr
+                    ~pwd:User_sql.Pam
+                    ~fullname:usr
+                    ~email:None
+                    ~groups:[Users.authenticated_users.Users.id]
+                    ()
+              | e -> Lwt.fail e)
+         >>= fun user -> 
+         let sd = Ocsimore_common.create_empty_sd () in
+         Users.set_session_data sp sd user >>= fun () -> 
+         all_login_actions sp user >>= fun () ->
+         Lwt.return [Ocsimore_common.Session_data sd]) 
+      (fun e -> return [e])
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(*VVV What is it?????? : *)
 (*
   let act_add_parameter = 
     new_post_coservice'

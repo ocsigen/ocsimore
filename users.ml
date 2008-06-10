@@ -31,7 +31,7 @@ let (>>=) = Lwt.bind
 type userdata = 
     { id: User_sql.userid;
       name: string;
-      mutable pwd: string option;
+      mutable pwd: User_sql.pwd;
       mutable fullname: string;
       mutable email: string option;
       dyn: bool;
@@ -39,6 +39,8 @@ type userdata =
       
 exception NotAllowed
 exception BadPassword
+exception BadUser
+exception UsePam of userdata
 exception Users_error of string
 
 
@@ -60,7 +62,7 @@ let create_anonymous () =
        | Not_found ->
            (User_sql.new_user 
               ~name:"anonymous" 
-              ~password:None
+              ~password:User_sql.Connect_forbidden
               ~fullname:"Anonymous"
               ~email:None
               ~groups:[]
@@ -68,7 +70,7 @@ let create_anonymous () =
             >>= fun i ->
            Lwt.return { id = i;
                         name = "anonymous"; 
-                        pwd = None; 
+                        pwd = User_sql.Connect_forbidden; 
                         fullname = "Anonymous"; 
                         email = None;
                         dyn = false;
@@ -84,7 +86,7 @@ let create_nobody () =
        | Not_found ->
            (User_sql.new_user 
               ~name:"nobody" 
-              ~password:None
+              ~password:User_sql.Connect_forbidden
               ~fullname:"Nobody"
               ~email:None
               ~groups:[]
@@ -92,7 +94,7 @@ let create_nobody () =
             >>= fun i ->
            Lwt.return { id = i;
                         name = "nobody"; 
-                        pwd = None; 
+                        pwd = User_sql.Connect_forbidden; 
                         fullname = "Nobody"; 
                         email = None;
                         dyn = false;
@@ -108,7 +110,7 @@ let create_users_group () =
        | Not_found ->
            (User_sql.new_user 
               ~name:"users" 
-              ~password:None
+              ~password:User_sql.Connect_forbidden
               ~fullname:"Users"
               ~email:None
               ~groups:[anonymous.id]
@@ -116,7 +118,7 @@ let create_users_group () =
             >>= fun i ->
            Lwt.return { id = i;
                         name = "users"; 
-                        pwd = None; 
+                        pwd = User_sql.Connect_forbidden; 
                         fullname = "Users"; 
                         email = None;
                         dyn = false;
@@ -173,7 +175,7 @@ let create_admin () =
            let email = ask_email () in
            (User_sql.new_user 
               ~name:"admin" 
-              ~password:(Some pwd)
+              ~password:(User_sql.Ocsimore_user pwd)
               ~fullname:"Admin"
               ~email:(Some email)
               ~groups:[]
@@ -181,7 +183,7 @@ let create_admin () =
             >>= fun i ->
            Lwt.return { id = i;
                         name = "admin"; 
-                        pwd = Some pwd; 
+                        pwd = User_sql.Ocsimore_user pwd; 
                         fullname = "Admin"; 
                         email = Some email;
                         dyn = false;
@@ -284,7 +286,8 @@ let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
   if (u = nobody) && (name != nobody.name)
   then begin (* the user does not exist *)
     let groups =
-      if pwd = None || List.mem authenticated_users.id groups
+      if pwd = User_sql.Connect_forbidden
+        || List.mem authenticated_users.id groups
       then groups
       else authenticated_users.id::groups
     in
@@ -352,9 +355,16 @@ let update_user_data ~user
 
 let authenticate ~name ~pwd =
   get_user_by_name name >>= fun u -> 
-  if u.pwd = (Some pwd) 
-  then Lwt.return u
-  else Lwt.fail BadPassword
+  if (u = nobody)
+  then Lwt.fail BadUser
+  else
+    if u.pwd = User_sql.Pam
+    then Lwt.fail (UsePam  u)
+(*VVV Mouaif *)
+    else 
+      if u.pwd = User_sql.Ocsimore_user pwd
+      then Lwt.return u
+      else Lwt.fail BadPassword
 
 
 

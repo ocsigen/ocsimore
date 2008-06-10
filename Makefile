@@ -59,8 +59,8 @@ PP = -pp "$(CAMLP4O) -I $(shell ocamlfind query extlib) \
 	pgocaml.cma pa_pgsql.cmo -loc loc"
 #PP=-syntax camlp4o
 
-PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen
-LINKPKG = -package calendar,lwt,ocsigen,pgocaml
+PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen,pam
+#LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
 .PHONY: all depend clean
 

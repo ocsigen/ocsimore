@@ -19,9 +19,14 @@
 (** The abstract type of user ids *)
 type userid = int32
 
+type pwd = 
+  | Connect_forbidden
+  | Ocsimore_user of string
+  | Pam
+
 val new_user: 
   name:string -> 
-  password:string option -> 
+  password:pwd -> 
   fullname:string -> 
   email:string option -> 
   groups:userid list ->
@@ -41,13 +46,13 @@ val find_user_:
   ?id:userid -> 
   ?name:string -> 
   unit -> 
-  ((userid * string * string option * string * string option * bool) * 
+  ((userid * string * pwd * string * string option * bool) * 
      userid list) Lwt.t
 
 val update_data_: 
   userid:userid -> 
   name:string -> 
-  password:string option -> 
+  password:pwd -> 
   fullname:string -> 
   email:string option -> 
   ?groups:userid list ->

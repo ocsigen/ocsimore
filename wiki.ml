@@ -148,7 +148,7 @@ let new_wikibox ~wiki ~author ~comment ~content
 let create_group_ name fullname =
   Users.create_user 
     ~name
-    ~pwd:None
+    ~pwd:User_sql.Connect_forbidden
     ~fullname
     ~email:None
     ~groups:[]

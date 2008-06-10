@@ -18,7 +18,7 @@ type userdata =
     private
       { id: User_sql.userid;
         name: string;
-        mutable pwd: string option;
+        mutable pwd: User_sql.pwd;
         mutable fullname: string;
         mutable email: string option;
         dyn: bool;
@@ -27,6 +27,8 @@ type userdata =
 
 exception NotAllowed
 exception BadPassword
+exception BadUser
+exception UsePam of userdata
 
 (** Non atuthenticated users *)
 val anonymous : userdata
@@ -51,7 +53,7 @@ val get_user_by_id : id:int32 -> userdata Lwt.t
     Raises {!Users.UserExists} if [name] is already present. *)
 val create_user: 
   name:string -> 
-  pwd:string option -> 
+  pwd:User_sql.pwd -> 
   fullname:string -> 
   email:string option -> 
   groups: User_sql.userid list ->
@@ -62,7 +64,7 @@ val create_user:
 
 val create_unique_user: 
   name:string -> 
-  pwd:string option -> 
+  pwd:User_sql.pwd -> 
   fullname:string -> 
   email:string option -> 
   groups: User_sql.userid list ->
@@ -72,7 +74,7 @@ val delete_user : userid:User_sql.userid -> unit Lwt.t
 
 val update_user_data: 
   user:userdata -> 
-  ?pwd:string option -> 
+  ?pwd:User_sql.pwd -> 
   ?fullname:string -> 
   ?email:string option -> 
   ?groups: User_sql.userid list ->

@@ -39,7 +39,7 @@ type sessionmanager_in =
 
 
       
-class sessionmanager: sessionmanagerinfo: sessionmanager_in ->
+class sessionmanager : sessionmanagerinfo: sessionmanager_in ->
 object
 
   method act_login: 
@@ -94,3 +94,7 @@ val connect:
     Eliom_duce.Xhtml.page Lwt.t) ->
   ('get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list)
   -> unit
+
+
+class sessionmanager_pam : sessionmanagerinfo: sessionmanager_in ->
+  sessionmanager

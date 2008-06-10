@@ -5,10 +5,11 @@
 CREATE TABLE users (
     id serial PRIMARY KEY,
     login text NOT NULL,
-    password text,
+    password text, -- NULL when authtype='l' => no connection possible (this is a group)
     fullname text NOT NULL,
     email text,
-    dyn boolean NOT NULL
+    dyn boolean NOT NULL,
+    authtype char NOT NULL -- 'p' for PAM, 'l' for local
 );
 
 

@@ -43,7 +43,7 @@ module IUserCache = Cache.Make (struct
                           type key = int32 
                           type value = (User_sql.userid * 
                                           string * 
-                                          string option * 
+                                          User_sql.pwd * 
                                           string * 
                                           string option *
                                           bool) *
@@ -54,7 +54,7 @@ module NUserCache = Cache.Make (struct
                           type key = string
                           type value = (User_sql.userid * 
                                           string * 
-                                          string option * 
+                                          User_sql.pwd * 
                                           string * 
                                           string option *
                                           bool) *

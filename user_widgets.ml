@@ -70,8 +70,9 @@ object (self)
                    (fun _ -> self#display_logout_box sp u) ()
                else
                  let exn = Eliom_sessions.get_exn sp in
-                 if List.mem Users.BadPassword exn
-(*VVV and no such user??? *)
+                 if List.exists 
+                   (fun e -> e = Users.BadPassword || e = Users.BadUser)
+                   exn
                  then (* unsuccessful attempt *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox error"} }}
@@ -221,8 +222,9 @@ let mail_password ~name ~from_addr ~subject =
                         ^ "Your account is:\n"
                         ^ "\tUsername:\t" ^ name ^ "\n"
                         ^ "\tPassword:\t" ^ (match user.Users.pwd with 
-                                               | Some p -> p
-                                               | _ -> "(NONE)")
+                                               | User_sql.Ocsimore_user p -> p
+                                               | User_sql.Pam -> "(PAM password)"
+                                               | User_sql.Connect_forbidden -> "(connection forbidden)")
                         ^ "\n"));
                   true
               | None -> false) ())
@@ -237,7 +239,7 @@ let generate_password () =
     for i = 0 to 7 do
       pwd.[i] <- String.get chars (Random.int (10+2*26))
     done;
-    Some pwd
+    User_sql.Ocsimore_user pwd
 
 
 
@@ -344,7 +346,7 @@ object (self)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     Lwt.return {{ 
               <html>[
-                <head>[<title>"Temporary title"]
+                <head>[<title>"Ocsimore default login widget"]
                 <body>{: contents :}
               ]
             }}
@@ -548,7 +550,7 @@ object (self)
          ignore (if pwd = ""
                  then Users.update_user_data ~user ~fullname ~email ()
                  else Users.update_user_data ~user ~fullname ~email
-                   ~pwd:(Some pwd) ());
+                   ~pwd:(User_sql.Ocsimore_user pwd) ());
          Users.set_session_data sp sd user >>= fun () ->
          self#container
            ~sp
