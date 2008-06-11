@@ -378,6 +378,11 @@ let _ =
          | None -> ""
        in
        (match args with
+         | [("error", "autherror")] -> 
+             Lwt.return
+               (List.exists 
+                  (fun e -> e = Users.BadPassword || e = Users.BadUser)
+                  (Eliom_sessions.get_exn sp))
          | [("ingroup", g)] -> 
              Users.get_user_id_by_name g >>= fun group ->
              Users.in_group ~sp ~sd ~group ()

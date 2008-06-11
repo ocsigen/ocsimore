@@ -210,6 +210,8 @@ object
                     ~name:usr
                     ~pwd:User_sql.Pam
                     ~fullname:usr
+(*VVV Can we get the full name from PAM? 
+  If yes, do we need to actualize it every time the user connects? *)
                     ~email:None
                     ~groups:[Users.authenticated_users.Users.id]
                     ()

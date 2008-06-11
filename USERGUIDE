@@ -41,12 +41,15 @@ displays the string  "<<arg1='value1' arg2='value2' | data >>"
 Conditional display w.r.t. groups: (EXPERIMENTAL)
 <<cond ingroup='users'|data>>
 <<cond notingroup='users'|data>>
+<<cond error='autherror'|data>> (wrong user or password)
 
 <<username>> displays the name of the user.
 
 <<link wiki='...' href='...'|...>> is like [[...|...]] for internal links,
 but allows links towards other wikis.
 The wiki argument is optional.
+other optional argument: protocol='https' or protocol='http'
+(will create absolute links)
 
 <<nonattachedlink wiki='...' href='...'|...>> is like [[...|...]] 
 for internal links,
@@ -54,6 +57,8 @@ but instead of using a link towards another page, it uses a non-attached
 service (i.e. the path in the URL won't change, only parameters).
 Use this if you do not want to go to another URL.
 The wiki argument is optional.
+other optional argument: protocol='https' or protocol='http'
+(will create absolute links)
 
 
 
