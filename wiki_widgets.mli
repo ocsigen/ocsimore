@@ -137,6 +137,7 @@ class editable_wikibox :
       classe:string list ->
       ?service:menu_item ->
       ?cssmenu:string option ->
+      ?title:string ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       Wiki_sql.wiki * int32 -> 

@@ -351,7 +351,8 @@ object (self)
     | Wiki.Operation_not_allowed -> "Operation not allowed"
     | Wiki.Action_failed e -> "Action failed"
 
-   method private box_menu ?(perm = false) ?cssmenu ?service 
+   method private box_menu ~sp ?(perm = false) ?cssmenu ?service 
+     ?(title = "")
      ((wiki, _) as ids) =
      let history = Eliom_services.preapply action_wikibox_history 
        (ids, (None, None)) 
@@ -410,20 +411,27 @@ object (self)
        | Some (_, mi) -> mi::l
        | None -> l
      in
-     Eliom_duce_tools.menu
-       ~classe:[box_button_class]
-       (history, {{ "history" }})
-       l
-       ?service
+     let title = Ocamlduce.Utf8.make title in
+     {{ [ {: Eliom_duce_tools.menu
+             ~sp
+             ~classe:[box_button_class]
+             (history, {{ "history" }})
+             l
+             ?service
+             :}
+          <p class={: box_title_class :}>title
+        ]
+      }}
 
-   method display_menu_box ~classe ?service ?cssmenu ~sp ~sd ids content =
+   method display_menu_box 
+     ~classe ?service ?cssmenu ?title ~sp ~sd ids content =
      let classe = Ocsimore_lib.build_class_attr classe in
      Wiki.get_role ~sp ~sd ids >>= fun role ->
      let perm = role = Wiki.Admin in
      Lwt.return
-       {{ <div class={: classe :}>
-            [ {: self#box_menu ~perm ?cssmenu ?service ids ~sp :}
-              <div>content ] }}
+       {{ <div class={: classe :}>[
+            !{: self#box_menu ~sp ~perm ?cssmenu ?service ?title ids :}
+            <div>content ]}}
      
    method display_edit_form
      ~sp
@@ -634,16 +642,16 @@ object (self)
      ?cssmenu
      content
      =
-     let title = "Wiki "^Int32.to_string w^", box "^Int32.to_string b in
+     let title = "Edit - Wiki "^Int32.to_string w^", box "^Int32.to_string b in
      self#display_menu_box
        ~classe:(editform_class::classe)
        ~service:Edit
+       ~title
        ~sp
        ~sd
        ?cssmenu 
        ids
-       {{ [ <p class={: box_title_class :}>{: title :}
-              !content ] }}
+       content
 
    method display_edit_perm
      ~sp
@@ -659,12 +667,12 @@ object (self)
      self#display_menu_box
        ~classe:(editform_class::classe)
        ~service:Edit_perm
+       ~title
        ~sp
        ~sd
        ?cssmenu 
        ids
-       {{ [ <p class={: box_title_class :}>{: title :}
-              !content ] }}
+       content
 
    method display_editable_box ~sp ~sd ids ~classe ?cssmenu content =
      self#display_menu_box 
@@ -685,26 +693,28 @@ object (self)
 
    method display_old_wikibox ~sp ~sd 
      ((w, b) as ids) version ~classe ?cssmenu content =
-     let title = "Wiki "^Int32.to_string w^", box "^Int32.to_string b^
+     let title = "Old version - Wiki "^Int32.to_string w^", box "^Int32.to_string b^
        ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(oldwikibox_class::classe)
+       ~title
        ~sp
        ~sd
        ?cssmenu 
        ids
-       {{ [ <p class={: box_title_class :}>{: title :}
-              !content ] }}
+       content
 
-   method display_src_wikibox ~sp ~sd ids version ~classe ?cssmenu content =
-     let title = "Version "^Int32.to_string version in
+   method display_src_wikibox ~sp ~sd ((w, b) as ids)
+     version ~classe ?cssmenu content =
+     let title = "Source - Wiki "^Int32.to_string w^", box "^Int32.to_string b^
+       ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(srcwikibox_class::classe)
        ~sp ~sd
        ?cssmenu 
+       ~title
        ids
-       {{ [ <p class={: box_title_class :}>{: title :}
-            !content ] }}
+       content
 
    method private retrieve_history ~sp (wiki_id, message_id) ?first ?last () =
      Wiki_sql.get_history wiki_id message_id
@@ -762,10 +772,14 @@ object (self)
         }}
 *)
 
-   method display_history_box ~sp ~sd ids ~classe ?cssmenu content =
+   method display_history_box ~sp ~sd ((w, b) as ids) ~classe ?cssmenu content =
+     let title = 
+       "History - Wiki "^Int32.to_string w^", box "^Int32.to_string b
+     in
      self#display_menu_box
        ~classe:(history_class::classe)
        ~service:History
+       ~title
        ~sp ~sd
        ?cssmenu 
        ids
@@ -970,12 +984,12 @@ object (self)
      self#display_menu_box
        ~classe:(css_class::editable_class::classe)
        ~service:Edit_css
+       ~title
        ~sp
        ~sd
        ?cssmenu
        ids
-       {{ [ <p class={: box_title_class :}>{: title :}
-              !content ] }}
+       content
 
    method edit_css_box
      ~sp
@@ -1024,16 +1038,12 @@ object (self)
      self#display_menu_box
        ~classe:(css_class::editable_class::classe)
        ~service:Edit_css
+       ~title
        ~sp
        ~sd
        ?cssmenu
        ids
-       {{ [ <p class={: box_title_class :}>{: title :}
-              !content ] }}
-(*     Lwt.return
-       {{ <div class={: css_class :}>[<p class={: box_title_class :}>{: title :}
-                                         !content ] }}
-*)
+       content
 
        
    method display_edit_wikicss_form
@@ -1112,7 +1122,7 @@ object (self)
        Eliom_duce.Xhtml.css_link 
          (Eliom_duce.Xhtml.make_uri
             (Eliom_services.static_dir sp) 
-            sp ["style.css"]) ()
+            sp ["ocsiwikistyle.css"]) ()
 (*VVV CSS? *)
      in
      Lwt.catch
