@@ -228,13 +228,14 @@ let display_page w wikibox action_create_page sp page () =
       wikibox#get_css_header ~sp ~wiki:w.id ?page:(Some page) ()
 
       >>= fun css ->
+      let title = Ocamlduce.Utf8.make w.title in
       Lwt.return
         {{
            <html>[
              <head>[
-               <title>"Ocsimore administration"
+               <title>title
                  !css
-    (*VVV quel css ? quel layout de page ? *)
+    (*VVV quel titre ? quel layout de page ? *)
              ]
              <body>[ pagecontent ]
            ]

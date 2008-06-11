@@ -1368,7 +1368,7 @@ object (self)
             self#edit_css_box ~sp ~sd ~data:g () >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
               ~ancestors:Wiki_syntax.no_ancestors
-              ~data:(wiki, Wiki.wikiadmin_container_id)
+              ~data:(wiki, Wiki.wikipage_container_id)
               ?cssmenu:(Some None)
               ~subbox:{{ [ subbox ] }} () >>= fun pagecontent ->
             self#get_css_header ~sp ~wiki ?page:(Some page) () >>= fun css ->
