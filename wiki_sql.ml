@@ -347,7 +347,7 @@ let set_box_for_page_ ~wiki ~id ~page =
   Lwt_pool.use 
     Sql.pool
     (fun db -> 
-       PGSQL(db) "DELETE FROM wikipages WHERE pagename = $page" 
+       PGSQL(db) "DELETE FROM wikipages WHERE wiki=$wiki AND pagename = $page" 
        >>= fun () ->
        PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $id, $page)"
     )
