@@ -78,6 +78,7 @@ Wiki:
  work inside this page!!!!!!!!!!!
  To fix this, we probably need a new feature in Eliom:
  "non-attached parameters"???
+ - Revoir la partie dynamique de la wikisyntaxe <<cond>> etc ...
 
 Users:
  - encryption of password for the db

@@ -104,6 +104,8 @@ let inline (x : Xhtmltypes_duce.a_content)
     : Xhtmltypes_duce.inlines
     = {{ {: [ x ] :} }}
 
+let absolute_link_regexp = Netstring_pcre.regexp "[a-z|A-Z|0-9]+:"
+
 let builder wiki_id =
   let servpage = find_servpage wiki_id in
   { W.chars = make_string;
@@ -121,12 +123,15 @@ let builder wiki_id =
              {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
     W.make_href =
       (fun sp addr ->
-         let addr =
-           Ocsigen_lib.remove_slash_at_end
-             (Ocsigen_lib.remove_slash_at_beginning
-                (Ocsigen_lib.remove_dotdot (Neturl.split_path addr)))
-         in
-         Eliom_predefmod.Xhtml.make_string_uri servpage sp addr);
+         match Netstring_pcre.string_match absolute_link_regexp addr 0 with
+           | None ->
+               let addr =
+                 Ocsigen_lib.remove_slash_at_end
+                   (Ocsigen_lib.remove_slash_at_beginning
+                      (Ocsigen_lib.remove_dotdot (Neturl.split_path addr)))
+               in
+               Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
+           | _ -> addr);
     W.br_elem = (fun () -> Lwt.return {{ [<br>[]] }});
     W.img_elem =
       (fun addr alt -> 

@@ -1265,7 +1265,7 @@ object (self)
         (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
            let href = 
              try 
-               List.assoc "href" args
+               List.assoc "page" args
              with Not_found -> ""
            in
            let https = 
@@ -1308,7 +1308,7 @@ object (self)
         (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
            let href = 
              try 
-               List.assoc "href" args
+               List.assoc "page" args
              with Not_found -> ""
            in
            let https = 
