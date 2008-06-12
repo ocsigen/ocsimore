@@ -32,19 +32,26 @@ object (self)
     
   val xhtml_class = "logbox"
 
-  method private display_login_box sp error usr pwd =
+  method private display_login_box 
+    ?(user_prompt= "login:")
+    ?(pwd_prompt= "password:")
+    ?(auth_error= "Wrong login or password")
+    ~sp error usr pwd =
+    let user_prompt = Ocamlduce.Utf8.make user_prompt in
+    let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
+    let auth_error = Ocamlduce.Utf8.make auth_error in
     {{ [<table>([
-                  <tr>[<td>"Username:" 
+                  <tr>[<td>user_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                 ~input_type:{:"text":} ~name:usr () :}]]
-                  <tr>[<td>"Password:" 
+                  <tr>[<td>pwd_prompt 
                        <td>[{: Eliom_duce.Xhtml.string_input
                                ~input_type:{:"password":} ~name:pwd () :}]]
                   <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                                ~input_type:{:"submit":} ~value:"Login" () :}]]
                 ] @
                   {: if error then
-                     {{ [<tr>[<td colspan="2">"Wrong login or password"]
+                     {{ [<tr>[<td colspan="2">auth_error]
                         ] }}
                    else
                      {{ [] }} :})] }}
@@ -56,7 +63,7 @@ object (self)
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
          ]] }}
         
-  method display_login_widget ~sp ~sd =
+  method display_login_widget ?user_prompt ?pwd_prompt ?auth_error ~sp ~sd () =
     Users.get_user_data sp sd >>= fun u ->
     Users.is_logged_on sp sd >>= fun logged ->
     Lwt.return 
@@ -80,14 +87,18 @@ object (self)
                        ~service:sessman#act_login
                        ~sp
                        (fun (usr, pwd) ->
-                          (self#display_login_box sp true usr pwd)) ()
+                          (self#display_login_box 
+                             ?user_prompt ?pwd_prompt ?auth_error
+                             ~sp true usr pwd)) ()
                  else (* no login attempt yet *)
                      Eliom_duce.Xhtml.post_form
                        ~a:{{ {class="logbox notlogged"} }}
                        ~service:sessman#act_login
                        ~sp
                        (fun (usr, pwd) ->
-                          (self#display_login_box sp false usr pwd)) () 
+                          (self#display_login_box
+                             ?user_prompt ?pwd_prompt ?auth_error
+                             ~sp false usr pwd)) () 
                        :}] 
        }}
 
@@ -96,7 +107,12 @@ object (self)
 
       Wiki_syntax.add_block_extension "loginbox"
         (fun _ (sp, sd, subbox) args c -> 
-           self#display_login_widget ~sp ~sd >>= fun b ->
+           let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
+           let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
+           let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
+           self#display_login_widget
+             ?user_prompt ?pwd_prompt ?auth_error 
+             ~sp ~sd () >>= fun b ->
            Lwt.return {{ [ b ] }});
 
       ignore 
@@ -106,7 +122,7 @@ object (self)
            ~get_params:Eliom_parameters.unit
            (fun sp () () -> 
               let sd = Ocsimore_common.get_sd sp in
-              self#display_login_widget ~sp ~sd >>= fun lb ->
+              self#display_login_widget ~sp ~sd () >>= fun lb ->
               Lwt.return
                 {{
                    <html>[
@@ -283,12 +299,20 @@ object (self)
 
   inherit login_widget sessman
 
-  method private display_login_box sp error usr pwd =
+  method private display_login_box
+    ?(user_prompt= "login:")
+    ?(pwd_prompt= "password:")
+    ?(auth_error= "Wrong login or password")
+    ~sp error usr pwd =
+    let user_prompt = Ocamlduce.Utf8.make user_prompt in
+    let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
+    let auth_error = Ocamlduce.Utf8.make auth_error in
+(*VVV How to personalize every message??? or at least internationalize *)
     {{ [<table>([
-                  <tr>[<td>"Username:" 
+                  <tr>[<td>user_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                 ~input_type:{:"text":} ~name:usr () :}]]
-                  <tr>[<td>"Password:" 
+                  <tr>[<td>pwd_prompt 
                        <td>[{: Eliom_duce.Xhtml.string_input
                                ~input_type:{:"password":} ~name:pwd () :}]]
                   <tr>[<td>[{: Eliom_duce.Xhtml.string_input
@@ -297,7 +321,7 @@ object (self)
                           {: Eliom_duce.Xhtml.a self#srv_register
                              sp {{ "New user? Register now!" }} () :}]]] @
                   {: if error then
-                     {{ [<tr>[<td colspan="2">"Wrong login or password"]
+                     {{ [<tr>[<td colspan="2">auth_error]
                           <tr>[<td colspan="2">[
                                   {: Eliom_duce.Xhtml.a self#srv_reminder sp
                                      {{ "Forgot your password?" }} () :}]]] }}

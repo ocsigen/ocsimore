@@ -26,9 +26,13 @@
 class login_widget: sessman:Session_manager.sessionmanager ->
 object
 
-  method display_login_widget : 
+  method display_login_widget :
+    ?user_prompt:Ocamlduce.Utf8.repr ->
+    ?pwd_prompt:Ocamlduce.Utf8.repr ->
+    ?auth_error:Ocamlduce.Utf8.repr ->
     sp:Eliom_sessions.server_params -> 
     sd:Ocsimore_common.session_data -> 
+    unit ->
     Xhtmltypes_duce._div Lwt.t
 
 end;;

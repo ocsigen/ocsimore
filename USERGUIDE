@@ -29,6 +29,10 @@ displays a menu
 
 <<loginbox>>
 displays a login box
+Optional parameters:
+user_prompt='login:'
+pwd_prompt='pwd:'
+auth_error='Wrong login or password'
 
 <<logoutlink>>
 <<logoutbutton>>

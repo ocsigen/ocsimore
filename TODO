@@ -70,7 +70,7 @@ Wiki:
  - Most of options for ocsiwiki in ocsigen.conf have effect only the first
  time (when the wiki is not created). We should better: either give the 
  possibility to change the values from the config file (more difficult) or
- remove these config options and rely on defaults and a admin page
+ remove these config options and rely on defaults and an admin page
  to change rights (but for now that page does not exist, 
  so I leave this as this).
  - There is an experimental non-attached service that displays wikipages
