@@ -145,12 +145,10 @@ object (self)
     begin
       Actions.register internal_act_login self#mk_act_login;
       Actions.register internal_act_logout self#mk_act_logout;
-      Redirections.register internal_act_logout_get
+      Redirection.register internal_act_logout_get
         (fun sp () () ->
            ignore (self#mk_act_logout sp () ());
-           Lwt.return
-             (Eliom_predefmod.Xhtml.make_full_uri
-                Eliom_services.void_action sp ())
+           Lwt.return Eliom_services.void_action
         );
     end
 
