@@ -176,18 +176,18 @@ let connect sm srv container
       )
   end
 
-let pam_auth ~name ~pwd =
+let pam_auth ?(service = "") ~name ~pwd () =
   Lwt_preemptive.detach
     (fun () ->
        try
-         let pam = Pam.pam_start "" ~user:name (fun _ _ -> pwd) in
+         let pam = Pam.pam_start service ~user:name (fun _ _ -> pwd) in
          Pam.pam_authenticate pam [] ~silent:true;
          ignore (Pam.pam_end pam)
        with Pam.Pam_Error _ -> raise Users.BadPassword
     )
     ()
 
-class sessionmanager_pam ~(sessionmanagerinfo: sessionmanager_in) =
+class sessionmanager_pam pam_service ~(sessionmanagerinfo: sessionmanager_in) =
 object
   inherit sessionmanager sessionmanagerinfo
 
@@ -201,11 +201,11 @@ object
            (function
               | Users.UsePam u -> 
                   (* check PAM pwd *)
-                  pam_auth ~name:usr ~pwd >>= fun () ->
+                  pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Lwt.return u
               | Users.BadUser -> 
                   (* check PAM pwd, and create user if ok *)
-                  pam_auth ~name:usr ~pwd >>= fun () ->
+                  pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Users.create_user
                     ~name:usr
                     ~pwd:User_sql.Pam

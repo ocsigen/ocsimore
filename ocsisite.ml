@@ -7,13 +7,15 @@ open Lwt
        registration_mail_subject = "Ocsimore"
 *)
 
-let default_data = (false, None)
+let default_data = (None, None)
 
 let (pam, basicusercreation) =
   let rec find_wikidata ((pam, basicusercreation) as data) = function
     | [] -> Lwt.return data
+    | (Simplexmlparser.Element ("pam", ["service", s], []))::l -> 
+        find_wikidata (Some (Some s), basicusercreation) l
     | (Simplexmlparser.Element ("pam", [], []))::l -> 
-        find_wikidata (true, basicusercreation) l
+        find_wikidata (Some None, basicusercreation) l
     | (Simplexmlparser.Element ("notsecure", [], []))::l -> 
         Session_manager.set_secure false;
         find_wikidata data l
@@ -108,9 +110,10 @@ let wikibox =
      }
      in
      let sm = 
-       if pam
-       then new Session_manager.sessionmanager_pam sminfo 
-       else new Session_manager.sessionmanager sminfo 
+       match pam with
+         | Some pam_service -> 
+             new Session_manager.sessionmanager_pam pam_service sminfo
+         | None -> new Session_manager.sessionmanager sminfo 
      in
 
      (* widgets creation: *)

@@ -99,5 +99,7 @@ val connect:
   -> unit
 
 
-class sessionmanager_pam : sessionmanagerinfo: sessionmanager_in ->
+class sessionmanager_pam : 
+  string option ->
+  sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
