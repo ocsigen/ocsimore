@@ -2,8 +2,10 @@ include Makefile.config
 
 ifeq "$(PAM)" "YES"
 PAM= ocsimore_pam.ml
+PAMPACKAGE=,pam
 else
 PAM=
+PAMPACKAGE=
 endif
 
 CAMLLEX = ocamllex
@@ -65,7 +67,7 @@ PP = -pp "$(CAMLP4O) -I $(shell ocamlfind query extlib) \
 	pgocaml.cma pa_pgsql.cmo -loc loc"
 #PP=-syntax camlp4o
 
-PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen,pam
+PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 #LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
 .PHONY: all depend clean
