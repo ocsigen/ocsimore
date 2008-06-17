@@ -174,16 +174,12 @@ let connect sm srv container
       )
   end
 
-let pam_auth ?(service = "") ~name ~pwd () =
-  Lwt_preemptive.detach
-    (fun () ->
-       try
-         let pam = Pam.pam_start service ~user:name (fun _ _ -> pwd) in
-         Pam.pam_authenticate pam [] ~silent:true;
-         ignore (Pam.pam_end pam)
-       with Pam.Pam_Error _ -> raise Users.BadPassword
-    )
-    ()
+let pam_auth = 
+  ref (fun ?(service : string option) ~name ~pwd () -> 
+         Ocsigen_messages.warning "Ocsimore_pam not loaded";
+         raise Users.BadUser)
+
+let set_pam_auth f = pam_auth := f
 
 class sessionmanager_pam pam_service ~(sessionmanagerinfo: sessionmanager_in) =
 object
@@ -199,11 +195,11 @@ object
            (function
               | Users.UsePam u -> 
                   (* check PAM pwd *)
-                  pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
+                  !pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Lwt.return u
               | Users.BadUser -> 
                   (* check PAM pwd, and create user if ok *)
-                  pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
+                  !pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Users.create_user
                     ~name:usr
                     ~pwd:User_sql.Pam

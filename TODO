@@ -9,6 +9,7 @@ TODO
 
  - IMPORTANT WARNING: the cache may cause inconsistencies of data
  if several processes are modifying the database
+ - Make a command to clean the cache? Clean the cache every 6 seconds?
  - Cache or not to cache?
  What data is it necessary to cache??
  How to be sure that data are removed from the cache when they are modified?
@@ -81,7 +82,7 @@ Wiki:
  - Revoir la partie dynamique de la wikisyntaxe <<cond>> etc ...
 
 Users:
- - encryption of password for the db
+ - IMPORTANT: Save a hash of passwords in the db, not the password itself
  - PAM or LDAP: not really clean,
  modularize (use objects?)
  make this configurable from config file,

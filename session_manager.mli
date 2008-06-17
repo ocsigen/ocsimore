@@ -103,3 +103,8 @@ class sessionmanager_pam :
   string option ->
   sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
+
+
+val set_pam_auth :
+  (?service:string -> name:string -> pwd:string -> unit -> unit Lwt.t) ->
+  unit

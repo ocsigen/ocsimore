@@ -1,2 +1,3 @@
 touch .depend
 echo "USER=$1" > Makefile.config
+echo "PAM=YES" >> Makefile.config

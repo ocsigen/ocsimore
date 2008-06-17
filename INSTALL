@@ -4,7 +4,7 @@
  - ocamlduce
  - ocsigen and eliom with compiled ocamlduce support
  - pgocaml with lwt support
- - ocamlpam
+ - ocamlpam (recommended)
 
 2. Run 
 
@@ -12,6 +12,9 @@ sh configure <toto>
 
    where <toto> is the user who will run the Ocsigen process. 
    We suppose for now that the postgresql user will have the same name.
+
+   If you do not have ocamlpam installed, set PAM to NO in Makefile.config
+
    Then do
 
 make sql

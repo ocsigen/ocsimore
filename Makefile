@@ -1,5 +1,11 @@
 include Makefile.config
 
+ifeq "$(PAM)" "YES"
+PAM= ocsimore_pam.ml
+else
+PAM=
+endif
+
 CAMLLEX = ocamllex
 MENHIR = menhir
 
@@ -13,7 +19,7 @@ OCSIMORE_SRC3 = forum.ml session_manager.ml widget.ml \
         user_widgets.ml forum_widgets.ml \
         dyngroups.ml
 
-OCSIMORE_OTHER_SRC = ocsisite.ml ocsiwiki.ml
+OCSIMORE_OTHER_SRC = ocsisite.ml ocsiwiki.ml $(PAM)
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml

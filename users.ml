@@ -507,9 +507,9 @@ let set_session_data ~sp ~sd user =
   Polytables.set sd user_key (Lwt.return user);
   if user == admin
   then
-    Eliom_sessions.set_persistent_session_data user_table sp None
+    Eliom_sessions.set_persistent_session_data ~table:user_table ~sp None
   else
-    Eliom_sessions.set_persistent_session_data user_table sp (Some user.id)
+    Eliom_sessions.set_persistent_session_data ~table:user_table ~sp (Some user.id)
 
 
 let in_group ~sp ~sd ?user ~group () =
