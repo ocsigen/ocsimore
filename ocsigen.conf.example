@@ -29,8 +29,6 @@
     <extension findlib-package="pgocaml"/>
     <extension findlib-package="pam"/>
     <extension module="/path-to/ocsimore.cma"/>
-    <!-- If you want to enable PAM authentication -->
-    <extension module="/path-to/ocsimore_pam.cmo"/>
 
     <host defaulthostname="mywebsite.org">
       <!-- You need defaulthostname if you are using https and http -->
@@ -43,7 +41,7 @@
                           If you do not want that option, 
                           you need to configure HTTPS. -->
 
-<!-- For PAM authentication, if ocsimore_pam.cmo is loaded:
+<!-- For PAM authentication:
         <pam service="sshd" /> <!-- For service names, see /etc/pam.d -->
 -->
 

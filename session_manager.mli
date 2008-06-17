@@ -108,3 +108,6 @@ class sessionmanager_pam :
 val set_pam_auth :
   (?service:string -> name:string -> pwd:string -> unit -> unit Lwt.t) ->
   unit
+
+val pam_loaded : unit -> bool
+

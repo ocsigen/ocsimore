@@ -176,10 +176,15 @@ let connect sm srv container
 
 let pam_auth = 
   ref (fun ?(service : string option) ~name ~pwd () -> 
-         Ocsigen_messages.warning "Ocsimore_pam not loaded";
          raise Users.BadUser)
 
-let set_pam_auth f = pam_auth := f
+let pam_loaded = ref false
+
+let set_pam_auth f = 
+  pam_loaded := true;
+  pam_auth := f
+
+let pam_loaded () = !pam_loaded
 
 class sessionmanager_pam pam_service ~(sessionmanagerinfo: sessionmanager_in) =
 object

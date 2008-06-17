@@ -12,9 +12,19 @@ let (pam, basicusercreation) =
   let rec find_wikidata ((pam, basicusercreation) as data) = function
     | [] -> Lwt.return data
     | (Simplexmlparser.Element ("pam", ["service", s], []))::l -> 
-        find_wikidata (Some (Some s), basicusercreation) l
+        if Session_manager.pam_loaded ()
+        then find_wikidata (Some (Some s), basicusercreation) l
+        else
+          raise
+            (Ocsigen_config.Config_file_error
+               "Ocsimore compiled without PAM support");
     | (Simplexmlparser.Element ("pam", [], []))::l -> 
-        find_wikidata (Some None, basicusercreation) l
+        if Session_manager.pam_loaded ()
+        then find_wikidata (Some None, basicusercreation) l
+        else
+          raise
+            (Ocsigen_config.Config_file_error
+               "Ocsimore compiled without PAM support");
     | (Simplexmlparser.Element ("notsecure", [], []))::l -> 
         Session_manager.set_secure false;
         find_wikidata data l
