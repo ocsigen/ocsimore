@@ -281,6 +281,11 @@ let _ =
     )
   ;
 
+  add_a_content_extension ""
+    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+       Lwt.return {{ [] }}
+    );
+
   add_block_extension "content"
     (fun _ (sp, sd, (subbox, ancestors)) args c -> 
        let classe = 

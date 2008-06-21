@@ -24,6 +24,8 @@ A wikibox may be a container. Just put <<content>> inside it.
 To use a container, use the syntax:
 <<wikibox box='j' | put here the content >>
 
+<<|...>> comment (will not be displayed)
+
 <<menu item='link|text of the item' item='...' ... >>
 displays a menu
 
