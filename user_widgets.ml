@@ -603,6 +603,8 @@ object (self)
       Eliom_duce.Xhtml.register srv_register_done self#page_register_done;
       Eliom_duce.Xhtml.register internal_srv_reminder (self#page_reminder "");
       Eliom_duce.Xhtml.register srv_reminder_done self#page_reminder_done;
+      Eliom_duce.Xhtml.register internal_srv_edit (self#page_edit "");
+      Eliom_duce.Xhtml.register srv_edit_done self#page_edit_done;
     end
 
 
