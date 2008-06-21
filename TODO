@@ -80,6 +80,8 @@ Wiki:
  To fix this, we probably need a new feature in Eliom:
  "non-attached parameters"???
  - Revoir la partie dynamique de la wikisyntaxe <<cond>> etc ...
+ - Is it possible to cache __after__ having decoded the wikisyntax?
+ (pb: some parts are dynamic and depends on the user or the request)
 
 Users:
  - IMPORTANT: Save a hash of passwords in the db, not the password itself

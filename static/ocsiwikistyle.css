@@ -69,3 +69,7 @@ div.preview{
     padding: 0px;
     display: inline;
 }
+
+textarea{
+  width: 100%;
+}

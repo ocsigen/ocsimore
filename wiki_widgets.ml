@@ -1349,6 +1349,7 @@ object (self)
          (fun sp ((w, b) as g) () -> 
             let sd = Ocsimore_common.get_sd sp in
             self#editable_wikibox ~sp ~sd ~data:g  
+              ~rows:30
               ~ancestors:Wiki_syntax.no_ancestors
               () >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
@@ -1365,7 +1366,7 @@ object (self)
          service_edit_css
          (fun sp ((wiki, page) as g) () -> 
             let sd = Ocsimore_common.get_sd sp in
-            self#edit_css_box ~sp ~sd ~data:g () >>= fun subbox ->
+            self#edit_css_box ~sp ~sd ~rows:30 ~data:g () >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
               ~ancestors:Wiki_syntax.no_ancestors
               ~data:(wiki, Wiki.wikipage_container_id)
@@ -1380,7 +1381,7 @@ object (self)
          service_edit_wikicss
          (fun sp wiki () -> 
             let sd = Ocsimore_common.get_sd sp in
-            self#edit_wikicss_box ~sp ~sd ~wiki ()
+            self#edit_wikicss_box ~sp ~sd ~rows:30 ~wiki ()
 (*              >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
               ~ancestors:Wiki_syntax.no_ancestors
