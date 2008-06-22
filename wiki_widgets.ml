@@ -152,7 +152,7 @@ class editable_wikibox () =
   
   let service_edit_wikibox =
     Eliom_services.new_service
-      ~path:["ocsimore";"wiki_edit"]
+      ~path:["ocsimore"; "wiki_edit"]
       ~get_params:((Eliom_parameters.int32 "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
       ()
