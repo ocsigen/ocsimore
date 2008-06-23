@@ -1,0 +1,16 @@
+= Development version =
+
+  * Implementation of a wiki
+  * Changes in users and groups management
+
+= 0.3
+
+  * New object model, forums
+
+= 0.2
+
+  * Full reimplementation, forums, users, and basic wiki
+
+= 0.1
+
+  * First experimental version
