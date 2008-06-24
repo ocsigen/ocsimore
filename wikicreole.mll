@@ -632,5 +632,4 @@ let from_channel sp param b ch = from_lexbuf sp param b (Lexing.from_channel ch)
 
 let from_string sp param b s = from_lexbuf sp param b (Lexing.from_string s)
 
-
 }

@@ -5,12 +5,15 @@ syntax). It supports extensions with the following syntax:
 
 <<extensionname arg1='value1' arg2='value2' >>
 or
-<<extensionname arg1='value1' arg2='value2' | data >>
+<<extensionname arg1='value1' arg2='value2' |data>>
 
 Predefined extensions:
 
-<<div class='...' id='...' | data >>
+<<div class='...' id='...' |data>>
 creates a <div> box.
+
+<<span class='...' id='...' |data>>
+creates a <span> box.
 
 <<wikibox box='j' >>
 displays the wikibox number j from current wiki.

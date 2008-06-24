@@ -22,7 +22,6 @@
 *)
 
 
-type ('b, 'i) ext_kind
 
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
@@ -85,3 +84,4 @@ val from_lexbuf :
   'sp ->
   'param ->
   ('flow, 'inline, 'a_content, 'param, 'sp) builder -> Lexing.lexbuf -> 'flow list
+

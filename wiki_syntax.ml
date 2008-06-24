@@ -216,9 +216,22 @@ let builder wiki_id =
 let xml_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
   Lwt_util.map_serial
     (fun x -> x) 
-    (Wikicreole.from_string sp (sp, sd, (subbox, ancestors)) (builder wiki_id) s) 
+    (Wikicreole.from_string sp 
+       (sp, sd, (subbox, ancestors))
+       (builder wiki_id) s)
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
+
+let inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
+  match Wikicreole.from_string sp 
+    (sp, sd, (subbox, ancestors))
+    (builder wiki_id) s
+  with
+    | [] -> Lwt.return {{ [] }}
+    | a::_ -> a >>= (function
+                       | {{ [ <p>l _* ] }} -> Lwt.return l
+(*VVV What can I do with trailing data? *)
+                       | {{ _ }} -> Lwt.return {{ [ <b>"error" ] }})
 
 let string_of_extension name args content =
   "<<"^name^
@@ -264,22 +277,45 @@ let _ =
     )
   ;
 
+  add_a_content_extension "span"
+    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+       let content = match c with
+         | Some c -> c
+         | None -> ""
+       in
+       inline_of_wiki ?subbox ~ancestors ~sp ~sd w content >>= fun content ->
+       let classe = 
+         try
+           let a = List.assoc "class" args in
+           {{ { class={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       let id = 
+         try
+           let a = List.assoc "id" args in
+           {{ { id={: a :} } }} 
+         with Not_found -> {{ {} }} 
+       in
+       Lwt.return 
+         {{ [ <span (classe ++ id) >content ] }}
+    );
 
-  add_block_extension "raw"
-    (fun _ (sp, sd, _) args content ->
-       let s = string_of_extension "raw" args content in
-       Lwt.return {{ [ <p>[ <b>{: s :} ] ] }});
-
-  Wiki_filter.add_preparser_extension "raw"
-(*VVV may be done automatically for all extensions with wiki content 
+  Wiki_filter.add_preparser_extension "span"
+(*VVV may be done automatically for all extensions with wiki content
   (with an optional parameter of add_*_extension?) *)
     (fun w param args -> function
        | None -> Lwt.return None
        | Some c ->
            Wiki_filter.preparse_extension param w c >>= fun c ->
-           Lwt.return (Some (string_of_extension "raw" args (Some c)))
+           Lwt.return (Some (string_of_extension "span" args (Some c)))
     )
   ;
+
+
+  add_a_content_extension "raw"
+    (fun _ (sp, sd, _) args content ->
+       let s = string_of_extension "raw" args content in
+       Lwt.return {{ [ <b>{: s :} ] }});
 
   add_a_content_extension ""
     (fun w (sp, sd, (subbox, ancestors)) args c -> 
