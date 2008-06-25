@@ -567,8 +567,8 @@ and parse_image c attribs =
          ('}' ? (not_line_break # '}')) * "}}" {
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
-      let url = String.sub s 2 (i - 2) in
-      let alt = String.sub s (i + 1) (String.length s - i - 3) in
+      let url = String.sub s 0 i in
+      let alt = String.sub s (i + 1) (String.length s - i - 1) in
       push c (c.build.img_elem attribs url alt);
       parse_rem c lexbuf
     }
