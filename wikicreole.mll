@@ -735,6 +735,8 @@ and parse_attribs depth args oldargs c =
         then parse_attribs (depth - 1) [] (args::oldargs) c lexbuf 
         else args::oldargs 
       }
+    | "@@@" { []::args::oldargs }
+    | "@@@@" { []::[]::args::oldargs }
     | _ {
         args::oldargs
       }
