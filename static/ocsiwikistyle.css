@@ -8,6 +8,11 @@ div.history{
     padding: 0px;
 }
 
+div.editform,
+div.history{
+    background-color: white;
+}
+
 .editable div,
 .editform div,
 .history div{

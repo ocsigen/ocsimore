@@ -1268,6 +1268,7 @@ object (self)
                List.assoc "page" args
              with Not_found -> ""
            in
+           let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
            let https = 
              try 
                let a = List.assoc "protocol" args in
@@ -1297,6 +1298,7 @@ object (self)
            in
            ((Eliom_duce.Xhtml.make_uri
                ?https
+               ?fragment
                ~service:(Wiki_syntax.find_servpage wiki_id)
                ~sp
                href
@@ -1312,6 +1314,7 @@ object (self)
                List.assoc "page" args
              with Not_found -> ""
            in
+           let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
            let https = 
              try 
                let a = List.assoc "protocol" args in
@@ -1336,6 +1339,7 @@ object (self)
            in
            ((Eliom_duce.Xhtml.make_uri
                ?https
+               ?fragment
                ~service:(Wiki_syntax.find_naservpage wiki_id)
                ~sp
                href
