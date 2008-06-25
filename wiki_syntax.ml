@@ -83,17 +83,34 @@ let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) =
 
 let elementt (c : string list) = {{ (map {: c :} with i -> i) }}
 
+let parse_attribs attribs =
+  let atts = 
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc "class" attribs) in
+      {{ {class=c} }}
+    with Not_found -> {{ {} }}
+  in
+  let atts = 
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc "id" attribs) in
+      {{ {id=c}++atts }}
+    with Not_found -> atts
+  in
+  atts
+
 let list_builder = function
   | [] -> Lwt.return {{ [ <li>[] ] }} (*VVV ??? *)
   | a::l ->
       let f (c, 
-             (l : Xhtmltypes_duce.flows Lwt.t option)) =
+             (l : Xhtmltypes_duce.flows Lwt.t option),
+             attribs) =
+        let atts = parse_attribs attribs in
         element c >>= fun r ->
         (match l with
           | Some v -> v >>= fun v -> Lwt.return v
           | None -> Lwt.return {{ [] }}) >>= fun l ->
         Lwt.return
-          {{ <li>[ !r
+          {{ <li (atts)>[ !r
                    !l ] }}
       in
       f a >>= fun r ->
@@ -106,21 +123,25 @@ let inline (x : Xhtmltypes_duce.a_content)
 
 let absolute_link_regexp = Netstring_pcre.regexp "[a-z|A-Z|0-9]+:"
 
+
 let builder wiki_id =
   let servpage = find_servpage wiki_id in
   { W.chars = make_string;
-    W.strong_elem = (fun a -> 
+    W.strong_elem = (fun attribs a -> 
+                       let atts = parse_attribs attribs in
                        element a >>= fun r ->
-                       Lwt.return {{ [<strong>r ] }});
-    W.em_elem = (fun a -> 
+                       Lwt.return {{ [<strong (atts)>r ] }});
+    W.em_elem = (fun attribs a -> 
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<em>r] }});
+                   Lwt.return {{ [<em (atts)>r] }});
     W.a_elem =
-      (fun sp addr 
+      (fun attribs sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
+           let atts = parse_attribs attribs in
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
            Lwt.return
-             {{ [ <a href={: Ocamlduce.Utf8.make addr :}>{: element2 c :} ] }});
+             {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
     W.make_href =
       (fun sp addr ->
          match Netstring_pcre.string_match absolute_link_regexp addr 0 with
@@ -132,67 +153,91 @@ let builder wiki_id =
                in
                Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
            | _ -> addr);
-    W.br_elem = (fun () -> Lwt.return {{ [<br>[]] }});
+    W.br_elem = (fun attribs -> 
+                   let atts = parse_attribs attribs in
+                   Lwt.return {{ [<br (atts)>[]] }});
     W.img_elem =
-      (fun addr alt -> 
+      (fun attribs addr alt -> 
+         let atts = parse_attribs attribs in
          Lwt.return 
            {{ [<img
-                  src={: Ocamlduce.Utf8.make addr :} 
-                  alt={: Ocamlduce.Utf8.make alt :}>[] ] }});
-    W.tt_elem = (fun a ->
+                  ({src={: Ocamlduce.Utf8.make addr :} 
+                    alt={: Ocamlduce.Utf8.make alt :}}
+                   ++
+                    atts)
+                  >[] ] }});
+    W.tt_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<tt>r ] }});
-    W.nbsp = Lwt.return {{ [ ' ' ] }};
-    W.p_elem = (fun a -> 
+                   Lwt.return {{ [<tt (atts)>r ] }});
+    W.nbsp = Lwt.return {{" "}};
+    W.p_elem = (fun attribs a -> 
+                  let atts = parse_attribs attribs in
                   element a >>= fun r ->
-                  Lwt.return {{ [<p>r] }});
-    W.pre_elem = (fun a ->  Lwt.return {{ [<pre>(elementt a)] }});
-    W.h1_elem = (fun a ->
+                  Lwt.return {{ [<p (atts)>r] }});
+    W.pre_elem = (fun attribs a ->
+       let atts = parse_attribs attribs in
+       Lwt.return {{ [<pre (atts)>(elementt a)] }});
+    W.h1_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<h1>r] }});
-    W.h2_elem = (fun a ->
+                   Lwt.return {{ [<h1 (atts)>r] }});
+    W.h2_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<h2>r] }});
-    W.h3_elem = (fun a ->
+                   Lwt.return {{ [<h2 (atts)>r] }});
+    W.h3_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<h3>r] }});
-    W.h4_elem = (fun a ->
+                   Lwt.return {{ [<h3 (atts)>r] }});
+    W.h4_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<h4>r] }});
-    W.h5_elem = (fun a ->
+                   Lwt.return {{ [<h4 (atts)>r] }});
+    W.h5_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<h5>r] }});
-    W.h6_elem = (fun a ->
+                   Lwt.return {{ [<h5 (atts)>r] }});
+    W.h6_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    element a >>= fun r ->
-                   Lwt.return {{ [<h6>r] }});
-    W.ul_elem = (fun a ->
+                   Lwt.return {{ [<h6 (atts)>r] }});
+    W.ul_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    list_builder a >>= fun r ->
-                   Lwt.return {{ [<ul>r] }});
-    W.ol_elem = (fun a ->
+                   Lwt.return {{ [<ul (atts)>r] }});
+    W.ol_elem = (fun attribs a ->
+                   let atts = parse_attribs attribs in
                    list_builder a >>= fun r ->
-                   Lwt.return {{ [<ol>r] }});
-    W.hr_elem = (fun () -> Lwt.return {{ [<hr>[]] }});
+                   Lwt.return {{ [<ol (atts)>r] }});
+    W.hr_elem = (fun attribs -> 
+                   let atts = parse_attribs attribs in
+                   Lwt.return {{ [<hr (atts)>[]] }});
     W.table_elem =
-      (function 
+      (fun attribs l ->
+         let atts = parse_attribs attribs in
+         match l with
          | [] -> Lwt.return {{ [] }}
          | row::rows ->
-             let f (h, c) =
+             let f (h, attribs, c) =
+               let atts = parse_attribs attribs in
                element c >>= fun r ->
                Lwt.return
                  (if h 
-                 then {{ <th>r }}
-                 else {{ <td>r }})
+                 then {{ <th (atts)>r }}
+                 else {{ <td (atts)>r }})
              in
-             let f2 = function
+             let f2 (row, attribs) = match row with
                | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
                | a::l -> 
+                   let atts = parse_attribs attribs in
                    f a >>= fun r ->
                    Lwt_util.map_serial f l >>= fun l ->
-                   Lwt.return {{ <tr>[ r !{: l :} ] }}
+                   Lwt.return {{ <tr (atts)>[ r !{: l :} ] }}
              in
              f2 row >>= fun row ->
              Lwt_util.map_serial f2 rows >>= fun rows ->
-             Lwt.return {{ [<table>[<tbody>[ row !{: rows :} ] ] ] }});
+             Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }});
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
     W.block_plugin = 
       (fun name -> H.find block_extension_table name wiki_id);

@@ -1301,6 +1301,7 @@ object (self)
                ~sp
                href
             ),
+            args,
             Lwt.return (Ocamlduce.Utf8.make content))
         );
 
@@ -1339,6 +1340,7 @@ object (self)
                ~sp
                href
             ),
+            args,
             Lwt.return (Ocamlduce.Utf8.make content))
         );
 

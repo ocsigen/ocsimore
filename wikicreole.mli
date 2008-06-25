@@ -22,34 +22,35 @@
 *)
 
 
+type attribs = (string * string) list
 
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
-    strong_elem : 'inline list -> 'a_content;
-    em_elem : 'inline list -> 'a_content;
-    br_elem : unit -> 'a_content;
-    img_elem : string -> string -> 'a_content;
-    tt_elem : 'inline list -> 'a_content;
+    strong_elem : attribs -> 'inline list -> 'a_content;
+    em_elem : attribs -> 'inline list -> 'a_content;
+    br_elem : attribs -> 'a_content;
+    img_elem : attribs -> string -> string -> 'a_content;
+    tt_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
-    a_elem : 'sp -> string -> 'a_content list -> 'inline;
+    a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
     make_href : 'sp -> string -> string;
-    p_elem : 'inline list -> 'flow;
-    pre_elem : string list -> 'flow;
-    h1_elem : 'inline list -> 'flow;
-    h2_elem : 'inline list -> 'flow;
-    h3_elem : 'inline list -> 'flow;
-    h4_elem : 'inline list -> 'flow;
-    h5_elem : 'inline list -> 'flow;
-    h6_elem : 'inline list -> 'flow;
-    ul_elem : ('inline list * 'flow option) list -> 'flow;
-    ol_elem : ('inline list * 'flow option) list -> 'flow;
-    hr_elem : unit -> 'flow;
-    table_elem : (bool * 'inline list) list list -> 'flow;
+    p_elem : attribs -> 'inline list -> 'flow;
+    pre_elem : attribs -> string list -> 'flow;
+    h1_elem : attribs -> 'inline list -> 'flow;
+    h2_elem : attribs -> 'inline list -> 'flow;
+    h3_elem : attribs -> 'inline list -> 'flow;
+    h4_elem : attribs -> 'inline list -> 'flow;
+    h5_elem : attribs -> 'inline list -> 'flow;
+    h6_elem : attribs -> 'inline list -> 'flow;
+    ul_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
+    ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
+    hr_elem : attribs -> 'flow;
+    table_elem : attribs -> 
+      ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
     inline : 'a_content -> 'inline;
     block_plugin : 
       string ->
-     'param -> (string * string) list -> 
-                  string option -> 'flow;
+      'param -> (string * string) list -> string option -> 'flow;
 (** Syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
 [<<name arg1='value1' ... argn="valuen' |content>> ] *)
     (** Must raise [Not_found] if the name does not exist.
@@ -57,7 +58,8 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     *)
     link_plugin : 
       string ->
-      'param -> (string * string) list -> string option -> (string * 'a_content);
+      'param -> (string * string) list -> string option -> 
+                                    (string * attribs * 'a_content);
     (** Must raise [Not_found] if the name does not exist.
         In that case, will try [a_content_plugin].
     *)

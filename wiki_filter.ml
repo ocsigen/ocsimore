@@ -42,7 +42,8 @@ type c = {
   buf : Buffer.t;
 }
 
-let nothing _ = ()
+let nothing _ _ = ()
+let nothing1 _ = ()
 
 let make_plugin_action wiki_id =
   let subst = ref [] in
@@ -58,13 +59,13 @@ let make_plugin_action wiki_id =
   )
 
 let builder plugin_action =
-  { W.chars = nothing;
+  { W.chars = nothing1;
     W.strong_elem = nothing;
     W.em_elem = nothing;
-    W.a_elem = (fun _ _ _ -> ());
+    W.a_elem = (fun _ _ _ _ -> ());
     W.make_href = (fun _ a -> a);
-    W.br_elem = nothing;
-    W.img_elem = (fun _ _ -> ());
+    W.br_elem = nothing1;
+    W.img_elem = (fun _ _ _ -> ());
     W.tt_elem = nothing;
     W.nbsp = ();
     W.p_elem = nothing;
@@ -77,14 +78,14 @@ let builder plugin_action =
     W.h6_elem = nothing;
     W.ul_elem = nothing;
     W.ol_elem = nothing;
-    W.hr_elem = nothing;
+    W.hr_elem = nothing1;
     W.table_elem = nothing;
-    W.inline = nothing;
+    W.inline = nothing1;
     W.block_plugin = (fun _ _ _ _ -> ());
     W.a_content_plugin = (fun _ _ _ _ -> ());
-    W.link_plugin = (fun _ _ _ _ -> ("", ()));
+    W.link_plugin = (fun _ _ _ _ -> ("", [], ()));
     W.plugin_action = plugin_action;
-    W.error = nothing;
+    W.error = nothing1;
   }
 
 let preparse_extension ((sp, _, _) as param) wiki_id content =

@@ -192,6 +192,7 @@ object (self)
                ~service:sessman#act_logout_get ~sp
                ()
             ),
+            args,
             Lwt.return (Ocamlduce.Utf8.make content))
         )
 

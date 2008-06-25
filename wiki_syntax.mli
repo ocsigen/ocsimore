@@ -88,7 +88,7 @@ val add_link_extension :
       (Xhtmltypes_duce.flows option * ancestors)) ->
      (string * string) list -> 
        string option -> 
-         string * {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> unit
+         string * Wikicreole.attribs * {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> unit
 
 
 (** Returns the XHTML corresponding to a wiki page.

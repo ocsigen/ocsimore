@@ -23,40 +23,45 @@
    @author Vincent Balat
 *)
 
+exception Eof
+
+type attribs = (string * string) list
+
 type ('b, 'a) ext_kind = 
   | Block of 'b
   | A_content of 'a 
-  | Link_plugin of (string * 'a)
+  | Link_plugin of (string * attribs * 'a)
 
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
-    strong_elem : 'inline list -> 'a_content;
-    em_elem : 'inline list -> 'a_content;
-    br_elem : unit -> 'a_content;
-    img_elem : string -> string -> 'a_content;
-    tt_elem : 'inline list -> 'a_content;
+    strong_elem : attribs -> 'inline list -> 'a_content;
+    em_elem : attribs -> 'inline list -> 'a_content;
+    br_elem : attribs -> 'a_content;
+    img_elem : attribs -> string -> string -> 'a_content;
+    tt_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
-    a_elem : 'sp -> string -> 'a_content list -> 'inline;
+    a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
     make_href : 'sp -> string -> string;
-    p_elem : 'inline list -> 'flow;
-    pre_elem : string list -> 'flow;
-    h1_elem : 'inline list -> 'flow;
-    h2_elem : 'inline list -> 'flow;
-    h3_elem : 'inline list -> 'flow;
-    h4_elem : 'inline list -> 'flow;
-    h5_elem : 'inline list -> 'flow;
-    h6_elem : 'inline list -> 'flow;
-    ul_elem : ('inline list * 'flow option) list -> 'flow;
-    ol_elem : ('inline list * 'flow option) list -> 'flow;
-    hr_elem : unit -> 'flow;
-    table_elem : (bool * 'inline list) list list -> 'flow;
+    p_elem : attribs -> 'inline list -> 'flow;
+    pre_elem : attribs -> string list -> 'flow;
+    h1_elem : attribs -> 'inline list -> 'flow;
+    h2_elem : attribs -> 'inline list -> 'flow;
+    h3_elem : attribs -> 'inline list -> 'flow;
+    h4_elem : attribs -> 'inline list -> 'flow;
+    h5_elem : attribs -> 'inline list -> 'flow;
+    h6_elem : attribs -> 'inline list -> 'flow;
+    ul_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
+    ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
+    hr_elem : attribs -> 'flow;
+    table_elem : attribs -> 
+      ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
     inline : 'a_content -> 'inline;
     block_plugin : 
       string ->
       'param -> (string * string) list -> string option -> 'flow;
     link_plugin : 
       string ->
-      'param -> (string * string) list -> string option -> (string * 'a_content);
+      'param -> (string * string) list -> string option -> (string * attribs * 'a_content);
     a_content_plugin : 
       string ->
       'param -> (string * string) list -> string option -> 'a_content;
@@ -71,18 +76,19 @@ type style = Bold | Italic
 type list_kind = Unordered | Ordered
 
 type ('inline, 'flow) stack =
-    Style of style * 'inline list * ('inline, 'flow) stack
-  | Link of string * ('inline, 'flow) stack
+    Style of style * 'inline list * attribs * ('inline, 'flow) stack
+  | Link of string * attribs * ('inline, 'flow) stack
       (* Not that we do not save anything in the case of links, as
          links cannot be nested *)
-  | Paragraph
-  | Heading of int
-  | List_item of ('inline, 'flow) stack
+  | Paragraph of attribs
+  | Heading of int * attribs
+  | List_item of attribs * ('inline, 'flow) stack
   | List of
-      list_kind * ('inline list * 'flow option) list * ('inline, 'flow) stack
-  | Table of (bool * 'inline list) list list
-  | Row of (bool * 'inline list) list * ('inline, 'flow) stack
-  | Entry of bool * ('inline, 'flow) stack
+      list_kind * ('inline list * 'flow option * attribs) list
+      * attribs * ('inline, 'flow) stack
+  | Table of ((bool * attribs * 'inline list) list * attribs) list * attribs
+  | Row of (bool * attribs * 'inline list) list * attribs * ('inline, 'flow) stack
+  | Entry of bool * attribs * ('inline, 'flow) stack
 
 type ('flow, 'inline, 'a_content, 'param, 'sp) ctx =
   { build : ('flow, 'inline, 'a_content, 'param, 'sp) builder;
@@ -96,7 +102,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) ctx =
     mutable inline_mix : 'inline list;
     mutable link_content : 'a_content list;
     mutable pre_content : string list;
-    mutable list : ('inline list * 'flow option) list;
+    mutable list : ('inline list * 'flow option * attribs) list;
     mutable flow : 'flow list;
     mutable stack : ('inline, 'flow) stack }
 
@@ -114,17 +120,47 @@ let push_string c s = push c (c.build.chars s)
 
 let push_chars c lexbuf = push_string c (Lexing.lexeme lexbuf)
 
+let read_attribs att parse_attribs c lexbuf =
+  try
+    if att = "@@"
+    then match parse_attribs 1 [] [] c lexbuf with
+      | [] -> []
+      | a::_ -> a
+    else []
+  with Eof -> [] (*VVV ??? *)
+
+let read_list_attribs att parse_attribs c lexbuf =
+  try
+    if att = "@@"
+    then match parse_attribs 2 [] [] c lexbuf with
+      | [] -> ([], [])
+      | a::b::_ -> (b, a)
+      | [a] -> ([], a)
+    else ([], [])
+  with Eof -> ([], []) (*VVV ??? *)
+
+let read_table_attribs att parse_attribs c lexbuf =
+  try
+    if att = "@@"
+    then match parse_attribs 3 [] [] c lexbuf with
+      | [] -> ([], [], [])
+      | a::b::c::_ -> (c, b, a)
+      | [a; b] -> ([], b, a)
+      | [a] -> ([], [], a)
+    else ([], [], [])
+  with Eof -> ([], [], []) (*VVV ??? *)
+
 let get_style c style =
   match style with Bold -> c.bold | Italic -> c.italic
 
 let set_style c style v =
   match style with Bold -> c.bold <- v | Italic -> c.italic <- v
 
-let pop_style c style inline stack =
+let pop_style c style inline attribs stack =
   let elt =
     match style with
-      Bold   -> c.build.strong_elem
-    | Italic -> c.build.em_elem
+      Bold   -> c.build.strong_elem attribs
+    | Italic -> c.build.em_elem attribs
   in
   let inline' = c.inline_mix in
   c.stack <- stack;
@@ -132,30 +168,34 @@ let pop_style c style inline stack =
   push c (elt (List.rev inline'));
   set_style c style false
 
-let style_change c style =
+let style_change c style att parse_attribs lexbuf =
+  let atts = read_attribs att parse_attribs c lexbuf in
   if get_style c style then begin
     match c.stack with
-      Style (s, inline, stack) when s = style ->
-        pop_style c style inline stack
+      Style (s, inline, attribs, stack) when s = style ->
+        pop_style c style inline attribs stack;
     | _ ->
-        push_string c "**"
+        push_string c "**";
+        push_string c att
   end else begin
-    c.stack <- Style (style, c.inline_mix, c.stack);
+    c.stack <- Style (style, c.inline_mix, atts, c.stack);
     c.inline_mix <- [];
     set_style c style true
   end
 
-let pop_link c addr stack =
+let pop_link c addr attribs stack =
   c.stack <- stack;
   c.inline_mix <-
-    c.build.a_elem c.sp addr (List.rev c.link_content) :: c.inline_mix;
+    c.build.a_elem attribs c.sp addr (List.rev c.link_content) :: c.inline_mix;
   c.link_content <- [];
   c.link <- false
 
 let close_entry c =
   match c.stack with
-    Entry (heading, Row (entries, stack)) ->
-      c.stack <- Row ((heading, List.rev c.inline_mix) :: entries, stack);
+    Entry (heading, attribs, Row (entries, row_attribs, stack)) ->
+      c.stack <- Row ((heading, attribs, List.rev c.inline_mix) :: entries, 
+                      row_attribs,
+                      stack);
       c.inline_mix <- [];
       true
   | Row _ | Table _ ->
@@ -166,8 +206,9 @@ let close_entry c =
 let close_row c =
   close_entry c &&
   match c.stack with
-    Row (entries, Table rows) ->
-      c.stack <- Table (List.rev entries :: rows);
+    Row (entries, row_attribs, Table (rows, table_attribs)) ->
+      c.stack <- Table (((List.rev entries, row_attribs) :: rows), 
+                        table_attribs);
       true
   | Table _ ->
       true
@@ -176,18 +217,18 @@ let close_row c =
 
 let rec end_paragraph c lev =
   match c.stack with
-    Style (style, inline, stack) ->
-      pop_style c style inline stack;
+    Style (style, inline, attribs, stack) ->
+      pop_style c style inline attribs stack;
       end_paragraph c lev
-  | Link (addr, stack) ->
-      pop_link c addr stack;
+  | Link (addr, attribs, stack) ->
+      pop_link c addr attribs stack;
       end_paragraph c lev
-  | Paragraph ->
+  | Paragraph attribs ->
       if c.inline_mix <> [] then begin
-        c.flow <- c.build.p_elem (List.rev c.inline_mix) :: c.flow;
+        c.flow <- c.build.p_elem attribs (List.rev c.inline_mix) :: c.flow;
         c.inline_mix <- []
       end
-  | Heading l ->
+  | Heading (l, attribs) ->
       let f =
         match l with
           | 1 -> c.build.h1_elem
@@ -197,16 +238,16 @@ let rec end_paragraph c lev =
           | 5 -> c.build.h5_elem
           | _ -> c.build.h6_elem
       in
-      c.flow <- f (List.rev c.inline_mix) :: c.flow;
+      c.flow <- f attribs (List.rev c.inline_mix) :: c.flow;
       c.inline_mix <- [];
       c.heading <- false;
-      c.stack <- Paragraph
-  | List_item stack ->
-      c.list <- (List.rev c.inline_mix, None) :: c.list;
+      c.stack <- Paragraph []
+  | List_item (attribs, stack) ->
+      c.list <- (List.rev c.inline_mix, None, attribs) :: c.list;
       c.stack <- stack;
       c.inline_mix <- [];
       end_paragraph c lev
-  | List (kind, lst, stack) ->
+  | List (kind, lst, attribs, stack) ->
       if lev < c.list_level then begin
         c.list_level <- c.list_level - 1;
         let elt =
@@ -214,12 +255,13 @@ let rec end_paragraph c lev =
             Unordered -> c.build.ul_elem
           | Ordered   -> c.build.ol_elem
         in
-        let cur_lst = elt (List.rev c.list) in
+        let cur_lst = elt attribs (List.rev c.list) in
         if c.list_level = 0 then
           c.flow <- cur_lst :: c.flow
         else begin
           match lst with
-            (l, None) :: rem -> c.list <- (l, Some cur_lst) :: rem;
+            (l, None, attribs) :: rem -> 
+              c.list <- (l, Some cur_lst, attribs) :: rem;
           | _                -> assert false
         end;
         c.stack <- stack;
@@ -230,20 +272,20 @@ let rec end_paragraph c lev =
       end_paragraph c lev
   | Row _ ->
       assert false
-  | Table rows ->
-      c.flow <- c.build.table_elem (List.rev rows) :: c.flow;
-      c.stack <- Paragraph
+  | Table (rows, attribs) ->
+      c.flow <- c.build.table_elem attribs (List.rev rows) :: c.flow;
+      c.stack <- Paragraph []
 
 let rec correct_kind_rec stack kind n =
   match stack with
-    List_item stack ->
+    List_item (_, stack) ->
       correct_kind_rec stack kind n
-  | List (k, lst, stack) ->
+  | List (k, lst, _, stack) ->
       if n = 0 then k = kind else
       correct_kind_rec stack kind (n - 1)
-  | Style (_, _, stack) ->
+  | Style (_, _, _, stack) ->
       correct_kind_rec stack kind n
-  | Link _ | Heading _ | Paragraph | Entry _ | Row _ | Table _ ->
+  | Link _ | Heading _ | Paragraph _ | Entry _ | Row _ | Table _ ->
       assert false
 
 let correct_kind c kind lev =
@@ -252,29 +294,35 @@ let correct_kind c kind lev =
   (lev <= c.list_level &&
    correct_kind_rec c.stack kind (c.list_level - lev))
 
-let start_list_item c kind lev =
+let start_list_item c kind lev att parse_attribs lexbuf =
   let correct = correct_kind c kind lev in
   if lev = 1 || correct then begin
     (* If we have an item of a different kind at level 1, we close the
        previous list and start a new one of the right kind *)
     end_paragraph c (if correct then lev else 0);
+    let (list_attribs, item_attribs) =
+      read_list_attribs att parse_attribs c lexbuf
+    in
     if lev = c.list_level then begin
-      c.stack <- List_item c.stack
+      c.stack <- List_item (item_attribs, c.stack)
     end else (* if lev = c.list_level + 1 then *) begin
       c.list_level <- lev;
-      c.stack <- List_item (List (kind, c.list, c.stack));
+      c.stack <- List_item (item_attribs,
+                            List (kind, c.list, list_attribs, c.stack));
       c.list <- []
     end;
     true
   end else
     false
 
-let start_table_row c heading =
+let start_table_row c heading (table_attribs, row_attribs, entry_attribs) =
   if not (close_row c) then begin
     end_paragraph c 0;
-    c.stack <- Table []
+    c.stack <- Table ([], table_attribs)
   end;
-  c.stack <- Entry (heading, Row ([], c.stack))
+  c.stack <- Entry (heading, 
+                    entry_attribs, 
+                    Row ([], row_attribs, c.stack))
 
 }
 
@@ -290,52 +338,73 @@ let punctuation = [ ',' '.' '?' '!' ':' ';' '"' '\'' ]
 let first_char = (not_line_break # ['~' '|']) | ('=' +)
 let next_chars = not_line_break # reserved_chars
 
+
 rule parse_bol c =
   parse
     line_break {
       end_paragraph c 0;
       parse_bol c lexbuf
     }
-  | white_space * ("=" | "==" | "===" | "====" | "=====" | "======") {
+  | white_space * ("=" | "==" | "===" | "====" | "=====" | "======") 
+      (("@@" ?) as att) {
       end_paragraph c 0;
-      assert (c.stack = Paragraph);
-      c.stack <- Heading (count '=' (Lexing.lexeme lexbuf));
+      assert (match c.stack with Paragraph _ -> true | _ -> false);
+      let l = count '=' (Lexing.lexeme lexbuf) in
+      c.stack <- Heading (l, read_attribs att parse_attribs c lexbuf);
       c.heading <- true;
       parse_rem c lexbuf
     }
-  | white_space * "*" + {
+  | white_space * "*" + (("@@" ?) as att) {
       let lev = count '*' (Lexing.lexeme lexbuf) in
-      if not (start_list_item c Unordered lev) then begin
+      if not (start_list_item c Unordered lev att parse_attribs lexbuf) 
+      then begin
         let s = Lexing.lexeme lexbuf in
-        let l = String.length s - lev in
+        let l = String.index s '*' in
         if l > 0 then push_string c (String.sub s 0 l);
-        for i = 1 to lev / 2 do
-          style_change c Bold
+        for i = 1 to lev / 2 - 1 do
+          style_change c Bold "" parse_attribs lexbuf
         done;
-        if lev land 1 = 1 then push_string c "*"
+        if lev land 1 = 1 
+        then begin 
+          style_change c Bold "" parse_attribs lexbuf;
+          push_string c "*";
+          push_string c att;
+        end
+        else
+          style_change c Bold att parse_attribs lexbuf
       end;
       parse_rem c lexbuf
     }
-  | white_space * "#" + {
+  | white_space * "#" + (("@@" ?) as att) {
       let lev = count '#' (Lexing.lexeme lexbuf) in
-      if not (start_list_item c Ordered lev) then
-        push_chars c lexbuf;
+      if not (start_list_item c Ordered lev att parse_attribs lexbuf)
+      then push_chars c lexbuf;
       parse_rem c lexbuf
     }
-  | white_space * "----" white_space * (line_break | eof) {
+  | white_space * "----" (("@@" ?) as att) white_space * (line_break | eof) {
       end_paragraph c 0;
-      c.flow <- c.build.hr_elem () :: c.flow;
+      c.flow <- c.build.hr_elem 
+        (read_attribs att parse_attribs c lexbuf) :: c.flow;
       parse_bol c lexbuf
     }
-  | white_space * "{{{" (line_break | eof) {
-      parse_nowiki c lexbuf
+  | white_space * "{{{" (("@@" ?) as att) (line_break | eof) {
+      parse_nowiki c (read_attribs att parse_attribs c lexbuf) lexbuf
     }
-  | white_space * "|" {
-      start_table_row c false;
+  | white_space * "|" (("@@" ?) as att) {
+      start_table_row c false 
+        (read_table_attribs att parse_attribs c lexbuf);
       parse_rem c lexbuf
     }
-  | white_space * "|=" {
-      start_table_row c true;
+  | white_space * "|=" (("@@" ?) as att) {
+      start_table_row c true 
+        (read_table_attribs att parse_attribs c lexbuf);
+      parse_rem c lexbuf
+    }
+  | white_space * (("@@" ?) as att) {
+      let attribs = read_attribs att parse_attribs c lexbuf in
+      (match c.stack with
+        | Paragraph _ -> c.stack <- Paragraph attribs
+        | _ -> ());
       parse_rem c lexbuf
     }
   | "" {
@@ -352,12 +421,12 @@ and parse_rem c =
         push_chars c lexbuf;
       parse_bol c lexbuf
     }
-  | "**" {
-      style_change c Bold;
+  | "**" (("@@" ?) as att) {
+      style_change c Bold att parse_attribs lexbuf;
       parse_rem c lexbuf
     }
-  | "//" {
-      style_change c Italic;
+  | "//" (("@@" ?) as att) {
+      style_change c Italic att parse_attribs lexbuf;
       parse_rem c lexbuf
     }
   | "=" + white_space * (line_break | eof) {
@@ -367,31 +436,12 @@ and parse_rem c =
         push_chars c lexbuf;
       parse_bol c lexbuf
     }
-  | "[[" (']' ? (not_line_break # [ ']' '|' ])) * "]]" {
-      if c.link then
-        push_chars c lexbuf
-      else
-        let s = Lexing.lexeme lexbuf in
-        let addr = c.build.make_href c.sp (String.sub s 2 (String.length s - 4)) in
-        c.inline_mix <-
-         c.build.a_elem c.sp addr [c.build.chars addr] :: c.inline_mix;
-      parse_rem c lexbuf
-  }
-  | "[[" (']' ? (not_line_break # [ ']' '|' ])) * "|" {
-      if c.link then
-        push_chars c lexbuf
-      else begin
-        let s = Lexing.lexeme lexbuf in
-        let addr = c.build.make_href c.sp (String.sub s 2 (String.length s - 3)) in
-        c.stack <- Link (addr, c.stack);
-        c.link <- true
-      end;
-      parse_rem c lexbuf
-  }
+  | "[[" (("@@" ?) as att) 
+      { parse_link c (read_attribs att parse_attribs c lexbuf) lexbuf }
   | "]]" {
       begin match c.stack with
-        Link (addr, stack) ->
-          pop_link c addr stack
+        Link (addr, attribs, stack) ->
+          pop_link c addr attribs stack
       | _ ->
           push_chars c lexbuf
       end;
@@ -404,22 +454,15 @@ and parse_rem c =
       else
         let addr = Lexing.lexeme lexbuf in
         c.inline_mix <-
-          c.build.a_elem c.sp addr [c.build.chars addr] :: c.inline_mix;
+          c.build.a_elem [] c.sp addr [c.build.chars addr] :: c.inline_mix;
       parse_rem c lexbuf
   }
-  | "\\\\" {
-      push c (c.build.br_elem ());
+  | "\\\\" (("@@" ?) as att) {
+      push c (c.build.br_elem (read_attribs att parse_attribs c lexbuf));
       parse_rem c lexbuf
     }
-  | "{{" (not_line_break # ['|' '{']) (not_line_break # '|') * '|'
-         ('}' ? (not_line_break # '}')) * "}}" {
-      let s = Lexing.lexeme lexbuf in
-      let i = String.index s '|' in
-      let url = String.sub s 2 (i - 2) in
-      let alt = String.sub s (i + 1) (String.length s - i - 3) in
-      push c (c.build.img_elem url alt);
-      parse_rem c lexbuf
-    }
+  | "{{" (("@@" ?) as att)
+      { parse_image c (read_attribs att parse_attribs c lexbuf) lexbuf }
   | "<<" ((not_line_break # white_space) # ['|' '>']) * {
       let s = Lexing.lexeme lexbuf in
       let l = String.length s in
@@ -429,21 +472,17 @@ and parse_rem c =
       | A_content i -> 
           push c i;
           parse_rem c lexbuf
-      | Link_plugin (addr, content) ->
+      | Link_plugin (addr, attribs, content) ->
           c.link_content <- [ content ];
-          pop_link c addr c.stack;
+          pop_link c addr attribs c.stack;
           parse_rem c lexbuf
       | Block b ->
           end_paragraph c 0;
           c.flow <- b :: c.flow;
           parse_bol c lexbuf
     }
-  | "{{{" ('}' ? '}' ? (not_line_break # '}')) * '}' * "}}" {
-      let s = Lexing.lexeme lexbuf in
-      let txt = String.sub s 3 (String.length s - 6) in
-      push c (c.build.tt_elem [c.build.inline (c.build.chars txt)]);
-      parse_rem c lexbuf
-    }
+  | "{{{" (("@@" ?) as att)
+      { parse_tt c (read_attribs att parse_attribs c lexbuf) lexbuf }
   | '~' (not_line_break # white_space) {
       let s = Lexing.lexeme lexbuf in
       (* It amounts to the same to quote a UTF-8 char or its first byte *)
@@ -459,16 +498,20 @@ and parse_rem c =
         push_chars c lexbuf;
       parse_bol c lexbuf
     }
-  | '|' {
+  | '|' (("@@" ?) as att) {
       if close_entry c then
-        c.stack <- Entry (false, c.stack)
+        c.stack <- Entry (false, 
+                          read_attribs att parse_attribs c lexbuf, 
+                          c.stack)
       else
         push_chars c lexbuf;
       parse_rem c lexbuf
     }
-  | "|=" {
+  | "|=" (("@@" ?) as att) {
       if close_entry c then
-        c.stack <- Entry (true, c.stack)
+        c.stack <- Entry (true, 
+                          read_attribs att parse_attribs c lexbuf, 
+                          c.stack)
       else
         push_chars c lexbuf;
       parse_rem c lexbuf
@@ -485,26 +528,90 @@ and parse_rem c =
       end_paragraph c 0
     }
 
-and parse_nowiki c =
+and parse_link c attribs =
+    parse 
+        (']' ? (not_line_break # [ ']' '|' ])) * "]]" {
+      if c.link then begin
+        push_string c "[["; (*VVV We loose attributes *)
+        push_chars c lexbuf
+      end
+      else
+        let s = Lexing.lexeme lexbuf in
+        let addr = c.build.make_href c.sp (String.sub s 0 (String.length s - 2)) in
+        c.inline_mix <-
+         c.build.a_elem attribs c.sp addr [c.build.chars addr] :: c.inline_mix;
+      parse_rem c lexbuf
+  }
+  | (']' ? (not_line_break # [ ']' '|' ])) * "|" {
+      if c.link then begin
+        push_string c "[["; (*VVV We loose attributes *)
+        push_chars c lexbuf
+      end
+      else begin
+        let s = Lexing.lexeme lexbuf in
+        let addr = c.build.make_href c.sp (String.sub s 0 (String.length s - 1)) in
+        c.stack <- Link (addr, attribs, c.stack);
+        c.link <- true
+      end;
+      parse_rem c lexbuf
+  }
+  | _ {
+      push_string c "[["; (*VVV We loose attributes *)
+      push_chars c lexbuf; (*VVV One char read *)
+      parse_rem c lexbuf
+    }
+
+and parse_image c attribs =
+    parse
+     (not_line_break # ['|' '{']) (not_line_break # '|') * '|'
+         ('}' ? (not_line_break # '}')) * "}}" {
+      let s = Lexing.lexeme lexbuf in
+      let i = String.index s '|' in
+      let url = String.sub s 2 (i - 2) in
+      let alt = String.sub s (i + 1) (String.length s - i - 3) in
+      push c (c.build.img_elem attribs url alt);
+      parse_rem c lexbuf
+    }
+  | _ {
+      push_string c "{{"; (*VVV We loose attributes *)
+      push_chars c lexbuf; (*VVV One char read *)
+      parse_rem c lexbuf
+    }
+
+and parse_tt c attribs =
+    parse
+        ('}' ? '}' ? (not_line_break # '}')) * '}' * "}}" {
+      let s = Lexing.lexeme lexbuf in
+      let txt = String.sub s 3 (String.length s - 6) in
+      push c (c.build.tt_elem attribs [c.build.inline (c.build.chars txt)]);
+      parse_rem c lexbuf
+    }
+  | _ {
+      push_string c "{{{"; (*VVV We loose attributes *)
+      push_chars c lexbuf; (*VVV One char read *)      
+      parse_rem c lexbuf
+    }
+
+and parse_nowiki c attribs =
   parse
     white_space + "}}}" (line_break | eof) {
       let s = Lexing.lexeme lexbuf in
       c.pre_content <- String.sub s 1 (String.length s - 1) :: c.pre_content;
-      parse_nowiki c lexbuf
+      parse_nowiki c attribs lexbuf
     }
   | ("}}}" (line_break | eof)) | eof {
-      c.flow <- c.build.pre_elem (List.rev c.pre_content) :: c.flow;
+      c.flow <- c.build.pre_elem attribs (List.rev c.pre_content) :: c.flow;
       c.pre_content <- [];
       parse_bol c lexbuf
     }
   | not_line_break * (line_break | eof) {
       c.pre_content <- Lexing.lexeme lexbuf :: c.pre_content;
-      parse_nowiki c lexbuf
+      parse_nowiki c attribs lexbuf
     }
 
 and parse_extension start name args c =
     parse
-      (white_space *) | (line_break *) {
+      ';'* | (white_space *) | (line_break *) {
         parse_extension start name args c lexbuf
       }
     | '|' {
@@ -533,11 +640,11 @@ and parse_extension start name args c =
                     A_content (c.build.a_content_plugin name c.param args None)
       }
     | (not_line_break # white_space # '=') * '=' 
-        ((white_space | line_break) *) '\'' {
+        ((white_space | line_break) *) (('\'' | '"') as quote) {
         let s = Lexing.lexeme lexbuf in
         let i = String.index s '=' in
         let arg_name = String.sub s 0 i in
-        let arg_value = parse_arg_value "" c lexbuf in
+        let arg_value = parse_arg_value quote "" c lexbuf in
         parse_extension start name ((arg_name, arg_value)::args) c lexbuf
       }
     | _ {
@@ -591,17 +698,48 @@ and parse_extension_content start lev name args beg c =
         parse_extension_content start lev name args (beg^s) c lexbuf
       }
 
-and parse_arg_value beg c =
+and parse_arg_value quote beg c =
     parse
-      '~' (_ as ch) {
-        parse_arg_value (beg^(String.make 1 ch)) c lexbuf
+      eof | '~' eof {
+        raise Eof
       }
-    | ('\'' | eof) {
-        beg
+    | '~' (_ as ch) {
+        parse_arg_value quote (beg^(String.make 1 ch)) c lexbuf
       }
-    | [^ '~' '\'' ] * {
+    | ('\'' | '"') as ch {
+        if ch = quote 
+        then beg
+        else parse_arg_value quote (beg^(String.make 1 ch)) c lexbuf
+      }
+    | [^ '~' '\'' '"' ] * {
         let s = Lexing.lexeme lexbuf in
-        parse_arg_value (beg^s) c lexbuf
+        parse_arg_value quote (beg^s) c lexbuf
+      }
+
+and parse_attribs depth args oldargs c =
+    parse
+      ';'* | (white_space *) | (line_break *) {
+        parse_attribs depth args oldargs c lexbuf
+      }
+    | (not_line_break # white_space # '=' # '@') * '=' 
+          ((white_space | line_break) *) (('\'' | '"') as quote) {
+            let s = Lexing.lexeme lexbuf in
+            let i = String.index s '=' in
+            let arg_name = String.sub s 0 i in
+            let arg_value = parse_arg_value quote "" c lexbuf in
+            parse_attribs depth ((arg_name, arg_value)::args) oldargs c lexbuf
+          }
+    | "@@" { args::oldargs }
+    | "@" { 
+        if depth > 1
+        then parse_attribs (depth - 1) [] (args::oldargs) c lexbuf 
+        else args::oldargs 
+      }
+    | _ {
+        args::oldargs
+      }
+    | eof {
+        raise Eof
       }
 
 
@@ -621,10 +759,10 @@ let context sp param b =
     pre_content = []; 
     list = []; 
     flow = [];
-    stack = Paragraph }
+    stack = Paragraph [] }
 
 let from_lexbuf sp param b lexbuf =
-  let c = context sp  param b in
+  let c = context sp param b in
   parse_bol c lexbuf;
   List.rev c.flow
 

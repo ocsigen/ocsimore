@@ -7,6 +7,26 @@ syntax). It supports extensions with the following syntax:
 or
 <<extensionname arg1='value1' arg2='value2' |data>>
 
+See below for predefined extensions.
+
+it also supports attributes with the following syntax:
+@@name="value"; name= "value"@@
+Put attribute just after the openning tag.
+For example:
+//@@class="important"@@some text//
+
+For now, attributes class and id are defined for each tag, and
+the semantics is the one of xhtml class and id attributes.
+
+Sometimes it is possible to put several sets of attributes 
+(tables, rows, list items).
+Examples:
+
+|@@...attributes for full table...@...attributes for row...@...attributes for cell...@@ first cell| ... |
+
+*@@...attributes for full list...@...attributes for item...@@ text
+
+
 Predefined extensions:
 
 <<div class='...' id='...' |data>>
