@@ -1296,6 +1296,7 @@ object (self)
                (Ocsigen_lib.remove_slash_at_beginning
                   (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
            in
+           (* class and id attributes will be taken by Wiki_syntax.a_elem *)
            ((Eliom_duce.Xhtml.make_uri
                ?https
                ?fragment

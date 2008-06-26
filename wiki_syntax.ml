@@ -83,7 +83,7 @@ let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) =
 
 let elementt (c : string list) = {{ (map {: c :} with i -> i) }}
 
-let parse_attribs attribs =
+let parse_common_attribs attribs =
   let atts = 
     try
       let c = Ocamlduce.Utf8.make (List.assoc "class" attribs) in
@@ -104,7 +104,7 @@ let list_builder = function
       let f (c, 
              (l : Xhtmltypes_duce.flows Lwt.t option),
              attribs) =
-        let atts = parse_attribs attribs in
+        let atts = parse_common_attribs attribs in
         element c >>= fun r ->
         (match l with
           | Some v -> v >>= fun v -> Lwt.return v
@@ -128,17 +128,17 @@ let builder wiki_id =
   let servpage = find_servpage wiki_id in
   { W.chars = make_string;
     W.strong_elem = (fun attribs a -> 
-                       let atts = parse_attribs attribs in
+                       let atts = parse_common_attribs attribs in
                        element a >>= fun r ->
                        Lwt.return {{ [<strong (atts)>r ] }});
     W.em_elem = (fun attribs a -> 
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<em (atts)>r] }});
     W.a_elem =
       (fun attribs sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
-           let atts = parse_attribs attribs in
+           let atts = parse_common_attribs attribs in
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
            Lwt.return
              {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
@@ -154,11 +154,11 @@ let builder wiki_id =
                Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
            | _ -> addr);
     W.br_elem = (fun attribs -> 
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    Lwt.return {{ [<br (atts)>[]] }});
     W.img_elem =
       (fun attribs addr alt -> 
-         let atts = parse_attribs attribs in
+         let atts = parse_common_attribs attribs in
          Lwt.return 
            {{ [<img
                   ({src={: Ocamlduce.Utf8.make addr :} 
@@ -167,60 +167,60 @@ let builder wiki_id =
                     atts)
                   >[] ] }});
     W.tt_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<tt (atts)>r ] }});
     W.nbsp = Lwt.return {{" "}};
     W.p_elem = (fun attribs a -> 
-                  let atts = parse_attribs attribs in
+                  let atts = parse_common_attribs attribs in
                   element a >>= fun r ->
                   Lwt.return {{ [<p (atts)>r] }});
     W.pre_elem = (fun attribs a ->
-       let atts = parse_attribs attribs in
+       let atts = parse_common_attribs attribs in
        Lwt.return {{ [<pre (atts)>(elementt a)] }});
     W.h1_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h1 (atts)>r] }});
     W.h2_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h2 (atts)>r] }});
     W.h3_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h3 (atts)>r] }});
     W.h4_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h4 (atts)>r] }});
     W.h5_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h5 (atts)>r] }});
     W.h6_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h6 (atts)>r] }});
     W.ul_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    list_builder a >>= fun r ->
                    Lwt.return {{ [<ul (atts)>r] }});
     W.ol_elem = (fun attribs a ->
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    list_builder a >>= fun r ->
                    Lwt.return {{ [<ol (atts)>r] }});
     W.hr_elem = (fun attribs -> 
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    Lwt.return {{ [<hr (atts)>[]] }});
     W.table_elem =
       (fun attribs l ->
-         let atts = parse_attribs attribs in
+         let atts = parse_common_attribs attribs in
          match l with
          | [] -> Lwt.return {{ [] }}
          | row::rows ->
              let f (h, attribs, c) =
-               let atts = parse_attribs attribs in
+               let atts = parse_common_attribs attribs in
                element c >>= fun r ->
                Lwt.return
                  (if h 
@@ -230,7 +230,7 @@ let builder wiki_id =
              let f2 (row, attribs) = match row with
                | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
                | a::l -> 
-                   let atts = parse_attribs attribs in
+                   let atts = parse_common_attribs attribs in
                    f a >>= fun r ->
                    Lwt_util.map_serial f l >>= fun l ->
                    Lwt.return {{ <tr (atts)>[ r !{: l :} ] }}

@@ -24,6 +24,7 @@
 *)
 
 exception Eof
+exception Unrecognized_char
 
 type attribs = (string * string) list
 
@@ -521,8 +522,9 @@ and parse_rem c =
       parse_rem c lexbuf
     }
   | _ {
-     Format.eprintf "Unrecognized char '%s'@." (Lexing.lexeme lexbuf);
-     exit 1
+     Ocsigen_messages.warning 
+       ("Wikicreole: Unrecognized char "^(Lexing.lexeme lexbuf)^".");
+     raise Unrecognized_char
   }
   | eof {
       end_paragraph c 0
@@ -555,9 +557,8 @@ and parse_link c attribs =
       end;
       parse_rem c lexbuf
   }
-  | _ {
+  | "" {
       push_string c "[["; (*VVV We loose attributes *)
-      push_chars c lexbuf; (*VVV One char read *)
       parse_rem c lexbuf
     }
 
@@ -572,23 +573,21 @@ and parse_image c attribs =
       push c (c.build.img_elem attribs url alt);
       parse_rem c lexbuf
     }
-  | _ {
+  | "" {
       push_string c "{{"; (*VVV We loose attributes *)
-      push_chars c lexbuf; (*VVV One char read *)
       parse_rem c lexbuf
     }
 
 and parse_tt c attribs =
     parse
-        ('}' ? '}' ? (not_line_break # '}')) * '}' * "}}" {
+        ('}' ? '}' ? (not_line_break # '}')) * '}' * "}}}" {
       let s = Lexing.lexeme lexbuf in
-      let txt = String.sub s 3 (String.length s - 6) in
+      let txt = String.sub s 0 (String.length s - 3) in
       push c (c.build.tt_elem attribs [c.build.inline (c.build.chars txt)]);
       parse_rem c lexbuf
     }
-  | _ {
+  | "" {
       push_string c "{{{"; (*VVV We loose attributes *)
-      push_chars c lexbuf; (*VVV One char read *)      
       parse_rem c lexbuf
     }
 
@@ -611,9 +610,6 @@ and parse_nowiki c attribs =
 
 and parse_extension start name args c =
     parse
-      ';'* | (white_space *) | (line_break *) {
-        parse_extension start name args c lexbuf
-      }
     | '|' {
         parse_extension_content start 0 name args "" c lexbuf
       }
@@ -639,6 +635,9 @@ and parse_extension start name args c =
                 | None -> 
                     A_content (c.build.a_content_plugin name c.param args None)
       }
+    |  ';'* | (white_space *) | (line_break *) {
+        parse_extension start name args c lexbuf
+      }
     | (not_line_break # white_space # '=') * '=' 
         ((white_space | line_break) *) (('\'' | '"') as quote) {
         let s = Lexing.lexeme lexbuf in
@@ -654,8 +653,8 @@ and parse_extension start name args c =
 
 and parse_extension_content start lev name args beg c =
     parse
-      '~' (_ as ch) {
-        parse_extension_content start lev name args (beg^(String.make 1 ch)) c lexbuf
+      '~' (('<' | '>' | '~') as ch) {
+        parse_extension_content start lev name args (beg^"~"^(String.make 1 ch)) c lexbuf
       }
     | "<<" {
         parse_extension_content start (lev+1) name args (beg^"<<") c lexbuf
@@ -693,9 +692,14 @@ and parse_extension_content start lev name args beg c =
         let s = Lexing.lexeme lexbuf in
         parse_extension_content start lev name args (beg^s) c lexbuf
       }
-    | [ '>' '<' ] {
+    | [ '>' '<' '~' ] {
         let s = Lexing.lexeme lexbuf in
         parse_extension_content start lev name args (beg^s) c lexbuf
+      }
+    | _ {
+        Ocsigen_messages.warning 
+          ("Wikicreole: Unrecognized char in extension "^(Lexing.lexeme lexbuf)^".");
+        raise Unrecognized_char
       }
 
 and parse_arg_value quote beg c =
@@ -703,10 +707,10 @@ and parse_arg_value quote beg c =
       eof | '~' eof {
         raise Eof
       }
-    | '~' (_ as ch) {
+    | '~' ('\'' | '"' | '~' as ch) {
         parse_arg_value quote (beg^(String.make 1 ch)) c lexbuf
       }
-    | ('\'' | '"') as ch {
+    | ('\'' | '"' | '~') as ch {
         if ch = quote 
         then beg
         else parse_arg_value quote (beg^(String.make 1 ch)) c lexbuf
@@ -718,7 +722,10 @@ and parse_arg_value quote beg c =
 
 and parse_attribs depth args oldargs c =
     parse
-      ';'* | (white_space *) | (line_break *) {
+     "" {
+        args::oldargs
+      }
+    | ';'* | (white_space *) | (line_break *) {
         parse_attribs depth args oldargs c lexbuf
       }
     | (not_line_break # white_space # '=' # '@') * '=' 
@@ -737,9 +744,6 @@ and parse_attribs depth args oldargs c =
       }
     | "@@@" { []::args::oldargs }
     | "@@@@" { []::[]::args::oldargs }
-    | _ {
-        args::oldargs
-      }
     | eof {
         raise Eof
       }
