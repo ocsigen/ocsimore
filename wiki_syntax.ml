@@ -267,7 +267,7 @@ let xml_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s =
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
-let inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
+let inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s : Xhtmltypes_duce.inlines Lwt.t = 
   match Wikicreole.from_string sp 
     (sp, sd, (subbox, ancestors))
     (builder wiki_id) s
@@ -277,6 +277,15 @@ let inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s =
                        | {{ [ <p>l _* ] }} -> Lwt.return l
 (*VVV What can I do with trailing data? *)
                        | {{ _ }} -> Lwt.return {{ [ <b>"error" ] }})
+
+let a_content_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
+  inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s >>= fun r ->
+  Lwt.return
+    {{ map r with
+         |  <a (Xhtmltypes_duce.a_attrs)>l -> l
+         | p -> [p] }}
+
+
 
 let string_of_extension name args content =
   "<<"^name^
@@ -388,7 +397,7 @@ let _ =
     );
 
   add_block_extension "menu"
-    (fun wiki_id (sp, sd, _) args c -> 
+    (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
        let classe = 
          let c =
            "wikimenu"^
@@ -409,7 +418,7 @@ let _ =
              Ocsigen_lib.sep '|' s 
            with Not_found -> s, s
          in
-         let text2 = Ocamlduce.Utf8.make text in
+         a_content_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id text >>= fun text2 ->
          if Eliom_sessions.get_current_sub_path_string sp = link
          then 
            let classe = match classe with
@@ -418,7 +427,7 @@ let _ =
                  let c = Ocamlduce.Utf8.make ("wikimenu_current "^c) in
                  {{ { class=c } }}
            in
-           {{ <li (classe)>text2}}
+           Lwt.return {{ <li (classe)>text2}}
          else
            let path =
              Ocsigen_lib.remove_slash_at_end
@@ -437,12 +446,12 @@ let _ =
                  let c = Ocamlduce.Utf8.make c in
                  {{ { class=c } }}
            in
-           {{ <li (classe)>[<a href=link2>text2]}}
+           Lwt.return {{ <li (classe)>[<a href=link2>text2]}}
        in
        let rec mapf = function
-           | [] -> []
-           | [a] -> [f ~classe:"wikimenu_last" a]
-           | a::ll -> (f a)::mapf ll
+           | [] -> Lwt.return []
+           | [a] -> f ~classe:"wikimenu_last" a >>= fun b -> Lwt.return [b]
+           | a::ll -> f a >>= fun b -> mapf ll >>= fun l -> Lwt.return (b::l)
        in
        match
          List.rev
@@ -452,11 +461,11 @@ let _ =
        with
          | [] -> Lwt.return {: [] :}
          | [a] ->  
-             let first = f ~classe:"wikimenu_first wikimenu_last" a in
+             f ~classe:"wikimenu_first wikimenu_last" a >>= fun first ->
              Lwt.return {{ [ <ul (classe ++ id) >[ {: first :} ] ] }}
          | a::ll -> 
-             let first = f ~classe:"wikimenu_first" a in
-             let poi = mapf ll in
+             f ~classe:"wikimenu_first" a >>= fun first ->
+             mapf ll >>= fun poi ->
              Lwt.return 
                {{ [ <ul (classe ++ id) >[ first !{: poi :} ] ] }}
     );
