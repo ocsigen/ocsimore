@@ -64,26 +64,25 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
       | Ocsimore_user p -> (Some p), "l"
       | Pam -> None, "p"
   in
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ -> 
-  (match password, email with
-     | None, None -> 
-         PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
+  Sql.full_transaction_block
+    (fun db ->
+       (match password, email with
+          | None, None -> 
+              PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
                     VALUES ($name, $fullname, $dyn, $authtype)"
-     | Some pwd, None -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname, dyn, authtype) \
+          | Some pwd, None -> 
+              PGSQL(db) "INSERT INTO users (login, password, fullname, dyn, authtype) \
                     VALUES ($name, $pwd, $fullname, $dyn, $authtype)"
-     | None, Some email -> 
-         PGSQL(db) "INSERT INTO users (login, fullname, email, dyn, authtype) \
+          | None, Some email -> 
+              PGSQL(db) "INSERT INTO users (login, fullname, email, dyn, authtype) \
                     VALUES ($name, $fullname, $email, $dyn, $authtype)"
-     | Some pwd, Some email -> 
-         PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn, authtype) \
+          | Some pwd, Some email -> 
+              PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn, authtype) \
                     VALUES ($name, $pwd, $fullname, $email, $dyn, $authtype)"
-  ) >>= fun () -> 
-  serial4 db "users_id_seq" >>= fun id ->
-  populate_groups db id groups >>= fun () ->
-  commit db >>= fun _ -> 
-  return id)
+       ) >>= fun () -> 
+    serial4 db "users_id_seq" >>= fun id ->
+    populate_groups db id groups >>= fun () ->
+    Lwt.return id)
 
 let find_user_ ?db ?id ?name () =
   (match db with
@@ -152,32 +151,30 @@ let update_data_ ~userid ~name ~password ~fullname ~email ?groups ?dyn () =
       | Ocsimore_user p -> (Some p), "l"
       | Pam -> None, "p"
   in
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ -> 
-  (match password, email with
-     | None, None -> 
-         PGSQL(db) "UPDATE users SET fullname = $fullname, email = DEFAULT, password = DEFAULT, authtype = $authtype WHERE id = $userid"
-     | None, Some email -> 
-         PGSQL(db) "UPDATE users SET fullname = $fullname, password = DEFAULT, email = $email, authtype = $authtype WHERE id = $userid"
-(*VVV is it ok when pwd/email becomes NULL? *)
-     | Some pwd, None -> 
-         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = DEFAULT, authtype = $authtype WHERE id = $userid"
-     | Some pwd, Some email -> 
-         PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email, authtype = $authtype WHERE id = $userid"
-  ) 
-    >>= fun () ->
-  (match dyn with
-     | Some dyn -> 
-         PGSQL(db) "UPDATE users SET dyn = $dyn WHERE id = $userid"
-     | None -> Lwt.return ())
-  >>= fun () ->
-  (match groups with
-    | Some groups ->
-        PGSQL(db) "DELETE FROM userrights WHERE id=$userid" >>= fun () ->
-        populate_groups db userid groups;
-    | None -> Lwt.return ()) >>= fun () ->
-  commit db >>= fun _ -> 
-  Lwt.return ())
+  Sql.full_transaction_block
+    (fun db ->
+       (match password, email with
+         | None, None -> 
+             PGSQL(db) "UPDATE users SET fullname = $fullname, email = DEFAULT, password = DEFAULT, authtype = $authtype WHERE id = $userid"
+         | None, Some email -> 
+             PGSQL(db) "UPDATE users SET fullname = $fullname, password = DEFAULT, email = $email, authtype = $authtype WHERE id = $userid"
+               (*VVV is it ok when pwd/email becomes NULL? *)
+         | Some pwd, None -> 
+             PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = DEFAULT, authtype = $authtype WHERE id = $userid"
+         | Some pwd, Some email -> 
+             PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email, authtype = $authtype WHERE id = $userid"
+       ) 
+       >>= fun () ->
+         (match dyn with
+            | Some dyn -> 
+                PGSQL(db) "UPDATE users SET dyn = $dyn WHERE id = $userid"
+            | None -> Lwt.return ())
+       >>= fun () ->
+         (match groups with
+            | Some groups ->
+                PGSQL(db) "DELETE FROM userrights WHERE id=$userid" >>= fun () ->
+                  populate_groups db userid groups;
+                | None -> Lwt.return ()))
 
 let get_groups_ ~userid =
   Lwt_pool.use Sql.pool

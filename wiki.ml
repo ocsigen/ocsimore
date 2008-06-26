@@ -392,7 +392,7 @@ let create_wiki ~title ~descr
                              w
                              userid
                              "new wikipage" 
-                             "==new wikipage=="
+                             ("=="^page^"==")
                              (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                              () >>= fun box ->
                            Wiki_cache.set_box_for_page

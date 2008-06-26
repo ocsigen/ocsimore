@@ -30,7 +30,7 @@
     <extension findlib-package="pam"/>
     <extension module="/path-to/ocsimore.cma"/>
 
-    <host defaulthostname="mywebsite.org">
+    <host hostname="mywebsite.org">
       <!-- You need defaulthostname if you are using https and http -->
 
       <static dir="/path_to/ocsimore/static" />

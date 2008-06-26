@@ -235,7 +235,11 @@ type db_t = (string, bool) Hashtbl.t PGOCaml.t
 (** Pool of SQL connections *)
 val pool : db_t Lwt_pool.t
 
+(** Perform an atomic transaction (using BEGIN and COMMIT/ROLLBACK *)
+val transaction_block : db_t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 
+(** Same as [transaction_block] but takes a db connection in the pool. *)
+val full_transaction_block : (db_t -> 'a Lwt.t) -> 'a Lwt.t
 
 
 

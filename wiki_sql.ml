@@ -32,15 +32,12 @@ open Sql
 
 (** inserts a new wiki *)
 let new_wiki ~title ~descr ~pages ~boxrights () =
-  Lwt_pool.use Sql.pool (fun db ->
-       begin_work db >>= fun _ ->
-         PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights) \
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights) \
                     VALUES ($title, $descr, $pages, $boxrights)"
        >>= fun () ->
-       serial4 db "wikis_id_seq" >>= fun wik_id ->
-       commit db >>= fun _ ->
-       return wik_id)
-
+       serial4 db "wikis_id_seq")
 
 let populate_readers_ db wiki_id id readers =
   match readers with
@@ -220,9 +217,8 @@ let remove_wikiboxes_creators_ db wiki_id id ra =
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () = 
-  Lwt_pool.use Sql.pool 
+  Sql.full_transaction_block
     (fun db ->
-       begin_work db >>= fun () ->
        (match box with
           | None ->
               PGSQL(db) "INSERT INTO wikiboxes \
@@ -244,19 +240,20 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
              populate_rights_adm_ db wiki wbx_id ra >>= fun () ->
              populate_wikiboxes_creators_ db wiki wbx_id wc
        ) >>= fun () ->
-       commit db >>= fun () ->
-       Lwt.return wbx_id)
+      Lwt.return wbx_id)
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content = 
-  Lwt_pool.use Sql.pool (fun db ->
-       begin_work db >>= fun () ->
+  Sql.full_transaction_block
+    (fun db ->
        PGSQL(db) "INSERT INTO wikiboxes \
                     (id, wiki_id, author, comment, content) \
                   VALUES ($wikibox, $wiki, $author, \
                           $comment, $content)" >>= fun () ->
-       serial4 db "wikiboxes_version_seq" >>= fun version ->
+       serial4 db "wikiboxes_version_seq")
+
+
 (*
        (match readers with
          | None -> Lwt.return ()
@@ -283,8 +280,6 @@ let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content =
                         WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
              populate_wikiboxes_creators_ db wiki wikibox a) >>= fun () ->
 *)
-       commit db >>= fun () ->
-       Lwt.return version)
 
 
 (** returns subject, text, author, datetime of a wikibox; 
@@ -354,8 +349,8 @@ let set_box_for_page_ ~wiki ~id ~page =
 
 
 let find_wiki_ ~id =
-  Lwt_pool.use Sql.pool (fun db ->
-       begin_work db >>= fun _ -> 
+  Sql.full_transaction_block
+    (fun db ->
        PGSQL(db) "SELECT * \
                   FROM wikis \
                   WHERE id = $id"
@@ -364,20 +359,19 @@ let find_wiki_ ~id =
                 FROM wikiboxes \
                 WHERE wiki_id = $id"
        >>= fun last -> 
-       commit db >>= fun () -> 
-       (match last with
-         | [] | [None] -> Lwt.return 0l
-         | [Some l] -> Lwt.return l
-         | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
+         (match last with
+            | [] | [None] -> Lwt.return 0l
+            | [Some l] -> Lwt.return l
+            | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
        >>= fun last -> 
-       (match r with
-          | [(id, title, descr, pages, br)] ->
-              Lwt.return (id, title, descr, pages, br, ref last)
-          | (id, title, descr, pages, br)::_ -> 
-              Ocsigen_messages.warning
-                "Ocsimore: More than one wiki have the same id (ignored)";
-              Lwt.return (id, title, descr, pages, br, ref last)
-          | [] -> Lwt.fail Not_found))
+         (match r with
+            | [(id, title, descr, pages, br)] ->
+                Lwt.return (id, title, descr, pages, br, ref last)
+            | (id, title, descr, pages, br)::_ -> 
+                Ocsigen_messages.warning
+                  "Ocsimore: More than one wiki have the same id (ignored)";
+                Lwt.return (id, title, descr, pages, br, ref last)
+            | [] -> Lwt.fail Not_found))
 
 let find_wiki_id_by_name ~name =
   Lwt_pool.use Sql.pool 
@@ -397,40 +391,28 @@ let find_wiki_id_by_name ~name =
 
 
 let get_writers_ (wiki, id) =
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ -> 
-  PGSQL(db) "SELECT writer FROM wikiboxwriters \
-             WHERE id = $id AND wiki_id = $wiki"
-    >>= fun r -> 
-  commit db >>= fun () -> 
-  Lwt.return r)
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "SELECT writer FROM wikiboxwriters \
+             WHERE id = $id AND wiki_id = $wiki")
 
 let get_readers_ (wiki, id) =
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ -> 
-  PGSQL(db) "SELECT reader FROM wikiboxreaders \
-             WHERE id = $id AND wiki_id = $wiki"
-    >>= fun r -> 
-  commit db >>= fun () -> 
-  Lwt.return r)
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "SELECT reader FROM wikiboxreaders \
+             WHERE id = $id AND wiki_id = $wiki")
 
 let get_rights_adm_ (wiki, id) =
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ -> 
-  PGSQL(db) "SELECT wbadmin FROM wikiboxrightsgivers \
-             WHERE id = $id AND wiki_id = $wiki"
-    >>= fun r -> 
-  commit db >>= fun () -> 
-  Lwt.return r)
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "SELECT wbadmin FROM wikiboxrightsgivers \
+             WHERE id = $id AND wiki_id = $wiki")
 
 let get_wikiboxes_creators_ (wiki, id) =
-  Lwt_pool.use Sql.pool (fun db ->
-  begin_work db >>= fun _ -> 
-  PGSQL(db) "SELECT creator FROM wikiboxcreators \
-             WHERE id = $id AND wiki_id = $wiki"
-    >>= fun r -> 
-  commit db >>= fun () -> 
-  Lwt.return r)
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "SELECT creator FROM wikiboxcreators \
+             WHERE id = $id AND wiki_id = $wiki")
 
 (****)
 let populate_readers_ wiki_id id readers =
@@ -522,7 +504,9 @@ let new_wikipage ~wik_id ~suffix ~author ~subject ~txt =
      [~suffix] is already used in that wiki. *)
   Lwt_preemptive.detach
     (fun () ->
-      begin_work db;
+  Sql.full_transaction_block
+    (fun db ->
+      begin_work db; remove this! use full_transaction_block
       let wpg_id =
         (match 
           PGSQL(db) "SELECT id FROM wikipages \
@@ -545,7 +529,9 @@ let add_or_change_wikipage ~wik_id ~suffix ~author ~subject ~txt =
   (* updates, or inserts, a wikipage. *)
   Lwt_preemptive.detach
     (fun () ->
-      begin_work db;
+  Sql.full_transaction_block
+    (fun db ->
+      begin_work db;remove this! use full_transaction_block
       (match
         PGSQL(db) "SELECT id, txt_id FROM wikipages \
           WHERE wik_id = $wik_id AND suffix = $suffix" 
@@ -569,7 +555,9 @@ let wiki_get_data ~wik_id =
   (* returns title, description, number of wikipages of a wiki. *)
   Lwt_preemptive.detach
     (fun () ->
-      begin_work db;
+  Sql.full_transaction_block
+    (fun db ->
+      begin_work db;remove this! use full_transaction_block
       let (title, description) = 
         (match PGSQL(db) "SELECT title, descr FROM wikis WHERE id = $wik_id"
         with [x] -> x | _ -> assert false) in
@@ -585,7 +573,9 @@ let wiki_get_pages_list ~wik_id =
   (* returns the list of wikipages *)
   Lwt_preemptive.detach
     (fun () ->
-      begin_work db;
+  Sql.full_transaction_block
+    (fun db ->
+      begin_work db;remove this! use full_transaction_block
       let wpg_l = PGSQL(db) "SELECT subject, suffix, author, datetime \
           FROM wikipages \
           WHERE wik_id = $wik_id \

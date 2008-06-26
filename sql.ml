@@ -21,13 +21,6 @@
 module PGOCaml =
   PGOCaml_generic.Make (struct include Lwt include Lwt_chan end)
 
-open PGOCaml
-  (* SQL aggregate functions can sometimes return NULL values, but
-     this is not the case for COUNT, that _always_ returns a non-NULL
-     value. PGOCaml's nullability test fails here, as the type
-     inferred for PGSQL(db) "SELECT COUNT(field) FROM YourTable" is
-     'int64 option' and not 'int64', as expected. *)
-
 open Lwt
 open Ocsimore_lib
 open CalendarLib
@@ -47,21 +40,36 @@ type db_size_t = int64;;
 type db_count_t = int64;;
 *)
 
-  (* I could define here a functor to try to abstract the db
-     structure, improving Vincent's Ocsicache.Make; but I need lots of
-     specialized SQL queries and commands, so it's easy and clearer to
-     define those ones directly. *)
 
-
+let transaction_block db f =
+  PGOCaml.begin_work db >>= fun _ -> 
+  Lwt.catch
+    (fun () ->
+       f () >>= fun r ->
+       PGOCaml.commit db >>= fun () -> 
+       Lwt.return r)
+    (fun e -> 
+       PGOCaml.rollback db >>= fun () ->
+       Lwt.fail e)
+  
+let full_transaction_block f =
+  Lwt_pool.use pool (fun db -> transaction_block db (fun () -> f db))
+  
 
 
 
 (*
+  (* SQL aggregate functions can sometimes return NULL values, but
+     this is not the case for COUNT, that _always_ returns a non-NULL
+     value. PGOCaml's nullability test fails here, as the type
+     inferred for PGSQL(db) "SELECT COUNT(field) FROM YourTable" is
+     'int64 option' and not 'int64', as expected. *)
+
 (* SERVICES *)
-(*VVV PAS FINI !!!!!!!!!!!!!!! *)
+(*VVV Jaap - PAS FINI !!!!!!!!!!!!!!! *)
 let new_service db ~url =
   (* inserts a new service *)
-  begin_work db >>=
+  begin_work db >>=remove this! use full_transaction_block
   fun _ -> PGSQL(db) "INSERT INTO services (url) \
                 VALUES ($url)" >>=
         fun () -> serial4 db "services_id_seq" >>=
@@ -69,13 +77,13 @@ let new_service db ~url =
         fun _ -> return srv_id;;
 
 let list_services db =
-        begin_work db >>=
+        begin_work db >>=remove this! use full_transaction_block
         fun _ -> PGSQL(db) "SELECT url FROM services" >>=
         fun srv_l -> commit db >>=
         fun _ -> return srv_l;;
 
 let get_service_parameters db ~url =
-        begin_work db >>=
+        begin_work db >>=remove this! use full_transaction_block
         fun _ -> PGSQL(db) "SELECT id FROM services WHERE url = $url" >>=
         fun x -> (match x with [id] -> return id | _ -> fail Not_found) >>=
         fun id -> PGSQL(db) "SELECT id, name FROM service_parameters \
@@ -84,7 +92,7 @@ let get_service_parameters db ~url =
         fun _ -> return param_l;;
 
 let add_parameter_to_service db ~url ~param_name =
-        begin_work db >>=
+        begin_work db >>=remove this! use full_transaction_block
         fun _ -> PGSQL(db) "SELECT id FROM services WHERE url = $url" >>=
         fun x -> (match x with [id] -> return id | _ -> fail Not_found) >>=
         fun id -> PGSQL(db) "INSERT INTO service_parameters \
