@@ -105,6 +105,29 @@ val xml_of_wiki :
   string -> 
   Xhtmltypes_duce.flows Lwt.t
 
+(** returns only the content of the first paragraph of a wiki text.
+*)
+val inline_of_wiki :
+  ?subbox: Xhtmltypes_duce.flows ->
+  ancestors:ancestors ->
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  int32 ->
+  string -> 
+  Xhtmltypes_duce.inlines Lwt.t
+
+(** returns only the content of the first paragraph of a wiki text,
+    after having removed links.
+*)
+val a_content_of_wiki :
+  ?subbox: Xhtmltypes_duce.flows ->
+  ancestors:ancestors ->
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  int32 ->
+  string -> 
+  {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t
+
 (** Returns the wiki syntax for an extension box
     from its name, arguments and content.
 *)

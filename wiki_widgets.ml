@@ -1287,9 +1287,11 @@ object (self)
                | Failure _
                | Not_found -> wiki_id
            in
-           let content = match c with
-             | Some c -> c
-             | None -> href
+           let content =
+             match c with
+               | Some c -> Wiki_syntax.a_content_of_wiki
+                   ?subbox ~ancestors ~sp ~sd wiki_id c
+               | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
            let href =
              Ocsigen_lib.remove_slash_at_end
@@ -1305,7 +1307,7 @@ object (self)
                href
             ),
             args,
-            Lwt.return (Ocamlduce.Utf8.make content))
+            content)
         );
 
        Wiki_syntax.add_link_extension "nonattachedlink"
@@ -1334,9 +1336,11 @@ object (self)
                | Failure _
                | Not_found -> wiki_id
            in
-           let content = match c with
-             | Some c -> c
-             | None -> href
+           let content =
+               match c with
+                 | Some c -> Wiki_syntax.a_content_of_wiki
+                     ?subbox ~ancestors ~sp ~sd wiki_id c
+                 | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
            ((Eliom_duce.Xhtml.make_uri
                ?https
@@ -1346,7 +1350,7 @@ object (self)
                href
             ),
             args,
-            Lwt.return (Ocamlduce.Utf8.make content))
+            content)
         );
 
 
