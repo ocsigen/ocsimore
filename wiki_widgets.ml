@@ -1127,55 +1127,63 @@ object (self)
        
 
    method get_css_header ~sp ~wiki ?(admin=false) ?page () =
-     let css = 
-       if admin
-       then "ocsiwikiadmin.css"
-       else "ocsiwikistyle.css"
-     in
-     let css =
-       Eliom_duce.Xhtml.css_link 
-         (Eliom_duce.Xhtml.make_uri
-            (Eliom_services.static_dir sp) 
-            sp [css]) ()
+     if admin
+     then
+       Lwt.return
+         {{ [ {:Eliom_duce.Xhtml.css_link 
+                 (Eliom_duce.Xhtml.make_uri
+                    (Eliom_services.static_dir sp) 
+                    sp ["ocsiwikistyle.css"]) ():}
+                {:Eliom_duce.Xhtml.css_link 
+                   (Eliom_duce.Xhtml.make_uri
+                      (Eliom_services.static_dir sp) 
+                      sp ["ocsiwikiadmin.css"]) ():}
+            ] }}
+     else
+       let css =
+         Eliom_duce.Xhtml.css_link 
+           (Eliom_duce.Xhtml.make_uri
+              (Eliom_services.static_dir sp) 
+              sp ["ocsiwikistyle.css"]) ()
 (*VVV CSS? *)
-     in
-     Lwt.catch
-       (fun () ->
-          Wiki_cache.get_css_for_wiki wiki >>= fun _ ->
-            Lwt.return 
-              {{ [ css
-                     {:
-                        Eliom_duce.Xhtml.css_link 
-                        (Eliom_duce.Xhtml.make_uri wikicss_service sp wiki)
-                        ()
-(*VVV encoding? *)
-                        :}
-                 ]}}
-       )
-       (function
-          | Not_found -> Lwt.return {{ [ css ] }}
-          | e -> Lwt.fail e)
-     >>= fun css ->
+       in
        Lwt.catch
          (fun () ->
-            match page with
-              | None -> Lwt.return css
-              | Some page ->
-                  Wiki_cache.get_css_for_page wiki page >>= fun _ ->
-                    Lwt.return 
-                      {{ [ !css
-                             {:
-                                Eliom_duce.Xhtml.css_link 
-                                (Eliom_duce.Xhtml.make_uri 
-                                   pagecss_service sp (wiki, page))
-                                ()
+            Wiki_cache.get_css_for_wiki wiki >>= fun _ ->
+              Lwt.return 
+                {{ [ css
+                       {:
+                          Eliom_duce.Xhtml.css_link 
+                          (Eliom_duce.Xhtml.make_uri wikicss_service sp wiki)
+                          ()
 (*VVV encoding? *)
-                                :}
-                         ]}}
+                          :}
+                   ]}}
          )
          (function
-            | Not_found -> Lwt.return css
+            | Not_found -> Lwt.return {{ [ css ] }}
             | e -> Lwt.fail e)
+       >>= fun css ->
+         Lwt.catch
+           (fun () ->
+              match page with
+                | None -> Lwt.return css
+                | Some page ->
+                    Wiki_cache.get_css_for_page wiki page >>= fun _ ->
+                      Lwt.return 
+                        {{ [ !css
+                               {:
+                                  Eliom_duce.Xhtml.css_link 
+                                  (Eliom_duce.Xhtml.make_uri 
+                                     pagecss_service sp (wiki, page))
+                                  ()
+(*VVV encoding? *)
+                                  :}
+                           ]}}
+           )
+           (function
+              | Not_found -> Lwt.return css
+              | e -> Lwt.fail e)
 
 
 
