@@ -1385,7 +1385,8 @@ object (self)
               ~data:(get_admin_wiki (), wikiadmin_container_id)
               ?cssmenu:(Some None)
               ~subbox:{{ [ subbox ] }} () >>= fun page ->
-            self#get_css_header ~sp ~wiki:w ?page:None () >>= fun css ->
+            self#get_css_header 
+              ~admin:true ~sp ~wiki:w ?page:None () >>= fun css ->
             Lwt.return (self#container ~css {{ [ page ] }})
 
          );
@@ -1426,7 +1427,7 @@ object (self)
               ~subbox:{{ [ subbox ] }} () 
 *)
             >>= fun pagecontent ->
-            self#get_css_header ~sp ~wiki ?page:None () >>= fun css ->
+            self#get_css_header ~admin:true ~sp ~wiki ?page:None () >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
 
          )
