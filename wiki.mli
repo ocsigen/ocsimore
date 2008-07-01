@@ -17,7 +17,8 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : bool;
-  last: int32 ref
+  last: int32 ref;
+  container_id: int32 option
 }
 
 
@@ -63,12 +64,6 @@ val create_wiki :
   unit -> 
   wiki_info Lwt.t
 
-
-(** The id of the wikipage container *)
-val wikipage_container_id : int32
-
-(** The id of the wiki administration page container *)
-val wikiadmin_container_id : int32
 
 (** {2 Groups } *)
 

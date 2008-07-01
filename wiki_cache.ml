@@ -119,6 +119,10 @@ let find_wiki id =
     Lwt.return (H.find wiki_info_table id)
   with Not_found -> Wiki_sql.find_wiki_ ~id
 
+let update_wiki ~wiki_id ~container_id () =
+  H.remove wiki_info_table wiki_id;
+  Wiki_sql.update_wiki_ ~wiki:wiki_id ~container_id ()
+
 (***)
 let get_css_for_page, set_css_for_page =
   let module C = Cache.Make (struct 

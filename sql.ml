@@ -45,6 +45,7 @@ let transaction_block db f =
   PGOCaml.begin_work db >>= fun _ -> 
   Lwt.catch
     (fun () ->
+print_endline "SQL transaction";
        f () >>= fun r ->
        PGOCaml.commit db >>= fun () -> 
        Lwt.return r)

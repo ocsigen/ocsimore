@@ -55,7 +55,8 @@ CREATE TABLE wikis (
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
     pages boolean NOT NULL,
-    boxrights boolean NOT NULL
+    boxrights boolean NOT NULL,
+    container_id integer
 );
 
 

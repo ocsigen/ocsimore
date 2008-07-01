@@ -75,7 +75,7 @@ class noneditable_wikibox :
   end
 
 class editable_wikibox :
-  unit -> ((unit -> int32) * int32) ->
+  unit -> ((unit -> int32) * int32 * int32) ->
   object
 
     inherit Widget.widget_with_error_box

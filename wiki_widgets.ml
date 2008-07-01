@@ -330,7 +330,7 @@ class editable_wikibox () =
   in
 
 
-fun (get_admin_wiki, wiki_help_box) ->
+fun (get_admin_wiki, wikiadmin_container_id, wiki_help_box) ->
 (*  fun <other parameters if any> -> *)
 object (self)
   
@@ -1122,25 +1122,30 @@ object (self)
      =
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
+     Wiki.get_wiki_by_id wiki >>= fun wiki_info ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
-     self#bind_or_display_error
-       ~classe
-       (if c
-        then
-          Lwt.catch
-            (fun () -> 
-               Wiki_cache.get_css_for_wiki wiki (* The css exists *)
-            )
-            (function 
-               | Not_found -> Lwt.return ""
-               | e -> Lwt.fail e
-            )
-        else Lwt.fail Not_css_editor)
-       (self#display_edit_wikicss_form ~sp ~sd ?rows ?cols ~wiki)
-       (self#display_edit_wikicss_box ~sp ~sd
-          ?cssmenu:(Some None)
-          (wiki, 
-           Wiki.wikipage_container_id))
+     match wiki_info.Wiki.container_id with
+       | None -> 
+           Lwt.return 
+             (self#display_error_box ~message:"Wiki has no container" ())
+       | Some container_id -> 
+           self#bind_or_display_error
+             ~classe
+             (if c
+              then
+                Lwt.catch
+                  (fun () -> 
+                     Wiki_cache.get_css_for_wiki wiki (* The css exists *)
+                  )
+                  (function 
+                     | Not_found -> Lwt.return ""
+                     | e -> Lwt.fail e
+                  )
+              else Lwt.fail Not_css_editor)
+             (self#display_edit_wikicss_form ~sp ~sd ?rows ?cols ~wiki)
+             (self#display_edit_wikicss_box ~sp ~sd
+                ?cssmenu:(Some None)
+                (wiki, container_id))
        
 
    method get_css_header ~sp ~wiki ?(admin=false) ?page () =
@@ -1399,7 +1404,7 @@ object (self)
               () >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
               ~ancestors:Wiki_syntax.no_ancestors
-              ~data:(w, Wiki.wikiadmin_container_id)
+              ~data:(get_admin_wiki (), wikiadmin_container_id)
               ?cssmenu:(Some None)
               ~subbox:{{ [ subbox ] }} () >>= fun page ->
             self#get_css_header ~sp ~wiki:w ?page:None () >>= fun css ->
@@ -1411,13 +1416,21 @@ object (self)
          service_edit_css
          (fun sp ((wiki, page) as g) () -> 
             let sd = Ocsimore_common.get_sd sp in
-            self#edit_css_box ~sp ~sd ~rows:30 ~data:g () >>= fun subbox ->
-            self#editable_wikibox ~sp ~sd
-              ~ancestors:Wiki_syntax.no_ancestors
-              ~data:(wiki, Wiki.wikipage_container_id)
-              ?cssmenu:(Some None)
-              ~subbox:{{ [ subbox ] }} () >>= fun pagecontent ->
-            self#get_css_header ~sp ~wiki ?page:(Some page) () >>= fun css ->
+            Wiki.get_wiki_by_id wiki >>= fun wiki_info ->
+            (match wiki_info.Wiki.container_id with
+              | None -> 
+                  Lwt.return 
+                    (self#display_error_box ~message:"Wiki has no container" ())
+              | Some container_id -> 
+                  self#edit_css_box ~sp ~sd ~rows:30 ~data:g ()
+                  >>= fun subbox ->
+                  self#editable_wikibox ~sp ~sd
+                    ~ancestors:Wiki_syntax.no_ancestors
+                    ~data:(wiki, container_id)
+                    ?cssmenu:(Some None)
+                    ~subbox:{{ [ subbox ] }} ()) >>= fun pagecontent ->
+            self#get_css_header ~sp ~wiki ?page:(Some page) () 
+            >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
 
          );

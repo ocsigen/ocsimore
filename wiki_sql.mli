@@ -98,7 +98,8 @@ val get_css_for_wiki_ : wiki:int32 -> string option Lwt.t
 val set_css_for_wiki_ : wiki:int32 -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
-val find_wiki_ : id:wiki -> (wiki * string * string * bool * bool * int32 ref) Lwt.t
+val find_wiki_ : id:wiki -> 
+  (wiki * string * string * bool * bool * int32 ref * int32 option) Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
 val find_wiki_id_by_name : name:string -> wiki Lwt.t
@@ -121,6 +122,12 @@ val update_wikibox_ :
   content:string ->
   int32 Lwt.t
 
+(** Update container_id (only, for now). *)
+val update_wiki_ :
+  wiki:wiki ->
+  container_id:int32 ->
+  unit ->
+  unit Lwt.t
 
 val populate_readers_ : 
   int32 -> int32 -> int32 list -> unit Lwt.t

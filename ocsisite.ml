@@ -86,6 +86,9 @@ let container ?css content =
    }}
 
 
+let wikiadmin_container_id = 2l
+let wiki_help_box = 3l
+
 class login_widget_basic_user_creation ~sessman data =
 object (self)
 
@@ -108,7 +111,6 @@ class creole_wikibox () adminwikiinfo = object
 
 end
 
-let wiki_help_box = 3l
 
 let get_admin_wiki_fun = ref (fun () -> failwith "Ocsisite.get_admin_wiki")
 
@@ -139,7 +141,9 @@ let wikibox =
            let _ = new User_widgets.login_widget sm in
            ());
 
-     Lwt.return (new creole_wikibox () (get_admin_wiki, wiki_help_box))
+     Lwt.return (new creole_wikibox () (get_admin_wiki, 
+                                        wikiadmin_container_id, 
+                                        wiki_help_box))
     )
 
 
@@ -167,8 +171,6 @@ let _ =
   get_admin_wiki_fun := (fun () -> a)
 
 
-let _ =
-    Lwt_unix.run
 (* Now done in new_wikibox
       (Lwt.catch
          (fun () -> 
@@ -177,6 +179,23 @@ let _ =
          (function
             | Not_found ->
 *)
+
+let _ =
+  Lwt_unix.run
+
+      (* Filling the admin container *)
+(*VVV Warning!! Dangerous! How to do this in cleaner way? *)
+      (Wiki.new_wikibox 
+         ~boxid:wikiadmin_container_id
+         ~wiki:(!get_admin_wiki_fun ())
+         ~author:Users.admin.Users.id
+         ~comment:"Admin container" 
+         ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+         ()
+       >>= fun _ ->
+    
+
+      (* Filling the wikisyntax help *)
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
       (Wiki.new_wikibox
          ~boxid:wiki_help_box
@@ -190,4 +209,5 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 {{../creole_cheat_sheet.png|Wikicreole's syntax}}"
          ()
        >>= fun _ -> Lwt.return ())
+      )
 

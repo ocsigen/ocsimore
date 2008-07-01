@@ -39,6 +39,16 @@ let new_wiki ~title ~descr ~pages ~boxrights () =
        >>= fun () ->
        serial4 db "wikis_id_seq")
 
+
+(** Update container_id (for now). *)
+let update_wiki_ ~wiki ~container_id () = 
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "UPDATE wikis SET container_id = $container_id \
+                  WHERE id = $wiki")
+
+
+
 let populate_readers_ db wiki_id id readers =
   match readers with
     | [] -> Lwt.return ()
@@ -365,12 +375,12 @@ let find_wiki_ ~id =
             | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
        >>= fun last -> 
          (match r with
-            | [(id, title, descr, pages, br)] ->
-                Lwt.return (id, title, descr, pages, br, ref last)
-            | (id, title, descr, pages, br)::_ -> 
+            | [(id, title, descr, pages, br, ci)] ->
+                Lwt.return (id, title, descr, pages, br, ref last, ci)
+            | (id, title, descr, pages, br, ci)::_ -> 
                 Ocsigen_messages.warning
                   "Ocsimore: More than one wiki have the same id (ignored)";
-                Lwt.return (id, title, descr, pages, br, ref last)
+                Lwt.return (id, title, descr, pages, br, ref last, ci)
             | [] -> Lwt.fail Not_found))
 
 let find_wiki_id_by_name ~name =
@@ -381,9 +391,9 @@ let find_wiki_id_by_name ~name =
                   WHERE title = $name"
        >>= fun r -> 
        (match r with
-          | [(id, title, descr, pages, br)] ->
+          | [(id, title, descr, pages, br, ci)] ->
               Lwt.return id
-          | (id, title, descr, pages, br)::_ -> 
+          | (id, title, descr, pages, br, ci)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same name (ignored)";
               Lwt.return id

@@ -5,12 +5,20 @@ TODO
  Je renvoie ça dans get_group_by_name quand le group n'existe pas,
  plutôt que NoSuchUser. Est-ce OK ?
  Est-ce qu'il faut renvoyer ça aussi ailleurs ?
- - NEW 27/06/2008 There is now a wiki created automatically for the 
- administration boxes. For now used only for displaying wikisyntax,
- but should be used for all admin pages.
- It is not bound to any URL.
  
 
+ - NEW 27/06/2008 There is now a wiki created automatically for the 
+ administration boxes. For now used only for displaying wikisyntax,
+ but should be used for all admin pages?
+ It is not bound to any URL.
+ Problems: 
+   - box identifiers are fixed (dangerous!)
+   - only one wikisyntax box for all wikis
+   - need to pass the id (wiki, boxes) to the constructor of wikiboxes
+   - where to create admin services that need such boxes?
+   - How to set the id of these boxes?
+ Warning: We must think very carefully about this
+ and be very carefull not breaking existing sites when modifying this.
  - IMPORTANT WARNING: the cache may cause inconsistencies of data
  if several processes are modifying the database
  - Make a command to clean the cache? Clean the cache every 6 seconds?

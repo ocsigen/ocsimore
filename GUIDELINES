@@ -4,11 +4,13 @@ Guidelines
 If  you  want  to  contribute   to  Ocsimore  and/or  write  your  own
 extensions, we recommend to follow these guidelines:
 
+ - Please try to make things as generic and configurable as possible.
+
  - The use of classes allows to extend widgets or modify their behaviours.
 Decompose each of them into several methods, one for each subtask to perform
 (retrieve data, display ...) and for each widget kind.
 
- - Decompose your module in 4 parts:
+ - Decompose your module in 5 parts:
 _createdb.sql SQL creation of databases
 _sql.ml database requests, using lwt-pgocaml and lwt_pool
 .ml defining and exporting session data for the module (see below)
@@ -90,3 +92,5 @@ Predefined users/groups:
  - admin: a special user who belongs to all groups
  - anonymous: non authenticated user
  - users: group of authenticated users
+ - nobody: a special user with no right at all 
+ (for ex when the user does not exist)

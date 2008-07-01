@@ -40,19 +40,21 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : bool;
-  last: int32 ref
+  last: int32 ref;
+  container_id: int32 option;
 }
 
 
 
 let get_wiki_by_id id =
-  Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last) -> 
+  Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last, ci) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                boxrights = br;
                pages = pages;
-               last = last
+               last = last;
+               container_id = ci
              }
 
 let get_wiki_by_name name =
@@ -187,11 +189,6 @@ let add_to_group_ l g =
     (Lwt.return ())
     l
 
-let wikiadmin_container_id = 1l
-let wikipage_container_id = 2l
-
-
-
 
 let display_page w wikibox action_create_page sp page () =
   if not w.pages
@@ -241,30 +238,32 @@ let display_page w wikibox action_create_page sp page () =
         )
       >>= fun subbox ->
 
-      wikibox#editable_wikibox ~sp ~sd ~data:(w.id, 
-                                              wikipage_container_id)
-        ?rows:None ?cols:None ?classe:None
-        ?subbox:(Some subbox) ?cssmenu:(Some None)
-        ~ancestors:Wiki_syntax.no_ancestors
-        ()
-      >>= fun pagecontent ->
+      match w.container_id with
+        | None -> Lwt.fail (Failure "Wiki has no container box")
+        | Some container_id ->
+            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, container_id)
+              ?rows:None ?cols:None ?classe:None
+              ?subbox:(Some subbox) ?cssmenu:(Some None)
+              ~ancestors:Wiki_syntax.no_ancestors
+              ()
+            >>= fun pagecontent ->
 
-      wikibox#get_css_header ~sp ~wiki:w.id 
-        ?admin:(Some false) ?page:(Some page) ()
+            wikibox#get_css_header ~sp ~wiki:w.id 
+              ?admin:(Some false) ?page:(Some page) ()
 
-      >>= fun css ->
-      let title = Ocamlduce.Utf8.make w.title in
-      Lwt.return
-        {{
-           <html>[
-             <head>[
-               <title>title
-                 !css
+            >>= fun css ->
+            let title = Ocamlduce.Utf8.make w.title in
+            Lwt.return
+              {{
+                 <html>[
+                   <head>[
+                     <title>title
+                       !css
     (*VVV quel titre ? quel layout de page ? *)
-             ]
-             <body>[ pagecontent ]
-           ]
-         }}
+                   ]
+                   <body>[ pagecontent ]
+                 ]
+               }}
 
 
 
@@ -358,30 +357,22 @@ let create_wiki ~title ~descr
 
            get_wiki_by_id wiki_id >>= fun wiki ->
 
-           (* Filling the first wikibox with admin container *)
-(*VVV Put this in admin wiki??? *)
-           new_wikibox 
-             ~boxid:wikiadmin_container_id
-             ~wiki
-             ~author:Users.admin.Users.id
-             ~comment:"Admin container" 
-             ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-             ~writers:[container_adm_data.Users.id]
-             ()
-           >>= fun _ ->
 
-           (* Filling the second wikibox with wikipage container *)
+           (* Filling a wikibox with wikipage container *)
            new_wikibox 
-             ~boxid:wikipage_container_id
              ~wiki
              ~author:Users.admin.Users.id
              ~comment:"Wikipage" 
              ~content:"= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
              ~writers:[container_adm_data.Users.id]
              ()
-           >>= fun _ ->
+           >>= fun container_id ->
 
-           Lwt.return wiki)
+           Wiki_cache.update_wiki ~wiki_id:wiki.id ~container_id ()
+           >>= fun () ->
+
+           Lwt.return {wiki with
+                         container_id = Some container_id})
 
        | e -> Lwt.fail e)
   >>= fun w ->
