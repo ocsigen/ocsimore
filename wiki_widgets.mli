@@ -75,7 +75,7 @@ class noneditable_wikibox :
   end
 
 class editable_wikibox :
-  unit ->
+  unit -> ((unit -> int32) * int32) ->
   object
 
     inherit Widget.widget_with_error_box
@@ -102,6 +102,15 @@ class editable_wikibox :
       sd:Ocsimore_common.session_data ->
       ?rows:int ->
       ?cols:int ->
+      previewonly:bool ->
+      Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.form Lwt.t
+
+    method display_full_edit_form :
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      ?rows:int ->
+      ?cols:int ->
+      ancestors:Wiki_syntax.ancestors ->
       previewonly:bool ->
       Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
 
@@ -204,14 +213,6 @@ class editable_wikibox :
       ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
       
-    method display_edit_form :
-      sp:Eliom_sessions.server_params ->
-      sd:Ocsimore_common.session_data ->
-      ?rows:int ->
-      ?cols:int ->
-      previewonly:bool ->
-      Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
-
     method edit_css_box :
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
@@ -245,11 +246,15 @@ class editable_wikibox :
       ?cols:int ->
       ?classe:string list -> unit -> Xhtmltypes_duce.block Lwt.t
 
-    (** returns the css headers for one wiki and optionally one page *)
+    (** returns the css headers for one wiki and optionally one page.
+        Set [?admin] to [true] for administration pages.
+    *)
     method get_css_header : 
       sp:Eliom_sessions.server_params ->
       wiki:int32 -> 
-      ?page:string -> unit ->
+      ?admin:bool ->
+      ?page:string -> 
+      unit ->
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
   end

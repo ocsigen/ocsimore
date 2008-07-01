@@ -330,7 +330,7 @@ class editable_wikibox () =
   in
 
 
-
+fun (get_admin_wiki, wiki_help_box) ->
 (*  fun <other parameters if any> -> *)
 object (self)
   
@@ -436,7 +436,7 @@ object (self)
    method display_edit_form
      ~sp
      ~sd
-     ?(rows=20)
+     ?(rows=25)
      ?(cols=80)
      ~previewonly
      (wiki_id, message_id)
@@ -480,14 +480,40 @@ object (self)
               ]] }}
      in
      Lwt.return
-       {{[
-           {:
-              Eliom_duce.Xhtml.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:action_send_wikibox
-              ~sp draw_form ()
-              :}]
-        }}
+       (Eliom_duce.Xhtml.post_form
+          ~a:{{ { accept-charset="utf-8" } }}
+          ~service:action_send_wikibox
+          ~sp draw_form ()
+       )
+
+   method display_full_edit_form
+     ~sp
+     ~sd
+     ?rows
+     ?cols
+     ~ancestors
+     ~previewonly
+     (wiki_id, message_id)
+     (content : string)
+     =
+     let admin_wiki = get_admin_wiki () in
+     self#bind_or_display_error
+       ~classe:["wikihelp"]
+       (self#retrieve_wikibox_content (admin_wiki, wiki_help_box))
+       (self#pretty_print_wikisyntax ~ancestors ~sp ~sd admin_wiki)
+       (self#display_noneditable_box)
+     >>= fun b ->
+     self#display_edit_form
+       ~sp
+       ~sd
+       ?rows
+       ?cols
+       ~previewonly
+       (wiki_id, message_id)
+       content
+     >>= fun f ->
+     Lwt.return {{ [ b f ] }}
+
 
    method display_edit_perm_form
      ~sp
@@ -814,7 +840,7 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
-                     (self#display_edit_form ~sp ~sd ?cols ?rows 
+                     (self#display_full_edit_form ~ancestors ~sp ~sd ?cols ?rows 
                         ~previewonly:true data)
                      (self#display_edit_box ~sp ~sd ?cssmenu data)
                | Some (Wiki.Edit_perm i) when i = data ->
@@ -834,7 +860,7 @@ object (self)
                           ~sp ~sd wiki_id c >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
-                        self#display_edit_form ~sp ~sd ?cols ?rows
+                        self#display_full_edit_form ~ancestors ~sp ~sd ?cols ?rows
                           ~previewonly:false data c >>= fun form ->
                         Lwt.return {{ [<p class={: box_title_class :}>"Preview"
                                        preview
@@ -928,7 +954,7 @@ object (self)
    method display_edit_css_form
      ~sp
      ~sd
-     ?(rows=20)
+     ?(rows=25)
      ?(cols=80)
      ~data:(wiki_id, page)
      (content : string)
@@ -1049,7 +1075,7 @@ object (self)
    method display_edit_wikicss_form
      ~sp
      ~sd
-     ?(rows=20)
+     ?(rows=25)
      ?(cols=80)
      ~wiki
      (content : string)
@@ -1117,12 +1143,17 @@ object (self)
            Wiki.wikipage_container_id))
        
 
-   method get_css_header ~sp ~wiki ?page () =
+   method get_css_header ~sp ~wiki ?(admin=false) ?page () =
+     let css = 
+       if admin
+       then "ocsiwikiadmin.css"
+       else "ocsiwikistyle.css"
+     in
      let css =
        Eliom_duce.Xhtml.css_link 
          (Eliom_duce.Xhtml.make_uri
             (Eliom_services.static_dir sp) 
-            sp ["ocsiwikistyle.css"]) ()
+            sp [css]) ()
 (*VVV CSS? *)
      in
      Lwt.catch
@@ -1293,18 +1324,21 @@ object (self)
                    ?subbox ~ancestors ~sp ~sd wiki_id c
                | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
-           let href =
-             Ocsigen_lib.remove_slash_at_end
-               (Ocsigen_lib.remove_slash_at_beginning
-                  (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
-           in
            (* class and id attributes will be taken by Wiki_syntax.a_elem *)
-           ((Eliom_duce.Xhtml.make_uri
-               ?https
-               ?fragment
-               ~service:(Wiki_syntax.find_servpage wiki_id)
-               ~sp
-               href
+           ((match Wiki_syntax.find_servpage wiki_id with
+               | Some s ->
+                   let href =
+                     Ocsigen_lib.remove_slash_at_end
+                       (Ocsigen_lib.remove_slash_at_beginning
+                          (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
+                   in
+                   Eliom_duce.Xhtml.make_uri
+                     ?https
+                     ?fragment
+                     ~service:s
+                     ~sp
+                     href
+               | None -> href
             ),
             args,
             content)

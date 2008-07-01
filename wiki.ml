@@ -107,8 +107,9 @@ let container_adm_group i =
 let admin_group i =   Users.get_user_id_by_name (admin_group_name i)
 
 
+exception Found of int32
 
-let new_wikibox ~wiki ~author ~comment ~content
+let new_wikibox ?boxid ~wiki ~author ~comment ~content
     ?readers ?writers ?rights_adm ?wikiboxes_creators () =
   (if wiki.boxrights
   then (
@@ -134,15 +135,38 @@ let new_wikibox ~wiki ~author ~comment ~content
            Lwt.return [r]) >>= fun wikiboxes_creators ->
     Lwt.return (Some (readers, writers, rights_adm, wikiboxes_creators)))
   else Lwt.return None) >>= fun rights ->
-  wiki.last := Int32.add !(wiki.last) 1l;
-  Wiki_sql.new_wikibox
-    ~wiki:wiki.id
-    ~box:!(wiki.last)
-    ~author
-    ~comment
-    ~content
-    ?rights
-    ()
+  Lwt.catch
+    (fun () ->
+       (match boxid with
+          | None -> 
+              wiki.last := Int32.add !(wiki.last) 1l;
+              Lwt.return !(wiki.last)
+          | Some b -> 
+              (* Lwt.catch
+                 (fun () -> 
+                    Wiki_cache.get_wikibox_data ~wikibox:(wiki.id, b) ()
+                    >>= fun _ -> Lwt.fail (Found b))
+                 (function
+                    | Not_found -> *)
+              (*VVV not really clean *)
+              if Int32.compare !(wiki.last) b >= 0
+              then Lwt.fail (Found b)
+              else begin
+                (*VVV may create holes *)
+                wiki.last := b;
+                Lwt.return b
+              end
+       )
+      >>= fun box ->
+      Wiki_sql.new_wikibox
+        ~wiki:wiki.id
+        ~box
+        ~author
+        ~comment
+        ~content
+        ?rights
+        ())
+    (function Found b -> Lwt.return b | e -> Lwt.fail e)
       
 
 let create_group_ name fullname =
@@ -225,7 +249,8 @@ let display_page w wikibox action_create_page sp page () =
         ()
       >>= fun pagecontent ->
 
-      wikibox#get_css_header ~sp ~wiki:w.id ?page:(Some page) ()
+      wikibox#get_css_header ~sp ~wiki:w.id 
+        ?admin:(Some false) ?page:(Some page) ()
 
       >>= fun css ->
       let title = Ocamlduce.Utf8.make w.title in
@@ -334,9 +359,10 @@ let create_wiki ~title ~descr
            get_wiki_by_id wiki_id >>= fun wiki ->
 
            (* Filling the first wikibox with admin container *)
+(*VVV Put this in admin wiki??? *)
            new_wikibox 
+             ~boxid:wikiadmin_container_id
              ~wiki
-             (* ~box:wikiadmin_container_id *)
              ~author:Users.admin.Users.id
              ~comment:"Admin container" 
              ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
@@ -346,8 +372,8 @@ let create_wiki ~title ~descr
 
            (* Filling the second wikibox with wikipage container *)
            new_wikibox 
+             ~boxid:wikipage_container_id
              ~wiki
-             (* ~box:wikipage_container_id *)
              ~author:Users.admin.Users.id
              ~comment:"Wikipage" 
              ~content:"= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
@@ -436,7 +462,7 @@ let create_wiki ~title ~descr
 
 
   );
-  Lwt.return ()
+  Lwt.return w
 
 
 

@@ -569,7 +569,7 @@ and parse_image c attribs =
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
       let url = c.build.make_href c.sp (String.sub s 0 i) in
-      let alt = String.sub s (i + 1) (String.length s - i - 1) in
+      let alt = String.sub s (i + 1) (String.length s - i - 3) in
       push c (c.build.img_elem attribs url alt);
       parse_rem c lexbuf
     }

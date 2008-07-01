@@ -61,7 +61,7 @@ val create_wiki :
   ?boxrights:bool ->
   wikibox: Wiki_widgets.editable_wikibox ->
   unit -> 
-  unit Lwt.t
+  wiki_info Lwt.t
 
 
 (** The id of the wikipage container *)
@@ -165,7 +165,10 @@ val get_wiki_by_id : int32 -> wiki_info Lwt.t
 (** Returns wiki information from a name. *)
 val get_wiki_by_name : string -> wiki_info Lwt.t
 
+(** If [?boxid] specified, creates the box only if the box 
+    does not already exist *)
 val new_wikibox :
+  ?boxid:int32 ->
   wiki:wiki_info ->
   author:User_sql.userid ->
   comment:string ->

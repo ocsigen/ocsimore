@@ -98,9 +98,8 @@ object (self)
 end;;
 
 
-
-class creole_wikibox () = object
-  inherit Wiki_widgets.editable_wikibox ()
+class creole_wikibox () adminwikiinfo = object
+  inherit Wiki_widgets.editable_wikibox () adminwikiinfo
 
   method pretty_print_wikisyntax ?subbox ~ancestors ~sp ~sd w content =
     Wiki_syntax.xml_of_wiki ?subbox ~ancestors ~sp ~sd w content
@@ -108,6 +107,13 @@ class creole_wikibox () = object
   method container = container
 
 end
+
+let wiki_help_box = 3l
+
+let get_admin_wiki_fun = ref (fun () -> failwith "Ocsisite.get_admin_wiki")
+
+let get_admin_wiki () = (!get_admin_wiki_fun ()).Wiki.id
+
 
 let wikibox =
   Lwt_unix.run
@@ -125,7 +131,6 @@ let wikibox =
          | None -> new Session_manager.sessionmanager sminfo 
      in
 
-     (* widgets creation: *)
      (match basicusercreation with
        | Some data ->
            let _ = new User_widgets.login_widget_basic_user_creation sm data in
@@ -134,10 +139,55 @@ let wikibox =
            let _ = new User_widgets.login_widget sm in
            ());
 
-     let mywikibox = new creole_wikibox () in
-     (* all widgets created *)
-
-     Lwt.return mywikibox
+     Lwt.return (new creole_wikibox () (get_admin_wiki, wiki_help_box))
     )
 
+
+let _ =
+  let a =
+    Lwt_unix.run
+      ((* creating a wiki for the administration boxes: *)
+        Wiki.create_wiki 
+          ~title:"Adminwiki"
+          ~descr:"Administration boxes"
+          ~wikibox:wikibox
+          ?path:None
+          (*       ~readers:[Users.admin]
+                   ~writers:[Users.admin]
+                   ~rights_adm:[Users.admin]
+                   ~wikiboxes_creators:[Users.admin]
+                   ~container_adm:[Users.admin]
+                   ~page_creators:[Users.admin]
+                   ~css_editors:[Users.admin]
+                   ~admins:[Users.admin] *)
+          ~boxrights:true
+          ()
+      )
+  in
+  get_admin_wiki_fun := (fun () -> a)
+
+
+let _ =
+    Lwt_unix.run
+(* Now done in new_wikibox
+      (Lwt.catch
+         (fun () -> 
+            Wiki_cache.get_wikibox_data ~wikibox:(get_admin_wiki (), wiki_help_box) ()
+            >>= fun _ -> Lwt.return ())
+         (function
+            | Not_found ->
+*)
+(*VVV Warning!! Dangerous! How to do this in cleaner way? *)
+      (Wiki.new_wikibox
+         ~boxid:wiki_help_box
+         ~wiki:(!get_admin_wiki_fun ())
+         ~author:Users.admin.Users.id
+         ~comment:"Wikisyntax help" 
+         ~content:"===Wiki syntax===
+
+This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few extensions.
+
+{{../creole_cheat_sheet.png|Wikicreole's syntax}}"
+         ()
+       >>= fun _ -> Lwt.return ())
 

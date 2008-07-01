@@ -66,7 +66,9 @@ let servpages = Servpages.create 5
 let add_naservpage = Servpages.add naservpages
 let add_servpage = Servpages.add servpages
 let find_naservpage = Servpages.find naservpages
-let find_servpage = Servpages.find servpages
+let find_servpage k = 
+  try Some (Servpages.find servpages k)
+  with Not_found -> None
 
 
 
@@ -144,8 +146,11 @@ let builder wiki_id =
              {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
     W.make_href =
       (fun sp addr ->
-         match Netstring_pcre.string_match absolute_link_regexp addr 0 with
-           | None ->
+         match
+           servpage,
+           Netstring_pcre.string_match absolute_link_regexp addr 0 
+         with
+           | (Some servpage, None) ->
                let addr =
                  Ocsigen_lib.remove_slash_at_end
                    (Ocsigen_lib.remove_slash_at_beginning
@@ -429,15 +434,19 @@ let _ =
            in
            Lwt.return {{ <li (classe)>text2}}
          else
-           let path =
-             Ocsigen_lib.remove_slash_at_end
-               (Ocsigen_lib.remove_slash_at_beginning
-                  (Ocsigen_lib.remove_dotdot (Neturl.split_path link)))
-           in
-           let href = Eliom_duce.Xhtml.make_uri
-             ~service:(find_servpage wiki_id)
-             ~sp
-             path
+           let href = 
+             match find_servpage wiki_id with
+               | Some servpage -> 
+                   let path =
+                     Ocsigen_lib.remove_slash_at_end
+                       (Ocsigen_lib.remove_slash_at_beginning
+                          (Ocsigen_lib.remove_dotdot (Neturl.split_path link)))
+                   in
+                   Eliom_duce.Xhtml.make_uri
+                     ~service:servpage
+                     ~sp
+                     path
+               | _ -> link
            in
            let link2 = Ocamlduce.Utf8.make href in
            let classe = match classe with

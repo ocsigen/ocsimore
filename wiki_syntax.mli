@@ -44,7 +44,7 @@ val find_servpage : int32 ->
    Eliom_services.get_service_kind,
    [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
      unit, [ `Registrable ])
-    Eliom_services.service
+    Eliom_services.service option
 
 val add_naservpage : int32 ->
   (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],

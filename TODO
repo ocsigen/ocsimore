@@ -5,6 +5,10 @@ TODO
  Je renvoie ça dans get_group_by_name quand le group n'existe pas,
  plutôt que NoSuchUser. Est-ce OK ?
  Est-ce qu'il faut renvoyer ça aussi ailleurs ?
+ - NEW 27/06/2008 There is now a wiki created automatically for the 
+ administration boxes. For now used only for displaying wikisyntax,
+ but should be used for all admin pages.
+ It is not bound to any URL for now.
  
 
  - IMPORTANT WARNING: the cache may cause inconsistencies of data
@@ -25,8 +29,7 @@ TODO
  notamment pour l'abstraction des types forum, group, user...
  - uniformize labels (put labels everywhere, and always the same name for the
  same type)
- - Give up with ocamlduce? (for ex pb with empty <select> written <select />
- not displayed correctly by firefox ...)
+ - Give up with ocamlduce? For now, no.
  - Take care of exception (database ...) more carefully and write error messages
  - Faut tout revoir pour uniformiser. C'est vraiment le bordel.
  - Not really clear where to use objects or functors. 
@@ -56,10 +59,10 @@ How to make sure that:
 
 Wiki:
  - What if two users modify the same page at the same time?
- - Revoir le changement des droits.
- En particulier il ne faut pas enegistrer une nouvelle version si l'on a 
- seulement changé les droits, pas le contenu.
- Ou alors faut-il sauver les droits pour chaque version ???
+ - Make a button to hide/show the View/Edit/History bars if we are connected and
+ do not want to be editor
+ - Revoir le changement des droits. Quels droits ? Qui peut les changer ?
+ Faut-il sauver les droits pour chaque version ???
  - Hierarchical menu box
  - not possible to make interwikis links in menus for now
  - <<if editable>> <<if connected>>
