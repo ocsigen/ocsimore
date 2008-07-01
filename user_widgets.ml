@@ -185,15 +185,16 @@ object (self)
       Wiki_syntax.add_link_extension "logoutlink"
         (fun w (sp, sd, (subbox, ancestors)) args c -> 
            let content = match c with
-             | Some c -> c
-             | None -> "logout"
+             | Some c -> Wiki_syntax.a_content_of_wiki
+                 ?subbox ~ancestors ~sp ~sd w c
+             | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
            in
            ((Eliom_duce.Xhtml.make_uri
                ~service:sessman#act_logout_get ~sp
                ()
             ),
             args,
-            Lwt.return (Ocamlduce.Utf8.make content))
+            content)
         )
 
 

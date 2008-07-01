@@ -8,7 +8,7 @@ TODO
  - NEW 27/06/2008 There is now a wiki created automatically for the 
  administration boxes. For now used only for displaying wikisyntax,
  but should be used for all admin pages.
- It is not bound to any URL for now.
+ It is not bound to any URL.
  
 
  - IMPORTANT WARNING: the cache may cause inconsistencies of data
@@ -21,8 +21,6 @@ TODO
  are not cached for now!
  User_sql.find_user is not cached with ~name parameter for now.
  - Use userid instead of userdata wherever it is possible
- - Use Lwt.finalize for all commit db!!!!!!!!!!!!!!!!!!!!!!!!
- or piutosto Pgocaml.abort if it fails
  - I removed all that depends on module Services for now Vincent 2008/04/15
 (dynamic creation of services)
  - pas clair la distinction entre forum et forum_sql, user et usr_sql,
@@ -63,9 +61,9 @@ Wiki:
  do not want to be editor
  - Revoir le changement des droits. Quels droits ? Qui peut les changer ?
  Faut-il sauver les droits pour chaque version ???
- - Hierarchical menu box
- - not possible to make interwikis links in menus for now
- - <<if editable>> <<if connected>>
+ - Hierarchical menu box (as in Eliom_tools)
+ - not possible to make all kinds of links in menus for now
+  (like <<nonattachedlink>> or <<link>>)
  - CSS have no history for now. Link css history with page/box history?
  - No right verification on css. Everyone can get them.
  - not possible to change the css for one wikibox for now, just for the whole
@@ -92,11 +90,10 @@ Users:
  modularize (use objects?)
  make this configurable from config file,
  implement LDAP.
- - All groups are kept in memory. Not good if too much users.
 
 User widgets:
  - clean everything
- - Use a class model closer to wiki and remove Widget.ml?
+ - Use a class model closer to wiki? (and remove Widget.ml?)
  - Probably define connection/deconnection actions here and not in 
  session_manager? (cf wiki_widgets).
  - account creation: it is recommended to ask for an email 
@@ -127,8 +124,9 @@ Wiki extensions:
  (string * XML Lwt.t) instead of (string * XML) Lwt.t
  - I don't know how to put wikisyntax inside inline extensions!
  (as xml_of_wiki returns block!)
- => not possible to use wikisyntax in <<logoutlink>> or <<nonattachedlink>>
- or <<link>> or <<menu>>!!!!!!!!!!!!!!!!!!
+ For now it looks like a hack.
+ (for ex to use wikisyntax in <<logoutlink>> or <<nonattachedlink>>
+ or <<link>> or <<menu>>)
 
 Forum:
  - clean everything
