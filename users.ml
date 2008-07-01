@@ -524,7 +524,9 @@ let group_list_of_string s =
   let f beg a =
     beg >>= fun beg ->
     get_user_id_by_name a >>= fun v -> 
-    Lwt.return (v::beg)
+    if v = nobody.id
+    then Lwt.return beg
+    else Lwt.return (v::beg)
   in
   let r = Ocsigen_lib.split ' ' s in
   List.fold_left f (Lwt.return []) r 

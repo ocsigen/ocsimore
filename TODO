@@ -91,6 +91,8 @@ Wiki:
  - Revoir la partie dynamique de la wikisyntaxe <<cond>> etc ...
  - Is it possible to cache __after__ having decoded the wikisyntax?
  (pb: some parts are dynamic and depends on the user or the request)
+ - Add a detailed wikisyntax help (with all extensions).
+ May be as a static wikicreole file, that would be loaded dynamically?
 
 Users:
  - IMPORTANT: Save a hash of passwords in the db, not the password itself

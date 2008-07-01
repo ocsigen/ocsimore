@@ -520,46 +520,24 @@ object (self)
      ~(sd : Ocsimore_common.session_data)
      ((wiki_id, message_id) as ids)
      =
+     let aux u =
+       Ocsimore_lib.lwt_bind_opt
+         u
+         (List.fold_left 
+            (fun s r -> 
+               s >>= fun s -> 
+               Users.get_user_name_by_id r >>= fun s2 ->
+               Lwt.return (s^" "^s2))
+            (Lwt.return ""))
+     in
      Wiki.get_readers ids >>= fun readers ->
      Wiki.get_writers ids >>= fun writers ->
      Wiki.get_rights_adm ids >>= fun rights_adm ->
      Wiki.get_wikiboxes_creators ids >>= fun creators ->
-     Ocsimore_lib.lwt_bind_opt
-       readers
-       (List.fold_left 
-          (fun s r -> 
-             s >>= fun s -> 
-             Users.get_user_name_by_id r >>= fun s2 ->
-             Lwt.return (s^" "^s2))
-          (Lwt.return ""))
-     >>= fun r ->
-     Ocsimore_lib.lwt_bind_opt
-       writers
-       (List.fold_left 
-          (fun s r -> 
-             s >>= fun s -> 
-             Users.get_user_name_by_id r >>= fun s2 ->
-             Lwt.return (s^" "^s2))
-          (Lwt.return ""))
-     >>= fun w ->
-     Ocsimore_lib.lwt_bind_opt
-       rights_adm
-       (List.fold_left 
-          (fun s r -> 
-             s >>= fun s -> 
-             Users.get_user_name_by_id r >>= fun s2 ->
-             Lwt.return (s^" "^s2))
-          (Lwt.return ""))
-     >>= fun a ->
-     Ocsimore_lib.lwt_bind_opt
-       creators 
-       (List.fold_left
-          (fun s r -> 
-             s >>= fun s -> 
-             Users.get_user_name_by_id r >>= fun s2 ->
-             Lwt.return (s^" "^s2))
-          (Lwt.return ""))
-     >>= fun c ->
+     aux readers >>= fun r ->
+     aux writers >>= fun w ->
+     aux rights_adm >>= fun a ->
+     aux creators >>= fun c ->
      let r = Ocsimore_lib.string_of_string_opt r in
      let w = Ocsimore_lib.string_of_string_opt w in
      let a = Ocsimore_lib.string_of_string_opt a in
