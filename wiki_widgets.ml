@@ -1134,7 +1134,7 @@ object (self)
                  (Eliom_duce.Xhtml.make_uri
                     (Eliom_services.static_dir sp) 
                     sp ["ocsiwikistyle.css"]) ():}
-                {:Eliom_duce.Xhtml.css_link 
+                {:Eliom_duce.Xhtml.css_link
                    (Eliom_duce.Xhtml.make_uri
                       (Eliom_services.static_dir sp) 
                       sp ["ocsiwikiadmin.css"]) ():}

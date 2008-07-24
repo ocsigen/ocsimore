@@ -20,15 +20,25 @@
    @author Vincent Balat
 *)
 
+let (>>=) = Lwt.bind
+
+let mutex = Lwt_mutex.create ()
+
 let pam_auth ?(service = "") ~name ~pwd () =
-  Lwt_preemptive.detach
+  Lwt_mutex.lock mutex >>= fun () ->
+  Lwt.finalize
     (fun () ->
-       try
-         let pam = Pam.pam_start service ~user:name (fun _ _ -> pwd) in
-         Pam.pam_authenticate pam [] ~silent:true;
-         ignore (Pam.pam_end pam)
-       with Pam.Pam_Error _ -> raise Users.BadPassword
+       Lwt_preemptive.detach
+         (fun () ->
+            try
+              let pam = Pam.pam_start service ~user:name (fun _ _ -> pwd) in
+              Pam.pam_set_item pam (Pam.Pam_Fail_Delay (fun _ _ -> ()));
+              Pam.pam_authenticate pam [] ~silent:true;
+              ignore (Pam.pam_end pam)
+            with Pam.Pam_Error _ -> raise Users.BadPassword
+         )
+         ()
     )
-    ()
+    (fun () -> Lwt_mutex.unlock mutex; Lwt.return ())
 
 let _ = Session_manager.set_pam_auth pam_auth
