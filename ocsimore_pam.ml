@@ -35,7 +35,10 @@ let pam_auth ?(service = "") ~name ~pwd () =
               Pam.pam_set_item pam (Pam.Pam_Fail_Delay (fun _ _ -> ()));
               Pam.pam_authenticate pam [] ~silent:true;
               ignore (Pam.pam_end pam)
-            with Pam.Pam_Error _ -> raise Users.BadPassword
+            with (Pam.Pam_Error _) as e -> 
+              Ocsigen_messages.debug (fun () -> "Pam error: "^
+                                        Printexc.to_string e);
+              raise Users.BadPassword
          )
          ()
     )
