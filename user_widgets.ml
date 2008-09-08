@@ -36,11 +36,14 @@ object (self)
     ?(user_prompt= "login:")
     ?(pwd_prompt= "password:")
     ?(auth_error= "Wrong login or password")
+    ?(switchtohttps= "Click here to switch to https and login")
     ~sp error usr pwd =
-    let user_prompt = Ocamlduce.Utf8.make user_prompt in
-    let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
-    let auth_error = Ocamlduce.Utf8.make auth_error in
-    {{ [<table>([
+    if (Eliom_sessions.get_ssl sp) || not (Session_manager.get_secure ())
+    then begin
+      let user_prompt = Ocamlduce.Utf8.make user_prompt in
+      let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
+      let auth_error = Ocamlduce.Utf8.make auth_error in
+      {{ [<table>([
                   <tr>[<td>user_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                 ~input_type:{:"text":} ~name:usr () :}]]
@@ -55,6 +58,12 @@ object (self)
                         ] }}
                    else
                      {{ [] }} :})] }}
+    end
+    else
+      let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
+      {{ [ <p>[{: Eliom_duce.Xhtml.a 
+                    Eliom_services.https_void_action
+                    sp switchtohttps () :} ] ] }}
       
   method private display_logout_box ~sp u =
     {{ [<table>[
@@ -63,7 +72,8 @@ object (self)
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
          ]] }}
         
-  method display_login_widget ?user_prompt ?pwd_prompt ?auth_error ~sp ~sd () =
+  method display_login_widget 
+    ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ~sp ~sd () =
     Users.get_user_data sp sd >>= fun u ->
     Users.is_logged_on sp sd >>= fun logged ->
     Lwt.return 
@@ -89,6 +99,7 @@ object (self)
                        (fun (usr, pwd) ->
                           (self#display_login_box 
                              ?user_prompt ?pwd_prompt ?auth_error
+                             ?switchtohttps
                              ~sp true usr pwd)) ()
                  else (* no login attempt yet *)
                      Eliom_duce.Xhtml.post_form
@@ -98,6 +109,7 @@ object (self)
                        (fun (usr, pwd) ->
                           (self#display_login_box
                              ?user_prompt ?pwd_prompt ?auth_error
+                             ?switchtohttps
                              ~sp false usr pwd)) () 
                        :}] 
        }}
@@ -110,8 +122,9 @@ object (self)
            let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
            let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
            let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
+           let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args in
            self#display_login_widget
-             ?user_prompt ?pwd_prompt ?auth_error 
+             ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps
              ~sp ~sd () >>= fun b ->
            Lwt.return {{ [ b ] }});
 
@@ -305,12 +318,15 @@ object (self)
     ?(user_prompt= "login:")
     ?(pwd_prompt= "password:")
     ?(auth_error= "Wrong login or password")
+    ?(switchtohttps= "Click here to switch to https and login")
     ~sp error usr pwd =
     let user_prompt = Ocamlduce.Utf8.make user_prompt in
     let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
     let auth_error = Ocamlduce.Utf8.make auth_error in
 (*VVV How to personalize every message??? or at least internationalize *)
-    {{ [<table>([
+    if (Eliom_sessions.get_ssl sp) || not (Session_manager.get_secure ())
+    then begin
+      {{ [<table>([
                   <tr>[<td>user_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                 ~input_type:{:"text":} ~name:usr () :}]]
@@ -329,6 +345,12 @@ object (self)
                                      {{ "Forgot your password?" }} () :}]]] }}
                    else
                      {{ [] }} :})] }}
+    end
+    else
+      let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
+      {{ [ <p> [ {: Eliom_duce.Xhtml.a 
+                      Eliom_services.https_void_action
+                      sp switchtohttps () :} ] ] }}
       
   method private display_logout_box ~sp u =
     {{ [<table>[

@@ -30,6 +30,7 @@ object
     ?user_prompt:Ocamlduce.Utf8.repr ->
     ?pwd_prompt:Ocamlduce.Utf8.repr ->
     ?auth_error:Ocamlduce.Utf8.repr ->
+    ?switchtohttps:Ocamlduce.Utf8.repr ->
     sp:Eliom_sessions.server_params -> 
     sd:Ocsimore_common.session_data -> 
     unit ->
