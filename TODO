@@ -64,6 +64,8 @@ How to make sure that:
  - all actions will send session-data to the following service?
 
 Wiki:
+ - Box version numbers must start at 1 for each box, 
+ and be consecutive!!
  - What if two users modify the same page at the same time?
  - Make a button to hide/show the View/Edit/History bars if we are connected and
  do not want to be editor

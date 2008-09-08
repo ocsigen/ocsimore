@@ -18,7 +18,10 @@ type wiki_info = {
   boxrights : bool;
   pages : bool;
   last: int32 ref;
-  container_id: int32 option
+  container_id: int32 option;
+  staticdir : string option; (* if static dir is given, 
+                                ocsimore will serve static pages if present,
+                                instead of wiki pages *)
 }
 
 
@@ -60,6 +63,7 @@ val create_wiki :
   ?css_editors:User_sql.userid list ->
   ?admins:User_sql.userid list ->
   ?boxrights:bool ->
+  ?staticdir:string ->
   wikibox: Wiki_widgets.editable_wikibox ->
   unit -> 
   wiki_info Lwt.t

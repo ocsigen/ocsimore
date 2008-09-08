@@ -32,6 +32,7 @@ val new_wiki :
   descr:string -> 
   pages:bool ->
   boxrights:bool ->
+  staticdir:string option ->
   unit ->
   wiki Lwt.t
 
@@ -99,7 +100,8 @@ val set_css_for_wiki_ : wiki:int32 -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
 val find_wiki_ : id:wiki -> 
-  (wiki * string * string * bool * bool * int32 ref * int32 option) Lwt.t
+  (wiki * string * string * bool * bool * int32 ref * int32 option * 
+     string option) Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
 val find_wiki_id_by_name : name:string -> wiki Lwt.t

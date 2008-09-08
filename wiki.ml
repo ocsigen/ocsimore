@@ -40,21 +40,25 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : bool;
-  last: int32 ref;
-  container_id: int32 option;
+  last : int32 ref;
+  container_id : int32 option;
+  staticdir : string option; (* if static dir is given, 
+                                ocsimore will serve static pages if present,
+                                instead of wiki pages *)
 }
 
 
 
 let get_wiki_by_id id =
-  Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last, ci) -> 
+  Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last, ci, stat) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                boxrights = br;
                pages = pages;
                last = last;
-               container_id = ci
+               container_id = ci;
+               staticdir = stat;
              }
 
 let get_wiki_by_name name =
@@ -190,51 +194,207 @@ let add_to_group_ l g =
     l
 
 
+
+let can_change_rights ~sp ~sd wiki id userid =
+  if userid == Users.admin.Users.id
+  then Lwt.return true
+  else
+    get_rights_adm ~wiki (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
+            (Lwt.return false) 
+            l
+      | None -> 
+          rights_adm_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
+
+let can_read ~sp ~sd wiki id userid =
+  if userid = Users.admin.Users.id
+  then Lwt.return true
+  else
+    get_readers ~wiki (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
+            (Lwt.return false) 
+            l
+      | None -> 
+          readers_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
+    
+let can_write ~sp ~sd wiki id userid =
+  if userid = Users.admin.Users.id
+  then Lwt.return true
+  else
+    get_writers (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left 
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
+            (Lwt.return false) 
+            l
+      | None -> 
+          writers_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
+    
+let can_create_wikibox ~sp ~sd wiki id userid =
+  if userid == Users.admin.Users.id
+  then Lwt.return true
+  else
+    get_wikiboxes_creators (wiki.id, id) >>= function
+      | Some l -> (* acl are activated *)
+          List.fold_left
+            (fun b a -> 
+               b >>= fun b ->
+               if b then Lwt.return true
+               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
+            (Lwt.return false) 
+            l
+      | None -> 
+          wikiboxes_creators_group wiki.id >>= fun g -> 
+          Users.in_group ~sp ~sd ~user:userid ~group:g ()
+
+
+let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
+  get_wiki_by_id wiki >>= fun w ->
+  Users.get_user_data sp sd >>= fun u ->
+  let u = u.Users.id in
+  can_change_rights ~sp ~sd w id u >>= fun cana ->
+  if cana
+  then Lwt.return Admin
+  else
+    can_write ~sp ~sd w id u >>= fun canw ->
+    if canw
+    then Lwt.return Author
+    else 
+      can_read ~sp ~sd w id u >>= fun canr ->
+      if canr
+      then Lwt.return Lurker
+      else Lwt.return Nonauthorized
+
+
+
+
+(** {2 Session data} *)
+
+module Roles = Map.Make(struct
+                          type t = int32 * int32
+                          let compare = compare
+                        end)
+
+type wiki_sd = 
+    {
+      role : (int32 * int32) -> role Lwt.t;
+    }
+
+let cache_find table f box =
+  try 
+    Lwt.return (Roles.find box !table)
+  with Not_found -> 
+    f box >>= fun v ->
+    table := Roles.add box v !table;
+    Lwt.return v
+
+let default_wiki_sd ~sp ~sd =
+  let cache = ref Roles.empty in
+  (* We cache the values to retrieve them only once *)
+  {role = cache_find cache (get_role_ ~sp ~sd);
+  }
+
+(** The polytable key for retrieving wiki data inside session data *)
+let wiki_key : wiki_sd Polytables.key = Polytables.make_key ()
+
+let get_wiki_sd ~sp ~sd =
+  try
+    Polytables.get ~table:sd ~key:wiki_key
+  with Not_found -> 
+    let wsd = default_wiki_sd ~sp ~sd in
+    Polytables.set sd wiki_key wsd;
+    wsd
+
+
+
+
+let get_role ~sp ~sd k =
+  let wiki_sd = get_wiki_sd ~sp ~sd in
+  wiki_sd.role k
+
+
+
+
+(** {2 } *)
+let send_static_file sp sd wiki dir page =
+  readers_group wiki.id >>= fun g -> 
+  Users.get_user_id ~sp ~sd >>= fun userid ->
+  Users.in_group ~sp ~sd ~user:userid ~group:g () >>= fun b ->
+  if b
+  then Eliom_predefmod.Files.send sp (dir^"/"^page)
+  else Lwt.fail Eliom_common.Eliom_404
+
+
 let display_page w wikibox action_create_page sp page () =
   if not w.pages
   then Lwt.fail Eliom_common.Eliom_404
   else
     let sd = Ocsimore_common.get_sd sp in
+    (* if there is a static page, we serve it: *)
     Lwt.catch
-          (fun () ->
-             Wiki_cache.get_box_for_page w.id page >>= fun box ->
-             wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
+      (fun () ->
+         match w.staticdir with
+           | Some d -> send_static_file sp sd w d page
+           | None -> Lwt.fail Eliom_common.Eliom_404)
+      (function
+         | Eliom_common.Eliom_404 ->
+             ((* otherwise, we serve the wiki page: *)
+             Lwt.catch
+               (fun () ->
+                  Wiki_cache.get_box_for_page w.id page >>= fun box ->
+                  wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
-               ?rows:None ?cols:None ?classe:None ?subbox:None
-               ?cssmenu:(Some (Some page)) 
-               ~ancestors:Wiki_syntax.no_ancestors
-               () >>= fun subbox -> 
-           Lwt.return {{ [ subbox ] }}
-        )
-        (function
-           | Not_found -> 
-               Users.get_user_id ~sp ~sd >>= fun userid ->
-                 let draw_form name =
-                   {{ [<p>[
-                          {: Eliom_duce.Xhtml.string_input
-                             ~input_type:{: "hidden" :} 
-                             ~name
-                             ~value:page () :}
-                            {: Eliom_duce.Xhtml.string_input
-                               ~input_type:{: "submit" :} 
-                               ~value:"Create it!" () :}
-                        ]] }}
-
-                 in
-                 page_creators_group w.id >>= fun creators ->
-                   Users.in_group ~sp ~sd ~user:userid ~group:creators ()
-                   >>= fun c ->
-                   let form =
-                     if c
-                     then
-                       {{ [ {: Eliom_duce.Xhtml.post_form
-                               ~service:action_create_page
-                               ~sp draw_form () :} ] }}
-                     else {{ [] }}
-                   in
-                   Lwt.return
-                     {{ [ <p>"That page does not exist." !form ] }}
-                   | e -> Lwt.fail e
+                    ?rows:None ?cols:None ?classe:None ?subbox:None
+                    ?cssmenu:(Some (Some page)) 
+                    ~ancestors:Wiki_syntax.no_ancestors
+                    () >>= fun subbox -> 
+                  Lwt.return {{ [ subbox ] }}
+               )
+               (function
+                  | Not_found -> 
+                      Users.get_user_id ~sp ~sd >>= fun userid ->
+                        let draw_form name =
+                          {{ [<p>[
+                                 {: Eliom_duce.Xhtml.string_input
+                                    ~input_type:{: "hidden" :} 
+                                    ~name
+                                    ~value:page () :}
+                                   {: Eliom_duce.Xhtml.string_input
+                                      ~input_type:{: "submit" :} 
+                                      ~value:"Create it!" () :}
+                               ]] }}
+                            
+                        in
+                        page_creators_group w.id >>= fun creators ->
+                        Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+                          >>= fun c ->
+                        let form =
+                          if c
+                          then
+                            {{ [ {: Eliom_duce.Xhtml.post_form
+                                    ~service:action_create_page
+                                    ~sp draw_form () :} ] }}
+                          else {{ [] }}
+                        in
+                        Lwt.return
+                          {{ [ <p>"That page does not exist." !form ] }}
+                          | e -> Lwt.fail e
         )
       >>= fun subbox ->
 
@@ -253,7 +413,8 @@ let display_page w wikibox action_create_page sp page () =
 
             >>= fun css ->
             let title = Ocamlduce.Utf8.make w.title in
-            Lwt.return
+            Eliom_duce.Xhtml.send
+              sp
               {{
                  <html>[
                    <head>[
@@ -264,7 +425,8 @@ let display_page w wikibox action_create_page sp page () =
                    <body>[ pagecontent ]
                  ]
                }}
-
+             )
+         | e -> Lwt.fail e)
 
 
 let create_wiki ~title ~descr
@@ -279,13 +441,15 @@ let create_wiki ~title ~descr
     ?(css_editors = [Users.authenticated_users.Users.id])
     ?(admins = [])
     ?(boxrights = true)
+    ?staticdir
     ~wikibox
     () =
   Lwt.catch 
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found -> 
-           (Wiki_sql.new_wiki ~title ~descr ~pages:(not (path = None)) ~boxrights ()
+           (Wiki_sql.new_wiki ~title ~descr ~pages:(not (path = None))
+              ~boxrights ~staticdir ()
            >>= fun wiki_id -> 
            
            (* Creating groups *)
@@ -425,7 +589,7 @@ let create_wiki ~title ~descr
          
          (* Registering the service with suffix for wikipages *)
          let servpage =
-           Eliom_duce.Xhtml.register_new_service
+           Eliom_predefmod.Any.register_new_service
              ~path
              ?sp
              ~get_params:(Eliom_parameters.suffix 
@@ -437,7 +601,7 @@ let create_wiki ~title ~descr
 
          (* the same, but non attached: *)
          let naservpage =
-           Eliom_duce.Xhtml.register_new_service'
+           Eliom_predefmod.Any.register_new_service'
              ~name:("display"^Int32.to_string w.id)
              ?sp
              ~get_params:(Eliom_parameters.string "page")
@@ -457,138 +621,6 @@ let create_wiki ~title ~descr
 
 
 
-let can_change_rights ~sp ~sd wiki id userid =
-  if userid == Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_rights_adm ~wiki (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          rights_adm_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-
-let can_read ~sp ~sd wiki id userid =
-  if userid = Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_readers ~wiki (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          readers_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-    
-let can_write ~sp ~sd wiki id userid =
-  if userid = Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_writers (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          writers_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-    
-let can_create_wikibox ~sp ~sd wiki id userid =
-  if userid == Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_wikiboxes_creators (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          wikiboxes_creators_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-
-
-let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
-  get_wiki_by_id wiki >>= fun w ->
-  Users.get_user_data sp sd >>= fun u ->
-  let u = u.Users.id in
-  can_change_rights ~sp ~sd w id u >>= fun cana ->
-  if cana
-  then Lwt.return Admin
-  else
-    can_write ~sp ~sd w id u >>= fun canw ->
-    if canw
-    then Lwt.return Author
-    else 
-      can_read ~sp ~sd w id u >>= fun canr ->
-      if canr
-      then Lwt.return Lurker
-      else Lwt.return Nonauthorized
-
-
-
-
-(** {2 Session data} *)
-
-module Roles = Map.Make(struct
-                          type t = int32 * int32
-                          let compare = compare
-                        end)
-
-type wiki_sd = 
-    {
-      role : (int32 * int32) -> role Lwt.t;
-    }
-
-let cache_find table f box =
-  try 
-    Lwt.return (Roles.find box !table)
-  with Not_found -> 
-    f box >>= fun v ->
-    table := Roles.add box v !table;
-    Lwt.return v
-
-let default_wiki_sd ~sp ~sd =
-  let cache = ref Roles.empty in
-  (* We cache the values to retrieve them only once *)
-  {role = cache_find cache (get_role_ ~sp ~sd);
-  }
-
-(** The polytable key for retrieving wiki data inside session data *)
-let wiki_key : wiki_sd Polytables.key = Polytables.make_key ()
-
-let get_wiki_sd ~sp ~sd =
-  try
-    Polytables.get ~table:sd ~key:wiki_key
-  with Not_found -> 
-    let wsd = default_wiki_sd ~sp ~sd in
-    Polytables.set sd wiki_key wsd;
-    wsd
-
-
-
-
-let get_role ~sp ~sd k =
-  let wiki_sd = get_wiki_sd ~sp ~sd in
-  wiki_sd.role k
 
 
 

@@ -40,6 +40,9 @@ type db_size_t = int64;;
 type db_count_t = int64;;
 *)
 
+type db_offset_t = int64;;
+
+let db_offset_of_int = Int64.of_int 
 
 let transaction_block db f =
   PGOCaml.begin_work db >>= fun _ -> 

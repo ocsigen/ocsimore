@@ -31,11 +31,16 @@ open CalendarLib
 open Sql
 
 (** inserts a new wiki *)
-let new_wiki ~title ~descr ~pages ~boxrights () =
+let new_wiki ~title ~descr ~pages ~boxrights ~staticdir () =
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights) \
-                    VALUES ($title, $descr, $pages, $boxrights)"
+       (match staticdir with
+         | Some staticdir ->
+             PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, staticdir) \
+                    VALUES ($title, $descr, $pages, $boxrights, $staticdir)"
+         | None ->
+             PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights) \
+                    VALUES ($title, $descr, $pages, $boxrights)")
        >>= fun () ->
        serial4 db "wikis_id_seq")
 
@@ -375,12 +380,12 @@ let find_wiki_ ~id =
             | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
        >>= fun last -> 
          (match r with
-            | [(id, title, descr, pages, br, ci)] ->
-                Lwt.return (id, title, descr, pages, br, ref last, ci)
-            | (id, title, descr, pages, br, ci)::_ -> 
+            | [(id, title, descr, pages, br, ci, stat)] ->
+                Lwt.return (id, title, descr, pages, br, ref last, ci, stat)
+            | (id, title, descr, pages, br, ci, stat)::_ -> 
                 Ocsigen_messages.warning
                   "Ocsimore: More than one wiki have the same id (ignored)";
-                Lwt.return (id, title, descr, pages, br, ref last, ci)
+                Lwt.return (id, title, descr, pages, br, ref last, ci, stat)
             | [] -> Lwt.fail Not_found))
 
 let find_wiki_id_by_name ~name =
@@ -391,9 +396,9 @@ let find_wiki_id_by_name ~name =
                   WHERE title = $name"
        >>= fun r -> 
        (match r with
-          | [(id, title, descr, pages, br, ci)] ->
+          | [(id, title, descr, pages, br, ci, stat)] ->
               Lwt.return id
-          | (id, title, descr, pages, br, ci)::_ -> 
+          | (id, title, descr, pages, br, ci, stat)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same name (ignored)";
               Lwt.return id
