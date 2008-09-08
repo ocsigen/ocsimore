@@ -36,9 +36,13 @@ let pam_auth ?(service = "") ~name ~pwd () =
               Pam.pam_authenticate pam [] ~silent:true;
               ignore (Pam.pam_end pam)
             with (Pam.Pam_Error _) as e -> 
-              Ocsigen_messages.debug (fun () -> "Pam error: "^
+              Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
                                         Printexc.to_string e);
               raise Users.BadPassword
+              | e -> 
+                  Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
+                                            Printexc.to_string e);
+                  raise e
          )
          ()
     )
