@@ -152,9 +152,8 @@ let builder wiki_id =
          with
            | (Some servpage, None) ->
                let addr =
-                 Ocsigen_lib.remove_slash_at_end
-                   (Ocsigen_lib.remove_slash_at_beginning
-                      (Ocsigen_lib.remove_dotdot (Neturl.split_path addr)))
+                 Ocsigen_lib.remove_slash_at_beginning
+                   (Ocsigen_lib.remove_dotdot (Neturl.split_path addr))
                in
                Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
            | _ -> addr);
