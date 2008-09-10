@@ -1,6 +1,3 @@
--- WARNING! 
--- createdb.sql is generated automatically from createdb.ml.in 
--- Do not edit manually!
 
 --
 -- PostgreSQL database dump
@@ -21,7 +18,7 @@ SET default_with_oids = false;
 
 -- PAS FINI
 -- --
--- -- Name: service_parameters; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- -- Name: service_parameters; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 -- --
 
 -- CREATE TABLE service_parameters (
@@ -31,10 +28,10 @@ SET default_with_oids = false;
 -- );
 
 
--- ALTER TABLE public.service_parameters OWNER TO "%%USER%%";
+-- ALTER TABLE public.service_parameters OWNER TO ocsimore;
 
 -- --
--- -- Name: services; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- -- Name: services; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 -- --
 
 -- CREATE TABLE services (
@@ -43,10 +40,10 @@ SET default_with_oids = false;
 -- );
 
 
--- -- ALTER TABLE public.services OWNER TO "%%USER%%";
+-- -- ALTER TABLE public.services OWNER TO ocsimore;
 
 -- --
--- -- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: "%%USER%%"
+-- -- Name: tablefunc_crosstab_2; Type: TYPE; Schema: public; Owner: ocsimore
 -- --
 
 -- CREATE TYPE tablefunc_crosstab_2 AS (
@@ -56,10 +53,10 @@ SET default_with_oids = false;
 -- );
 
 
--- ALTER TYPE public.tablefunc_crosstab_2 OWNER TO "%%USER%%";
+-- ALTER TYPE public.tablefunc_crosstab_2 OWNER TO ocsimore;
 
 -- --
--- -- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: "%%USER%%"
+-- -- Name: tablefunc_crosstab_3; Type: TYPE; Schema: public; Owner: ocsimore
 -- --
 
 -- CREATE TYPE tablefunc_crosstab_3 AS (
@@ -70,10 +67,10 @@ SET default_with_oids = false;
 -- );
 
 
--- ALTER TYPE public.tablefunc_crosstab_3 OWNER TO "%%USER%%";
+-- ALTER TYPE public.tablefunc_crosstab_3 OWNER TO ocsimore;
 
 -- --
--- -- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: "%%USER%%"
+-- -- Name: tablefunc_crosstab_4; Type: TYPE; Schema: public; Owner: ocsimore
 -- --
 
 -- CREATE TYPE tablefunc_crosstab_4 AS (
@@ -85,11 +82,11 @@ SET default_with_oids = false;
 -- );
 
 
--- ALTER TYPE public.tablefunc_crosstab_4 OWNER TO "%%USER%%";
+-- ALTER TYPE public.tablefunc_crosstab_4 OWNER TO ocsimore;
 
 
 -- --
--- -- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: service_parameters; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY service_parameters (id, service_id, name) FROM stdin;
@@ -97,7 +94,7 @@ SET default_with_oids = false;
 
 
 -- --
--- -- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: services; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY services (id, url) FROM stdin;
@@ -107,7 +104,7 @@ SET default_with_oids = false;
 
 
 -- --
--- -- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- -- Name: service_parameters_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsimore; Tablespace: 
 -- --
 
 -- ALTER TABLE ONLY service_parameters
@@ -115,7 +112,7 @@ SET default_with_oids = false;
 
 
 -- --
--- -- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- -- Name: services_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsimore; Tablespace: 
 -- --
 
 -- ALTER TABLE ONLY services
@@ -123,7 +120,7 @@ SET default_with_oids = false;
 
 
 -- --
--- -- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- -- Name: service_parameters_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 -- --
 
 -- ALTER TABLE ONLY service_parameters

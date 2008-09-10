@@ -3,5 +3,8 @@
    Do not edit manually!
 *)
 
-let user = "%%USER%%"
+let user = "ocsimore"
 
+let password = ref ""
+
+let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)

@@ -1,3 +1,4 @@
 touch .depend
-echo "USER=$1" > Makefile.config
+echo "USER=ocsimore" > Makefile.config
 echo "PAM=YES" >> Makefile.config
+echo "PASSWORD=$1" >> Makefile.config

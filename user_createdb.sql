@@ -1,8 +1,6 @@
--- WARNING: *.sql generated from *.sql.in
--- DO NOT EDIT THEM MANUALLY (edir *.sql.in instead)
 
 --
--- Name: users; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: users; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 CREATE TABLE users (
@@ -16,7 +14,7 @@ CREATE TABLE users (
 );
 
 
-ALTER TABLE public.users OWNER TO "%%USER%%";
+ALTER TABLE public.users OWNER TO ocsimore;
 
 
 CREATE TABLE userrights (
@@ -27,12 +25,12 @@ CREATE TABLE userrights (
 
 
 --
--- Name: wikipages; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: wikipages; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 
 -- --
--- -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY users (id, login, password, fullname, email, permissions) FROM stdin;

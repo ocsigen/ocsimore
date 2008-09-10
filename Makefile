@@ -13,7 +13,7 @@ MENHIR = menhir
 
 # cannot use ocamlduce with camlp4 :-(
 OCSIMORE_SRC1 = polytables.ml cache.ml ocsimore_config.ml \
-        ocsimore_common.ml ocsimore_lib.ml
+        parse_config.ml ocsimore_common.ml ocsimore_lib.ml
 OCSIMORE_SRC2 = user_cache.ml users.ml
 OCSIMORE_SRC3 = forum.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
@@ -44,8 +44,8 @@ OCSIMORE_CMI = $(OCSIMORE_MLI:.mli=.cmi)
 OCSIMORE_OTHER_CMO = $(OCSIMORE_OTHER_SRC:.ml=.cmo)
 
 #HOST = localhost
-DATABASE = ocsimore
-CAMLP4O = camlp4o 
+DATABASE=ocsimore
+CAMLP4O=camlp4o 
 #camlp4o.byte
 
 
@@ -72,7 +72,7 @@ PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 
 .PHONY: all depend clean
 
-all: sql ocsimore.cma $(OCSIMORE_OTHER_CMO)
+all: ocsimore.cma $(OCSIMORE_OTHER_CMO)
 
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
@@ -82,17 +82,17 @@ ocsimore.cma: $(OCSIMORE_CMO) $(OCSIMORE_CMI)
 
 sql.cmo: sql.ml
 #	PGHOST=$(HOST) 
-	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
 
 %sql.cmo: %sql.ml
 #	PGHOST=$(HOST) 
-	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
 
 print_sql:
 #	PGHOST=$(HOST) 
-	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(CAMLP4O) \
 	$(shell ocamlc -where)/str.cma \
 	-I +threads $(shell ocamlfind query threads)/threads/threads.cma \
@@ -105,14 +105,6 @@ print_sql:
 	$(shell ocamlfind query pgocaml)/pgocaml.cma \
 	$(shell ocamlfind query pgocaml)/pa_pgsql.cmo pr_o.cmo sql.ml
 
-ocsimore_config.ml: ocsimore_config.ml.in
-	sed "s/%%USER%%/$(USER)/g" ocsimore_config.ml.in > ocsimore_config.ml
-
-sql: createdb.sql.in user_createdb.sql.in forum_createdb.sql.in wiki_createdb.sql.in
-	sed "s/%%USER%%/$(USER)/g" createdb.sql.in > createdb.sql
-	sed "s/%%USER%%/$(USER)/g" user_createdb.sql.in > user_createdb.sql
-	sed "s/%%USER%%/$(USER)/g" forum_createdb.sql.in > forum_createdb.sql
-	sed "s/%%USER%%/$(USER)/g" wiki_createdb.sql.in > wiki_createdb.sql
 
 
 %.cmo: %.ml
@@ -140,11 +132,10 @@ wikicreole.ml: wikicreole.cmi
 depend:
 	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_OTHER_SRC) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
-	PGUSER=$(USER) PGDATABASE=$(DATABASE) \
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	ocamlfind ocamldep wikicreole.mll wikicreole.mli $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
-	rm -f *.cmo *.cmi *.cma *.sql wikicreole.ml \
-	ocsimore_config.ml
+	rm -f *.cmo *.cmi *.cma wikicreole.ml
 
 include .depend

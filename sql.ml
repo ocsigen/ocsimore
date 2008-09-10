@@ -30,7 +30,11 @@ open CalendarLib
 type db_t = (string, bool) Hashtbl.t PGOCaml.t
 
 let connect () =
-  PGOCaml.connect ~database:"ocsimore" ~user:Ocsimore_config.user ();;
+  PGOCaml.connect
+    ~database:"ocsimore" 
+    ~user:Ocsimore_config.user
+    ~password:"ocsipps" ();;
+(*    ~password:!Ocsimore_config.password ();;*)
 
 let pool = Lwt_pool.create 40 connect
 

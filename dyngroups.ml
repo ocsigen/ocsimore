@@ -18,32 +18,30 @@
  *)
 
 (**
-User management
+Creating dynamic groups if needed
 
 @author Vincent Balat
 *)
 
 let (>>=) = Lwt.bind
 
-let _ =
-  let rec parse_config = function
-    | [] -> Lwt.return ()
-    | (Simplexmlparser.Element ("group", [("name", name)], [s]))::l -> 
-        let test = Accesscontrol.parse_condition s in
-        Users.create_user
-          ~name
-          ~pwd:User_sql.Connect_forbidden
-          ~fullname:name
-          ~email:None
-          ~groups:[]
-          ~test:(fun ~sp ~sd -> Lwt.return (test (Eliom_sessions.get_ri ~sp)))
-          () >>= fun _ ->
-        Lwt.return ()
-    | _ ->
-        Lwt.fail (Ocsigen_extensions.Error_in_config_file
-                    "Unexpected content inside ocsimore config")
-  in
-  let c = Ocsigen_extensions.get_config () in
-  Lwt_unix.run (parse_config c)
+let rec aux = function
+  | [] -> Lwt.return ()
+  | (name, s)::l ->
+      aux l >>= fun () ->
+      let test = Accesscontrol.parse_condition s in
+      Users.create_user
+        ~name
+        ~pwd:User_sql.Connect_forbidden
+        ~fullname:name
+        ~email:None
+        ~groups:[]
+        ~test:(fun ~sp ~sd -> Lwt.return (test (Eliom_sessions.get_ri ~sp)))
+        () >>= fun _ ->
+      Lwt.return ()
 
-  
+
+let _ =
+  Lwt_unix.run (aux !Ocsimore_config.dyngroupstobecreated);
+  Ocsimore_config.dyngroupstobecreated := [] (* for GC *)
+

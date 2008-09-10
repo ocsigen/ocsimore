@@ -28,7 +28,9 @@
     <extension findlib-package="ocsigen_ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
     <extension findlib-package="pam"/>
-    <extension module="/path-to/ocsimore.cma"/>
+    <extension module="/path-to/ocsimore.cma">
+      <passwordfile name="/etc/ocsigen/ocsimorepassword" />
+    </extension>
 
     <host hostname="mywebsite.org">
       <!-- You need defaulthostname if you are using https and http -->

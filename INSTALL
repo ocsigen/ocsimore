@@ -8,27 +8,31 @@
 
 2. Run 
 
-sh configure <toto>
+sh configure <password>
 
-   where <toto> is the user who will run the Ocsigen process. 
-   We suppose for now that the postgresql user will have the same name.
+   where password is the password for database user ocsimore (see below).
 
    If you do not have ocamlpam installed, set PAM to NO in Makefile.config
 
-   Then do
 
-make sql
+3. Create a postgresql user with that name (here ocsimore) 
+and a database called ocsimore:
 
-3. Create a postgresql user with that name (here ocsigen) 
-and a database called ocsimore
-(replace "ocsigen" by the name of your user):
+sudo -u postgres createuser -P ocsimore
+sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 
-sudo -u postgres createuser ocsigen
-sudo -u postgres createdb -E UTF-8 -O ocsigen ocsimore
-sudo -u ocsigen psql -f createdb.sql ocsimore
-sudo -u ocsigen psql -f user_createdb.sql ocsimore
-sudo -u ocsigen psql -f forum_createdb.sql ocsimore
-sudo -u ocsigen psql -f wiki_createdb.sql ocsimore
+Adapt /etc/postgresql/.../pg_hba.conf to give Ident access for user ocsimore
+by copying the following line (no modification needed):
+local ocsimore ocsimore password
+
+Restart postgresql, for example:
+sudo /etc/init.d/postgresql restart
+
+Then do:
+psql -U ocsimore -f createdb.sql ocsimore
+psql -U ocsimore -f user_createdb.sql ocsimore
+psql -U ocsimore -f forum_createdb.sql ocsimore
+psql -U ocsimore -f wiki_createdb.sql ocsimore
 
 If something goes wrong, you can delete the database by typing:
 sudo -u postgres dropdb ocsimore
@@ -45,6 +49,11 @@ or use example.ml:
 make example.cmo
 
 7. Adapt your ocsigen.conf using ocsigen.conf.example
-and run Ocsigen with user ocsigen
+
+8. Create a file containing the database password 
+   (at the position set in the config file) and give right access
+   only to Ocsigen's process user.
+
+9. Run Ocsigen
 
 

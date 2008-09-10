@@ -1,5 +1,3 @@
--- WARNING: *.sql generated from *.sql.in
--- DO NOT EDIT THEM MANUALLY (edir *.sql.in instead)
 
 CREATE TABLE wikiboxes (
     id integer NOT NULL,
@@ -13,7 +11,7 @@ CREATE TABLE wikiboxes (
 );
 
 
-ALTER TABLE public.wikiboxes OWNER TO "%%USER%%";
+ALTER TABLE public.wikiboxes OWNER TO ocsimore;
 
 CREATE TABLE wikipages (
     wiki integer NOT NULL, --  REFERENCES wikis(id)
@@ -21,7 +19,7 @@ CREATE TABLE wikipages (
     pagename text DEFAULT ''::text NOT NULL
 );
 
-ALTER TABLE public.wikipages OWNER TO "%%USER%%";
+ALTER TABLE public.wikipages OWNER TO ocsimore;
 
 
 -- css for whole wiki:
@@ -30,7 +28,7 @@ CREATE TABLE wikicss (
     css text DEFAULT ''::text NOT NULL
 );
 
-ALTER TABLE public.wikicss OWNER TO "%%USER%%";
+ALTER TABLE public.wikicss OWNER TO ocsimore;
 
 
 -- css for each page
@@ -40,16 +38,16 @@ CREATE TABLE css (
     css text DEFAULT ''::text NOT NULL
 );
 
-ALTER TABLE public.css OWNER TO "%%USER%%";
+ALTER TABLE public.css OWNER TO ocsimore;
 
 --
--- Name: COLUMN wikiboxes.wik_id; Type: COMMENT; Schema: public; Owner: "%%USER%%"
+-- Name: COLUMN wikiboxes.wik_id; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
 COMMENT ON COLUMN wikiboxes.wiki_id IS 'wiki';
 
 --
--- Name: wikis; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: wikis; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 CREATE TABLE wikis (
@@ -63,11 +61,11 @@ CREATE TABLE wikis (
 );
 
 
-ALTER TABLE public.wikis OWNER TO "%%USER%%";
+ALTER TABLE public.wikis OWNER TO ocsimore;
 
 
 --
--- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: ocsimore
 --
 
 -- COPY wikipages (id, suffix, wik_id, txt_id, author, datetime, subject) FROM stdin;
@@ -75,7 +73,7 @@ ALTER TABLE public.wikis OWNER TO "%%USER%%";
 
 
 --
--- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: ocsimore
 --
 
 -- COPY wikis (id, title, descr) FROM stdin;

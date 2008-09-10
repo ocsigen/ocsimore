@@ -1,9 +1,6 @@
--- WARNING! 
--- forum_createdb.sql is generated automatically from forum_createdb.ml.in 
--- Do not edit manually!
 
 --
--- Name: forums; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: forums; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 CREATE TABLE forums (
@@ -18,10 +15,10 @@ CREATE TABLE forums (
 );
 
 
-ALTER TABLE public.forums OWNER TO "%%USER%%";
+ALTER TABLE public.forums OWNER TO ocsimore;
 
 --
--- Name: messages; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: messages; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 CREATE TABLE messages (
@@ -38,30 +35,30 @@ CREATE TABLE messages (
 );
 
 
-ALTER TABLE public.messages OWNER TO "%%USER%%";
+ALTER TABLE public.messages OWNER TO ocsimore;
 
 --
--- Name: COLUMN messages.thr_id; Type: COMMENT; Schema: public; Owner: "%%USER%%"
+-- Name: COLUMN messages.thr_id; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
 COMMENT ON COLUMN messages.thr_id IS 'thread';
 
 
 --
--- Name: COLUMN messages.txt_id; Type: COMMENT; Schema: public; Owner: "%%USER%%"
+-- Name: COLUMN messages.txt_id; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
 COMMENT ON COLUMN messages.txt_id IS 'text';
 
 
 --
--- Name: COLUMN messages.hidden; Type: COMMENT; Schema: public; Owner: "%%USER%%"
+-- Name: COLUMN messages.hidden; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
 COMMENT ON COLUMN messages.hidden IS 'for moderated forums';
 
 --
--- Name: textdata; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: textdata; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 CREATE TABLE textdata (
@@ -72,10 +69,10 @@ CREATE TABLE textdata (
 
 
 
-ALTER TABLE public.textdata OWNER TO "%%USER%%";
+ALTER TABLE public.textdata OWNER TO ocsimore;
 
 --
--- Name: threads; Type: TABLE; Schema: public; Owner: "%%USER%%"; Tablespace: 
+-- Name: threads; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 CREATE TABLE threads (
@@ -89,17 +86,17 @@ CREATE TABLE threads (
 );
 
 
-ALTER TABLE public.threads OWNER TO "%%USER%%";
+ALTER TABLE public.threads OWNER TO ocsimore;
 
 --
--- Name: COLUMN threads.frm_id; Type: COMMENT; Schema: public; Owner: "%%USER%%"
+-- Name: COLUMN threads.frm_id; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
 COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 -- --
--- -- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY forums (id, title, descr, moderated, arborescent, reader, writer, moderator) FROM stdin;
@@ -107,14 +104,14 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 -- --
--- -- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: messages; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY messages (id, datetime, thr_id, txt_id, hidden, parent_id, sticky, tree_min, tree_max, author_id) FROM stdin;
 -- \.
 
 -- --
--- -- Data for Name: textdata; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: textdata; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY textdata (id, txt) FROM stdin;
@@ -122,7 +119,7 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 -- --
--- -- Data for Name: threads; Type: TABLE DATA; Schema: public; Owner: "%%USER%%"
+-- -- Data for Name: threads; Type: TABLE DATA; Schema: public; Owner: ocsimore
 -- --
 
 -- COPY threads (id, subject, frm_id, hidden, datetime, article_id, author_id) FROM stdin;
@@ -131,7 +128,7 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 --
--- Name: forums_moderator_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: forums_moderator_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY forums
@@ -139,7 +136,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: forums_reader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: forums_reader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY forums
@@ -147,7 +144,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: forums_writer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: forums_writer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY forums
@@ -155,7 +152,7 @@ ALTER TABLE ONLY forums
 
 
 --
--- Name: messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY messages
@@ -163,7 +160,7 @@ ALTER TABLE ONLY messages
 
 
 --
--- Name: messages_thr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: messages_thr_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY messages
@@ -171,14 +168,14 @@ ALTER TABLE ONLY messages
 
 
 --
--- Name: messages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: messages_txt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY messages
     ADD CONSTRAINT messages_txt_id_fkey FOREIGN KEY (txt_id) REFERENCES textdata(id);
 
 --
--- Name: threads_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: threads_article_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY threads
@@ -186,7 +183,7 @@ ALTER TABLE ONLY threads
 
 
 --
--- Name: threads_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: threads_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY threads
@@ -194,7 +191,7 @@ ALTER TABLE ONLY threads
 
 
 --
--- Name: threads_frm_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: "%%USER%%"
+-- Name: threads_frm_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
 ALTER TABLE ONLY threads
