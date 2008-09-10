@@ -10,7 +10,19 @@ TODO
  (with a password) Save the password in a separate config file
  (with read access only to www-data)
 
- - pb with postgresql 8.1: offset is int32
+ - pb with postgresql 8.1: offset is int32 (j'ai fait un hack pour tourner
+ sur helium) -> imposer postgresql >= 8.2 ?
+
+ - Wiki (serious??): it is possible to create a page toto and toto/titi
+ toto may be a directory or a page! That's probably a problem?
+ (in Eliom that's not possible)
+
+ - wikipages : allow to register redirections instead of pages
+ (http redirections or several URLs for same page)
+
+ - Install: Problem if the user name contains '-' (for example www-data)
+ because must be quoted in postgres.
+ UPDATE: Actually may be solved now but check if it works!
 
  - NEW 27/06/2008 There is now a wiki created automatically for the 
  administration boxes. For now used only for displaying wikisyntax,
@@ -100,6 +112,10 @@ Wiki:
  (pb: some parts are dynamic and depends on the user or the request)
  - Add a detailed wikisyntax help (with all extensions).
  May be as a static wikicreole file, that would be loaded dynamically?
+
+ - Give rights to an user that does not exist does nothing, even if it 
+ is a valid pam user... Create the pam user automatically???
+
 
 Users:
  - IMPORTANT: Save a hash of passwords in the db, not the password itself

@@ -31,6 +31,10 @@ let pam_auth ?(service = "") ~name ~pwd () =
        Lwt_preemptive.detach
          (fun () ->
             try
+(*VVV Il faut empêcher ici (à la main sans pam_item) un utilisateur ou IP
+  qui vient d'essayer de se connecter de recommencer avant 2s!!!!! 
+  cf lwt_lib
+*)
               let pam = Pam.pam_start service ~user:name (fun _ _ -> pwd) in
               Pam.pam_set_item pam Pam.pam_item_fail_delay;
               Pam.pam_authenticate pam [] ~silent:true;

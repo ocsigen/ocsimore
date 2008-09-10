@@ -42,7 +42,7 @@
                           you need to configure HTTPS. -->
 
 <!-- For PAM authentication:
-        <pam service="sshd" /> <!-- For service names, see /etc/pam.d -->
+        <pam service="ocsimore" /> <!-- Create your service file in /etc/pam.d -->
 -->
 
         <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>

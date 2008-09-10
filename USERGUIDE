@@ -1,19 +1,21 @@
-Wiki syntax:
+=User guide=
+
+==Wiki syntax==
 
 The wiki is using wikicreole's syntax (but it is possible to plug another
 syntax). It supports extensions with the following syntax:
 
-<<extensionname arg1='value1' arg2='value2' >>
+{{{<<extensionname arg1='value1' arg2='value2' >>}}}
 or
-<<extensionname arg1='value1' arg2='value2' |data>>
+{{{<<extensionname arg1='value1' arg2='value2' |data>>}}}
 
 See below for predefined extensions.
 
 it also supports attributes with the following syntax:
-@@name="value"; name= "value"@@
+{{{@@name="value"; name= "value"@@}}}
 Put attribute just after the openning tag.
 For example:
-//@@class="important"@@some text//
+{{{//@@class="important"@@some text//}}}
 
 For now, attributes class and id are defined for each tag, and
 the semantics is the one of xhtml class and id attributes.
@@ -22,65 +24,67 @@ Sometimes it is possible to put several sets of attributes
 (tables, rows, list items).
 Examples:
 
-|@@...attributes for full table...@...attributes for row...@...attributes for cell...@@ first cell| ... |
+{{{|@@...attributes for full table...@...attributes for row...@...attributes for cell...@@ first cell| ... |}}}
 
-*@@...attributes for full list...@...attributes for item...@@ text
+{{{*@@...attributes for full list...@...attributes for item...@@ text}}}
 
 
-Predefined extensions:
+===Predefined extensions===
 
-<<div class='...' id='...' |data>>
+{{{<<div class='...' id='...' |data>>}}}
 creates a <div> box.
 
-<<span class='...' id='...' |data>>
+{{{<<span class='...' id='...' |data>>}}}
 creates a <span> box.
 
-<<wikibox box='j' >>
+{{{<<wikibox box='j' >>}}}
 displays the wikibox number j from current wiki.
 Other optional arguments are possible:
-wiki='i' to display a box from another wiki
-cols='i' (number of columns of the edition window)
-rows='i' (number of rows of the edition window)
-class='...' (class xml attribute to use for the box)
+*{{{wiki='i'}}} to display a box from another wiki
+*{{{cols='i'}}} (number of columns of the edition window)
+*{{{rows='i'}}} (number of rows of the edition window)
+*{{{class='...'}}} (class xml attribute to use for the box)
+
 If you want to create a new wikibox, do not put the box argument.
-A wikibox may be a container. Just put <<content>> inside it.
+A wikibox may be a container. Just put {{{<<content>>}}} inside it.
 To use a container, use the syntax:
-<<wikibox box='j' | put here the content >>
+{{{<<wikibox box='j' | put here the content >>}}}
 
-<<|...>> comment (will not be displayed)
+{{{<<|...>>}}} comment (will not be displayed)
 
-<<menu item='link|text of the item' item='...' ... >>
+{{{<<menu item='link|text of the item' item='...' ... >>}}}
 displays a menu
 
-<<loginbox>>
+{{{<<loginbox>>}}}
 displays a login box
 Optional parameters:
-user_prompt='login:'
-pwd_prompt='pwd:'
-auth_error='Wrong login or password'
+*{{{user_prompt='login:'}}}
+*{{{pwd_prompt='pwd:'}}}
+*{{{auth_error='Wrong login or password'}}}
 
-<<logoutlink>>
-<<logoutbutton>>
+{{{<<logoutlink>>}}}
+{{{<<logoutbutton>>}}}
 display a logout link or button
 
-<<raw arg1='value1' arg2='value2' | data >>
-displays the string  "<<arg1='value1' arg2='value2' | data >>"
+{{{<<raw arg1='value1' arg2='value2' | data >>}}}
+displays the string  {{{"<<arg1='value1' arg2='value2' | data >>"}}}
 (for debugging purpose).
 
 Conditional display w.r.t. groups: (EXPERIMENTAL)
-<<cond ingroup='users'|data>>
-<<cond notingroup='users'|data>>
-<<cond error='autherror'|data>> (wrong user or password)
+*{{{<<cond ingroup='users'|data>>}}}
+*{{{<<cond notingroup='users'|data>>}}}
+*{{{<<cond error='autherror'|data>>}}} (wrong user or password)
 
-<<username>> displays the name of the user.
+{{{<<username>>}}} displays the name of the user.
 
-<<link wiki='...' href='...'|...>> is like [[...|...]] for internal links,
+{{{<<link wiki='...' href='...'|...>>}}} is like 
+{{{[[...|...]]}}} for internal links,
 but allows links towards other wikis.
 The wiki argument is optional.
 other optional argument: protocol='https' or protocol='http'
 (will create absolute links)
 
-<<nonattachedlink wiki='...' href='...'|...>> is like [[...|...]] 
+{{{<<nonattachedlink wiki='...' href='...'|...>>}}} is like {{{[[...|...]]}}}
 for internal links,
 but instead of using a link towards another page, it uses a non-attached
 service (i.e. the path in the URL won't change, only parameters).
@@ -92,9 +96,27 @@ other optional argument: protocol='https' or protocol='http'
 
 
 
-Predefined services:
+==Predefined services==
 
-ocsimore/login a connection box (useful for example if you removed by
+{{{ocsimore/login}}} a connection box (useful for example if you removed by
 mistake the login box from all pages)
 
-ocsimore/wiki_edit?wikiid=n&boxid=m to edit a wikibox
+{{{ocsimore/wiki_edit?wikiid=n&boxid=m}}} to edit a wikibox
+
+
+
+
+==PAM authentication==
+
+Configuration file example:
+{{{
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+        <pam service="ocsimore" />
+      </eliom>
+}}}
+
+Here the service name must correspond to a file in {{{/etc/pam.d}}}.
+
+//Warning:// To allow authentication based on {{{/etc/shadow}}},
+Ocsigen must have read access to this file. This is usually done by
+putting Ocsigen's user in the {{{shadow}}} group, to which belong the file.
