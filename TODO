@@ -1,29 +1,29 @@
 TODO
 
- - Idée pour les pages perso :
+ - IdÃ©e pour les pages perso :
  On utilise un wiki par utilisateur. Faire un extension Ocsigen qui va :
- 1. Filter sur une regexp et en déduire un nom d'utilisateur, un path
+ 1. Filter sur une regexp et en dÃ©duire un nom d'utilisateur, un path
  pour le wiki et un path pour la page dans le wiki
- 2. Vérifier si cet utilisateur existe (et a les droits d'avoir une page)
+ 2. VÃ©rifier si cet utilisateur existe (et a les droits d'avoir une page)
  et s'il n'existe pas renvoyer 404
- 3. S'il existe, vérifier si un wiki existe pour cet utilisateur
- (juste si un wiki est associé à l'url du wiki ? (pb si la regexp change)
- ou bien avec une table utilisateur -> numéro de wiki ?
- (dans ce cas mettre à jour l'url du wiki 
+ 3. S'il existe, vÃ©rifier si un wiki existe pour cet utilisateur
+ (juste si un wiki est associÃ© Ã  l'url du wiki ? (pb si la regexp change)
+ ou bien avec une table utilisateur -> numÃ©ro de wiki ?
+ (dans ce cas mettre Ã  jour l'url du wiki 
  (tous les wikis au lancement du serveur ?)))
- 4. S'il n'existe pas, le créer (avec une wikibox template (conteneur)
- personnalisable (copie d'un wikibox admin par défaut)).
+ 4. S'il n'existe pas, le crÃ©er (avec une wikibox template (conteneur)
+ personnalisable (copie d'un wikibox admin par dÃ©faut)).
  5. Dans tous les cas retourner 404
 
  En mettant la config standard des pages perso avant, 
- les pages statiques sont servies à laplace des pages helium.
+ les pages statiques sont servies Ã  laplace des pages helium.
 
 
- - EXPÉRIMENTAL : L'utilisateur nobody n'a aucun droit
- (élément incomparable avec tt le monde).
- Je renvoie ça dans get_group_by_name quand le group n'existe pas,
- plutôt que NoSuchUser. Est-ce OK ?
- Est-ce qu'il faut renvoyer ça aussi ailleurs ?
+ - EXPÃ‰RIMENTAL : L'utilisateur nobody n'a aucun droit
+ (Ã©lÃ©ment incomparable avec tt le monde).
+ Je renvoie Ã§a dans get_group_by_name quand le group n'existe pas,
+ plutÃ´t que NoSuchUser. Est-ce OK ?
+ Est-ce qu'il faut renvoyer Ã§a aussi ailleurs ?
  
 
  - pb with postgresql 8.1: offset is int32 (j'ai fait un hack pour tourner
@@ -36,6 +36,7 @@ TODO
  - wikipages : allow to register redirections instead of pages
  (http redirections or several URLs for same page)
 
+ - Log the connection of users!
 
  - NEW 27/06/2008 There is now a wiki created automatically for the 
  administration boxes. For now used only for displaying wikisyntax,

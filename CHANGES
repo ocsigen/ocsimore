@@ -1,7 +1,21 @@
 = Development version =
 
+//(nothing)//
+
+= 0.4
+
   * Implementation of a wiki
+  * Wikicreole syntax, with extensions
   * Changes in users and groups management
+  * Dynamic groups
+  * Cache for sql requests
+  * Local cache for HTTP request data
+  * polytables (polymarphic tables)
+  * New object model
+  * New guidelines for programmers
+  * pam authentication
+  * Updating installation
+  * Now using lwt branch of pgocaml
 
 = 0.3
 
