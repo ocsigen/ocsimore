@@ -33,17 +33,17 @@ let connect () =
   PGOCaml.connect
     ~database:"ocsimore" 
     ~user:Ocsimore_config.user
-    ~password:"ocsipps" ();;
-(*    ~password:!Ocsimore_config.password ();;*)
+    ~password:!Ocsimore_config.password ()
 
-let pool = Lwt_pool.create 40 connect
 
 (*
-type db_int_t = int32;;
-type db_size_t = int64;;
-type db_count_t = int64;;
+  type db_int_t = int32;;
+  type db_size_t = int64;;
+  type db_count_t = int64;;
 *)
 
+let pool = Lwt_pool.create 40 connect
+  
 type db_offset_t = int64;;
 
 let db_offset_of_int = Int64.of_int 
