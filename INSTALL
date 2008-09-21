@@ -1,5 +1,5 @@
 1. Requirements
- - postgresql (even for compiling)
+ - postgresql >= 8.2 (even for compiling)
  - ocaml
  - ocamlduce
  - ocsigen and eliom with compiled ocamlduce support

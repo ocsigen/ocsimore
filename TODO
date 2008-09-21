@@ -38,6 +38,8 @@ TODO
 
  - Log the connection of users!
 
+ - Wiki: create a syntax extension to allow images from another wiki
+ (like <<link>> but for images)
  - NEW 27/06/2008 There is now a wiki created automatically for the 
  administration boxes. For now used only for displaying wikisyntax,
  but should be used for all admin pages?

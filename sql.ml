@@ -35,7 +35,6 @@ let connect () =
     ~user:Ocsimore_config.user
     ~password:!Ocsimore_config.password ()
 
-
 (*
   type db_int_t = int32;;
   type db_size_t = int64;;

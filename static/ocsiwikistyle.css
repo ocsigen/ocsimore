@@ -11,6 +11,7 @@ div.history{
 div.editform,
 div.history{
     background-color: white;
+    overflow: auto;
 }
 
 .editable div,

@@ -8,8 +8,8 @@ PAM=
 PAMPACKAGE=
 endif
 
+CAMLC = ocamlc -g -dtypes
 CAMLLEX = ocamllex
-MENHIR = menhir
 
 # cannot use ocamlduce with camlp4 :-(
 OCSIMORE_SRC1 = polytables.ml cache.ml ocsimore_config.ml \
@@ -78,23 +78,23 @@ doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
 
 ocsimore.cma: $(OCSIMORE_CMO) $(OCSIMORE_CMI)
-	ocamlducefind ocamlc -thread -o $@ -a $(OCSIMORE_CMO) 
+	ocamlducefind $(CAMLC) -thread -o $@ -a $(OCSIMORE_CMO) 
 
 sql.cmo: sql.ml
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
-	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
+	ocamlfind $(CAMLC) -verbose -thread $(PACKAGES) $(PP) -c $<
 
 %sql.cmo: %sql.ml
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
-	ocamlfind ocamlc -verbose -thread $(PACKAGES) $(PP) -c $<
+	ocamlfind $(CAMLC) -verbose -thread $(PACKAGES) $(PP) -c $<
 
 print_sql:
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(CAMLP4O) \
-	$(shell ocamlc -where)/str.cma \
+	$(shell $(CAMLC) -where)/str.cma \
 	-I +threads $(shell ocamlfind query threads)/threads/threads.cma \
 	-I +pcre $(shell ocamlfind query pcre)/pcre.cma \
 	-I +extlib $(shell ocamlfind query extlib)/extLib.cma \
@@ -108,10 +108,10 @@ print_sql:
 
 
 %.cmo: %.ml
-	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	
+	ocamlducefind $(CAMLC) -thread $(PACKAGES) -c $<	
 
 %.cmi: %.mli
-	ocamlducefind ocamlc -thread $(PACKAGES) -c $<	
+	ocamlducefind $(CAMLC) -thread $(PACKAGES) -c $<	
 
 wikicreole.ml: wikicreole.cmi
 
@@ -123,11 +123,6 @@ wikicreole.ml: wikicreole.cmi
 .mll.ml:
 	$(CAMLLEX) $<
 
-.mly.ml:
-	$(MENHIR) $<
-
-.mly.mli:
-	$(MENHIR) $<
 
 depend:
 	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_OTHER_SRC) $(OCSIMORE_MLI) > .depend
