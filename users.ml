@@ -40,7 +40,7 @@ type userdata =
 exception NotAllowed
 exception BadPassword
 exception BadUser
-exception UsePam of userdata
+exception UseAuth of userdata
 exception Users_error of string
 
 
@@ -358,8 +358,8 @@ let authenticate ~name ~pwd =
   if (u = nobody)
   then Lwt.fail BadUser
   else
-    if u.pwd = User_sql.Pam
-    then Lwt.fail (UsePam  u)
+    if u.pwd = User_sql.External_Auth
+    then Lwt.fail (UseAuth u)
 (*VVV Mouaif *)
     else 
       if u.pwd = User_sql.Ocsimore_user pwd

@@ -22,7 +22,7 @@ type userid = int32
 type pwd = 
   | Connect_forbidden
   | Ocsimore_user of string
-  | Pam
+  | External_Auth
 
 val new_user: 
   name:string -> 

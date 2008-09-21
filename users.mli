@@ -28,7 +28,7 @@ type userdata =
 exception NotAllowed
 exception BadPassword
 exception BadUser
-exception UsePam of userdata
+exception UseAuth of userdata
 
 (** Non atuthenticated users *)
 val anonymous : userdata

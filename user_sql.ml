@@ -34,7 +34,7 @@ type userid = int32
 type pwd = 
   | Connect_forbidden
   | Ocsimore_user of string
-  | Pam
+  | External_Auth
 
 let populate_groups db id groups =
   match groups with
@@ -62,7 +62,7 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
     match password with
       | Connect_forbidden -> None, "l"
       | Ocsimore_user p -> (Some p), "l"
-      | Pam -> None, "p"
+      | External_Auth -> None, "p"
   in
   Sql.full_transaction_block
     (fun db ->
@@ -115,7 +115,7 @@ let find_user_ ?db ?id ?name () =
      PGSQL(db) "SELECT groupid FROM userrights WHERE id = $id" >>= fun perm ->
      let password = 
        if authtype = "p"
-       then Pam
+       then External_Auth
        else match pwd with
          | None -> Connect_forbidden
          | Some p -> Ocsimore_user p
@@ -149,7 +149,7 @@ let update_data_ ~userid ~name ~password ~fullname ~email ?groups ?dyn () =
     match password with
       | Connect_forbidden -> None, "l"
       | Ocsimore_user p -> (Some p), "l"
-      | Pam -> None, "p"
+      | External_Auth -> None, "p"
   in
   Sql.full_transaction_block
     (fun db ->

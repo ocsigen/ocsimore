@@ -6,21 +6,25 @@ open Lwt
        registration_mail_subject = "Ocsimore"
 *)
 
-let default_data = (None, None)
+type external_auth = Noauth | Nis | Pam of string option
 
-let (pam, basicusercreation) =
-  let rec find_wikidata ((pam, basicusercreation) as data) = function
+let default_data = (Noauth, None)
+
+let (auth, basicusercreation) =
+  let rec find_wikidata ((auth, basicusercreation) as data) = function
     | [] -> Lwt.return data
+    | (Simplexmlparser.Element ("nis", [], []))::l -> 
+        find_wikidata (Nis, basicusercreation) l
     | (Simplexmlparser.Element ("pam", ["service", s], []))::l -> 
         if Session_manager.pam_loaded ()
-        then find_wikidata (Some (Some s), basicusercreation) l
+        then find_wikidata (Pam (Some s), basicusercreation) l
         else
           raise
             (Ocsigen_config.Config_file_error
                "Ocsimore compiled without PAM support");
     | (Simplexmlparser.Element ("pam", [], []))::l -> 
         if Session_manager.pam_loaded ()
-        then find_wikidata (Some None, basicusercreation) l
+        then find_wikidata (Pam None, basicusercreation) l
         else
           raise
             (Ocsigen_config.Config_file_error
@@ -55,7 +59,7 @@ let (pam, basicusercreation) =
         with Not_found -> Lwt.return [Users.authenticated_users.Users.id])
         >>= fun default_groups ->
         find_wikidata 
-          (pam, 
+          (auth, 
            Some ((registration_mail_from, registration_mail_addr),
                  registration_mail_subject, 
                  default_groups)) 
@@ -127,10 +131,12 @@ let wikibox =
      }
      in
      let sm = 
-       match pam with
-         | Some pam_service -> 
+       match auth with
+         | Pam pam_service -> 
              new Session_manager.sessionmanager_pam pam_service sminfo
-         | None -> new Session_manager.sessionmanager sminfo 
+         | Nis -> 
+             new Session_manager.sessionmanager_nis sminfo
+         | Noauth -> new Session_manager.sessionmanager sminfo 
      in
 
      (match basicusercreation with

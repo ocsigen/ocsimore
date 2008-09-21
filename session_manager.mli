@@ -104,6 +104,10 @@ class sessionmanager_pam :
   sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
 
+class sessionmanager_nis : 
+  sessionmanagerinfo: sessionmanager_in ->
+  sessionmanager
+
 
 val set_pam_auth :
   (?service:string -> name:string -> pwd:string -> unit -> unit Lwt.t) ->

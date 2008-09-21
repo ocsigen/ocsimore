@@ -133,8 +133,14 @@ Wiki:
  is a valid pam user... Create the pam user automatically???
 
 Users:
+ - IMPORTANT: (SECURITÉ !!!) Il faut empêcher un utilisateur ou IP
+  qui vient d'essayer de se connecter de recommencer avant 2s!!!!! 
+  quelle que soit la méthode d'authentification
+  cf lwt_lib
  - IMPORTANT: Save a hash of passwords in the db, not the password itself
- - PAM or LDAP: not really clean,
+ - PAM or LDAP: not really clean
+ Use "plugable" authentication methods
+ (to avoid Session_manager.sessionmanager_nis _pam etc.)
  modularize (use objects?)
  make this configurable from config file,
  implement LDAP.

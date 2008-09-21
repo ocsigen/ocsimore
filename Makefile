@@ -8,14 +8,14 @@ PAM=
 PAMPACKAGE=
 endif
 
-CAMLC = ocamlc -g -dtypes
+CAMLC = ocamlc -g -dtypes -I nis_chkpwd
 CAMLLEX = ocamllex
 
 # cannot use ocamlduce with camlp4 :-(
 OCSIMORE_SRC1 = polytables.ml cache.ml ocsimore_config.ml \
         parse_config.ml ocsimore_common.ml ocsimore_lib.ml
 OCSIMORE_SRC2 = user_cache.ml users.ml
-OCSIMORE_SRC3 = forum.ml session_manager.ml widget.ml \
+OCSIMORE_SRC3 = forum.ml ocsimore_nis.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
 	wiki_cache.ml wiki.ml wiki_widgets.ml \
         user_widgets.ml forum_widgets.ml \
@@ -72,13 +72,17 @@ PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 
 .PHONY: all depend clean
 
-all: ocsimore.cma $(OCSIMORE_OTHER_CMO)
+all: nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
 
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
 
+nis_chkpwd_:
+	make -C nis_chkpwd
+
 ocsimore.cma: $(OCSIMORE_CMO) $(OCSIMORE_CMI)
-	ocamlducefind $(CAMLC) -thread -o $@ -a $(OCSIMORE_CMO) 
+	ocamlducefind $(CAMLC) -a -thread -o $@ \
+          nis_chkpwd/nis_chkpwd.cma $(OCSIMORE_CMO) -cclib -lnis_chkpwd 
 
 sql.cmo: sql.ml
 #	PGHOST=$(HOST) 

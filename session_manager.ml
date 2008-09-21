@@ -174,6 +174,8 @@ let connect sm srv container
       )
   end
 
+
+
 let pam_auth = 
   ref (fun ?(service : string option) ~name ~pwd () -> 
          raise Users.BadUser)
@@ -186,6 +188,9 @@ let set_pam_auth f =
 
 let pam_loaded () = !pam_loaded
 
+
+
+(*VVV à revoir *)
 class sessionmanager_pam pam_service ~(sessionmanagerinfo: sessionmanager_in) =
 object
   inherit sessionmanager sessionmanagerinfo
@@ -198,7 +203,7 @@ object
          Lwt.catch
            (fun () -> Users.authenticate ~name:usr ~pwd)
            (function
-              | Users.UsePam u -> 
+              | Users.UseAuth u -> 
                   (* check PAM pwd *)
                   !pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Lwt.return u
@@ -207,7 +212,7 @@ object
                   !pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Users.create_user
                     ~name:usr
-                    ~pwd:User_sql.Pam
+                    ~pwd:User_sql.External_Auth
                     ~fullname:usr
 (*VVV Can we get the full name from PAM? 
   If yes, do we need to actualize it every time the user connects? *)
@@ -226,6 +231,44 @@ end
 
 
 
+(*VVV à revoir *)
+class sessionmanager_nis ~(sessionmanagerinfo: sessionmanager_in) =
+object
+  inherit sessionmanager sessionmanagerinfo
+
+  method private mk_act_login sp () (usr, pwd) =
+    all_logout_actions sp >>= fun () -> 
+    close_session ~sp () >>= fun () -> 
+    Lwt.catch
+      (fun () -> 
+         Lwt.catch
+           (fun () -> Users.authenticate ~name:usr ~pwd)
+           (function
+              | Users.UseAuth u -> 
+                  (* check NIS pwd *)
+                  Ocsimore_nis.nis_auth ~name:usr ~pwd () >>= fun () ->
+                  Lwt.return u
+              | Users.BadUser -> 
+                  (* check NIS pwd, and create user if ok *)
+                  Ocsimore_nis.nis_auth ~name:usr ~pwd () >>= fun () ->
+                  Users.create_user
+                    ~name:usr
+                    ~pwd:User_sql.External_Auth
+                    ~fullname:usr
+(*VVV Can we get the full name from NIS? 
+  If yes, do we need to actualize it every time the user connects? *)
+                    ~email:None
+                    ~groups:[Users.authenticated_users.Users.id]
+                    ()
+              | e -> Lwt.fail e)
+         >>= fun user -> 
+         let sd = Ocsimore_common.create_empty_sd () in
+         Users.set_session_data sp sd user >>= fun () -> 
+         all_login_actions sp user >>= fun () ->
+         Lwt.return [Ocsimore_common.Session_data sd]) 
+      (fun e -> return [e])
+
+end
 
 
 

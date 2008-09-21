@@ -106,7 +106,19 @@ mistake the login box from all pages)
 
 
 
-==PAM authentication==
+==authentication using external services==
+
+NIS authentication:
+
+Configuration file example:
+{{{
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+        <nis/>
+      </eliom>
+}}}
+
+
+PAM authentication:
 
 Configuration file example:
 {{{
@@ -117,6 +129,8 @@ Configuration file example:
 
 Here the service name must correspond to a file in {{{/etc/pam.d}}}.
 
-//Warning:// To allow authentication based on {{{/etc/shadow}}},
-Ocsigen must have read access to this file. This is usually done by
-putting Ocsigen's user in the {{{shadow}}} group, to which belong the file.
+//Warning:// It is not possible (for now) to use
+authentication based on {{{/etc/shadow}}} (using pam_unix), because
+Ocsigen does not have read access to this file
+(would be very dangerous to give access to that file to a web server).
+

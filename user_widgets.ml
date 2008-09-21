@@ -258,7 +258,7 @@ let mail_password ~name ~from_addr ~subject =
                         ^ "\tUsername:\t" ^ name ^ "\n"
                         ^ "\tPassword:\t" ^ (match user.Users.pwd with 
                                                | User_sql.Ocsimore_user p -> p
-                                               | User_sql.Pam -> "(PAM password)"
+                                               | User_sql.External_Auth -> "(system password)"
                                                | User_sql.Connect_forbidden -> "(connection forbidden)")
                         ^ "\n"));
                   true

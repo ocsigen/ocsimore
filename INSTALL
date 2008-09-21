@@ -54,6 +54,6 @@ make example.cmo
    (at the position set in the config file) and give right access
    only to Ocsigen's process user.
 
-9. Run Ocsigen
+9. Run Ocsigen, for example:
 
-
+CAML_LD_LIBRARY_PATH=nis_chkpwd ocsigen -c ocsigen.conf.example
