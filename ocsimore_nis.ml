@@ -27,13 +27,15 @@ let nis_auth ~name ~pwd () =
     (fun () -> 
        Nis_chkpwd.check name pwd >>= fun b ->
        if b
-       then raise Users.BadPassword
-       else Lwt.return ()
+       then Lwt.return ()
+       else Lwt.fail Users.BadPassword
     )
-    (fun e -> 
-       Ocsigen_messages.debug (fun () -> "Ocsimore_nis: "^
-                                 Printexc.to_string e);
-       Lwt.fail e)
+    (function
+       | Users.BadPassword -> Lwt.fail Users.BadPassword
+       | e -> 
+           Ocsigen_messages.debug (fun () -> "Ocsimore_nis: "^
+                                     Printexc.to_string e);
+           Lwt.fail e)
 
 (*VVV Il faut empêcher un utilisateur ou IP
   qui vient d'essayer de se connecter de recommencer avant 2s!!!!! 
