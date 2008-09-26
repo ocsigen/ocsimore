@@ -77,22 +77,36 @@ Conditional display w.r.t. groups: (EXPERIMENTAL)
 
 {{{<<username>>}}} displays the name of the user.
 
-{{{<<link wiki='...' href='...'|...>>}}} is like 
+{{{<<link wiki='...' page='...'|...>>}}} is like 
 {{{[[...|...]]}}} for internal links,
 but allows links towards other wikis.
 The wiki argument is optional.
-other optional argument: protocol='https' or protocol='http'
-(will create absolute links)
+other optional arguments:
+protocol="https" or protocol="http" (will create absolute links)
+fragment="..." to create a link containing a # (link to a portion of page with
+an id attribute)
+class, id
 
-{{{<<nonattachedlink wiki='...' href='...'|...>>}}} is like {{{[[...|...]]}}}
+{{{<<nonattachedlink wiki='...' page='...'|...>>}}} is like {{{[[...|...]]}}}
 for internal links,
 but instead of using a link towards another page, it uses a non-attached
 service (i.e. the path in the URL won't change, only parameters).
 Use this if you do not want to go to another URL.
 The wiki argument is optional.
-other optional argument: protocol='https' or protocol='http'
-(will create absolute links)
+other optional arguments:
+protocol='https' or protocol='http' (will create absolute links)
+fragment="..." to create a link containing a # (link to a portion of page with
+an id attribute)
+class, id
 
+{{{<<img wiki='...' name='...' |...>>}}} is like 
+{{{ {{...|...}} }}} for images,
+but allows links towards images from other wikis
+(will compute the URL from the URL of the wiki).
+The wiki argument is optional.
+other optional arguments:
+protocol="https" or protocol="http" (will create absolute links)
+class, id
 
 
 
@@ -108,7 +122,9 @@ mistake the login box from all pages)
 
 ==authentication using external services==
 
-NIS authentication:
+//Any contributions appreciated for other authentication methods!//
+
+===NIS authentication:===
 
 Configuration file example:
 {{{
@@ -118,7 +134,7 @@ Configuration file example:
 }}}
 
 
-PAM authentication:
+===PAM authentication:===
 
 Configuration file example:
 {{{
@@ -132,5 +148,4 @@ Here the service name must correspond to a file in {{{/etc/pam.d}}}.
 //Warning:// It is not possible (for now) to use
 authentication based on {{{/etc/shadow}}} (using pam_unix), because
 Ocsigen does not have read access to this file
-(would be very dangerous to give access to that file to a web server).
-
+(would be dangerous to give access to that file to a web server).

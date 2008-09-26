@@ -52,7 +52,8 @@ let add_a_content_extension k f = H.add a_content_extension_table k f
 let add_link_extension k f = H.add link_extension_table k f
 
 
-(***)
+(* a table containing the Eliom services generating pages 
+   for each wiki associated to an URL *)
 module Servpages = 
   Hashtbl.Make(struct 
                  type t = int32 

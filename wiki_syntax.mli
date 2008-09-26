@@ -133,3 +133,6 @@ val a_content_of_wiki :
 *)
 val string_of_extension : 
   string -> (string * string) list -> string option -> string
+
+(** parses common attributes ([class], [id]) *)
+val parse_common_attribs : (string * string) list -> Xhtmltypes_duce.coreattrs

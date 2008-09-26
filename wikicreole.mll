@@ -539,7 +539,9 @@ and parse_link c attribs =
       end
       else
         let s = Lexing.lexeme lexbuf in
-        let addr = c.build.make_href c.sp (String.sub s 0 (String.length s - 2)) in
+        let addr = 
+          c.build.make_href c.sp (String.sub s 0 (String.length s - 2)) 
+        in
         c.inline_mix <-
          c.build.a_elem attribs c.sp addr [c.build.chars addr] :: c.inline_mix;
       parse_rem c lexbuf
