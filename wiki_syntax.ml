@@ -126,6 +126,8 @@ let inline (x : Xhtmltypes_duce.a_content)
 
 let absolute_link_regexp = Netstring_pcre.regexp "[a-z|A-Z|0-9]+:"
 
+let is_absolute_link addr = 
+  (Netstring_pcre.string_match absolute_link_regexp addr 0) <> None
 
 let builder wiki_id =
   let servpage = find_servpage wiki_id in
@@ -147,11 +149,8 @@ let builder wiki_id =
              {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
     W.make_href =
       (fun sp addr ->
-         match
-           servpage,
-           Netstring_pcre.string_match absolute_link_regexp addr 0 
-         with
-           | (Some servpage, None) ->
+         match servpage, is_absolute_link addr with
+           | (Some servpage, false) ->
                let addr =
                  Ocsigen_lib.remove_slash_at_beginning
                    (Ocsigen_lib.remove_dotdot (Neturl.split_path addr))

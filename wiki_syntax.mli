@@ -136,3 +136,6 @@ val string_of_extension :
 
 (** parses common attributes ([class], [id]) *)
 val parse_common_attribs : (string * string) list -> Xhtmltypes_duce.coreattrs
+
+(** returns true if the string is an absolute URL (http://...) *)
+val is_absolute_link : string -> bool

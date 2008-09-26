@@ -1316,20 +1316,22 @@ object (self)
                | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
            (* class and id attributes will be taken by Wiki_syntax.a_elem *)
-           ((match Wiki_syntax.find_servpage wiki_id with
-               | Some s ->
-                   let href =
-                     Ocsigen_lib.remove_slash_at_end
-                       (Ocsigen_lib.remove_slash_at_beginning
-                          (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
-                   in
-                   Eliom_duce.Xhtml.make_uri
-                     ?https
-                     ?fragment
-                     ~service:s
-                     ~sp
-                     href
-               | None -> href
+           ((if Wiki_syntax.is_absolute_link href
+             then href
+             else 
+               match Wiki_syntax.find_servpage wiki_id with
+                 | Some s ->
+                     let href =
+                       Ocsigen_lib.remove_slash_at_beginning
+                         (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
+                     in
+                     Eliom_duce.Xhtml.make_uri
+                       ?https
+                       ?fragment
+                       ~service:s
+                       ~sp
+                       href
+                 | None -> href
             ),
             args,
             content)
@@ -1379,6 +1381,64 @@ object (self)
         );
 
 
+       Wiki_syntax.add_a_content_extension "object"
+        (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
+           let type_ = 
+             try 
+               List.assoc "type" args
+             with Not_found -> ""
+           in
+           let href = 
+             try 
+               List.assoc "data" args
+             with Not_found -> ""
+           in
+           let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
+           let wiki_id = 
+             try 
+               Int32.of_string (List.assoc "wiki" args)
+             with 
+               | Failure _
+               | Not_found -> wiki_id
+           in
+           let https = 
+             try 
+               let a = List.assoc "protocol" args in
+               if a = "http"
+               then Some false
+               else 
+                 if a = "https"
+                 then Some true
+                 else None
+             with Not_found -> None
+           in
+           let atts = Wiki_syntax.parse_common_attribs args in
+           let url =
+             if Wiki_syntax.is_absolute_link href
+             then href
+             else
+               match Wiki_syntax.find_servpage wiki_id with
+                 | Some s ->
+                     let href =
+                       Ocsigen_lib.remove_slash_at_beginning
+                         (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
+                     in
+                     Eliom_duce.Xhtml.make_uri
+                       ?https
+                       ?fragment
+                       ~service:s
+                       ~sp
+                       href
+                 | None -> href
+           in
+           Lwt.return 
+             {{ [<object
+                    ({data={: Ocamlduce.Utf8.make url :} 
+                         type={: Ocamlduce.Utf8.make type_ :}}
+                     ++
+                         atts)
+                  >[] ] }});
+
        Wiki_syntax.add_a_content_extension "img"
         (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
            let href = 
@@ -1411,19 +1471,21 @@ object (self)
            in
            let atts = Wiki_syntax.parse_common_attribs args in
            let url =
-             match Wiki_syntax.find_servpage wiki_id with
-               | Some s ->
-                   let href =
-                     Ocsigen_lib.remove_slash_at_end
-                       (Ocsigen_lib.remove_slash_at_beginning
-                          (Ocsigen_lib.remove_dotdot (Neturl.split_path href)))
-                   in
-                   Eliom_duce.Xhtml.make_uri
-                     ?https
-                     ~service:s
-                     ~sp
-                     href
-               | None -> href
+             if Wiki_syntax.is_absolute_link href
+             then href
+             else 
+               match Wiki_syntax.find_servpage wiki_id with
+                 | Some s ->
+                     let href =
+                       Ocsigen_lib.remove_slash_at_beginning
+                         (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
+                     in
+                     Eliom_duce.Xhtml.make_uri
+                       ?https
+                       ~service:s
+                       ~sp
+                       href
+                 | _ -> href
            in
            Lwt.return 
              {{ [<img

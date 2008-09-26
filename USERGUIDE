@@ -78,7 +78,7 @@ Conditional display w.r.t. groups: (EXPERIMENTAL)
 {{{<<username>>}}} displays the name of the user.
 
 {{{<<link wiki='...' page='...'|...>>}}} is like 
-{{{[[...|...]]}}} for internal links,
+{{{[[...|...]]}}} for links,
 but allows links towards other wikis.
 The wiki argument is optional.
 other optional arguments:
@@ -88,7 +88,7 @@ an id attribute)
 class, id
 
 {{{<<nonattachedlink wiki='...' page='...'|...>>}}} is like {{{[[...|...]]}}}
-for internal links,
+for links,
 but instead of using a link towards another page, it uses a non-attached
 service (i.e. the path in the URL won't change, only parameters).
 Use this if you do not want to go to another URL.
@@ -107,6 +107,16 @@ The wiki argument is optional.
 other optional arguments:
 protocol="https" or protocol="http" (will create absolute links)
 class, id
+
+{{{<<object wiki='...' data='...' type='...'>>}}} 
+allows to include an objet in the page (see {{{<object>}}} xhtml tag).
+The wiki argument is optional.
+other optional arguments:
+protocol="https" or protocol="http" (will create absolute links)
+fragment="..." to create a link containing a # (link to a portion of page with
+an id attribute)
+class, id
+
 
 
 
