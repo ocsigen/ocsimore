@@ -95,9 +95,11 @@ let get_box_for_page, set_box_for_page =
     C.create (fun (wiki, page) -> Wiki_sql.get_box_for_page_ ~wiki ~page) 64 
   in
   ((fun ~wiki ~page -> 
+      let page = Ocsigen_lib.remove_end_slash page in
       print_endline "cache wikipage ";
       C.find cache (wiki, page)),
    (fun ~wiki ~id ~page ->
+      let page = Ocsigen_lib.remove_end_slash page in
       C.remove cache (wiki, page);
       Wiki_sql.set_box_for_page_ ~wiki ~id ~page
    ))
