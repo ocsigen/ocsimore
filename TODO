@@ -97,7 +97,7 @@ How to make sure that:
 Wiki:
  - Box version numbers must start at 1 for each box, 
  and be consecutive!!
- - What if two users modify the same page at the same time?
+ - !!!!!What if two users modify the same page at the same time?
  - Make a button to hide/show the View/Edit/History bars if we are connected and
  do not want to be editor
  - Revoir le changement des droits. Quels droits ? Qui peut les changer ?
@@ -136,6 +136,10 @@ Users:
   quelle que soit la méthode d'authentification
   cf lwt_lib
  - IMPORTANT: Save a hash of passwords in the db, not the password itself
+ - Impossible to give rights to users who do not exist for now (if using
+ external authentication, the user is created the first time she logs in ...)
+ May be create the user automatically if she exists on the system when we
+ we to give rights.
  - PAM or LDAP: not really clean
  Use "plugable" authentication methods
  (to avoid Session_manager.sessionmanager_nis _pam etc.)

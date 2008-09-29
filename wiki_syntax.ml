@@ -437,9 +437,8 @@ let _ =
              match find_servpage wiki_id with
                | Some servpage -> 
                    let path =
-                     Ocsigen_lib.remove_slash_at_end
-                       (Ocsigen_lib.remove_slash_at_beginning
-                          (Ocsigen_lib.remove_dotdot (Neturl.split_path link)))
+                     Ocsigen_lib.remove_slash_at_beginning
+                       (Ocsigen_lib.remove_dotdot (Neturl.split_path link))
                    in
                    Eliom_duce.Xhtml.make_uri
                      ~service:servpage
