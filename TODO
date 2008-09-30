@@ -38,6 +38,9 @@ TODO
 
  - Log the connection of users!
 
+ - replace Actions by redirections to avoid the problem of reposting POST data
+ (how to give informations to fallbacks?)
+
  - NEW 27/06/2008 There is now a wiki created automatically for the 
  administration boxes. For now used only for displaying wikisyntax,
  but should be used for all admin pages?
@@ -116,6 +119,9 @@ Wiki:
  remove these config options and rely on defaults and an admin page
  to change rights (but for now that page does not exist, 
  so I leave this as this).
+ /!\ Il faut probablement carrément enlever ocsiwiki.cmo
+ et recréer les wikis de la base qui sont associés à des URLs
+ à chaque démarrage !
  - There is an experimental non-attached service that displays wikipages
  as if it were the usual (suffix) service. But editing wikiboxes does not
  work inside this page!!!!!!!!!!!

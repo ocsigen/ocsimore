@@ -1,4 +1,4 @@
-Guidelines
+Guidelines and implementation notes
 (work in progress)
 
 If  you  want  to  contribute   to  Ocsimore  and/or  write  your  own
@@ -94,3 +94,12 @@ Predefined users/groups:
  - users: group of authenticated users
  - nobody: a special user with no right at all 
  (for ex when the user does not exist)
+
+ - Wiki
+Warning: if the wiki is associated to a path, we register an Eliom service
+with suffix at this URL. The table wikipages associate a pair (path, wiki_id)
+to a wikibox number in this wiki. It is not possible for now to associate a
+box from another wiki. But you can create a sub-box that belongs to another 
+wiki.
+
+

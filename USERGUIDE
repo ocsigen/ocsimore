@@ -1,5 +1,11 @@
 =User guide=
 
+==Wikis==
+
+Creating several wikis (associated to several paths) 
+allows to give different rights for subdirectories of the site.
+
+
 ==Wiki syntax==
 
 The wiki is using wikicreole's syntax (but it is possible to plug another
