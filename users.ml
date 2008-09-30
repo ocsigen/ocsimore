@@ -103,29 +103,7 @@ let create_nobody () =
 
 let nobody = Lwt_unix.run (create_nobody ())
 
-let create_users_group () =
-  Lwt.catch
-    (fun () -> get_user_by_name_from_db_or_fail ~name:"users")
-    (function
-       | Not_found ->
-           (User_sql.new_user 
-              ~name:"users" 
-              ~password:User_sql.Connect_forbidden
-              ~fullname:"Users"
-              ~email:None
-              ~groups:[anonymous.id]
-              ~dyn:false
-            >>= fun i ->
-           Lwt.return { id = i;
-                        name = "users"; 
-                        pwd = User_sql.Connect_forbidden; 
-                        fullname = "Users"; 
-                        email = None;
-                        dyn = false;
-                      })
-       | e -> Lwt.fail e)
 
-let authenticated_users = Lwt_unix.run (create_users_group ())
 
 
 let create_admin () =
@@ -285,12 +263,6 @@ let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
   get_user_by_name ~name >>= fun u -> 
   if (u = nobody) && (name != nobody.name)
   then begin (* the user does not exist *)
-    let groups =
-      if pwd = User_sql.Connect_forbidden
-        || List.mem authenticated_users.id groups
-      then groups
-      else authenticated_users.id::groups
-    in
     let dyn = not (test = None) in
     User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups ~dyn
     >>= fun i ->
@@ -312,7 +284,6 @@ let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
        | Some f -> add_dyn_group u.id f);
     Lwt.return u
   end
-
 
 
 let create_unique_user =
@@ -497,6 +468,13 @@ let is_logged_on ~sp ~sd =
   get_user_sd sp sd >>= fun u -> 
   Lwt.return (not ((u == anonymous) || (u == nobody)))
 
+let authenticated_users =
+  Lwt_unix.run
+    (create_user ~name:"users" ~pwd:User_sql.Connect_forbidden
+       ~fullname:"Authenticated users" ~email:None
+       ~groups:[anonymous.id]
+       ~test:is_logged_on
+       ())
 
 let anonymous_sd = 
   let sd = Polytables.create () in

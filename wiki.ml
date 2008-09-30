@@ -154,11 +154,11 @@ let new_wikibox ?boxid ~wiki ~author ~comment ~content
                     >>= fun _ -> Lwt.fail (Found b))
                  (function
                     | Not_found -> *)
-              (*VVV not really clean *)
+(*VVV not really clean *)
               if Int32.compare !(wiki.last) b >= 0
               then Lwt.fail (Found b)
               else begin
-                (*VVV may create holes *)
+(*VVV may create holes *)
                 wiki.last := b;
                 Lwt.return b
               end
@@ -369,33 +369,33 @@ let display_page w wikibox action_create_page sp page () =
                (function
                   | Not_found -> 
                       Users.get_user_id ~sp ~sd >>= fun userid ->
-                        let draw_form name =
-                          {{ [<p>[
+                      let draw_form name =
+                        {{ [<p>[
+                               {: Eliom_duce.Xhtml.string_input
+                                  ~input_type:{: "hidden" :} 
+                                  ~name
+                                  ~value:page () :}
                                  {: Eliom_duce.Xhtml.string_input
-                                    ~input_type:{: "hidden" :} 
-                                    ~name
-                                    ~value:page () :}
-                                   {: Eliom_duce.Xhtml.string_input
-                                      ~input_type:{: "submit" :} 
-                                      ~value:"Create it!" () :}
-                               ]] }}
-                            
-                        in
-                        page_creators_group w.id >>= fun creators ->
-                        Users.in_group ~sp ~sd ~user:userid ~group:creators ()
-                          >>= fun c ->
-                        let form =
-                          if c
-                          then
-                            {{ [ {: Eliom_duce.Xhtml.post_form
-                                    ~service:action_create_page
-                                    ~sp draw_form () :} ] }}
-                          else {{ [] }}
-                        in
-                        Lwt.return
-                          {{ [ <p>"That page does not exist." !form ] }}
-                          | e -> Lwt.fail e
-        )
+                                    ~input_type:{: "submit" :} 
+                                    ~value:"Create it!" () :}
+                             ]] }}
+                          
+                      in
+                      page_creators_group w.id >>= fun creators ->
+                      Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+                        >>= fun c ->
+                      let form =
+                        if c
+                        then
+                          {{ [ {: Eliom_duce.Xhtml.post_form
+                                  ~service:action_create_page
+                                  ~sp draw_form () :} ] }}
+                        else {{ [] }}
+                      in
+                      Lwt.return
+                        {{ [ <p>"That page does not exist." !form ] }}
+                        | e -> Lwt.fail e
+               )
       >>= fun subbox ->
 
       match w.container_id with
@@ -574,7 +574,7 @@ let create_wiki ~title ~descr
                              userid
                              "new wikipage" 
                              ("=="^page^"==")
-                             (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
+(*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                              () >>= fun box ->
                            Wiki_cache.set_box_for_page
                              ~wiki:w.id ~id:box ~page >>= fun () ->
@@ -588,6 +588,10 @@ let create_wiki ~title ~descr
 
          
          (* Registering the service with suffix for wikipages *)
+         (* Note that Eliom will look for the service corresponding to
+            the longest prefix. Thus it is possible to register a wiki
+            at URL / and another one at URL /wiki and it works,
+            whatever be the order of registration *)
          let servpage =
            Eliom_predefmod.Any.register_new_service
              ~path
@@ -608,9 +612,8 @@ let create_wiki ~title ~descr
              (fun sp path () ->
                 let path =
                   Ocsigen_lib.string_of_url_path
-                    (Ocsigen_lib.remove_slash_at_end
-                       (Ocsigen_lib.remove_slash_at_beginning
-                          (Ocsigen_lib.remove_dotdot (Neturl.split_path path))))
+                    (Ocsigen_lib.remove_slash_at_beginning
+                       (Ocsigen_lib.remove_dotdot (Neturl.split_path path)))
                 in
                 display_page w wikibox action_create_page sp path ())
          in Wiki_syntax.add_naservpage w.id naservpage;
