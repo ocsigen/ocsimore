@@ -101,6 +101,12 @@ Wiki:
  - Box version numbers must start at 1 for each box, 
  and be consecutive!!
  - !!!!!What if two users modify the same page at the same time?
+ - Allow to specify manually the wikibox number associated to a page
+ (to have several pages with the same box)
+ (ask the user to specify either the wikibox number or another page name)
+ + same for page/wiki css (if I want the same css for several wikis for ex)
+ + allow to register some kind of redirection (like wikipedia)
+ (basically the same, but with something that shows that it is a redirection)
  - Make a button to hide/show the View/Edit/History bars if we are connected and
  do not want to be editor
  - Revoir le changement des droits. Quels droits ? Qui peut les changer ?
@@ -108,8 +114,11 @@ Wiki:
  - Hierarchical menu box (as in Eliom_tools)
  - not possible to make all kinds of links in menus for now
   (like <<nonattachedlink>> or <<link>>)
- - CSS have no history for now. Link css history with page/box history?
  - No right verification on css. Everyone can get them.
+ - CSS have no history for now. Link css history with page/box history?
+ -------> Il faut probablement utiliser des wikiboxes pour les css
+ avant une colonne supplémentaire "content-type" qui pourrait être wikicreole
+ ou css ou autre.
  - not possible to change the css for one wikibox for now, just for the whole
  page. Users cannot personnalize the css if they do not have the right to 
  modify the whole page css :-(
