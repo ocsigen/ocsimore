@@ -38,7 +38,7 @@ val create : unit -> t
 (** create a new key for each data you want to save *)
 val make_key : unit -> 'a key
 
-(** [get t k] returns the current binding of [k] in [t] *)
+(** [set t k v] associates [v] to [k] in [t] *)
 val set : table:t -> key:'a key -> value:'a -> unit
 
 (** [get t k] returns the current binding of [k] in [t] *)
