@@ -25,6 +25,12 @@ Cached access to the database.
 
 let (>>=) = Lwt.bind
 
+let debug_print_cache = ref false
+
+let print_cache s =
+  if !debug_print_cache then print_endline s
+
+
 module GroupCache = Cache.Make (struct 
                              type key = int32 
                              type value = int32 list 
@@ -33,7 +39,7 @@ module GroupCache = Cache.Make (struct
 let group_cache = GroupCache.create (fun u -> User_sql.get_groups_ u) 256
 
 let get_groups ~userid = 
-  print_endline "cache groups ";
+  print_cache "cache groups ";
   GroupCache.find group_cache userid
 
 
@@ -74,10 +80,10 @@ let find_user =
       | Some i, _ -> 
 (*          IUserCache.find iusercache i *)
           (try
-             print_endline "cache iuser ";
+             print_cache "cache iuser ";
              Lwt.return (IUserCache.find_in_cache iusercache i)
            with Not_found ->
-print_endline "            cache: db access (iu)";
+print_cache "            cache: db access (iu)";
              User_sql.find_user_ ~id:i () >>= fun (((_, n, _, _, _, _), _) as r) ->
              IUserCache.add iusercache i r;
              NUserCache.add nusercache n r;
@@ -85,10 +91,10 @@ print_endline "            cache: db access (iu)";
 
       | _, Some n -> 
           (try
-             print_endline "cache nuser ";
+             print_cache "cache nuser ";
              Lwt.return (NUserCache.find_in_cache nusercache n)
            with Not_found ->
-             print_endline "           cache: db access (nu)";
+             print_cache "           cache: db access (nu)";
              User_sql.find_user_ ~name:n () >>= fun (((i, _, _, _, _, _), _) as r) ->
              IUserCache.add iusercache i r;
              NUserCache.add nusercache n r;
