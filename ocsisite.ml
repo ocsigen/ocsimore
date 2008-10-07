@@ -74,46 +74,10 @@ let (auth, basicusercreation) =
 
 
 
-let container ?css content =
-  let css = match css with
-    | None -> {{ [] }}
-    | Some c -> c
-  in
-  {{
-     <html>[
-       <head>[
-         <title>"Ocsimore"
-           !css
-       ]
-       <body>content
-     ]
-   }}
 
 
 let wikiadmin_container_id = 2l
 let wiki_help_box = 3l
-
-class login_widget_basic_user_creation ~sessman data =
-object (self)
-
-  inherit User_widgets.login_widget_basic_user_creation ~sessman data
-
-
-  method container ~sp ~sd ~contents = Lwt.return (container contents)
-
-
-end;;
-
-
-class creole_wikibox () adminwikiinfo = object
-  inherit Wiki_widgets.editable_wikibox () adminwikiinfo
-
-  method pretty_print_wikisyntax ?subbox ~ancestors ~sp ~sd w content =
-    Wiki_syntax.xml_of_wiki ?subbox ~ancestors ~sp ~sd w content
-
-  method container = container
-
-end
 
 
 let get_admin_wiki_fun = ref (fun () -> failwith "Ocsisite.get_admin_wiki")
@@ -147,9 +111,8 @@ let wikibox =
            let _ = new User_widgets.login_widget sm in
            ());
 
-     Lwt.return (new creole_wikibox () (get_admin_wiki, 
-                                        wikiadmin_container_id, 
-                                        wiki_help_box))
+     Lwt.return (new Ocsimore_wikibox.creole_wikibox ()
+                   (get_admin_wiki, wikiadmin_container_id, wiki_help_box))
     )
 
 

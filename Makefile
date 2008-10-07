@@ -19,7 +19,7 @@ OCSIMORE_SRC3 = forum.ml ocsimore_nis.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
 	wiki_cache.ml wiki.ml wiki_widgets.ml \
         user_widgets.ml forum_widgets.ml \
-        dyngroups.ml $(PAM)
+        dyngroups.ml ocsimore_wikibox.ml $(PAM)
 
 OCSIMORE_OTHER_SRC = ocsisite.ml ocsiwiki.ml
 
