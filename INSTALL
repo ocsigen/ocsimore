@@ -16,14 +16,15 @@ sh configure <password>
 
 
 3. Create a postgresql user with that name (here ocsimore) 
-and a database called ocsimore:
+and a database called ocsimore. The database user needs no special role
 
 sudo -u postgres createuser -P ocsimore
 sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 
 Adapt /etc/postgresql/.../pg_hba.conf to give Ident access for user ocsimore
 by copying the following line (no modification needed):
-local ocsimore ocsimore password
+ local ocsimore ocsimore password
+
 
 Restart postgresql, for example:
 sudo /etc/init.d/postgresql restart
@@ -39,14 +40,14 @@ sudo -u postgres dropdb ocsimore
 
 4. Install pgocaml with lwt support (lwt branch of cvs)
 http://merjis.com/developers/pgocaml
+Make sure to properly set DEFAULT_UNIX_DOMAIN_SOCKET_DIR in
+Makefile.config, depending on your installation
 
 5. Compile ocsimore
 make depend
 make
 
 6. Write and compile your site
-or use example.ml:
-make example.cmo
 
 7. Adapt your ocsigen.conf using ocsigen.conf.example
 
