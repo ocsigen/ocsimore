@@ -8,7 +8,7 @@ PAM=
 PAMPACKAGE=
 endif
 
-CAMLC = ocamlc -g -dtypes -I nis_chkpwd
+CAMLC = ocamlc -w v -g -dtypes -I nis_chkpwd
 CAMLLEX = ocamllex
 
 # cannot use ocamlduce with camlp4 :-(
