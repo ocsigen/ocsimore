@@ -17,7 +17,7 @@ OCSIMORE_SRC1 = opaque.ml polytables.ml cache.ml ocsimore_config.ml \
 OCSIMORE_SRC2 = user_cache.ml users.ml
 OCSIMORE_SRC3 = forum.ml ocsimore_nis.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
-	wiki_cache.ml wiki.ml wiki_widgets.ml \
+	wiki.ml wiki_widgets.ml \
         user_widgets.ml forum_widgets.ml \
         dyngroups.ml ocsimore_wikibox.ml $(PAM)
 

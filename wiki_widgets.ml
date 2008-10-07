@@ -37,7 +37,7 @@ type wiki_data = {
 (*
 let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
   self#bind_or_display_error
-    (Wiki_cache.get_wikibox_data ~wikibox:ids ())
+    (Wiki_sql.get_wikibox_data ~wikibox:ids ())
     (fun result ->
        match result with
          | None -> Lwt.fail Not_found
@@ -105,7 +105,7 @@ object (self)
     Lwt.return (Ocamlduce.Utf8.make content)
 
   method private retrieve_wikibox_content ids =
-    Wiki_cache.get_wikibox_data ~wikibox:ids () >>= fun result ->
+    Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
     match result with
       | None -> Lwt.fail (Unknown_box ids)
       | Some (com, a, cont, d) -> Lwt.return cont
@@ -277,7 +277,7 @@ class editable_wikibox () =
               Eliom_parameters.string "page") ** 
              Eliom_parameters.string "content")
       (fun sp () ((wiki, page), content) -> 
-         Wiki_cache.set_css_for_page ~wiki ~page content >>= fun () ->
+         Wiki_sql.set_css_for_page ~wiki ~page content >>= fun () ->
          Lwt.return []
       )
   in
@@ -289,7 +289,7 @@ class editable_wikibox () =
       ~post_params:
       (Wiki_sql.eliom_wiki "wikiid" ** Eliom_parameters.string "content")
       (fun sp () (wiki, content) -> 
-         Wiki_cache.set_css_for_wiki ~wiki content >>= fun () ->
+         Wiki_sql.set_css_for_wiki ~wiki content >>= fun () ->
          Lwt.return []
       )
   in
@@ -302,7 +302,7 @@ class editable_wikibox () =
       ~get_params:(Wiki_sql.eliom_wiki "wiki")
       (fun sp wiki () -> 
          Lwt.catch
-           (fun () -> Wiki_cache.get_css_for_wiki wiki)
+           (fun () -> Wiki_sql.get_css_for_wiki wiki)
            (function
               | Not_found -> Lwt.fail Eliom_common.Eliom_404
               | e -> Lwt.fail e
@@ -321,7 +321,7 @@ class editable_wikibox () =
                         (Eliom_parameters.all_suffix_string "page")))
       (fun sp (wiki, page) () -> 
          Lwt.catch
-           (fun () -> Wiki_cache.get_css_for_page wiki page)
+           (fun () -> Wiki_sql.get_css_for_page wiki page)
            (function
               | Not_found -> Lwt.fail Eliom_common.Eliom_404
               | e -> Lwt.fail e
@@ -689,7 +689,7 @@ object (self)
        content
 
    method retrieve_old_wikibox_content ~sp ~sd ids version =
-     Wiki_cache.get_wikibox_data ~version ~wikibox:ids ()
+     Wiki_sql.get_wikibox_data ~version ~wikibox:ids ()
      >>= fun result ->
      match result with
        | None -> Lwt.fail Not_found
@@ -1008,14 +1008,14 @@ object (self)
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
-     Wiki_cache.get_box_for_page wiki page >>= fun box ->
+     Wiki_sql.get_box_for_page wiki page >>= fun box ->
      self#bind_or_display_error
        ~classe
        (if c
         then
           Lwt.catch
             (fun () -> 
-               Wiki_cache.get_css_for_page wiki page (* The css exists *)
+               Wiki_sql.get_css_for_page wiki page (* The css exists *)
             )
             (function 
                | Not_found -> Lwt.return ""
@@ -1113,7 +1113,7 @@ object (self)
               then
                 Lwt.catch
                   (fun () -> 
-                     Wiki_cache.get_css_for_wiki wiki (* The css exists *)
+                     Wiki_sql.get_css_for_wiki wiki (* The css exists *)
                   )
                   (function 
                      | Not_found -> Lwt.return ""
@@ -1149,7 +1149,7 @@ object (self)
        in
        Lwt.catch
          (fun () ->
-            Wiki_cache.get_css_for_wiki wiki >>= fun _ ->
+            Wiki_sql.get_css_for_wiki wiki >>= fun _ ->
               Lwt.return 
                 {{ [ css
                        {:
@@ -1169,7 +1169,7 @@ object (self)
               match page with
                 | None -> Lwt.return css
                 | Some page ->
-                    Wiki_cache.get_css_for_page wiki page >>= fun _ ->
+                    Wiki_sql.get_css_for_page wiki page >>= fun _ ->
                       Lwt.return 
                         {{ [ !css
                                {:

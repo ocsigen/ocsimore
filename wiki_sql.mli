@@ -23,7 +23,7 @@
    @author Vincent Balat
 *)
 
-(** Semi-abstract type for a wiki *)
+(** Abstract type for a wiki *)
 type wiki
 
 (** Conversions from a wiki index *)
@@ -89,26 +89,26 @@ val wiki_get_pages_list : wik_id:int32 ->
 (* DO NOT USE THE FOLLOWING BUT THOSE IN WIKI_CACHE.ML *)
 
 (** return the box corresponding to a wikipage *)
-val get_box_for_page_ : wiki:wiki -> page:string -> int32 Lwt.t
+val get_box_for_page : wiki:wiki -> page:string -> int32 Lwt.t
 
 (** sets the box corresponding to a wikipage *)
-val set_box_for_page_ : wiki:wiki -> id:int32 -> page:string -> unit Lwt.t
+val set_box_for_page : wiki:wiki -> id:int32 -> page:string -> unit Lwt.t
 
 (** returns the css for a page or fails with [Not_found] if it does not exist *)
-val get_css_for_page_ : wiki:wiki -> page:string -> string option Lwt.t
+val get_css_for_page : wiki:wiki -> page:string -> string Lwt.t
 
 (** Sets the css for a wikipage *)
-val set_css_for_page_ : wiki:wiki -> page:string -> string -> unit Lwt.t
+val set_css_for_page : wiki:wiki -> page:string -> string -> unit Lwt.t
 
 (** returns the global css for a wiki 
     or fails with [Not_found] if it does not exist *)
-val get_css_for_wiki_ : wiki:wiki -> string option Lwt.t
+val get_css_for_wiki : wiki:wiki -> string Lwt.t
 
 (** Sets the global css for a wiki *)
-val set_css_for_wiki_ : wiki:wiki -> string -> unit Lwt.t
+val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
-val find_wiki_ : id:wiki -> 
+val find_wiki : id:wiki -> 
   (string * string * bool * bool * int32 ref * int32 option * 
      string option) Lwt.t
 
@@ -117,7 +117,7 @@ val find_wiki_id_by_name : name:string -> wiki Lwt.t
 
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
-val get_wikibox_data_ : 
+val get_wikibox_data : 
   ?version:int32 ->
   wikibox:(wiki * int32) ->
   unit ->
@@ -125,7 +125,7 @@ val get_wikibox_data_ :
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-val update_wikibox_ :
+val update_wikibox :
   wiki:wiki ->
   wikibox:int32 ->
   author:User_sql.userid ->
@@ -134,28 +134,28 @@ val update_wikibox_ :
   int32 Lwt.t
 
 (** Update container_id (only, for now). *)
-val update_wiki_ :
-  wiki:wiki ->
+val update_wiki :
+  wiki_id:wiki ->
   container_id:int32 ->
   unit ->
   unit Lwt.t
 
-val populate_readers_ : 
+val populate_readers :
   wiki -> int32 -> int32 list -> unit Lwt.t
-val populate_writers_ : 
+val populate_writers :
   wiki -> int32 -> int32 list -> unit Lwt.t
-val populate_rights_adm_ : 
+val populate_rights_adm :
   wiki -> int32 -> int32 list -> unit Lwt.t
-val populate_wikiboxes_creators_ : 
+val populate_wikiboxes_creators :
   wiki -> int32 -> int32 list -> unit Lwt.t
 
-val remove_readers_ : 
+val remove_readers :
   wiki -> int32 -> int32 list -> unit Lwt.t
-val remove_writers_ : 
+val remove_writers :
   wiki -> int32 -> int32 list -> unit Lwt.t
-val remove_rights_adm_ : 
+val remove_rights_adm :
   wiki -> int32 -> int32 list -> unit Lwt.t
-val remove_wikiboxes_creators_ : 
+val remove_wikiboxes_creators :
   wiki -> int32 -> int32 list -> unit Lwt.t
 
 

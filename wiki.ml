@@ -50,7 +50,7 @@ type wiki_info = {
 
 
 let get_wiki_by_id id =
-  Wiki_cache.find_wiki id >>= fun (title, descr, pages, br, last, ci, stat) -> 
+  Wiki_sql.find_wiki id >>= fun (title, descr, pages, br, last, ci, stat) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
@@ -77,16 +77,16 @@ let get_sthg_ f ?wiki ((w, i) as k) =
   else Lwt.return None
 
 let get_readers =
-  get_sthg_ Wiki_cache.get_readers_
+  get_sthg_ Wiki_sql.get_readers_
 
 let get_writers =
-  get_sthg_ Wiki_cache.get_writers_
+  get_sthg_ Wiki_sql.get_writers_
 
 let get_rights_adm =
-  get_sthg_ Wiki_cache.get_rights_adm_
+  get_sthg_ Wiki_sql.get_rights_adm_
 
 let get_wikiboxes_creators =
-  get_sthg_ Wiki_cache.get_wikiboxes_creators_
+  get_sthg_ Wiki_sql.get_wikiboxes_creators_
 
 
 let readers_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_readers"
@@ -150,7 +150,7 @@ let new_wikibox ?boxid ~wiki ~author ~comment ~content
           | Some b -> 
               (* Lwt.catch
                  (fun () -> 
-                    Wiki_cache.get_wikibox_data ~wikibox:(wiki.id, b) ()
+                    Wiki_sql.get_wikibox_data ~wikibox:(wiki.id, b) ()
                     >>= fun _ -> Lwt.fail (Found b))
                  (function
                     | Not_found -> *)
@@ -357,7 +357,7 @@ let display_page w wikibox action_create_page sp page () =
              ((* otherwise, we serve the wiki page: *)
              Lwt.catch
                (fun () ->
-                  Wiki_cache.get_box_for_page w.id page >>= fun box ->
+                  Wiki_sql.get_box_for_page w.id page >>= fun box ->
                   wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
                     ?rows:None ?cols:None ?classe:None ?subbox:None
@@ -532,7 +532,7 @@ let create_wiki ~title ~descr
              ()
            >>= fun container_id ->
 
-           Wiki_cache.update_wiki ~wiki_id:wiki.id ~container_id ()
+           Wiki_sql.update_wiki ~wiki_id:wiki.id ~container_id ()
            >>= fun () ->
 
            Lwt.return {wiki with
@@ -562,7 +562,7 @@ let create_wiki ~title ~descr
                 then
                   Lwt.catch
                     (fun () -> 
-                       Wiki_cache.get_box_for_page w.id page >>= fun _ ->
+                       Wiki_sql.get_box_for_page w.id page >>= fun _ ->
                        (* The page already exists *)
                        Lwt.return [Ocsimore_common.Session_data sd]
 (*VVV Put an error message *)                     
@@ -576,7 +576,7 @@ let create_wiki ~title ~descr
                              ("=="^page^"==")
 (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                              () >>= fun box ->
-                           Wiki_cache.set_box_for_page
+                           Wiki_sql.set_box_for_page
                              ~wiki:w.id ~id:box ~page >>= fun () ->
                            Lwt.return [Ocsimore_common.Session_data sd]
                        | e -> Lwt.fail e)
@@ -650,7 +650,7 @@ let save_wikibox ~sp ~sd (((wiki_id, box_id) as d), content) =
         Lwt.catch
           (fun () ->
               Users.get_user_data sp sd >>= fun user ->
-              Wiki_cache.update_wikibox
+              Wiki_sql.update_wikibox
                 wiki_id box_id
                 user.Users.id
                 "" content >>= fun _ ->
@@ -670,21 +670,21 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
         let (addr, (addw, (adda, (addc, 
                                   (delr, (delw, (dela, delc))))))) = rights in
         Users.group_list_of_string addr >>= fun readers ->
-        Wiki_cache.populate_readers wiki_id box_id readers >>= fun () ->
+        Wiki_sql.populate_readers wiki_id box_id readers >>= fun () ->
         Users.group_list_of_string addw >>= fun w ->
-        Wiki_cache.populate_writers wiki_id box_id w >>= fun () ->
+        Wiki_sql.populate_writers wiki_id box_id w >>= fun () ->
         Users.group_list_of_string adda >>= fun a ->
-        Wiki_cache.populate_rights_adm wiki_id box_id a >>= fun () ->
+        Wiki_sql.populate_rights_adm wiki_id box_id a >>= fun () ->
         Users.group_list_of_string addc >>= fun a ->
-        Wiki_cache.populate_wikiboxes_creators wiki_id box_id a >>= fun () ->
+        Wiki_sql.populate_wikiboxes_creators wiki_id box_id a >>= fun () ->
         Users.group_list_of_string delr >>= fun readers ->
-        Wiki_cache.remove_readers wiki_id box_id readers >>= fun () ->
+        Wiki_sql.remove_readers wiki_id box_id readers >>= fun () ->
         Users.group_list_of_string delw >>= fun w ->
-        Wiki_cache.remove_writers wiki_id box_id w >>= fun () ->
+        Wiki_sql.remove_writers wiki_id box_id w >>= fun () ->
         Users.group_list_of_string dela >>= fun a ->
-        Wiki_cache.remove_rights_adm wiki_id box_id a >>= fun () ->
+        Wiki_sql.remove_rights_adm wiki_id box_id a >>= fun () ->
         Users.group_list_of_string delc >>= fun a ->
-        Wiki_cache.remove_wikiboxes_creators wiki_id box_id a
+        Wiki_sql.remove_wikiboxes_creators wiki_id box_id a
     | _ -> Lwt.return ()) >>= fun () ->
 (*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)
   Lwt.return []

@@ -143,7 +143,7 @@ let _ =
 (* Now done in new_wikibox
       (Lwt.catch
          (fun () -> 
-            Wiki_cache.get_wikibox_data ~wikibox:(get_admin_wiki (), wiki_help_box) ()
+            Wiki_sql.get_wikibox_data ~wikibox:(get_admin_wiki (), wiki_help_box) ()
             >>= fun _ -> Lwt.return ())
          (function
             | Not_found ->
