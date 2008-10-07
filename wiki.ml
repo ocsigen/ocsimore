@@ -50,7 +50,7 @@ type wiki_info = {
 
 
 let get_wiki_by_id id =
-  Wiki_cache.find_wiki id >>= fun (id, title, descr, pages, br, last, ci, stat) -> 
+  Wiki_cache.find_wiki id >>= fun (title, descr, pages, br, last, ci, stat) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
@@ -89,14 +89,14 @@ let get_wikiboxes_creators =
   get_sthg_ Wiki_cache.get_wikiboxes_creators_
 
 
-let readers_group_name i = "wiki"^Int32.to_string i^"_readers"
-let writers_group_name i = "wiki"^Int32.to_string i^"_writers"
-let rights_adm_group_name i = "wiki"^Int32.to_string i^"_rights_givers"
-let page_creators_group_name i = "wiki"^Int32.to_string i^"_page_creators"
-let css_editors_group_name i = "wiki"^Int32.to_string i^"_css_editors"
-let wikiboxes_creators_group_name i = "wiki"^Int32.to_string i^"_wikiboxes_creators"
-let container_adm_group_name i = "wiki"^Int32.to_string i^"_container_adm"
-let admin_group_name i = "wiki"^Int32.to_string i^"_admin"
+let readers_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_readers"
+let writers_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_writers"
+let rights_adm_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_rights_givers"
+let page_creators_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_page_creators"
+let css_editors_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_css_editors"
+let wikiboxes_creators_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_wikiboxes_creators"
+let container_adm_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_container_adm"
+let admin_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_admin"
 
 let readers_group i = Users.get_user_id_by_name (readers_group_name i)
 let writers_group i = Users.get_user_id_by_name (writers_group_name i)
@@ -287,13 +287,13 @@ let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
 (** {2 Session data} *)
 
 module Roles = Map.Make(struct
-                          type t = int32 * int32
+                          type t = Wiki_sql.wiki * int32
                           let compare = compare
                         end)
 
 type wiki_sd = 
     {
-      role : (int32 * int32) -> role Lwt.t;
+      role : (Wiki_sql.wiki * int32) -> role Lwt.t;
     }
 
 let cache_find table f box =
@@ -455,35 +455,35 @@ let create_wiki ~title ~descr
            (* Creating groups *)
            create_group_
              (readers_group_name wiki_id) 
-             ("Users who can read wiki "^Int32.to_string wiki_id)
+             ("Users who can read wiki "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun readers_data ->
            create_group_
              (writers_group_name wiki_id) 
-             ("Users who can write in wiki "^Int32.to_string wiki_id)
+             ("Users who can write in wiki "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun writers_data ->
            create_group_
              (rights_adm_group_name wiki_id) 
-             ("Users who can change rights in wiki "^Int32.to_string wiki_id)
+             ("Users who can change rights in wiki "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun rights_adm_data ->
            create_group_
              (page_creators_group_name wiki_id) 
-             ("Users who can create pages in wiki "^Int32.to_string wiki_id)
+             ("Users who can create pages in wiki "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun page_creators_data ->
            create_group_
              (css_editors_group_name wiki_id) 
-             ("Users who can edit css for wikipages of wiki "^Int32.to_string wiki_id)
+             ("Users who can edit css for wikipages of wiki "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun css_editors_data ->
            create_group_
              (wikiboxes_creators_group_name wiki_id) 
-             ("Users who can create wikiboxes in wiki "^Int32.to_string wiki_id)
+             ("Users who can create wikiboxes in wiki "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun wikiboxes_creators_data ->
            create_group_
              (container_adm_group_name wiki_id)
-             ("Users who can change the layout of pages "^Int32.to_string wiki_id)
+             ("Users who can change the layout of pages "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun container_adm_data ->
            create_group_
              (admin_group_name wiki_id) 
-             ("Wiki administrator "^Int32.to_string wiki_id)
+             ("Wiki administrator "^Wiki_sql.wiki_id_s wiki_id)
            >>= fun admin_data ->
 
            (* Putting users in groups *)
@@ -550,7 +550,7 @@ let create_wiki ~title ~descr
 
          let action_create_page =
            Eliom_predefmod.Actions.register_new_post_service' 
-             ~name:("wiki_page_create"^Int32.to_string w.id)
+             ~name:("wiki_page_create"^Wiki_sql.wiki_id_s w.id)
              ~post_params:(Eliom_parameters.string "page")
              (fun sp () page ->
                 let sd = Ocsimore_common.get_sd sp in
@@ -585,8 +585,6 @@ let create_wiki ~title ~descr
                   )
          in
 
-
-         
          (* Registering the service with suffix for wikipages *)
          (* Note that Eliom will look for the service corresponding to
             the longest prefix. Thus it is possible to register a wiki
@@ -606,7 +604,7 @@ let create_wiki ~title ~descr
          (* the same, but non attached: *)
          let naservpage =
            Eliom_predefmod.Any.register_new_service'
-             ~name:("display"^Int32.to_string w.id)
+             ~name:("display"^Wiki_sql.wiki_id_s w.id)
              ?sp
              ~get_params:(Eliom_parameters.string "page")
              (fun sp path () ->
@@ -634,13 +632,13 @@ type wiki_errors =
   | Operation_not_allowed
 
 type wiki_action_info =
-  | Edit_box of (int32 * int32)
-  | Edit_perm of (int32 * int32)
-  | Preview of ((int32 * int32) * string)
-  | History of ((int32 * int32) * (int option * int option))
-  | Oldversion of ((int32 * int32) * int32)
-  | Src of ((int32 * int32) * int32)
-  | Error of ((int32 * int32) * wiki_errors)
+  | Edit_box of (Wiki_sql.wiki * int32)
+  | Edit_perm of (Wiki_sql.wiki * int32)
+  | Preview of ((Wiki_sql.wiki * int32) * string)
+  | History of ((Wiki_sql.wiki * int32) * (int option * int option))
+  | Oldversion of ((Wiki_sql.wiki * int32) * int32)
+  | Src of ((Wiki_sql.wiki * int32) * int32)
+  | Error of ((Wiki_sql.wiki * int32) * wiki_errors)
 
 exception Wiki_action_info of wiki_action_info
 

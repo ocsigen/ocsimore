@@ -22,7 +22,16 @@
    @author Vincent Balat
 *)
 
-type wiki = int32
+open Opaque
+
+type wiki = [`Wiki] int32_t
+let wiki_id (i : wiki) = t_int32 i
+let wiki_id_s i = Int32.to_string (wiki_id i)
+let s_wiki_id s = (Opaque.int32_t (Int32.of_string s) : wiki)
+
+let eliom_wiki = Eliom_parameters.user_type
+  (fun s -> (int32_t (Int32.of_string s) : wiki))
+  wiki_id_s
 
 open Lwt
 open Sql.PGOCaml
@@ -43,10 +52,13 @@ let new_wiki ~title ~descr ~pages ~boxrights ~staticdir () =
                     VALUES ($title, $descr, $pages, $boxrights)")
        >>= fun () ->
        serial4 db "wikis_id_seq")
+  >>= fun wiki ->
+    (return (int32_t wiki : [`Wiki] int32_t))
 
 
 (** Update container_id (for now). *)
-let update_wiki_ ~wiki ~container_id () = 
+let update_wiki_ ~wiki ~container_id () =
+  let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "UPDATE wikis SET container_id = $container_id \
@@ -54,7 +66,8 @@ let update_wiki_ ~wiki ~container_id () =
 
 
 
-let populate_readers_ db wiki_id id readers =
+let populate_readers_ db wiki id readers =
+  let wiki = t_int32 (wiki : wiki) in
   match readers with
     | [] -> Lwt.return ()
     | _ ->
@@ -64,7 +77,7 @@ let populate_readers_ db wiki_id id readers =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxreaders \
-                             VALUES ($wiki_id, $id, $reader)")
+                             VALUES ($wiki, $id, $reader)")
                (function
                   | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
                       Ocsigen_messages.warning 
@@ -75,7 +88,8 @@ let populate_readers_ db wiki_id id readers =
           )
           readers
 
-let populate_writers_ db wiki_id id writers =
+let populate_writers_ db wiki id writers =
+  let wiki = t_int32 (wiki : wiki) in
   match writers with
     | [] -> Lwt.return ()
     | _ ->
@@ -85,7 +99,7 @@ let populate_writers_ db wiki_id id writers =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxwriters \
-                             VALUES ($wiki_id, $id, $writer)")
+                             VALUES ($wiki, $id, $writer)")
                (function
                   | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
                       Ocsigen_messages.warning 
@@ -96,7 +110,8 @@ let populate_writers_ db wiki_id id writers =
           )
           writers
 
-let populate_rights_adm_ db wiki_id id ra =
+let populate_rights_adm_ db wiki id ra =
+  let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -106,7 +121,7 @@ let populate_rights_adm_ db wiki_id id ra =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxrightsgivers \
-                             VALUES ($wiki_id, $id, $ra)")
+                             VALUES ($wiki, $id, $ra)")
                (function
                   | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
                       Ocsigen_messages.warning 
@@ -117,7 +132,8 @@ let populate_rights_adm_ db wiki_id id ra =
           )
           ra
 
-let populate_wikiboxes_creators_ db wiki_id id ra =
+let populate_wikiboxes_creators_ db wiki id ra =
+  let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -127,7 +143,7 @@ let populate_wikiboxes_creators_ db wiki_id id ra =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxcreators \
-                             VALUES ($wiki_id, $id, $ra)")
+                             VALUES ($wiki, $id, $ra)")
                (function
                   | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
                       Ocsigen_messages.warning 
@@ -138,7 +154,8 @@ let populate_wikiboxes_creators_ db wiki_id id ra =
           )
           ra
 
-let remove_readers_ db wiki_id id readers =
+let remove_readers_ db wiki id readers =
+  let wiki = t_int32 (wiki : wiki) in
   match readers with
     | [] -> Lwt.return ()
     | _ ->
@@ -148,7 +165,7 @@ let remove_readers_ db wiki_id id readers =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "DELETE FROM wikiboxreaders \
-                             WHERE wiki_id = $wiki_id \
+                             WHERE wiki_id = $wiki \
                              AND id = $id \
                              AND reader = $reader")
                (function
@@ -161,7 +178,8 @@ let remove_readers_ db wiki_id id readers =
           )
           readers
 
-let remove_writers_ db wiki_id id writers =
+let remove_writers_ db wiki id writers =
+  let wiki = t_int32 (wiki : wiki) in
   match writers with
     | [] -> Lwt.return ()
     | _ ->
@@ -171,7 +189,7 @@ let remove_writers_ db wiki_id id writers =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "DELETE FROM wikiboxwriters \
-                             WHERE wiki_id = $wiki_id \
+                             WHERE wiki_id = $wiki \
                              AND id = $id \
                              AND writer = $writer")
                (function
@@ -184,7 +202,8 @@ let remove_writers_ db wiki_id id writers =
           )
           writers
 
-let remove_rights_adm_ db wiki_id id ra =
+let remove_rights_adm_ db wiki id ra =
+  let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -194,7 +213,7 @@ let remove_rights_adm_ db wiki_id id ra =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "DELETE FROM wikiboxrightsgivers \
-                             WHERE wiki_id = $wiki_id \
+                             WHERE wiki_id = $wiki \
                              AND id = $id \
                              AND wbadmin = $ra")
                (function
@@ -207,7 +226,8 @@ let remove_rights_adm_ db wiki_id id ra =
           )
           ra
 
-let remove_wikiboxes_creators_ db wiki_id id ra =
+let remove_wikiboxes_creators_ db wiki id ra =
+  let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
     | _ ->
@@ -217,7 +237,7 @@ let remove_wikiboxes_creators_ db wiki_id id ra =
              Lwt.catch
                (fun () ->
                   PGSQL(db) "DELETE FROM wikiboxcreators \
-                             WHERE wiki_id = $wiki_id \
+                             WHERE wiki_id = $wiki \
                              AND id = $id \
                              AND creator = $ra")
                (function
@@ -232,19 +252,20 @@ let remove_wikiboxes_creators_ db wiki_id id ra =
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () = 
+  let wiki' = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        (match box with
           | None ->
               PGSQL(db) "INSERT INTO wikiboxes \
                     (wiki_id, author, comment, content) \
-                  VALUES ($wiki, $author, $comment, $content)"
+                  VALUES ($wiki', $author, $comment, $content)"
               >>= fun () ->
               serial4 db "wikiboxes_id_seq"
           | Some box ->
               PGSQL(db) "INSERT INTO wikiboxes \
                     (id, wiki_id, author, comment, content) \
-                  VALUES ($box, $wiki, $author, $comment, $content)"
+                  VALUES ($box, $wiki', $author, $comment, $content)"
               >>= fun () ->
               Lwt.return box) >>= fun wbx_id ->
        (match rights with
@@ -259,7 +280,8 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content = 
+let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content =
+  let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "INSERT INTO wikiboxes \
@@ -300,6 +322,7 @@ let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content =
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
 let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -331,6 +354,7 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
 let get_history ~wiki ~id =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -342,6 +366,7 @@ let get_history ~wiki ~id =
 
 (** return the box corresponding to a wikipage *)
 let get_box_for_page_ ~wiki ~page =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -354,6 +379,7 @@ let get_box_for_page_ ~wiki ~page =
 
 (** Sets the box corresponding to a wikipage *)
 let set_box_for_page_ ~wiki ~id ~page =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db -> 
@@ -364,6 +390,7 @@ let set_box_for_page_ ~wiki ~id ~page =
 
 
 let find_wiki_ ~id =
+  let id = t_int32 (id : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "SELECT * \
@@ -380,12 +407,12 @@ let find_wiki_ ~id =
             | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
        >>= fun last -> 
          (match r with
-            | [(id, title, descr, pages, br, ci, stat)] ->
-                Lwt.return (id, title, descr, pages, br, ref last, ci, stat)
-            | (id, title, descr, pages, br, ci, stat)::_ -> 
+            | [(_, title, descr, pages, br, ci, stat)] ->
+                Lwt.return (title, descr, pages, br, ref last, ci, stat)
+            | (_, title, descr, pages, br, ci, stat)::_ -> 
                 Ocsigen_messages.warning
                   "Ocsimore: More than one wiki have the same id (ignored)";
-                Lwt.return (id, title, descr, pages, br, ref last, ci, stat)
+                Lwt.return (title, descr, pages, br, ref last, ci, stat)
             | [] -> Lwt.fail Not_found))
 
 let find_wiki_id_by_name ~name =
@@ -397,33 +424,37 @@ let find_wiki_id_by_name ~name =
        >>= fun r -> 
        (match r with
           | [(id, title, descr, pages, br, ci, stat)] ->
-              Lwt.return id
+              Lwt.return (int32_t id : [`Wiki] int32_t)
           | (id, title, descr, pages, br, ci, stat)::_ -> 
               Ocsigen_messages.warning
                 "Ocsimore: More than one wiki have the same name (ignored)";
-              Lwt.return id
+              Lwt.return (int32_t id : [`Wiki] int32_t)
           | [] -> Lwt.fail Not_found))
 
 
 let get_writers_ (wiki, id) =
+  let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "SELECT writer FROM wikiboxwriters \
              WHERE id = $id AND wiki_id = $wiki")
 
 let get_readers_ (wiki, id) =
+  let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "SELECT reader FROM wikiboxreaders \
              WHERE id = $id AND wiki_id = $wiki")
 
 let get_rights_adm_ (wiki, id) =
+  let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "SELECT wbadmin FROM wikiboxrightsgivers \
              WHERE id = $id AND wiki_id = $wiki")
 
 let get_wikiboxes_creators_ (wiki, id) =
+  let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "SELECT creator FROM wikiboxcreators \
@@ -472,6 +503,7 @@ let remove_wikiboxes_creators_ wiki_id id wbadmins =
 
 (** returns the css for a page or fails with [Not_found] if it does not exist *)
 let get_css_for_page_ ~wiki ~page =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -483,6 +515,7 @@ let get_css_for_page_ ~wiki ~page =
 
 (** Sets the css for a wikipage *)
 let set_css_for_page_ ~wiki ~page content =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db -> 
@@ -493,6 +526,7 @@ let set_css_for_page_ ~wiki ~page content =
 
 (** returns the global css for a wiki or fails with [Not_found] if it does not exist *)
 let get_css_for_wiki_ ~wiki =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db ->
@@ -504,6 +538,7 @@ let get_css_for_wiki_ ~wiki =
 
 (** Sets the global css for a wiki *)
 let set_css_for_wiki_ ~wiki content =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db -> 

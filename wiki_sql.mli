@@ -23,7 +23,16 @@
    @author Vincent Balat
 *)
 
-type wiki = int32
+(** Semi-abstract type for a wiki *)
+type wiki
+
+(** Conversions from a wiki index *)
+val wiki_id_s : wiki -> string
+val s_wiki_id : string -> wiki
+
+(** Direct reading of wikis from eliom *)
+val eliom_wiki :
+  string -> (wiki, [`WithoutSuffix], [`One of wiki] Eliom_parameters.param_name) Eliom_parameters.params_type
 
 
 (** inserts a new wiki container *)
@@ -80,27 +89,27 @@ val wiki_get_pages_list : wik_id:int32 ->
 (* DO NOT USE THE FOLLOWING BUT THOSE IN WIKI_CACHE.ML *)
 
 (** return the box corresponding to a wikipage *)
-val get_box_for_page_ : wiki:int32 -> page:string -> int32 Lwt.t
+val get_box_for_page_ : wiki:wiki -> page:string -> int32 Lwt.t
 
 (** sets the box corresponding to a wikipage *)
-val set_box_for_page_ : wiki:int32 -> id:int32 -> page:string -> unit Lwt.t
+val set_box_for_page_ : wiki:wiki -> id:int32 -> page:string -> unit Lwt.t
 
 (** returns the css for a page or fails with [Not_found] if it does not exist *)
-val get_css_for_page_ : wiki:int32 -> page:string -> string option Lwt.t
+val get_css_for_page_ : wiki:wiki -> page:string -> string option Lwt.t
 
 (** Sets the css for a wikipage *)
-val set_css_for_page_ : wiki:int32 -> page:string -> string -> unit Lwt.t
+val set_css_for_page_ : wiki:wiki -> page:string -> string -> unit Lwt.t
 
 (** returns the global css for a wiki 
     or fails with [Not_found] if it does not exist *)
-val get_css_for_wiki_ : wiki:int32 -> string option Lwt.t
+val get_css_for_wiki_ : wiki:wiki -> string option Lwt.t
 
 (** Sets the global css for a wiki *)
-val set_css_for_wiki_ : wiki:int32 -> string -> unit Lwt.t
+val set_css_for_wiki_ : wiki:wiki -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
 val find_wiki_ : id:wiki -> 
-  (wiki * string * string * bool * bool * int32 ref * int32 option * 
+  (string * string * bool * bool * int32 ref * int32 option * 
      string option) Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
@@ -132,22 +141,22 @@ val update_wiki_ :
   unit Lwt.t
 
 val populate_readers_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 val populate_writers_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 val populate_rights_adm_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 val populate_wikiboxes_creators_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 
 val remove_readers_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 val remove_writers_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 val remove_rights_adm_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 val remove_wikiboxes_creators_ : 
-  int32 -> int32 -> int32 list -> unit Lwt.t
+  wiki -> int32 -> int32 list -> unit Lwt.t
 
 
 val get_readers_ : (wiki * int32) -> User_sql.userid list Lwt.t

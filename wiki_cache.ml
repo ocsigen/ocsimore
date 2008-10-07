@@ -23,6 +23,9 @@
 
 let (>>=) = Lwt.bind
 
+type wiki = Wiki_sql.wiki
+
+
 let debug_print_cache = ref false
 
 let print_cache s =
@@ -44,7 +47,7 @@ let get_wikibox_data,
   remove_wikiboxes_creators,
   update_wikibox =
   let module C = Cache.Make (struct 
-                               type key = (int32 * int32)
+                               type key = (wiki * int32)
                                type value = (string * 
                                                User_sql.userid * 
                                                string * 
@@ -52,7 +55,7 @@ let get_wikibox_data,
                              end) 
   in
   let module C2 = Cache.Make (struct 
-                                type key = (int32 * int32)
+                                type key = (wiki * int32)
                                 type value = User_sql.userid list
                              end) 
   in
@@ -92,12 +95,13 @@ let get_wikibox_data,
 
 let get_box_for_page, set_box_for_page =
   let module C = Cache.Make (struct 
-                               type key = (int32 * string)
+                               type key = (wiki * string)
                                type value = int32
                              end) 
   in
   let cache = 
-    C.create (fun (wiki, page) -> Wiki_sql.get_box_for_page_ ~wiki ~page) 64 
+    C.create (fun (wiki, page) ->
+                Wiki_sql.get_box_for_page_ ~wiki ~page) 64 
   in
   ((fun ~wiki ~page -> 
       let page = Ocsigen_lib.remove_end_slash page in
@@ -113,7 +117,7 @@ let get_box_for_page, set_box_for_page =
 
 (***)
 module H = Hashtbl.Make(struct
-                          type t = int32
+                          type t = wiki
                           let equal = (=)
                           let hash = Hashtbl.hash 
                         end)
@@ -133,7 +137,7 @@ let update_wiki ~wiki_id ~container_id () =
 (***)
 let get_css_for_page, set_css_for_page =
   let module C = Cache.Make (struct 
-                               type key = (int32 * string)
+                               type key = (wiki * string)
                                type value = string option
                              end) 
   in
@@ -153,7 +157,7 @@ let get_css_for_page, set_css_for_page =
 (***)
 let get_css_for_wiki, set_css_for_wiki =
   let module C = Cache.Make (struct 
-                               type key = int32
+                               type key = wiki
                                type value = string option
                              end) 
   in

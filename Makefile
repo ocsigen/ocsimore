@@ -12,7 +12,7 @@ CAMLC = ocamlc -w v -g -dtypes -I nis_chkpwd
 CAMLLEX = ocamllex
 
 # cannot use ocamlduce with camlp4 :-(
-OCSIMORE_SRC1 = polytables.ml cache.ml ocsimore_config.ml \
+OCSIMORE_SRC1 = opaque.ml polytables.ml cache.ml ocsimore_config.ml \
         parse_config.ml ocsimore_common.ml ocsimore_lib.ml
 OCSIMORE_SRC2 = user_cache.ml users.ml
 OCSIMORE_SRC3 = forum.ml ocsimore_nis.ml session_manager.ml widget.ml \

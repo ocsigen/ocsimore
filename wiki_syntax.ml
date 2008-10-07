@@ -36,7 +36,7 @@ let a_content_extension_table = H.create 8
 let link_extension_table = H.create 8
 
 (** Type used to avoid wikibox loops *)
-type ancestors = (int32 * int32) list
+type ancestors = (Wiki_sql.wiki * int32) list
 
 let in_ancestors box ancestors =
   List.mem box ancestors
@@ -56,7 +56,7 @@ let add_link_extension k f = H.add link_extension_table k f
    for each wiki associated to an URL *)
 module Servpages = 
   Hashtbl.Make(struct 
-                 type t = int32 
+                 type t = Wiki_sql.wiki
                  let equal = (=) 
                  let hash = Hashtbl.hash 
                end)

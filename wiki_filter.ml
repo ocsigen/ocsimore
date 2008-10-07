@@ -88,7 +88,7 @@ let builder plugin_action =
     W.error = nothing1;
   }
 
-let preparse_extension ((sp, _, _) as param) wiki_id content =
+let preparse_extension ((sp, _, _) as param) (wiki_id : Wiki_sql.wiki) content =
   let (plugin_action, get_subst) = make_plugin_action wiki_id in
   let builder = builder plugin_action in
   ignore (Wikicreole.from_string sp param builder content);

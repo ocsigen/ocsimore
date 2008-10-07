@@ -57,7 +57,7 @@ let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
                       comment = com }))
 *)
 
-exception Unknown_box of (int32 * int32)
+exception Unknown_box of (Wiki_sql.wiki * int32)
 exception Not_css_editor
 
 class noneditable_wikibox =
@@ -89,7 +89,7 @@ object (self)
           papa#display_error_box
             ?classe
             ~message:("The box "^Int32.to_string i^
-                        " does not exist in wiki "^Int32.to_string w^".")
+                        " does not exist in wiki "^ Wiki_sql.wiki_id_s w^".")
             ?exn
             ()
       | Some Not_css_editor ->
@@ -153,7 +153,7 @@ class editable_wikibox () =
   let service_edit_wikibox =
     Eliom_services.new_service
       ~path:["ocsimore"; "wiki_edit"]
-      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
       ()
   in
@@ -161,7 +161,7 @@ class editable_wikibox () =
   let service_edit_css =
     Eliom_services.new_service'
       ~name:"css_edit"
-      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.string "page"))
       ()
   in
@@ -169,14 +169,14 @@ class editable_wikibox () =
   let service_edit_wikicss =
     Eliom_services.new_service'
       ~name:"wiki_css_edit"
-      ~get_params:(Eliom_parameters.int32 "wikiid")
+      ~get_params:(Wiki_sql.eliom_wiki "wikiid")
       ()
   in
     
   let action_edit_wikibox =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_edit"
-      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
       (fun sp g () -> 
          Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
@@ -185,7 +185,7 @@ class editable_wikibox () =
   let action_edit_wikibox_permissions =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_edit_perm"
-      ~get_params:((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
       (fun sp g () ->
          let sd = Ocsimore_common.get_sd sp in
@@ -200,7 +200,7 @@ class editable_wikibox () =
   let action_wikibox_history =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_history"
-      ~get_params:(((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
                      (Eliom_parameters.opt (Eliom_parameters.int "first") ** 
                         Eliom_parameters.opt (Eliom_parameters.int "last")))
@@ -210,7 +210,7 @@ class editable_wikibox () =
   let action_old_wikibox =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_old_version"
-      ~get_params:(((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
                      (Eliom_parameters.int32 "version"))
       (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Oldversion g)])
@@ -219,7 +219,7 @@ class editable_wikibox () =
   let action_src_wikibox =
     Eliom_predefmod.Actions.register_new_service' 
       ~name:"wiki_src"
-      ~get_params:(((Eliom_parameters.int32 "wikiid") ** 
+      ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
                      (Eliom_parameters.int32 "version"))
       (fun sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Src g)])
@@ -231,7 +231,7 @@ class editable_wikibox () =
       ~name:"wiki_send"
       ~post_params:
       (Eliom_parameters.string "actionname" **
-         (((Eliom_parameters.int32 "wikiid" ** 
+         (((Wiki_sql.eliom_wiki "wikiid" ** 
               Eliom_parameters.int32 "boxid") ** 
              Eliom_parameters.string "content")))
       (fun sp () (actionname, (((wikiid, boxid) as a, content) as p)) -> 
@@ -251,7 +251,7 @@ class editable_wikibox () =
       ~keep_get_na_params:false
       ~name:"wiki_send_permissions"
       ~post_params:
-      ((Eliom_parameters.int32 "wikiid" ** 
+      ((Wiki_sql.eliom_wiki "wikiid" ** 
               Eliom_parameters.int32 "boxid") ** 
          (Eliom_parameters.string "addreaders" **
             (Eliom_parameters.string "addwriters" **
@@ -273,7 +273,7 @@ class editable_wikibox () =
       ~keep_get_na_params:false
       ~name:"css_send"
       ~post_params:
-      ((Eliom_parameters.int32 "wikiid" ** 
+      ((Wiki_sql.eliom_wiki "wikiid" ** 
               Eliom_parameters.string "page") ** 
              Eliom_parameters.string "content")
       (fun sp () ((wiki, page), content) -> 
@@ -287,7 +287,7 @@ class editable_wikibox () =
       ~keep_get_na_params:false
       ~name:"wiki_css_send"
       ~post_params:
-      (Eliom_parameters.int32 "wikiid" ** Eliom_parameters.string "content")
+      (Wiki_sql.eliom_wiki "wikiid" ** Eliom_parameters.string "content")
       (fun sp () (wiki, content) -> 
          Wiki_cache.set_css_for_wiki ~wiki content >>= fun () ->
          Lwt.return []
@@ -299,7 +299,7 @@ class editable_wikibox () =
   let wikicss_service =
     Eliom_predefmod.CssText.register_new_service
       ~path:["ocsimore"; "wikicss"]
-      ~get_params:(Eliom_parameters.int32 "wiki")
+      ~get_params:(Wiki_sql.eliom_wiki "wiki")
       (fun sp wiki () -> 
          Lwt.catch
            (fun () -> Wiki_cache.get_css_for_wiki wiki)
@@ -317,7 +317,7 @@ class editable_wikibox () =
       ~path:["ocsimore"; "pagecss"]
       ~get_params:(Eliom_parameters.suffix 
                      (Eliom_parameters.prod
-                        (Eliom_parameters.int32 "wiki")
+                        (Wiki_sql.eliom_wiki "wiki")
                         (Eliom_parameters.all_suffix_string "page")))
       (fun sp (wiki, page) () -> 
          Lwt.catch
@@ -445,10 +445,10 @@ object (self)
      let draw_form (actionname, (((wikiidname, boxidname), contentname))) =
        let f =
          {{ [
-              {: Eliom_duce.Xhtml.int32_input
+              {: Eliom_duce.Xhtml.user_type_input
                  ~input_type:{: "hidden" :} 
                  ~name:wikiidname
-                 ~value:wiki_id () :}
+                 ~value:wiki_id Wiki_sql.wiki_id_s :}
                 {: Eliom_duce.Xhtml.int32_input
                    ~input_type:{: "hidden" :} 
                    ~name:boxidname
@@ -548,10 +548,10 @@ object (self)
           (addrn, (addwn, (addan, (addc, 
                                    (delrn, (delwn, (delan, delc)))))))) =
            {{ [<p>[
-                  {: Eliom_duce.Xhtml.int32_input
+                  {: Eliom_duce.Xhtml.user_type_input
                      ~input_type:{: "hidden" :} 
                      ~name:wikiidname
-                     ~value:wiki_id () :}
+                     ~value:wiki_id Wiki_sql.wiki_id_s :}
                     {: Eliom_duce.Xhtml.int32_input
                        ~input_type:{: "hidden" :} 
                        ~name:boxidname
@@ -646,7 +646,7 @@ object (self)
      ?cssmenu
      content
      =
-     let title = "Edit - Wiki "^Int32.to_string w^", box "^Int32.to_string b in
+     let title = "Edit - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b in
      self#display_menu_box
        ~classe:(editform_class::classe)
        ~service:Edit
@@ -665,7 +665,7 @@ object (self)
      ?cssmenu 
      content
      =
-     let title = "Permissions - Wiki "^Int32.to_string w^
+     let title = "Permissions - Wiki "^Wiki_sql.wiki_id_s w^
        ", box "^Int32.to_string b 
      in
      self#display_menu_box
@@ -697,7 +697,7 @@ object (self)
 
    method display_old_wikibox ~sp ~sd 
      ((w, b) as ids) version ~classe ?cssmenu content =
-     let title = "Old version - Wiki "^Int32.to_string w^", box "^Int32.to_string b^
+     let title = "Old version - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b^
        ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(oldwikibox_class::classe)
@@ -710,7 +710,7 @@ object (self)
 
    method display_src_wikibox ~sp ~sd ((w, b) as ids)
      version ~classe ?cssmenu content =
-     let title = "Source - Wiki "^Int32.to_string w^", box "^Int32.to_string b^
+     let title = "Source - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b^
        ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(srcwikibox_class::classe)
@@ -778,7 +778,7 @@ object (self)
 
    method display_history_box ~sp ~sd ((w, b) as ids) ~classe ?cssmenu content =
      let title = 
-       "History - Wiki "^Int32.to_string w^", box "^Int32.to_string b
+       "History - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b
      in
      self#display_menu_box
        ~classe:(history_class::classe)
@@ -939,10 +939,10 @@ object (self)
      =
      let draw_form ((wikiidname, pagename), contentname) =
        {{ [<p>[
-              {: Eliom_duce.Xhtml.int32_input
+              {: Eliom_duce.Xhtml.user_type_input
                  ~input_type:{: "hidden" :} 
                  ~name:wikiidname
-                 ~value:wiki_id () :}
+                 ~value:wiki_id Wiki_sql.wiki_id_s :}
                 {: Eliom_duce.Xhtml.string_input
                    ~input_type:{: "hidden" :} 
                    ~name:pagename
@@ -980,7 +980,7 @@ object (self)
      ?cssmenu 
      content
      =
-     let title = "CSS for wiki "^Int32.to_string w^
+     let title = "CSS for wiki "^Wiki_sql.wiki_id_s w^
        (if page = "" 
         then ", main page" 
         else ", page "^page)
@@ -1036,7 +1036,7 @@ object (self)
      ?cssmenu
      content
      =
-     let title = "CSS for wiki "^Int32.to_string w^
+     let title = "CSS for wiki "^Wiki_sql.wiki_id_s w^
        " (global stylesheet)"
      in
      self#display_menu_box
@@ -1049,7 +1049,7 @@ object (self)
        ids
        content
 
-       
+
    method display_edit_wikicss_form
      ~sp
      ~sd
@@ -1060,10 +1060,10 @@ object (self)
      =
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
-              {: Eliom_duce.Xhtml.int32_input
+              {: Eliom_duce.Xhtml.user_type_input
                  ~input_type:{: "hidden" :} 
                  ~name:wikiidname
-                 ~value:wiki () :}
+                 ~value:wiki Wiki_sql.wiki_id_s :}
                 {: Eliom_duce.Xhtml.textarea
                    ~name:contentname
                    ~rows
@@ -1190,13 +1190,22 @@ object (self)
 
    initializer
      begin
+       (* BY: Helper function, which factorizes a bot of code. Very mysterious:
+          - I believe there is always a field "wiki" present, so the
+            exception handler is useless
+          - Why do we need to extract this value since we have a default ?
+       *)
+       let extract_wiki_id args default =
+         try
+           Wiki_sql.s_wiki_id (List.assoc "wiki" args)
+         with
+           | Failure _ | Not_found -> default
+       in
+
        Wiki_syntax.add_block_extension "wikibox"
          (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
             try
-              let wiki = 
-                try Int32.of_string (List.assoc "wiki" args) 
-                with Not_found -> wiki_id 
-              in
+              let wiki = extract_wiki_id args wiki_id in
               try
                 let box = Int32.of_string (List.assoc "box" args) in
                 if Wiki_syntax.in_ancestors (wiki, box) ancestors
@@ -1242,11 +1251,7 @@ object (self)
        Wiki_filter.add_preparser_extension "wikibox"
          (fun wiki_id (sp, sd, father) args c -> 
             (try
-              let wiki = 
-                try
-                  Int32.of_string (List.assoc "wiki" args)
-                with Not_found -> wiki_id
-              in
+              let wiki = extract_wiki_id args wiki_id in
               try
                 ignore (List.assoc "box" args);
                 Lwt.return None
@@ -1302,13 +1307,7 @@ object (self)
                  else None
              with Not_found -> None
            in
-           let wiki_id = 
-             try 
-               Int32.of_string (List.assoc "wiki" args)
-             with 
-               | Failure _
-               | Not_found -> wiki_id
-           in
+           let wiki_id = extract_wiki_id args wiki_id in
            let content =
              match c with
                | Some c -> Wiki_syntax.a_content_of_wiki
@@ -1356,13 +1355,7 @@ object (self)
                  else None
              with Not_found -> None
            in
-           let wiki_id = 
-             try 
-               Int32.of_string (List.assoc "wiki" args)
-             with 
-               | Failure _
-               | Not_found -> wiki_id
-           in
+           let wiki_id = extract_wiki_id args wiki_id in
            let content =
                match c with
                  | Some c -> Wiki_syntax.a_content_of_wiki
@@ -1394,14 +1387,8 @@ object (self)
              with Not_found -> ""
            in
            let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-           let wiki_id = 
-             try 
-               Int32.of_string (List.assoc "wiki" args)
-             with 
-               | Failure _
-               | Not_found -> wiki_id
-           in
-           let https = 
+           let wiki_id = extract_wiki_id args wiki_id in
+           let https =
              try 
                let a = List.assoc "protocol" args in
                if a = "http"
@@ -1457,13 +1444,7 @@ object (self)
                  else None
              with Not_found -> None
            in
-           let wiki_id = 
-             try 
-               Int32.of_string (List.assoc "wiki" args)
-             with 
-               | Failure _
-               | Not_found -> wiki_id
-           in
+           let wiki_id = extract_wiki_id args wiki_id in
            let alt =
                match c with
                  | Some c -> c

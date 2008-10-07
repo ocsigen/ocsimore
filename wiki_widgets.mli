@@ -66,7 +66,7 @@ class noneditable_wikibox :
       ancestors:Wiki_syntax.ancestors ->
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
-      int32 ->
+      Wiki_sql.wiki ->
       string -> Xhtmltypes_duce.flows Lwt.t
     
     method private retrieve_wikibox_content :
@@ -75,7 +75,7 @@ class noneditable_wikibox :
   end
 
 class editable_wikibox :
-  unit -> ((unit -> int32) * int32 * int32) ->
+  unit -> ((unit -> Wiki_sql.wiki) * int32 * int32) ->
   object
 
     inherit Widget.widget_with_error_box
@@ -251,7 +251,7 @@ class editable_wikibox :
     *)
     method get_css_header : 
       sp:Eliom_sessions.server_params ->
-      wiki:int32 -> 
+      wiki:Wiki_sql.wiki -> 
       ?admin:bool ->
       ?page:string -> 
       unit ->

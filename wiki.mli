@@ -87,71 +87,71 @@ val create_wiki :
 
 (** [readers_group i] returns the id of the group of users
     who can read wiki [i] by default. *)
-val readers_group : int32 -> int32 Lwt.t
+val readers_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [writers_group i] returns the id of the group of users
     who can write in wiki [i] by default. *)
-val writers_group : int32 -> int32 Lwt.t
+val writers_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [rights_adm_group i] returns the id of the group of users
     who can change permissions of boxes in wiki [i] by default 
     (if boxrights activated). *)
-val rights_adm_group : int32 -> int32 Lwt.t
+val rights_adm_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [wikiboxes_creators_group i] returns the id of the group of users
     who can create wikiboxes in wiki [i] by default. *)
-val wikiboxes_creators_group : int32 -> int32 Lwt.t
+val wikiboxes_creators_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [page_creators_group i] returns the id of the group of users
     who can create page in wiki [i] by default
     (if activated). *)
-val page_creators_group : int32 -> int32 Lwt.t
+val page_creators_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [css_editors_group i] returns the id of the group of users
     who can modify css of pages in wiki [i]. *)
-val css_editors_group : int32 -> int32 Lwt.t
+val css_editors_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [container_adm_group i] returns the id of the group of users
     who can change the layout (container) of wikipages in wiki [i]. *)
-val container_adm_group : int32 -> int32 Lwt.t
+val container_adm_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [admin_group i] returns the id of the group of users
     who have all rights on wiki [i]. *)
-val admin_group : int32 -> int32 Lwt.t
+val admin_group : Wiki_sql.wiki -> int32 Lwt.t
 
 (** [readers_group_name i] returns the name of the group of users
     who can read wiki [i] by default. *)
-val readers_group_name : int32 -> string
+val readers_group_name : Wiki_sql.wiki -> string
 
 (** [writers_group_name i] returns the name of the group of users
     who can write in wiki [i] by default. *)
-val writers_group_name : int32 -> string
+val writers_group_name : Wiki_sql.wiki -> string
 
 (** [rights_adm_group_name i] returns the name of the group of users
     who can change permissions of boxes in wiki [i] by default 
     (if boxrights activated). *)
-val rights_adm_group_name : int32 -> string
+val rights_adm_group_name : Wiki_sql.wiki -> string
 
 (** [wikiboxes_creators_group_name i] returns the name of the group of users
     who can create wikiboxes in wiki [i] by default. *)
-val wikiboxes_creators_group_name : int32 -> string
+val wikiboxes_creators_group_name : Wiki_sql.wiki -> string
 
 (** [page_creators_group_name i] returns the name of the group of users
     who can create page in wiki [i] by default
     (if activated). *)
-val page_creators_group_name : int32 -> string
+val page_creators_group_name : Wiki_sql.wiki -> string
 
 (** [css_editors_group_name i] returns the name of the group of users
     who can modify css of pages in wiki [i]. *)
-val css_editors_group_name : int32 -> string
+val css_editors_group_name : Wiki_sql.wiki -> string
 
 (** [container_adm_group_name i] returns the name of the group of users
     who can change the layout (container) of wikipages in wiki [i]. *)
-val container_adm_group_name : int32 -> string
+val container_adm_group_name : Wiki_sql.wiki -> string
 
 (** [admin_group_name i] returns the name of the group of users
     who have all rights on wiki [i]. *)
-val admin_group_name : int32 -> string
+val admin_group_name : Wiki_sql.wiki -> string
 
 
 
@@ -159,7 +159,7 @@ val admin_group_name : int32 -> string
 (** Returns wiki information from an id. 
     Wiki information is kept in memory (and savec in the database)
 *)
-val get_wiki_by_id : int32 -> wiki_info Lwt.t
+val get_wiki_by_id : Wiki_sql.wiki -> wiki_info Lwt.t
 
 (** Returns wiki information from a name. *)
 val get_wiki_by_name : string -> wiki_info Lwt.t
@@ -181,13 +181,13 @@ val new_wikibox :
 val save_wikibox :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
-  ((int32 * int32) * string) ->
+  ((Wiki_sql.wiki * int32) * string) ->
   exn list Lwt.t
 
 val save_wikibox_permissions :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
-  ((int32 * int32) *
+  ((Wiki_sql.wiki * int32) *
      (string *
         (string *
            (string * 
@@ -236,13 +236,13 @@ type wiki_errors =
   | Operation_not_allowed
 
 type wiki_action_info =
-  | Edit_box of (int32 * int32)
-  | Edit_perm of (int32 * int32)
-  | Preview of ((int32 * int32) * string)
-  | History of ((int32 * int32) * (int option * int option))
-  | Oldversion of ((int32 * int32) * int32)
-  | Src of ((int32 * int32) * int32)
-  | Error of ((int32 * int32) * wiki_errors)
+  | Edit_box of (Wiki_sql.wiki * int32)
+  | Edit_perm of (Wiki_sql.wiki * int32)
+  | Preview of ((Wiki_sql.wiki * int32) * string)
+  | History of ((Wiki_sql.wiki * int32) * (int option * int option))
+  | Oldversion of ((Wiki_sql.wiki * int32) * int32)
+  | Src of ((Wiki_sql.wiki * int32) * int32)
+  | Error of ((Wiki_sql.wiki * int32) * wiki_errors)
 
 exception Wiki_action_info of wiki_action_info
 
