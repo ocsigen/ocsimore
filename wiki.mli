@@ -17,7 +17,6 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : bool;
-  last: int32 ref;
   container_id: int32 option;
   staticdir : string option; (* if static dir is given, 
                                 ocsimore will serve static pages if present,
@@ -165,7 +164,8 @@ val get_wiki_by_id : Wiki_sql.wiki -> wiki_info Lwt.t
 val get_wiki_by_name : string -> wiki_info Lwt.t
 
 (** If [?boxid] specified, creates the box only if the box 
-    does not already exist *)
+    does not already exist. It it exists, returns the existing
+    box without modification. *)
 val new_wikibox :
   ?boxid:int32 ->
   wiki:wiki_info ->

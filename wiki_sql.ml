@@ -257,11 +257,19 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
     (fun db ->
        (match box with
           | None ->
+              PGSQL(db)
+                "SELECT max(id) FROM wikiboxes 
+                 WHERE wiki_id = $wiki'" >>= fun last ->
+              let boxid = match last with
+                | [] | None::_ -> 1l
+                | (Some last)::_ -> Int32.add last 1l
+              in
               PGSQL(db) "INSERT INTO wikiboxes \
-                    (wiki_id, author, comment, content) \
-                  VALUES ($wiki', $author, $comment, $content)"
+                          (id, wiki_id, author, comment, content) \
+                         VALUES \ 
+                          ($boxid, $wiki', $author, $comment, $content)"
               >>= fun () ->
-              serial4 db "wikiboxes_id_seq"
+              Lwt.return boxid
           | Some box ->
               PGSQL(db) "INSERT INTO wikiboxes \
                     (id, wiki_id, author, comment, content) \
@@ -397,23 +405,15 @@ let find_wiki_ ~id =
                   FROM wikis \
                   WHERE id = $id"
        >>= fun r -> 
-       PGSQL(db) "SELECT max(id) \
-                FROM wikiboxes \
-                WHERE wiki_id = $id"
-       >>= fun last -> 
-         (match last with
-            | [] | [None] -> Lwt.return 0l
-            | [Some l] -> Lwt.return l
-            | _ -> Lwt.fail (Failure "Wiki_sql.find_wiki_"))
-       >>= fun last -> 
-         (match r with
-            | [(_, title, descr, pages, br, ci, stat)] ->
-                Lwt.return (title, descr, pages, br, ref last, ci, stat)
-            | (_, title, descr, pages, br, ci, stat)::_ -> 
-                Ocsigen_messages.warning
-                  "Ocsimore: More than one wiki have the same id (ignored)";
-                Lwt.return (title, descr, pages, br, ref last, ci, stat)
-            | [] -> Lwt.fail Not_found))
+       (match r with
+          | [(id, title, descr, pages, br, ci, stat)] -> 
+              Lwt.return (title, descr, pages, br, ci, stat)
+          | (id, title, descr, pages, br, ci, stat)::_ -> 
+              Ocsigen_messages.warning
+                "Ocsimore: More than one wiki have the same id (ignored)";
+              Lwt.return (title, descr, pages, br, ci, stat)
+          | [] -> Lwt.fail Not_found))
+
 
 let find_wiki_id_by_name ~name =
   Lwt_pool.use Sql.pool 

@@ -40,7 +40,6 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : bool;
-  last : int32 ref;
   container_id : int32 option;
   staticdir : string option; (* if static dir is given, 
                                 ocsimore will serve static pages if present,
@@ -50,13 +49,12 @@ type wiki_info = {
 
 
 let get_wiki_by_id id =
-  Wiki_sql.find_wiki id >>= fun (title, descr, pages, br, last, ci, stat) -> 
+  Wiki_sql.find_wiki id >>= fun (title, descr, pages, br, ci, stat) -> 
   Lwt.return { id = id; 
                title = title; 
                descr = descr;
                boxrights = br;
                pages = pages;
-               last = last;
                container_id = ci;
                staticdir = stat;
              }
@@ -139,39 +137,29 @@ let new_wikibox ?boxid ~wiki ~author ~comment ~content
        | None -> 
            wikiboxes_creators_group wiki.id >>= fun r -> 
            Lwt.return [r]) >>= fun wikiboxes_creators ->
-    Lwt.return (Some (readers, writers, rights_adm, wikiboxes_creators)))
+    Lwt.return
+      (Some (readers, writers, rights_adm, wikiboxes_creators)))
   else Lwt.return None) >>= fun rights ->
   Lwt.catch
     (fun () ->
        (match boxid with
-          | None -> 
-              wiki.last := Int32.add !(wiki.last) 1l;
-              Lwt.return !(wiki.last)
+          | None -> Lwt.return ()
           | Some b -> 
-              (* Lwt.catch
-                 (fun () -> 
-                    Wiki_sql.get_wikibox_data ~wikibox:(wiki.id, b) ()
-                    >>= fun _ -> Lwt.fail (Found b))
-                 (function
-                    | Not_found -> *)
-(*VVV not really clean *)
-              if Int32.compare !(wiki.last) b >= 0
-              then Lwt.fail (Found b)
-              else begin
-(*VVV may create holes *)
-                wiki.last := b;
-                Lwt.return b
-              end
-       )
-      >>= fun box ->
-      Wiki_sql.new_wikibox
-        ~wiki:wiki.id
-        ~box
-        ~author
-        ~comment
-        ~content
-        ?rights
-        ())
+             Wiki_sql.get_wikibox_data
+               ~wikibox:(wiki.id, b) () >>= 
+             function 
+               | None -> Lwt.return ()
+               | _ -> Lwt.fail (Found b))
+(*VVV may create holes in the sequence of wikibox numbers *)
+       >>= fun () ->
+       Wiki_sql.new_wikibox
+         ~wiki:wiki.id
+         ?box:boxid
+         ~author
+         ~comment
+         ~content
+         ?rights
+         ())
     (function Found b -> Lwt.return b | e -> Lwt.fail e)
       
 

@@ -80,7 +80,8 @@ let wikiadmin_container_id = 2l
 let wiki_help_box = 3l
 
 
-let get_admin_wiki_fun = ref (fun () -> failwith "Ocsisite.get_admin_wiki")
+let get_admin_wiki_fun = 
+  ref (fun () -> failwith "Ocsisite.get_admin_wiki")
 
 let get_admin_wiki () = (!get_admin_wiki_fun ()).Wiki.id
 
@@ -154,29 +155,30 @@ let _ =
 
       (* Filling the admin container *)
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
-      (Wiki.new_wikibox 
-         ~boxid:wikiadmin_container_id
-         ~wiki:(!get_admin_wiki_fun ())
-         ~author:Users.admin.Users.id
-         ~comment:"Admin container" 
-         ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-         ()
-       >>= fun _ ->
+    (Wiki.new_wikibox 
+       ~boxid:wikiadmin_container_id
+       ~wiki:(!get_admin_wiki_fun ())
+       ~author:Users.admin.Users.id
+       ~comment:"Admin container" 
+       ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+              ()
+     >>= fun _ ->
     
 
-      (* Filling the wikisyntax help *)
+       (* Filling the wikisyntax help *)
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
-      (Wiki.new_wikibox
-         ~boxid:wiki_help_box
-         ~wiki:(!get_admin_wiki_fun ())
-         ~author:Users.admin.Users.id
-         ~comment:"Wikisyntax help" 
-         ~content:"===Wiki syntax===
+     Wiki.new_wikibox
+       ~boxid:wiki_help_box
+       ~wiki:(!get_admin_wiki_fun ())
+       ~author:Users.admin.Users.id
+       ~comment:"Wikisyntax help" 
+       ~content:"===Wiki syntax===
 
 This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few extensions.
 
 {{../creole_cheat_sheet.png|Wikicreole's syntax}}"
          ()
-       >>= fun _ -> Lwt.return ())
+       >>= fun _ -> Lwt.return ()
       )
+
 

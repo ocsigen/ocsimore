@@ -101,6 +101,7 @@ Wiki:
  - Box version numbers must start at 1 for each box, 
  and be consecutive!!
  - !!!!!What if two users modify the same page at the same time?
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  - Allow to specify manually the wikibox number associated to a page
  (to have several pages with the same box)
  (ask the user to specify either the wikibox number or another page name)

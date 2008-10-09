@@ -1,3 +1,4 @@
+
 (* Ocsimore
  * Copyright (C) 2008
  * Laboratoire PPS - Université Paris Diderot - CNRS
@@ -109,8 +110,7 @@ val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
 val find_wiki : id:wiki -> 
-  (string * string * bool * bool * int32 ref * int32 option * 
-     string option) Lwt.t
+  (string * string * bool * bool * int32 option * string option) Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
 val find_wiki_id_by_name : name:string -> wiki Lwt.t
