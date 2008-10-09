@@ -139,11 +139,18 @@ object (self)
     let old_la = all_logout_actions in
     all_logout_actions <- fun sp -> 
     old_la sp >>= fun () -> f sp
-          
-      
+  
+(*VVV not implemented!
+  method safer_mk_act_login sp () (user, pwd) =
+  Il faut empêcher un utilisateur ou IP
+  qui vient d'essayer de se connecter de recommencer avant 2s???
+  cf lwt_lib
+*)
+
+
   initializer
     begin
-      Actions.register internal_act_login self#mk_act_login;
+      Actions.register internal_act_login self#(*safer_*)mk_act_login;
       Actions.register internal_act_logout self#mk_act_logout;
       Redirection.register internal_act_logout_get
         (fun sp () () ->

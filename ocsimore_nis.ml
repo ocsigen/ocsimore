@@ -37,11 +37,7 @@ let nis_auth ~name ~pwd () =
                                      Printexc.to_string e);
            Lwt.fail e)
 
-(*VVV Il faut empêcher un utilisateur ou IP
-  qui vient d'essayer de se connecter de recommencer avant 2s!!!!! 
-  quelle que soit la méthode s'authentification
-  cf lwt_lib 
-*)
+
 
 
 
