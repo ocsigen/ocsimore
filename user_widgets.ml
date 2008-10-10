@@ -236,7 +236,7 @@ let valid_emailaddr email =
 
 
 
-let mail_password ~name ~from_addr ~subject =
+let mail_password ~name ~from_name ~from_addr ~subject =
   Lwt.catch
     (fun () -> 
        Users.get_user_by_name ~name >>= fun user -> 
@@ -248,7 +248,7 @@ let mail_password ~name ~from_addr ~subject =
                   Netsendmail.sendmail
                     ~mailer:"/usr/sbin/sendmail"
                     (Netsendmail.compose
-                       ~from_addr
+                       ~from_addr:(from_name, from_addr)
                        ~to_addrs:[(user.Users.fullname, email)]
                        ~subject
                        ("This is an auto-generated message. "
@@ -277,11 +277,18 @@ let generate_password () =
     User_sql.Ocsimore_user pwd
 
 
+type basic_user_creation = {
+  mail_from: string;
+  mail_addr: string;
+  mail_subject: string;
+  new_user_groups: User_sql.userid list;
+}
+
 
 class login_widget_basic_user_creation ?sp
-  ~(sessman: Session_manager.sessionmanager) 
-  (registration_mail_from, registration_mail_subject, default_groups)
-  =
+  ~(sessman: Session_manager.sessionmanager)
+  ~basic_user_creation_options
+=
   let internal_srv_register = 
     Eliom_services.new_service ?sp
       ~path:(["ocsimore";"register"]) 
@@ -456,11 +463,12 @@ object (self)
       let pwd = generate_password () in
       Users.create_unique_user
         ~name:usr ~pwd ~fullname ~email:(Some email)
-        ~groups:default_groups >>= fun (user, n) ->
+        ~groups:basic_user_creation_options.new_user_groups >>= fun (user, n) ->
       mail_password
         ~name:n
-        ~from_addr:registration_mail_from 
-        ~subject:registration_mail_subject >>= fun b ->
+        ~from_name:basic_user_creation_options.mail_from
+        ~from_addr:basic_user_creation_options.mail_addr
+        ~subject:basic_user_creation_options.mail_subject >>= fun b ->
       if b
       then begin
         self#container

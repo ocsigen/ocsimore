@@ -40,10 +40,22 @@ object
 
 end;;
 
+
+(** Widget for login/logout, with creation of new ocsimore users *)
+
+(** Options for the creation of a new user *)
+type basic_user_creation = {
+  mail_from: string;
+  mail_addr: string;
+  mail_subject: string;
+  new_user_groups: User_sql.userid list;
+}
+
+
 class login_widget_basic_user_creation :
   ?sp:Eliom_sessions.server_params ->
   sessman:Session_manager.sessionmanager ->
-  (string * string) * string * User_sql.userid list ->
+  basic_user_creation_options:basic_user_creation ->
 object
   inherit login_widget
 
