@@ -83,3 +83,22 @@ let check login passwd =
           return false
         end
     | _ -> return false
+
+let userinfo login =
+  run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |] >>= function
+    | (Unix.WEXITED 0, output) ->
+        (match Str.split (Str.regexp ":") output with
+           | [user; passwd; id; gid; fullname; home; shell] ->
+               return (Some {
+                         Unix.pw_name = user;
+                         pw_passwd = passwd;
+                         pw_uid = int_of_string id;
+                         pw_gid = int_of_string gid;
+                         pw_gecos = fullname;
+                         pw_dir = home;
+                         pw_shell = shell
+                       })
+           | _ ->
+               Lwt.fail (Failure "Invalid NIS output, wrong number of fields")
+        )
+    | _ -> return None

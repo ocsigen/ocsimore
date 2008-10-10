@@ -7,7 +7,7 @@ NAME = nis_chkpwd
 all: $(NAME).cma $(NAME).top
 
 $(NAME).cma: $(NAME)_stubs.o $(NAME).cmo
-	$(OCAMLMKLIB) -o $(NAME) -oc $(NAME) -lcrypt $^
+	$(OCAMLMKLIB) str.cma -o $(NAME) -oc $(NAME) -lcrypt $^
 
 %.o: %.c
 	$(OCAMLC) -c $<
@@ -20,7 +20,7 @@ $(NAME).cma: $(NAME)_stubs.o $(NAME).cmo
 
 $(NAME).top: $(NAME).cma
 	echo "#!/bin/sh" > $@
-	echo "CAML_LD_LIBRARY_PATH=$(PWD) exec $(OCAML) $(shell $(OCAMLFIND) query -i-format lwt) unix.cma lwt.cma $(NAME).cma" >> $@
+	echo "CAML_LD_LIBRARY_PATH=$(PWD) exec $(OCAML) $(shell $(OCAMLFIND) query -i-format lwt) str.cma unix.cma lwt.cma $(NAME).cma" >> $@
 	chmod +x $@
 
 clean:

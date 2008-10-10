@@ -23,3 +23,8 @@
 val check : string -> string -> bool Lwt.t
 (** [check login passwd] checks whether [passwd] is password of
     [login] in NIS. *)
+
+val userinfo : string -> Unix.passwd_entry option Lwt.t
+(** [userinfo user] returns the information associated
+    to the user [user], or [None] if [user] is not
+    in the NIS database. *)
