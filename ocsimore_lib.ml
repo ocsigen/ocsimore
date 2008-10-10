@@ -61,6 +61,15 @@ let list_assoc_opt a l =
     Some (List.assoc a l)
   with Not_found -> None
 
+let list_assoc_default a l default =
+  try
+    List.assoc a l
+  with Not_found -> default
+
+let list_assoc_exn a l exn =
+  try List.assoc a l
+  with Not_found -> raise exn
+
 let bind_opt o f = match o with
   | None -> None
   | Some s -> Some (f s)
