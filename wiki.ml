@@ -400,7 +400,7 @@ let display_page w wikibox action_create_page sp page () =
               ?admin:(Some false) ?page:(Some page) ()
 
             >>= fun css ->
-            let title = Ocamlduce.Utf8.make w.title in
+            let title = Ocamlduce.Utf8.make w.descr in
             Eliom_duce.Xhtml.send
               sp
               {{
