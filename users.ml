@@ -259,7 +259,7 @@ let add_dyn_group, in_dyn_group, fold_dyn_groups =
 
 
 
-let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
+let create_user ~name ~pwd ~fullname ?email ~groups ?test () =
   get_user_by_name ~name >>= fun u -> 
   if (u = nobody) && (name != nobody.name)
   then begin (* the user does not exist *)
@@ -289,13 +289,13 @@ let create_user ~name ~pwd ~fullname ~email ~groups ?test () =
 let create_unique_user =
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
   let lock = Lwt_mutex.create () in
-  fun ~name ~pwd ~fullname ~email ~groups ->
+  fun ~name ~pwd ~fullname ?email ~groups ->
     let rec suffix name =
       get_user_by_name ~name >>= fun u -> 
       if (u = nobody) && (name != nobody.name)
       then begin (* the user does not exist *)
         create_user
-          ~name ~pwd ~fullname ~email ~groups () >>= fun x -> 
+          ~name ~pwd ~fullname ?email ~groups () >>= fun x -> 
         Lwt.return (x, name)
       end
       else suffix (name ^ (digit "X"))
@@ -471,7 +471,7 @@ let is_logged_on ~sp ~sd =
 let authenticated_users =
   Lwt_unix.run
     (create_user ~name:"users" ~pwd:User_sql.Connect_forbidden
-       ~fullname:"Authenticated users" ~email:None
+       ~fullname:"Authenticated users"
        ~groups:[anonymous.id]
        ~test:is_logged_on
        ())

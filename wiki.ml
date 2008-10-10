@@ -168,7 +168,6 @@ let create_group_ name fullname =
     ~name
     ~pwd:User_sql.Connect_forbidden
     ~fullname
-    ~email:None
     ~groups:[]
     ()
 

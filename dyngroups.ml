@@ -34,7 +34,6 @@ let rec aux = function
         ~name
         ~pwd:User_sql.Connect_forbidden
         ~fullname:name
-        ~email:None
         ~groups:[]
         ~test:(fun ~sp ~sd -> Lwt.return (test (Eliom_sessions.get_ri ~sp)))
         () >>= fun _ ->

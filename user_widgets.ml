@@ -462,7 +462,7 @@ object (self)
     else 
       let pwd = generate_password () in
       Users.create_unique_user
-        ~name:usr ~pwd ~fullname ~email:(Some email)
+        ~name:usr ~pwd ~fullname ~email
         ~groups:basic_user_creation_options.new_user_groups >>= fun (user, n) ->
       mail_password
         ~name:n

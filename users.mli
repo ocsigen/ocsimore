@@ -55,7 +55,7 @@ val create_user:
   name:string -> 
   pwd:User_sql.pwd -> 
   fullname:string -> 
-  email:string option -> 
+  ?email:string -> 
   groups: User_sql.userid list ->
   ?test:(sp:Eliom_sessions.server_params ->
           sd:Ocsimore_common.session_data -> bool Lwt.t) ->
@@ -66,7 +66,7 @@ val create_unique_user:
   name:string -> 
   pwd:User_sql.pwd -> 
   fullname:string -> 
-  email:string option -> 
+  ?email:string -> 
   groups: User_sql.userid list ->
   (userdata * string) Lwt.t
 
