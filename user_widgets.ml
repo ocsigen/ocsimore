@@ -27,7 +27,7 @@ open Eliom_parameters
 let (>>=) = Lwt.bind
 
 
-class login_widget ~(sessman: Session_manager.sessionmanager) =
+class login_widget ?sp ~(sessman: Session_manager.sessionmanager) =
 object (self)
     
   val xhtml_class = "logbox"
@@ -129,7 +129,7 @@ object (self)
            Lwt.return {{ [ b ] }});
 
       ignore 
-        (Eliom_duce.Xhtml.register_new_service
+        (Eliom_duce.Xhtml.register_new_service ?sp
            ~https:(Session_manager.get_secure ())
            ~path:["ocsimore";"login"]
            ~get_params:Eliom_parameters.unit
@@ -278,12 +278,12 @@ let generate_password () =
 
 
 
-class login_widget_basic_user_creation
+class login_widget_basic_user_creation ?sp
   ~(sessman: Session_manager.sessionmanager) 
   (registration_mail_from, registration_mail_subject, default_groups)
   =
   let internal_srv_register = 
-    Eliom_services.new_service
+    Eliom_services.new_service ?sp
       ~path:(["ocsimore";"register"]) 
 (*VVV URL??? Make it configurable (and all others!!) *)
       ~get_params:unit () in
@@ -292,7 +292,7 @@ class login_widget_basic_user_creation
       ~fallback:internal_srv_register
       ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
   and internal_srv_reminder = 
-    Eliom_services.new_service
+    Eliom_services.new_service ?sp
       ~path:["ocsimore";"reminder"]
       ~get_params:unit ()
   and srv_reminder_done = 
@@ -623,12 +623,18 @@ object (self)
       
   initializer
     begin
-      Eliom_duce.Xhtml.register internal_srv_register (self#page_register "");
-      Eliom_duce.Xhtml.register srv_register_done self#page_register_done;
-      Eliom_duce.Xhtml.register internal_srv_reminder (self#page_reminder "");
-      Eliom_duce.Xhtml.register srv_reminder_done self#page_reminder_done;
-      Eliom_duce.Xhtml.register internal_srv_edit (self#page_edit "");
-      Eliom_duce.Xhtml.register srv_edit_done self#page_edit_done;
+      Eliom_duce.Xhtml.register ?sp
+        ~service:internal_srv_register (self#page_register "");
+      Eliom_duce.Xhtml.register ?sp
+        ~service:srv_register_done self#page_register_done;
+      Eliom_duce.Xhtml.register ?sp
+        ~service:internal_srv_reminder (self#page_reminder "");
+      Eliom_duce.Xhtml.register ?sp
+        ~service:srv_reminder_done self#page_reminder_done;
+      Eliom_duce.Xhtml.register ?sp
+        ~service:internal_srv_edit (self#page_edit "");
+      Eliom_duce.Xhtml.register ?sp
+        ~service:srv_edit_done self#page_edit_done;
     end
 
 

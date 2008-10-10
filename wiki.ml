@@ -435,7 +435,7 @@ let create_wiki ~title ~descr
   Lwt.catch 
     (fun () -> get_wiki_by_name title)
     (function
-       | Not_found -> 
+       | Not_found ->
            (Wiki_sql.new_wiki ~title ~descr ~pages:(not (path = None))
               ~boxrights ~staticdir ()
            >>= fun wiki_id -> 
@@ -537,7 +537,7 @@ let create_wiki ~title ~descr
      | Some path ->
 
          let action_create_page =
-           Eliom_predefmod.Actions.register_new_post_service' 
+           Eliom_predefmod.Actions.register_new_post_service' ?sp
              ~name:("wiki_page_create"^Wiki_sql.wiki_id_s w.id)
              ~post_params:(Eliom_parameters.string "page")
              (fun sp () page ->

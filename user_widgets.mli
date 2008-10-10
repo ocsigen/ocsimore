@@ -23,7 +23,9 @@
 *)
 
 (** A widget for the login/logout box *)
-class login_widget: sessman:Session_manager.sessionmanager ->
+class login_widget:
+  ?sp:Eliom_sessions.server_params ->
+  sessman:Session_manager.sessionmanager ->
 object
 
   method display_login_widget :
@@ -38,8 +40,9 @@ object
 
 end;;
 
-class login_widget_basic_user_creation 
-  : sessman:Session_manager.sessionmanager ->
+class login_widget_basic_user_creation :
+  ?sp:Eliom_sessions.server_params ->
+  sessman:Session_manager.sessionmanager ->
   (string * string) * string * User_sql.userid list ->
 object
   inherit login_widget

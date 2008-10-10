@@ -147,11 +147,11 @@ type menu_item =
   | View
 
 
-class editable_wikibox () =
+class editable_wikibox ?sp () =
   (* The registration must be done during site loading, nor before! *)
   
   let service_edit_wikibox =
-    Eliom_services.new_service
+    Eliom_services.new_service ?sp
       ~path:["ocsimore"; "wiki_edit"]
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
@@ -159,7 +159,7 @@ class editable_wikibox () =
   in
     
   let service_edit_css =
-    Eliom_services.new_service'
+    Eliom_services.new_service' ?sp
       ~name:"css_edit"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.string "page"))
@@ -167,14 +167,14 @@ class editable_wikibox () =
   in
     
   let service_edit_wikicss =
-    Eliom_services.new_service'
+    Eliom_services.new_service' ?sp
       ~name:"wiki_css_edit"
       ~get_params:(Wiki_sql.eliom_wiki "wikiid")
       ()
   in
     
   let action_edit_wikibox =
-    Eliom_predefmod.Actions.register_new_service' 
+    Eliom_predefmod.Actions.register_new_service' ?sp
       ~name:"wiki_edit"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
@@ -183,7 +183,7 @@ class editable_wikibox () =
   in
     
   let action_edit_wikibox_permissions =
-    Eliom_predefmod.Actions.register_new_service' 
+    Eliom_predefmod.Actions.register_new_service' ?sp
       ~name:"wiki_edit_perm"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
@@ -198,7 +198,7 @@ class editable_wikibox () =
   in
     
   let action_wikibox_history =
-    Eliom_predefmod.Actions.register_new_service' 
+    Eliom_predefmod.Actions.register_new_service' ?sp
       ~name:"wiki_history"
       ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
@@ -208,7 +208,7 @@ class editable_wikibox () =
   in
     
   let action_old_wikibox =
-    Eliom_predefmod.Actions.register_new_service' 
+    Eliom_predefmod.Actions.register_new_service' ?sp
       ~name:"wiki_old_version"
       ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
@@ -217,7 +217,7 @@ class editable_wikibox () =
   in
     
   let action_src_wikibox =
-    Eliom_predefmod.Actions.register_new_service' 
+    Eliom_predefmod.Actions.register_new_service' ?sp
       ~name:"wiki_src"
       ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
@@ -226,7 +226,7 @@ class editable_wikibox () =
   in
     
   let action_send_wikibox =
-    Eliom_predefmod.Actions.register_new_post_service' 
+    Eliom_predefmod.Actions.register_new_post_service' ?sp
       ~keep_get_na_params:false
       ~name:"wiki_send"
       ~post_params:
@@ -247,7 +247,7 @@ class editable_wikibox () =
   in
 
   let action_send_wikibox_permissions =
-    Eliom_predefmod.Actions.register_new_post_service' 
+    Eliom_predefmod.Actions.register_new_post_service' ?sp
       ~keep_get_na_params:false
       ~name:"wiki_send_permissions"
       ~post_params:
@@ -269,7 +269,7 @@ class editable_wikibox () =
   in
 
   let action_send_css =
-    Eliom_predefmod.Actions.register_new_post_service' 
+    Eliom_predefmod.Actions.register_new_post_service' ?sp
       ~keep_get_na_params:false
       ~name:"css_send"
       ~post_params:
@@ -283,7 +283,7 @@ class editable_wikibox () =
   in
 
   let action_send_wiki_css =
-    Eliom_predefmod.Actions.register_new_post_service' 
+    Eliom_predefmod.Actions.register_new_post_service' ?sp
       ~keep_get_na_params:false
       ~name:"wiki_css_send"
       ~post_params:
@@ -297,7 +297,7 @@ class editable_wikibox () =
 
   (* Registering the service for css *)
   let wikicss_service =
-    Eliom_predefmod.CssText.register_new_service
+    Eliom_predefmod.CssText.register_new_service ?sp
       ~path:["ocsimore"; "wikicss"]
       ~get_params:(Wiki_sql.eliom_wiki "wiki")
       (fun sp wiki () -> 
@@ -313,7 +313,7 @@ class editable_wikibox () =
   
   (* Registering the service for css *)
   let pagecss_service =
-    Eliom_predefmod.CssText.register_new_service
+    Eliom_predefmod.CssText.register_new_service ?sp
       ~path:["ocsimore"; "pagecss"]
       ~get_params:(Eliom_parameters.suffix 
                      (Eliom_parameters.prod

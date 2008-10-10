@@ -131,9 +131,7 @@ let _ =
        ?css_editors:wiki_data.css_editors
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
-       () >>= fun wiki ->
-
-     Lwt.return ()
+       ()
     )
 
 

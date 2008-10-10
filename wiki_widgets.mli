@@ -75,6 +75,7 @@ class noneditable_wikibox :
   end
 
 class editable_wikibox :
+  ?sp:Eliom_sessions.server_params ->
   unit -> ((unit -> Wiki_sql.wiki) * int32 * int32) ->
   object
 

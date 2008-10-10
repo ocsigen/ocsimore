@@ -42,7 +42,7 @@ type sessionmanager_in =
 val set_secure : bool -> unit
 val get_secure : unit -> bool
       
-class sessionmanager : sessionmanagerinfo: sessionmanager_in ->
+class sessionmanager : ?sp:server_params -> sessionmanagerinfo: sessionmanager_in ->
 object
 
   method act_login: 
@@ -82,6 +82,8 @@ object
 
 end;;
 
+(* BY : disabled, problem with sp *)
+(*
 val connect:
   sessionmanager ->
   ('get, 
@@ -97,14 +99,16 @@ val connect:
     Eliom_duce.Xhtml.page Lwt.t) ->
   ('get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list)
   -> unit
-
+*)
 
 class sessionmanager_pam : 
   string option ->
+  ?sp:server_params -> 
   sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
 
-class sessionmanager_nis : 
+class sessionmanager_nis :
+  ?sp:server_params -> 
   sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
 

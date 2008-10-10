@@ -46,7 +46,7 @@ let set_secure b = secure := b
 let get_secure () = !secure
 
 
-class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
+class sessionmanager ?sp ~(sessionmanagerinfo: sessionmanager_in) =
   let internal_act_login = 
     new_post_service'
       ~https:!secure
@@ -59,7 +59,7 @@ class sessionmanager ~(sessionmanagerinfo: sessionmanager_in) =
       ~keep_get_na_params:false
       ~post_params:unit ()
   and internal_act_logout_get = 
-    new_service' ~name:"logout" ~get_params:unit ()
+    new_service' ?sp ~name:"logout" ~get_params:unit ()
 (*VVV I add this GET service because it is not possible to make a link 
   towards a POST service ... I use a redirection instead of an action *)
   in
@@ -150,23 +150,23 @@ object (self)
 
   initializer
     begin
-      Actions.register internal_act_login self#(*safer_*)mk_act_login;
-      Actions.register internal_act_logout self#mk_act_logout;
-      Redirection.register internal_act_logout_get
+      Actions.register ?sp ~service:internal_act_login self#mk_act_login;
+      Actions.register ?sp ~service:internal_act_logout self#mk_act_logout;
+      Redirection.register ?sp ~service:internal_act_logout_get
         (fun sp () () ->
            ignore (self#mk_act_logout sp () ());
            Lwt.return Eliom_services.void_action
         );
     end
-
-        
 end;;
 
 
 
 
 
-
+(* BY: deactivated because unused, and it is not clear what to
+   do with the sp parameter for register *)
+(*
 let connect sm srv container
     (fwl: 'get -> 'post -> 
       (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list) =
@@ -180,7 +180,7 @@ let connect sm srv container
            container ~sp ~sd ~contents:{{ {: c :} }}
       )
   end
-
+*)
 
 
 let pam_auth = 
@@ -198,9 +198,9 @@ let pam_loaded () = !pam_loaded
 
 
 (*VVV à revoir *)
-class sessionmanager_pam pam_service ~(sessionmanagerinfo: sessionmanager_in) =
+class sessionmanager_pam pam_service ?sp ~(sessionmanagerinfo: sessionmanager_in) =
 object
-  inherit sessionmanager sessionmanagerinfo
+  inherit sessionmanager ?sp ~sessionmanagerinfo
 
   method private mk_act_login sp () (usr, pwd) =
     all_logout_actions sp >>= fun () -> 
@@ -239,9 +239,9 @@ end
 
 
 (*VVV à revoir *)
-class sessionmanager_nis ~(sessionmanagerinfo: sessionmanager_in) =
+class sessionmanager_nis ?sp ~(sessionmanagerinfo: sessionmanager_in) =
 object
-  inherit sessionmanager sessionmanagerinfo
+  inherit sessionmanager ?sp ~sessionmanagerinfo
 
   method private mk_act_login sp () (usr, pwd) =
     all_logout_actions sp >>= fun () -> 
