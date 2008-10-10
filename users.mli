@@ -43,8 +43,12 @@ val nobody : userdata
 (** A group containing all authenticated users (not groups) *)
 val authenticated_users : userdata
 
+(** Information about a user. Return [nobody] if the user
+    does not currently exists *)
 val get_user_by_name : name:string -> userdata Lwt.t
 val get_user_id_by_name : string -> int32 Lwt.t
+
+
 val get_user_name_by_id : int32 -> string Lwt.t
 val get_user_by_id : id:int32 -> userdata Lwt.t
 
