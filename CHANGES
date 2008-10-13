@@ -1,6 +1,6 @@
 = Development version =
 
-(nothing)
+  * Eliom extension wikiperso, with per-user wikis (see wikiperso.ml)
 
 = 0.4
 

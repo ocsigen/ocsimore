@@ -1,22 +1,6 @@
 TODO
 
- - Idée pour les pages perso :
- On utilise un wiki par utilisateur. Faire un extension Ocsigen qui va :
- 1. Filter sur une regexp et en déduire un nom d'utilisateur, un path
- pour le wiki et un path pour la page dans le wiki
- 2. Vérifier si cet utilisateur existe (et a les droits d'avoir une page)
- et s'il n'existe pas renvoyer 404
- 3. S'il existe, vérifier si un wiki existe pour cet utilisateur
- (juste si un wiki est associé à l'url du wiki ? (pb si la regexp change)
- ou bien avec une table utilisateur -> numéro de wiki ?
- (dans ce cas mettre à jour l'url du wiki 
- (tous les wikis au lancement du serveur ?)))
- 4. S'il n'existe pas, le créer (avec une wikibox template (conteneur)
- personnalisable (copie d'un wikibox admin par défaut)).
- 5. Dans tous les cas retourner 404
-
- En mettant la config standard des pages perso avant, 
- les pages statiques sont servies à laplace des pages helium.
+- wikiperso : Better default page
 
 
  - EXPÉRIMENTAL : L'utilisateur nobody n'a aucun droit
