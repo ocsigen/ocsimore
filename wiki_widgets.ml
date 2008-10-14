@@ -159,7 +159,7 @@ class editable_wikibox ?sp () =
   in
     
   let service_edit_css =
-    Eliom_services.new_coservice' ?sp
+    Eliom_services.new_coservice'
       ~name:"css_edit"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.string "page"))
@@ -167,14 +167,14 @@ class editable_wikibox ?sp () =
   in
     
   let service_edit_wikicss =
-    Eliom_services.new_coservice' ?sp
+    Eliom_services.new_coservice'
       ~name:"wiki_css_edit"
       ~get_params:(Wiki_sql.eliom_wiki "wikiid")
       ()
   in
     
   let action_edit_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice' ?sp
+    Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_edit"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
@@ -183,7 +183,7 @@ class editable_wikibox ?sp () =
   in
     
   let action_edit_wikibox_permissions =
-    Eliom_predefmod.Actions.register_new_coservice' ?sp
+    Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_edit_perm"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
@@ -198,7 +198,7 @@ class editable_wikibox ?sp () =
   in
     
   let action_wikibox_history =
-    Eliom_predefmod.Actions.register_new_coservice' ?sp
+    Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_history"
       ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
@@ -208,7 +208,7 @@ class editable_wikibox ?sp () =
   in
     
   let action_old_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice' ?sp
+    Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_old_version"
       ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **
@@ -217,7 +217,7 @@ class editable_wikibox ?sp () =
   in
     
   let action_src_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice' ?sp
+    Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_src"
       ~get_params:(((Wiki_sql.eliom_wiki "wikiid") ** 
                       (Eliom_parameters.int32 "boxid")) **

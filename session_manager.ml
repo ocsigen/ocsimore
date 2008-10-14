@@ -59,7 +59,7 @@ class sessionmanager ?sp ~(sessionmanagerinfo: sessionmanager_in) =
       ~keep_get_na_params:false
       ~post_params:unit ()
   and internal_act_logout_get = 
-    new_coservice' ?sp ~name:"logout" ~get_params:unit ()
+    new_coservice' ~name:"logout" ~get_params:unit ()
 (*VVV I add this GET service because it is not possible to make a link 
   towards a POST service ... I use a redirection instead of an action *)
   in
