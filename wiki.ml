@@ -626,3 +626,10 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
 (*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)
   Lwt.return []
 
+
+
+(* Caution when changing this. See mli *)
+let wiki_admin_name = "Adminwiki"
+let get_admin_wiki () =
+  get_wiki_by_name wiki_admin_name
+  >>= fun wiki -> Lwt.return wiki.id

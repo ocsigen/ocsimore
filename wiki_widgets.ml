@@ -34,6 +34,7 @@ type wiki_data = {
   datetime: CalendarLib.Calendar.t;
 }
 
+
 (*
 let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
   self#bind_or_display_error
@@ -330,7 +331,7 @@ class editable_wikibox ?sp () =
   in
 
 
-fun (get_admin_wiki, wikiadmin_container_id, wiki_help_box) ->
+fun (wikiadmin_container_id, wiki_help_box) ->
 (*  fun <other parameters if any> -> *)
 object (self)
   
@@ -496,7 +497,7 @@ object (self)
      (wiki_id, message_id)
      (content : string)
      =
-     let admin_wiki = get_admin_wiki () in
+     Wiki.get_admin_wiki () >>= fun admin_wiki ->
      self#bind_or_display_error
        ~classe:["wikihelp"]
        (self#retrieve_wikibox_content (admin_wiki, wiki_help_box))
@@ -1262,11 +1263,10 @@ object (self)
                 Wiki.can_create_wikibox ~sp ~sd wiki father userid >>= fun b ->
                 if b
                 then begin
-                  Wiki.get_readers ~wiki ids >>= fun readers ->
-                  Wiki.get_writers ~wiki ids >>= fun writers ->
-                  Wiki.get_rights_adm ~wiki ids >>= fun rights_adm ->
-                  Wiki.get_wikiboxes_creators ~wiki ids 
-                    >>= fun wikiboxes_creators ->
+                  Wiki.get_readers ids >>= fun readers ->
+                  Wiki.get_writers ids >>= fun writers ->
+                  Wiki.get_rights_adm ids >>= fun rights_adm ->
+                  Wiki.get_wikiboxes_creators ids >>= fun wikiboxes_creators ->
                   Wiki.new_wikibox 
                     ~wiki
                     ~author:userid
@@ -1484,9 +1484,10 @@ object (self)
               ~rows:30
               ~ancestors:Wiki_syntax.no_ancestors
               () >>= fun subbox ->
+            Wiki.get_admin_wiki () >>= fun admin_wiki ->
             self#editable_wikibox ~sp ~sd
               ~ancestors:Wiki_syntax.no_ancestors
-              ~data:(get_admin_wiki (), wikiadmin_container_id)
+              ~data:(admin_wiki, wikiadmin_container_id)
               ?cssmenu:(Some None)
               ~subbox:{{ [ subbox ] }} () >>= fun page ->
             self#get_css_header 

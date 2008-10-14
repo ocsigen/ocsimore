@@ -77,7 +77,7 @@ class noneditable_wikibox :
 
 class editable_wikibox :
   ?sp:Eliom_sessions.server_params ->
-  unit -> ((unit -> Wiki_sql.wiki) * int32 * int32) ->
+  unit -> (int32 * int32) ->
   object
 
     inherit Widget.widget_with_error_box

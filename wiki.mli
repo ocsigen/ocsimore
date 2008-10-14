@@ -242,3 +242,11 @@ type wiki_action_info =
 
 exception Wiki_action_info of wiki_action_info
 
+(** Administration wiki *)
+
+(** Name of the administration wiki. This is the name that must
+    be used when creating (or searching for) this wiki. If that
+    name is changed, the database *must* be upgraded manually to
+    reflect the change *)
+val wiki_admin_name : string
+val get_admin_wiki : unit -> Wiki_sql.wiki Lwt.t

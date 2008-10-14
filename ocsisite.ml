@@ -71,16 +71,9 @@ let (auth, basicusercreation) =
 
 
 
-
-
 let wikiadmin_container_id = 2l
 let wiki_help_box = 3l
 
-
-let get_admin_wiki_fun = 
-  ref (fun () -> failwith "Ocsisite.get_admin_wiki")
-
-let get_admin_wiki () = (!get_admin_wiki_fun ()).Wiki.id
 
 
 let wikibox =
@@ -112,16 +105,17 @@ let wikibox =
      );
 
      Lwt.return (new Ocsimore_wikibox.creole_wikibox ()
-                   (get_admin_wiki, wikiadmin_container_id, wiki_help_box))
+                   (wikiadmin_container_id, wiki_help_box))
     )
 
 
-let _ =
-  let a =
+
+
+let wiki_admin =
     Lwt_unix.run
       ((* creating a wiki for the administration boxes: *)
-        Wiki.create_wiki 
-          ~title:"Adminwiki"
+        Wiki.create_wiki
+          ~title:Wiki.wiki_admin_name
           ~descr:"Administration boxes"
           ~wikibox:wikibox
           ?path:None
@@ -136,18 +130,8 @@ let _ =
           ~boxrights:true
           ()
       )
-  in
-  get_admin_wiki_fun := (fun () -> a)
 
 
-(* Now done in new_wikibox
-      (Lwt.catch
-         (fun () -> 
-            Wiki_sql.get_wikibox_data ~wikibox:(get_admin_wiki (), wiki_help_box) ()
-            >>= fun _ -> Lwt.return ())
-         (function
-            | Not_found ->
-*)
 
 let _ =
   Lwt_unix.run
@@ -156,7 +140,7 @@ let _ =
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
     (Wiki.new_wikibox 
        ~boxid:wikiadmin_container_id
-       ~wiki:(!get_admin_wiki_fun ())
+       ~wiki:wiki_admin
        ~author:Users.admin.Users.id
        ~comment:"Admin container" 
        ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
@@ -168,7 +152,7 @@ let _ =
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
      Wiki.new_wikibox
        ~boxid:wiki_help_box
-       ~wiki:(!get_admin_wiki_fun ())
+       ~wiki:wiki_admin
        ~author:Users.admin.Users.id
        ~comment:"Wikisyntax help" 
        ~content:"===Wiki syntax===
