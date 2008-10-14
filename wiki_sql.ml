@@ -646,10 +646,10 @@ let print_cache s =
 
 
 let get_wikibox_data, 
-  get_readers_,
-  get_writers_,
-  get_rights_adm_,
-  get_wikiboxes_creators_,
+  get_readers,
+  get_writers,
+  get_rights_adm,
+  get_wikiboxes_creators,
   populate_readers,
   populate_writers,
   populate_rights_adm,

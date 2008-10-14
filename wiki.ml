@@ -64,10 +64,8 @@ let get_wiki_by_name name =
   get_wiki_by_id id
 
 
-let get_sthg_ f ?wiki ((w, i) as k) =
-  (match wiki with
-    | Some w -> Lwt.return w
-    | None -> get_wiki_by_id w)
+let get_sthg_ f ((w, i) as k) =
+  get_wiki_by_id w
   >>= fun wiki_info ->
   if wiki_info.boxrights
   then
@@ -75,16 +73,16 @@ let get_sthg_ f ?wiki ((w, i) as k) =
   else Lwt.return None
 
 let get_readers =
-  get_sthg_ Wiki_sql.get_readers_
+  get_sthg_ Wiki_sql.get_readers
 
 let get_writers =
-  get_sthg_ Wiki_sql.get_writers_
+  get_sthg_ Wiki_sql.get_writers
 
 let get_rights_adm =
-  get_sthg_ Wiki_sql.get_rights_adm_
+  get_sthg_ Wiki_sql.get_rights_adm
 
 let get_wikiboxes_creators =
-  get_sthg_ Wiki_sql.get_wikiboxes_creators_
+  get_sthg_ Wiki_sql.get_wikiboxes_creators
 
 
 let readers_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_readers"
@@ -180,76 +178,28 @@ let add_to_group_ l g =
     (Lwt.return ())
     l
 
-
-
-let can_change_rights ~sp ~sd wiki id userid =
+let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
   if userid == Users.admin.Users.id
   then Lwt.return true
   else
-    get_rights_adm ~wiki (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          rights_adm_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-
-let can_read ~sp ~sd wiki id userid =
-  if userid = Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_readers ~wiki (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          readers_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-    
-let can_write ~sp ~sd wiki id userid =
-  if userid = Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_writers (wiki.id, id) >>= function
-      | Some l -> (* acl are activated *)
-          List.fold_left 
-            (fun b a -> 
-               b >>= fun b ->
-               if b then Lwt.return true
-               else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
-            l
-      | None -> 
-          writers_group wiki.id >>= fun g -> 
-          Users.in_group ~sp ~sd ~user:userid ~group:g ()
-    
-let can_create_wikibox ~sp ~sd wiki id userid =
-  if userid == Users.admin.Users.id
-  then Lwt.return true
-  else
-    get_wikiboxes_creators (wiki.id, id) >>= function
+    rights_box (wiki.id, id) >>= function
       | Some l -> (* acl are activated *)
           List.fold_left
-            (fun b a -> 
+            (fun b a ->
                b >>= fun b ->
                if b then Lwt.return true
                else Users.in_group ~sp ~sd ~user:userid ~group:a ())
-            (Lwt.return false) 
+            (Lwt.return false)
             l
-      | None -> 
-          wikiboxes_creators_group wiki.id >>= fun g -> 
+      | None ->
+          rights_wiki wiki.id >>= fun g ->
           Users.in_group ~sp ~sd ~user:userid ~group:g ()
 
+
+let can_change_rights = can_sthg get_rights_adm rights_adm_group
+let can_read = can_sthg get_readers readers_group
+let can_write = can_sthg get_writers writers_group
+let can_create_wikibox = can_sthg get_wikiboxes_creators wikiboxes_creators_group
 
 let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
   get_wiki_by_id wiki >>= fun w ->

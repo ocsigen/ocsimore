@@ -156,8 +156,8 @@ val remove_wikiboxes_creators :
   wiki -> int32 -> int32 list -> unit Lwt.t
 
 
-val get_readers_ : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_writers_ : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_rights_adm_ : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_wikiboxes_creators_ : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_readers : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_writers : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_rights_adm : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_wikiboxes_creators : (wiki * int32) -> User_sql.userid list Lwt.t
 

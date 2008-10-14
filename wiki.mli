@@ -206,22 +206,18 @@ val get_role :
   role Lwt.t
 
 val get_readers : 
-  ?wiki:wiki_info ->
   (Wiki_sql.wiki * int32) ->
   User_sql.userid list option Lwt.t
 
 val get_writers : 
-  ?wiki:wiki_info ->
   (Wiki_sql.wiki * int32) ->
   User_sql.userid list option Lwt.t
 
 val get_rights_adm : 
-  ?wiki:wiki_info ->
   (Wiki_sql.wiki * int32) ->
   User_sql.userid list option Lwt.t
 
 val get_wikiboxes_creators : 
-  ?wiki:wiki_info ->
   (Wiki_sql.wiki * int32) ->
   User_sql.userid list option Lwt.t
 
