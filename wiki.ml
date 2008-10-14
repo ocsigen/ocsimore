@@ -536,7 +536,7 @@ let create_wiki ~title ~descr
      | Some path ->
 
          let action_create_page =
-           Eliom_predefmod.Actions.register_new_post_service' ?sp
+           Eliom_predefmod.Actions.register_new_post_coservice' ?sp
              ~name:("wiki_page_create"^Wiki_sql.wiki_id_s w.id)
              ~post_params:(Eliom_parameters.string "page")
              (fun sp () page ->
@@ -590,7 +590,7 @@ let create_wiki ~title ~descr
 
          (* the same, but non attached: *)
          let naservpage =
-           Eliom_predefmod.Any.register_new_service'
+           Eliom_predefmod.Any.register_new_coservice'
              ~name:("display"^Wiki_sql.wiki_id_s w.id)
              ?sp
              ~get_params:(Eliom_parameters.string "page")
