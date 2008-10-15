@@ -132,9 +132,10 @@ SET default_with_oids = false;
 -- Name: public; Type: ACL; Schema: -; Owner: pgsql
 --
 
-REVOKE ALL ON SCHEMA public FROM PUBLIC;
-REVOKE ALL ON SCHEMA public FROM postgres;
-GRANT ALL ON SCHEMA public TO postgres;
-GRANT ALL ON SCHEMA public TO PUBLIC;
+-- BY : disabled those 4 lines, as they do not seem to do anything (except emit warnings)
+-- REVOKE ALL ON SCHEMA public FROM PUBLIC;
+-- REVOKE ALL ON SCHEMA public FROM postgres;
+-- GRANT ALL ON SCHEMA public TO postgres;
+-- GRANT ALL ON SCHEMA public TO PUBLIC;
 
 

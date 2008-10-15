@@ -1009,7 +1009,7 @@ object (self)
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
-     Wiki_sql.get_box_for_page wiki page >>= fun box ->
+     Wiki_sql.get_box_for_page wiki page >>= fun (wiki', box) ->
      self#bind_or_display_error
        ~classe
        (if c
@@ -1025,7 +1025,7 @@ object (self)
         else Lwt.fail Not_css_editor)
        (self#display_edit_css_form ~sp ~sd ?rows ?cols ~data)
        (self#display_edit_css_box ~sp ~sd ~cssmenu:(Some page)
-          (wiki, box) page)
+          (wiki', box) page)
 
 
 

@@ -43,13 +43,8 @@ open Sql
 let new_wiki ~title ~descr ~pages ~boxrights ~staticdir () =
   Sql.full_transaction_block
     (fun db ->
-       (match staticdir with
-         | Some staticdir ->
-             PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, staticdir) \
-                    VALUES ($title, $descr, $pages, $boxrights, $staticdir)"
-         | None ->
-             PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights) \
-                    VALUES ($title, $descr, $pages, $boxrights)")
+       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, staticdir)
+                    VALUES ($title, $descr, $?pages, $boxrights, $?staticdir)"
        >>= fun () ->
        serial4 db "wikis_id_seq")
   >>= fun wiki ->
@@ -378,22 +373,23 @@ let get_box_for_page_ ~wiki ~page =
   Lwt_pool.use 
     Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT id \
+       PGSQL(db) "SELECT destwiki, id \
                   FROM wikipages \
-                  WHERE wiki = $wiki \
+                  WHERE sourcewiki = $wiki \
                   AND pagename = $page") >>= function
       | [] -> Lwt.fail Not_found
-      | id::_ -> Lwt.return id
+      | (wiki, id)::_ -> Lwt.return ((int32_t wiki : wiki), id)
 
 (** Sets the box corresponding to a wikipage *)
-let set_box_for_page_ ~wiki ~id ~page =
-  let wiki = t_int32 (wiki : wiki) in
+let set_box_for_page_ ~sourcewiki ?(destwiki=sourcewiki) ~id ~page =
+  let sourcewiki = t_int32 (sourcewiki : wiki)
+  and destwiki = t_int32 (destwiki: wiki) in
   Lwt_pool.use 
     Sql.pool
     (fun db -> 
-       PGSQL(db) "DELETE FROM wikipages WHERE wiki=$wiki AND pagename = $page" 
+       PGSQL(db) "DELETE FROM wikipages WHERE sourcewiki=$sourcewiki AND pagename = $page" 
        >>= fun () ->
-       PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $id, $page)"
+       PGSQL(db) "INSERT INTO wikipages VALUES ($sourcewiki, $id, $page, $destwiki)"
     )
 
 
@@ -408,11 +404,10 @@ let find_wiki_ ~id =
        (match r with
           | [(id, title, descr, pages, br, ci, stat)] -> 
               Lwt.return (title, descr, pages, br, ci, stat)
-          | (id, title, descr, pages, br, ci, stat)::_ -> 
-              Ocsigen_messages.warning
-                "Ocsimore: More than one wiki have the same id (ignored)";
-              Lwt.return (title, descr, pages, br, ci, stat)
-          | [] -> Lwt.fail Not_found))
+          | [] -> Lwt.fail Not_found
+          | _ -> assert false (* Impossible, as the 'id' field is a primary key *)
+       )
+    )
 
 
 let find_wiki_id_by_name ~name =
@@ -548,93 +543,6 @@ let set_css_for_wiki_ ~wiki content =
     )
 
 
-(*
-let new_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
-  (* inserts a new wikipage in an existing wiki; returns [None] if
-     [~suffix] is already used in that wiki. *)
-  Lwt_preemptive.detach
-    (fun () ->
-  Sql.full_transaction_block
-    (fun db ->
-      begin_work db; remove this! use full_transaction_block
-      let wpg_id =
-        (match 
-          PGSQL(db) "SELECT id FROM wikipages \
-            WHERE wik_id = $wik_id AND suffix = $suffix" 
-        with
-        | [] ->
-            PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)";
-            let txt_id = serial4 db "textdata_id_seq" in
-            PGSQL(db) "INSERT INTO wikipages \
-              (wik_id, suffix, author, subject, txt_id) \
-              VALUES ($wik_id,$suffix,$author,$subject,$txt_id)";
-              Some (serial4 db "wikipages_id_seq")
-        | _ -> None) in
-      commit db;
-      wpg_id)
-    ()
-
-
-let add_or_change_wikipage ~wik_id ~suffix ~author ~subject ~txt = 
-  (* updates, or inserts, a wikipage. *)
-  Lwt_preemptive.detach
-    (fun () ->
-  Sql.full_transaction_block
-    (fun db ->
-      begin_work db;remove this! use full_transaction_block
-      (match
-        PGSQL(db) "SELECT id, txt_id FROM wikipages \
-          WHERE wik_id = $wik_id AND suffix = $suffix" 
-      with
-      | [(wpg_id,txt_id)] ->
-          PGSQL(db) "UPDATE textdata SET txt = $txt WHERE id = $txt_id";
-          PGSQL(db) "UPDATE wikipages \
-            SET suffix = $suffix, author = $author, \
-            subject = $subject \
-            WHERE id = $wpg_id"
-      | _ ->
-          PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)";
-          let txt_id = serial4 db "textdata_id_seq" in
-          PGSQL(db) "INSERT INTO wikipages \
-            (wik_id, suffix, author, subject, txt_id) \
-            VALUES ($wik_id,$suffix,$author,$subject,$txt_id)");
-            commit db)
-        ()
-
-let wiki_get_data ~wik_id = 
-  (* returns title, description, number of wikipages of a wiki. *)
-  Lwt_preemptive.detach
-    (fun () ->
-  Sql.full_transaction_block
-    (fun db ->
-      begin_work db;remove this! use full_transaction_block
-      let (title, description) = 
-        (match PGSQL(db) "SELECT title, descr FROM wikis WHERE id = $wik_id"
-        with [x] -> x | _ -> assert false) in
-      let n_pages = 
-        (match PGSQL(db)
-            "SELECT COUNT(*) FROM wikipages WHERE wik_id = $wik_id"
-        with [Some x] -> x | _ -> assert false) in
-      commit db;
-      (title, description, int_of_db_size n_pages))
-    ()
-
-let wiki_get_pages_list ~wik_id =
-  (* returns the list of wikipages *)
-  Lwt_preemptive.detach
-    (fun () ->
-  Sql.full_transaction_block
-    (fun db ->
-      begin_work db;remove this! use full_transaction_block
-      let wpg_l = PGSQL(db) "SELECT subject, suffix, author, datetime \
-          FROM wikipages \
-          WHERE wik_id = $wik_id \
-          ORDER BY subject ASC" in
-          commit db;
-        wpg_l)
-    ()
-*)    
-
 
 
 (** Cached versions of the functions above *)
@@ -709,7 +617,7 @@ let get_wikibox_data,
 let get_box_for_page, set_box_for_page =
   let module C = Cache.Make (struct 
                                type key = (wiki * string)
-                               type value = int32
+                               type value = wiki * int32
                              end) 
   in
   let cache = 
@@ -720,10 +628,10 @@ let get_box_for_page, set_box_for_page =
       let page = Ocsigen_lib.remove_end_slash page in
       print_cache "cache wikipage ";
       C.find cache (wiki, page)),
-   (fun ~wiki ~id ~page ->
+   (fun ~sourcewiki ?(destwiki=sourcewiki) ~id ~page () ->
       let page = Ocsigen_lib.remove_end_slash page in
-      C.remove cache (wiki, page);
-      set_box_for_page_ ~wiki ~id ~page
+      C.remove cache (sourcewiki, page);
+      set_box_for_page_ ~sourcewiki ~destwiki ~id ~page
    ))
 
 

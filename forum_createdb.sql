@@ -198,3 +198,6 @@ ALTER TABLE ONLY threads
     ADD CONSTRAINT threads_frm_id_fkey FOREIGN KEY (frm_id) REFERENCES forums(id);
 
 
+ALTER TABLE messages RENAME TO forums_messages;
+ALTER TABLE textdata RENAME TO forums_textdata;
+ALTER TABLE threads RENAME TO forums_threads;

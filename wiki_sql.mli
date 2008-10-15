@@ -40,7 +40,7 @@ val eliom_wiki :
 val new_wiki : 
   title:string -> 
   descr:string -> 
-  pages:bool ->
+  pages:string option ->
   boxrights:bool ->
   staticdir:string option ->
   unit ->
@@ -87,10 +87,11 @@ val wiki_get_pages_list : wik_id:int32 ->
 
 
 (** return the box corresponding to a wikipage *)
-val get_box_for_page : wiki:wiki -> page:string -> int32 Lwt.t
+val get_box_for_page : wiki:wiki -> page:string -> (wiki * int32) Lwt.t
 
 (** sets the box corresponding to a wikipage *)
-val set_box_for_page : wiki:wiki -> id:int32 -> page:string -> unit Lwt.t
+val set_box_for_page :
+  sourcewiki:wiki -> ?destwiki:wiki -> id:int32 -> page:string -> unit -> unit Lwt.t
 
 (** returns the css for a page or fails with [Not_found] if it does not exist *)
 val get_css_for_page : wiki:wiki -> page:string -> string Lwt.t
@@ -107,7 +108,7 @@ val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
 val find_wiki : id:wiki -> 
-  (string * string * bool * bool * int32 option * string option) Lwt.t
+  (string * string * string option * bool * int32 option * string option) Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
 val find_wiki_id_by_name : name:string -> wiki Lwt.t

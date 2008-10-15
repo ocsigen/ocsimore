@@ -1,6 +1,8 @@
 = Development version =
 
   * Eliom extension wikiperso, with per-user wikis (see wikiperso.ml)
+  * Wikis are now aware of their url
+  * Limited form of redirection for wikipages is now possible
 
 = 0.4
 

@@ -39,7 +39,7 @@ type wiki_info = {
   title : string;
   descr : string;
   boxrights : bool;
-  pages : bool;
+  pages : string option;
   container_id : int32 option;
   staticdir : string option; (* if static dir is given, 
                                 ocsimore will serve static pages if present,
@@ -279,7 +279,7 @@ let send_static_file sp sd wiki dir page =
 
 
 let display_page w wikibox action_create_page sp page () =
-  if not w.pages
+  if w.pages = None
   then Lwt.fail Eliom_common.Eliom_404
   else
     let sd = Ocsimore_common.get_sd sp in
@@ -294,8 +294,8 @@ let display_page w wikibox action_create_page sp page () =
              ((* otherwise, we serve the wiki page: *)
              Lwt.catch
                (fun () ->
-                  Wiki_sql.get_box_for_page w.id page >>= fun box ->
-                  wikibox#editable_wikibox ~sp ~sd ~data:(w.id, box)
+                  Wiki_sql.get_box_for_page w.id page >>= fun (wiki', box) ->
+                  wikibox#editable_wikibox ~sp ~sd ~data:(wiki', box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
                     ?rows:None ?cols:None ?classe:None ?subbox:None
                     ?cssmenu:(Some (Some page)) 
@@ -385,8 +385,10 @@ let create_wiki ~title ~descr
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found ->
-           (Wiki_sql.new_wiki ~title ~descr ~pages:(not (path = None))
-              ~boxrights ~staticdir ()
+           let path_string = Ocsimore_lib.bind_opt
+             path Ocsigen_lib.string_of_url_path in
+           (Wiki_sql.new_wiki ~title ~descr ~pages:path_string
+              ~boxrights ?staticdir ()
            >>= fun wiki_id -> 
            
            (* Creating groups *)
@@ -514,7 +516,7 @@ let create_wiki ~title ~descr
 (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                              () >>= fun box ->
                            Wiki_sql.set_box_for_page
-                             ~wiki:w.id ~id:box ~page >>= fun () ->
+                             ~sourcewiki:w.id ~id:box ~page () >>= fun () ->
                            Lwt.return [Ocsimore_common.Session_data sd]
                        | e -> Lwt.fail e)
                 else Lwt.return [Ocsimore_common.Session_data sd]

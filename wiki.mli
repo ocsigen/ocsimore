@@ -16,7 +16,7 @@ type wiki_info = {
   title : string;
   descr : string;
   boxrights : bool;
-  pages : bool;
+  pages : string option;
   container_id: int32 option;
   staticdir : string option; (* if static dir is given, 
                                 ocsimore will serve static pages if present,

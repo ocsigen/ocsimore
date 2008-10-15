@@ -70,19 +70,19 @@ let new_thread_and_message ~frm_id ~author_id ~subject ~txt =
     (fun db ->
   PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>= fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found) >>= fun hidden -> 
-  PGSQL(db) "INSERT INTO threads (frm_id, subject, hidden, author_id) \
+  PGSQL(db) "INSERT INTO forums_threads (frm_id, subject, hidden, author_id) \
              VALUES ($frm_id, $subject, $hidden, $author_id)" >>= fun () -> 
   serial4 db "threads_id_seq" >>= fun thr_id -> 
-  PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>= fun () ->
+  PGSQL(db) "INSERT INTO forums_textdata (txt) VALUES ($txt)" >>= fun () ->
   serial4 db "textdata_id_seq" >>= fun txt_id -> 
-  PGSQL(db) "SELECT MAX(tree_max) FROM messages \
+  PGSQL(db) "SELECT MAX(tree_max) FROM forums_messages \
              WHERE thr_id = $thr_id" >>= fun z -> 
   (match z with
      | [x] -> (match x with
                  | None -> return 0l
                  | Some y -> return y)
      | _ -> return 0l) >>= fun db_max -> 
-  PGSQL(db) "INSERT INTO messages \
+  PGSQL(db) "INSERT INTO forums_messages \
                (author_id, thr_id, txt_id, hidden, tree_min, tree_max) \
              VALUES ($author_id, $thr_id, $txt_id, $hidden, \
                      $db_max + 1, $db_max + 2)" >>= fun () -> 
@@ -97,9 +97,9 @@ let new_thread_and_article ~frm_id ~author_id ~subject ~txt =
     (fun db ->
   PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>=        fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found) >>= fun hidden -> 
-  PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>= fun () -> 
+  PGSQL(db) "INSERT INTO forums_textdata (txt) VALUES ($txt)" >>= fun () -> 
   serial4 db "textdata_id_seq" >>= fun txt_id -> 
-  PGSQL(db) "INSERT INTO threads \
+  PGSQL(db) "INSERT INTO forums_threads \
                (frm_id, subject, hidden, author_id, article_id) \
              VALUES ($frm_id, $subject, $hidden, $author_id, $txt_id)" 
     >>= fun () -> 
@@ -113,13 +113,13 @@ let new_message ~thr_id ?parent_id ~author_id ~txt ~sticky () =
   Ocsigen_messages.debug2 "[Sql] new_message"; 
   Sql.full_transaction_block
     (fun db ->
-  PGSQL(db) "SELECT moderated FROM forums,threads \
-             WHERE threads.id = $thr_id \
-             AND threads.frm_id = forums.id" >>= fun y -> 
+  PGSQL(db) "SELECT moderated FROM forums,forums_threads \
+             WHERE forums_threads.id = $thr_id \
+             AND forums_threads.frm_id = forums.id" >>= fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found) >>= fun hidden -> 
-  PGSQL(db) "INSERT INTO textdata (txt) VALUES ($txt)" >>= fun () -> 
+  PGSQL(db) "INSERT INTO forums_textdata (txt) VALUES ($txt)" >>= fun () -> 
   serial4 db "textdata_id_seq" >>= fun txt_id -> 
-  PGSQL(db) "SELECT MAX(tree_max) FROM messages \
+  PGSQL(db) "SELECT MAX(tree_max) FROM forums_messages \
              WHERE thr_id = $thr_id" >>= fun z -> 
   (match z with
      | [x] -> (match x with
@@ -128,24 +128,24 @@ let new_message ~thr_id ?parent_id ~author_id ~txt ~sticky () =
      | _ -> return 0l) >>= fun db_max -> 
     (match parent_id with
        | None -> 
-           PGSQL(db) "INSERT INTO messages (author_id, thr_id, txt_id, hidden, \
+           PGSQL(db) "INSERT INTO forums_messages (author_id, thr_id, txt_id, hidden, \
                         sticky, tree_min, tree_max) \
                       VALUES ($author_id, $thr_id, $txt_id, $hidden, $sticky, \
                                 $db_max + 1, $db_max + 2)" >>= fun () -> 
            serial4 db "messages_id_seq"
        | Some pid -> 
            PGSQL(db) "SELECT tree_min, tree_max \
-                      FROM messages WHERE id = $pid" >>= fun y -> 
+                      FROM forums_messages WHERE id = $pid" >>= fun y -> 
            (match y with 
               | [x] -> return x
               | _ -> fail Not_found) >>= fun (db_min, db_max) -> 
-           PGSQL(db) "UPDATE messages SET tree_min = tree_min + 2, \
+           PGSQL(db) "UPDATE forums_messages SET tree_min = tree_min + 2, \
                       tree_max = tree_max + 2 WHERE tree_min > $db_max" 
              >>= fun () -> 
-           PGSQL(db) "UPDATE messages SET tree_max = tree_max + 2 \
+           PGSQL(db) "UPDATE forums_messages SET tree_max = tree_max + 2 \
                       WHERE $db_min BETWEEN tree_min AND tree_max" 
              >>= fun () -> 
-           PGSQL(db) "INSERT INTO messages (author_id, thr_id, txt_id, hidden, \
+           PGSQL(db) "INSERT INTO forums_messages (author_id, thr_id, txt_id, hidden, \
                       sticky, tree_min, tree_max) \
                       VALUES ($author_id, $thr_id, $txt_id, $hidden, 
                               $sticky, $db_max, $db_max + 1)" >>= fun () -> 
@@ -164,27 +164,27 @@ let thread_toggle_hidden ~frm_id ~thr_id =
   (* hides/shows a thread *)
   Lwt_pool.use Sql.pool (fun db ->
   Ocsigen_messages.debug2 "[Sql] thread_toggle_hidden";
-  PGSQL(db) "UPDATE threads SET hidden = NOT hidden \
+  PGSQL(db) "UPDATE forums_threads SET hidden = NOT hidden \
               WHERE id = $thr_id AND frm_id = $frm_id")
 
 let message_toggle_hidden ~frm_id ~msg_id =
   (* hides/shows a message *)
   Lwt_pool.use Sql.pool (fun db ->
   Ocsigen_messages.debug2 "[Sql] message_toggle_hidden";
-  PGSQL(db) "UPDATE messages \
-             SET hidden = NOT messages.hidden \
-             FROM threads \
-             WHERE messages.id = $msg_id \
-             AND messages.thr_id = threads.id \
-             AND threads.frm_id = $frm_id")
+  PGSQL(db) "UPDATE forums_messages \
+             SET hidden = NOT forums_messages.hidden \
+             FROM forums_threads \
+             WHERE forums_messages.id = $msg_id \
+             AND forums_messages.thr_id = forums_threads.id \
+             AND forums_threads.frm_id = $frm_id")
 
 let message_toggle_sticky ~frm_id ~msg_id =
   Lwt_pool.use Sql.pool (fun db ->
   Ocsigen_messages.debug2 "[Sql] message_toggle_sticky";
-  PGSQL(db) "UPDATE messages SET sticky = NOT messages.sticky \
-             FROM threads WHERE messages.id = $msg_id \
-             AND messages.thr_id = threads.id \
-             AND threads.frm_id = $frm_id")
+  PGSQL(db) "UPDATE forums_messages SET sticky = NOT forums_messages.sticky \
+             FROM forums_threads WHERE forums_messages.id = $msg_id \
+             AND forums_messages.thr_id = forums_threads.id \
+             AND forums_threads.frm_id = $frm_id")
 
 let find_forum ?id ?title () =
   Sql.full_transaction_block
@@ -251,42 +251,42 @@ let forum_get_data ~frm_id ~role =
              WHERE id = $frm_id" >>= fun y -> 
          (match y with [x] -> return x | _ -> fail Not_found) 
          >>= fun (id, title, description, moderated) -> 
-           PGSQL(db) "SELECT COUNT(*) FROM threads \
+           PGSQL(db) "SELECT COUNT(*) FROM forums_threads \
              WHERE frm_id = $frm_id AND (NOT hidden)" >>= fun y -> 
              (match y with [Some x] -> return x | _ -> assert false) 
          >>= fun n_shown_thr -> 
-           PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
-             WHERE threads.frm_id = $frm_id \
-             AND messages.thr_id = threads.id \
-             AND NOT (messages.hidden OR threads.hidden)" >>= fun y -> 
+           PGSQL(db) "SELECT COUNT(*) FROM forums_messages, forums_threads \
+             WHERE forums_threads.frm_id = $frm_id \
+             AND forums_messages.thr_id = forums_threads.id \
+             AND NOT (forums_messages.hidden OR forums_threads.hidden)" >>= fun y -> 
          (match y with [Some x] -> return x | _ -> assert false)
          >>= fun n_shown_msg -> 
          (match role with        
             | Moderator -> (* counts all hidden stuff *)
-                PGSQL(db) "SELECT COUNT(*) FROM threads \
+                PGSQL(db) "SELECT COUNT(*) FROM forums_threads \
                     WHERE frm_id = $frm_id AND hidden" >>= fun y -> 
                   (match y with
                      | [Some x] -> return x
                      | _ -> assert false)
                 | Author aid ->
-                    PGSQL(db) "SELECT COUNT(*) FROM threads \
+                    PGSQL(db) "SELECT COUNT(*) FROM forums_threads \
                     WHERE frm_id = $frm_id AND hidden \
                     AND author_id = $aid" >>= fun y -> 
                       (match y with [Some x] -> return x | _ -> assert false)
                     | Unknown -> return 0L) >>= fun n_hidden_thr -> 
            (match role with
               | Moderator -> 
-                  PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
-                    WHERE threads.frm_id = $frm_id \
-                    AND messages.thr_id = threads.id \
-                    AND (messages.hidden OR threads.hidden)" >>= fun y -> 
+                  PGSQL(db) "SELECT COUNT(*) FROM forums_messages, forums_threads \
+                    WHERE forums_threads.frm_id = $frm_id \
+                    AND forums_messages.thr_id = forums_threads.id \
+                    AND (forums_messages.hidden OR forums_threads.hidden)" >>= fun y -> 
                     (match y with [Some x] -> return x | _ -> assert false)
                   | Author aid ->
-                      PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
-                     WHERE threads.frm_id = $frm_id \
-                    AND messages.thr_id = threads.id \
-                    AND (messages.hidden OR threads.hidden) \
-                    AND messages.author_id = $aid" >>= fun y -> 
+                      PGSQL(db) "SELECT COUNT(*) FROM forums_messages, forums_threads \
+                     WHERE forums_threads.frm_id = $frm_id \
+                    AND forums_messages.thr_id = forums_threads.id \
+                    AND (forums_messages.hidden OR forums_threads.hidden) \
+                    AND forums_messages.author_id = $aid" >>= fun y -> 
                         (match y with [Some x] -> return x | _ -> assert false)
                       | Unknown -> return 0L)
   >>= fun n_hidden_msg -> 
@@ -300,24 +300,24 @@ let thread_get_nr_messages ~thr_id ~role =
        Ocsigen_messages.debug2 "[Sql] thread_get_nr_messages";
   (match role with
      | Moderator -> (* all messages *)
-         PGSQL(db) "SELECT COUNT(*) FROM messages \
-                    WHERE messages.thr_id = $thr_id" >>= fun y -> 
+         PGSQL(db) "SELECT COUNT(*) FROM forums_messages \
+                    WHERE forums_messages.thr_id = $thr_id" >>= fun y -> 
            (match y with
               | [Some x] -> return x
               | _ -> fail (Failure "thread_get_nr_messages"))
      | Author aid -> 
          (* all non-hidden messages AND hidden messages posted by a *)
-         PGSQL(db) "SELECT COUNT(*) FROM messages \
-                    WHERE messages.thr_id = $thr_id \
-                    AND messages.hidden = false OR messages.author_id = $aid"
+         PGSQL(db) "SELECT COUNT(*) FROM forums_messages \
+                    WHERE forums_messages.thr_id = $thr_id \
+                    AND forums_messages.hidden = false OR forums_messages.author_id = $aid"
          >>= fun y -> 
          (match y with
             | [Some x] -> return x
             | _ -> fail (Failure "thread_get_nr_messages"))
      | Unknown -> (* all non-hidden messages *)
-         PGSQL(db) "SELECT COUNT(*) FROM messages \
-                    WHERE messages.thr_id = $thr_id \
-                    AND messages.hidden = false" >>= fun y -> 
+         PGSQL(db) "SELECT COUNT(*) FROM forums_messages \
+                    WHERE forums_messages.thr_id = $thr_id \
+                    AND forums_messages.hidden = false" >>= fun y -> 
            (match y with
               | [Some x] -> return x
               | _ -> fail (Failure "thread_get_nr_messages"))))
@@ -334,32 +334,32 @@ let thread_get_data (* ~frm_id *) ~thr_id ~role =
     (fun db ->
   PGSQL(db) 
     "SELECT t.id, subject, fullname, t.datetime, t.hidden, COALESCE (txt, '') \
-     FROM users AS u, threads AS t LEFT OUTER JOIN textdata ON \
-        (t.article_id = textdata.id) \
+     FROM users AS u, forums_threads AS t LEFT OUTER JOIN forums_textdata ON \
+        (t.article_id = forums_textdata.id) \
      WHERE t.id = $thr_id AND u.id = t.author_id" (* AND frm_id = $frm_id *) 
     >>=        fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found) 
       >>= fun (id, subject, author_id, datetime, hidden, article) ->
-  PGSQL(db) "SELECT COUNT(*) FROM messages \
+  PGSQL(db) "SELECT COUNT(*) FROM forums_messages \
              WHERE thr_id = $thr_id AND (NOT hidden)" >>= fun y -> 
   (match y with
      | [Some x] -> return x
      | _ -> assert false) >>= fun n_shown_msg -> 
   (match role with
      | Moderator -> (* counts all hidden messages *)
-         PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
-                    WHERE messages.thr_id = $thr_id \
-                    AND threads.id = $thr_id \
-                    AND (messages.hidden OR threads.hidden)" >>= fun y -> 
+         PGSQL(db) "SELECT COUNT(*) FROM forums_messages, forums_threads \
+                    WHERE forums_messages.thr_id = $thr_id \
+                    AND forums_threads.id = $thr_id \
+                    AND (forums_messages.hidden OR forums_threads.hidden)" >>= fun y -> 
            (match y with
               | [Some x] -> return x
               | _ -> assert false)
      | Author aid -> (* counts only hidden messages posted by her *)
-         PGSQL(db) "SELECT COUNT(*) FROM messages, threads \
-                    WHERE messages.thr_id = $thr_id \
-                    AND threads.id = $thr_id \
-                    AND (messages.hidden OR threads.hidden) \
-                    AND messages.author_id = $aid" >>= fun y -> 
+         PGSQL(db) "SELECT COUNT(*) FROM forums_messages, forums_threads \
+                    WHERE forums_messages.thr_id = $thr_id \
+                    AND forums_threads.id = $thr_id \
+                    AND (forums_messages.hidden OR forums_threads.hidden) \
+                    AND forums_messages.author_id = $aid" >>= fun y -> 
            (match y with
               | [Some x] -> return x
               | _ -> assert false)
@@ -374,14 +374,14 @@ let message_get_data ~frm_id ~msg_id =
   (* returns id, text, author, datetime, hidden status of a message *)
   Lwt_pool.use Sql.pool (fun db ->
   Ocsigen_messages.debug2 "[Sql] message_get_data";
-  PGSQL(db) "SELECT messages.id, textdata.txt, fullname, \
-             messages.datetime, messages.hidden \
-             FROM messages, textdata, threads, users \
-             WHERE messages.id = $msg_id \
-             AND messages.txt_id = textdata.id \
-             AND messages.thr_id = threads.id \
-             AND threads.frm_id = $frm_id \
-             AND users.id = messages.author_id" >>= fun y -> 
+  PGSQL(db) "SELECT forums_messages.id, forums_textdata.txt, fullname, \
+             forums_messages.datetime, forums_messages.hidden \
+             FROM forums_messages, forums_textdata, forums_threads, users \
+             WHERE forums_messages.id = $msg_id \
+             AND forums_messages.txt_id = forums_textdata.id \
+             AND forums_messages.thr_id = forums_threads.id \
+             AND forums_threads.frm_id = $frm_id \
+             AND users.id = forums_messages.author_id" >>= fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found)
     >>= fun (id, text, author_id, datetime, hidden) ->
   Ocsigen_messages.debug2 "[Sql] message_get_data: finish";
@@ -392,37 +392,37 @@ let thread_get_neighbours ~frm_id ~thr_id ~role =
   Sql.full_transaction_block
     (fun db ->
        Ocsigen_messages.debug2 "[Sql] thread_get_neighbours";
-  PGSQL(db) "SELECT datetime FROM threads \
+  PGSQL(db) "SELECT datetime FROM forums_threads \
              WHERE id = $thr_id AND frm_id = $frm_id" >>= fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found) >>= fun datetime -> 
   (match role with
-     | Moderator -> (* all kinds of threads *)
-         PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
+     | Moderator -> (* all kinds of forums_threads *)
+         PGSQL(db) "SELECT id FROM forums_threads WHERE frm_id = $frm_id \
                                 AND datetime < $datetime \
                                 ORDER BY datetime DESC LIMIT 1"
-     | Author aid -> (* only shown threads, or hidden ones posted by her *)
-         PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
+     | Author aid -> (* only shown forums_threads, or hidden ones posted by her *)
+         PGSQL(db) "SELECT id FROM forums_threads WHERE frm_id = $frm_id \
                                 AND datetime < $datetime \
                                 AND (author_id = $aid OR NOT hidden) \
                                 ORDER BY datetime DESC LIMIT 1"
-     | Unknown -> (* only shown threads *)
-         PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
+     | Unknown -> (* only shown forums_threads *)
+         PGSQL(db) "SELECT id FROM forums_threads WHERE frm_id = $frm_id \
                                 AND datetime < $datetime \
                                 AND (NOT hidden) \
                                 ORDER BY datetime DESC LIMIT 1") >>= fun y -> 
   let prev = (match y with [x] -> Some x | _ -> None) in
   (match role with
      | Moderator ->
-         PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
+         PGSQL(db) "SELECT id FROM forums_threads WHERE frm_id = $frm_id \
                                 AND datetime > $datetime \
                                  ORDER BY datetime ASC LIMIT 1"
      | Author aid ->
-         PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
+         PGSQL(db) "SELECT id FROM forums_threads WHERE frm_id = $frm_id \
                                 AND datetime > $datetime \
                                 AND (author_id = $aid OR NOT hidden) \
                                  ORDER BY datetime ASC LIMIT 1"
      | Unknown ->
-         PGSQL(db) "SELECT id FROM threads WHERE frm_id = $frm_id \
+         PGSQL(db) "SELECT id FROM forums_threads WHERE frm_id = $frm_id \
                                 AND datetime > $datetime \
                                 AND (NOT hidden) \
                                 ORDER BY datetime ASC LIMIT 1") >>= fun y -> 
@@ -437,41 +437,41 @@ let message_get_neighbours ~frm_id ~msg_id ~role =
   Sql.full_transaction_block
     (fun db ->
        Ocsigen_messages.debug2 "[Sql] message_get_neighbours";
-  PGSQL(db) "SELECT messages.thr_id, messages.datetime \
-                FROM messages, threads \
-                WHERE messages.id = $msg_id \
-                AND messages.thr_id = threads.id \
-                AND threads.frm_id = $frm_id" >>= fun y -> 
+  PGSQL(db) "SELECT forums_messages.thr_id, forums_messages.datetime \
+                FROM forums_messages, forums_threads \
+                WHERE forums_messages.id = $msg_id \
+                AND forums_messages.thr_id = forums_threads.id \
+                AND forums_threads.frm_id = $frm_id" >>= fun y -> 
   (match y with [x] -> return x | _ -> fail Not_found)
     >>= fun (thr_id, datetime) -> 
   (match role with
-     | Moderator -> (* all kinds of threads *)
-         PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
+     | Moderator -> (* all kinds of forums_threads *)
+         PGSQL(db) "SELECT id FROM forums_messages WHERE thr_id = $thr_id \
                                 AND datetime < $datetime \
                                 ORDER BY datetime DESC LIMIT 1"
-     | Author aid -> (* only shown messages, or hidden ones posted by her *)
-         PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
+     | Author aid -> (* only shown forums_messages, or hidden ones posted by her *)
+         PGSQL(db) "SELECT id FROM forums_messages WHERE thr_id = $thr_id \
                                 AND datetime < $datetime \
                                 AND (author_id = $aid OR NOT hidden) \
                                 ORDER BY datetime DESC LIMIT 1"
-     | Unknown -> (* only shown messages *)
-         PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
+     | Unknown -> (* only shown forums_messages *)
+         PGSQL(db) "SELECT id FROM forums_messages WHERE thr_id = $thr_id \
                                 AND datetime < $datetime \
                                 AND (NOT hidden) \
                                 ORDER BY datetime DESC LIMIT 1") >>= fun y -> 
     let prev = (match y with [x] -> Some x | _ -> None) in
     (match role with
        | Moderator ->
-           PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
+           PGSQL(db) "SELECT id FROM forums_messages WHERE thr_id = $thr_id \
                                 AND datetime > $datetime \
                                  ORDER BY datetime ASC LIMIT 1"
        | Author aid ->
-           PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
+           PGSQL(db) "SELECT id FROM forums_messages WHERE thr_id = $thr_id \
                                 AND datetime > $datetime \
                                 AND (author_id = $aid OR NOT hidden) \
                                  ORDER BY datetime ASC LIMIT 1"
        | Unknown ->
-           PGSQL(db) "SELECT id FROM messages WHERE thr_id = $thr_id \
+           PGSQL(db) "SELECT id FROM forums_messages WHERE thr_id = $thr_id \
                                 AND datetime > $datetime \
                                 AND (NOT hidden) \
                                 ORDER BY datetime ASC LIMIT 1")
@@ -481,11 +481,11 @@ let message_get_neighbours ~frm_id ~msg_id ~role =
   Lwt.return (prev, next))
 
 let forum_get_threads_list ~frm_id ?offset ?limit ~role () =
-  (* returns the threads list of a forum, ordered cronologycally
+  (* returns the forums_threads list of a forum, ordered cronologycally
      (latest first), with max [~limit] items and skipping first
      [~offset] rows. *)
   Lwt_pool.use Sql.pool (fun db ->
-  Ocsigen_messages.debug2 "[Sql] forum_get_threads_list";
+  Ocsigen_messages.debug2 "[Sql] forum_get_forums_threads_list";
   let db_offset = match offset with
     | None -> 0L
     | Some x -> x in
@@ -494,15 +494,15 @@ let forum_get_threads_list ~frm_id ?offset ?limit ~role () =
           (match role with
              | Moderator -> 
                  PGSQL(db)
-                   "SELECT threads.id, subject, fullname, datetime, hidden \
-                        FROM threads, users \
+                   "SELECT forums_threads.id, subject, fullname, datetime, hidden \
+                        FROM forums_threads, users \
                         WHERE frm_id = $frm_id AND author_id = users.id \
                         ORDER BY datetime DESC \
                         OFFSET $db_offset"
              | Author aid ->
                  PGSQL(db)
-                   "SELECT threads.id, subject, fullname, datetime, hidden \
-                        FROM threads, users \
+                   "SELECT forums_threads.id, subject, fullname, datetime, hidden \
+                        FROM forums_threads, users \
                         WHERE frm_id = $frm_id \
                         AND (author_id = $aid OR NOT hidden) \
                         AND users.id = author_id \
@@ -510,8 +510,8 @@ let forum_get_threads_list ~frm_id ?offset ?limit ~role () =
                         OFFSET $db_offset"
              | Unknown -> 
                  PGSQL(db)
-                   "SELECT threads.id, subject, fullname, datetime, hidden \
-                        FROM threads, users \
+                   "SELECT forums_threads.id, subject, fullname, datetime, hidden \
+                        FROM forums_threads, users \
                         WHERE frm_id = $frm_id AND users.id = author_id \
                         AND NOT hidden \
                         ORDER BY datetime DESC \
@@ -521,23 +521,23 @@ let forum_get_threads_list ~frm_id ?offset ?limit ~role () =
             (match role with
                | Moderator -> 
                    PGSQL(db)
-                     "SELECT threads.id, subject, fullname, datetime, hidden \
-                        FROM threads, users \
+                     "SELECT forums_threads.id, subject, fullname, datetime, hidden \
+                        FROM forums_threads, users \
                         WHERE frm_id = $frm_id AND users.id = author_id \
                         ORDER BY datetime DESC \
                         LIMIT $db_limit OFFSET $db_offset"
                | Author aid -> 
                    PGSQL(db)
-                     "SELECT threads.id, subject, fullname, datetime, hidden \
-                        FROM threads, users \
+                     "SELECT forums_threads.id, subject, fullname, datetime, hidden \
+                        FROM forums_threads, users \
                         WHERE frm_id = $frm_id AND users.id = author_id \
                          AND (author_id = $aid OR NOT hidden) \
                         ORDER BY datetime DESC \
                         LIMIT $db_limit OFFSET $db_offset"
                | Unknown -> 
                    PGSQL(db)
-                     "SELECT threads.id, subject, fullname, datetime, hidden \
-                        FROM threads, users \
+                     "SELECT forums_threads.id, subject, fullname, datetime, hidden \
+                        FROM forums_threads, users \
                         WHERE frm_id = $frm_id AND users.id = author_id \
                         AND NOT hidden \
                         ORDER BY datetime DESC \
@@ -580,26 +580,26 @@ let thread_get_messages_with_text ~thr_id ?offset ?limit ~role ?bottom () =
           (match role with 
              | Moderator ->
                 PGSQL(db)
-                  "SELECT messages.id,txt,fullname,datetime,hidden,sticky \
-                FROM messages, textdata, users \
-                WHERE txt_id = textdata.id AND thr_id = $thr_id \
+                  "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky \
+                FROM forums_messages, forums_textdata, users \
+                WHERE txt_id = forums_textdata.id AND thr_id = $thr_id \
                 AND users.id = author_id \
                 ORDER BY sticky DESC, datetime \
                 OFFSET $db_offset" 
              | Author aid ->
                 PGSQL(db)
-                  "SELECT messages.id,txt,fullname,datetime,hidden,sticky \
-                FROM messages, textdata, users \
+                  "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky \
+                FROM forums_messages, forums_textdata, users \
                 WHERE (author_id = $aid OR NOT hidden) \
-                AND txt_id = textdata.id AND \
+                AND txt_id = forums_textdata.id AND \
                 thr_id = $thr_id AND users.id = author_id \
                 ORDER BY sticky DESC, datetime \
                 OFFSET $db_offset" 
              | Unknown ->
                 PGSQL(db)
-                  "SELECT messages.id,txt,fullname,datetime,hidden,sticky \
-                FROM messages, textdata, users \
-                WHERE NOT hidden AND txt_id = textdata.id AND thr_id = $thr_id \
+                  "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky \
+                FROM forums_messages, forums_textdata, users \
+                WHERE NOT hidden AND txt_id = forums_textdata.id AND thr_id = $thr_id \
                 AND users.id = author_id \
                 ORDER BY sticky DESC, datetime \
                 OFFSET $db_offset"))
@@ -617,24 +617,24 @@ let thread_get_messages_with_text ~thr_id ?offset ?limit ~role ?bottom () =
             (match role with 
                | Moderator ->
                    PGSQL(db)
-                     "SELECT messages.id,txt,fullname,datetime,hidden,sticky \
-                       FROM messages, textdata, users \
-                      WHERE txt_id = textdata.id AND thr_id = $thr_id \
+                     "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky \
+                       FROM forums_messages, forums_textdata, users \
+                      WHERE txt_id = forums_textdata.id AND thr_id = $thr_id \
                       AND users.id = author_id \
                       ORDER BY sticky DESC, datetime \
                       LIMIT $db_limit OFFSET $db_offset" 
         | Author aid ->
-            PGSQL(db) "SELECT messages.id,txt,fullname,datetime,hidden,sticky \
-                FROM messages, textdata, users \
+            PGSQL(db) "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky \
+                FROM forums_messages, forums_textdata, users \
                 WHERE (author_id = $aid OR NOT hidden) \
-                AND txt_id = textdata.id AND \
+                AND txt_id = forums_textdata.id AND \
                 thr_id = $thr_id AND users.id = author_id \
                 ORDER BY sticky DESC, datetime \
                 LIMIT $db_limit OFFSET $db_offset" 
         | Unknown ->
-            PGSQL(db) "SELECT messages.id,txt,fullname,datetime,hidden,sticky \
-                FROM messages, textdata, users \
-                WHERE NOT hidden AND txt_id = textdata.id AND thr_id = $thr_id \
+            PGSQL(db) "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky \
+                FROM forums_messages, forums_textdata, users \
+                WHERE NOT hidden AND txt_id = forums_textdata.id AND thr_id = $thr_id \
                         AND users.id = author_id \
                 ORDER BY sticky DESC, datetime \
                 LIMIT $db_limit OFFSET $db_offset"))
@@ -661,7 +661,7 @@ let thread_get_messages_with_text_forest
           (fun () ->
         (match top with
            | None -> (PGSQL(db) "SELECT MIN(tree_min), MAX(tree_max) \
-                        FROM messages WHERE thr_id = $thr_id" >>= fun z -> 
+                        FROM forums_messages WHERE thr_id = $thr_id" >>= fun z -> 
                       Lwt.return
                         (match z with
                            | [(x,y)] -> 
@@ -670,7 +670,7 @@ let thread_get_messages_with_text_forest
                                   | _-> (Int32.zero,Int32.zero))
                            | _ -> (Int32.zero,Int32.zero)))
                 | Some t -> (PGSQL(db) "SELECT tree_min, tree_max \
-                        FROM messages WHERE thr_id = $thr_id AND id = $t") 
+                        FROM forums_messages WHERE thr_id = $thr_id AND id = $t") 
                     >>=        fun y -> 
                       (match y        with
                          | [x] -> return x
@@ -678,21 +678,21 @@ let thread_get_messages_with_text_forest
           (match role with 
              | Moderator ->
                  PGSQL(db)
-                   "SELECT messages.id,txt,fullname,datetime,hidden,sticky, \
+                   "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky, \
                         tree_min, tree_max \
-                        FROM messages, textdata, users \
-                        WHERE txt_id = textdata.id \
+                        FROM forums_messages, forums_textdata, users \
+                        WHERE txt_id = forums_textdata.id \
                         AND (tree_min BETWEEN $db_min AND $db_max) \
                         AND thr_id = $thr_id AND users.id = author_id \
                         ORDER BY sticky DESC, tree_min \
                         OFFSET $db_offset" 
              | Author aid ->
                  PGSQL(db) 
-                   "SELECT messages.id,txt,fullname,datetime,hidden,sticky, \
+                   "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky, \
                     tree_min, tree_max \
-                    FROM messages, textdata, users \
+                    FROM forums_messages, forums_textdata, users \
                     WHERE (author_id = $aid OR NOT hidden) \
-                    AND txt_id = textdata.id AND \
+                    AND txt_id = forums_textdata.id AND \
                     (tree_min BETWEEN $db_min AND $db_max) \
                     AND thr_id = $thr_id \
                     AND users.id = author_id \
@@ -700,10 +700,10 @@ let thread_get_messages_with_text_forest
                     OFFSET $db_offset" 
              | Unknown ->
                  PGSQL(db)
-                   "SELECT messages.id,txt,fullname,datetime,hidden,sticky, \
+                   "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky, \
                     tree_min, tree_max \
-                    FROM messages, textdata, users \
-                    WHERE NOT hidden AND txt_id = textdata.id AND \
+                    FROM forums_messages, forums_textdata, users \
+                    WHERE NOT hidden AND txt_id = forums_textdata.id AND \
                         (tree_min BETWEEN $db_min AND $db_max)
                     AND thr_id = $thr_id \
                     AND users.id = author_id \
@@ -725,7 +725,7 @@ let thread_get_messages_with_text_forest
               (fun () ->
                 (match top with
                    | None -> (PGSQL(db) "SELECT MIN(tree_min), MAX(tree_max) \
-                        FROM messages WHERE thr_id = $thr_id" >>= fun z -> 
+                        FROM forums_messages WHERE thr_id = $thr_id" >>= fun z -> 
                         Lwt.return
                           (match z with
                              | [(x,y)] -> 
@@ -734,7 +734,7 @@ let thread_get_messages_with_text_forest
                                     | _-> (Int32.zero, Int32.zero))
                              | _ -> (Int32.zero,Int32.zero)))
                    | Some t -> (PGSQL(db) "SELECT tree_min, tree_max \
-                        FROM messages WHERE thr_id = $thr_id AND id = $t") 
+                        FROM forums_messages WHERE thr_id = $thr_id AND id = $t") 
                        >>= fun y -> 
                       (match y with
                          | [x] -> Lwt.return x
@@ -742,28 +742,28 @@ let thread_get_messages_with_text_forest
                 (match role with 
                    | Moderator ->
                        PGSQL(db)
-                         "SELECT messages.id,txt,fullname,datetime,hidden,sticky, \
+                         "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky, \
                         tree_min,tree_max \
-                        FROM messages, textdata, users \
-                        WHERE txt_id = textdata.id AND (tree_min BETWEEN $db_min AND $db_max) \
+                        FROM forums_messages, forums_textdata, users \
+                        WHERE txt_id = forums_textdata.id AND (tree_min BETWEEN $db_min AND $db_max) \
                         AND thr_id = $thr_id AND users.id = author_id \
                         ORDER BY sticky DESC, tree_min \
                         LIMIT $db_limit OFFSET $db_offset" 
                    | Author aid ->
                        PGSQL(db) 
-                         "SELECT messages.id,txt,fullname,datetime,hidden,sticky, \
+                         "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky, \
                         tree_min,tree_max \
-                        FROM messages, textdata, users \
-                        WHERE (author_id = $aid OR NOT hidden) AND txt_id = textdata.id AND \
+                        FROM forums_messages, forums_textdata, users \
+                        WHERE (author_id = $aid OR NOT hidden) AND txt_id = forums_textdata.id AND \
                                 (tree_min BETWEEN $db_min AND $db_max) AND thr_id = $thr_id \
                                 AND users.id = author_id \
                         ORDER BY sticky DESC, tree_min \
                         LIMIT $db_limit OFFSET $db_offset" 
                    | Unknown ->
-                       PGSQL(db) "SELECT messages.id,txt,fullname,datetime,hidden,sticky, \
+                       PGSQL(db) "SELECT forums_messages.id,txt,fullname,datetime,hidden,sticky, \
                         tree_min,tree_max \
-                        FROM messages, textdata, users \
-                        WHERE NOT hidden AND txt_id = textdata.id AND \
+                        FROM forums_messages, forums_textdata, users \
+                        WHERE NOT hidden AND txt_id = forums_textdata.id AND \
                                 (tree_min BETWEEN $db_min AND $db_max) AND thr_id = $thr_id \
                                 AND users.id = author_id \
                         ORDER BY sticky DESC, tree_min \
@@ -781,11 +781,11 @@ let thread_get_messages_with_text_forest
 
 let get_latest_messages ~frm_ids ~limit () =
   Lwt_pool.use Sql.pool (fun db ->
-        PGSQL(db) "SELECT messages.id,txt,fullname \
-        FROM messages, textdata, users \
-        WHERE messages.txt_id = textdata.id AND \
-        thr_id IN (SELECT id FROM threads WHERE frm_id IN $@frm_ids) AND
-        NOT messages.hidden AND users.id = author_id \
+        PGSQL(db) "SELECT forums_messages.id,txt,fullname \
+        FROM forums_messages, forums_textdata, users \
+        WHERE forums_messages.txt_id = forums_textdata.id AND \
+        thr_id IN (SELECT id FROM forums_threads WHERE frm_id IN $@frm_ids) AND
+        NOT forums_messages.hidden AND users.id = author_id \
         ORDER BY datetime DESC LIMIT $limit" >>= fun result -> 
   Ocsigen_messages.debug2 "[Sql] get_latest_messages: finish"; 
   Lwt.return result)
