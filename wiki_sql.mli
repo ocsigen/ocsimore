@@ -86,9 +86,6 @@ val wiki_get_pages_list : wik_id:int32 ->
 *)
 
 
-(**/**)
-(* DO NOT USE THE FOLLOWING BUT THOSE IN WIKI_CACHE.ML *)
-
 (** return the box corresponding to a wikipage *)
 val get_box_for_page : wiki:wiki -> page:string -> int32 Lwt.t
 
