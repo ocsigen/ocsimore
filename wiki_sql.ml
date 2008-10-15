@@ -39,12 +39,13 @@ open Ocsimore_lib
 open CalendarLib
 open Sql
 
-(** inserts a new wiki *)
+(** inserts a new wiki. The container_id field contains the dummy value 0,
+that *must* be overwritten *)
 let new_wiki ~title ~descr ~pages ~boxrights ~staticdir () =
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, staticdir)
-                    VALUES ($title, $descr, $?pages, $boxrights, $?staticdir)"
+       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
+                    VALUES ($title, $descr, $?pages, $boxrights, 0, $?staticdir)"
        >>= fun () ->
        serial4 db "wikis_id_seq")
   >>= fun wiki ->

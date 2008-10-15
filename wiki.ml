@@ -40,7 +40,7 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : string option;
-  container_id : int32 option;
+  container_id : int32;
   staticdir : string option; (* if static dir is given, 
                                 ocsimore will serve static pages if present,
                                 instead of wiki pages *)
@@ -335,10 +335,7 @@ let display_page w wikibox action_create_page sp page () =
                )
       >>= fun subbox ->
 
-      match w.container_id with
-        | None -> Lwt.fail (Failure "Wiki has no container box")
-        | Some container_id ->
-            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, container_id)
+            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
               ?rows:None ?cols:None ?classe:None
               ?subbox:(Some subbox) ?cssmenu:(Some None)
               ~ancestors:Wiki_syntax.no_ancestors
@@ -475,7 +472,7 @@ let create_wiki ~title ~descr
            >>= fun () ->
 
            Lwt.return {wiki with
-                         container_id = Some container_id})
+                         container_id = container_id})
 
        | e -> Lwt.fail e)
   >>= fun w ->

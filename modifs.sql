@@ -41,6 +41,8 @@ UPDATE wikis SET pages = 'gdt-concurrence' WHERE id = 6;
 UPDATE wikis SET pages = 'gdt-prog' WHERE id = 7;
 UPDATE wikis SET pages = 'seminaire-thesards' WHERE id = 8;
 
+-- All wikis have a container page
+ALTER TABLE wikis ALTER COLUMN container_id SET NOT NULL;
 
 
 -- TODO wikicss and css

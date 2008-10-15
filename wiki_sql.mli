@@ -36,7 +36,8 @@ val eliom_wiki :
   string -> (wiki, [`WithoutSuffix], [`One of wiki] Eliom_parameters.param_name) Eliom_parameters.params_type
 
 
-(** inserts a new wiki container *)
+(** inserts a new wiki. The container_id field contains the dummy value 0,
+which *must* be overwritten with a valid wikibox  *)
 val new_wiki : 
   title:string -> 
   descr:string -> 
@@ -108,7 +109,7 @@ val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
 
 (** Find wiki information for a wiki, given its id *)
 val find_wiki : id:wiki -> 
-  (string * string * string option * bool * int32 option * string option) Lwt.t
+  (string * string * string option * bool * int32 * string option) Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
 val find_wiki_id_by_name : name:string -> wiki Lwt.t

@@ -1103,11 +1103,6 @@ object (self)
      Wiki.css_editors_group wiki >>= fun editors ->
      Wiki.get_wiki_by_id wiki >>= fun wiki_info ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
-     match wiki_info.Wiki.container_id with
-       | None -> 
-           Lwt.return 
-             (self#display_error_box ~message:"Wiki has no container" ())
-       | Some container_id -> 
            self#bind_or_display_error
              ~classe
              (if c
@@ -1124,8 +1119,7 @@ object (self)
              (self#display_edit_wikicss_form ~sp ~sd ?rows ?cols ~wiki)
              (self#display_edit_wikicss_box ~sp ~sd
                 ?cssmenu:(Some None)
-                (wiki, container_id))
-       
+                (wiki, wiki_info.Wiki.container_id))
 
    method get_css_header ~sp ~wiki ?(admin=false) ?page () =
      if admin
@@ -1501,18 +1495,14 @@ object (self)
          (fun sp ((wiki, page) as g) () -> 
             let sd = Ocsimore_common.get_sd sp in
             Wiki.get_wiki_by_id wiki >>= fun wiki_info ->
-            (match wiki_info.Wiki.container_id with
-              | None -> 
-                  Lwt.return 
-                    (self#display_error_box ~message:"Wiki has no container" ())
-              | Some container_id -> 
-                  self#edit_css_box ~sp ~sd ~rows:30 ~data:g ()
-                  >>= fun subbox ->
-                  self#editable_wikibox ~sp ~sd
-                    ~ancestors:Wiki_syntax.no_ancestors
-                    ~data:(wiki, container_id)
-                    ?cssmenu:(Some None)
-                    ~subbox:{{ [ subbox ] }} ()) >>= fun pagecontent ->
+              self#edit_css_box ~sp ~sd ~rows:30 ~data:g ()
+            >>= fun subbox ->
+              self#editable_wikibox ~sp ~sd
+                ~ancestors:Wiki_syntax.no_ancestors
+                ~data:(wiki, wiki_info.Wiki.container_id)
+                ?cssmenu:(Some None)
+                ~subbox:{{ [ subbox ] }} ()
+            >>= fun pagecontent ->
             self#get_css_header ~sp ~wiki ?page:(Some page) () 
             >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
