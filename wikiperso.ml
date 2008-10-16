@@ -133,26 +133,27 @@ let gen sp =
                  (* If the user for which we must create a wiki
                     exists, we create this wiki. If this wiki already
                     exists, [create_wiki] will silently ignore the
-                    creation call *)
+                    creation call. The url of wikiperso pages are not
+                    registered in the database so as to make their relocation
+                    easier *)
                  let gid = [userdata.Users.id] in
                  Wiki.create_wiki
-                   ~sp
                    ~title:(Printf.sprintf "wikiperso for %s" user)
                    ~descr:(Printf.sprintf "Personal wiki of %s"
                              userdata.Users.fullname)
-                   ~path:(wiki_path user)
                    ~wikibox:Ocsisite.wikibox
                    ~writers:gid ~wikiboxes_creators:gid
                    ~page_creators:gid ~css_editors:gid ~container_adm:gid
                    ()
-                 >>= fun _wiki ->
-(*                   (Printf.eprintf "Wiki for %s is wiki %s\n%!"
-                      user  (Wiki_sql.wiki_id_s _wiki.Wiki.id)); *)
-                   return ()
+                 (* Register the personal wiki at the correct url *)
+                 >>= fun wiki ->
+                 Wiki.register_wiki ~sp ~path:(wiki_path user)
+                   ~wikibox:Ocsisite.wikibox ~wiki:wiki.Wiki.id
+                   ~wiki_info:wiki ()
           )
           >>= fun () ->
-            (* Afterwards we return a 404 so that Ocsimore answers
-               with the freshly created wiki *)
+            (* In all cases, we return a 404. Eliom will answer with
+               the wiki if it has been successfully created *)
             return (Ext_next 404)
 
     | None -> return (Ext_next 404)

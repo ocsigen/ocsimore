@@ -544,6 +544,10 @@ let set_css_for_wiki_ ~wiki content =
     )
 
 
+let wikis_path () =
+  Sql.full_transaction_block
+    (fun db -> PGSQL(db) "SELECT id, pages FROM wikis")
+
 
 
 (** Cached versions of the functions above *)

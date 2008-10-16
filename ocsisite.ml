@@ -131,8 +131,6 @@ let wiki_admin =
           ()
       )
 
-
-
 let _ =
   Lwt_unix.run
 
@@ -165,3 +163,17 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
       )
 
 
+(* Registering the existing wikis *)
+let _ = Lwt_unix.run
+  (Wiki_sql.wikis_path ()
+   >>= fun l ->
+     Lwt_util.iter
+       (fun (wiki, path) ->
+          let (wiki : Wiki_sql.wiki) = Opaque.int32_t wiki in
+          match path with
+            | None -> Lwt.return ()
+            | Some path ->
+                let path = Ocsigen_lib.split '/' path in
+                Wiki.register_wiki ~path ~wikibox ~wiki ()
+       ) l
+  )

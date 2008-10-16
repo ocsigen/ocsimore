@@ -25,7 +25,7 @@
 *)
 
 (** Abstract type for a wiki *)
-type wiki
+type wiki = [`Wiki] Opaque.int32_t
 
 (** Conversions from a wiki index *)
 val wiki_id_s : wiki -> string
@@ -163,3 +163,8 @@ val get_writers : (wiki * int32) -> User_sql.userid list Lwt.t
 val get_rights_adm : (wiki * int32) -> User_sql.userid list Lwt.t
 val get_wikiboxes_creators : (wiki * int32) -> User_sql.userid list Lwt.t
 
+
+(** Path associated to a wiki. Does not currently return a list
+    of (wiki * _) because of limitations in our phantom types based
+    representation *)
+val wikis_path : unit -> (int32 * string option) list Lwt.t

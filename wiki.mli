@@ -51,7 +51,7 @@ type wiki_info = {
 val create_wiki :
   title:string ->
   descr:string ->
-  ?sp: Eliom_sessions.server_params ->
+  ?sp:Eliom_sessions.server_params ->
   ?path: string list ->
   ?readers:User_sql.userid list -> 
   ?writers:User_sql.userid list -> 
@@ -67,6 +67,16 @@ val create_wiki :
   unit -> 
   wiki_info Lwt.t
 
+
+(** Register a pre-existing wiki at the given path *)
+val register_wiki :
+  ?sp:Eliom_sessions.server_params ->
+  path:Ocsigen_extensions.url_path ->
+  wikibox: Wiki_widgets.editable_wikibox ->
+  wiki:Wiki_sql.wiki ->
+  ?wiki_info:wiki_info ->
+  unit ->
+  unit Lwt.t
 
 (** {2 Groups } *)
 
