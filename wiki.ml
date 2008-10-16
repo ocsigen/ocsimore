@@ -627,7 +627,8 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
 
 
 
-(* Caution when changing this. See mli *)
+(* Information related to the administration wiki; caution when
+   changing this. See mli *)
 let wiki_admin_name = "Adminwiki"
 let get_admin_wiki () =
   get_wiki_by_name wiki_admin_name
