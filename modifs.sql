@@ -45,4 +45,9 @@ UPDATE wikis SET pages = 'seminaire-thesards' WHERE id = 8;
 ALTER TABLE wikis ALTER COLUMN container_id SET NOT NULL;
 
 
+-- Names must be unique among wikis (since we use names essentially as primary keys)
+ALTER TABLE wikis ADD UNIQUE (title);
+
+
+
 -- TODO wikicss and css

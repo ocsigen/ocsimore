@@ -421,11 +421,11 @@ let find_wiki_id_by_name ~name =
        (match r with
           | [(id, title, descr, pages, br, ci, stat)] ->
               Lwt.return (int32_t id : [`Wiki] int32_t)
-          | (id, title, descr, pages, br, ci, stat)::_ -> 
-              Ocsigen_messages.warning
-                "Ocsimore: More than one wiki have the same name (ignored)";
-              Lwt.return (int32_t id : [`Wiki] int32_t)
-          | [] -> Lwt.fail Not_found))
+          | [] -> Lwt.fail Not_found
+          | _ -> assert false (* Impossible, there is a UNIQUE constraint on the title field *)
+
+       )
+    )
 
 
 let get_writers_ (wiki, id) =
