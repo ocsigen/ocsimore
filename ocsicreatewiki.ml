@@ -1,4 +1,4 @@
-(** Eliom module that registers a wiki *)
+(** Eliom module that creates a new wiki *)
 
 open Lwt
 open Eliom_duce.Xhtml
@@ -115,9 +115,8 @@ let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 
 
 let _ =
-  Lwt_unix.run
-    ((* creating a wiki: *)
-     Wiki.create_wiki 
+  Lwt_unix.run (
+     Wiki.create_wiki
        ~title:wiki_data.name
        ~descr:""
        ~wikibox:Ocsisite.wikibox
