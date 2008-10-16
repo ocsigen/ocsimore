@@ -37,6 +37,7 @@ TODO
    - How to set the id of these boxes?
  Warning: We must think very carefully about this
  and be very carefull not breaking existing sites when modifying this.
+
  - IMPORTANT WARNING: the cache may cause inconsistencies of data
  if several processes are modifying the database
  - Make a command to clean the cache? Clean the cache every 6 seconds?
@@ -46,27 +47,40 @@ TODO
  Wiki_sql.get_readers (set ... writers ... admins)
  are not cached for now!
  User_sql.find_user is not cached with ~name parameter for now.
+
  - Use userid instead of userdata wherever it is possible
+
  - I removed all that depends on module Services for now Vincent 2008/04/15
 (dynamic creation of services)
+
  - pas clair la distinction entre forum et forum_sql, user et usr_sql,
  notamment pour l'abstraction des types forum, group, user...
+
  - uniformize labels (put labels everywhere, and always the same name for the
  same type)
+
  - Give up with ocamlduce? For now, no.
+
  - Take care of exception (database ...) more carefully and write error messages
+
  - Faut tout revoir pour uniformiser. C'est vraiment le bordel.
+
  - Not really clear where to use objects or functors. 
  Do we need overriding and late binding?
+
  - Uniformize the place where permissions are checked.
  Is it in the widgets? In the db interface?
+
  - Put sp in sd to avoid passing both parameters everywhere?
  Warning: sd is transmitted by actions to subsequent services, but sp must not!
- - Pourquoi les constructeurs des types "role" de forum ont des valeurs ?
- - internationalisation
  - session data: the mechnanism is too complex, dangerous (we must think to 
  keep it up to date) and not really useful for now.
  Remove it completely and rely on global cache?
+
+ - Pourquoi les constructeurs des types "role" de forum ont des valeurs ?
+
+ - internationalisation
+
  - warning: if we load ocsisite several times in the same site, it will fail.
  Is it a problem? Can we write a better error message?
 
@@ -76,9 +90,6 @@ How to make sure that:
  - all widgets have a ?classe parameter?
  - all database errors are taken into account?
  Wrap all db result in a kind of exception monad?
- - admin has all rights (just put admin in all groups by default?
- of make the function in_group answer yes? or check if the user is admin
- evrywhere? or all together?)
  - all actions will send session-data to the following service?
 
 Wiki:
@@ -113,17 +124,18 @@ Wiki:
  remove these config options and rely on defaults and an admin page
  to change rights (but for now that page does not exist, 
  so I leave this as this).
- /!\ Il faut probablement carrément enlever ocsiwiki.cmo
- et recréer les wikis de la base qui sont associés à des URLs
- à chaque démarrage !
+
  - There is an experimental non-attached service that displays wikipages
  as if it were the usual (suffix) service. But editing wikiboxes does not
  work inside this page!!!!!!!!!!!
  To fix this, we probably need a new feature in Eliom:
  "non-attached parameters"???
+
  - Revoir la partie dynamique de la wikisyntaxe <<cond>> etc ...
+
  - Is it possible to cache __after__ having decoded the wikisyntax?
  (pb: some parts are dynamic and depends on the user or the request)
+
  - Add a detailed wikisyntax help (with all extensions).
  May be as a static wikicreole file, that would be loaded dynamically?
 
