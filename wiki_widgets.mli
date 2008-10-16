@@ -59,7 +59,8 @@ class noneditable_wikibox :
       sp:Eliom_sessions.server_params ->
       sd:Ocsimore_common.session_data ->
       ?classe:string list ->
-      data:Wiki_sql.wiki * int32 -> Xhtmltypes_duce.block Lwt.t
+      data:Wiki_sql.wiki * int32 ->
+      unit -> Xhtmltypes_duce.block Lwt.t
 
     method pretty_print_wikisyntax : 
       ?subbox:Xhtmltypes_duce.flows ->

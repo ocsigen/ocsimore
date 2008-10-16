@@ -118,7 +118,7 @@ object (self)
   method noneditable_wikibox
     ?(subbox : Xhtmltypes_duce.flows option)
     ~ancestors
-    ~sp ~sd ?(classe=[]) ~data =
+    ~sp ~sd ?(classe=[]) ~data () =
     Wiki.get_role ~sp ~sd data >>= fun role ->
     match role with
       | Wiki.Admin
