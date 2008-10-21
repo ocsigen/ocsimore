@@ -228,7 +228,7 @@ val return : 'a -> 'a Lwt.t
 end
 
 
-type db_t = (string, bool) Hashtbl.t PGOCaml.t
+type db_t = PGOCaml.pa_pg_data PGOCaml.t
 
 (* val connect: unit -> db_t Lwt.t *)
 
