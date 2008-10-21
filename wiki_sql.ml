@@ -459,43 +459,35 @@ let get_wikiboxes_creators_ (wiki, id) =
 (****)
 let populate_readers_ wiki_id id readers =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_readers_ db wiki_id id readers >>= fun () ->
-  commit db)
+  populate_readers_ db wiki_id id readers)
 
 let populate_writers_ wiki_id id writers =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_writers_ db wiki_id id writers >>= fun () ->
-  commit db)
+  populate_writers_ db wiki_id id writers)
 
 let populate_rights_adm_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_rights_adm_ db wiki_id id wbadmins >>= fun () ->
-  commit db)
+  populate_rights_adm_ db wiki_id id wbadmins)
 
 let populate_wikiboxes_creators_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_wikiboxes_creators_ db wiki_id id wbadmins >>= fun () ->
-  commit db)
+  populate_wikiboxes_creators_ db wiki_id id wbadmins)
 
 let remove_readers_ wiki_id id readers =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_readers_ db wiki_id id readers >>= fun () ->
-  commit db)
+  remove_readers_ db wiki_id id readers)
 
 let remove_writers_ wiki_id id writers =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_writers_ db wiki_id id writers >>= fun () ->
-  commit db)
+  remove_writers_ db wiki_id id writers)
 
 let remove_rights_adm_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_rights_adm_ db wiki_id id wbadmins >>= fun () ->
-  commit db)
+  remove_rights_adm_ db wiki_id id wbadmins)
 
 let remove_wikiboxes_creators_ wiki_id id wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_wikiboxes_creators_ db wiki_id id wbadmins >>= fun () ->
-  commit db)
+  remove_wikiboxes_creators_ db wiki_id id wbadmins)
 
 (** returns the css for a page or fails with [Not_found] if it does not exist *)
 let get_css_for_page_ ~wiki ~page =
