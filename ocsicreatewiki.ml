@@ -130,6 +130,7 @@ let _ =
        ?css_editors:wiki_data.css_editors
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
+       ~container_page:Wiki.default_container_page
        ()
     )
 

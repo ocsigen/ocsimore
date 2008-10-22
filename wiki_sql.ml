@@ -39,17 +39,23 @@ open Ocsimore_lib
 open CalendarLib
 open Sql
 
-(** inserts a new wiki. The container_id field contains the dummy value 0,
-that *must* be overwritten *)
-let new_wiki ~title ~descr ~pages ~boxrights ~staticdir () =
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
-                    VALUES ($title, $descr, $?pages, $boxrights, 0, $?staticdir)"
-       >>= fun () ->
-       serial4 db "wikis_id_seq")
-  >>= fun wiki ->
-    (return (int32_t wiki : [`Wiki] int32_t))
+
+let new_wiki (db : db_t) ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
+  PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
+             VALUES ($title, $descr, $?pages, $boxrights, 0, $?staticdir);
+                  "
+  >>= fun () ->
+  serial4 db "wikis_id_seq"
+  >>= fun wiki_id ->
+  let comment = Printf.sprintf "Container box for wiki %ld" wiki_id in
+  PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
+             VALUES ($wiki_id, 0, $comment)"
+  >>= fun () ->
+  let admin = Users.admin.Users.id in
+  PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
+             VALUES (0, $wiki_id, $admin, $container_page)"
+  >>= fun () ->
+    return (int32_t wiki_id : [`Wiki] int32_t)
 
 
 (** Update container_id (for now). *)
@@ -260,6 +266,9 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
                 | [] | None::_ -> 1l
                 | (Some last)::_ -> Int32.add last 1l
               in
+              PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id)
+                         VALUES ($wiki', $boxid)";
+              >>= fun () ->
               PGSQL(db) "INSERT INTO wikiboxes \
                           (id, wiki_id, author, comment, content) \
                          VALUES \ 
@@ -267,6 +276,9 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
               >>= fun () ->
               Lwt.return boxid
           | Some box ->
+              PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id)
+                         VALUES ($wiki', $box)"
+              >>= fun () ->
               PGSQL(db) "INSERT INTO wikiboxes \
                     (id, wiki_id, author, comment, content) \
                   VALUES ($box, $wiki', $author, $comment, $content)"

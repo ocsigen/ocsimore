@@ -27,9 +27,14 @@ type wiki_info = {
 
 
 (** Creates a new wiki or returns its id without modification
-    if it already exists.
-    If the optional argument [path] is present, 
-    the wiki will be bound to an URL.
+    if a wiki of the same name already exists.
+
+    If the optional argument [path] is present, the wiki will be bound to the
+    URL represented by [path].
+
+    The argument [container_page] is the code for the container wikibox
+    of the wiki. A suitable default page is given below.
+
     If [boxrights] is true (default), it is possible to set the rights on
     each box individually.
     For each wiki, some groups of users are created:
@@ -64,6 +69,7 @@ val create_wiki :
   ?boxrights:bool ->
   ?staticdir:string ->
   wikibox: Wiki_widgets.editable_wikibox ->
+  container_page:string ->
   unit -> 
   wiki_info Lwt.t
 
@@ -77,6 +83,11 @@ val register_wiki :
   ?wiki_info:wiki_info ->
   unit ->
   unit Lwt.t
+
+
+(** A text suitable as the default text for a container page *)
+val default_container_page:string
+
 
 (** {2 Groups } *)
 

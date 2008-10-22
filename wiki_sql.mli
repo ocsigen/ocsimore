@@ -36,14 +36,18 @@ val eliom_wiki :
   string -> (wiki, [`WithoutSuffix], [`One of wiki] Eliom_parameters.param_name) Eliom_parameters.params_type
 
 
-(** inserts a new wiki. The container_id field contains the dummy value 0,
-which *must* be overwritten with a valid wikibox  *)
-val new_wiki : 
+(** inserts a new wiki, creating on the fly the container wikibox
+  (at index 0). This function must be executed atomically,
+  hence inside an SQL transaction, which must be passed as the
+  first parameter *)
+val new_wiki :
+  Sql.db_t ->
   title:string -> 
   descr:string -> 
   pages:string option ->
   boxrights:bool ->
   staticdir:string option ->
+  container_page:string ->
   unit ->
   wiki Lwt.t
 

@@ -110,6 +110,20 @@ let external_user user =
           "PAM authentification not supported by wikiperso";
         return None
 
+let welcome_page user =
+  Printf.sprintf
+"=== Personal site of %s\r\n\
+\r\n\
+<<content>>
+\r\n
+\r\n
+<<div class='loginfo'|
+<<cond error='autherror'|//Bad username or password//>>
+<<cond ingroup='users'|You are connected as <<username>>.
+<<logoutlink|Logout>>>>
+<<cond notingroup='users'|If you are %s, you can login and create this page: <<nonattachedlink protocol='https' page='login'|connectez-vous>>>>
+" user user
+
 (* The function that answers for the extension. *)
 let gen sp =
   let ri = (Eliom_sessions.esp_of_sp sp).Eliom_common.sp_ri in
@@ -141,9 +155,10 @@ let gen sp =
                    ~title:(Printf.sprintf "wikiperso for %s" user)
                    ~descr:(Printf.sprintf "Personal wiki of %s"
                              userdata.Users.fullname)
-                   ~wikibox:Ocsisite.wikibox
+                   ~wikibox:Ocsisite.wikibox (* ~boxrights:false *)
                    ~writers:gid ~wikiboxes_creators:gid
                    ~page_creators:gid ~css_editors:gid ~container_adm:gid
+                   ~container_page:(welcome_page userdata.Users.fullname)
                    ()
                  (* Register the personal wiki at the correct url *)
                  >>= fun wiki ->

@@ -443,12 +443,18 @@ let really_create_wiki ~title ~descr
     ?(boxrights = true)
     ?staticdir
     ~wikibox
+    ~container_page
     () =
   let path_string = Ocsimore_lib.bind_opt
     path Ocsigen_lib.string_of_url_path
   in
-  (Wiki_sql.new_wiki ~title ~descr ~pages:path_string
-     ~boxrights ?staticdir ()
+  (* We put all the following operations in a transaction block so
+     as to guarantee SQL atomicity. Otherwise, there is a possible
+     race conditions when we query the created wiki to extract the
+     container wikibox *)
+ Sql.full_transaction_block (fun db ->
+  Wiki_sql.new_wiki db ~title ~descr ~pages:path_string
+     ~boxrights ?staticdir ~container_page ()
    >>= fun wiki_id ->
 
    (* Creating groups *)
@@ -511,23 +517,26 @@ let really_create_wiki ~title ~descr
    >>= fun () ->
      add_to_group_ admins admin_data.Users.id
    >>= fun () ->
+     add_to_group_ container_adm container_adm_data.Users.id
+   >>= fun () ->
 
    get_wiki_by_id wiki_id
    >>= fun wiki ->
+   Wiki_sql.populate_readers wiki_id wiki.container_id
+     [readers_data.Users.id] >>= fun () ->
+   Wiki_sql.populate_writers wiki_id wiki.container_id
+     [container_adm_data.Users.id] >>= fun () ->
+   Wiki_sql.populate_rights_adm wiki_id wiki.container_id
+     [container_adm_data.Users.id] >>= fun () ->
+   Wiki_sql.populate_wikiboxes_creators wiki_id wiki.container_id
+     [container_adm_data.Users.id] >>= fun () ->
 
-   (* Creating the container for this wiki *)
-     new_wikibox
-       ~wiki
-       ~author:Users.admin.Users.id
-       ~comment:"Wikipage"
-       ~content:"= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-       ~writers:[container_adm_data.Users.id]
-       ()
-   >>= fun container_id ->
-     Wiki_sql.update_wiki ~wiki_id:wiki.id ~container_id ()
+   Lwt.return wiki
+  )
 
-   >>= fun () ->
-     Lwt.return {wiki with container_id = container_id})
+
+let default_container_page =
+  "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
 
 
 (* Create a wiki if it does not already exists, and registers it *)
@@ -545,12 +554,13 @@ let create_wiki ~title ~descr
     ?(boxrights = true)
     ?staticdir
     ~wikibox
+    ~container_page
     () =
   Lwt.catch
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found ->
-           really_create_wiki ~title ~descr ?path ~readers ~writers ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators ~css_editors ~admins ~boxrights ?staticdir ~wikibox ()
+           really_create_wiki ~title ~descr ?path ~readers ~writers ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators ~css_editors ~admins ~boxrights ?staticdir ~wikibox ~container_page ()
        | e -> Lwt.fail e)
   >>= fun w ->
   match path with

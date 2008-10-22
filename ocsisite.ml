@@ -128,6 +128,7 @@ let wiki_admin =
                    ~css_editors:[Users.admin]
                    ~admins:[Users.admin] *)
           ~boxrights:true
+          ~container_page:Wiki.default_container_page
           ()
       )
 
