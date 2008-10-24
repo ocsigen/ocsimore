@@ -31,6 +31,19 @@ type wiki = [`Wiki] Opaque.int32_t
 val wiki_id_s : wiki -> string
 val s_wiki_id : string -> wiki
 
+(** Data stored in a wikibox *)
+type wikibox_content_type =
+  | Css
+  | Wiki
+  | Deleted
+
+exception IncorrectWikiboxContentType of string
+
+val wikibox_content_type_of_string : string -> wikibox_content_type
+
+val string_of_wikibox_content_type : wikibox_content_type -> string
+
+
 (** Direct reading of wikis from eliom *)
 val eliom_wiki :
   string -> (wiki, [`WithoutSuffix], [`One of wiki] Eliom_parameters.param_name) Eliom_parameters.params_type
@@ -59,6 +72,7 @@ val new_wikibox :
   author:User_sql.userid ->
   comment:string ->
   content:string ->
+  content_type:wikibox_content_type ->
   ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list * User_sql.userid list ->
   unit ->
   int32 Lwt.t
@@ -124,7 +138,7 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:(wiki * int32) ->
   unit ->
-  (string * User_sql.userid * string * CalendarLib.Calendar.t) option Lwt.t
+  (string * User_sql.userid * string * CalendarLib.Calendar.t * wikibox_content_type) option Lwt.t
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
@@ -134,6 +148,7 @@ val update_wikibox :
   author:User_sql.userid ->
   comment:string ->
   content:string ->
+  content_type:wikibox_content_type ->
   int32 Lwt.t
 
 (** Update container_id (only, for now). *)

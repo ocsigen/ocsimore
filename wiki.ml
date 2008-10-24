@@ -111,8 +111,7 @@ let admin_group i =   Users.get_user_id_by_name (admin_group_name i)
 
 exception Found of int32
 
-let new_wikibox ?boxid ~wiki ~author ~comment ~content
-    ?readers ?writers ?rights_adm ?wikiboxes_creators () =
+let new_wikibox ?boxid ~wiki ~author ~comment ~content ~content_type ?readers ?writers ?rights_adm ?wikiboxes_creators () =
   (if wiki.boxrights
   then (
     (match readers with 
@@ -156,6 +155,7 @@ let new_wikibox ?boxid ~wiki ~author ~comment ~content
          ~author
          ~comment
          ~content
+         ~content_type
          ?rights
          ())
     (function Found b -> Lwt.return b | e -> Lwt.fail e)
@@ -384,8 +384,9 @@ let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
                )
                (function
                   | Not_found ->
-                      new_wikibox wiki_info userid "new wikipage"
-                        ("=="^page^"==") ()
+                      new_wikibox ~wiki:wiki_info ~author:userid
+                        ~comment:"new wikipage"
+                        ~content:("=="^page^"==") ~content_type:Wiki_sql.Wiki ()
                         (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                       >>= fun box ->
                         Wiki_sql.set_box_for_page
@@ -586,10 +587,12 @@ type wiki_action_info =
   | Oldversion of ((Wiki_sql.wiki * int32) * int32)
   | Src of ((Wiki_sql.wiki * int32) * int32)
   | Error of ((Wiki_sql.wiki * int32) * wiki_errors)
+  | Delete_Box of (Wiki_sql.wiki * int32)
 
 exception Wiki_action_info of wiki_action_info
 
-let save_wikibox ~sp ~sd (((wiki_id, box_id) as d), content) =
+let save_wikibox ~sp ~sd ~wiki_id ~box_id ~content ~content_type =
+  let d = (wiki_id, box_id) in
   get_role sp sd d >>= fun role ->
   match role with
     | Admin
@@ -597,10 +600,9 @@ let save_wikibox ~sp ~sd (((wiki_id, box_id) as d), content) =
         Lwt.catch
           (fun () ->
               Users.get_user_data sp sd >>= fun user ->
-              Wiki_sql.update_wikibox
-                wiki_id box_id
-                user.Users.id
-                "" content >>= fun _ ->
+              Wiki_sql.update_wikibox ~wiki:wiki_id ~wikibox:box_id
+                ~author:user.Users.id ~comment:"" ~content ~content_type
+              >>= fun _ ->
               Lwt.return [Ocsimore_common.Session_data sd])
           (fun e -> 
              Lwt.return 

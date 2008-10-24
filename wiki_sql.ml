@@ -25,6 +25,7 @@
 open Opaque
 
 type wiki = [`Wiki] int32_t
+let wiki_from_sql (i : int32) = (int32_t i : wiki)
 let wiki_id (i : wiki) = t_int32 i
 let wiki_id_s i = Int32.to_string (wiki_id i)
 let s_wiki_id s = (Opaque.int32_t (Int32.of_string s) : wiki)
@@ -252,9 +253,29 @@ let remove_wikiboxes_creators_ db wiki id ra =
           )
           ra
 
+type wikibox_content_type =
+  | Css
+  | Wiki
+  | Deleted
+
+exception IncorrectWikiboxContentType of string
+
+let wikibox_content_type_of_string = function
+  | "wiki" -> Wiki
+  | "css" -> Css
+  | "deleted" -> Deleted
+  | s -> raise (IncorrectWikiboxContentType s)
+
+let string_of_wikibox_content_type = function
+  | Wiki -> "wiki"
+  | Css -> "css"
+  | Deleted -> "deleted"
+
+
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () = 
-  let wiki' = t_int32 (wiki : wiki) in
+let new_wikibox ~wiki ?box ~author ~comment ~content ~content_type ?rights () = 
+  let wiki' = t_int32 (wiki : wiki)
+  and content_type = string_of_wikibox_content_type content_type in
   Sql.full_transaction_block
     (fun db ->
        (match box with
@@ -270,9 +291,9 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
                          VALUES ($wiki', $boxid)";
               >>= fun () ->
               PGSQL(db) "INSERT INTO wikiboxes \
-                          (id, wiki_id, author, comment, content) \
+                          (id, wiki_id, author, comment, content, content_type) \
                          VALUES \ 
-                          ($boxid, $wiki', $author, $comment, $content)"
+                          ($boxid, $wiki', $author, $comment, $content, $content_type)"
               >>= fun () ->
               Lwt.return boxid
           | Some box ->
@@ -280,8 +301,8 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
                          VALUES ($wiki', $box)"
               >>= fun () ->
               PGSQL(db) "INSERT INTO wikiboxes \
-                    (id, wiki_id, author, comment, content) \
-                  VALUES ($box, $wiki', $author, $comment, $content)"
+                    (id, wiki_id, author, comment, content, content_type) \
+                  VALUES ($box, $wiki', $author, $comment, $content, $content_type)"
               >>= fun () ->
               Lwt.return box) >>= fun wbx_id ->
        (match rights with
@@ -296,14 +317,15 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ?rights () =
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content =
-  let wiki = t_int32 (wiki : wiki) in
+let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content ~content_type =
+  let wiki = t_int32 (wiki : wiki)
+  and content_type = string_of_wikibox_content_type content_type in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "INSERT INTO wikiboxes \
-                    (id, wiki_id, author, comment, content) \
+                    (id, wiki_id, author, comment, content, content_type) \
                   VALUES ($wikibox, $wiki, $author, \
-                          $comment, $content)" >>= fun () ->
+                          $comment, $content, $content_type)" >>= fun () ->
        serial4 db "wikiboxes_version_seq")
 
 
@@ -344,7 +366,7 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
     (fun db ->
        (match version with
          | None ->
-             PGSQL(db) "SELECT comment, author, content, datetime \
+             PGSQL(db) "SELECT comment, author, content, datetime, content_type \
                         FROM wikiboxes \
                         WHERE wiki_id = $wiki \
                         AND id = $id \
@@ -354,18 +376,17 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
                             WHERE wiki_id = $wiki \
                             AND id = $id)"
          | Some version ->
-             PGSQL(db) "SELECT comment, author, content, datetime \
+             PGSQL(db) "SELECT comment, author, content, datetime, content_type \
                         FROM wikiboxes \
                         WHERE wiki_id = $wiki \
                         AND id = $id \
                         AND version = $version")
        >>= function
          | [] -> Lwt.return None
-         | [x] -> Lwt.return (Some x)
-         | x::_ -> 
-             Ocsigen_messages.warning
-               "Ocsimore: database error (Wiki_sql.get_wikibox_data)";
-             Lwt.return (Some x))
+         | [(c, a, v, d, t)] ->
+             Lwt.return (Some (c, a, v, d, wikibox_content_type_of_string t))
+         | _ ::_ -> assert false (* (wiki_id, wiki, version) is a primary key *)
+    )
 
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
@@ -581,7 +602,9 @@ let get_wikibox_data,
                                type value = (string * 
                                                User_sql.userid * 
                                                string * 
-                                               CalendarLib.Calendar.t) option
+                                               CalendarLib.Calendar.t *
+                                               wikibox_content_type
+                                            ) option
                              end) 
   in
   let module C2 = Cache.Make (struct 

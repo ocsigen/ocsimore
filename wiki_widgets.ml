@@ -60,6 +60,7 @@ let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
 
 exception Unknown_box of (Wiki_sql.wiki * int32)
 exception Not_css_editor
+exception CssInsteadOfWiki
 
 class noneditable_wikibox =
 object (self)
@@ -109,7 +110,11 @@ object (self)
     Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
     match result with
       | None -> Lwt.fail (Unknown_box ids)
-      | Some (com, a, cont, d) -> Lwt.return cont
+      | Some (com, a, cont, d, ct) ->
+          match ct with
+            | Wiki_sql.Wiki -> Lwt.return cont
+            | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
+            | Wiki_sql.Deleted -> Lwt.return "This page has been deleted"
 
   method display_noneditable_box ~classe content =
     let classe = Ocsimore_lib.build_class_attr (ne_class::classe) in
@@ -182,7 +187,19 @@ class editable_wikibox ?sp () =
       (fun sp g () -> 
          Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
   in
-    
+
+  let action_delete_wikibox =
+    Eliom_predefmod.Actions.register_new_coservice'
+      ~name:"wiki_delete"
+      ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
+                     (Eliom_parameters.int32 "boxid"))
+      (fun sp (wiki_id, box_id) () ->
+         let sd = Ocsimore_common.get_sd sp in
+         Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content:""
+           ~content_type:Wiki_sql.Deleted
+      )
+  in
+
   let action_edit_wikibox_permissions =
     Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_edit_perm"
@@ -235,13 +252,14 @@ class editable_wikibox ?sp () =
          (((Wiki_sql.eliom_wiki "wikiid" ** 
               Eliom_parameters.int32 "boxid") ** 
              Eliom_parameters.string "content")))
-      (fun sp () (actionname, (((wikiid, boxid) as a, content) as p)) -> 
+      (fun sp () (actionname, (((wiki_id, box_id), content) as p)) -> 
          if actionname = "save"
          then
            let sd = Ocsimore_common.get_sd sp in
-           Wiki_filter.preparse_extension (sp, sd, boxid) wikiid content
+           Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
            >>= fun content ->
-           Wiki.save_wikibox sp sd (a, content)
+           Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content
+             ~content_type:Wiki_sql.Wiki
          else
            Lwt.return [Wiki.Wiki_action_info (Wiki.Preview p)]
       )
@@ -356,11 +374,10 @@ object (self)
      ?(title = "")
      ((wiki, _) as ids) =
      let history = Eliom_services.preapply action_wikibox_history 
-       (ids, (None, None)) 
-     in
-     let edit = Eliom_services.preapply action_edit_wikibox ids in
-     let edit_perm = Eliom_services.preapply 
-       action_edit_wikibox_permissions ids 
+       (ids, (None, None))
+     and edit = Eliom_services.preapply action_edit_wikibox ids
+     and delete = Eliom_services.preapply action_delete_wikibox ids
+     and edit_perm = Eliom_services.preapply action_edit_wikibox_permissions ids
      in
      let view = Eliom_services.void_action in
      let edit_css =
@@ -398,7 +415,7 @@ object (self)
                      | None -> Some history
      in
      let l = 
-       [
+       [ (delete, {{ "delete" }});
          (edit, {{ "edit" }});
          (view, {{ "view" }});
        ]
@@ -694,7 +711,12 @@ object (self)
      >>= fun result ->
      match result with
        | None -> Lwt.fail Not_found
-       | Some (com, a, cont, d) -> Lwt.return cont
+       | Some (com, a, cont, d, ct) ->
+           match ct with
+             | Wiki_sql.Wiki -> Lwt.return cont
+             | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
+             | Wiki_sql.Deleted ->
+                 Lwt.return "At this date, this page was deleted"
 
    method display_old_wikibox ~sp ~sd 
      ((w, b) as ids) version ~classe ?cssmenu content =
@@ -877,6 +899,7 @@ object (self)
                         ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
                         ?subbox ~sp ~sd wiki_id)
                      (self#display_editable_box ~sp ~sd ?cssmenu data)
+               | Some (Wiki.Delete_Box i) when i = data -> assert false
                | _ -> 
                    self#bind_or_display_error
                      ~classe
@@ -1266,6 +1289,7 @@ object (self)
                     ~author:userid
                     ~comment:"new wikibox" 
                     ~content:"**//new wikibox//**"
+                    ~content_type:Wiki_sql.Wiki
                     ?readers
                     ?writers
                     ?rights_adm

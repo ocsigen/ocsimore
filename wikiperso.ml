@@ -141,6 +141,7 @@ let gen sp =
              external_user user
           )
         >>= fun userinfo ->
+          Printf.eprintf "Here\n%!";
           (match userinfo with
              | None -> Lwt.return ()
              | Some userdata ->

@@ -193,6 +193,7 @@ val new_wikibox :
   author:User_sql.userid ->
   comment:string ->
   content:string ->
+  content_type:Wiki_sql.wikibox_content_type ->
   ?readers:User_sql.userid list ->
   ?writers:User_sql.userid list -> 
   ?rights_adm: User_sql.userid list ->
@@ -201,8 +202,11 @@ val new_wikibox :
 
 val save_wikibox :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data -> 
-  ((Wiki_sql.wiki * int32) * string) ->
+  sd:Ocsimore_common.session_data ->
+  wiki_id:Wiki_sql.wiki ->
+  box_id:int32 ->
+  content:string ->
+  content_type:Wiki_sql.wikibox_content_type ->
   exn list Lwt.t
 
 val save_wikibox_permissions :
@@ -260,6 +264,7 @@ type wiki_action_info =
   | Oldversion of ((Wiki_sql.wiki * int32) * int32)
   | Src of ((Wiki_sql.wiki * int32) * int32)
   | Error of ((Wiki_sql.wiki * int32) * wiki_errors)
+  | Delete_Box of (Wiki_sql.wiki * int32)
 
 exception Wiki_action_info of wiki_action_info
 

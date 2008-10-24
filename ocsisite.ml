@@ -143,7 +143,8 @@ let _ =
        ~author:Users.admin.Users.id
        ~comment:"Admin container" 
        ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-              ()
+       ~content_type:Wiki_sql.Wiki
+       ()
      >>= fun _ ->
     
 
@@ -159,6 +160,7 @@ let _ =
 This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few extensions.
 
 {{../creole_cheat_sheet.png|Wikicreole's syntax}}"
+       ~content_type:Wiki_sql.Wiki
          ()
        >>= fun _ -> Lwt.return ()
       )
