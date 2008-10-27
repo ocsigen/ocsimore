@@ -1124,7 +1124,7 @@ object (self)
      =
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
-     Wiki.get_wiki_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
            self#bind_or_display_error
              ~classe
@@ -1142,7 +1142,7 @@ object (self)
              (self#display_edit_wikicss_form ~sp ~sd ?rows ?cols ~wiki)
              (self#display_edit_wikicss_box ~sp ~sd
                 ?cssmenu:(Some None)
-                (wiki, wiki_info.Wiki.container_id))
+                (wiki, wiki_info.Wiki_sql.container_id))
 
    method get_css_header ~sp ~wiki ?(admin=false) ?page () =
      if admin
@@ -1274,7 +1274,7 @@ object (self)
                 ignore (List.assoc "box" args);
                 Lwt.return None
               with Not_found ->
-                Wiki.get_wiki_by_id wiki >>= fun wiki ->
+                Wiki_sql.get_wiki_by_id wiki >>= fun wiki ->
                 Users.get_user_id ~sp ~sd >>= fun userid ->
                 let ids = (wiki_id, father) in
                 Wiki.can_create_wikibox ~sp ~sd wiki father userid >>= fun b ->
@@ -1518,12 +1518,12 @@ object (self)
          service_edit_css
          (fun sp ((wiki, page) as g) () -> 
             let sd = Ocsimore_common.get_sd sp in
-            Wiki.get_wiki_by_id wiki >>= fun wiki_info ->
+            Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
               self#edit_css_box ~sp ~sd ~rows:30 ~data:g ()
             >>= fun subbox ->
               self#editable_wikibox ~sp ~sd
                 ~ancestors:Wiki_syntax.no_ancestors
-                ~data:(wiki, wiki_info.Wiki.container_id)
+                ~data:(wiki, wiki_info.Wiki_sql.container_id)
                 ?cssmenu:(Some None)
                 ~subbox:{{ [ subbox ] }} ()
             >>= fun pagecontent ->

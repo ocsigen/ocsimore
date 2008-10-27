@@ -141,7 +141,6 @@ let gen sp =
              external_user user
           )
         >>= fun userinfo ->
-          Printf.eprintf "Here\n%!";
           (match userinfo with
              | None -> Lwt.return ()
              | Some userdata ->
@@ -164,7 +163,7 @@ let gen sp =
                  (* Register the personal wiki at the correct url *)
                  >>= fun wiki ->
                  Wiki.register_wiki ~sp ~path:(wiki_path user)
-                   ~wikibox:Ocsisite.wikibox ~wiki:wiki.Wiki.id
+                   ~wikibox:Ocsisite.wikibox ~wiki:wiki.Wiki_sql.id
                    ~wiki_info:wiki ()
           )
           >>= fun () ->

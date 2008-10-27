@@ -11,21 +11,6 @@ type role = Admin | Author | Lurker | Nonauthorized;;
 (** Admin can changes the permissions on boxes (if the wiki allows this) *)
 
 
-type wiki_info = {
-  id : Wiki_sql.wiki;
-  title : string;
-  descr : string;
-  boxrights : bool;
-  pages : string option;
-  container_id: int32;
-  staticdir : string option; (* if static dir is given, 
-                                ocsimore will serve static pages if present,
-                                instead of wiki pages *)
-}
-
-
-
-
 (** Creates a new wiki or returns its id without modification
     if a wiki of the same name already exists.
 
@@ -71,7 +56,7 @@ val create_wiki :
   wikibox: Wiki_widgets.editable_wikibox ->
   container_page:string ->
   unit -> 
-  wiki_info Lwt.t
+  Wiki_sql.wiki_info Lwt.t
 
 
 (** Register a pre-existing wiki at the given path *)
@@ -80,7 +65,7 @@ val register_wiki :
   path:Ocsigen_extensions.url_path ->
   wikibox: Wiki_widgets.editable_wikibox ->
   wiki:Wiki_sql.wiki ->
-  ?wiki_info:wiki_info ->
+  ?wiki_info:Wiki_sql.wiki_info ->
   unit ->
   unit Lwt.t
 
@@ -175,21 +160,12 @@ val admin_group_name : Wiki_sql.wiki -> string
 
 
 
-
-(** Returns wiki information from an id. 
-    Wiki information is kept in memory (and savec in the database)
-*)
-val get_wiki_by_id : Wiki_sql.wiki -> wiki_info Lwt.t
-
-(** Returns wiki information from a name. *)
-val get_wiki_by_name : string -> wiki_info Lwt.t
-
 (** If [?boxid] specified, creates the box only if the box 
     does not already exist. It it exists, returns the existing
     box without modification. *)
 val new_wikibox :
   ?boxid:int32 ->
-  wiki:wiki_info ->
+  wiki:Wiki_sql.wiki_info ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->
@@ -249,7 +225,7 @@ val get_wikiboxes_creators :
 val can_create_wikibox : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
+  Wiki_sql.wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
 
 (** *)
 type wiki_errors =

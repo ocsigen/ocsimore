@@ -26,8 +26,8 @@ open Opaque
 
 type wiki = [`Wiki] int32_t
 let wiki_from_sql (i : int32) = (int32_t i : wiki)
-let wiki_id (i : wiki) = t_int32 i
-let wiki_id_s i = Int32.to_string (wiki_id i)
+let sql_from_wiki (i : wiki) = t_int32 i
+let wiki_id_s i = Int32.to_string (sql_from_wiki i)
 let s_wiki_id s = (Opaque.int32_t (Int32.of_string s) : wiki)
 
 let eliom_wiki = Eliom_parameters.user_type
@@ -41,22 +41,26 @@ open CalendarLib
 open Sql
 
 
-let new_wiki (db : db_t) ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
-  PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
+let new_wiki ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
+  let container_wikibox = 0l in
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
              VALUES ($title, $descr, $?pages, $boxrights, 0, $?staticdir);
                   "
-  >>= fun () ->
-  serial4 db "wikis_id_seq"
-  >>= fun wiki_id ->
-  let comment = Printf.sprintf "Container box for wiki %ld" wiki_id in
-  PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
-             VALUES ($wiki_id, 0, $comment)"
-  >>= fun () ->
-  let admin = Users.admin.Users.id in
-  PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
-             VALUES (0, $wiki_id, $admin, $container_page)"
-  >>= fun () ->
-    return (int32_t wiki_id : [`Wiki] int32_t)
+     >>= fun () ->
+     serial4 db "wikis_id_seq"
+     >>= fun wiki_id ->
+     let comment = Printf.sprintf "Container box for wiki %ld" wiki_id in
+     PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
+                VALUES ($wiki_id, $container_wikibox, $comment)"
+     >>= fun () ->
+     let admin = Users.admin.Users.id in
+     PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
+                VALUES (0, $wiki_id, $admin, $container_page)"
+     >>= fun () ->
+       return (wiki_from_sql wiki_id, container_wikibox)
+    )
 
 
 (** Update container_id (for now). *)
@@ -427,6 +431,28 @@ let set_box_for_page_ ~sourcewiki ?(destwiki=sourcewiki) ~id ~page =
     )
 
 
+type wiki_info = {
+  id : wiki;
+  title : string;
+  descr : string;
+  boxrights : bool;
+  pages : string option;
+  container_id : int32;
+  staticdir : string option;
+}
+
+
+let reencapsulate_wiki (w, t, d, p, br, ci, s) =
+  { id = wiki_from_sql w;
+    title = t;
+    descr = d;
+    boxrights = br;
+    pages = p;
+    container_id = ci;
+    staticdir = s;
+  }
+
+
 let find_wiki_ ~id =
   let id = t_int32 (id : wiki) in
   Sql.full_transaction_block
@@ -436,15 +462,14 @@ let find_wiki_ ~id =
                   WHERE id = $id"
        >>= fun r -> 
        (match r with
-          | [(id, title, descr, pages, br, ci, stat)] -> 
-              Lwt.return (title, descr, pages, br, ci, stat)
+          | [c] -> Lwt.return (reencapsulate_wiki c)
           | [] -> Lwt.fail Not_found
           | _ -> assert false (* Impossible, as the 'id' field is a primary key *)
        )
     )
 
 
-let find_wiki_id_by_name ~name =
+let find_wiki_by_name_ ~name =
   Lwt_pool.use Sql.pool 
     (fun db ->
        PGSQL(db) "SELECT * \
@@ -452,8 +477,7 @@ let find_wiki_id_by_name ~name =
                   WHERE title = $name"
        >>= fun r -> 
        (match r with
-          | [(id, title, descr, pages, br, ci, stat)] ->
-              Lwt.return (int32_t id : [`Wiki] int32_t)
+          | [c] -> Lwt.return (reencapsulate_wiki c)
           | [] -> Lwt.fail Not_found
           | _ -> assert false (* Impossible, there is a UNIQUE constraint on the title field *)
 
@@ -669,23 +693,44 @@ let get_box_for_page, set_box_for_page =
 
 
 (***)
-module H = Hashtbl.Make(struct
-                          type t = wiki
-                          let equal = (=)
-                          let hash = Hashtbl.hash 
-                        end)
 
-let wiki_info_table = H.create 8
+let get_wiki_by_id, get_wiki_by_name, update_wiki =
+  let module HW = Hashtbl.Make(struct
+                                type t = wiki
+                                let equal = (=)
+                                let hash = Hashtbl.hash
+                              end)
+  in
+  let module HN = Hashtbl.Make(struct
+                                type t = string
+                                let equal = (=)
+                                let hash = Hashtbl.hash
+                              end)
+  in
+  let wiki_info_wiki_table = HW.create 8
+  and wiki_info_name_table = HN.create 8
+  in
+  (* get_wiki_by_id *)
+  (fun ~id ->
+     try
+       print_cache "cache wiki ";
+       Lwt.return (HW.find wiki_info_wiki_table id)
+     with Not_found -> find_wiki_ ~id),
+  (* get_wiki_by_name *)
+  (fun ~name ->
+     try
+       print_cache "cache wiki ";
+       Lwt.return (HN.find wiki_info_name_table name)
+     with Not_found -> find_wiki_by_name_ ~name),
+  (* update_wiki *)
+  (fun ~wiki_id ~container_id () ->
+     HW.remove wiki_info_wiki_table  wiki_id;
+     (* A bit drastic, but search by name (and update_wiki) are rarely
+        used anyway. The alternative is to find the the id of the
+        wiki, and to remove only this key *)
+     HN.clear wiki_info_name_table;
+     update_wiki_ ~wiki:wiki_id ~container_id ())
 
-let find_wiki ~id =
-  try
-    print_cache "cache wiki ";
-    Lwt.return (H.find wiki_info_table id)
-  with Not_found -> find_wiki_ ~id
-
-let update_wiki ~wiki_id ~container_id () =
-  H.remove wiki_info_table wiki_id;
-  update_wiki_ ~wiki:wiki_id ~container_id ()
 
 (***)
 let get_css_for_page, set_css_for_page =

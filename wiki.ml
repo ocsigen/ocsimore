@@ -16,6 +16,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+open Wiki_sql
 
 
 (**
@@ -32,36 +33,6 @@ let (>>=) = Lwt.bind
 (** Role of user in the wiki (for one box) *)
 type role = Admin | Author | Lurker | Nonauthorized;;
 (* Admin can changes the permissions on boxes *)
-
-
-type wiki_info = {
-  id : Wiki_sql.wiki;
-  title : string;
-  descr : string;
-  boxrights : bool;
-  pages : string option;
-  container_id : int32;
-  staticdir : string option; (* if static dir is given, 
-                                ocsimore will serve static pages if present,
-                                instead of wiki pages *)
-}
-
-
-
-let get_wiki_by_id id =
-  Wiki_sql.find_wiki id >>= fun (title, descr, pages, br, ci, stat) -> 
-  Lwt.return { id = id; 
-               title = title; 
-               descr = descr;
-               boxrights = br;
-               pages = pages;
-               container_id = ci;
-               staticdir = stat;
-             }
-
-let get_wiki_by_name name =
-  Wiki_sql.find_wiki_id_by_name name >>= fun id -> 
-  get_wiki_by_id id
 
 
 let get_sthg_ f ((w, i) as k) =
@@ -449,14 +420,13 @@ let really_create_wiki ~title ~descr
   let path_string = Ocsimore_lib.bind_opt
     path Ocsigen_lib.string_of_url_path
   in
-  (* We put all the following operations in a transaction block so
-     as to guarantee SQL atomicity. Otherwise, there is a possible
-     race conditions when we query the created wiki to extract the
-     container wikibox *)
- Sql.full_transaction_block (fun db ->
-  Wiki_sql.new_wiki db ~title ~descr ~pages:path_string
+  (* Notice that there is a theoretical race condition in the code below,
+     when the container wikibox receives its rights, in the case this
+     container has changed between the creation of the wiki and the moments
+     the rights are added *)
+  Wiki_sql.new_wiki ~title ~descr ~pages:path_string
      ~boxrights ?staticdir ~container_page ()
-   >>= fun wiki_id ->
+   >>= fun (wiki_id, wikibox_container) ->
 
    (* Creating groups *)
    create_group_ (readers_group_name wiki_id)
@@ -521,19 +491,16 @@ let really_create_wiki ~title ~descr
      add_to_group_ container_adm container_adm_data.Users.id
    >>= fun () ->
 
-   get_wiki_by_id wiki_id
-   >>= fun wiki ->
-   Wiki_sql.populate_readers wiki_id wiki.container_id
+   Wiki_sql.populate_readers wiki_id wikibox_container
      [readers_data.Users.id] >>= fun () ->
-   Wiki_sql.populate_writers wiki_id wiki.container_id
+   Wiki_sql.populate_writers wiki_id wikibox_container
      [container_adm_data.Users.id] >>= fun () ->
-   Wiki_sql.populate_rights_adm wiki_id wiki.container_id
+   Wiki_sql.populate_rights_adm wiki_id wikibox_container
      [container_adm_data.Users.id] >>= fun () ->
-   Wiki_sql.populate_wikiboxes_creators wiki_id wiki.container_id
+   Wiki_sql.populate_wikiboxes_creators wiki_id wikibox_container
      [container_adm_data.Users.id] >>= fun () ->
 
-   Lwt.return wiki
-  )
+   Lwt.return wiki_id
 
 
 let default_container_page =
@@ -562,6 +529,8 @@ let create_wiki ~title ~descr
     (function
        | Not_found ->
            really_create_wiki ~title ~descr ?path ~readers ~writers ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators ~css_editors ~admins ~boxrights ?staticdir ~wikibox ~container_page ()
+           >>= fun wiki_id ->
+           get_wiki_by_id wiki_id
        | e -> Lwt.fail e)
   >>= fun w ->
   match path with

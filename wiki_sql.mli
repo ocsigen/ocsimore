@@ -50,11 +50,8 @@ val eliom_wiki :
 
 
 (** inserts a new wiki, creating on the fly the container wikibox
-  (at index 0). This function must be executed atomically,
-  hence inside an SQL transaction, which must be passed as the
-  first parameter *)
+    (which is returned along the index of the new wiki). *)
 val new_wiki :
-  Sql.db_t ->
   title:string -> 
   descr:string -> 
   pages:string option ->
@@ -62,7 +59,7 @@ val new_wiki :
   staticdir:string option ->
   container_page:string ->
   unit ->
-  wiki Lwt.t
+  (wiki * int32) Lwt.t
 
 (** Inserts a new wikipage in an existing wiki and return the id of the 
     wikibox. *)
@@ -125,12 +122,26 @@ val get_css_for_wiki : wiki:wiki -> string Lwt.t
 (** Sets the global css for a wiki *)
 val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
 
+
+(** Fields for a wiki *)
+type wiki_info = {
+  id : wiki;
+  title : string;
+  descr : string;
+  boxrights : bool;
+  pages : string option;
+  container_id : int32;
+  staticdir : string option; (** if static dir is given,
+                                ocsimore will serve static pages if present,
+                                instead of wiki pages *)
+}
+
+
 (** Find wiki information for a wiki, given its id *)
-val find_wiki : id:wiki -> 
-  (string * string * string option * bool * int32 * string option) Lwt.t
+val get_wiki_by_id : id:wiki -> wiki_info Lwt.t
 
 (** Find wiki information for a wiki, given its name *)
-val find_wiki_id_by_name : name:string -> wiki Lwt.t
+val get_wiki_by_name : name:string -> wiki_info Lwt.t
 
 (** looks for a wikibox and returns [Some (subject, text, author,
     datetime)], or [None] if the page doesn't exist. *)
