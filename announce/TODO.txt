@@ -1,0 +1,40 @@
+- History of modifications
+- Atom feed(s)
+- ical export(s)
+
+
+Versioned events ?
+==> we need the previous state
+
+Two kind of updates:
+==> small fix
+==> public
+
+State:
+  - on hold / visible
+
+* On hold  ==> not visible
+
+RSS feed
+========
+- new event
+  ==> confirmed, no comment
+- event put on hold
+  ==> on hold, comment
+- event cancelled
+  ==> cancelled, comment
+- event modified
+  ==> confirmed
+- event invisible
+  ==> to be announced
+
+Event:
+- state
+- comment
+- status: confirmed, on hold, cancelled, to be announced
+
+
+Bouton: annuler événement ==> commentaire
+Option: à confirmer
+Champ: commentaire
+
