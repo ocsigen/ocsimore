@@ -1,5 +1,6 @@
+include ../Makefile.config
 
-PGOPTS=PGHOST=localhost PGUSER=ocsimore PGPASSWORD=toto
+PGOPTS=PGUSER=$(USER) PGPASSWORD=$(PASSWORD)
 PSQL=$(PGOPTS) psql
 LINK_PKG=ocsigen,pgocaml
 COMP_PKG=ocsigen,pgocaml
