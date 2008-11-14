@@ -30,7 +30,7 @@ load: load.cma
 
 website.cma: $(WEBSITE)
 	ocamlducefind ocamlc $(COMPFLAGS) -a -o $@ $^
-	-echo reload > /tmp/cpipe
+#	-echo reload > /tmp/cpipe
 
 website: website.cma
 

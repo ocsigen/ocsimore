@@ -56,9 +56,11 @@ let opt default c l = match l with [] -> default | x :: r -> c x r
 let create_wiki () =
   let wikibox = Ocsisite.wikibox in
   Wiki.create_wiki
-    ~title:"Announcements" ~descr:"Announcement manager" ~wikibox ()
+    ~title:"Announcements" ~descr:"Announcement manager" ~wikibox
+    ~container_page:Wiki.default_container_page
+    ()
 
-let wiki_id = (Lwt_unix.run (create_wiki ())).Wiki.id
+let wiki_id = (Lwt_unix.run (create_wiki ())).Wiki_sql.id
 let page_id = 1l
 let wiki_box = (wiki_id, page_id)
 

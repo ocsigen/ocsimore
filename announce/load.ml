@@ -302,7 +302,8 @@ include Load_sql
 let create_wiki () =
   let wikibox = Ocsisite.wikibox in
   Lwt_unix.run
-    (Wiki.create_wiki ~title:"Announcements" ~descr:"Announcement manager" ~wikibox ())
+    (Wiki.create_wiki ~title:"Announcements" ~descr:"Announcement manager"
+       ~wikibox ~container_page:Wiki.default_container_page ())
 
 let et = Str.regexp_string " et "
 let persons = Hashtbl.create 101
@@ -343,7 +344,7 @@ for year = 1999 to 2008 do
            let person_ids = person_ids dbh speakers affiliation in
            let abstract =
              Lwt_unix.run
-               (Wiki.new_wikibox
+               (Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
                   ~wiki ~author ~comment:"" ~content:abstract ())
            in
            let event =

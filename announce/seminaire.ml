@@ -427,7 +427,7 @@ let _ =
             Event_sql.find_speakers id >>= fun speakers ->
             Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, desc) ()
                 >>= fun desc ->
-            let desc = match desc with None -> "" | Some (_, _, d, _) -> d in
+            let desc = match desc with None -> "" | Some (_, _, d, _, _) -> d in
             Lwt.return (cat, start, finish, room, title, speakers, desc, status)
         | _(*None*) ->
             (*XXX Use default time, default duration and default room *)
