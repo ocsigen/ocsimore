@@ -61,7 +61,7 @@ let create_wiki () =
     ()
 
 let wiki_id = (Lwt_unix.run (create_wiki ())).Wiki_sql.id
-let page_id = 1l
+let page_id = 0l
 let wiki_box = (wiki_id, page_id)
 
 let (>>=) = Lwt.bind
