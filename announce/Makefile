@@ -6,7 +6,8 @@ COMP_PKG=ocsigen,pgocaml
 COMP_FLAGS=-thread -I ..
 
 BINARIES=website
-WEBSITE=atom_feed.cmo eliom_atom.cmo \
+WEBSITE=xform.cmo \
+	atom_feed.cmo eliom_atom.cmo \
 	icalendar.cmo eliom_icalendar.cmo \
 	common_sql.cmo common.cmo \
 	event_sql.cmo event.cmo \
@@ -15,7 +16,8 @@ WEBSITE=atom_feed.cmo eliom_atom.cmo \
 	main.cmo
 LOAD=load_sql.cmo load.cmo
 
-OCAMLDEP=ocamlducefind ocamldep -package $(COMP_PKG)
+OCAMLDUCEDEP=ocamlducefind ocamldep -package $(COMP_PKG)
+OCAMLDEP=ocamlfind ocamldep -package $(COMP_PKG),pgocaml.statements -syntax camlp4o
 
 all: $(BINARIES)
 
@@ -62,8 +64,10 @@ ocsigen: website.cma
 	$(PGOPTS) CAML_LD_LIBRARY_PATH=../nis_chkpwd ocsigen -c ocsigen.conf &
 
 depend:
-	find . -regex ".*\\.mli?" | xargs \
-	$(OCAMLDEP) $(DEPFLAGS) $$i \
-	> .depend
+	(find . -regex ".*\\.mli?" \! -regex ".*_sql\\.mli?"| xargs \
+	 $(OCAMLDUCEDEP) $(DEPFLAGS) $$i; \
+	 find . -regex ".*_sql\\.mli?"| $(PGOPTS) xargs \
+	 $(OCAMLDEP) $(DEPFLAGS) $$i) \
+	 > .depend
 
 include .depend

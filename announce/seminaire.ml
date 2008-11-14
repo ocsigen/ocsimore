@@ -3,6 +3,13 @@
 (*
 
 XXXX
+
+EDITEURS
+- Preview
+- Adapter au type d'événement ?
+- Valeurs par défaut
+- Comment (?)
+
 LOAD
 - check access rights...
 
@@ -34,10 +41,6 @@ EVENEMENT
 - Evenement appartenant à plusieurs catégories
   (exposé commun, par exemple)
 
-EDITEURS
-- Seminaire / groupes de travail
-- Autres événements
-
 PRESENTATION
 - calendrier au format ICAL
 
@@ -50,10 +53,11 @@ module P = Eliom_parameters
 module M = Eliom_duce.Xhtml
 open CalendarLib
 
+let (>>=) = Lwt.(>>=)
 let ( ** ) = P.( ** )
 let str = Ocamlduce.Utf8.make
 
-open Seminaire_sql
+open Event_sql.Event
 
 (****)
 
@@ -137,7 +141,8 @@ let archives =
             let finish = Date.next start `Year in
             let start = Calendar.create start Common.midnight in
             let finish = Calendar.create finish Common.midnight in
-            find_in_interval category start finish >>= fun rows ->
+            Seminaire_sql.find_in_interval category start finish
+              >>= fun rows ->
             Common.lwt_map (format_entry Event.events sp sd false) rows
                 >>= fun l1 ->
             Event_sql.find_category_name category >>= fun cat_name ->
@@ -155,7 +160,7 @@ let ul_arch l =
   Common.opt {{[]}} (fun x r ->{{ [<ul class="archives">[x !{:r:}]] }}) l
 
 let archive_list sp category =
-  archive_start_date category >>= fun start_date ->
+  Seminaire_sql.archive_start_date category >>= fun start_date ->
   let finish_year = year_of_date (Date.today ()) in
   let start_year =
     match start_date with
@@ -182,11 +187,11 @@ let summary_contents category sp sd =
   let finish = Date.next start `Week in
   let start = Calendar.create start Common.midnight in
   let finish = Calendar.create finish Common.midnight in
-  find_in_interval category start finish >>= fun rows ->
+  Seminaire_sql.find_in_interval category start finish >>= fun rows ->
   Common.lwt_map (format_entry Event.events sp sd true) rows >>= fun l1 ->
-  find_after category finish >>= fun rows ->
+  Seminaire_sql.find_after category finish >>= fun rows ->
   Common.lwt_map (format_entry Event.events sp sd false) rows >>= fun l2 ->
-  find_before category start 10L >>= fun rows ->
+  Seminaire_sql.find_before category start 10L >>= fun rows ->
   Common.lwt_map (format_entry Event.events sp sd false) rows >>= fun l3 ->
   archive_list sp category >>= fun archives ->
   Event_sql.find_category_name category >>= fun cat_name ->
@@ -224,7 +229,7 @@ let groupes =
     (fun sp () () ->
        Common.wiki_page path sp {{ [] }}
          (fun sp sd ->
-            find_talk_categories () >>= fun cat ->
+            Seminaire_sql.find_talk_categories () >>= fun cat ->
             let l =
               List.map
                 (fun (_, uniq_name, name) ->
@@ -403,6 +408,91 @@ let form =
          {{<html>[{:Common.head sp "":} <body>[f]]}})
 *)
 
+let talk_editor =
+  Eliom_services.new_service ~path:(talks_path ["edit"])
+    ~get_params:(P.suffix (P.string "id"))
+    ()
+
+open Xform.Ops
+
+let _ =
+  M.register talk_editor
+    (fun sp arg () ->
+       let id = opt_dec Int32.of_string arg in
+         (*XXX Validate *)
+       (match id with
+          Some id ->
+            Event_sql.find_event id
+                >>= fun {category = cat; start= (start, _); finish = (finish, _); room = room; title = title; description = desc; status = status} ->
+            Event_sql.find_speakers id >>= fun speakers ->
+            Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, desc) ()
+                >>= fun desc ->
+            let desc = match desc with None -> "" | Some (_, _, d, _) -> d in
+            Lwt.return (cat, start, finish, room, title, speakers, desc, status)
+        | _(*None*) ->
+            (*XXX Use default time, default duration and default room *)
+            let start = Calendar.create (Date.today ()) (Time.now ()) in
+            let finish =
+              Calendar.add start (Calendar.Period.minute 90) in
+            Lwt.return (0l, start, finish, "", "", [("", "")], "", Confirmed))
+           >>= fun (_, start, finish, room, title, speakers, abstract, status) ->
+       let duration =
+         truncate
+           (Time.Period.to_minutes
+              (Calendar.Period.to_time (Calendar.sub finish start)) +. 0.5)
+       in
+       let location = "" in
+       let page sp arg error form =
+         let txt = if error then "Erreur" else "Nouvel événement" in
+         Lwt.return
+           {{<html>[
+                {:Common.head sp txt:}
+                 <body>[<h1>(str txt) form]]}}
+       in
+       let form =
+         Xform.form talk_editor arg page sp
+           (Xform.p
+              (Xform.text "Date : " @+ Xform.date_input start @@
+               Xform.text " — Durée : " @+
+               Xform.bounded_int_input 0 1440 duration +@
+               Xform.text "min")
+                  @@
+            Xform.p
+              (Xform.text "Salle : " @+ Xform.string_input room @@
+               Xform.text " — Lieu : " @+ Xform.string_input location)
+                  @@
+            Xform.extensible_list "Ajouter un orateur supplémentaire"
+              ("", "") speakers
+              (fun (speaker, aff) ->
+                Xform.p
+                  (Xform.text "Orateur : " @+ Xform.string_input speaker @@
+                   Xform.text " — Affiliation : "@+ Xform.string_input aff))
+                 @@
+            Xform.p
+              (Xform.text "Titre : " @+
+               Xform.check (Xform.string_input ~a:{{ {size = "60"} }} title)
+                 (fun s -> if s = "" then Some ("nécessaire") else None))
+                  @@
+            Xform.p
+              (Xform.text "Résumé :" @+ [{{<br>[]}}] @+
+               Xform.text_area ~cols:80 ~rows:20 abstract)
+                  @@
+            (let l =
+               List.map (fun (nm, s) -> (nm, Event_sql.string_of_status s))
+                 Event_sql.status_list in
+             Xform.p
+               (Xform.text "État : " @+
+                Xform.select_single l (Event_sql.string_of_status status)))
+                  @@
+            Xform.p
+               (Xform.submit_button "Valider")
+             |> (fun _ sp ->
+                   Lwt.return
+                     {{<html>[{:Common.head sp "":}
+                              <body>[<p>{:(str "OK"):}]] }}))
+       in
+       page sp arg false form)
+
 (****)
 
 (**** Atom feed ****)
@@ -414,7 +504,7 @@ let _ =
        let today = Date.today () in
        let date = Date.prev today `Month in
        let date = Calendar.create date Common.midnight in
-       find_after category date >>= fun rows ->
+       Seminaire_sql.find_after category date >>= fun rows ->
        Common.lwt_map
          (fun ev ->
             Event_sql.find_category ev.category >>= fun (_, cat_name) ->
@@ -459,7 +549,7 @@ let _ =
        let today = Date.today () in
        let date = Date.prev today `Month in
        let date = Calendar.create date Common.midnight in
-       find_after category date >>= fun rows ->
+       Seminaire_sql.find_after category date >>= fun rows ->
        Event_sql.last_update () >>= fun stamp ->
        let stamp =
          match stamp with

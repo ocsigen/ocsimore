@@ -6,19 +6,9 @@ let (>>=) = Lwt.(>>=)
 
 module PGOCaml = Common_sql.PGOCaml
 
+open Event_sql.Event
+
 (***)
-
-type t =
-  { id : int32; version : int32; last_updated : Calendar.t;
-    category : int32;
-    start : PGOCaml.timestamptz; finish : PGOCaml.timestamptz;
-    room : string; location : string; title : string }
-
-let make_event (i, v, u, c, s, f, r, l, t) =
-  { id = i; version = v; last_updated = u;
-    category = c; start = s; finish = f; room = r; location = l; title = t }
-
-let make_events l = Lwt.return (List.map make_event l)
 
 (*XXX Quote the strings *)
 let cat_pattern category =
@@ -28,40 +18,40 @@ let find_in_interval category start finish =
   let pat = cat_pattern category in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
-  "select event.id, version, last_updated, category, start, finish,
-          room, location, title
+  "select event.id, version, last_updated, category, status, start, finish,
+          room, location, title, description
    from announcement.event, announcement.category
    where start < $finish :: timestamp and finish > $start :: timestamp
      and event.category = category.id
      and path like $pat
    order by start") >>=
-  make_events
+  Event_sql.make_events
 
 let find_after category date =
   let pat = cat_pattern category in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
-  "select event.id, version, last_updated, category, start, finish,
-          room, location, title
+  "select event.id, version, last_updated, category, status, start, finish,
+          room, location, title, description
    from announcement.event, announcement.category
    where start >= $date :: timestamp
      and event.category = category.id
      and path like $pat
    order by start") >>=
-  make_events
+  Event_sql.make_events
 
 let find_before category date count =
   let pat = cat_pattern category in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
-  "select event.id, version, last_updated, category, start, finish,
-          room, location, title
+  "select event.id, version, last_updated, category, status, start, finish,
+          room, location, title, description
    from announcement.event, announcement.category
    where finish <= $date :: timestamp
      and event.category = category.id
      and path like $pat
    order by start desc limit $count") >>=
-  make_events
+  Event_sql.make_events
 
 let archive_start_date category =
   let pat = cat_pattern category in

@@ -7,6 +7,8 @@ open CalendarLib
 
 let str = Ocamlduce.Utf8.make
 
+open Event_sql.Event
+
 (****)
 
 (*XXX*)
@@ -56,7 +58,7 @@ let events =
        (*XXX Validate *)
        let id = Int32.of_string id in
        Event_sql.find_event id
-           >>= fun (cat_id, date, _, room, title, abstract) ->
+           >>= fun {category = cat_id; start = date; room = room; title = title; description = abstract} ->
        Event_sql.find_speakers id >>= fun speakers ->
        Event_sql.find_category cat_id >>= fun (category, talk_category) ->
 (*XXX ???       feed_links sp category >>= fun l -> *)

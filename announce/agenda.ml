@@ -11,6 +11,7 @@ let (>>=) = Lwt.(>>=)
 let str = Ocamlduce.Utf8.make
 
 include Agenda_sql
+open Event_sql.Event
 
 (****)
 
@@ -73,7 +74,7 @@ let format_events sp sd events =
            Format.sprintf " (%s, %s)" room location
        in
        Event_sql.find_event id
-           >>= fun (_, date, _, room, title, abstract) ->
+           >>= fun {start = date; room = room; title = title; description = abstract} ->
        Event_sql.find_speakers id >>= fun speakers ->
        let desc =
          format_entry_short Event.events sp id title speakers in
