@@ -135,6 +135,8 @@ depend:
 	ocamlfind ocamldep wikicreole.mll wikicreole.mli $(PACKAGES) $(PP) $(OCSIMORE_SQL) $(OCSIMORE_SQL:.ml=.mli) >> .depend
 
 clean:
-	rm -f *.cmo *.cmi *.cma wikicreole.ml
+	rm -f *.cmo *.cmi *.cma *.annot wikicreole.ml
+	make -C nis_chkpwd clean
+
 
 include .depend
