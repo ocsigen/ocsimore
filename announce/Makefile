@@ -6,7 +6,7 @@ LINK_PKG=ocsigen,pgocaml
 COMP_PKG=ocsigen,pgocaml
 COMP_FLAGS=-thread -I ..
 
-BINARIES=website
+BINARIES=$(NAME).cma load.cma
 WEBSITE=xform.cmo \
 	atom_feed.cmo eliom_atom.cmo \
 	icalendar.cmo eliom_icalendar.cmo \
@@ -15,6 +15,7 @@ WEBSITE=xform.cmo \
 	seminaire_sql.cmo seminaire.cmo \
 	agenda_sql.cmo agenda.cmo \
 	main.cmo
+NAME=announce
 LOAD=load_sql.cmo load.cmo
 
 OCAMLDUCEDEP=ocamlducefind ocamldep -package $(COMP_PKG)
@@ -22,17 +23,14 @@ OCAMLDEP=ocamlfind ocamldep -package $(COMP_PKG),pgocaml.statements -syntax caml
 
 all: $(BINARIES)
 
-load.cma: $(LOAD)
-	ocamlducefind ocamlc $(COMPFLAGS) -a -o $@ $^
-
 load: load.cma
 	$(PGOPTS) CAML_LD_LIBRARY_PATH=../nis_chkpwd ocsigen -c load_ocsigen.conf
 
-website.cma: $(WEBSITE)
+load.cma: $(LOAD)
 	ocamlducefind ocamlc $(COMPFLAGS) -a -o $@ $^
-#	-echo reload > /tmp/cpipe
 
-website: website.cma
+$(NAME).cma: $(WEBSITE)
+	ocamlducefind ocamlc $(COMPFLAGS) -a -o $@ $^
 
 realclean::
 	rm -f $(BINARIES)
@@ -44,6 +42,13 @@ drop-db:
 
 make-db:
 	$(PSQL) < tables.sql
+
+reload: $(NAME).cma
+	-[ -p /tmp/cpipe ] && echo reload > /tmp/cpipe
+
+ocsigen: $(NAME).cma
+	mkdir -p ./var/log ./var/lib
+	$(PGOPTS) CAML_LD_LIBRARY_PATH=../nis_chkpwd ocsigen -c ocsigen.conf &
 
 #####
 
@@ -59,10 +64,6 @@ realclean:: clean
 
 %.cmi: %.mli
 	ocamlducefind ocamlc -package $(COMP_PKG) $(COMP_FLAGS) -c $<
-
-ocsigen: website.cma
-	mkdir -p ./var/log ./var/lib
-	$(PGOPTS) CAML_LD_LIBRARY_PATH=../nis_chkpwd ocsigen -c ocsigen.conf &
 
 depend:
 	(find . -regex ".*\\.mli?" \! -regex ".*_sql\\.mli?"| xargs \
