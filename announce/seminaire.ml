@@ -5,22 +5,19 @@
 XXXX
 
 EDITEURS
-- Preview
+- Modifier la base de données...
+- Etoile pour indiquer les champs obligatoires
+- Commentaire
 - Adapter au type d'événement ?
-- Valeurs par défaut
-- Comment (?)
 
 LOAD
 - check access rights...
 
 CATEGORIES
-- active ou non
+- active ou non (?)
 - Droit de lecture et d'écriture par catégorie
-- Valeurs par défaut : description, salle, horaire, durée ...
-- peut contenir des événements ou non
 
 FLUX
-- Flux pas juste de séminaires/groupe de travail
 - Prendre en compte modification, création, destruction
   (tentative, confirmed, cancelled)
 - Afficher les horaires et salles inhabituels
@@ -39,10 +36,7 @@ SEMINAIRE
 
 EVENEMENT
 - Evenement appartenant à plusieurs catégories
-  (exposé commun, par exemple)
-
-PRESENTATION
-- calendrier au format ICAL
+  (exposé commun, par exemple) ???
 
 LOW-LEVEL
 - Comment faire en cas d'erreur SQL ?
@@ -69,33 +63,17 @@ let talks_path p = "talks" :: p
 
 (****)
 
-let format_entry abs sp sd em ev =
-  Event_sql.find_speakers ev.id >>= fun speakers ->
-  Event_sql.find_description ev.id >>= fun abstract ->
-  let strong x = if em then {{[<strong>(x)]}}  else x in
-  begin if em then
-    Event.format_description sp sd abstract >>= fun abstract ->
-    Lwt.return {{ [ abstract ] }}
-  else
-    Lwt.return {{ [] }}
-  end >>= fun abstract ->
-  Lwt.return
-   {{[<dt>{:strong (str (Event.format_date_and_speakers ev.start speakers)):}
-      <dd>[{:M.a abs sp (str ev.title) (Int32.to_string ev.id):} !abstract]]}}
-
-(****)
-
 let feed =
   Eliom_services.new_service
      ~path:(talks_path ["atom"])
      ~get_params:(P.suffix (P.all_suffix "category")) ()
 
 let feed_link sp category =
-  Event_sql.find_category_name category >>= fun cat_name ->
+  Event_sql.find_category_by_path category >>= fun cat ->
   let url = M.make_string_uri feed sp category in
   Lwt.return
-    {{ <link rel="alternate"
-        type="application/atom+xml" title={:str cat_name:} href={:str url:}>
+    {{ <link rel="alternate" type="application/atom+xml"
+        title={:str cat.cat_name:} href={:str url:}>
           [] }}
 
 let rec feed_links_rec sp rem category : {{ [Xhtmltypes_duce.link *] }} Lwt.t =
@@ -125,6 +103,189 @@ let calendar_link sp category =
 
 (****)
 
+let edit_link target sp txt arg = M.a target sp (str ("[" ^ txt ^ "]")) arg
+
+let opt_enc f v = match v with None -> "" | Some v -> f v
+let opt_dec f s = match s with "" -> None | _ -> Some (f s)
+
+open Xform.Ops
+
+let talk_editor path service arg sp
+    (cat, start, finish, room, location,title, speakers, abstract, status) =
+  let duration =
+    truncate
+      (Time.Period.to_minutes
+         (Calendar.Period.to_time (Calendar.sub finish start)) +. 0.5)
+  in
+  let page sp arg error form =
+   Common.wiki_page path sp {{ [] }} (fun sp sd ->
+    let txt =
+      if error then "Erreur" else (cat.cat_name ^ ": nouvel événement") in
+    Lwt.return
+      (str txt,
+       {{ [<h1>(str txt) form] }}))
+  in
+  let form =
+    Xform.form service arg page sp
+      (Xform.p
+         (Xform.text "Date : " @+ Xform.date_input start @@
+          Xform.text " — Durée : " @+
+          Xform.bounded_int_input 0 1440 duration +@
+          Xform.text "min")
+             @@
+       Xform.p
+         (Xform.text "Salle : " @+ Xform.string_input room @@
+          Xform.text " — Lieu : " @+ Xform.string_input location)
+             @@
+       Xform.extensible_list "Ajouter un orateur"
+         ("", "") speakers
+         (fun (speaker, aff) ->
+           Xform.p
+             (Xform.text "Orateur : " @+ Xform.string_input speaker @@
+              Xform.text " — Affiliation : "@+ Xform.string_input aff))
+            @@
+       Xform.p
+         (Xform.text "Titre : " @+
+          Xform.check (Xform.string_input ~a:{{ {size = "60"} }} title)
+            (fun s -> if s = "" then Some ("nécessaire") else None))
+             @@
+       Xform.p
+         (Xform.text "Résumé :" @+ [{{<br>[]}}] @+
+          Xform.text_area ~cols:80 ~rows:20 abstract)
+             @@
+       (let l =
+          List.map (fun (nm, s) -> (nm, Event_sql.string_of_status s))
+            Event_sql.status_list in
+        Xform.p
+          (Xform.text "État : " @+
+           Xform.select_single l (Event_sql.string_of_status status)))
+             @@
+       Xform.p
+          (Xform.submit_button "Valider" @@ Xform.submit_button "Annuler")
+        |> (fun ((date, duration), ((room, location), (persons, (title, (description, (status, (validate, cancel))))))) sp ->
+              Lwt.return
+                {{<html>[{:Common.head sp "":}
+                         <body>[<p>{:(str (Format.sprintf "OK (%b %b)" validate cancel)):}]] }}))
+  in
+  page sp arg false form
+
+let create_event =
+  let path = ["create"] in
+  let create_event =
+    Eliom_services.new_service ~path
+      ~get_params:(P.suffix (P.all_suffix "category"))
+      ()
+  in
+  M.register create_event
+    (fun sp category () ->
+        (*XXX Use default time, default duration and default room *)
+        Event_sql.find_category_by_path category >>= fun cat ->
+        assert cat.cat_editable; (*XXX Report an error?*)
+        Seminaire_sql.find_category_defaults cat.cat_id
+           >>= fun (time, duration, room, location) ->
+        let time = match time with Some v -> v | None -> Time.now () in
+        let start = Calendar.create (Date.today ()) time in
+        let finish =
+          Calendar.add start (Calendar.Period.minute (Int32.to_int duration))
+        in
+        talk_editor path create_event category sp
+          (cat, start, finish, room, location, "", [("", "")], "", Confirmed));
+  create_event
+
+let edit_event =
+  let path = ["edit"] in
+  let edit_event =
+    Eliom_services.new_service ~path
+      ~get_params:(P.suffix (P.string "id"))
+      ()
+  in
+  M.register edit_event
+    (fun sp arg () ->
+       (*XXX Validate *)
+       let id = Int32.of_string arg in
+       Event_sql.find_event id >>= fun ev ->
+       Event_sql.find_speakers id >>= fun speakers ->
+       Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.description) ()
+           >>= fun desc ->
+       let desc = match desc with None -> "" | Some (_, _, d, _, _) -> d in
+       Event_sql.find_category_by_id ev.category >>= fun cat ->
+       talk_editor path edit_event arg sp
+         (cat, fst ev.start, fst ev.finish, ev.room, ev.location,
+          ev.title, speakers, desc, ev.status));
+  edit_event
+
+(****)
+
+let events =
+  let path = ["events"] in
+  M.register_new_service
+    ~path ~get_params:(P.suffix (P.string "id"))
+    (fun sp id () ->
+       (*XXX Validate *)
+       let id = Int32.of_string id in
+       Event_sql.find_event id
+           >>= fun {category = cat_id; start = date; room = room; title = title; description = abstract} ->
+       Event_sql.find_speakers id >>= fun speakers ->
+       Event_sql.find_category_by_id cat_id
+           >>= fun cat ->
+       feed_links sp cat.cat_path >>= fun l ->
+       let speaker_frag =
+         if speakers = [] then {{ [] }} else
+         {{ [ !{:str (Event.format_speakers speakers):} <br>[] ] }}
+       in
+       let speaker_title =
+         if speakers = [] then "" else
+         Event.syntactic_conjunction (List.map fst speakers) ^ " - "
+       in
+       let edit =
+         if cat.cat_editable then
+          {{ [<p>[{:edit_link edit_event sp "Modifier"
+                      (Int32.to_string id):}]] }}
+         else
+          {{ [] }}
+       in
+       Common.wiki_page path sp l
+         (fun sp sd ->
+            Event.format_description sp sd abstract
+               >>= fun abstract ->
+            Lwt.return
+              (str (speaker_title ^ title),
+               {{ [ <h1>[!{:str cat.cat_name:}]
+                    !edit
+                    <h2>[!(str (Event.format_date_num date))
+                         <br>[]
+                         !speaker_frag
+                         !(str title)]
+                    abstract ] }})))
+
+(****)
+
+let format_entry abs sp sd em ev =
+  Event_sql.find_speakers ev.id >>= fun speakers ->
+  Event_sql.find_description ev.id >>= fun abstract ->
+  let strong x = if em then {{[<strong>(x)]}}  else x in
+  begin if em then
+    Event.format_description sp sd abstract >>= fun abstract ->
+    Lwt.return {{ [ abstract ] }}
+  else
+    Lwt.return {{ [] }}
+  end >>= fun abstract ->
+  Event_sql.find_category_by_id ev.category >>= fun cat ->
+  let edit =
+    if cat.cat_editable then
+      {{ [!{:str " — ":}
+          {:edit_link edit_event sp "Modifier" (Int32.to_string ev.id):}] }}
+    else
+      {{ [] }}
+  in
+  Lwt.return
+   {{[<dt>[!{:strong (str (Event.format_date_and_speakers ev.start speakers)):}
+           !edit]
+      <dd>[{:M.a abs sp (str ev.title) (Int32.to_string ev.id):}
+           !abstract]]}}
+
+(****)
+
 let dl def l =
   Common.opt def (fun x r ->{{ [<dl>[!x !(map {:r:} with s -> s)]] }}) l
 
@@ -143,12 +304,12 @@ let archives =
             let finish = Calendar.create finish Common.midnight in
             Seminaire_sql.find_in_interval category start finish
               >>= fun rows ->
-            Common.lwt_map (format_entry Event.events sp sd false) rows
+            Common.lwt_map (format_entry events sp sd false) rows
                 >>= fun l1 ->
-            Event_sql.find_category_name category >>= fun cat_name ->
+            Event_sql.find_category_by_path category >>= fun cat ->
             Lwt.return
-              (str (cat_name ^ " - " ^ dates),
-               {{ [ <h1>[!(str cat_name)]
+              (str (cat.cat_name ^ " - " ^ dates),
+               {{ [ <h1>[!{:str cat.cat_name:}]
                     <h2>[!{:str ("Exposés " ^ dates):}]
                     !(dl {:{{[ ]}}:} l1) ] }})))
 
@@ -187,22 +348,29 @@ let summary_contents category sp sd =
   let finish = Date.next start `Week in
   let start = Calendar.create start Common.midnight in
   let finish = Calendar.create finish Common.midnight in
+  Event_sql.find_category_by_path category >>= fun cat ->
   Seminaire_sql.find_in_interval category start finish >>= fun rows ->
-  Common.lwt_map (format_entry Event.events sp sd true) rows >>= fun l1 ->
+  Common.lwt_map (format_entry events sp sd true) rows >>= fun l1 ->
   Seminaire_sql.find_after category finish >>= fun rows ->
-  Common.lwt_map (format_entry Event.events sp sd false) rows >>= fun l2 ->
+  Common.lwt_map (format_entry events sp sd false) rows >>= fun l2 ->
   Seminaire_sql.find_before category start 10L >>= fun rows ->
-  Common.lwt_map (format_entry Event.events sp sd false) rows >>= fun l3 ->
+  Common.lwt_map (format_entry events sp sd false) rows >>= fun l3 ->
   archive_list sp category >>= fun archives ->
-  Event_sql.find_category_name category >>= fun cat_name ->
+  let edit =
+    if cat.cat_editable then
+     {{ [<p>[{:edit_link create_event sp "Ajouter un événement" category:}]] }}
+    else
+     {{ [] }}
+  in
   Lwt.return
-    (str cat_name,
-     {{ [ <h1>{:str cat_name:}
+    (str cat.cat_name,
+     {{ [ <h1>{:str cat.cat_name:}
+          !edit
           <p>[{:calendar_link sp category:}]
           <h2>{:str "Cette semaine":}
-          !(dl [<p>{:str "Pas d'exposé cette semaine.":}] l1)
+          !(dl [<p>{:str "Rien cette semaine.":}] l1)
           <h2>{:str "À venir":}
-          !(dl [<p>{:str "Pas d'exposé programmé pour l'instant.":}]
+          !(dl [<p>{:str "Rien de programmé pour l'instant.":}]
                l2)
           <h2>{:str "Passé":}
           !(dl {:{{[]}}:} l3)
@@ -229,7 +397,7 @@ let groupes =
     (fun sp () () ->
        Common.wiki_page path sp {{ [] }}
          (fun sp sd ->
-            Seminaire_sql.find_talk_categories () >>= fun cat ->
+            Seminaire_sql.find_categories () >>= fun cat ->
             let l =
               List.map
                 (fun (_, uniq_name, name) ->
@@ -245,8 +413,6 @@ let groupes =
 
 (****)
 
-let opt_enc f v = match v with None -> "" | Some v -> f v
-let opt_dec f s = match s with "" -> None | _ -> Some (f s)
 let opt_map f v = match v with None -> None | Some v -> Some (f v)
 
 let date_input date (hour_nm, (min_nm, (day_nm, (month_nm, year_nm)))) =
@@ -309,7 +475,7 @@ let talk_editor_action =
          Lwt.return
            {{<html>[
                {:Common.head sp "":}
-               <body>[<p>[{:M.a Event.events sp
+               <body>[<p>[{:M.a events sp
                               {{[<em>{:str title:}]}}
                               (Int32.to_string id):}]]]}}
        end else if action = "delete" && id <> None then begin
@@ -408,91 +574,6 @@ let form =
          {{<html>[{:Common.head sp "":} <body>[f]]}})
 *)
 
-let talk_editor =
-  Eliom_services.new_service ~path:(talks_path ["edit"])
-    ~get_params:(P.suffix (P.string "id"))
-    ()
-
-open Xform.Ops
-
-let _ =
-  M.register talk_editor
-    (fun sp arg () ->
-       let id = opt_dec Int32.of_string arg in
-         (*XXX Validate *)
-       (match id with
-          Some id ->
-            Event_sql.find_event id
-                >>= fun {category = cat; start= (start, _); finish = (finish, _); room = room; title = title; description = desc; status = status} ->
-            Event_sql.find_speakers id >>= fun speakers ->
-            Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, desc) ()
-                >>= fun desc ->
-            let desc = match desc with None -> "" | Some (_, _, d, _, _) -> d in
-            Lwt.return (cat, start, finish, room, title, speakers, desc, status)
-        | _(*None*) ->
-            (*XXX Use default time, default duration and default room *)
-            let start = Calendar.create (Date.today ()) (Time.now ()) in
-            let finish =
-              Calendar.add start (Calendar.Period.minute 90) in
-            Lwt.return (0l, start, finish, "", "", [("", "")], "", Confirmed))
-           >>= fun (_, start, finish, room, title, speakers, abstract, status) ->
-       let duration =
-         truncate
-           (Time.Period.to_minutes
-              (Calendar.Period.to_time (Calendar.sub finish start)) +. 0.5)
-       in
-       let location = "" in
-       let page sp arg error form =
-         let txt = if error then "Erreur" else "Nouvel événement" in
-         Lwt.return
-           {{<html>[
-                {:Common.head sp txt:}
-                 <body>[<h1>(str txt) form]]}}
-       in
-       let form =
-         Xform.form talk_editor arg page sp
-           (Xform.p
-              (Xform.text "Date : " @+ Xform.date_input start @@
-               Xform.text " — Durée : " @+
-               Xform.bounded_int_input 0 1440 duration +@
-               Xform.text "min")
-                  @@
-            Xform.p
-              (Xform.text "Salle : " @+ Xform.string_input room @@
-               Xform.text " — Lieu : " @+ Xform.string_input location)
-                  @@
-            Xform.extensible_list "Ajouter un orateur supplémentaire"
-              ("", "") speakers
-              (fun (speaker, aff) ->
-                Xform.p
-                  (Xform.text "Orateur : " @+ Xform.string_input speaker @@
-                   Xform.text " — Affiliation : "@+ Xform.string_input aff))
-                 @@
-            Xform.p
-              (Xform.text "Titre : " @+
-               Xform.check (Xform.string_input ~a:{{ {size = "60"} }} title)
-                 (fun s -> if s = "" then Some ("nécessaire") else None))
-                  @@
-            Xform.p
-              (Xform.text "Résumé :" @+ [{{<br>[]}}] @+
-               Xform.text_area ~cols:80 ~rows:20 abstract)
-                  @@
-            (let l =
-               List.map (fun (nm, s) -> (nm, Event_sql.string_of_status s))
-                 Event_sql.status_list in
-             Xform.p
-               (Xform.text "État : " @+
-                Xform.select_single l (Event_sql.string_of_status status)))
-                  @@
-            Xform.p
-               (Xform.submit_button "Valider")
-             |> (fun _ sp ->
-                   Lwt.return
-                     {{<html>[{:Common.head sp "":}
-                              <body>[<p>{:(str "OK"):}]] }}))
-       in
-       page sp arg false form)
-
 (****)
 
 (**** Atom feed ****)
@@ -507,12 +588,12 @@ let _ =
        Seminaire_sql.find_after category date >>= fun rows ->
        Common.lwt_map
          (fun ev ->
-            Event_sql.find_category ev.category >>= fun (_, cat_name) ->
+            Event_sql.find_category_by_id ev.category >>= fun cat ->
             Event_sql.find_speakers ev.id >>= fun speakers ->
             Event_sql.find_description ev.id >>= fun abstract ->
             Event.format_description sp sd abstract >>= fun abstract ->
             let p =
-              M.make_full_string_uri Event.events sp (Int32.to_string ev.id) in
+              M.make_full_string_uri events sp (Int32.to_string ev.id) in
             let identity =
               { Atom_feed.id = p ^ "#" ^ Int32.to_string ev.version;
                 Atom_feed.link = p;
@@ -522,7 +603,7 @@ let _ =
                   ev.title }
             in
             Lwt.return
-              { Atom_feed.e_id = identity; Atom_feed.author = cat_name;
+              { Atom_feed.e_id = identity; Atom_feed.author = cat.cat_name;
                 Atom_feed.content = {{ [ abstract ] }} })
          rows
            >>= fun el ->
@@ -534,11 +615,11 @@ let _ =
          | None   -> Time_Zone.on Calendar.from_unixfloat Time_Zone.UTC
                        (Unix.gettimeofday ())
        in
-       Event_sql.find_category_name category >>= fun cat_name ->
+       Event_sql.find_category_by_path category >>= fun cat ->
        Lwt.return
          (M.make_full_string_uri feed sp category,
           { Atom_feed.id = p; Atom_feed.link = p;
-            Atom_feed.updated = d; Atom_feed.title = cat_name }, el))
+            Atom_feed.updated = d; Atom_feed.title = cat.cat_name }, el))
 
 (**** iCalendar publishing ****)
 
@@ -560,12 +641,12 @@ let _ =
        let hostname = Eliom_sessions.get_hostname ~sp in
        Common.lwt_map
          (fun ev ->
-            Event_sql.find_category ev.category >>= fun (_, cat_name) ->
+            Event_sql.find_category_by_id ev.category >>= fun cat ->
             Event_sql.find_speakers ev.id >>= fun speakers ->
             Event_sql.find_description ev.id >>= fun abstract ->
             Event.format_description sp sd abstract >>= fun abstract ->
             let p =
-              M.make_full_string_uri Event.events sp (Int32.to_string ev.id) in
+              M.make_full_string_uri events sp (Int32.to_string ev.id) in
             let loc = Event.format_location ev.room ev.location in
             Lwt.return
               { Icalendar.dtstart = Common.utc_time ev.start;
@@ -575,7 +656,7 @@ let _ =
                 Icalendar.uid =
                    Format.sprintf "event%ld@@%s" ev.id hostname;
                 Icalendar.summary =
-                   cat_name ^ " — " ^
+                   cat.cat_name ^ " — " ^
                    (if speakers = [] then "" else
                     (Event.format_speakers speakers ^ " — ")) ^
                    ev.title;
@@ -590,9 +671,9 @@ let _ =
                 Icalendar.url = Some p })
          rows
            >>= fun el ->
-       Event_sql.find_category_name category >>= fun cat_name ->
+       Event_sql.find_category_by_path category >>= fun cat ->
        Lwt.return
          { Icalendar.prodid = "-//PPS//Events//EN"; (*???*)
-           Icalendar.calname = Some cat_name;
+           Icalendar.calname = Some cat.cat_name;
            Icalendar.caldesc = None;
            Icalendar.events = el })

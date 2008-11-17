@@ -4,10 +4,14 @@ CREATE SCHEMA announcement;
 SET search_path TO announcement;
 
 CREATE TABLE category (
-  id SERIAL PRIMARY KEY CHECK (id <> 0),
+  id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   path TEXT UNIQUE NOT NULL,
-  kind INTEGER NOT NULL
+  editable BOOLEAN NOT NULL,
+  time TIME,
+  duration INTEGER NOT NULL,
+  room TEXT NOT NULL,
+  location TEXT NOT NULL
 );
 
 CREATE TABLE event (

@@ -321,7 +321,7 @@ try
 let author = Users.admin.Users.id in
 let wiki = create_wiki () in
 let dbh = PGOCaml.connect () in
-let category = if parse_only then 0l else create_category dbh in
+let category = if parse_only then 0l else create_categories dbh in
 for year = 1999 to 2008 do
   let subdir =
     if year = 1999 then "sem1999/" else Format.sprintf "sem%d/abstracts/" year

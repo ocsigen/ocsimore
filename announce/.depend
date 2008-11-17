@@ -14,8 +14,8 @@
 ./form.cmx: ./form.cmi 
 ./eliom_icalendar.cmo: icalendar.cmi 
 ./eliom_icalendar.cmx: icalendar.cmx 
-./agenda.cmo: event_sql.cmo event.cmo common.cmo agenda_sql.cmo 
-./agenda.cmx: event_sql.cmx event.cmx common.cmx agenda_sql.cmx 
+./agenda.cmo: seminaire.cmo event_sql.cmo event.cmo common.cmo agenda_sql.cmo 
+./agenda.cmx: seminaire.cmx event_sql.cmx event.cmx common.cmx agenda_sql.cmx 
 ./seminaire.cmo: xform.cmi seminaire_sql.cmo icalendar.cmi event_sql.cmo \
     event.cmo eliom_icalendar.cmo eliom_atom.cmi common_sql.cmo common.cmo \
     atom_feed.cmi 

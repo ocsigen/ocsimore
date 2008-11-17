@@ -34,7 +34,7 @@ end
 type 'a outcome = Success of 'a | Redisplay | Error
 
 type ('content, 'spec, 'html, 'o) u =
-  {form : 'content option -> 'spec -> 'html * 'o outcome;
+  {form : 'content option -> 'spec -> 'html list * 'o outcome;
    params :
      Name.t -> ('content, [`WithoutSuffix], 'spec) P.params_type * Name.t}
 
@@ -63,7 +63,7 @@ let outcome_map f o =
 let string_param name =
   (P.string (Name.to_string name), Name.next name)
 
-let string_input ?a value : (inline list, string) t =
+let string_input ?a value =
   pack
    {form =
       (fun v' name ->
@@ -180,7 +180,9 @@ let list' n f =
     {form =
        (fun v name ->
           let l =
-            match v with None -> repeat n None | Some l -> List.map (fun x -> Some x) l
+            match v with
+              None -> repeat n None
+            | Some l -> List.map (fun x -> Some x) l
           in
           let l =
             name.P.it (fun name v' -> [f.form v' name]) l [] in
@@ -193,7 +195,7 @@ let list' n f =
 
 (****)
 
-let error s : inline list = [{{<span>{:str ("(" ^ s ^ ")"):}}}]
+let error s = [{{<span>{:str ("(" ^ s ^ ")"):}}}]
 
 let check f tst =
   unpack f {f = fun f ->
@@ -210,9 +212,9 @@ let check f tst =
 
 (****)
 
-let text s : inline list = {:{{str s}}:}
-let p (x : (inline list, 'b) t) = wrap (fun x -> [{{<p>{:x:}}}]) x
-let hidden (x : (inline list, 'b) t) =
+let text s = {:{{str s}}:}
+let p (x : (inline, 'b) t) = wrap (fun x -> [{{<p>{:x:}}}]) x
+let hidden (x : (inline, 'b) t) =
   wrap (fun x -> [{{<div style="display:none">{:x:}}}]) x
 
 (****)
@@ -236,17 +238,17 @@ let form fallback get_args page sp f =
     {{ {:fst (f.form None names):} }}) get_args}
 
 (*XXXX Validate result *)
-let int_input ?a i =
-  check (string_input ?a (string_of_int i))
+let int_input ?a ?(format = string_of_int) i =
+  check (string_input ?a (format i))
         (fun s -> None (*XXX Some (error s)*))
   |> (fun s -> int_of_string s)
 
-let bounded_int_input a b i =
+let bounded_int_input ?format a b i =
   let l =
     string_of_int
       (max (String.length (string_of_int a)) (String.length (string_of_int b)))
   in
-  check (int_input ~a:{{ {maxlength = {:l:}; size = {:l:}} }} i)
+  check (int_input ?format ~a:{{ {maxlength = {:l:}; size = {:l:}} }} i)
   (fun i ->
    if i < a || i > b then
      Some (Format.sprintf "doit être entre %i et %i" a b)
@@ -285,11 +287,12 @@ let extensible_list txt default l f =
 (****)
 
 let hour_input hour min =
-  bounded_int_input 0 23 hour +@ text "h" @@ bounded_int_input 0 59 min
+  bounded_int_input 0 23 hour +@ text "h" @@
+  bounded_int_input ~format:(Format.sprintf "%02d") 0 59 min
 
 let day_input day month year =
   bounded_int_input 1 31 day +@ text "/" @@
-  bounded_int_input 1 12 month +@ text "/" @@
+  bounded_int_input ~format:(Format.sprintf "%02d") 1 12 month +@ text "/" @@
   bounded_int_input 0 9999 year
   |> (fun (day, (month, year)) -> (day, month, year))
 

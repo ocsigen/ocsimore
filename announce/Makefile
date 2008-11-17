@@ -50,6 +50,10 @@ ocsigen: $(NAME).cma
 	mkdir -p ./var/log ./var/lib
 	$(PGOPTS) CAML_LD_LIBRARY_PATH=../nis_chkpwd ocsigen -c ocsigen.conf &
 
+darcs-send:
+	darcs send --sign --to "nobody@ocsigen.org" --sendmail-command='curl -o /tmp/webdarcs.log -F patch=@- -F repo=ocsimore http://www.ocsigen.org/webdarcs/ %<'
+	cat /tmp/webdarcs.log
+
 #####
 
 clean::

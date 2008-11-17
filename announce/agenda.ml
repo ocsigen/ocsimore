@@ -53,7 +53,7 @@ let format_entry_short abs sp id title speakers =
 
 let filter_events start finish events =
   List.filter
-    (fun (start', finish', _, _, _, _, _) ->
+    (fun (start', finish', _, _, _, _) ->
        Common.local_time start' < finish && Common.local_time finish' > start)
     events
 
@@ -63,7 +63,7 @@ let dl def l =
 
 let format_events sp sd events =
   Common.lwt_map
-    (fun (start, finish, id, name, kind, room, location) ->
+    (fun (start, finish, id, name, room, location) ->
        let loc =
          if location = "" && room = "" then "" else
          if room = "" then
@@ -77,7 +77,7 @@ let format_events sp sd events =
            >>= fun {start = date; room = room; title = title; description = abstract} ->
        Event_sql.find_speakers id >>= fun speakers ->
        let desc =
-         format_entry_short Event.events sp id title speakers in
+         format_entry_short Seminaire.events sp id title speakers in
        Lwt.return
          {{ [<dt>{:str
                      (String.capitalize (format_time_interval start finish) ^

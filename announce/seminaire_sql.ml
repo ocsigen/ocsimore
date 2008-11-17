@@ -19,7 +19,7 @@ let find_in_interval category start finish =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "select event.id, version, last_updated, category, status, start, finish,
-          room, location, title, description
+          event.room, event.location, title, description
    from announcement.event, announcement.category
    where start < $finish :: timestamp and finish > $start :: timestamp
      and event.category = category.id
@@ -32,7 +32,7 @@ let find_after category date =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "select event.id, version, last_updated, category, status, start, finish,
-          room, location, title, description
+          event.room, event.location, title, description
    from announcement.event, announcement.category
    where start >= $date :: timestamp
      and event.category = category.id
@@ -45,13 +45,20 @@ let find_before category date count =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "select event.id, version, last_updated, category, status, start, finish,
-          room, location, title, description
+          event.room, event.location, title, description
    from announcement.event, announcement.category
    where finish <= $date :: timestamp
      and event.category = category.id
      and path like $pat
    order by start desc limit $count") >>=
   Event_sql.make_events
+
+let find_category_defaults cat =
+  Lwt_pool.use Common_sql.dbpool (fun dbh ->
+  Common_sql.unique_row
+    (PGSQL(dbh)
+     "select time, duration, room, location
+      from announcement.category where id = $cat"))
 
 let archive_start_date category =
   let pat = cat_pattern category in
@@ -64,7 +71,7 @@ let archive_start_date category =
 
 (****)
 
-let find_talk_categories () =
+let find_categories () =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL (dbh)
   "select id, path, name from announcement.category order by path")

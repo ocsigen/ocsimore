@@ -22,14 +22,15 @@ let insert_speaker dbh event person =
                into announcement.event_person (event, person)
                values ($event, $person);"
 
-let create_category dbh =
+let add_category dbh (name, path, editable) =
   PGSQL(dbh)
-  "insert into announcement.category (name, path, kind)
-   values ('Annonces', '', 0)";
-  PGSQL(dbh)
-  "insert into announcement.category (name, path, kind)
-   values ('Exposés', 'exposes/', 0)";
-  PGSQL(dbh)
-  "insert into announcement.category (name, path, kind)
-   values ('Séminaire PPS', 'exposes/seminaire/', 1)";
+  "insert into announcement.category (name, path, editable)
+   values ($name, $path, $editable)"
+
+let create_categories dbh =
+  List.iter (add_category dbh)
+    [("Annonces", "", false);
+     ("Exposés", "exposes/", false);
+     ("Séminaire PPS", "exposes/seminaire/", true)];
+  (* HACK: last is seminar *)
   PGOCaml.serial4 dbh "announcement.category_id_seq"

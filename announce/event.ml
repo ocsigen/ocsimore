@@ -47,38 +47,3 @@ let format_location location room =
     "", _ -> location
   | _, "" -> room
   | _     -> room ^ ", " ^ location
-
-(****)
-
-let events =
-  let path = ["events"] in
-  M.register_new_service
-    ~path ~get_params:(P.suffix (P.string "id"))
-    (fun sp id () ->
-       (*XXX Validate *)
-       let id = Int32.of_string id in
-       Event_sql.find_event id
-           >>= fun {category = cat_id; start = date; room = room; title = title; description = abstract} ->
-       Event_sql.find_speakers id >>= fun speakers ->
-       Event_sql.find_category cat_id >>= fun (category, talk_category) ->
-(*XXX ???       feed_links sp category >>= fun l -> *)
-       let speaker_frag =
-         if speakers = [] then {{ [] }} else
-         {{ [ !{:str (format_speakers speakers):} <br>[] ] }}
-       in
-       let speaker_title =
-         if speakers = [] then "" else
-         syntactic_conjunction (List.map fst speakers) ^ " - "
-       in
-       Common.wiki_page path sp {{ [] }}
-         (fun sp sd ->
-            format_description sp sd abstract
-               >>= fun abstract ->
-            Lwt.return
-              (str (speaker_title ^ title),
-               {{ [ <h1>[!(str talk_category)]
-                    <h2>[!(str (format_date_num date))
-                         <br>[]
-                         !speaker_frag
-                         !(str title)]
-                    abstract ] }})))

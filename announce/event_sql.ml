@@ -17,6 +17,13 @@ module Event = struct
       category : int32; status : status;
       start : PGOCaml.timestamptz; finish : PGOCaml.timestamptz;
       room : string; location : string; title : string; description : int32 }
+
+  type cat =
+    { cat_id : int32;
+      cat_name : string;
+      cat_path : string list;
+      cat_editable : bool }
+
 end
 
 open Event
@@ -59,6 +66,11 @@ let make_event (i, v, u, c, st, s, f, r, l, t, d) =
 
 let make_events l = Lwt.return (List.map make_event l)
 
+let make_category (i, n, p, e) =
+  Lwt.return
+    {cat_id = i; cat_name = n; cat_editable = e;
+     cat_path = Str.split (Str.regexp_string "/") p }
+
 (****)
 
 let find_event id =
@@ -82,19 +94,23 @@ let find_speakers id =
   "select name, affiliation from announcement.event_person, announcement.person
    where event = $id and person = id")
 
-let find_category_name name =
+let find_category_by_path name =
   let name =
     if name = [] || name = [""] then "" else  String.concat "/" name ^ "/" in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   Common_sql.unique_row
     (PGSQL(dbh)
-    "select name from announcement.category where path = $name"))
+    "select id, name, path, editable
+     from announcement.category where path = $name")) >>=
+  make_category
 
-let find_category id =
+let find_category_by_id id =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   Common_sql.unique_row
     (PGSQL(dbh)
-     "select path, name from announcement.category where id = $id"))
+     "select id, name, path, editable
+      from announcement.category where id = $id")) >>=
+  make_category
 
 let last_update () =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
