@@ -13,15 +13,17 @@ module Event = struct
     Confirmed | Tentative | Cancelled
 
   type t =
-    { id : int32; version : int32; last_updated : Calendar.t;
-      category : int32; status : status;
+    { id : int32; minor_version : int32; major_version : int32;
+      last_updated : Calendar.t; category : int32; status : status;
       start : PGOCaml.timestamptz; finish : PGOCaml.timestamptz;
-      room : string; location : string; title : string; description : int32 }
+      room : string; location : string; title : string;
+      description : int32; comment : int32 }
 
   type cat =
     { cat_id : int32;
       cat_name : string;
       cat_path : string list;
+      cat_desc : int32;
       cat_editable : bool }
 
 end
@@ -59,16 +61,17 @@ let status_list =
    "À confirmer", Tentative;
    "Annulé", Cancelled]
 
-let make_event (i, v, u, c, st, s, f, r, l, t, d) =
-  { id = i; version = v; last_updated = u; category = c;
-    status = state_of_int st;
-    start = s; finish = f; room = r; location = l; title = t; description = d }
+let make_event (i, v, v', u, c, st, s, f, r, l, t, d, cm) =
+  { id = i; minor_version = v; major_version = v';
+    last_updated = u; category = c; status = state_of_int st;
+    start = s; finish = f; room = r; location = l; title = t;
+    description = d; comment = cm }
 
 let make_events l = Lwt.return (List.map make_event l)
 
-let make_category (i, n, p, e) =
+let make_category (i, n, p, d, e) =
   Lwt.return
-    {cat_id = i; cat_name = n; cat_editable = e;
+    {cat_id = i; cat_name = n; cat_desc = d; cat_editable = e;
      cat_path = Str.split (Str.regexp_string "/") p }
 
 (****)
@@ -77,8 +80,9 @@ let find_event id =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   Common_sql.unique_row
     (PGSQL(dbh)
-     "select event.id, version, last_updated, category, status, start, finish,
-             room, location, title, description
+     "select event.id, minor_version, major_version,
+             last_updated, category, status, start, finish,
+             room, location, title, description, comment
       from announcement.event where id = $id")) >>= fun e ->
   Lwt.return (make_event e)
 
@@ -100,7 +104,7 @@ let find_category_by_path name =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   Common_sql.unique_row
     (PGSQL(dbh)
-    "select id, name, path, editable
+    "select id, name, path, description, editable
      from announcement.category where path = $name")) >>=
   make_category
 
@@ -108,7 +112,7 @@ let find_category_by_id id =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   Common_sql.unique_row
     (PGSQL(dbh)
-     "select id, name, path, editable
+     "select id, name, path, description, editable
       from announcement.category where id = $id")) >>=
   make_category
 

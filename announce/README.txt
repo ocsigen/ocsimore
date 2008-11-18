@@ -7,3 +7,8 @@
         make load
 - Compiler
         make
+
+=====
+
+- Supprimer la base de donnée
+        make drop-db

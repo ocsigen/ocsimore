@@ -4,22 +4,23 @@
 
 XXXX
 
+XFORM
+- cancel button
+  (no need to check validity)
+
 EDITEURS
-- Modifier la base de données...
+** - Modifier la base de données...
 - Etoile pour indiquer les champs obligatoires
 - Commentaire
 - Adapter au type d'événement ?
 
-LOAD
-- check access rights...
-
 CATEGORIES
 - active ou non (?)
-- Droit de lecture et d'écriture par catégorie
+** - Droit de lecture et d'écriture par catégorie
 
 FLUX
-- Prendre en compte modification, création, destruction
-  (tentative, confirmed, cancelled)
+** - Prendre en compte modification, création, destruction
+     (tentative, confirmed, cancelled)
 - Afficher les horaires et salles inhabituels
 
 CALENDRIER
@@ -111,7 +112,8 @@ let opt_dec f s = match s with "" -> None | _ -> Some (f s)
 open Xform.Ops
 
 let talk_editor path service arg sp
-    (cat, start, finish, room, location,title, speakers, abstract, status) =
+    (cat, start, finish, room, location,title,
+     speakers, desc, comment, status) =
   let duration =
     truncate
       (Time.Period.to_minutes
@@ -150,8 +152,12 @@ let talk_editor path service arg sp
             (fun s -> if s = "" then Some ("nécessaire") else None))
              @@
        Xform.p
-         (Xform.text "Résumé :" @+ [{{<br>[]}}] @+
-          Xform.text_area ~cols:80 ~rows:20 abstract)
+         (Xform.text "Description :" @+ [{{<br>[]}}] @+
+          Xform.text_area ~cols:80 ~rows:20 desc)
+             @@
+       Xform.p
+         (Xform.text "Commentaire :" @+ [{{<br>[]}}] @+
+          Xform.text_area ~cols:80 ~rows:3 comment)
              @@
        (let l =
           List.map (fun (nm, s) -> (nm, Event_sql.string_of_status s))
@@ -162,7 +168,7 @@ let talk_editor path service arg sp
              @@
        Xform.p
           (Xform.submit_button "Valider" @@ Xform.submit_button "Annuler")
-        |> (fun ((date, duration), ((room, location), (persons, (title, (description, (status, (validate, cancel))))))) sp ->
+        |> (fun ((date, duration), ((room, location), (persons, (title, (description, (comment, (status, (validate, cancel)))))))) sp ->
               Lwt.return
                 {{<html>[{:Common.head sp "":}
                          <body>[<p>{:(str (Format.sprintf "OK (%b %b)" validate cancel)):}]] }}))
@@ -189,7 +195,8 @@ let create_event =
           Calendar.add start (Calendar.Period.minute (Int32.to_int duration))
         in
         talk_editor path create_event category sp
-          (cat, start, finish, room, location, "", [("", "")], "", Confirmed));
+          (cat, start, finish, room, location,
+           "", [("", "")], "", "", Confirmed));
   create_event
 
 let edit_event =
@@ -207,11 +214,16 @@ let edit_event =
        Event_sql.find_speakers id >>= fun speakers ->
        Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.description) ()
            >>= fun desc ->
-       let desc = match desc with None -> "" | Some (_, _, d, _, _) -> d in
+       let desc =
+         match desc with None -> "" | Some (_, _, d, _, _) -> d in
+       Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.comment) ()
+           >>= fun comment ->
+       let comment =
+         match comment with None -> "" | Some (_, _, d, _, _) -> d in
        Event_sql.find_category_by_id ev.category >>= fun cat ->
        talk_editor path edit_event arg sp
          (cat, fst ev.start, fst ev.finish, ev.room, ev.location,
-          ev.title, speakers, desc, ev.status));
+          ev.title, speakers, desc, comment, ev.status));
   edit_event
 
 (****)
@@ -349,6 +361,9 @@ let summary_contents category sp sd =
   let start = Calendar.create start Common.midnight in
   let finish = Calendar.create finish Common.midnight in
   Event_sql.find_category_by_path category >>= fun cat ->
+  Ocsisite.wikibox#noneditable_wikibox ~sp ~sd
+    ~data:(Common.wiki_id, cat.cat_desc)
+    ~ancestors:Wiki_syntax.no_ancestors () >>= fun desc ->
   Seminaire_sql.find_in_interval category start finish >>= fun rows ->
   Common.lwt_map (format_entry events sp sd true) rows >>= fun l1 ->
   Seminaire_sql.find_after category finish >>= fun rows ->
@@ -365,6 +380,7 @@ let summary_contents category sp sd =
   Lwt.return
     (str cat.cat_name,
      {{ [ <h1>{:str cat.cat_name:}
+          desc
           !edit
           <p>[{:calendar_link sp category:}]
           <h2>{:str "Cette semaine":}
@@ -595,7 +611,7 @@ let _ =
             let p =
               M.make_full_string_uri events sp (Int32.to_string ev.id) in
             let identity =
-              { Atom_feed.id = p ^ "#" ^ Int32.to_string ev.version;
+              { Atom_feed.id = p ^ "#" ^ Int32.to_string ev.major_version;
                 Atom_feed.link = p;
                 Atom_feed.updated = ev.last_updated;
                 Atom_feed.title =
@@ -663,7 +679,7 @@ let _ =
                 Icalendar.description = None; (*XXX Need a text description*)
                 Icalendar.comment = [];
                 Icalendar.location = if loc = "" then None else Some loc;
-                Icalendar.sequence = Some (Int32.to_int ev.version);
+                Icalendar.sequence = Some (Int32.to_int ev.minor_version);
                 Icalendar.status = None; (*XXX*)
                 Icalendar.transp = Icalendar.Opaque;
                 Icalendar.created = None;

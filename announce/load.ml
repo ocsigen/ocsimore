@@ -257,10 +257,14 @@ let parse_old_format s =
   let affiliation = normalize affiliation in
   let title = remove_dot (normalize title) in
   let abstract = wikify (transcode (trim abstract)) in
+(*
   Format.eprintf "%s {%s} {%s} {%s}@." date speaker affiliation title;
+*)
   let date = parse_date date in
+(*
   Format.eprintf "%s@." (Printer.Calendar.to_string (fst date));
   Format.eprintf "{%s}@." abstract;
+*)
   (date, speaker, affiliation, title, abstract)
 
 (****)
@@ -286,10 +290,14 @@ let parse_new_format s =
   let affiliation = normalize affiliation in
   let title = normalize title in
   let abstract = wikify (transcode (trim abstract)) in
+(*
   Format.eprintf "%s {%s} {%s} {%s}@." date speaker affiliation title;
+*)
   let date = parse_date date in
+(*
   Format.eprintf "%s@." (Printer.Calendar.to_string (fst date));
   Format.eprintf "{%s}@." abstract;
+*)
   (date, speaker, affiliation, title, abstract)
 
 (****)
@@ -321,7 +329,7 @@ try
 let author = Users.admin.Users.id in
 let wiki = create_wiki () in
 let dbh = PGOCaml.connect () in
-let category = if parse_only then 0l else create_categories dbh in
+let category = if parse_only then 0l else create_categories dbh wiki author in
 for year = 1999 to 2008 do
   let subdir =
     if year = 1999 then "sem1999/" else Format.sprintf "sem%d/abstracts/" year
@@ -334,7 +342,9 @@ for year = 1999 to 2008 do
          Filename.check_suffix f ".html" && not (List.mem f ignored_files)
        then begin
          let f = Filename.concat dir f in
+(*
          Format.eprintf "%s@." f;
+*)
          let s = read_file f in
          let ((start, finish), speakers, affiliation, title, abstract) =
            if year >= 2002 then parse_new_format s else
@@ -342,13 +352,12 @@ for year = 1999 to 2008 do
          in
          if not parse_only then begin
            let person_ids = person_ids dbh speakers affiliation in
-           let abstract =
-             Lwt_unix.run
-               (Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
-                  ~wiki ~author ~comment:"" ~content:abstract ())
-           in
+           let abstract = insert_text wiki author abstract in
+           let comment = insert_text wiki author "" in
            let event =
-             insert dbh category start finish person_id title abstract in
+             insert dbh category start finish
+               person_id title abstract comment
+           in
            List.iter (fun id -> insert_speaker dbh event id) person_ids
          end
        end)

@@ -7,6 +7,7 @@ CREATE TABLE category (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
   path TEXT UNIQUE NOT NULL,
+  description INTEGER NOT NULL,
   editable BOOLEAN NOT NULL,
   time TIME,
   duration INTEGER NOT NULL,
@@ -16,7 +17,8 @@ CREATE TABLE category (
 
 CREATE TABLE event (
   id SERIAL PRIMARY KEY,
-  version INTEGER NOT NULL,
+  minor_version INTEGER NOT NULL,
+  major_version INTEGER NOT NULL,
   last_updated TIMESTAMP NOT NULL, -- UTC
   start TIMESTAMP WITH TIME ZONE NOT NULL,
   finish TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -26,6 +28,7 @@ CREATE TABLE event (
   category INTEGER NOT NULL REFERENCES category,
   title TEXT NOT NULL,
   description INTEGER NOT NULL,
+  comment INTEGER NOT NULL,
   CHECK(start <= finish)
 );
 
