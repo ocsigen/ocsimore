@@ -369,6 +369,13 @@ let _ =
     )
   ;
 
+  add_a_content_extension "wikiname"
+    (fun wiki _ args content ->
+       Wiki_sql.get_wiki_by_id wiki
+       >>= fun wiki_info ->
+       let s = wiki_info.Wiki_sql.descr in
+       Lwt.return {{ {: s :} }});
+
 
   add_a_content_extension "raw"
     (fun _ (sp, sd, _) args content ->
