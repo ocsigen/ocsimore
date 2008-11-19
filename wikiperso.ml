@@ -124,6 +124,42 @@ If you are an administator of this wiki, you can login to create this page:
 <<logoutlink|Logout>>.>>
 "
 
+let template_pagename = "wikiperso-template"
+
+let admin_wiki = Ocsisite.wiki_admin.Wiki_sql.id
+
+
+let () =
+  Lwt_unix.run(
+    Lwt.catch
+      (fun () ->
+         Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:template_pagename
+         >>= fun _ -> Lwt.return ()
+      )
+      (function Not_found ->
+         Wiki_sql.new_wikibox ~wiki:admin_wiki
+           ~comment:"Template for wikipersos container pages"
+           ~content:default_welcome_page ~content_type:Wiki_sql.Wiki
+           ~author:Users.admin.Users.id ()
+         >>= fun box ->
+         Wiki_sql.set_box_for_page ~sourcewiki:admin_wiki
+           ~id:box ~page:template_pagename ()
+
+       | e -> Lwt.fail e)
+  )
+
+let template_page_contents () =
+  Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:template_pagename
+  >>= fun wikibox ->
+  Wiki_sql.get_wikibox_data ~wikibox ()
+  >>= function
+    | Some (_, _, content, _, _) ->
+        Lwt.return content
+    | None ->
+        (* fallback, should not happen if the wikiadmin is not corrupted *)
+        Lwt.return default_welcome_page
+
+
 (* The function that answers for the extension. *)
 let gen sp =
   let ri = (Eliom_sessions.esp_of_sp sp).Eliom_common.sp_ri in
@@ -151,6 +187,8 @@ let gen sp =
                     registered in the database so as to make their relocation
                     easier *)
                  let gid = [userdata.Users.id] in
+                 template_page_contents ()
+                 >>= fun template ->
                  Wiki.create_wiki
                    ~title:(Printf.sprintf "wikiperso for %s" user)
                    ~descr:(Printf.sprintf "Personal wiki of %s"
@@ -158,7 +196,7 @@ let gen sp =
                    ~wikibox:Ocsisite.wikibox (* ~boxrights:false *)
                    ~writers:gid ~wikiboxes_creators:gid
                    ~page_creators:gid ~css_editors:gid ~container_adm:gid
-                   ~container_page:default_welcome_page
+                   ~container_page:template
                    ()
                  (* Register the personal wiki at the correct url *)
                  >>= fun wiki ->
