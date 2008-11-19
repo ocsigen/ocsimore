@@ -7,18 +7,22 @@ type user_creation =
 
 type external_auth = NoExternalAuth | Nis | Pam of string option
 
-let default_data = (NoExternalAuth, NoUserCreation)
+let default_data = (NoExternalAuth, NoUserCreation, None)
 
-let (auth, basicusercreation) =
-  let rec find_wikidata ((auth, basicusercreation) as data) = function
+let (auth, basicusercreation, wikiadmin_url) =
+  let rec find_wikidata ((auth, basicusercreation, url) as data) = function
     | [] -> Lwt.return data
 
+    | (Simplexmlparser.Element ("url", ["url", url], []))::l ->
+        find_wikidata (auth, basicusercreation, Some url) l
+
+
     | (Simplexmlparser.Element ("nis", [], []))::l -> 
-        find_wikidata (Nis, basicusercreation) l
+        find_wikidata (Nis, basicusercreation, url) l
 
     | (Simplexmlparser.Element ("pam", ["service", s], []))::l -> 
         if Session_manager.pam_loaded ()
-        then find_wikidata (Pam (Some s), basicusercreation) l
+        then find_wikidata (Pam (Some s), basicusercreation, url) l
         else
           raise
             (Ocsigen_config.Config_file_error
@@ -26,7 +30,7 @@ let (auth, basicusercreation) =
 
     | (Simplexmlparser.Element ("pam", [], []))::l -> 
         if Session_manager.pam_loaded ()
-        then find_wikidata (Pam None, basicusercreation) l
+        then find_wikidata (Pam None, basicusercreation, url) l
         else
           raise
             (Ocsigen_config.Config_file_error
@@ -59,7 +63,8 @@ let (auth, basicusercreation) =
              User_widgets.mail_from = registration_mail_from;
              mail_addr = registration_mail_addr;
              mail_subject = registration_mail_subject;
-             new_user_groups = default_groups})
+             new_user_groups = default_groups},
+           url)
           l
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
@@ -112,13 +117,17 @@ let wikibox =
 
 
 let wiki_admin =
+  let url = match wikiadmin_url with
+    | None -> None
+    | Some url -> Some [url] (* BYXXX: what should we do about the slashes? *)
+  in
     Lwt_unix.run
       ((* creating a wiki for the administration boxes: *)
         Wiki.create_wiki
           ~title:Wiki.wiki_admin_name
           ~descr:"Administration boxes"
           ~wikibox:wikibox
-          ?path:None
+          ?path:url
           (*       ~readers:[Users.admin]
                    ~writers:[Users.admin]
                    ~rights_adm:[Users.admin]
