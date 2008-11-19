@@ -14,47 +14,51 @@ open Event_sql.Event
 let cat_pattern category =
   if category = [""] then "%" else String.concat "/" category ^ "/%"
 
-let find_in_interval category start finish =
+let find_in_interval filter category start finish =
   let pat = cat_pattern category in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "select event.id, minor_version, major_version,
           last_updated, category, status, start, finish,
-          event.room, event.location, title, event.description, comment
+          event.room, event.location, title, event.description
    from announcement.event, announcement.category
    where start < $finish :: timestamp and finish > $start :: timestamp
      and event.category = category.id
      and path like $pat
    order by start") >>=
-  Event_sql.make_events
+  Event_sql.make_events filter
 
-let find_after category date =
+let find_after filter category date =
   let pat = cat_pattern category in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "select event.id, minor_version, major_version,
           last_updated, category, status, start, finish,
-          event.room, event.location, title, event.description, comment
+          event.room, event.location, title, event.description
    from announcement.event, announcement.category
    where start >= $date :: timestamp
      and event.category = category.id
      and path like $pat
    order by start") >>=
-  Event_sql.make_events
+  Event_sql.make_events filter
 
-let find_before category date count =
+let find_before category date count show_all =
   let pat = cat_pattern category in
+  let max_status =
+    if show_all then Event_sql.max_status else Event_sql.visible_status
+  in
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "select event.id, minor_version, major_version,
           last_updated, category, status, start, finish,
-          event.room, event.location, title, event.description, comment
+          event.room, event.location, title, event.description
    from announcement.event, announcement.category
    where finish <= $date :: timestamp
      and event.category = category.id
      and path like $pat
+     and status <= $max_status
    order by start desc limit $count") >>=
-  Event_sql.make_events
+  Event_sql.make_events (fun _ -> true)
 
 let find_category_defaults cat =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->

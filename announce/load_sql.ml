@@ -12,15 +12,14 @@ let insert_person dbh name affiliation =
               values ($name, $affiliation)";
   PGOCaml.serial4 dbh "announcement.person_id_seq"
 
-let insert dbh category start finish speaker_id title abstract comment =
+let insert dbh category start finish speaker_id title abstract =
   let room = "" in
   PGSQL(dbh) "insert
               into announcement.event
                    (minor_version, major_version, last_updated, start, finish,
-                    category, room, location, status, title, description,
-                    comment)
+                    category, room, location, status, title, description)
               values (0, 0, 'now', $start :: timestamp, $finish :: timestamp,
-                      $category, $room, '', 0, $title, $abstract, $comment)";
+                      $category, $room, '', 0, $title, $abstract)";
   PGOCaml.serial4 dbh "announcement.event_id_seq"
 
 let insert_speaker dbh event person =

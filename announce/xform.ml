@@ -111,6 +111,36 @@ let select_single lst value =
           opt_outcome v'));
     params = string_param}
 
+let rec mapi_rec f n l =
+  match l with
+    []   -> []
+  | a::l -> let r = f n a in r :: mapi_rec f (n + 1) l
+
+let mapi f l = mapi_rec f 0 l
+
+(*
+let select_single lst n =
+  (* XXX Validation: check integer in the right range *)
+  pack
+   {form =
+      (fun v' name ->
+         let sel = def (string_of_int n) v' in
+         let l =
+           mapi
+             (fun i (l, _) ->
+                let is = string_of_int i in
+                M.Option ({{ {} }}, is, Some (str l), is = sel))
+             lst
+         in
+         (begin match l with
+            []       -> []
+          | hd :: tl -> [M.string_select ~name hd tl]
+          end,
+          opt_outcome
+            (opt_map (fun v' -> snd (List.nth lst (int_of_string v'))) v')));
+    params = string_param}
+*)
+
 (****)
 
 let wrap_int g f =

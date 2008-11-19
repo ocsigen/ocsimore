@@ -112,8 +112,9 @@ let opt_dec f s = match s with "" -> None | _ -> Some (f s)
 open Xform.Ops
 
 let talk_editor path service arg sp
-    (cat, start, finish, room, location,title,
-     speakers, desc, comment, status) =
+      cat start finish room location title
+      speakers desc comment status_list status
+      cont =
   let duration =
     truncate
       (Time.Period.to_minutes
@@ -161,17 +162,20 @@ let talk_editor path service arg sp
              @@
        (let l =
           List.map (fun (nm, s) -> (nm, Event_sql.string_of_status s))
-            Event_sql.status_list in
+            status_list in
         Xform.p
           (Xform.text "État : " @+
            Xform.select_single l (Event_sql.string_of_status status)))
              @@
        Xform.p
           (Xform.submit_button "Valider" @@ Xform.submit_button "Annuler")
-        |> (fun ((date, duration), ((room, location), (persons, (title, (description, (comment, (status, (validate, cancel)))))))) sp ->
-              Lwt.return
-                {{<html>[{:Common.head sp "":}
-                         <body>[<p>{:(str (Format.sprintf "OK (%b %b)" validate cancel)):}]] }}))
+        |> (fun ((date, duration), ((room, location),
+                 (persons, (title, (description, (comment, (status,
+                 (validate, cancel)))))))) sp ->
+              let status = Event_sql.status_of_string status in
+              cont date duration room location
+                   (List.filter (fun (nm, _) -> nm <> "") persons)
+                   title description comment status))
   in
   page sp arg false form
 
@@ -194,9 +198,27 @@ let create_event =
         let finish =
           Calendar.add start (Calendar.Period.minute (Int32.to_int duration))
         in
+        let sl =
+          ["Ne pas montrer pour l'instant", Hidden;
+           "Annoncer plus tard", Tentative;
+           "Annoncer tout de suite", Confirmed]
+        in
         talk_editor path create_event category sp
-          (cat, start, finish, room, location,
-           "", [("", "")], "", "", Confirmed));
+          cat start finish room location
+          "" [("", "")] "" "" sl Hidden
+          (fun start duration room location persons
+               title description comment status ->
+             let finish =
+               Calendar.add start (Calendar.Period.minute duration)
+             in
+             Event_sql.insert_persons persons >>= fun persons ->
+             Event_sql.insert_event
+                Common.wiki_info Users.admin.Users.id
+                cat.cat_id start finish room location
+                persons title description comment status >>= fun id ->
+             Lwt.return
+               {{<html>[{:Common.head sp "":}
+                         <body>[<p>{:(str (Format.sprintf "OK: %ld" id)):}]] }}));
   create_event
 
 let edit_event =
@@ -214,16 +236,23 @@ let edit_event =
        Event_sql.find_speakers id >>= fun speakers ->
        Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.description) ()
            >>= fun desc ->
-       let desc =
-         match desc with None -> "" | Some (_, _, d, _, _) -> d in
-       Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.comment) ()
-           >>= fun comment ->
-       let comment =
-         match comment with None -> "" | Some (_, _, d, _, _) -> d in
+       let (desc, comment) =
+         match desc with None -> ("", "") | Some (c, _, d, _, _) -> (d, c) in
        Event_sql.find_category_by_id ev.category >>= fun cat ->
+       (*XXX BOGUS*)
+       let sl =
+         ["Ne pas montrer pour l'instant", Hidden;
+          "Publier tout de suite", Confirmed;
+          "Publier plus tard", Tentative]
+       in
        talk_editor path edit_event arg sp
-         (cat, fst ev.start, fst ev.finish, ev.room, ev.location,
-          ev.title, speakers, desc, comment, ev.status));
+          cat (fst ev.start) (fst ev.finish) ev.room ev.location
+          ev.title speakers desc comment sl ev.status
+          (fun date duration room location persons
+               title description comment status ->
+              Lwt.return
+                {{<html>[{:Common.head sp "":}
+                         <body>[<p>{:(str (Format.sprintf "OK")):}]] }}));
   edit_event
 
 (****)
@@ -274,10 +303,9 @@ let events =
 
 let format_entry abs sp sd em ev =
   Event_sql.find_speakers ev.id >>= fun speakers ->
-  Event_sql.find_description ev.id >>= fun abstract ->
   let strong x = if em then {{[<strong>(x)]}}  else x in
   begin if em then
-    Event.format_description sp sd abstract >>= fun abstract ->
+    Event.format_description sp sd ev.description >>= fun abstract ->
     Lwt.return {{ [ abstract ] }}
   else
     Lwt.return {{ [] }}
@@ -298,6 +326,9 @@ let format_entry abs sp sd em ev =
 
 (****)
 
+let site_filter show_all ev =
+  show_all || ev.status = Confirmed || ev.status = Tentative
+
 let dl def l =
   Common.opt def (fun x r ->{{ [<dl>[!x !(map {:r:} with s -> s)]] }}) l
 
@@ -314,7 +345,9 @@ let archives =
             let finish = Date.next start `Year in
             let start = Calendar.create start Common.midnight in
             let finish = Calendar.create finish Common.midnight in
-            Seminaire_sql.find_in_interval category start finish
+            let show_all = true in (*XXXX*)
+            Seminaire_sql.find_in_interval
+              (site_filter show_all) category start finish
               >>= fun rows ->
             Common.lwt_map (format_entry events sp sd false) rows
                 >>= fun l1 ->
@@ -364,11 +397,14 @@ let summary_contents category sp sd =
   Ocsisite.wikibox#noneditable_wikibox ~sp ~sd
     ~data:(Common.wiki_id, cat.cat_desc)
     ~ancestors:Wiki_syntax.no_ancestors () >>= fun desc ->
-  Seminaire_sql.find_in_interval category start finish >>= fun rows ->
+  let show_all = true in (*XXXX*)
+  Seminaire_sql.find_in_interval (site_filter show_all) category start finish
+      >>= fun rows ->
   Common.lwt_map (format_entry events sp sd true) rows >>= fun l1 ->
-  Seminaire_sql.find_after category finish >>= fun rows ->
+  Seminaire_sql.find_after (site_filter show_all) category finish
+      >>= fun rows ->
   Common.lwt_map (format_entry events sp sd false) rows >>= fun l2 ->
-  Seminaire_sql.find_before category start 10L >>= fun rows ->
+  Seminaire_sql.find_before category start 10L show_all >>= fun rows ->
   Common.lwt_map (format_entry events sp sd false) rows >>= fun l3 ->
   archive_list sp category >>= fun archives ->
   let edit =
@@ -594,6 +630,8 @@ let form =
 
 (**** Atom feed ****)
 
+let feed_filter p = p.status <> Hidden && p.status <> Tentative
+
 let _ =
   Eliom_atom.register feed
     (fun sp category () ->
@@ -601,26 +639,38 @@ let _ =
        let today = Date.today () in
        let date = Date.prev today `Month in
        let date = Calendar.create date Common.midnight in
-       Seminaire_sql.find_after category date >>= fun rows ->
+       Seminaire_sql.find_after feed_filter category date >>= fun rows ->
        Common.lwt_map
          (fun ev ->
             Event_sql.find_category_by_id ev.category >>= fun cat ->
             Event_sql.find_speakers ev.id >>= fun speakers ->
-            Event_sql.find_description ev.id >>= fun abstract ->
-            Event.format_description sp sd abstract >>= fun abstract ->
+            let title =
+              Event.format_date_and_speakers ev.start speakers ^ " — " ^
+              ev.title
+            in
+            begin match ev.status with
+            | Cancelled ->
+                Lwt.return
+                  ("ANNULÉ — " ^ title,
+                   str "Cet événement est annulé")
+            | Confirmed ->
+                Event.format_description sp sd ev.description
+                   >>= fun abstract ->
+                Lwt.return (title, {{ [ abstract ] }})
+            | Hidden | Tentative ->
+                assert false
+            end >>= fun (title, content) ->
             let p =
               M.make_full_string_uri events sp (Int32.to_string ev.id) in
             let identity =
               { Atom_feed.id = p ^ "#" ^ Int32.to_string ev.major_version;
                 Atom_feed.link = p;
                 Atom_feed.updated = ev.last_updated;
-                Atom_feed.title =
-                  Event.format_date_and_speakers ev.start speakers ^ " — " ^
-                  ev.title }
+                Atom_feed.title = title }
             in
             Lwt.return
               { Atom_feed.e_id = identity; Atom_feed.author = cat.cat_name;
-                Atom_feed.content = {{ [ abstract ] }} })
+                Atom_feed.content = content })
          rows
            >>= fun el ->
        let p = M.make_full_string_uri summary sp category in
@@ -639,14 +689,18 @@ let _ =
 
 (**** iCalendar publishing ****)
 
+let ical_filter p = p.status <> Hidden
+
 let _ =
   Eliom_icalendar.register ical
     (fun sp category () ->
+(*
        let sd = Ocsimore_common.get_sd sp in
+*)
        let today = Date.today () in
        let date = Date.prev today `Month in
        let date = Calendar.create date Common.midnight in
-       Seminaire_sql.find_after category date >>= fun rows ->
+       Seminaire_sql.find_after ical_filter category date >>= fun rows ->
        Event_sql.last_update () >>= fun stamp ->
        let stamp =
          match stamp with
@@ -659,8 +713,10 @@ let _ =
          (fun ev ->
             Event_sql.find_category_by_id ev.category >>= fun cat ->
             Event_sql.find_speakers ev.id >>= fun speakers ->
-            Event_sql.find_description ev.id >>= fun abstract ->
-            Event.format_description sp sd abstract >>= fun abstract ->
+(*
+            Event.format_description sp sd ev.description >>= fun desc ->
+            Event.format_description sp sd ev.comment >>= fun comment ->
+*)
             let p =
               M.make_full_string_uri events sp (Int32.to_string ev.id) in
             let loc = Event.format_location ev.room ev.location in
@@ -676,11 +732,17 @@ let _ =
                    (if speakers = [] then "" else
                     (Event.format_speakers speakers ^ " — ")) ^
                    ev.title;
-                Icalendar.description = None; (*XXX Need a text description*)
-                Icalendar.comment = [];
+                Icalendar.description = None (*XXX Some desc*);
+                Icalendar.comment = [] (*XXX Some comment*);
                 Icalendar.location = if loc = "" then None else Some loc;
                 Icalendar.sequence = Some (Int32.to_int ev.minor_version);
-                Icalendar.status = None; (*XXX*)
+                Icalendar.status =
+                  Some
+                    (match ev.status with
+                       Confirmed -> Icalendar.Confirmed
+                     | Tentative -> Icalendar.Tentative
+                     | Cancelled -> Icalendar.Cancelled
+                     | Hidden    -> assert false);
                 Icalendar.transp = Icalendar.Opaque;
                 Icalendar.created = None;
                 Icalendar.last_modified = Some ev.last_updated;

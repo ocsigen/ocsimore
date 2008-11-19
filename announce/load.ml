@@ -353,10 +353,8 @@ for year = 1999 to 2008 do
          if not parse_only then begin
            let person_ids = person_ids dbh speakers affiliation in
            let abstract = insert_text wiki author abstract in
-           let comment = insert_text wiki author "" in
            let event =
-             insert dbh category start finish
-               person_id title abstract comment
+             insert dbh category start finish person_id title abstract
            in
            List.iter (fun id -> insert_speaker dbh event id) person_ids
          end

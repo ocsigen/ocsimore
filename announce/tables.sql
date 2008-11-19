@@ -28,7 +28,6 @@ CREATE TABLE event (
   category INTEGER NOT NULL REFERENCES category,
   title TEXT NOT NULL,
   description INTEGER NOT NULL,
-  comment INTEGER NOT NULL,
   CHECK(start <= finish)
 );
 

@@ -18,6 +18,7 @@ val text_area :
   rows:int -> cols:int -> string -> (inline, string) t
 val submit_button : string -> (inline, bool) t
 val select_single : (string * string) list -> string -> (inline, string) t
+(*val select_single : (string * 'a) list -> 'a -> (inline, 'a) t*)
 (*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
 val list : 'i list -> ('i -> (Xhtmltypes_duce.form_content, 'o) t) -> (Xhtmltypes_duce.form_content, 'o list) t
 
