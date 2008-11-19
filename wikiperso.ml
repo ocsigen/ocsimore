@@ -110,19 +110,19 @@ let external_user user =
           "PAM authentification not supported by wikiperso";
         return None
 
-let welcome_page user =
-  Printf.sprintf
-"=== Personal site of %s\r\n\
+let default_welcome_page =
+"=== <<wikiname>>\r\n\
 \r\n\
 <<content>>
 \r\n
 \r\n
-<<div class='loginfo'|
-<<cond error='autherror'|//Bad username or password//>>
-<<cond ingroup='users'|You are connected as <<username>>.
-<<logoutlink|Logout>>>>
-<<cond notingroup='users'|If you are %s, you can login and create this page: <<nonattachedlink protocol='https' page='login'|connectez-vous>>>>
-" user user
+<<cond notingroup='users'|
+If you are an administator of this wiki, you can login to create this page:
+<<loginbox user_prompt='User:' pwd_prompt='Password:' auth_error='Bad user or password'>>
+>>
+<<cond ingroup='users'|Your are connected as <<username>>.
+<<logoutlink|Logout>>.>>
+"
 
 (* The function that answers for the extension. *)
 let gen sp =
@@ -158,7 +158,7 @@ let gen sp =
                    ~wikibox:Ocsisite.wikibox (* ~boxrights:false *)
                    ~writers:gid ~wikiboxes_creators:gid
                    ~page_creators:gid ~css_editors:gid ~container_adm:gid
-                   ~container_page:(welcome_page userdata.Users.fullname)
+                   ~container_page:default_welcome_page
                    ()
                  (* Register the personal wiki at the correct url *)
                  >>= fun wiki ->
