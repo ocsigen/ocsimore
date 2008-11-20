@@ -1391,6 +1391,23 @@ object (self)
             content)
         );
 
+       Wiki_syntax.add_link_extension "cancellink"
+        (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
+           let content =
+               match c with
+                 | Some c -> Wiki_syntax.a_content_of_wiki
+                     ?subbox ~ancestors ~sp ~sd wiki_id c
+                 | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
+           in
+           ((Eliom_duce.Xhtml.make_uri
+               ~service:Eliom_services.void_action
+               ~sp
+               ()
+            ),
+            args,
+            content)
+        );
+
 
        Wiki_syntax.add_a_content_extension "object"
         (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 

@@ -123,6 +123,9 @@ fragment="..." to create a link containing a # (link to a portion of page with
 an id attribute)
 class, id
 
+{{{<<cancellink|...>>}}} is a link towards the same page without special
+parameters. Use it if you want to cancel the edition of a page for example.
+The text after the vertical bar is the text of the link.
 
 
 
