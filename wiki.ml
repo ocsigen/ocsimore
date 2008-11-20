@@ -294,9 +294,11 @@ let display_page w wikibox action_create_page sp page () =
                                   ~service:action_create_page
                                   ~sp draw_form () :} ] }}
                         else {{ [] }}
+                      and err_msg =
+                        !Language.messages.Language.page_does_not_exist
                       in
                       Lwt.return
-                        {{ [ <p>"That page does not exist." !form ] }}
+                        {{ [ <p>{:err_msg:} !form ] }}
                 | e -> Lwt.fail e
              )
            >>= fun subbox ->

@@ -42,6 +42,12 @@ let _ =
         Ocsimore_config.dyngroupstobecreated := 
           (name, s)::!Ocsimore_config.dyngroupstobecreated;
         parse_config l
+    | (Simplexmlparser.Element ("language", [("lang", "francais")], []))::l ->
+        Language.messages := Language.messages_french;
+        parse_config l
+    | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
+        Language.messages := Language.messages_english;
+        parse_config l
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                     "Unexpected content inside ocsimore config")
