@@ -382,7 +382,7 @@ let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
          display_page wiki_info wikibox action_create_page sp
-           (Ocsigen_lib.string_of_url_path path) ())
+           (Ocsigen_lib.string_of_url_path ~encode:true path) ())
   in
   Wiki_syntax.add_servpage wiki servpage;
 
@@ -394,6 +394,7 @@ let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
       (fun sp path () ->
          let path =
            Ocsigen_lib.string_of_url_path
+             ~encode:true
              (Ocsigen_lib.remove_slash_at_beginning
                 (Ocsigen_lib.remove_dotdot (Neturl.split_path path)))
          in
@@ -420,7 +421,7 @@ let really_create_wiki ~title ~descr
     ~container_page
     () =
   let path_string = Ocsimore_lib.bind_opt
-    path Ocsigen_lib.string_of_url_path
+    path (Ocsigen_lib.string_of_url_path ~encode:true)
   in
   (* Notice that there is a theoretical race condition in the code below,
      when the container wikibox receives its rights, in the case this
