@@ -158,15 +158,24 @@ let insert_person name affiliation =
 let insert_persons l =
   Lwt_util.map_serial (fun (n, a) -> insert_person n a) l
 
-let insert_text wiki author comment content =
+let insert_desc wiki author comment content =
   Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
      ~wiki ~author ~comment ~content ()
 
-let insert_event wiki author
-                 category start finish room location
-                 persons title desc comment status =
+let insert_event_person dbh event persons =
+  Lwt_util.iter_serial
+    (fun person ->
+       PGSQL(dbh)
+       "insert into announcement.event_person (event, person)
+        values ($event, $person)")
+    persons
+
+let insert_event
+      wiki author
+      category start finish room location
+      persons title desc comment status =
   let status = int_of_status status in
-  insert_text wiki author comment desc >>= fun desc ->
+  insert_desc wiki author comment desc >>= fun desc ->
   transaction Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "insert
@@ -177,11 +186,52 @@ let insert_event wiki author
            $category, $room, $location, $status,
            $title, $desc)" >>= fun () ->
   PGOCaml.serial4 dbh "announcement.event_id_seq" >>= fun event ->
-  Lwt_util.iter_serial
-    (fun person ->
-       PGSQL(dbh)
-       "insert into announcement.event_person (event, person)
-        values ($event, $person)")
-    persons >>= fun () ->
+  insert_event_person dbh event persons >>= fun () ->
   Lwt.return event)
 
+let update_desc wiki author wikibox comment content =
+  Wiki_sql.update_wikibox
+     ~wiki ~author ~wikibox ~comment ~content ~content_type:Wiki_sql.Wiki
+
+let check_no_concurrent_update dbh ev =
+  let id = ev.id in
+  PGSQL(dbh)
+  "select minor_version from announcement.event where id = $id" >>= fun l ->
+  (*XXX Should catch errors properly *)
+  assert
+    (match l with
+       [vers] -> vers < ev.minor_version
+     | _      -> false);
+  Lwt.return ()
+
+let update_event wiki author ev desc comment persons =
+  Lwt_pool.use Common_sql.dbpool (fun dbh ->
+  check_no_concurrent_update dbh ev) >>= fun () ->
+  (*XXX Not atomic! *)
+  update_desc wiki author ev.description comment desc >>= fun _ ->
+  transaction Common_sql.dbpool (fun dbh ->
+  let id = ev.id in
+  let minor_version = ev.minor_version in
+  let major_version = ev.major_version in
+  let start = fst ev.start in
+  let finish = fst ev.finish in
+  let room = ev.room in
+  let location = ev.location in
+  let status = int_of_status ev.status in
+  let title = ev.title in
+  check_no_concurrent_update dbh ev >>= fun () ->
+  PGSQL(dbh)
+  "delete from announcement.event_person where event = $id" >>= fun () ->
+  insert_event_person dbh id persons >>= fun () ->
+  PGSQL(dbh)
+  "update announcement.event
+   set minor_version = $minor_version,
+       major_version = $major_version,
+       last_updated  = 'now',
+       start = ($start :: timestamp),
+       finish = ($finish :: timestamp),
+       room = $room,
+       location = $location,
+       status = $status,
+       title = $title
+   where id = $id")

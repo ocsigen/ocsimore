@@ -169,11 +169,14 @@ let talk_editor path service arg sp
              @@
        Xform.p
           (Xform.submit_button "Valider" @@ Xform.submit_button "Annuler")
-        |> (fun ((date, duration), ((room, location),
+        |> (fun ((start, duration), ((room, location),
                  (persons, (title, (description, (comment, (status,
                  (validate, cancel)))))))) sp ->
+              let finish =
+                Calendar.add start (Calendar.Period.minute duration)
+              in
               let status = Event_sql.status_of_string status in
-              cont date duration room location
+              cont start finish room location
                    (List.filter (fun (nm, _) -> nm <> "") persons)
                    title description comment status))
   in
@@ -206,11 +209,8 @@ let create_event =
         talk_editor path create_event category sp
           cat start finish room location
           "" [("", "")] "" "" sl Hidden
-          (fun start duration room location persons
+          (fun start finish room location persons
                title description comment status ->
-             let finish =
-               Calendar.add start (Calendar.Period.minute duration)
-             in
              Event_sql.insert_persons persons >>= fun persons ->
              Event_sql.insert_event
                 Common.wiki_info Users.admin.Users.id
@@ -248,8 +248,22 @@ let edit_event =
        talk_editor path edit_event arg sp
           cat (fst ev.start) (fst ev.finish) ev.room ev.location
           ev.title speakers desc comment sl ev.status
-          (fun date duration room location persons
-               title description comment status ->
+          (fun start finish room location persons
+               title desc comment status ->
+              let ev' =
+                {ev with
+                 minor_version = Int32.succ ev.minor_version;
+                 major_version = Int32.succ ev.minor_version; (*XXX*)
+                 (* Time zone are actually ignored here *)
+                 start = (start, Time_Zone.Local);
+                 finish = (finish, Time_Zone.Local);
+                 room = room; location = location;
+                 title = title; status = status}
+              in
+              Event_sql.insert_persons persons >>= fun persons ->
+              Event_sql.update_event
+                Common.wiki_id Users.admin.Users.id
+                ev' desc comment persons >>= fun () ->
               Lwt.return
                 {{<html>[{:Common.head sp "":}
                          <body>[<p>{:(str (Format.sprintf "OK")):}]] }}));
