@@ -84,8 +84,6 @@ let element (c : Xhtmltypes_duce.inlines Lwt.t list) =
 let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) = 
   {{ (map {: c :} with i -> i) }}
 
-let elementt (c : string list) = {{ (map {: c :} with i -> i) }}
-
 let parse_common_attribs attribs =
   let atts = 
     try
@@ -181,7 +179,8 @@ let builder wiki_id =
                   Lwt.return {{ [<p (atts)>r] }});
     W.pre_elem = (fun attribs a ->
        let atts = parse_common_attribs attribs in
-       Lwt.return {{ [<pre (atts)>(elementt a)] }});
+       Lwt.return
+         {{ [<pre (atts)>{:Ocamlduce.Utf8.make (String.concat "" a):}] }});
     W.h1_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
