@@ -190,7 +190,8 @@ let gen sp =
                  template_page_contents ()
                  >>= fun template ->
                  Wiki.create_wiki
-                   ~title:(Printf.sprintf "wikiperso for %s" user)
+                   ~title:(Printf.sprintf
+                           !Language.messages.Language.wikiperso_wikidescr user)
                    ~descr:(Printf.sprintf "Personal wiki of %s"
                              userdata.Users.fullname)
                    ~wikibox:Ocsisite.wikibox (* ~boxrights:false *)
