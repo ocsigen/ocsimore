@@ -389,6 +389,7 @@ rule parse_bol c =
       parse_bol c lexbuf
     }
   | white_space * "{{{" (("@@" ?) as att) (line_break | eof) {
+      end_paragraph c 0;
       parse_nowiki c (read_attribs att parse_attribs c lexbuf) lexbuf
     }
   | white_space * "|" (("@@" ?) as att) {
