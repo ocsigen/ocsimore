@@ -440,17 +440,20 @@ let _ =
            Lwt.return {{ <li (classe)>text2}}
          else
            let href = 
-             match find_servpage wiki_id with
-               | Some servpage -> 
-                   let path =
-                     Ocsigen_lib.remove_slash_at_beginning
-                       (Ocsigen_lib.remove_dotdot (Neturl.split_path link))
-                   in
-                   Eliom_duce.Xhtml.make_uri
-                     ~service:servpage
-                     ~sp
-                     path
-               | _ -> link
+             if is_absolute_link link
+             then link
+             else 
+               match find_servpage wiki_id with
+                 | Some servpage -> 
+                     let path =
+                       Ocsigen_lib.remove_slash_at_beginning
+                         (Ocsigen_lib.remove_dotdot (Neturl.split_path link))
+                     in
+                     Eliom_duce.Xhtml.make_uri
+                       ~service:servpage
+                       ~sp
+                       path
+                 | _ -> link
            in
            let link2 = Ocamlduce.Utf8.make href in
            let classe = match classe with
