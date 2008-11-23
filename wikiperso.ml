@@ -124,6 +124,211 @@ If you are an administator of this wiki, you can login to create this page:
 <<logoutlink|Logout>>.>>
 "
 
+(*VVV PPS CSS hardcoded!!! Clean quickly!!! *)
+let default_wikicss =
+"body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td {
+        margin: 0;                                                                                
+        padding: 0;                                                                               
+}                                                                                                 
+
+fieldset, img { border: 0; }
+                            
+option { padding-left: 0.4em; }
+                               
+ul, ol, dl { margin: 1em 0; padding-left: 30px }
+dl { margin: 1em 0; }                           
+dd { padding-left: 40px; }                      
+
+blockquote { margin: 0 0 1em 1.5em; }
+
+p { 
+  margin: 1em 0; 
+  text-align: justify;
+}                     
+
+li {
+  text-align: justify;
+}                     
+
+td, th { padding: 1px; }
+
+html {
+        height: 100%;
+        margin-bottom: 1px;
+}                          
+
+strong {
+        font-weight: bold;
+}                         
+
+/* */
+a {  
+  color: #dd0000;
+  font-weight: bold;
+  text-decoration: none;
+}                       
+
+img {
+  border: none;
+}              
+
+h1,h2,h3,h4 {
+  color: #224078;
+  font-weight: bold;
+}                   
+
+h1 {
+  font-size: 2.1em;
+  padding-top: 1em;
+  padding-bottom: 0.5em;
+}                       
+
+h2 {
+  font-size: 1.8em;  
+  padding-top: 1em;  
+  padding-bottom: 0.5em;
+}                       
+
+h3 {
+  font-size: 1.4em;  
+  padding-top: 0.8em;
+  padding-bottom: 0.5em;
+}                       
+
+h4 {
+  font-size: 1em;  
+  padding-top: 0.6em;
+  padding-bottom: 0.1em;
+}                       
+
+body {
+  background-color: #224078;
+  font-family: Verdana, Arial, sans-serif;
+  font-size: 0.9em;                       
+  margin: 10px 40px;                      
+  padding: 0px;                           
+}                                         
+
+div.header {
+}           
+
+div.contenu {
+  border: 3px solid black;
+  border-bottom: none;    
+  background-image: url(../pps4.png);
+  background-repeat: no-repeat;      
+  background-position: top left;     
+  background-attachment: scroll;     
+  background-color: #ffffff;         
+  padding: 0px 15px 15px 15px;       
+  margin: 0px;                       
+}                                    
+
+div.titre {
+  margin: 40px 0px 2em 0px;
+  color: #224078;          
+  font-weight: bold;       
+  font-size: 1.1em;        
+}                          
+
+div.titre p {
+  padding: 0px;
+  margin: 0px 0px 0px 40px;
+}                          
+
+div.titre img {
+  position: relative;
+  left: -10px;       
+  float:left;        
+}                    
+
+h1 {
+  padding: 0px 0px 10px 40px;
+  margin: 0px;               
+}                            
+
+div.logos1 {
+  float: right;
+  margin: 40px 0px 0px 0px;
+  padding: 0px 10px 0px 0px;
+}                           
+
+div.logos1 p {
+  text-align: right;
+  margin: 0px;      
+  padding: 0px;     
+}                   
+
+div#menus {
+  margin: 3em 0px 0.4em 40px;
+  padding: 0px;              
+}                            
+
+ul.wikimenu {
+  margin: 0px 0px 0.5em 0px;
+  padding: 0px;             
+}                           
+
+ul.wikimenu li a {
+  color: #dd0000; 
+}                 
+
+ul.wikimenu li {
+  color: #224078;
+  display: inline;
+  font-weight: bold;
+  padding: 0px 24px 0px 0px;
+  margin: 0px;              
+}
+
+div.loginfo p {
+  text-align: right;
+  margin: 0px;
+  padding: 0px;
+}
+
+div#contenu2 {
+  padding-left: 140px;
+  overflow: auto;
+}
+
+div#contenu2 ul.wikimenu {
+  margin-left: -100px;
+  margin-bottom: 2em;
+  font-size: 90%;
+}
+
+
+div.footer {
+  position: relative;
+  top: 0px;
+  left: 0px;
+  background-color: #224078;
+  border: 3px solid black;
+  border-top: 1px solid black;
+  padding: 10px 15px 6px 15px;
+  margin: 0px 0px 10px 0px;
+}
+div.footer p {
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+table {
+  width: 100%;
+}
+
+th {
+  text-align: left;
+}
+
+.editorsinfo {
+  background-color: #bbddee;
+  padding: 5px;
+}
+"
+
 let template_pagename = "wikiperso-template"
 
 let admin_wiki = Ocsisite.wiki_admin.Wiki_sql.id
@@ -204,6 +409,18 @@ let gen sp =
                  Wiki.register_wiki ~sp ~path:(wiki_path user)
                    ~wikibox:Ocsisite.wikibox ~wiki:wiki.Wiki_sql.id
                    ~wiki_info:wiki ()
+                 >>= fun () ->
+                 catch
+(*VVV à revoir ! *)
+                   (fun () ->
+                      Wiki_sql.get_css_for_wiki 
+                        ~wiki:wiki.Wiki_sql.id >>= fun _ ->
+                      Lwt.return ())
+                   (function
+                      | Not_found ->
+                          Wiki_sql.set_css_for_wiki 
+                            ~wiki:wiki.Wiki_sql.id default_wikicss
+                      | e -> Lwt.fail e)
           )
           >>= fun () ->
             (* In all cases, we return a 404. Eliom will answer with

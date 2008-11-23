@@ -2,7 +2,15 @@ TODO
 
 - remove ugly argument "wikibox" of new_wikibox
 
-- wikiperso : Better default page
+Wikiperso:
+ - Better default page
+ - !!!!Better default css (copied from an admin cssbox?)!!!!
+   Warning: PPS CSS hardcoded for now!!!
+    -> Put css in wikiboxes with right content-type
+    -> when creating a wiki, new css box or hard link to an existing css box
+   Attention: Tous les wikicss des wikis PPS sont tous différents, ce qui fait
+   que l'on doit propager toutes les modifs 8 fois !!! C'est horrible.
+   À changer vite (hard links).
 
 
  - EXPÃ‰RIMENTAL : L'utilisateur nobody n'a aucun droit
