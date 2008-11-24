@@ -281,23 +281,10 @@ ul.wikimenu li {
   margin: 0px;              
 }
 
-div.loginfo p {
-  text-align: right;
-  margin: 0px;
-  padding: 0px;
-}
-
 div#contenu2 {
   padding-left: 140px;
   overflow: auto;
 }
-
-div#contenu2 ul.wikimenu {
-  margin-left: -100px;
-  margin-bottom: 2em;
-  font-size: 90%;
-}
-
 
 div.footer {
   position: relative;
@@ -321,11 +308,6 @@ table {
 
 th {
   text-align: left;
-}
-
-.editorsinfo {
-  background-color: #bbddee;
-  padding: 5px;
 }
 "
 
