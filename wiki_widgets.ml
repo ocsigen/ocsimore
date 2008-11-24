@@ -267,7 +267,7 @@ class editable_wikibox ?sp () =
 
   let action_send_wikibox_permissions =
     Eliom_predefmod.Actions.register_new_post_coservice' ?sp
-      ~keep_get_na_params:false
+      ~keep_get_na_params:true
       ~name:"wiki_send_permissions"
       ~post_params:
       ((Wiki_sql.eliom_wiki "wikiid" ** 
