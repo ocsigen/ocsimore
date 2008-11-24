@@ -524,9 +524,9 @@ let really_create_wiki ~title ~descr
    Wiki_sql.populate_writers wiki_id wikibox_container
      [container_adm_data.Users.id] >>= fun () ->
    Wiki_sql.populate_rights_adm wiki_id wikibox_container
-     [container_adm_data.Users.id] >>= fun () ->
+     [rights_adm_data.Users.id] >>= fun () ->
    Wiki_sql.populate_wikiboxes_creators wiki_id wikibox_container
-     [container_adm_data.Users.id] >>= fun () ->
+     [wikiboxes_creators_data.Users.id] >>= fun () ->
 
    Lwt.return wiki_id
 
