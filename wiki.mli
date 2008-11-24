@@ -252,3 +252,9 @@ exception Wiki_action_info of wiki_action_info
     reflect the change *)
 val wiki_admin_name : string
 val get_admin_wiki : unit -> Wiki_sql.wiki Lwt.t
+
+
+
+
+(** *)
+val wikicss_service_handler : Wiki_sql.wiki -> unit -> string Lwt.t

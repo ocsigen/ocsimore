@@ -313,39 +313,46 @@ class editable_wikibox ?sp () =
       )
   in
 
-
   (* Registering the service for css *)
-  let wikicss_service =
+  let (* wikicss_admin_service *) _ =
+    (* do not use this one for css <link>s inside page *)
     Eliom_predefmod.CssText.register_new_service ?sp
       ~path:["ocsimore"; "wikicss"]
       ~get_params:(Wiki_sql.eliom_wiki "wiki")
-      (fun sp wiki () -> 
-         Lwt.catch
-           (fun () -> Wiki_sql.get_css_for_wiki wiki)
-           (function
-              | Not_found -> Lwt.fail Eliom_common.Eliom_404
-              | e -> Lwt.fail e
-           )
-      )
+      (fun sp -> Wiki.wikicss_service_handler)
   in
   
-  
-  (* Registering the service for css *)
-  let pagecss_service =
+  (* Registering the service for page css *)
+  let pagecss_service_handler sp (wiki, page) () =
+    Lwt.catch
+      (fun () -> Wiki_sql.get_css_for_page wiki page)
+      (function
+         | Not_found -> Lwt.fail Eliom_common.Eliom_404
+         | e -> Lwt.fail e
+      )
+  in
+
+  (* Note that a service for wiki css is registered for each wiki in wiki.ml *)
+  let (* pagecss_admin_service *) _ =
+    (* do not use this one for css <link>s inside page *)
     Eliom_predefmod.CssText.register_new_service ?sp
       ~path:["ocsimore"; "pagecss"]
       ~get_params:(Eliom_parameters.suffix 
                      (Eliom_parameters.prod
                         (Wiki_sql.eliom_wiki "wiki")
                         (Eliom_parameters.all_suffix_string "page")))
-      (fun sp (wiki, page) () -> 
-         Lwt.catch
-           (fun () -> Wiki_sql.get_css_for_page wiki page)
-           (function
-              | Not_found -> Lwt.fail Eliom_common.Eliom_404
-              | e -> Lwt.fail e
-           )
-      )
+      pagecss_service_handler
+  in
+
+  let pagecss_service =
+    (* This is a non attached coservice, so that the css is in the same
+       directory as the page. Important for relative links inside the css. *)
+    Eliom_predefmod.CssText.register_new_coservice' ?sp
+      ~name:"pagecss"
+      ~get_params:(Eliom_parameters.prod
+                     (Wiki_sql.eliom_wiki "wiki")
+                     (Eliom_parameters.string "page"))
+      pagecss_service_handler
   in
 
 
@@ -1165,22 +1172,26 @@ object (self)
               sp ["ocsiwikistyle.css"]) ()
 (*VVV CSS? *)
        in
-       Lwt.catch
-         (fun () ->
-            Wiki_sql.get_css_for_wiki wiki >>= fun _ ->
-              Lwt.return 
-                {{ [ css
-                       {:
-                          Eliom_duce.Xhtml.css_link 
-                          (Eliom_duce.Xhtml.make_uri wikicss_service sp wiki)
-                          ()
+       (match Wiki_syntax.find_servwikicss wiki with
+         | None -> Lwt.return {{ [ css ] }}
+         | Some wikicss_service ->
+             Lwt.catch
+               (fun () ->
+                  Wiki_sql.get_css_for_wiki wiki >>= fun _ ->
+                    Lwt.return 
+                      {{ [ css
+                             {:
+                                Eliom_duce.Xhtml.css_link 
+                                (Eliom_duce.Xhtml.make_uri
+                                   wikicss_service sp ())
+                                ()
 (*VVV encoding? *)
-                          :}
-                   ]}}
-         )
-         (function
-            | Not_found -> Lwt.return {{ [ css ] }}
-            | e -> Lwt.fail e)
+                                :}
+                         ]}}
+               )
+               (function
+                  | Not_found -> Lwt.return {{ [ css ] }}
+                  | e -> Lwt.fail e))
        >>= fun css ->
          Lwt.catch
            (fun () ->
@@ -1188,16 +1199,16 @@ object (self)
                 | None -> Lwt.return css
                 | Some page ->
                     Wiki_sql.get_css_for_page wiki page >>= fun _ ->
-                      Lwt.return 
-                        {{ [ !css
-                               {:
-                                  Eliom_duce.Xhtml.css_link 
+                    Lwt.return 
+                      {{ [ !css
+                             {:
+                                Eliom_duce.Xhtml.css_link 
                                   (Eliom_duce.Xhtml.make_uri 
                                      pagecss_service sp (wiki, page))
                                   ()
 (*VVV encoding? *)
-                                  :}
-                           ]}}
+                             :}
+                         ]}}
            )
            (function
               | Not_found -> Lwt.return css

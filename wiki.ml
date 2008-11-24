@@ -327,6 +327,21 @@ let display_page w wikibox action_create_page sp page () =
 
 
 
+
+
+
+
+
+
+
+let wikicss_service_handler wiki () =
+  Lwt.catch
+    (fun () -> Wiki_sql.get_css_for_wiki wiki)
+    (function
+       | Not_found -> Lwt.fail Eliom_common.Eliom_404
+       | e -> Lwt.fail e
+    )
+
 (** Functions related to the creation of a wiki *)
 (* Register the wiki [wiki] *)
 let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
@@ -401,6 +416,16 @@ let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
          display_page wiki_info wikibox action_create_page sp path ())
   in
   Wiki_syntax.add_naservpage wiki naservpage;
+
+  let servpage_main = Eliom_services.preapply servpage ["__ocsiwikicss"] in
+  let wikicss_service =
+    Eliom_predefmod.CssText.register_new_coservice ?sp
+      ~fallback:servpage_main
+      ~get_params:Eliom_parameters.unit
+      (fun sp () () -> wikicss_service_handler wiki ())
+  in
+  Wiki_syntax.add_servwikicss wiki wikicss_service;
+
   Lwt.return ()
 
 

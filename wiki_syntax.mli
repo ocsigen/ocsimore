@@ -46,6 +46,13 @@ val find_servpage : Wiki_sql.wiki ->
      unit, [ `Registrable ])
     Eliom_services.service option
 
+val find_servwikicss : Wiki_sql.wiki ->
+  (unit, unit,
+   [ `Attached of
+       [> `Internal of [> `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [ `Registrable ])
+    Eliom_services.service option
+
 val add_naservpage : Wiki_sql.wiki ->
   (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
    [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
@@ -57,6 +64,13 @@ val add_servpage : Wiki_sql.wiki ->
    Eliom_services.get_service_kind,
    [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
      unit, [ `Registrable ])
+    Eliom_services.service -> unit
+
+val add_servwikicss : Wiki_sql.wiki ->
+  (unit, unit,
+   [ `Attached of
+      [ `Internal of [ `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [ `Registrable ])
     Eliom_services.service -> unit
 
 

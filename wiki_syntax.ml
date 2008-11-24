@@ -63,12 +63,28 @@ module Servpages =
 
 let naservpages = Servpages.create 5
 let servpages = Servpages.create 5
+let servwikicss = Servpages.create 5
 
 let add_naservpage = Servpages.add naservpages
 let add_servpage = Servpages.add servpages
+let add_servwikicss = Servpages.add servwikicss
 let find_naservpage = Servpages.find naservpages
 let find_servpage k = 
   try Some (Servpages.find servpages k)
+  with Not_found -> None
+let find_servwikicss k = 
+  try Some ((Servpages.find servwikicss k) :
+              (unit, unit,
+               [ `Attached of
+                    [ `Internal of [ `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+               [ `WithoutSuffix ], unit, unit, [ `Registrable ])
+              Eliom_services.service :>
+              (unit, unit,
+               [ `Attached of
+                   [> `Internal of [> `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+               [ `WithoutSuffix ], unit, unit, [ `Registrable ])
+              Eliom_services.service
+           )
   with Not_found -> None
 
 
