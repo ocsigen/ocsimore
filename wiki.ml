@@ -245,7 +245,10 @@ let send_static_file sp sd wiki dir page =
   Users.get_user_id ~sp ~sd >>= fun userid ->
   Users.in_group ~sp ~sd ~user:userid ~group:g () >>= fun b ->
   if b
-  then Eliom_predefmod.Files.send sp (dir^"/"^page)
+  then Eliom_predefmod.Files.send
+    ~options:{ LocalFiles.default_options with
+                 LocalFiles.follow_symlinks = LocalFiles.FollowIfOwnerMatch}
+    ~sp (dir^"/"^page)
   else Lwt.fail Eliom_common.Eliom_404
 
 
