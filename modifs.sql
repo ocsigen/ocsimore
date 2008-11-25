@@ -86,6 +86,13 @@ ALTER TABLE wikiboxwriters ADD FOREIGN KEY (writer) REFERENCES users
       ON DELETE CASCADE ON UPDATE CASCADE;
 
 
+ALTER TABLE userrights DROP CONSTRAINT userrights_groupid_fkey;
+ALTER TABLE userrights DROP CONSTRAINT userrights_id_fkey;
+ALTER TABLE userrights ADD FOREIGN KEY (groupid) REFERENCES users
+      ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE userrights ADD FOREIGN KEY (id) REFERENCES users
+      ON DELETE CASCADE ON UPDATE CASCADE;
+
 -- Content-type for wikiboxes
 ALTER TABLE wikiboxes ADD COLUMN content_type text NOT NULL DEFAULT 'wiki';
 
