@@ -16,15 +16,6 @@ ALTER TABLE wikis ALTER COLUMN pages TYPE text USING NULL;
 ALTER TABLE wikis ALTER COLUMN pages DROP DEFAULT;
 COMMENT ON COLUMN wikis.pages IS
   'Root url for this wiki. Set to NULL if the wiki is not linked to an url';
--- For PPS only : populate the new column
-UPDATE wikis SET pages = 'intranet' WHERE id = 1;
-UPDATE wikis SET pages = '' WHERE id = 2;
-UPDATE wikis SET pages = NULL WHERE id = 3;
-UPDATE wikis SET pages = 'seminaire' WHERE id = 4;
-UPDATE wikis SET pages = 'gdt-semantique' WHERE id = 5;
-UPDATE wikis SET pages = 'gdt-concurrence' WHERE id = 6;
-UPDATE wikis SET pages = 'gdt-prog' WHERE id = 7;
-UPDATE wikis SET pages = 'seminaire-thesards' WHERE id = 8;
 
 -- All wikis have a container page
 ALTER TABLE wikis ALTER COLUMN container_id SET NOT NULL;
@@ -59,9 +50,6 @@ ALTER TABLE wikiboxindex ADD FOREIGN KEY (wiki_id) REFERENCES wikis(id)
       ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE wikiboxes ADD FOREIGN KEY (wiki_id, id) REFERENCES wikiboxindex
       ON DELETE CASCADE ON UPDATE CASCADE;
-
--- PPS Only
-DELETE FROM wikiboxreaders WHERE id=14456;
 
 ALTER TABLE wikiboxcreators ADD FOREIGN KEY (wiki_id, id)
       REFERENCES wikiboxindex
