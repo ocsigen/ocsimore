@@ -57,7 +57,7 @@ darcs-send:
 #####
 
 clean::
-	find . -regex ".*\\.\(cm[oix]\|o\)" | xargs rm -f
+	find . -regex ".*\\.\(cm[oixa]\|o\)" | xargs rm -f
 realclean:: clean
 
 %_sql.cmo: %_sql.ml

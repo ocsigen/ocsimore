@@ -420,10 +420,9 @@ let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
   in
   Wiki_syntax.add_naservpage wiki naservpage;
 
-  let servpage_main = Eliom_services.preapply servpage ["__ocsiwikicss"] in
   let wikicss_service =
-    Eliom_predefmod.CssText.register_new_coservice ?sp
-      ~fallback:servpage_main
+    Eliom_predefmod.CssText.register_new_service ?sp
+      ~path:(path@["__ocsiwikicss"])
       ~get_params:Eliom_parameters.unit
       (fun sp () () -> wikicss_service_handler wiki ())
   in

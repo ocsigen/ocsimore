@@ -61,13 +61,23 @@ let wiki_box = (wiki_id, page_id)
 
 let (>>=) = Lwt.bind
 
+let _ =
+  let wikicss_service =
+    Eliom_predefmod.CssText.register_new_service
+      ~path:["talks"; "__ocsiwikicss"]
+      ~get_params:Eliom_parameters.unit
+      (fun sp () () -> Wiki.wikicss_service_handler wiki_id ())
+  in
+  Wiki_syntax.add_servwikicss wiki_id wikicss_service
+
+
 let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
-  let page = Ocsigen_lib.string_of_url_path path in
+  let page = Ocsigen_lib.string_of_url_path ~encode:false path in
   let sd = Ocsimore_common.get_sd sp in
   contents sp sd
       >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
   Ocsisite.wikibox#editable_wikibox ~sp ~sd ~data:wiki_box
-    ~subbox ~cssmenu:(Some page)
+    ~subbox ~cssmenu:None
     ~ancestors:Wiki_syntax.no_ancestors
     () >>= fun box ->
   Ocsisite.wikibox#get_css_header ~sp ~wiki:wiki_id
@@ -86,3 +96,4 @@ include Common_sql
 let local_time (d, _) = d
 
 let utc_time (d, z) = Calendar.convert d z Time_Zone.UTC
+

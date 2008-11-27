@@ -408,7 +408,7 @@ let summary_contents category sp sd =
   let start = Calendar.create start Common.midnight in
   let finish = Calendar.create finish Common.midnight in
   Event_sql.find_category_by_path category >>= fun cat ->
-  Ocsisite.wikibox#noneditable_wikibox ~sp ~sd
+  Ocsisite.wikibox#editable_wikibox ~sp ~sd
     ~data:(Common.wiki_id, cat.cat_desc)
     ~ancestors:Wiki_syntax.no_ancestors () >>= fun desc ->
   let show_all = true in (*XXXX*)

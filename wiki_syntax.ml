@@ -76,12 +76,12 @@ let find_servwikicss k =
   try Some ((Servpages.find servwikicss k) :
               (unit, unit,
                [ `Attached of
-                    [ `Internal of [ `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+                    [ `Internal of [ `Service ] * [ `Get ] ] Eliom_services.a_s ],
                [ `WithoutSuffix ], unit, unit, [ `Registrable ])
               Eliom_services.service :>
               (unit, unit,
                [ `Attached of
-                   [> `Internal of [> `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+                   [> `Internal of [> `Service ] * [ `Get ] ] Eliom_services.a_s ],
                [ `WithoutSuffix ], unit, unit, [ `Registrable ])
               Eliom_services.service
            )

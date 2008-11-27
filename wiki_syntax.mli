@@ -49,7 +49,7 @@ val find_servpage : Wiki_sql.wiki ->
 val find_servwikicss : Wiki_sql.wiki ->
   (unit, unit,
    [ `Attached of
-       [> `Internal of [> `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+       [> `Internal of [> `Service ] * [ `Get ] ] Eliom_services.a_s ],
    [ `WithoutSuffix ], unit, unit, [ `Registrable ])
     Eliom_services.service option
 
@@ -69,7 +69,7 @@ val add_servpage : Wiki_sql.wiki ->
 val add_servwikicss : Wiki_sql.wiki ->
   (unit, unit,
    [ `Attached of
-      [ `Internal of [ `Coservice ] * [ `Get ] ] Eliom_services.a_s ],
+      [ `Internal of [ `Service ] * [ `Get ] ] Eliom_services.a_s ],
    [ `WithoutSuffix ], unit, unit, [ `Registrable ])
     Eliom_services.service -> unit
 
