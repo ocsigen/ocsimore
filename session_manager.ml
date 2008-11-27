@@ -122,8 +122,10 @@ object (self)
          let sd = Ocsimore_common.create_empty_sd () in
          Users.set_session_data sp sd user >>= fun () -> 
          all_login_actions sp user >>= fun () ->
-         Lwt.return [Ocsimore_common.Session_data sd]) 
-      (fun e -> return [e])
+         Eliom_predefmod.Redirection.send ~sp 
+           Eliom_services.void_hidden_coservice'
+         (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
+      (fun e -> Eliom_predefmod.Action.send ~sp [e])
         
   method add_login_actions f =
     let old_la = all_login_actions in
@@ -133,7 +135,8 @@ object (self)
   method private mk_act_logout sp () () = 
     all_logout_actions sp >>= fun () ->
     close_session ~sp () >>= fun () -> 
-    return [] (* do not send sd here! *)
+    Eliom_predefmod.Redirection.send ~sp Eliom_services.void_hidden_coservice'
+(* was:    return [] (* do not send sd here! *) *)
       
   method add_logout_actions f =
     let old_la = all_logout_actions in
@@ -150,12 +153,12 @@ object (self)
 
   initializer
     begin
-      Actions.register ?sp ~service:internal_act_login self#mk_act_login;
-      Actions.register ?sp ~service:internal_act_logout self#mk_act_logout;
+      Any.register ?sp ~service:internal_act_login self#mk_act_login;
+      Any.register ?sp ~service:internal_act_logout self#mk_act_logout;
       Redirection.register ?sp ~service:internal_act_logout_get
         (fun sp () () ->
            ignore (self#mk_act_logout sp () ());
-           Lwt.return Eliom_services.void_action
+           Lwt.return Eliom_services.void_coservice'
         );
     end
 end;;
@@ -230,8 +233,10 @@ object
          let sd = Ocsimore_common.create_empty_sd () in
          Users.set_session_data sp sd user >>= fun () -> 
          all_login_actions sp user >>= fun () ->
-         Lwt.return [Ocsimore_common.Session_data sd]) 
-      (fun e -> return [e])
+         Eliom_predefmod.Redirection.send ~sp 
+           Eliom_services.void_hidden_coservice'
+         (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
+      (fun e -> Eliom_predefmod.Action.send ~sp [e])
 
 end
 
@@ -270,8 +275,10 @@ object
          let sd = Ocsimore_common.create_empty_sd () in
          Users.set_session_data sp sd user >>= fun () -> 
          all_login_actions sp user >>= fun () ->
-         Lwt.return [Ocsimore_common.Session_data sd]) 
-      (fun e -> return [e])
+         Eliom_predefmod.Redirection.send ~sp 
+           Eliom_services.void_hidden_coservice'
+         (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
+      (fun e -> Eliom_predefmod.Action.send ~sp [e])
 
 end
 

@@ -189,7 +189,7 @@ class editable_wikibox ?sp () =
   in
 
   let action_delete_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice'
+    Eliom_predefmod.Any.register_new_coservice'
       ~name:"wiki_delete"
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") ** 
                      (Eliom_parameters.int32 "boxid"))
@@ -244,7 +244,7 @@ class editable_wikibox ?sp () =
   in
     
   let action_send_wikibox =
-    Eliom_predefmod.Actions.register_new_post_coservice' ?sp
+    Eliom_predefmod.Any.register_new_post_coservice' ?sp
       ~keep_get_na_params:false
       ~name:"wiki_send"
       ~post_params:
@@ -261,12 +261,13 @@ class editable_wikibox ?sp () =
            Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content
              ~content_type:Wiki_sql.Wiki
          else
-           Lwt.return [Wiki.Wiki_action_info (Wiki.Preview p)]
+           Eliom_predefmod.Action.send ~sp
+             [Wiki.Wiki_action_info (Wiki.Preview p)]
       )
   in
 
   let action_send_wikibox_permissions =
-    Eliom_predefmod.Actions.register_new_post_coservice' ?sp
+    Eliom_predefmod.Any.register_new_post_coservice' ?sp
       ~keep_get_na_params:true
       ~name:"wiki_send_permissions"
       ~post_params:
@@ -281,14 +282,18 @@ class editable_wikibox ?sp () =
                            (Eliom_parameters.string "delrightadm" **
                               Eliom_parameters.string "delwbcr")
             )))))))
-      (fun sp () p -> 
+      (fun sp () ((box, _) as p) -> 
          let sd = Ocsimore_common.get_sd sp in
-         Wiki.save_wikibox_permissions sp sd p
+         Wiki.save_wikibox_permissions sp sd p >>= fun () ->
+(*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)
+(* if we want to use actions: Lwt.return [] *)
+         Eliom_predefmod.Redirection.send ~sp 
+           Eliom_services.void_hidden_coservice'
       )
   in
 
   let action_send_css =
-    Eliom_predefmod.Actions.register_new_post_coservice' ?sp
+    Eliom_predefmod.Redirection.register_new_post_coservice' ?sp
       ~keep_get_na_params:false
       ~name:"css_send"
       ~post_params:
@@ -297,19 +302,19 @@ class editable_wikibox ?sp () =
              Eliom_parameters.string "content")
       (fun sp () ((wiki, page), content) -> 
          Wiki_sql.set_css_for_page ~wiki ~page content >>= fun () ->
-         Lwt.return []
+         Lwt.return Eliom_services.void_coservice'
       )
   in
 
   let action_send_wiki_css =
-    Eliom_predefmod.Actions.register_new_post_coservice' ?sp
+    Eliom_predefmod.Redirection.register_new_post_coservice' ?sp
       ~keep_get_na_params:false
       ~name:"wiki_css_send"
       ~post_params:
       (Wiki_sql.eliom_wiki "wikiid" ** Eliom_parameters.string "content")
       (fun sp () (wiki, content) -> 
          Wiki_sql.set_css_for_wiki ~wiki content >>= fun () ->
-         Lwt.return []
+         Lwt.return Eliom_services.void_coservice'
       )
   in
 
@@ -386,7 +391,7 @@ object (self)
      and delete = Eliom_services.preapply action_delete_wikibox ids
      and edit_perm = Eliom_services.preapply action_edit_wikibox_permissions ids
      in
-     let view = Eliom_services.void_action in
+     let view = Eliom_services.void_coservice' in
      let edit_css =
        match cssmenu with
          | Some (Some page) -> 
@@ -1411,7 +1416,7 @@ object (self)
                  | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
            in
            ((Eliom_duce.Xhtml.make_uri
-               ~service:Eliom_services.void_action
+               ~service:Eliom_services.void_coservice'
                ~sp
                ()
             ),

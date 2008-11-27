@@ -62,7 +62,7 @@ object (self)
     else
       let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
       {{ [ <p>[{: Eliom_duce.Xhtml.a 
-                    Eliom_services.https_void_action
+                    Eliom_services.https_void_coservice'
                     sp switchtohttps () :} ] ] }}
       
   method private display_logout_box ~sp u =
@@ -356,7 +356,7 @@ object (self)
     else
       let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
       {{ [ <p> [ {: Eliom_duce.Xhtml.a 
-                      Eliom_services.https_void_action
+                      Eliom_services.https_void_coservice'
                       sp switchtohttps () :} ] ] }}
       
   method private display_logout_box ~sp u =
@@ -633,6 +633,8 @@ object (self)
     begin
       Eliom_duce.Xhtml.register ?sp
         ~service:internal_srv_register (self#page_register "");
+(*VVV For all post services: 
+  Use redirections instead of pages to prevent re-posting data? *)
       Eliom_duce.Xhtml.register ?sp
         ~service:srv_register_done self#page_register_done;
       Eliom_duce.Xhtml.register ?sp

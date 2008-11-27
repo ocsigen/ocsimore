@@ -602,18 +602,23 @@ let save_wikibox ~sp ~sd ~wiki_id ~box_id ~content ~content_type =
               Wiki_sql.update_wikibox ~wiki:wiki_id ~wikibox:box_id
                 ~author:user.Users.id ~comment:"" ~content ~content_type
               >>= fun _ ->
-              Lwt.return [Ocsimore_common.Session_data sd])
+                (* I'm using a redirection to prevent repost *)
+              Eliom_predefmod.Redirection.send ~sp
+                Eliom_services.void_coservice'
+              (*was: Lwt.return [Ocsimore_common.Session_data sd] *))
           (fun e -> 
-             Lwt.return 
+             Eliom_predefmod.Action.send ~sp
                [Ocsimore_common.Session_data sd;
                 Wiki_action_info (Error (d, Action_failed e))])
-    | _ -> Lwt.return [Ocsimore_common.Session_data sd;
-                       Wiki_action_info (Error (d, Operation_not_allowed))]
+    | _ -> 
+        Eliom_predefmod.Action.send ~sp
+          [Ocsimore_common.Session_data sd;
+           Wiki_action_info (Error (d, Operation_not_allowed))]
 
 
 let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
   get_role sp sd d >>= fun role ->
-  (match role with
+  match role with
     | Admin ->
         let (addr, (addw, (adda, (addc, 
                                   (delr, (delw, (dela, delc))))))) = rights in
@@ -633,9 +638,7 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
         Wiki_sql.remove_rights_adm wiki_id box_id a >>= fun () ->
         Users.group_list_of_string delc >>= fun a ->
         Wiki_sql.remove_wikiboxes_creators wiki_id box_id a
-    | _ -> Lwt.return ()) >>= fun () ->
-(*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)
-  Lwt.return []
+    | _ -> Lwt.return ()
 
 
 

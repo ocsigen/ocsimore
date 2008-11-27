@@ -183,7 +183,7 @@ val save_wikibox :
   box_id:int32 ->
   content:string ->
   content_type:Wiki_sql.wikibox_content_type ->
-  exn list Lwt.t
+  Eliom_services.result_to_send Lwt.t
 
 val save_wikibox_permissions :
   sp:Eliom_sessions.server_params ->
@@ -193,7 +193,7 @@ val save_wikibox_permissions :
         (string *
            (string * 
               (string * (string * (string * (string * string)))))))) ->
-  exn list Lwt.t
+  unit Lwt.t
 
 (*
 val can_read : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
