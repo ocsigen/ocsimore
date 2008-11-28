@@ -349,7 +349,7 @@ let template_page_contents () =
 
 (* The function that answers for the extension. *)
 let gen sp =
-  let ri = (Eliom_sessions.esp_of_sp sp).Eliom_common.sp_ri in
+  let ri = Eliom_sessions.get_ri sp in
   (* We check that the url corresponds to a wiki *)
   match extract_user_name ri.ri_sub_path_string with
     | Some user ->
