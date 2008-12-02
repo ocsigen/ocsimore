@@ -237,7 +237,7 @@ let edit_event =
        Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.description) ()
            >>= fun desc ->
        let (desc, comment) =
-         match desc with None -> ("", "") | Some (c, _, d, _, _) -> (d, c) in
+         match desc with None -> ("", "") | Some (c, _, d, _, _, _) -> (d, c) in
        Event_sql.find_category_by_id ev.category >>= fun cat ->
        (*XXX BOGUS*)
        let sl =
