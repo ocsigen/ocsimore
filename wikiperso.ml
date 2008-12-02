@@ -340,7 +340,7 @@ let template_page_contents () =
   >>= fun wikibox ->
   Wiki_sql.get_wikibox_data ~wikibox ()
   >>= function
-    | Some (_, _, content, _, _) ->
+    | Some (_, _, content, _, _, _) ->
         Lwt.return content
     | None ->
         (* fallback, should not happen if the wikiadmin is not corrupted *)

@@ -370,7 +370,7 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
     (fun db ->
        (match version with
          | None ->
-             PGSQL(db) "SELECT comment, author, content, datetime, content_type \
+             PGSQL(db) "SELECT comment, author, content, datetime, content_type, version \
                         FROM wikiboxes \
                         WHERE wiki_id = $wiki \
                         AND id = $id \
@@ -380,17 +380,32 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
                             WHERE wiki_id = $wiki \
                             AND id = $id)"
          | Some version ->
-             PGSQL(db) "SELECT comment, author, content, datetime, content_type \
+             PGSQL(db) "SELECT comment, author, content, datetime, content_type, version \
                         FROM wikiboxes \
                         WHERE wiki_id = $wiki \
                         AND id = $id \
                         AND version = $version")
        >>= function
          | [] -> Lwt.return None
-         | [(c, a, v, d, t)] ->
-             Lwt.return (Some (c, a, v, d, wikibox_content_type_of_string t))
+         | [(c, a, v, d, t, ver)] ->
+             Lwt.return (Some (c, a, v, d, wikibox_content_type_of_string t, ver))
          | _ ::_ -> assert false (* (wiki_id, wiki, version) is a primary key *)
     )
+
+let current_wikibox_version_ ~wikibox:(wiki, id) =
+  let wiki = t_int32 (wiki : wiki) in
+  Lwt_pool.use
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT max(version) \
+                   FROM wikiboxes \
+                   WHERE wiki_id = $wiki \
+                   AND id = $id"
+    )
+  >>= function
+    | [] -> Lwt.return None
+    | [v] -> Lwt.return v
+    | _ -> assert false (* (wiki_id, wiki, version) is a primary key *)
 
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
@@ -620,14 +635,17 @@ let get_wikibox_data,
   remove_writers,
   remove_rights_adm,
   remove_wikiboxes_creators,
-  update_wikibox =
+  update_wikibox,
+  current_wikibox_version
+  =
   let module C = Cache.Make (struct 
                                type key = (wiki * int32)
                                type value = (string * 
                                                User_sql.userid * 
                                                string * 
                                                CalendarLib.Calendar.t *
-                                               wikibox_content_type
+                                               wikibox_content_type *
+                                               int32
                                             ) option
                              end) 
   in
@@ -636,11 +654,17 @@ let get_wikibox_data,
                                 type value = User_sql.userid list
                              end) 
   in
+  let module C3 = Cache.Make(struct
+                               type key = (wiki * int32)
+                               type value = int32 option (* currently wikibox version*)
+                             end)
+  in
   let cache = C.create (fun a -> get_wikibox_data_ a ()) 64 in
   let cacher = C2.create get_readers_ 64 in
   let cachew = C2.create get_writers_ 64 in
   let cachera = C2.create get_rights_adm_ 64 in
   let cachewc = C2.create get_wikiboxes_creators_ 64 in
+  let cachewv = C3.create (fun b -> current_wikibox_version_ b) 64 in
   ((fun ?version ~wikibox () ->
     match version with
       | None -> 
@@ -668,7 +692,10 @@ let get_wikibox_data,
      C2.remove cachew (wiki, wikibox);
      C2.remove cachera (wiki, wikibox);
      C2.remove cachewc (wiki, wikibox);
-     update_wikibox_ ~wiki ~wikibox ~author ~comment ~content))
+     C3.remove cachewv (wiki, wikibox);
+     update_wikibox_ ~wiki ~wikibox ~author ~comment ~content),
+   (fun ~wikibox -> C3.find cachewv wikibox)
+  )
 
 let get_box_for_page, set_box_for_page =
   let module C = Cache.Make (struct 

@@ -106,15 +106,19 @@ object (self)
     ~sp ~sd wiki_id content =
     Lwt.return (Ocamlduce.Utf8.make content)
 
-  method private retrieve_wikibox_content ids =
+  method private retrieve_wikibox_content_version ids =
     Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
     match result with
       | None -> Lwt.fail (Unknown_box ids)
-      | Some (com, a, cont, d, ct) ->
+      | Some (com, a, cont, d, ct, ver) ->
           match ct with
-            | Wiki_sql.Wiki -> Lwt.return cont
+            | Wiki_sql.Wiki -> Lwt.return (cont, ver)
             | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
-            | Wiki_sql.Deleted -> Lwt.return "This page has been deleted"
+            | Wiki_sql.Deleted -> Lwt.return ("This page has been deleted", ver)
+
+  method private retrieve_wikibox_content ids =
+    self#retrieve_wikibox_content_version ids
+    >>= fun (content, _version) -> Lwt.return content
 
   method display_noneditable_box ~classe content =
     let classe = Ocsimore_lib.build_class_attr (ne_class::classe) in
@@ -249,10 +253,12 @@ class editable_wikibox ?sp () =
       ~name:"wiki_send"
       ~post_params:
       (Eliom_parameters.string "actionname" **
-         (((Wiki_sql.eliom_wiki "wikiid" ** 
-              Eliom_parameters.int32 "boxid") ** 
+         (((Wiki_sql.eliom_wiki "wikiid" **
+              (Eliom_parameters.int32 "boxid" **
+                 Eliom_parameters.int32 "boxversion")
+              ) ** 
              Eliom_parameters.string "content")))
-      (fun sp () (actionname, (((wiki_id, box_id), content) as p)) -> 
+      (fun sp () (actionname, (((wiki_id, (box_id, boxversion)), content))) ->
          if actionname = "save"
          then
            let sd = Ocsimore_common.get_sd sp in
@@ -262,7 +268,8 @@ class editable_wikibox ?sp () =
              ~content_type:Wiki_sql.Wiki
          else
            Eliom_predefmod.Action.send ~sp
-             [Wiki.Wiki_action_info (Wiki.Preview p)]
+             [Wiki.Wiki_action_info
+                (Wiki.Preview ((wiki_id, box_id), (content, boxversion)))]
       )
   in
 
@@ -470,9 +477,9 @@ object (self)
      ?(cols=80)
      ~previewonly
      (wiki_id, message_id)
-     (content : string)
+     (content, boxversion)
      =
-     let draw_form (actionname, (((wikiidname, boxidname), contentname))) =
+     let draw_form warning (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
        let f =
          {{ [
               {: Eliom_duce.Xhtml.user_type_input
@@ -483,6 +490,10 @@ object (self)
                    ~input_type:{: "hidden" :} 
                    ~name:boxidname
                    ~value:message_id () :}
+                {: Eliom_duce.Xhtml.int32_input
+                   ~input_type:{: "hidden" :} 
+                   ~name:wikiboxversion
+                   ~value:boxversion () :}
                 {: Eliom_duce.Xhtml.textarea
                    ~name:contentname
                    ~rows
@@ -492,8 +503,10 @@ object (self)
             ]
           }}
        in
-       {{ [<p>[!f
-                 !{: 
+
+       {{ [
+           <p>[!f !warning
+                 !{:
                    let prev =
                      Eliom_duce.Xhtml.string_button
                        ~name:actionname
@@ -509,11 +522,32 @@ object (self)
                      ] :}
               ]] }}
      in
+     Wiki_sql.current_wikibox_version (wiki_id, message_id)
+     >>= (function
+            | None -> Lwt.return {{ [] }}
+            | Some curversion ->
+                Lwt.return
+                  (if curversion > boxversion then
+                     {{ [<br>[]
+                          <em>['Warning: ']
+                          'the content of this wikibox has been updated since \
+                            you started editing it \
+                            (the preview and the code above reflects your \
+                               modification, not the current version).'
+                         <br>[]
+                         'If you save your changes, you will overwrite the \
+                           updated version of the page.'
+                         <br>[]
+                        ] }}
+                   else {{ [] }}
+                  )
+         )
+     >>= fun warning ->
      Lwt.return
        (Eliom_duce.Xhtml.post_form
           ~a:{{ { accept-charset="utf-8" } }}
           ~service:action_send_wikibox
-          ~sp draw_form ()
+          ~sp (draw_form warning) ()
        )
 
    method display_full_edit_form
@@ -524,7 +558,7 @@ object (self)
      ~ancestors
      ~previewonly
      (wiki_id, message_id)
-     (content : string)
+     (content, boxversion)
      =
      Wiki.get_admin_wiki () >>= fun admin_wiki ->
      self#bind_or_display_error
@@ -540,7 +574,7 @@ object (self)
        ?cols
        ~previewonly
        (wiki_id, message_id)
-       content
+       (content, boxversion)
      >>= fun f ->
      Lwt.return {{ [ b f ] }}
 
@@ -723,7 +757,7 @@ object (self)
      >>= fun result ->
      match result with
        | None -> Lwt.fail Not_found
-       | Some (com, a, cont, d, ct) ->
+       | Some (com, a, cont, d, ct, _) ->
            match ct with
              | Wiki_sql.Wiki -> Lwt.return cont
              | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
@@ -852,8 +886,8 @@ object (self)
                | Some (Wiki.Edit_box i) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_wikibox_content data)
-                     (self#display_full_edit_form ~ancestors ~sp ~sd ?cols ?rows 
+                     (self#retrieve_wikibox_content_version data)
+                     (self#display_full_edit_form ~ancestors ~sp ~sd ?cols ?rows
                         ~previewonly:true data)
                      (self#display_edit_box ~sp ~sd ?cssmenu data)
                | Some (Wiki.Edit_perm i) when i = data ->
@@ -862,19 +896,21 @@ object (self)
                      (Lwt.return data)
                      (self#display_edit_perm_form ~sp ~sd)
                      (self#display_edit_perm ~sp ~sd ?cssmenu data)
-               | Some (Wiki.Preview (i, content)) when i = data ->
+               | Some (Wiki.Preview (i, (content, version))) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (Lwt.return content)
-                     (fun c ->
+                     (Lwt.return (content, version))
+                     (fun ((c, v) as cv) ->
                         self#pretty_print_wikisyntax
                           ?subbox
                           ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                          ~sp ~sd wiki_id c >>= fun pp ->
+                          ~sp ~sd wiki_id c
+                        >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
-                        self#display_full_edit_form ~ancestors ~sp ~sd ?cols ?rows
-                          ~previewonly:false data c >>= fun form ->
+                        self#display_full_edit_form ~ancestors ~sp ~sd
+                          ?cols ?rows ~previewonly:false data cv
+                        >>= fun form ->
                         Lwt.return {{ [<p class={: box_title_class :}>"Preview"
                                        preview
                                        !form ] }}

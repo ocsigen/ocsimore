@@ -149,7 +149,12 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:(wiki * int32) ->
   unit ->
-  (string * User_sql.userid * string * CalendarLib.Calendar.t * wikibox_content_type) option Lwt.t
+  (string * User_sql.userid * string * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
+
+
+(** Current revision number of a wikibox *)
+val current_wikibox_version : wikibox:(wiki * int32) -> Int32.t option Lwt.t
+
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)

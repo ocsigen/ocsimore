@@ -105,7 +105,7 @@ class editable_wikibox :
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.form Lwt.t
+      Wiki_sql.wiki * int32 -> string * int32 -> Xhtmltypes_duce.form Lwt.t
 
     method display_full_edit_form :
       sp:Eliom_sessions.server_params ->
@@ -114,7 +114,7 @@ class editable_wikibox :
       ?cols:int ->
       ancestors:Wiki_syntax.ancestors ->
       previewonly:bool ->
-      Wiki_sql.wiki * int32 -> string -> Xhtmltypes_duce.flows Lwt.t
+      Wiki_sql.wiki * int32 -> string * int32 -> Xhtmltypes_duce.flows Lwt.t
 
     method display_edit_perm_form :
       sp:Eliom_sessions.server_params ->
