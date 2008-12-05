@@ -270,7 +270,7 @@ let display_page w wikibox action_create_page sp page () =
                   ?cssmenu:(Some (Some page))
                   ~ancestors:Wiki_syntax.no_ancestors ()
                 >>= fun subbox ->
-                Lwt.return {{ [ subbox ] }}
+                Lwt.return ({{ [ subbox ] }}, true)
              )
              (function
                 | Not_found ->
@@ -298,10 +298,10 @@ let display_page w wikibox action_create_page sp page () =
                         !Language.messages.Language.page_does_not_exist
                       in
                       Lwt.return
-                        {{ [ <p>{:err_msg:} !form ] }}
+                        ({{ [ <p>{:err_msg:} !form ] }}, false)
                 | e -> Lwt.fail e
              )
-           >>= fun subbox ->
+           >>= fun (subbox, exist) ->
            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
              ?rows:None ?cols:None ?classe:None ?subbox:(Some subbox)
              ?cssmenu:(Some None) ~ancestors:Wiki_syntax.no_ancestors ()
@@ -312,7 +312,8 @@ let display_page w wikibox action_create_page sp page () =
 
            >>= fun css ->
            let title = Ocamlduce.Utf8.make w.descr in
-           Eliom_duce.Xhtml.send sp
+           Eliom_duce.Xhtml.send ~sp
+             ~code:(if exist then 200 else 404)
              {{
                 <html>[
                   <head>[
