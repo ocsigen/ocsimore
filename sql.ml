@@ -41,7 +41,7 @@ let connect () =
   type db_count_t = int64;;
 *)
 
-let pool = Lwt_pool.create 40 connect
+let pool = Lwt_pool.create 16 connect
   
 type db_offset_t = int64;;
 
