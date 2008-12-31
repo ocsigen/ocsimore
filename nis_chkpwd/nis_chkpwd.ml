@@ -69,11 +69,13 @@ let check login passwd =
   run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |] >>= function
     | (Unix.WEXITED 0, output) ->
         begin try
-          let start_hash = String.index output ':' in
-          let end_hash = String.index_from output (start_hash+1) ':' in
-          let hash = String.sub output (start_hash+1) (end_hash-start_hash-1) in
           Lwt_mutex.lock check_mutex >>= fun () ->
-          let computed = crypt passwd hash in
+          let start_salt = String.index output ':' in
+          let end_hash = String.index_from output (start_salt+1) ':' in
+          let end_salt = String.rindex_from output end_hash '$' in
+          let salt = String.sub output (start_salt+1) (end_salt-start_salt-1) in
+          let hash = String.sub output (start_salt+1) (end_hash-start_salt-1) in
+          let computed = crypt passwd salt in
           Lwt_mutex.unlock check_mutex;
           return (computed = hash)
         with Not_found ->
