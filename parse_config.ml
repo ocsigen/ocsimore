@@ -25,34 +25,29 @@ Parsing the global Ocsimore configuration
 
 let (>>=) = Lwt.bind
 
-let _ =
-  let rec parse_config = function
-    | [] -> Lwt.return ()
-    | (Simplexmlparser.Element ("passwordfile", [("name", name)], []))::l -> 
-        let c = Lwt_chan.open_in name in
-        Lwt.catch
-          (fun () -> 
-             Lwt_chan.input_line c >>= fun s ->
-             Ocsimore_config.password := s;
-             Lwt_chan.close_in c)
-          (fun e -> Lwt_chan.close_in c >>= fun () ->
-             Lwt.fail e) >>= fun () ->
-        parse_config l
-    | (Simplexmlparser.Element ("group", [("name", name)], [s]))::l -> 
-        Ocsimore_config.dyngroupstobecreated := 
-          (name, s)::!Ocsimore_config.dyngroupstobecreated;
-        parse_config l
-    | (Simplexmlparser.Element ("language", [("lang", "francais")], []))::l ->
-        Language.messages := Language.messages_french;
-        parse_config l
-    | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
-        Language.messages := Language.messages_english;
-        parse_config l
-    | _ ->
-        Lwt.fail (Ocsigen_extensions.Error_in_config_file
-                    "Unexpected content inside ocsimore config")
-  in
-  let c = Ocsigen_extensions.get_config () in
-  Lwt_unix.run (parse_config c)
+let rec parse_config = function
+  | [] -> ()
+  | (Simplexmlparser.Element ("passwordfile", [("name", name)], []))::l ->
+      (let c = open_in name in
+       try
+         let s = input_line c in
+         Ocsimore_config.password := s;
+         close_in c
+       with e -> close_in c; raise e);
+      parse_config l
+  | (Simplexmlparser.Element ("group", [("name", name)], [s]))::l ->
+      Ocsimore_config.dyngroupstobecreated :=
+        (name, s)::!Ocsimore_config.dyngroupstobecreated;
+      parse_config l
+  | (Simplexmlparser.Element ("language", [("lang", "francais")], []))::l ->
+      Language.messages := Language.messages_french;
+      parse_config l
+  | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
+      Language.messages := Language.messages_english;
+      parse_config l
+  | _ ->
+      raise (Ocsigen_extensions.Error_in_config_file
+               "Unexpected content inside ocsimore config")
 
-  
+let () = Ocsigen_extensions.register_extension
+  ~name:"ocsimore" ~init_fun:parse_config ()
