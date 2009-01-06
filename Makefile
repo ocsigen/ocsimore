@@ -74,6 +74,7 @@ PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 .PHONY: all depend clean
 
 all: nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
+	cd announce; make
 
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
