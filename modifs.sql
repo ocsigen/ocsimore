@@ -76,6 +76,8 @@ ALTER TABLE wikis ADD FOREIGN KEY (id, container_id)
 
 -- Consistency checks on users
 
+ALTER TABLE users ADD UNIQUE (login);
+
 ALTER TABLE wikiboxcreators ADD FOREIGN KEY (creator) REFERENCES users
       ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE wikiboxreaders ADD FOREIGN KEY (reader) REFERENCES users
