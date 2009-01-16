@@ -995,7 +995,7 @@ object (self)
              (self#display_error_box 
                 ~classe:(ne_class::classe)
                 ~message:"You are not allowed to see this content."
-                ())
+                (), false)
      )
 
 

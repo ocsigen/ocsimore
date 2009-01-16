@@ -313,7 +313,28 @@ let string_of_extension name args content =
     (match content with
        | None -> "" 
        | Some content -> "|"^content)^">>"
-  
+
+(*********************************************************************)
+
+(* Used for conditions of the form <<cond http_code= >> *)
+type page_displayable =
+  | Page_displayable
+  | Page_404
+  | Page_403
+
+let page_displayable_key : page_displayable Polytables.key =
+  Polytables.make_key ()
+
+let page_displayable sd =
+  try Polytables.get ~table:sd ~key:page_displayable_key
+  with Not_found -> Page_displayable
+
+let set_page_displayable sd pd =
+  Polytables.set ~table:sd ~key:page_displayable_key ~value:pd
+
+
+(*********************************************************************)
+
 let _ =
 
   add_block_extension "div"
@@ -509,25 +530,38 @@ let _ =
          | Some c -> c
          | None -> ""
        in
-       (match args with
-         | [("error", "autherror")] -> 
-             Lwt.return
-               (List.exists 
-                  (fun e -> e = Users.BadPassword || e = Users.BadUser)
-                  (Eliom_sessions.get_exn sp))
-         | [("ingroup", g)] -> 
-             Users.get_user_id_by_name g >>= fun group ->
-             Users.in_group ~sp ~sd ~group ()
-         | [("notingroup", g)] ->
-             Users.get_user_id_by_name g >>= fun group ->
-             Users.in_group ~sp ~sd ~group ()
-             >>= fun b ->
-             Lwt.return (not b)
-         | _ -> Lwt.return false)
-(*VVV syntax??? How to do a OR or AND?? a THEN? *)
-       >>= function
-         | true -> xml_of_wiki ?subbox ~ancestors ~sp ~sd w content
-         | false -> Lwt.return {{ [] }}
+       (let rec eval_cond = function
+          | ("error", "autherror") ->
+              Lwt.return
+                (List.exists
+                   (fun e -> e = Users.BadPassword || e = Users.BadUser)
+                   (Eliom_sessions.get_exn sp))
+          | ("ingroup", g) ->
+              Lwt.catch
+                (fun () ->
+                   Users.get_user_id_by_name g >>= fun group ->
+                   Users.in_group ~sp ~sd ~group ())
+                (function _ -> Lwt.return false)
+          | ("http_code", "404") ->
+              Lwt.return (page_displayable sd = Page_404)
+          | ("http_code", "403") ->
+              Lwt.return (page_displayable sd = Page_403)
+          | ("http_code", "40?") ->
+              Lwt.return (page_displayable sd <> Page_displayable)
+         | (err, value) when String.length err >= 3 &&
+             String.sub err 0 3 = "not" ->
+             let cond' = (String.sub err 3 (String.length err - 3), value) in
+             eval_cond cond' >>=
+             fun b -> Lwt.return (not b)
+         | _ -> Lwt.return false
+        in
+        (match args with
+          | [c] -> eval_cond c
+          | _ -> Lwt.return false)
+        >>= function
+          | true -> xml_of_wiki ?subbox ~ancestors ~sp ~sd w content
+          | false -> Lwt.return {{ [] }}
+       )
     );
 
   Wiki_filter.add_preparser_extension "cond"

@@ -153,3 +153,16 @@ val parse_common_attribs : (string * string) list -> Xhtmltypes_duce.coreattrs
 
 (** returns true if the string is an absolute URL (http://...) *)
 val is_absolute_link : string -> bool
+
+
+(** To be passed as information inside [sd] for evaluating conditions
+<<cond http_code='404'| >> *)
+
+type page_displayable =
+  | Page_displayable
+  | Page_404
+  | Page_403
+
+val page_displayable: Polytables.t -> page_displayable
+
+val set_page_displayable: Polytables.t -> page_displayable -> unit

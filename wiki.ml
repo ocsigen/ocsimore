@@ -249,6 +249,9 @@ let send_static_file sp sd wiki dir page =
   else Lwt.fail Eliom_common.Eliom_404
 
 
+
+(* Displaying of an entire page. We essentially render the page,
+   and then include it inside its container *)
 let display_page w wikibox action_create_page sp page () =
   let sd = Ocsimore_common.get_sd sp in
   (* if there is a static page, we serve it: *)
@@ -302,6 +305,9 @@ let display_page w wikibox action_create_page sp page () =
                 | e -> Lwt.fail e
              )
            >>= fun (subbox, exist) ->
+           Wiki_syntax.set_page_displayable sd
+             (if exist then Wiki_syntax.Page_displayable
+              else Wiki_syntax.Page_404);
            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
              ?rows:None ?cols:None ?classe:None ?subbox:(Some subbox)
              ?cssmenu:(Some None) ~ancestors:Wiki_syntax.no_ancestors ()
