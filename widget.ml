@@ -44,7 +44,7 @@ object(self)
 
   method display_error_box ?(classe=[]) ?(message = "Error") ?exn () =
     let classe = Ocsimore_lib.build_class_attr (error_class::classe) in
-    let message = 
+    let message =
       match exn with
         | None -> {{ [<strong>{: message :}] }}
         | Some exn ->
@@ -60,18 +60,18 @@ object(self)
     {{ <p class={:classe:}>message }}
 
   method bind_or_display_error : 'a.
-    classe:string list -> 
+    classe:string list ->
     ?error: string ->
-    'a Lwt.t -> 
-    ('a -> Xhtmltypes_duce.flows Lwt.t) -> 
-    (classe:string list -> 
-      Xhtmltypes_duce.flows -> 
-      Xhtmltypes_duce.block Lwt.t) -> 
+    'a Lwt.t ->
+    ('a -> Xhtmltypes_duce.flows Lwt.t) ->
+    (classe:string list ->
+      Xhtmltypes_duce.flows ->
+      Xhtmltypes_duce.block Lwt.t) ->
     Xhtmltypes_duce.block Lwt.t
     = fun ~classe ?error data transform_data display_box  ->
       (Lwt.catch
          (fun () -> data >>= transform_data)
-         (fun exn -> 
+         (fun exn ->
             Lwt.return {{ [ {{ self#display_error_box ~exn () }} ] }} ))
       >>= fun content ->
       let err = self#display_error_message error in
@@ -79,88 +79,88 @@ object(self)
 
 end
 
-class virtual ['param_type, 'data_type, 'result_type] parametrized_widget =
+class virtual ['param, 'data, 'result] parametrized_widget =
 object (self)
   inherit widget
-    
+
   val xhtml_class = "parametrized_widget"
-    
+
   method virtual private retrieve_data :
     sp:Eliom_sessions.server_params ->
     sd:Ocsimore_common.session_data ->
-    'param_type -> 'data_type Lwt.t
-      
-  method virtual apply : 
-    sp:server_params -> 
+    'param -> 'data Lwt.t
+
+  method virtual apply :
+    sp:server_params ->
     sd:Ocsimore_common.session_data ->
-    data:'param_type -> 'result_type
+    data:'param -> 'result
 
 end
 
-class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
+class type ['param, 'data, 'result] parametrized_widget_t =
 object
   inherit widget
   method private retrieve_data :
     sp:Eliom_sessions.server_params ->
     sd:Ocsimore_common.session_data ->
-    'param_type -> 'data_type Lwt.t
+    'param -> 'data Lwt.t
   method apply :
-    sp:Eliom_sessions.server_params -> 
+    sp:Eliom_sessions.server_params ->
     sd:Ocsimore_common.session_data ->
-    data:'param_type -> 'result_type
+    data:'param -> 'result
 end
 
-class virtual ['param_type, 'data_type] parametrized_div_widget =
+class virtual ['param, 'data] parametrized_div_widget =
 object (self)
-  inherit ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget
-    
+  inherit ['param, 'data, Xhtmltypes_duce._div Lwt.t] parametrized_widget
+
   val xhtml_class = "parametrized_div_widget"
 
 end
 
-class type ['param_type, 'data_type] parametrized_div_widget_t =
-          ['param_type, 'data_type, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
-  
-class virtual ['param_type, 'result_type] parametrized_unit_widget =
+class type ['param, 'data] parametrized_div_widget_t =
+    ['param, 'data, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
+
+class virtual ['param, 'result] parametrized_unit_widget =
 object (self)
-  inherit ['param_type, unit, 'result_type] parametrized_widget
-    
+  inherit ['param, unit, 'result] parametrized_widget
+
   val xhtml_class = "parametrized_unit_widget"
 
   method private retrieve_data ~sp ~sd _ = Lwt.return ()
-    
+
 end
 
-class type ['param_type, 'result_type] parametrized_unit_widget_t =
-          ['param_type, unit, 'result_type] parametrized_widget_t
-  
-class virtual ['param_type] parametrized_unit_div_widget =
+class type ['param, 'result] parametrized_unit_widget_t =
+          ['param, unit, 'result] parametrized_widget_t
+
+class virtual ['param] parametrized_unit_div_widget =
 object (self)
-  inherit ['param_type, unit] parametrized_div_widget
-  inherit ['param_type, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
-    
+  inherit ['param, unit] parametrized_div_widget
+  inherit ['param, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
+
   val xhtml_class = "parametrized_unit_div_widget"
 
   method private retrieve_data ~sp ~sd _ = Lwt.return ()
-    
+
 end
 
-class type ['param_type] parametrized_unit_div_widget_t =
-          ['param_type, unit, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
+class type ['param] parametrized_unit_div_widget_t =
+          ['param, unit, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
 
 
-  
-class ['child_type] list_widget =
+
+class ['child] list_widget =
 object (self)
   inherit widget
-    
+
   val xhtml_class = "list"
-    
+
   method display ~(sp:server_params) : Xhtmltypes_duce._div Lwt.t =
     return
       {{
          <div class={: xhtml_class :}>[]
        }}
-      
+
 end
 
