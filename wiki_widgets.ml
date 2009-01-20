@@ -62,7 +62,7 @@ exception Unknown_box of (Wiki_sql.wiki * int32)
 exception Not_css_editor
 exception CssInsteadOfWiki
 
-class noneditable_wikibox =
+class virtual noneditable_wikibox =
 object (self)
 
   inherit Widget.widget_with_error_box as papa
@@ -102,9 +102,14 @@ object (self)
             ()
       | _ -> papa#display_error_box ?classe ?message ?exn ()
 
-  method pretty_print_wikisyntax ?subbox ~(ancestors : Wiki_syntax.ancestors)
-    ~sp ~sd wiki_id content =
-    Lwt.return (Ocamlduce.Utf8.make content)
+  method virtual pretty_print_wikisyntax :
+      ?subbox:Xhtmltypes_duce.flows ->
+      ancestors:Wiki_syntax.ancestors ->
+      sp:Eliom_sessions.server_params ->
+      sd:Ocsimore_common.session_data ->
+      Wiki_sql.wiki ->
+      string -> Xhtmltypes_duce.flows Lwt.t
+
 
   method private retrieve_wikibox_content_version ids =
     Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
@@ -157,7 +162,7 @@ type menu_item =
   | View
 
 
-class editable_wikibox ?sp () =
+class virtual editable_wikibox ?sp () =
   (* The registration must be done during site loading, nor before! *)
 
   let service_edit_wikibox =

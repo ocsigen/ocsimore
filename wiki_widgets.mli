@@ -38,7 +38,7 @@ type menu_item =
   | History
   | View
 
-class noneditable_wikibox :
+class virtual noneditable_wikibox :
   object
 
     inherit Widget.widget_with_error_box
@@ -62,7 +62,7 @@ class noneditable_wikibox :
       data:Wiki_sql.wiki * int32 ->
       unit -> Xhtmltypes_duce.block Lwt.t
 
-    method pretty_print_wikisyntax :
+    method virtual pretty_print_wikisyntax :
       ?subbox:Xhtmltypes_duce.flows ->
       ancestors:Wiki_syntax.ancestors ->
       sp:Eliom_sessions.server_params ->
@@ -75,7 +75,7 @@ class noneditable_wikibox :
 
   end
 
-class editable_wikibox :
+class virtual editable_wikibox :
   ?sp:Eliom_sessions.server_params ->
   unit -> (int32 * int32) ->
   object
