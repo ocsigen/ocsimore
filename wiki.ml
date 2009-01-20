@@ -267,13 +267,17 @@ let display_page w wikibox action_create_page sp page () =
              (fun () ->
                 Wiki_sql.get_box_for_page w.id page
                 >>= fun (wiki', box) ->
-                wikibox#editable_wikibox ~sp ~sd ~data:(wiki', box)
+                wikibox#editable_wikibox_allowed ~sp ~sd ~data:(wiki', box)
 (*VVV it does not work if I do not put optional parameters !!?? *)
                   ?rows:None ?cols:None ?classe:None ?subbox:None
                   ?cssmenu:(Some (Some page))
                   ~ancestors:Wiki_syntax.no_ancestors ()
-                >>= fun subbox ->
-                Lwt.return ({{ [ subbox ] }}, true)
+                >>= fun (subbox, allowed) ->
+                Lwt.return ({{ [ subbox ] }},
+                            (if allowed then
+                               Wiki_syntax.Page_displayable
+                             else
+                               Wiki_syntax.Page_403))
              )
              (function
                 | Not_found ->
@@ -301,13 +305,11 @@ let display_page w wikibox action_create_page sp page () =
                         !Language.messages.Language.page_does_not_exist
                       in
                       Lwt.return
-                        ({{ [ <p>{:err_msg:} !form ] }}, false)
+                        ({{ [ <p>{:err_msg:} !form ] }}, Wiki_syntax.Page_404)
                 | e -> Lwt.fail e
              )
-           >>= fun (subbox, exist) ->
-           Wiki_syntax.set_page_displayable sd
-             (if exist then Wiki_syntax.Page_displayable
-              else Wiki_syntax.Page_404);
+           >>= fun (subbox, err_code) ->
+           Wiki_syntax.set_page_displayable sd err_code;
            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
              ?rows:None ?cols:None ?classe:None ?subbox:(Some subbox)
              ?cssmenu:(Some None) ~ancestors:Wiki_syntax.no_ancestors ()
@@ -317,9 +319,13 @@ let display_page w wikibox action_create_page sp page () =
              ?page:(Some page) ()
 
            >>= fun css ->
-           let title = Ocamlduce.Utf8.make w.descr in
-           Eliom_duce.Xhtml.send ~sp
-             ~code:(if exist then 200 else 404)
+           let title = Ocamlduce.Utf8.make w.descr
+           and code = match err_code with
+                      | Wiki_syntax.Page_displayable -> 200
+                      | Wiki_syntax.Page_404 -> 404
+                      | Wiki_syntax.Page_403 -> 403
+           in
+           Eliom_duce.Xhtml.send ~sp ~code
              {{
                 <html>[
                   <head>[
