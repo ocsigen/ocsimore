@@ -1652,3 +1652,11 @@ object (self)
      end
 
 end
+
+
+class creole_wikibox ?sp () adminwikiinfo = object
+  inherit editable_wikibox ?sp () adminwikiinfo
+
+  method pretty_print_wikisyntax = Wiki_syntax.xml_of_wiki
+
+end

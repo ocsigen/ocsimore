@@ -272,3 +272,18 @@ class virtual editable_wikibox :
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
   end
+
+class creole_wikibox :
+  ?sp:Eliom_sessions.server_params ->
+  unit -> (int32 * int32) ->
+object
+  inherit editable_wikibox
+
+  method pretty_print_wikisyntax :
+    ?subbox:Xhtmltypes_duce.flows ->
+    ancestors:Wiki_syntax.ancestors ->
+    sp:Eliom_sessions.server_params ->
+    sd:Ocsimore_common.session_data ->
+    Wiki_sql.wiki ->
+    string -> Xhtmltypes_duce.flows Lwt.t
+end

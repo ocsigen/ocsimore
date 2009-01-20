@@ -105,7 +105,7 @@ let wikibox =
             ignore (new User_widgets.login_widget sm)
      );
 
-     Lwt.return (new Ocsimore_wikibox.creole_wikibox ()
+     Lwt.return (new Wiki_widgets.creole_wikibox ()
                    (wikiadmin_container_id, wiki_help_box))
     )
 
