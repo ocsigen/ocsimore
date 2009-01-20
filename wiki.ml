@@ -252,7 +252,7 @@ let send_static_file sp sd wiki dir page =
 
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
-let display_page w wikibox action_create_page sp page () =
+let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page sp page () =
   let sd = Ocsimore_common.get_sd sp in
   (* if there is a static page, we serve it: *)
   Lwt.catch
@@ -268,10 +268,7 @@ let display_page w wikibox action_create_page sp page () =
                 Wiki_sql.get_box_for_page w.id page
                 >>= fun (wiki', box) ->
                 wikibox#editable_wikibox_allowed ~sp ~sd ~data:(wiki', box)
-(*VVV it does not work if I do not put optional parameters !!?? *)
-                  ?rows:None ?cols:None ?classe:None ?subbox:None
-                  ?cssmenu:(Some (Some page))
-                  ~ancestors:Wiki_syntax.no_ancestors ()
+                  ~cssmenu:(Some page) ~ancestors:Wiki_syntax.no_ancestors ()
                 >>= fun (subbox, allowed) ->
                 Lwt.return ({{ [ subbox ] }},
                             (if allowed then
@@ -311,12 +308,11 @@ let display_page w wikibox action_create_page sp page () =
            >>= fun (subbox, err_code) ->
            Wiki_syntax.set_page_displayable sd err_code;
            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
-             ?rows:None ?cols:None ?classe:None ?subbox:(Some subbox)
-             ?cssmenu:(Some None) ~ancestors:Wiki_syntax.no_ancestors ()
+             ?subbox:(Some subbox) ~cssmenu:None
+             ~ancestors:Wiki_syntax.no_ancestors ()
 
            >>= fun pagecontent ->
-           wikibox#get_css_header ~sp ~wiki:w.id ?admin:(Some false)
-             ?page:(Some page) ()
+           wikibox#get_css_header ~sp ~wiki:w.id ~admin:false ~page ()
 
            >>= fun css ->
            let title = Ocamlduce.Utf8.make w.descr
@@ -357,7 +353,7 @@ let wikicss_service_handler wiki () =
 
 (** Functions related to the creation of a wiki *)
 (* Register the wiki [wiki] *)
-let register_wiki ?sp ~path ~wikibox ~wiki ?wiki_info () =
+let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wiki_info () =
   (match wiki_info with
     | None -> get_wiki_by_id wiki
     | Some info -> Lwt.return info
