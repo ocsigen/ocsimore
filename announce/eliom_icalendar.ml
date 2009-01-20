@@ -15,11 +15,10 @@ let result_of_content c =
      res_etag = md5;
      res_headers= Http_headers.dyn_headers;
      res_stream =
-         Ocsigen_stream.make
+        (Ocsigen_stream.make
            (fun () ->
               Ocsigen_stream.cont c
-                (fun () -> Ocsigen_stream.empty None)),
-         None
+                (fun () -> Ocsigen_stream.empty None))
    }
 
 module Reg_ = struct
