@@ -57,7 +57,7 @@ object(self)
                     ] }}
             else {{ [<strong>{: message :} ] }}
     in
-    {{ <p class={:error_class:}>message }}
+    {{ <p class={:classe:}>message }}
 
   method bind_or_display_error : 'a.
     classe:string list -> 
