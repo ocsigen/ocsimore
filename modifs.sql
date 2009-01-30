@@ -4,6 +4,9 @@ ALTER TABLE textdata RENAME TO forums_textdata;
 ALTER TABLE threads RENAME TO forums_threads;
 
 
+-- Missing primary key on wikipages
+ALTER TABLE wikipages ADD PRIMARY KEY (sourcewiki, pagename);
+
 -- Limited form of redirections for wikipages : can now refer to a wikibox of another wiki
 ALTER TABLE wikipages ADD COLUMN destwiki integer;
 UPDATE wikipages SET destwiki = wiki;
@@ -100,3 +103,7 @@ ALTER TABLE wikiboxes ADD COLUMN content_type text NOT NULL DEFAULT 'wiki';
 
 
 -- TODO wikicss and css
+
+
+-- Title for wikipages
+ALTER TABLE wikipages ADD COLUMN title TEXT ;

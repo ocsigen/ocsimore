@@ -1109,7 +1109,8 @@ object (self)
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
-     Wiki_sql.get_box_for_page wiki page >>= fun (wiki', box) ->
+     Wiki_sql.get_box_for_page wiki page
+     >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
      self#bind_or_display_error
        ~classe
        (if c

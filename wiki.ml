@@ -266,7 +266,8 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page 
            Lwt.catch
              (fun () ->
                 Wiki_sql.get_box_for_page w.id page
-                >>= fun (wiki', box) ->
+                >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
+                          wikipage_wikibox = box; wikipage_title = title } ->
                 wikibox#editable_wikibox_allowed ~sp ~sd ~data:(wiki', box)
                   ~cssmenu:(Some page) ~ancestors:Wiki_syntax.no_ancestors ()
                 >>= fun (subbox, allowed) ->
@@ -274,7 +275,8 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page 
                             (if allowed then
                                Wiki_syntax.Page_displayable
                              else
-                               Wiki_syntax.Page_403))
+                               Wiki_syntax.Page_403),
+                            title)
              )
              (function
                 | Not_found ->
@@ -302,10 +304,12 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page 
                         !Language.messages.Language.page_does_not_exist
                       in
                       Lwt.return
-                        ({{ [ <p>{:err_msg:} !form ] }}, Wiki_syntax.Page_404)
+                        ({{ [ <p>{:err_msg:} !form ] }},
+                         Wiki_syntax.Page_404,
+                         None)
                 | e -> Lwt.fail e
              )
-           >>= fun (subbox, err_code) ->
+           >>= fun (subbox, err_code, title) ->
            Wiki_syntax.set_page_displayable sd err_code;
            wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
              ?subbox:(Some subbox) ~cssmenu:None
@@ -315,7 +319,10 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page 
            wikibox#get_css_header ~sp ~wiki:w.id ~admin:false ~page ()
 
            >>= fun css ->
-           let title = Ocamlduce.Utf8.make w.descr
+           let title = Ocamlduce.Utf8.make
+             (match title with
+                | Some title -> title
+                | None -> w.descr)
            and code = match err_code with
                       | Wiki_syntax.Page_displayable -> 200
                       | Wiki_syntax.Page_404 -> 404
@@ -387,7 +394,7 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wi
                         (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                       >>= fun box ->
                         Wiki_sql.set_box_for_page
-                          ~sourcewiki:wiki ~id:box ~page ()
+                          ~sourcewiki:wiki ~wikibox:box ~page ()
                       >>= fun () ->
                         Lwt.return [Ocsimore_common.Session_data sd]
                   | e -> Lwt.fail e)

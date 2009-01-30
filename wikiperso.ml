@@ -330,15 +330,15 @@ let () =
            ~author:Users.admin.Users.id ()
          >>= fun box ->
          Wiki_sql.set_box_for_page ~sourcewiki:admin_wiki
-           ~id:box ~page:template_pagename ()
+           ~wikibox:box ~page:template_pagename ()
 
        | e -> Lwt.fail e)
   )
 
 let template_page_contents () =
   Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:template_pagename
-  >>= fun wikibox ->
-  Wiki_sql.get_wikibox_data ~wikibox ()
+  >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
+  Wiki_sql.get_wikibox_data ~wikibox:(wiki', box) ()
   >>= function
     | Some (_, _, content, _, _, _) ->
         Lwt.return content

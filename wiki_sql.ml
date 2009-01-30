@@ -420,29 +420,45 @@ let get_history ~wiki ~id =
                   AND id = $id \
                   ORDER BY version DESC")
 
+type wikipage = {
+  wikipage_source_wiki: wiki;
+  wikipage_page: string;
+  wikipage_dest_wiki: wiki;
+  wikipage_wikibox: int32;
+  wikipage_title: string option;
+}
+
 (** return the box corresponding to a wikipage *)
 let get_box_for_page_ ~wiki ~page =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
+  let wiki' = t_int32 (wiki : wiki) in
+  Lwt_pool.use
     Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT destwiki, id \
+       PGSQL(db) "SELECT * \
                   FROM wikipages \
-                  WHERE sourcewiki = $wiki \
+                  WHERE sourcewiki = $wiki' \
                   AND pagename = $page") >>= function
       | [] -> Lwt.fail Not_found
-      | (wiki, id)::_ -> Lwt.return ((int32_t wiki : wiki), id)
+      | (_sourcewiki, wikibox, _page, destwiki, title) :: _ ->
+          (* (sourcewiki, pagename) is a primary key *)
+          Lwt.return ({
+            wikipage_source_wiki = wiki;
+            wikipage_page = page;
+            wikipage_dest_wiki = (int32_t destwiki : wiki);
+            wikipage_wikibox = wikibox;
+            wikipage_title = title;
+          })
 
 (** Sets the box corresponding to a wikipage *)
-let set_box_for_page_ ~sourcewiki ?(destwiki=sourcewiki) ~id ~page =
+let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wikibox ?title () =
   let sourcewiki = t_int32 (sourcewiki : wiki)
   and destwiki = t_int32 (destwiki: wiki) in
-  Lwt_pool.use 
+  Lwt_pool.use
     Sql.pool
-    (fun db -> 
-       PGSQL(db) "DELETE FROM wikipages WHERE sourcewiki=$sourcewiki AND pagename = $page" 
+    (fun db ->
+       PGSQL(db) "DELETE FROM wikipages WHERE sourcewiki=$sourcewiki AND pagename = $page"
        >>= fun () ->
-       PGSQL(db) "INSERT INTO wikipages VALUES ($sourcewiki, $id, $page, $destwiki)"
+       PGSQL(db) "INSERT INTO wikipages VALUES ($sourcewiki, $wikibox, $page, $destwiki, $?title)"
     )
 
 
@@ -700,7 +716,7 @@ let get_wikibox_data,
 let get_box_for_page, set_box_for_page =
   let module C = Cache.Make (struct 
                                type key = (wiki * string)
-                               type value = wiki * int32
+                               type value = wikipage
                              end) 
   in
   let cache = 
@@ -711,10 +727,10 @@ let get_box_for_page, set_box_for_page =
       let page = Ocsigen_lib.remove_end_slash page in
       print_cache "cache wikipage ";
       C.find cache (wiki, page)),
-   (fun ~sourcewiki ?(destwiki=sourcewiki) ~id ~page () ->
+   (fun ~sourcewiki ~page ?(destwiki=sourcewiki) ~wikibox ?title () ->
       let page = Ocsigen_lib.remove_end_slash page in
       C.remove cache (sourcewiki, page);
-      set_box_for_page_ ~sourcewiki ~destwiki ~id ~page
+      set_box_for_page_ ~sourcewiki ~page ~destwiki ~wikibox ?title ()
    ))
 
 

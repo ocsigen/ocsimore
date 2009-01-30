@@ -61,7 +61,7 @@ val new_wiki :
   unit ->
   (wiki * int32) Lwt.t
 
-(** Inserts a new wikipage in an existing wiki and return the id of the 
+(** Inserts a new wikibox in an existing wiki and return the id of the 
     wikibox. *)
 val new_wikibox :
   wiki:wiki ->
@@ -81,33 +81,26 @@ val get_history :
   (int32 * string * User_sql.userid * CalendarLib.Calendar.t) list Lwt.t
 
 
+(** Wikipages *)
 
-
-(*
-(** inserts a new wikipage in an existing wiki; returns [None] if
-    insertion failed due to [~suffix] already in use; [Some id] otherwise. *) 
-val new_wikipage : wik_id:int32 -> suffix:string -> author:string ->
-  subject:string -> txt:string -> int32 option Lwt.t
-
-(** updates or inserts a wikipage. *) 
-val add_or_change_wikipage : wik_id:int32 -> suffix:string -> author:string ->
-  subject:string -> txt:string -> unit Lwt.t
-
-(** returns title, description, number of wikipages of a wiki. *)
-val wiki_get_data : wik_id:int32 -> (string * string * int) Lwt.t
-
-(** returns the list of subject, suffix, author, datetime of wikipages, sorted by subject *)
-val wiki_get_pages_list : wik_id:int32 -> 
-  (string * string * string * Calendar.t) list Lwt.t
-*)
-
+type wikipage = {
+  wikipage_source_wiki: wiki;
+  wikipage_page: string;
+  wikipage_dest_wiki: wiki;
+  wikipage_wikibox: int32;
+  wikipage_title: string option;
+}
 
 (** return the box corresponding to a wikipage *)
-val get_box_for_page : wiki:wiki -> page:string -> (wiki * int32) Lwt.t
+val get_box_for_page : wiki:wiki -> page:string -> wikipage Lwt.t
 
-(** sets the box corresponding to a wikipage *)
+(** sets the box corresponding to a wikipage. The previous entry is
+    entirely overwritten. If [destwiki] is not supplied, it is set
+    equal to [sourcewiki]. If [title] is not supplied, it is set equal
+    to NULL (and the title for the wiki will be used).
+*)
 val set_box_for_page :
-  sourcewiki:wiki -> ?destwiki:wiki -> id:int32 -> page:string -> unit -> unit Lwt.t
+  sourcewiki:wiki -> page:string -> ?destwiki:wiki -> wikibox:int32 -> ?title:string -> unit -> unit Lwt.t
 
 (** returns the css for a page or fails with [Not_found] if it does not exist *)
 val get_css_for_page : wiki:wiki -> page:string -> string Lwt.t
