@@ -155,7 +155,7 @@ let builder wiki_id =
                    element a >>= fun r ->
                    Lwt.return {{ [<em (atts)>r] }});
     W.a_elem =
-      (fun attribs sp addr 
+      (fun attribs _sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
            let atts = parse_common_attribs attribs in
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
@@ -406,7 +406,7 @@ let _ =
   ;
 
   add_a_content_extension "wikiname"
-    (fun wiki _ args content ->
+    (fun wiki _ _args _content ->
        Wiki_sql.get_wiki_by_id wiki
        >>= fun wiki_info ->
        let s = wiki_info.Wiki_sql.descr in
@@ -414,17 +414,17 @@ let _ =
 
 
   add_a_content_extension "raw"
-    (fun _ (sp, sd, _) args content ->
+    (fun _ _ args content ->
        let s = string_of_extension "raw" args content in
        Lwt.return {{ [ <b>{: s :} ] }});
 
   add_a_content_extension ""
-    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+    (fun _ _ _ _ ->
        Lwt.return {{ [] }}
     );
 
   add_block_extension "content"
-    (fun _ (sp, sd, (subbox, ancestors)) args c -> 
+    (fun _ (_sp, _sd, (subbox, _ancestors)) args _ -> 
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -444,7 +444,7 @@ let _ =
     );
 
   add_block_extension "menu"
-    (fun wiki_id (sp, sd, (subbox, ancestors)) args c -> 
+    (fun wiki_id (sp, sd, (subbox, ancestors)) args _ -> 
        let classe = 
          let c =
            "wikimenu"^

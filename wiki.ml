@@ -35,7 +35,7 @@ type role = Admin | Author | Lurker | Nonauthorized;;
 (* Admin can changes the permissions on boxes *)
 
 
-let get_sthg_ f ((w, i) as k) =
+let get_sthg_ f ((w, _) as k) =
   get_wiki_by_id w
   >>= fun wiki_info ->
   if wiki_info.boxrights
@@ -437,7 +437,7 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wi
     Eliom_predefmod.CssText.register_new_service ?sp
       ~path:(path@["__ocsiwikicss"])
       ~get_params:Eliom_parameters.unit
-      (fun sp () () -> wikicss_service_handler wiki ())
+      (fun _sp () () -> wikicss_service_handler wiki ())
   in
   Wiki_syntax.add_servwikicss wiki wikicss_service;
 
@@ -457,7 +457,6 @@ let really_create_wiki ~title ~descr
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir
-    ~wikibox
     ~container_page
     () =
   let path_string = Ocsimore_lib.bind_opt
@@ -571,7 +570,7 @@ let create_wiki ~title ~descr
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found ->
-           really_create_wiki ~title ~descr ?path ~readers ~writers ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators ~css_editors ~admins ~boxrights ?staticdir ~wikibox ~container_page ()
+           really_create_wiki ~title ~descr ?path ~readers ~writers ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators ~css_editors ~admins ~boxrights ?staticdir ~container_page ()
            >>= fun wiki_id ->
            get_wiki_by_id wiki_id
        | e -> Lwt.fail e)
@@ -595,7 +594,7 @@ type wiki_action_info =
   | Edit_box of (Wiki_sql.wiki * int32)
   | Edit_perm of (Wiki_sql.wiki * int32)
   | Preview of ((Wiki_sql.wiki * int32) * (string * int32)) (* The second uple is the content of the wikibox, and the version number of the wikibox *when the edition started* *)
-  | History of ((Wiki_sql.wiki * int32) * (int option * int option))
+  | History of (Wiki_sql.wiki * int32)
   | Oldversion of ((Wiki_sql.wiki * int32) * int32)
   | Src of ((Wiki_sql.wiki * int32) * int32)
   | Error of ((Wiki_sql.wiki * int32) * wiki_errors)

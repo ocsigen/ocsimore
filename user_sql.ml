@@ -144,7 +144,7 @@ let delete_user_ ~userid =
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
-let update_data_ ~userid ~name ~password ~fullname ~email ?groups ?dyn () =
+let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
   let password, authtype =
     match password with
       | Connect_forbidden -> None, "l"

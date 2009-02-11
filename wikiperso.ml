@@ -63,7 +63,7 @@ let extract_user_name pathstring =
   match Netstring_pcre.full_split regexp pathstring with
     | [ Netstring_pcre.Delim _ ; Netstring_pcre.Group (_, user)] ->
         Some user
-    | l ->
+    | _l ->
         (* Debug code to see what has been matched *)
         (*
         let print_result = function
@@ -72,7 +72,7 @@ let extract_user_name pathstring =
           | Netstring_pcre.NoGroup -> Printf.printf "NoGroup,"
           | Netstring_pcre.Group (i, s) -> Printf.printf "Group%d %s," i s
         in
-        List.iter print_result l; flush stdout;
+        List.iter print_result _l; flush stdout;
         *)
         None
 

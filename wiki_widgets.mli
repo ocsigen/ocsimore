@@ -199,8 +199,6 @@ class virtual editable_wikibox :
     method private retrieve_history :
       sp:Eliom_sessions.server_params ->
       Wiki_sql.wiki * int32 ->
-      ?first:int ->
-      ?last:int ->
       unit ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list Lwt.t
 

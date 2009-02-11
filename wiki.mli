@@ -236,7 +236,7 @@ type wiki_action_info =
   | Edit_box of (Wiki_sql.wiki * int32)
   | Edit_perm of (Wiki_sql.wiki * int32)
   | Preview of ((Wiki_sql.wiki * int32) * (string * int32))
-  | History of ((Wiki_sql.wiki * int32) * (int option * int option))
+  | History of (Wiki_sql.wiki * int32)
   | Oldversion of ((Wiki_sql.wiki * int32) * int32)
   | Src of ((Wiki_sql.wiki * int32) * int32)
   | Error of ((Wiki_sql.wiki * int32) * wiki_errors)

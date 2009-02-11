@@ -101,7 +101,7 @@ let wiki_data =
         find_wikidata 
           {data with boxrights = true}
           l
-    | (Simplexmlparser.Element (s, _, _))::l ->
+    | (Simplexmlparser.Element (s, _, _))::_ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content <"^s^"> inside Ocsiwiki config"))
     | _ ->

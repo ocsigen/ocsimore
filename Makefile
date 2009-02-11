@@ -8,7 +8,7 @@ PAM=
 PAMPACKAGE=
 endif
 
-CAMLC = ocamlc -w v -g -w Z -dtypes -I nis_chkpwd
+CAMLC = ocamlc -w vZ -g -dtypes -I nis_chkpwd
 CAMLLEX = ocamllex
 
 # cannot use ocamlduce with camlp4 :-(
@@ -71,7 +71,7 @@ PP = -pp "$(CAMLP4O) -I $(shell ocamlfind query extlib) \
 PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 #LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
-.PHONY: all depend clean
+.PHONY: all depend clean nis_chkpwd_
 
 all: nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
 	cd announce; make
@@ -89,12 +89,12 @@ ocsimore.cma: $(OCSIMORE_CMO) $(OCSIMORE_CMI)
 sql.cmo: sql.ml
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
-	ocamlfind $(CAMLC) -verbose -thread $(PACKAGES) $(PP) -c $<
+	ocamlfind $(CAMLC) -thread $(PACKAGES) $(PP) -c $<
 
 %sql.cmo: %sql.ml
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
-	ocamlfind $(CAMLC) -verbose -thread $(PACKAGES) $(PP) -c $<
+	ocamlfind $(CAMLC) -thread $(PACKAGES) $(PP) -c $<
 
 print_sql:
 #	PGHOST=$(HOST) 
@@ -123,10 +123,7 @@ wikicreole.ml: wikicreole.cmi
 
 .SUFFIXES: .mll .mly .mli .ml .cmi .cmo .cmx
 
-.mll.mli:
-	$(CAMLLEX) $<
-
-.mll.ml:
+%.ml: %.mll
 	$(CAMLLEX) $<
 
 
@@ -142,3 +139,5 @@ clean:
 
 
 include .depend
+
+.PRECIOUS: %.ml

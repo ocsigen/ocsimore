@@ -281,7 +281,7 @@ let rec correct_kind_rec stack kind n =
   match stack with
     List_item (_, stack) ->
       correct_kind_rec stack kind n
-  | List (k, lst, _, stack) ->
+  | List (k, _lst, _, stack) ->
       if n = 0 then k = kind else
       correct_kind_rec stack kind (n - 1)
   | Style (_, _, _, stack) ->

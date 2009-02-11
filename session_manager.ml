@@ -99,7 +99,7 @@ object (self)
 
 
 
-  method private add_parameter_handler user = fun sp () (url, param_name) ->
+  method private add_parameter_handler _user _sp () (_url, _param_name) =
     (* if in_group user sessionmanagerinfo.administrator then
        begin
        Ocsigen_messages.debug2 "[add_parameter_handler] user is an administrator.";
@@ -186,13 +186,14 @@ let connect sm srv container
 *)
 
 
-let pam_auth = 
-  ref (fun ?(service : string option) ~name ~pwd () -> 
+let pam_auth :
+    (?service:string -> name:string -> pwd:string -> unit -> unit Lwt.t) ref =
+  ref (fun ?service:_service ~name:_name ~pwd:_pwd () ->
          raise Users.BadUser)
 
 let pam_loaded = ref false
 
-let set_pam_auth f = 
+let set_pam_auth f =
   pam_loaded := true;
   pam_auth := f
 

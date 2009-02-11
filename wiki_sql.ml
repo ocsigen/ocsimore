@@ -686,7 +686,7 @@ let get_wikibox_data,
       | None -> 
           print_cache "cache wikibox ";
           C.find cache wikibox
-      | Some v ->
+      | Some _ ->
           print_cache (Int32.to_string (snd wikibox) ^ " (with version) -> wikibox: db access");
           get_wikibox_data_ ?version ~wikibox ()
    ),

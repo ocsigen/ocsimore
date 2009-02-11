@@ -204,7 +204,7 @@ struct
 
   let remove cache k =
     try
-      let (v, node) = H.find cache.table k in
+      let (_v, node) = H.find cache.table k in
       H.remove cache.table k;
       cache.pointers <- Dlist.remove cache.pointers node
     with Not_found -> ()

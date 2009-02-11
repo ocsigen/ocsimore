@@ -45,7 +45,7 @@ exception Users_error of string
 
 
 let get_user_by_name_from_db_or_fail ~name =
-  User_cache.find_user ~name () >>= fun ((i, n, p, d, e, dy), pm) -> 
+  User_cache.find_user ~name () >>= fun ((i, n, p, d, e, dy), _pm) -> 
   Lwt.return { id = i; 
                name = n; 
                pwd = p; 
@@ -181,7 +181,7 @@ let get_user_by_name_from_db ~name =
 let get_user_id_by_name name =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~name () >>= fun ((i, n, p, d, e, dy), pm) -> 
+     User_cache.find_user ~name () >>= fun ((i, _n, _p, _d, _e, _dy), _pm) -> 
      Lwt.return i
   )
   (function
@@ -192,7 +192,7 @@ let get_user_id_by_name name =
 let get_user_name_by_id id =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~id () >>= fun ((i, n, p, d, e, dy), pm) -> 
+     User_cache.find_user ~id () >>= fun ((_i, n, _p, _d, _e, _dy), _pm) -> 
      Lwt.return n
   )
   (function
@@ -203,7 +203,7 @@ let get_user_name_by_id id =
 let get_user_by_id_from_db ~id =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~id () >>= fun ((i, n, p, d, e, dy), pm) -> 
+     User_cache.find_user ~id () >>= fun ((i, n, p, d, e, dy), _pm) -> 
      Lwt.return { id = i; 
                   name = n; 
                   pwd = p; 
@@ -315,7 +315,6 @@ let update_user_data ~user
   user.email <- email;
   User_cache.update_data
     ~userid:user.id
-    ~name:user.name
     ~password:pwd
     ~fullname
     ~email
@@ -387,7 +386,7 @@ let in_group_ ?sp ?sd ~user ~group () =
 
 
 let add_to_group ~user ~group =
-  User_cache.find_user ~id:group () >>= fun ((i, n, p, d, e, dy), pm) ->
+  User_cache.find_user ~id:group () >>= fun ((_i, _n, _p, _d, _e, dy), _pm) ->
   if dy
   then begin
     Ocsigen_messages.warning

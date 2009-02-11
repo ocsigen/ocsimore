@@ -65,7 +65,7 @@ object (self)
                     Eliom_services.https_void_coservice'
                     sp switchtohttps () :} ] ] }}
       
-  method private display_logout_box ~sp u =
+  method private display_logout_box ~sp:_ u =
     {{ [<table>[
            <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
            <tr>[<td>[{: Eliom_duce.Xhtml.string_input
@@ -118,7 +118,7 @@ object (self)
   initializer
 
       Wiki_syntax.add_block_extension "loginbox"
-        (fun _ (sp, sd, subbox) args c -> 
+        (fun _ (sp, sd, _) args _c -> 
            let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
            let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
            let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
@@ -155,13 +155,13 @@ object (self)
 
 
       Wiki_syntax.add_a_content_extension "username"
-        (fun w (sp, sd, (subbox, ancestors)) args c -> 
+        (fun _w (sp, sd, _) _args _c -> 
            Users.get_user_data ~sp ~sd >>= fun ud ->
              Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
         );
       
       Wiki_syntax.add_block_extension "logoutbutton"
-        (fun w (sp, sd, (subbox, ancestors)) args c -> 
+        (fun w (sp, sd, (subbox, ancestors)) _args c -> 
            let content = match c with
              | Some c -> c
              | None -> "logout"
@@ -404,8 +404,8 @@ object (self)
     = internal_srv_edit
     
   method container
-    ~(sp:Eliom_sessions.server_params)
-    ~(sd:Ocsimore_common.session_data)
+    ~sp:(_ : Eliom_sessions.server_params)
+    ~sd:(_ : Ocsimore_common.session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     Lwt.return {{ 
               <html>[
@@ -518,7 +518,7 @@ object (self)
                   }}) ()        :}
            <p>[<strong>{: err :}]] }}
       
-  method private page_reminder_done = fun sp () usr ->
+  method private page_reminder_done = fun sp () _usr ->
     self#page_reminder "Users are being implemented (TODO)" sp () ()
       (* if not (valid_username usr) then
          self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()

@@ -19,12 +19,12 @@ type message_data =
 };;
 
 class message_toggle_action = 
-object (self)
+object
   inherit [Forum_sql.forum * int32] parametrized_unit_div_widget
     
   val xhtml_class = "thread_toggle"
     
-  method apply ~sp ~sd ~data:(frm_id, msg_id) =
+  method apply ~sp:_ ~sd:_ ~data:(frm_id, msg_id) =
     Forum_sql.message_toggle_hidden ~frm_id ~msg_id >>= fun () -> 
     Lwt.return {{ <div class={: xhtml_class :}>[
                     <p>"Thread toggled."                
@@ -92,7 +92,7 @@ object (self)
     
   val xhtml_class = "message_navigation"
     
-  method private retrieve_data ~sp ~sd (forum_id, thr_id, offset, limit) =
+  method private retrieve_data ~sp ~sd (forum_id, thr_id, _offset, _limit) =
     Forum.get_role sp sd forum_id >>= fun role -> 
     Forum_sql.thread_get_nr_messages ~thr_id ~role
 
@@ -305,7 +305,7 @@ object (self)
               ~value:"OK" () :}]
      ] :}
       
-  method apply ~(sp:server_params) ~sd
+  method apply ~(sp:server_params) ~sd:_
     ~data:(forum_id, thread_id, parent_id, offset) =
     Ocsigen_messages.debug2 "[forumWidget] message_form_widget#apply"; 
     return {{
@@ -319,7 +319,7 @@ object (self)
 end
 
 class message_add_action = 
-object (self)
+object
   inherit [Forum_sql.forum * 
              int32 * 
              int32 option * 
@@ -328,7 +328,7 @@ object (self)
         
   val xhtml_class = "message_add"
     
-  method apply ~sp ~sd ~data:(forum_id, thr_id, parent_id, txt, sticky) =
+  method apply ~sp ~sd ~data:(_forum_id, thr_id, parent_id, txt, sticky) =
     Users.get_user_id sp sd >>= fun author_id ->
     Forum_sql.new_message
       ~thr_id ?parent_id ~author_id ~txt ~sticky () >>= fun _ -> 
@@ -346,7 +346,7 @@ object (self)
     
   val xhtml_class = "latest_messages"
     
-  method private retrieve_data ~sp ~sd limit =
+  method private retrieve_data ~sp:_ ~sd:_ limit =
     Forum_sql.get_forums_list () >>= fun forums -> 
     let frm_ids = List.map (fun (id, _, _, _, _) -> id) forums in
     Forum_sql.get_latest_messages ~frm_ids ~limit ()
@@ -354,7 +354,7 @@ object (self)
   method apply ~sp ~sd ~data:limit =
     self#retrieve_data sp sd limit >>= fun messages -> 
     Lwt_util.map 
-      (fun (id, msg, author) ->
+      (fun (_id, msg, author) ->
          return {{ <tr>[<td>{: msg :} <td>{: author :}] }} ) messages
       >>= fun tbl -> 
     Lwt.return {{
@@ -410,7 +410,7 @@ object (self)
   method apply ~sp ~sd ~data:(forum_id, thread_id) =
     self#retrieve_data sp sd (forum_id, thread_id) 
     >>= fun ((_, subject, author, article, datetime, 
-              hidden, shown_messages, hidden_messages), role) -> 
+              hidden, _shown_messages, _hidden_messages), role) -> 
     return
       {{ <div class={: xhtml_class :}>[
            <h1>{: subject :}
@@ -435,12 +435,12 @@ object (self)
 end
 
 class thread_toggle_action = 
-object (self)
+object
   inherit [Forum_sql.forum * int32] parametrized_unit_div_widget
     
   val xhtml_class = "thread_toggle"
     
-  method apply ~sp ~sd ~data:(frm_id, thr_id) =
+  method apply ~sp:_ ~sd:_ ~data:(frm_id, thr_id) =
     Forum_sql.thread_toggle_hidden ~frm_id ~thr_id >>= fun () -> 
     return {{ <div class={: xhtml_class :}>[
                 <p>"Thread toggled."                
@@ -477,7 +477,7 @@ object (self)
   method apply ~sp ~sd ~data:(forum_id) =
     catch 
       (fun () -> 
-         self#retrieve_data sp sd forum_id >>= fun (subjects, role) -> 
+         self#retrieve_data sp sd forum_id >>= fun (subjects, _role) -> 
          Ocsigen_messages.debug2
            (Printf.sprintf "[thread_list] apply: %d items" 
               (List.length subjects));
@@ -538,7 +538,7 @@ object (self)
          ]
        ] }}
       
-  method apply ~sp ~sd ~data:forum_id =
+  method apply ~sp ~sd:_ ~data:forum_id =
     Ocsigen_messages.debug2 "[forumWidget] thread_form#apply";
     return {{
               <div class={: xhtml_class :}>[
@@ -548,7 +548,7 @@ object (self)
 end;; 
 
 class thread_add_action =
-object (self)
+object
         inherit [Forum_sql.forum * bool * string * string] 
           parametrized_unit_div_widget
         
@@ -593,7 +593,7 @@ object (self)
 
   val xhtml_class = "forums_list"
 
-  method private retrieve_data ~sp ~sd () =
+  method private retrieve_data ~sp:_ ~sd:_ () =
     Forum_sql.get_forums_list () >>= fun result -> 
     Lwt_util.map (fun (i, n, d, m, a) ->
                     Lwt.return
@@ -658,7 +658,7 @@ object (self)
          ]
        ] }}
       
-  method apply ~sp ~sd ~data:forum_id =
+  method apply ~sp ~sd:_ ~data:_ =
     return {{
               <div class={: xhtml_class :}>[
                 {: (post_form ~service:srv_add_forum ~sp self#form) () :}
@@ -666,13 +666,13 @@ object (self)
 end
   
 class forum_add_action =
-object (self)
+object
         inherit [string * string * string * bool * bool] 
           parametrized_unit_div_widget
         
         val xhtml_class = "forum_add"
 
-        method apply ~sp ~sd ~data:(name, url, descr, moderated, arborescent) =
+        method apply ~sp:_ ~sd:_ ~data:(name, _url, descr, moderated, arborescent) =
           Forum.create_forum
             ~title:name ~descr ~moderated ~arborescent () >>=
             fun _ ->

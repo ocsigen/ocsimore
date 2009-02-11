@@ -80,7 +80,7 @@ object(self)
 end
 
 class virtual ['param, 'data, 'result] parametrized_widget =
-object (self)
+object
   inherit widget
 
   val xhtml_class = "parametrized_widget"
@@ -111,7 +111,7 @@ object
 end
 
 class virtual ['param, 'data] parametrized_div_widget =
-object (self)
+object
   inherit ['param, 'data, Xhtmltypes_duce._div Lwt.t] parametrized_widget
 
   val xhtml_class = "parametrized_div_widget"
@@ -122,12 +122,12 @@ class type ['param, 'data] parametrized_div_widget_t =
     ['param, 'data, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
 
 class virtual ['param, 'result] parametrized_unit_widget =
-object (self)
+object
   inherit ['param, unit, 'result] parametrized_widget
 
   val xhtml_class = "parametrized_unit_widget"
 
-  method private retrieve_data ~sp ~sd _ = Lwt.return ()
+  method private retrieve_data ~sp:_ ~sd:_ _ = Lwt.return ()
 
 end
 
@@ -135,13 +135,13 @@ class type ['param, 'result] parametrized_unit_widget_t =
           ['param, unit, 'result] parametrized_widget_t
 
 class virtual ['param] parametrized_unit_div_widget =
-object (self)
+object
   inherit ['param, unit] parametrized_div_widget
   inherit ['param, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
 
   val xhtml_class = "parametrized_unit_div_widget"
 
-  method private retrieve_data ~sp ~sd _ = Lwt.return ()
+  method private retrieve_data ~sp:_ ~sd:_ _ = Lwt.return ()
 
 end
 
@@ -151,12 +151,12 @@ class type ['param] parametrized_unit_div_widget_t =
 
 
 class ['child] list_widget =
-object (self)
+object
   inherit widget
 
   val xhtml_class = "list"
 
-  method display ~(sp:server_params) : Xhtmltypes_duce._div Lwt.t =
+  method display ~sp:(_ : server_params) : Xhtmltypes_duce._div Lwt.t =
     return
       {{
          <div class={: xhtml_class :}>[]

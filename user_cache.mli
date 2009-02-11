@@ -28,7 +28,6 @@ val get_groups : userid:User_sql.userid -> User_sql.userid list Lwt.t
 
 val update_data: 
   userid:User_sql.userid -> 
-  name:string -> 
   password:User_sql.pwd -> 
   fullname:string -> 
   email:string option -> 

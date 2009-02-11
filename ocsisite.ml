@@ -82,8 +82,8 @@ let wikibox =
     (let sminfo = {
        Session_manager.url = ["users"];
        administrator = Users.admin;
-       login_actions = (fun sp sess -> return ());
-       logout_actions = (fun sp -> return ());
+       login_actions = (fun _sp _sess -> return ());
+       logout_actions = (fun _sp -> return ());
      }
      in
      let sm = 

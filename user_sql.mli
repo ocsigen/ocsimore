@@ -51,7 +51,6 @@ val find_user_:
 
 val update_data_: 
   userid:userid -> 
-  name:string -> 
   password:pwd -> 
   fullname:string -> 
   email:string option -> 

@@ -124,9 +124,9 @@ let delete_user ~userid =
   GroupCache.remove group_cache userid;
   User_sql.delete_user_ ~userid
 
-let update_data ~userid ~name ~password ~fullname ~email ?groups () =
+let update_data ~userid ~password ~fullname ~email ?groups () =
   IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
   IUserCache.remove iusercache userid;
   NUserCache.remove nusercache n;
   GroupCache.remove group_cache userid;
-  User_sql.update_data_ ~userid ~name ~password ~fullname ~email ?groups ()
+  User_sql.update_data_ ~userid ~password ~fullname ~email ?groups ()
