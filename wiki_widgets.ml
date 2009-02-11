@@ -1003,7 +1003,7 @@ object (self)
                    Lwt.return (r, false)
 
                | _ ->
-                   (* As in the previous role case *)
+                   (* As for Author/default *)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content data)
@@ -1012,7 +1012,7 @@ object (self)
                         ?subbox ~sp ~sd wiki_id)
                      (self#display_noneditable_box)
                    >>= fun r ->
-                   Lwt.return (r, false)
+                   Lwt.return (r, true)
             )
 
         | Wiki.Nonauthorized ->
