@@ -136,6 +136,7 @@ depend:
 clean:
 	rm -f *.cmo *.cmi *.cma *.annot wikicreole.ml
 	make -C nis_chkpwd clean
+	make -C announce clean
 
 
 include .depend
