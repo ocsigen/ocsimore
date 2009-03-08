@@ -76,6 +76,14 @@ PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 all: nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
 	cd announce; make
 
+ob: nis_chkpwd_
+	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
+	ocamlbuild -X nis_chkpwd ocsimore.cma
+	ocamlbuild ocsisite.cmo
+	ocamlbuild ocsicreatewiki.cmo
+	ocamlbuild wikiperso.cmo
+	cd announce; make
+
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
 
@@ -137,6 +145,10 @@ clean:
 	rm -f *.cmo *.cmi *.cma *.annot wikicreole.ml
 	make -C nis_chkpwd clean
 	make -C announce clean
+
+obclean:
+	ocamlbuild -clean
+	make -C nis_chkpwd clean
 
 
 include .depend
