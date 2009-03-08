@@ -18,7 +18,8 @@ let result_of_content c =
         (Ocsigen_stream.make
            (fun () ->
               Ocsigen_stream.cont c
-                (fun () -> Ocsigen_stream.empty None))
+                (fun () -> Ocsigen_stream.empty None)),
+         None)
    }
 
 module Reg_ = struct
