@@ -1,14 +1,14 @@
-<!-- Example of ocsigen.conf. Adapt it to your configuration -->
+<!-- Example of ocsigen.conf for ocsimore. Adapt it to your configuration -->
 
 <ocsigen>
 
   <server>
 
-    <port>8080</port>              <!-- The port for the server -->
-    <logdir>/home/balat/ocsimore/var/log</logdir>
-    <datadir>/home/balat/ocsimore/var/lib</datadir>
-    <user>balat</user>
-    <group>permanents-2g</group>
+    <port>8080</port>
+    <logdir>/var/log</logdir>
+    <datadir>/var/lib</datadir>
+    <user>www-data</user>
+    <group>www-data</group>
     <charset>utf-8</charset>
     <commandpipe>/tmp/cpipe</commandpipe>
 
@@ -19,7 +19,7 @@
     <extension findlib-package="ocsigen_ext.staticmod"/>
     <extension findlib-package="ocsigen_ext.ocsipersist-sqlite">
       <!-- If you want to specify the SQLITE database file yourself:
-      <database file="/home/balat/ocsigen/var/lib/ocsidb"/>
+      <database file="/PATH_TO/ocsigen/var/lib/ocsidb"/>
       -->
     </extension>
 
@@ -28,37 +28,37 @@
     <extension findlib-package="ocsigen_ext.accesscontrol"/>
     <extension findlib-package="pgocaml"/>
     <extension findlib-package="pam"/>
-    <extension module="/path-to/ocsimore.cma">
+    <extension module="ocsimore.cma">
       <passwordfile name="/etc/ocsigen/ocsimorepassword" />
     </extension>
 
-    <host hostname="mywebsite.org">
-      <!-- You need defaulthostname if you are using https and http -->
+    <host hostname="localhost">
 
-      <static dir="/path_to/ocsimore/static" />
-      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
-        <!-- optional arguments: -->
+      <static dir="static" />
+      <eliommodule module="ocsisite.cmo">
+
+        <!-- All the arguments are optional: -->
 
         <notsecure/> <!-- accept login with http or https (DANGEROUS!)
-                          If you do not want that option, 
+                          If you do not want that option,
                           you need to configure HTTPS. -->
 
-<!-- For PAM authentication:
-        <pam service="ocsimore" /> <!-- Create your service file in /etc/pam.d -->
--->
+        <!-- For PAM authentication; Create your service file in /etc/pam.d -->
+        <!--pam service="ocsimore" /-->
+        <!-- Otherwise you can use NIS -->
+        <nis />
 
+        <!-- To create Ocsimore users: -->
         <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>
 
-      </eliom>
+      </eliommodule>
 
-      <eliom module="/path_to/ocsiwiki.cmo">
+      <!-- The following option has effect only the first time, and creates the
+           specified wiki. Already created wikis are automatically reloaded -->
+      <!--eliommodule module="ocsicreatewiki.cmo">
         <name>My wiki</name>
         <path>/</path>
-        
-        <!-- The following options have effect only the first time,
-        when creating the wiki.
-        (And they may be removed in the future)
-         -->
+
         <readers>anonymous</readers>
         <writers>users</writers>
         <rightsadm>admin</rightsadm>
@@ -68,17 +68,13 @@
         <csseditors>users</csseditors>
         <admins>admin</admins>
         <boxrights/>
-      </eliom>
-
-    <!-- It is possible to define several wikis with several
-    <eliom module="...ocsiwiki"> 
-    -->
+      </eliommodule-->
 
     </host>
 
-<!-- It is possible to define new groups from the config file:
+    <!-- It is possible to define new Ocsimore groups from the config file: -->
 
-    <extension module="/home/balat/kroko/ocsimore/ocsimore.cma">
+    <!--extension module="ocsimore.cma">
       <group name="intranet">
         <!-- Use one condition with accesscontrol's syntax: -->
         <or>
@@ -87,11 +83,7 @@
           <ip value="2001:660:3301:8061::/64" />
         </or>
       </group>
-    </extension>
-
--->
-
-
+    </extension-->
 
   </server>
 
