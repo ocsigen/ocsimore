@@ -71,10 +71,13 @@ PP = -pp "$(CAMLP4O) -I $(shell ocamlfind query extlib) \
 PACKAGES = -package calendar,lwt,pgocaml,pgocaml.statements,ocsigen$(PAMPACKAGE)
 #LINKPKG = -package calendar,lwt,ocsigen,pgocaml
 
-.PHONY: all depend clean nis_chkpwd_
+.PHONY: all depend clean nis_chkpwd_ check_db
 
-all: nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
+all: check_db nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
 	cd announce; make
+
+check_db:
+	./update-db.sh
 
 ob: nis_chkpwd_
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \

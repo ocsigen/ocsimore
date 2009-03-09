@@ -100,10 +100,3 @@ ALTER TABLE userrights ADD FOREIGN KEY (id) REFERENCES users
 
 -- Content-type for wikiboxes
 ALTER TABLE wikiboxes ADD COLUMN content_type text NOT NULL DEFAULT 'wiki';
-
-
--- TODO wikicss and css
-
-
--- Title for wikipages
-ALTER TABLE wikipages ADD COLUMN title TEXT ;
