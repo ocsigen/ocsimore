@@ -23,8 +23,9 @@ sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 
 Adapt /etc/postgresql/.../pg_hba.conf to give Ident access
 for user ocsimore
-by copying the following line at the right place 
-(no modification needed):
+by copying the following line at the right place
+(usually before the "local all all ident sameuser" line,
+no modification needed):
  local ocsimore ocsimore password
 
 
