@@ -70,6 +70,8 @@
         <boxrights/>
       </eliommodule-->
 
+      <eliom/>
+
     </host>
 
     <!-- It is possible to define new Ocsimore groups from the config file: -->

@@ -119,7 +119,7 @@ let wiki_admin =
           ~title:Wiki.wiki_admin_name
           ~descr:"Administration boxes"
           ~wikibox:wikibox
-          ~path:["ocsimore"]
+          ~path:[Ocsimore_lib.ocsimore_admin_dir]
           (*       ~readers:[Users.admin]
                    ~writers:[Users.admin]
                    ~rights_adm:[Users.admin]

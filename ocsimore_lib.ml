@@ -3,6 +3,8 @@ open Lwt
 open Eliom_sessions
 open CalendarLib
 
+let ocsimore_admin_dir = "ocsimoreadmin"
+
       (* USEFUL STUFF *)
 
       (* these operators allow to write something like this:

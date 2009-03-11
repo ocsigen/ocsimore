@@ -167,7 +167,7 @@ class virtual editable_wikibox ?sp () =
 
   let service_edit_wikibox =
     Eliom_services.new_service ?sp
-      ~path:["ocsimore"; "wiki_edit"]
+      ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
                      (Eliom_parameters.int32 "boxid"))
       ()
@@ -332,7 +332,7 @@ class virtual editable_wikibox ?sp () =
   let (* wikicss_admin_service *) _ =
     (* do not use this one for css <link>s inside page *)
     Eliom_predefmod.CssText.register_new_service ?sp
-      ~path:["ocsimore"; "wikicss"]
+      ~path:[Ocsimore_lib.ocsimore_admin_dir; "wikicss"]
       ~get_params:(Wiki_sql.eliom_wiki "wiki")
       (fun _sp -> Wiki.wikicss_service_handler)
   in
@@ -351,7 +351,7 @@ class virtual editable_wikibox ?sp () =
   let (* pagecss_admin_service *) _ =
     (* do not use this one for css <link>s inside page *)
     Eliom_predefmod.CssText.register_new_service ?sp
-      ~path:["ocsimore"; "pagecss"]
+      ~path:[Ocsimore_lib.ocsimore_admin_dir; "pagecss"]
       ~get_params:(Eliom_parameters.suffix
                      (Eliom_parameters.prod
                         (Wiki_sql.eliom_wiki "wiki")

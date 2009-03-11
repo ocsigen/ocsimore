@@ -44,7 +44,7 @@ sudo -u postgres dropdb ocsimore
 4. Install pgocaml with lwt support (lwt branch of cvs)
 http://merjis.com/developers/pgocaml
 Make sure to properly set DEFAULT_UNIX_DOMAIN_SOCKET_DIR in
-Makefile.config, depending on your installation
+pgocaml's Makefile.config, depending on your installation
 
 5. Compile ocsimore
 make depend

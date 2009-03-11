@@ -131,7 +131,7 @@ object (self)
       ignore 
         (Eliom_duce.Xhtml.register_new_service ?sp
            ~https:(Session_manager.get_secure ())
-           ~path:["ocsimore";"login"]
+           ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
            ~get_params:Eliom_parameters.unit
            (fun sp () () -> 
               let sd = Ocsimore_common.get_sd sp in
@@ -291,7 +291,7 @@ class login_widget_basic_user_creation ?sp
 =
   let internal_srv_register = 
     Eliom_services.new_service ?sp
-      ~path:(["ocsimore";"register"]) 
+      ~path:([Ocsimore_lib.ocsimore_admin_dir; "register"]) 
 (*VVV URL??? Make it configurable (and all others!!) *)
       ~get_params:unit () in
   let srv_register_done = 
@@ -300,7 +300,7 @@ class login_widget_basic_user_creation ?sp
       ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
   and internal_srv_reminder = 
     Eliom_services.new_service ?sp
-      ~path:["ocsimore";"reminder"]
+      ~path:[Ocsimore_lib.ocsimore_admin_dir; "reminder"]
       ~get_params:unit ()
   and srv_reminder_done = 
     Eliom_services.new_post_coservice
