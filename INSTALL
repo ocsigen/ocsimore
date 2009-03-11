@@ -37,7 +37,6 @@ psql -U ocsimore -f createdb.sql ocsimore
 psql -U ocsimore -f user_createdb.sql ocsimore
 psql -U ocsimore -f forum_createdb.sql ocsimore
 psql -U ocsimore -f wiki_createdb.sql ocsimore
-psql -U ocsimore -f update_sql.ml ocsimore
 
 If something goes wrong, you can delete the database by typing:
 sudo -u postgres dropdb ocsimore
@@ -50,6 +49,8 @@ Makefile.config, depending on your installation
 5. Compile ocsimore
 make depend
 make
+If your database is not up to date, you will be given the instructions to
+type for the update. Then start make again.
 
 6. Write and compile your site
 
