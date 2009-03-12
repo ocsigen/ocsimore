@@ -228,7 +228,8 @@ let rec end_paragraph c lev =
       if c.inline_mix <> [] then begin
         c.flow <- c.build.p_elem attribs (List.rev c.inline_mix) :: c.flow;
         c.inline_mix <- []
-      end
+      end;
+      c.stack <- Paragraph []
   | Heading (l, attribs) ->
       let f =
         match l with
@@ -404,9 +405,11 @@ rule parse_bol c =
     }
   | white_space * (("@@" ?) as att) {
       let attribs = read_attribs att parse_attribs c lexbuf in
-      (match c.stack with
-        | Paragraph _ -> c.stack <- Paragraph attribs
-        | _ -> ());
+      if attribs <> []
+      then
+	(match c.stack with
+           | Paragraph _ -> c.stack <- Paragraph attribs
+           | _ -> ());
       parse_rem c lexbuf
     }
   | "" {
