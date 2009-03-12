@@ -167,7 +167,7 @@ class virtual editable_wikibox ?sp () =
 
   let service_edit_wikibox =
     Eliom_services.new_service ?sp
-      ~path:["ocsimore";"wiki_edit"]
+      ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
       ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
                      (Eliom_parameters.int32 "boxid"))
       ()
