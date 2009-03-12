@@ -103,12 +103,9 @@ object (self)
       | _ -> papa#display_error_box ?classe ?message ?exn ()
 
   method virtual pretty_print_wikisyntax :
-      ?subbox:Xhtmltypes_duce.flows ->
-      ancestors:Wiki_syntax.ancestors ->
-      sp:Eliom_sessions.server_params ->
-      sd:Ocsimore_common.session_data ->
-      Wiki_sql.wiki ->
-      string -> Xhtmltypes_duce.flows Lwt.t
+    wiki:Wiki_sql.wiki ->
+    bi:Wiki_syntax.box_info ->
+    string -> Xhtmltypes_duce.flows Lwt.t
 
 
   method private retrieve_wikibox_content_version ids =
@@ -130,11 +127,9 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method noneditable_wikibox
-    ?(subbox : Xhtmltypes_duce.flows option)
-    ~ancestors
-    ~sp ~sd ?(classe=[]) ~data () =
-    Wiki.get_role ~sp ~sd data >>= fun role ->
+  method noneditable_wikibox ~bi ?(classe=[]) ~data () =
+    Wiki.get_role
+      ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd data >>= fun role ->
     match role with
       | Wiki.Admin
       | Wiki.Author
@@ -142,7 +137,7 @@ object (self)
           self#bind_or_display_error
             ~classe
             (self#retrieve_wikibox_content data)
-            (self#pretty_print_wikisyntax ?subbox ~ancestors ~sp ~sd (fst data))
+            (self#pretty_print_wikisyntax ~wiki:(fst data) ~bi)
             (self#display_noneditable_box)
       | Wiki.Nonauthorized ->
           Lwt.return
@@ -463,7 +458,9 @@ object (self)
       }}
 
    method display_menu_box
-     ~classe ?service ?cssmenu ?title ~sp ~sd ids content =
+     ~classe ?service ?cssmenu ?title ~bi ids content =
+     let sp = bi.Wiki_syntax.bi_sp in
+     let sd = bi.Wiki_syntax.bi_sd in
      let classe = Ocsimore_lib.build_class_attr classe in
      Wiki.get_role ~sp ~sd ids >>= fun role ->
      let perm = role = Wiki.Admin in
@@ -473,14 +470,14 @@ object (self)
             <div>content ]}}
 
    method display_edit_form
-     ~sp
-     ~sd:_
+     ~bi
      ?(rows=25)
      ?(cols=80)
      ~previewonly
      (wiki_id, message_id)
      (content, boxversion)
      =
+     let sp = bi.Wiki_syntax.bi_sp in
      let draw_form warning (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
        let f =
          {{ [
@@ -553,11 +550,9 @@ object (self)
        )
 
    method display_full_edit_form
-     ~sp
-     ~sd
+     ~bi
      ?rows
      ?cols
-     ~ancestors
      ~previewonly
      (wiki_id, message_id)
      (content, boxversion)
@@ -566,12 +561,11 @@ object (self)
      self#bind_or_display_error
        ~classe:["wikihelp"]
        (self#retrieve_wikibox_content (admin_wiki, wiki_help_box))
-       (self#pretty_print_wikisyntax ~ancestors ~sp ~sd admin_wiki)
+       (self#pretty_print_wikisyntax ~wiki:admin_wiki ~bi)
        (self#display_noneditable_box)
      >>= fun b ->
      self#display_edit_form
-       ~sp
-       ~sd
+       ~bi
        ?rows
        ?cols
        ~previewonly
@@ -582,10 +576,10 @@ object (self)
 
 
    method display_edit_perm_form
-     ~sp
-     ~sd:(_ : Ocsimore_common.session_data)
+     ~bi
      ((wiki_id, message_id) as ids)
      =
+     let sp = bi.Wiki_syntax.bi_sp in
      let aux u =
        Ocsimore_lib.lwt_bind_opt
          u
@@ -705,8 +699,7 @@ object (self)
 
 
    method display_edit_box
-     ~sp
-     ~sd
+     ~bi
      ((w, b) as ids)
      ~classe
      ?cssmenu
@@ -717,15 +710,13 @@ object (self)
        ~classe:(editform_class::classe)
        ~service:Edit
        ~title
-       ~sp
-       ~sd
+       ~bi
        ?cssmenu
        ids
        content
 
    method display_edit_perm
-     ~sp
-     ~sd
+     ~bi
      ((w, b) as ids)
      ~classe
      ?cssmenu
@@ -738,23 +729,21 @@ object (self)
        ~classe:(editform_class::classe)
        ~service:Edit_perm
        ~title
-       ~sp
-       ~sd
+       ~bi
        ?cssmenu
        ids
        content
 
-   method display_editable_box ~sp ~sd ids ~classe ?cssmenu content =
+   method display_editable_box ~bi ids ~classe ?cssmenu content =
      self#display_menu_box
        ~classe:(editable_class::classe)
        ~service:View
-       ~sp
-       ~sd
+       ~bi
        ?cssmenu
        ids
        content
 
-   method retrieve_old_wikibox_content ~sp:_ ~sd:_ ids version =
+   method retrieve_old_wikibox_content ~bi:_ ids version =
      Wiki_sql.get_wikibox_data ~version ~wikibox:ids ()
      >>= fun result ->
      match result with
@@ -766,35 +755,35 @@ object (self)
              | Wiki_sql.Deleted ->
                  Lwt.return "At this date, this page was deleted"
 
-   method display_old_wikibox ~sp ~sd
+   method display_old_wikibox ~bi
      ((w, b) as ids) version ~classe ?cssmenu content =
      let title = "Old version - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b^
        ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(oldwikibox_class::classe)
        ~title
-       ~sp
-       ~sd
+       ~bi
        ?cssmenu
        ids
        content
 
-   method display_src_wikibox ~sp ~sd ((w, b) as ids)
+   method display_src_wikibox ~bi ((w, b) as ids)
      version ~classe ?cssmenu content =
      let title = "Source - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b^
        ", version "^Int32.to_string version in
      self#display_menu_box
        ~classe:(srcwikibox_class::classe)
-       ~sp ~sd
+       ~bi
        ?cssmenu
        ~title
        ids
        content
 
-   method private retrieve_history ~sp:_ (wiki_id, message_id) () =
+   method private retrieve_history ~bi:_ (wiki_id, message_id) () =
      Wiki_sql.get_history wiki_id message_id
 
-   method display_history ~sp ids l =
+   method display_history ~bi ids l =
+     let sp = bi.Wiki_syntax.bi_sp in
      Lwt_util.map
        (fun (version, _comment, author, date) ->
           Users.get_user_name_by_id author >>= fun author ->
@@ -847,7 +836,7 @@ object (self)
         }}
 *)
 
-   method display_history_box ~sp ~sd ((w, b) as ids) ~classe ?cssmenu content =
+   method display_history_box ~bi ((w, b) as ids) ~classe ?cssmenu content =
      let title =
        "History - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b
      in
@@ -855,7 +844,7 @@ object (self)
        ~classe:(history_class::classe)
        ~service:History
        ~title
-       ~sp ~sd
+       ~bi
        ?cssmenu
        ids
        content
@@ -865,7 +854,10 @@ object (self)
       are extracted from sp. This function returns the wikibox, as well
       as a boolean indicating whether the page is correctly displayed, or
       whether we should return a 403 *)
-   method editable_wikibox_allowed ~sp ~sd ~data ?rows ?cols ?(classe=[]) ?subbox ?cssmenu ~ancestors () =
+   method editable_wikibox_allowed ~bi ~data ?rows ?cols ?(classe=[])
+     ?cssmenu () =
+     let sp = bi.Wiki_syntax.bi_sp in
+     let sd = bi.Wiki_syntax.bi_sd in
      let rec find_action = function
        | [] -> None
        | (Wiki.Wiki_action_info e)::_ -> Some e
@@ -882,9 +874,9 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (self#retrieve_wikibox_content_version data)
-                     (self#display_full_edit_form ~ancestors ~sp ~sd ?cols ?rows
+                     (self#display_full_edit_form ~bi ?cols ?rows
                         ~previewonly:true data)
-                     (self#display_edit_box ~sp ~sd ?cssmenu data)
+                     (self#display_edit_box ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
 
@@ -892,8 +884,8 @@ object (self)
                    self#bind_or_display_error
                      ~classe
                      (Lwt.return data)
-                     (self#display_edit_perm_form ~sp ~sd)
-                     (self#display_edit_perm ~sp ~sd ?cssmenu data)
+                     (self#display_edit_perm_form ~bi)
+                     (self#display_edit_perm ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
 
@@ -903,51 +895,59 @@ object (self)
                      (Lwt.return (content, version))
                      (fun ((c, _v) as cv) ->
                         self#pretty_print_wikisyntax
-                          ?subbox
-                          ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                          ~sp ~sd wiki_id c
+                          wiki_id
+                          {bi with
+                             Wiki_syntax.bi_ancestors = 
+                              Wiki_syntax.add_ancestor 
+                                data bi.Wiki_syntax.bi_ancestors
+                          }
+                          c
                         >>= fun pp ->
                         self#display_noneditable_box ~classe:[preview_class] pp
                         >>= fun preview ->
-                        self#display_full_edit_form ~ancestors ~sp ~sd
-                          ?cols ?rows ~previewonly:false data cv
+                        self#display_full_edit_form
+                          ~bi ?cols ?rows ~previewonly:false data cv
                         >>= fun form ->
                         Lwt.return {{ [<p class={: box_title_class :}>"Preview"
                                        preview
                                        !form ] }}
                      )
-                     (self#display_edit_box ~sp ~sd ?cssmenu data)
+                     (self#display_edit_box ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
 
                | Some (Wiki.History i) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_history ~sp data ())
-                     (self#display_history ~sp data)
-                     (self#display_history_box ~sp ~sd ?cssmenu data)
+                     (self#retrieve_history ~bi data ())
+                     (self#display_history ~bi data)
+                     (self#display_history_box ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
 
                | Some (Wiki.Oldversion (i, version)) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_old_wikibox_content ~sp ~sd data version)
-                     (self#pretty_print_wikisyntax ?subbox
-                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                        ~sp ~sd wiki_id)
-                     (self#display_old_wikibox ~sp ~sd ?cssmenu data version)
+                     (self#retrieve_old_wikibox_content ~bi data version)
+                     (self#pretty_print_wikisyntax
+                        ~wiki:wiki_id
+                        ~bi:{bi with
+                               Wiki_syntax.bi_ancestors =
+                            Wiki_syntax.add_ancestor 
+                              data bi.Wiki_syntax.bi_ancestors }
+                     )
+                     (self#display_old_wikibox ~bi ?cssmenu data version)
                    >>= fun r ->
                    Lwt.return (r, true)
 
                | Some (Wiki.Src (i, version)) when i = data ->
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_old_wikibox_content ~sp ~sd data version)
+                     (self#retrieve_old_wikibox_content ~bi data version)
                      (fun c ->
                         let c = Ocamlduce.Utf8.make c in
                         Lwt.return {{ [ <pre>c ] }})
-                     (self#display_src_wikibox ~sp ~sd ?cssmenu data version)
+                     (self#display_src_wikibox ~bi ?cssmenu data version)
                    >>= fun r ->
                    Lwt.return (r, true)
 
@@ -957,9 +957,13 @@ object (self)
                      ~error:(self#create_error_message error)
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                        ?subbox ~sp ~sd wiki_id)
-                     (self#display_editable_box ~sp ~sd ?cssmenu data)
+                        ~wiki:wiki_id
+                        ~bi:{bi with
+                               Wiki_syntax.bi_ancestors =
+                            Wiki_syntax.add_ancestor
+                              data bi.Wiki_syntax.bi_ancestors}
+                     )
+                     (self#display_editable_box ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
 
@@ -972,9 +976,13 @@ object (self)
                      ~classe
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                        ?subbox ~sp ~sd wiki_id)
-                     (self#display_editable_box ~sp ~sd ?cssmenu data)
+                        ~wiki:wiki_id
+                        ~bi:{bi with
+                           Wiki_syntax.bi_ancestors =
+                            Wiki_syntax.add_ancestor
+                              data bi.Wiki_syntax.bi_ancestors}
+                     )
+                     (self#display_editable_box ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
             )
@@ -991,8 +999,12 @@ object (self)
                                Wiki.Operation_not_allowed)
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                        ?subbox ~sp ~sd wiki_id)
+                        ~wiki:wiki_id
+                        ~bi:{bi with
+                           Wiki_syntax.bi_ancestors =
+                            Wiki_syntax.add_ancestor
+                              data bi.Wiki_syntax.bi_ancestors}
+                     )
                      (self#display_noneditable_box)
                    (* Returning true would also be meaningful: the action
                       is forbidden but the wikibox itself is shown *)
@@ -1005,8 +1017,12 @@ object (self)
                      ~classe
                      (self#retrieve_wikibox_content data)
                      (self#pretty_print_wikisyntax
-                        ~ancestors:(Wiki_syntax.add_ancestor data ancestors)
-                        ?subbox ~sp ~sd wiki_id)
+                        ~wiki:wiki_id
+                        ~bi:{bi with
+                           Wiki_syntax.bi_ancestors =
+                            Wiki_syntax.add_ancestor 
+                              data bi.Wiki_syntax.bi_ancestors}
+                     )
                      (self#display_noneditable_box)
                    >>= fun r ->
                    Lwt.return (r, true)
@@ -1021,20 +1037,19 @@ object (self)
                false)
      )
 
-   method editable_wikibox ~sp ~sd ~data ?rows ?cols ?(classe=[]) ?subbox ?cssmenu ~ancestors () =
-     self#editable_wikibox_allowed
-       ~sp ~sd ~data ?rows ?cols ~classe ?subbox ?cssmenu ~ancestors ()
+   method editable_wikibox ~bi ~data ?rows ?cols ?(classe=[]) ?cssmenu () =
+     self#editable_wikibox_allowed ~bi ~data ?rows ?cols ~classe ?cssmenu ()
      >>= fun (r, _allowed) -> Lwt.return r
 
 
    method display_edit_css_form
-     ~sp
-     ~sd:_
+     ~bi
      ?(rows=25)
      ?(cols=80)
      ~data:(wiki_id, page)
      (content : string)
      =
+     let sp = bi.Wiki_syntax.bi_sp in
      let draw_form ((wikiidname, pagename), contentname) =
        {{ [<p>[
               {: Eliom_duce.Xhtml.user_type_input
@@ -1070,8 +1085,7 @@ object (self)
 
 
    method display_edit_css_box
-     ~sp
-     ~sd
+     ~bi
      ((w, _) as ids)
      page
      ~classe
@@ -1087,21 +1101,21 @@ object (self)
        ~classe:(css_class::editable_class::classe)
        ~service:Edit_css
        ~title
-       ~sp
-       ~sd
+       ~bi
        ?cssmenu
        ids
        content
 
    method edit_css_box
-     ~sp
-     ~sd
+     ~bi
      ~data
      ?rows
      ?cols
      ?(classe=[])
      ()
      =
+     let sp = bi.Wiki_syntax.bi_sp in
+     let sd = bi.Wiki_syntax.bi_sd in
      let (wiki, page) = data in
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
@@ -1121,15 +1135,14 @@ object (self)
                | e -> Lwt.fail e
             )
         else Lwt.fail Not_css_editor)
-       (self#display_edit_css_form ~sp ~sd ?rows ?cols ~data)
-       (self#display_edit_css_box ~sp ~sd ~cssmenu:(Some page)
+       (self#display_edit_css_form ~bi ?rows ?cols ~data)
+       (self#display_edit_css_box ~bi ~cssmenu:(Some page)
           (wiki', box) page)
 
 
 
    method display_edit_wikicss_box
-     ~sp
-     ~sd
+     ~bi
      ((w, _) as ids)
      ~classe
      ?cssmenu
@@ -1142,21 +1155,20 @@ object (self)
        ~classe:(css_class::editable_class::classe)
        ~service:Edit_css
        ~title
-       ~sp
-       ~sd
+       ~bi
        ?cssmenu
        ids
        content
 
 
    method display_edit_wikicss_form
-     ~sp
-     ~sd:_
+     ~bi
      ?(rows=25)
      ?(cols=80)
      ~wiki
      (content : string)
      =
+     let sp = bi.Wiki_syntax.bi_sp in
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
               {: Eliom_duce.Xhtml.user_type_input
@@ -1189,14 +1201,15 @@ object (self)
 
 
    method edit_wikicss_box
-     ~sp
-     ~sd
+     ~bi
      ~wiki
      ?rows
      ?cols
      ?(classe=[])
      ()
      =
+     let sp = bi.Wiki_syntax.bi_sp in
+     let sd = bi.Wiki_syntax.bi_sd in
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
      Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
@@ -1214,12 +1227,13 @@ object (self)
                      | e -> Lwt.fail e
                   )
               else Lwt.fail Not_css_editor)
-             (self#display_edit_wikicss_form ~sp ~sd ?rows ?cols ~wiki)
-             (self#display_edit_wikicss_box ~sp ~sd
+             (self#display_edit_wikicss_form ~bi ?rows ?cols ~wiki)
+             (self#display_edit_wikicss_box ~bi
                 ?cssmenu:(Some None)
                 (wiki, wiki_info.Wiki_sql.container_id))
 
-   method get_css_header ~sp ~wiki ?(admin=false) ?page () =
+   method get_css_header ~bi ~wiki ?(admin=false) ?page () =
+     let sp = bi.Wiki_syntax.bi_sp in
      if admin
      then
        Lwt.return
@@ -1300,12 +1314,13 @@ object (self)
        in
 
        Wiki_syntax.add_block_extension "wikibox"
-         (fun wiki_id (sp, sd, (subbox, ancestors)) args c ->
+         (fun wiki_id bi args c ->
             try
               let wiki = extract_wiki_id args wiki_id in
               try
                 let box = Int32.of_string (List.assoc "box" args) in
-                if Wiki_syntax.in_ancestors (wiki, box) ancestors
+                if Wiki_syntax.in_ancestors
+                  (wiki, box) bi.Wiki_syntax.bi_ancestors
                 then
                   let b =
                     self#display_error_box
@@ -1317,8 +1332,7 @@ object (self)
                      | None -> Lwt.return None
                      | Some c ->
                          Wiki_syntax.xml_of_wiki
-                           ?subbox
-                           ~sp ~sd ~ancestors wiki_id c >>= fun r ->
+                           wiki_id bi c >>= fun r ->
                          Lwt.return (Some r)) >>= fun subbox ->
                   self#editable_wikibox
                     ?rows:(Ocsimore_lib.int_of_string_opt
@@ -1328,10 +1342,11 @@ object (self)
                     ?classe:(try Some [List.assoc "class" args]
                              with Not_found -> None)
                     ~data:(wiki, box)
-                    ~sp
-                    ~sd
-                    ?subbox
-                    ~ancestors:(Wiki_syntax.add_ancestor (wiki, box) ancestors)
+                    ~bi:{bi with
+                           Wiki_syntax.bi_ancestors =
+                        Wiki_syntax.add_ancestor 
+                          (wiki, box) bi.Wiki_syntax.bi_ancestors;
+                           Wiki_syntax.bi_subbox = subbox}
                     () >>= fun b ->
                   Lwt.return {{ [ b ] }}
                 end
@@ -1386,7 +1401,8 @@ object (self)
          );
 
        Wiki_syntax.add_link_extension "link"
-        (fun wiki_id (sp, sd, (subbox, ancestors)) args c ->
+        (fun wiki_id bi args c ->
+           let sp = bi.Wiki_syntax.bi_sp in
            let href =
              try
                List.assoc "page" args
@@ -1407,8 +1423,7 @@ object (self)
            let wiki_id = extract_wiki_id args wiki_id in
            let content =
              match c with
-               | Some c -> Wiki_syntax.a_content_of_wiki
-                   ?subbox ~ancestors ~sp ~sd wiki_id c
+               | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
                | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
            (* class and id attributes will be taken by Wiki_syntax.a_elem *)
@@ -1434,7 +1449,8 @@ object (self)
         );
 
        Wiki_syntax.add_link_extension "nonattachedlink"
-        (fun wiki_id (sp, sd, (subbox, ancestors)) args c ->
+        (fun wiki_id bi args c ->
+           let sp = bi.Wiki_syntax.bi_sp in
            let href =
              try
                List.assoc "page" args
@@ -1455,8 +1471,7 @@ object (self)
            let wiki_id = extract_wiki_id args wiki_id in
            let content =
                match c with
-                 | Some c -> Wiki_syntax.a_content_of_wiki
-                     ?subbox ~ancestors ~sp ~sd wiki_id c
+                 | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
                  | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
            ((Eliom_duce.Xhtml.make_uri
@@ -1471,16 +1486,15 @@ object (self)
         );
 
        Wiki_syntax.add_link_extension "cancellink"
-        (fun wiki_id (sp, sd, (subbox, ancestors)) args c ->
+        (fun wiki_id bi args c ->
            let content =
                match c with
-                 | Some c -> Wiki_syntax.a_content_of_wiki
-                     ?subbox ~ancestors ~sp ~sd wiki_id c
+                 | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
                  | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
            in
            ((Eliom_duce.Xhtml.make_uri
                ~service:Eliom_services.void_coservice'
-               ~sp
+               ~sp:bi.Wiki_syntax.bi_sp
                ()
             ),
             args,
@@ -1489,7 +1503,7 @@ object (self)
 
 
        Wiki_syntax.add_a_content_extension "object"
-        (fun wiki_id (sp, _sd, _) args _c ->
+        (fun wiki_id bi args _c ->
            let type_ =
              try
                List.assoc "type" args
@@ -1528,7 +1542,7 @@ object (self)
                        ?https
                        ?fragment
                        ~service:s
-                       ~sp
+                       ~sp:bi.Wiki_syntax.bi_sp
                        href
                  | None -> href
            in
@@ -1541,7 +1555,7 @@ object (self)
                   >[] ] }});
 
        Wiki_syntax.add_a_content_extension "img"
-        (fun wiki_id (sp, _sd, _) args c ->
+        (fun wiki_id bi args c ->
            let href =
              try
                List.assoc "name" args
@@ -1578,7 +1592,7 @@ object (self)
                      Eliom_duce.Xhtml.make_uri
                        ?https
                        ~service:s
-                       ~sp
+                       ~sp:bi.Wiki_syntax.bi_sp
                        href
                  | _ -> href
            in
@@ -1594,18 +1608,32 @@ object (self)
          service_edit_wikibox
          (fun sp ((w, _b) as g) () ->
             let sd = Ocsimore_common.get_sd sp in
-            self#editable_wikibox ~sp ~sd ~data:g
+            self#editable_wikibox 
+              ~bi:{ Wiki_syntax.bi_sp = sp;
+                    Wiki_syntax.bi_sd = sd;
+                    Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+                    Wiki_syntax.bi_subbox = None;
+                    Wiki_syntax.bi_page = None;
+                  }
+              ~data:g
               ~rows:30
-              ~ancestors:Wiki_syntax.no_ancestors
               () >>= fun subbox ->
             Wiki.get_admin_wiki () >>= fun admin_wiki ->
-            self#editable_wikibox ~sp ~sd
-              ~ancestors:Wiki_syntax.no_ancestors
+            let bi = { Wiki_syntax.bi_sp = sp;
+                       Wiki_syntax.bi_sd = sd;
+                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+                       Wiki_syntax.bi_subbox = Some {{ [ subbox ] }};
+                       Wiki_syntax.bi_page = None;
+                     }
+            in
+            self#editable_wikibox 
+              ~bi
               ~data:(admin_wiki, wikiadmin_container_id)
               ?cssmenu:(Some None)
-              ~subbox:{{ [ subbox ] }} () >>= fun page ->
+              () >>= fun page ->
             self#get_css_header
-              ~admin:true ~sp ~wiki:w ?page:None () >>= fun css ->
+              ~admin:true ~bi
+              ~wiki:w ?page:None () >>= fun css ->
             Lwt.return (self#container ~css {{ [ page ] }})
 
          );
@@ -1614,16 +1642,27 @@ object (self)
          service_edit_css
          (fun sp ((wiki, page) as g) () ->
             let sd = Ocsimore_common.get_sd sp in
+            let bi = { Wiki_syntax.bi_sp = sp;
+                       Wiki_syntax.bi_sd = sd;
+                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+                       Wiki_syntax.bi_subbox = None;
+                       Wiki_syntax.bi_page = None;
+                     }
+            in
             Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
-              self#edit_css_box ~sp ~sd ~rows:30 ~data:g ()
+              self#edit_css_box ~bi ~rows:30 ~data:g ()
             >>= fun subbox ->
-              self#editable_wikibox ~sp ~sd
-                ~ancestors:Wiki_syntax.no_ancestors
+              let bi = { bi with
+                           Wiki_syntax.bi_subbox = Some {{ [ subbox ] }};
+                       }
+              in
+              self#editable_wikibox
+                ~bi
                 ~data:(wiki, wiki_info.Wiki_sql.container_id)
                 ?cssmenu:(Some None)
-                ~subbox:{{ [ subbox ] }} ()
+                ()
             >>= fun pagecontent ->
-            self#get_css_header ~sp ~wiki ?page:(Some page) ()
+            self#get_css_header ~bi ~wiki ?page:(Some page) ()
             >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
 
@@ -1633,7 +1672,16 @@ object (self)
          service_edit_wikicss
          (fun sp wiki () ->
             let sd = Ocsimore_common.get_sd sp in
-            self#edit_wikicss_box ~sp ~sd ~rows:30 ~wiki ()
+            let bi = { Wiki_syntax.bi_sp = sp;
+                       Wiki_syntax.bi_sd = sd;
+                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+                       Wiki_syntax.bi_subbox = None;
+                       Wiki_syntax.bi_page = None;
+                     }
+            in
+            self#edit_wikicss_box
+              ~bi
+              ~rows:30 ~wiki ()
 (*              >>= fun subbox ->
             self#editable_wikibox ~sp ~sd
               ~ancestors:Wiki_syntax.no_ancestors
@@ -1642,7 +1690,8 @@ object (self)
               ~subbox:{{ [ subbox ] }} ()
 *)
             >>= fun pagecontent ->
-            self#get_css_header ~admin:true ~sp ~wiki ?page:None () >>= fun css ->
+            self#get_css_header 
+              ~admin:true ~bi ~wiki ?page:None () >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
 
          )
@@ -1655,6 +1704,6 @@ end
 class creole_wikibox ?sp () adminwikiinfo = object
   inherit editable_wikibox ?sp () adminwikiinfo
 
-  method pretty_print_wikisyntax = Wiki_syntax.xml_of_wiki
+  method pretty_print_wikisyntax ~wiki ~bi = Wiki_syntax.xml_of_wiki wiki bi
 
 end

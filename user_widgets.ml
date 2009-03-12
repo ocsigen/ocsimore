@@ -118,14 +118,14 @@ object (self)
   initializer
 
       Wiki_syntax.add_block_extension "loginbox"
-        (fun _ (sp, sd, _) args _c -> 
+        (fun _ bi args _c -> 
            let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
            let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
            let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
            let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args in
            self#display_login_widget
              ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps
-             ~sp ~sd () >>= fun b ->
+             ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd () >>= fun b ->
            Lwt.return {{ [ b ] }});
 
       ignore 
@@ -155,24 +155,24 @@ object (self)
 
 
       Wiki_syntax.add_a_content_extension "username"
-        (fun _w (sp, sd, _) _args _c -> 
-           Users.get_user_data ~sp ~sd >>= fun ud ->
+        (fun _w bi _args _c -> 
+           Users.get_user_data 
+             ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd >>= fun ud ->
              Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
         );
       
       Wiki_syntax.add_block_extension "logoutbutton"
-        (fun w (sp, sd, (subbox, ancestors)) _args c -> 
+        (fun w bi _args c -> 
            let content = match c with
              | Some c -> c
              | None -> "logout"
            in
-           Wiki_syntax.xml_of_wiki
-             ?subbox ~ancestors ~sp ~sd w content >>= fun c ->
+           Wiki_syntax.xml_of_wiki w bi content >>= fun c ->
            Lwt.return
              {{ [ {:
                      Eliom_duce.Xhtml.post_form
                      ~a:{{ { class="logoutbutton"} }} 
-                     ~service:sessman#act_logout ~sp
+                     ~service:sessman#act_logout ~sp:bi.Wiki_syntax.bi_sp
                      (fun () -> 
                         {{ [<p>[ 
                                {: Eliom_duce.Xhtml.button
@@ -196,14 +196,13 @@ object (self)
       ;
 
       Wiki_syntax.add_link_extension "logoutlink"
-        (fun w (sp, sd, (subbox, ancestors)) args c -> 
+        (fun w bi args c -> 
            let content = match c with
-             | Some c -> Wiki_syntax.a_content_of_wiki
-                 ?subbox ~ancestors ~sp ~sd w c
+             | Some c -> Wiki_syntax.a_content_of_wiki w bi c
              | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
            in
            ((Eliom_duce.Xhtml.make_uri
-               ~service:sessman#act_logout_get ~sp
+               ~service:sessman#act_logout_get ~sp:bi.Wiki_syntax.bi_sp
                ()
             ),
             args,

@@ -252,7 +252,8 @@ let send_static_file sp sd wiki dir page =
 
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
-let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page sp page () =
+let display_page w (wikibox : Wiki_widgets.editable_wikibox) 
+    action_create_page sp path page () =
   let sd = Ocsimore_common.get_sd sp in
   (* if there is a static page, we serve it: *)
   Lwt.catch
@@ -268,8 +269,16 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page 
                 Wiki_sql.get_box_for_page w.id page
                 >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
                           wikipage_wikibox = box; wikipage_title = title } ->
-                wikibox#editable_wikibox_allowed ~sp ~sd ~data:(wiki', box)
-                  ~cssmenu:(Some page) ~ancestors:Wiki_syntax.no_ancestors ()
+                  let bi =
+                    { Wiki_syntax.bi_sp = sp;
+                      Wiki_syntax.bi_sd = sd;
+                      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+                      Wiki_syntax.bi_subbox = None;
+                      Wiki_syntax.bi_page = Some path;
+                    }
+                  in
+                wikibox#editable_wikibox_allowed ~bi ~data:(wiki', box)
+                  ~cssmenu:(Some page) ()
                 >>= fun (subbox, allowed) ->
                 Lwt.return ({{ [ subbox ] }},
                             (if allowed then
@@ -311,12 +320,21 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox) action_create_page 
              )
            >>= fun (subbox, err_code, title) ->
            Wiki_syntax.set_page_displayable sd err_code;
-           wikibox#editable_wikibox ~sp ~sd ~data:(w.id, w.container_id)
-             ?subbox:(Some subbox) ~cssmenu:None
-             ~ancestors:Wiki_syntax.no_ancestors ()
+           let bi = { Wiki_syntax.bi_sp = sp;
+                      Wiki_syntax.bi_sd = sd;
+                      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+                      Wiki_syntax.bi_subbox = Some subbox;
+                      Wiki_syntax.bi_page = Some path;
+                    }
+           in
+           wikibox#editable_wikibox 
+             ~bi
+             ~data:(w.id, w.container_id)
+             ~cssmenu:None
+             ()
 
            >>= fun pagecontent ->
-           wikibox#get_css_header ~sp ~wiki:w.id ~admin:false ~page ()
+           wikibox#get_css_header ~bi ~wiki:w.id ~admin:false ~page ()
 
            >>= fun css ->
            let title = Ocamlduce.Utf8.make
@@ -413,7 +431,7 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wi
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
          display_page wiki_info wikibox action_create_page sp
-           (Ocsigen_lib.string_of_url_path ~encode:true path) ())
+           path (Ocsigen_lib.string_of_url_path ~encode:true path) ())
   in
   Wiki_syntax.add_servpage wiki servpage;
 
@@ -422,14 +440,18 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wi
     Eliom_predefmod.Any.register_new_coservice' ?sp
       ~name:("display"^Wiki_sql.wiki_id_s wiki)
       ~get_params:(Eliom_parameters.string "page")
-      (fun sp path () ->
+      (fun sp page () ->
          let path =
+           Ocsigen_lib.remove_slash_at_beginning
+             (Ocsigen_lib.remove_dotdot (Neturl.split_path page))
+         in
+         let page =
            Ocsigen_lib.string_of_url_path
              ~encode:true
-             (Ocsigen_lib.remove_slash_at_beginning
-                (Ocsigen_lib.remove_dotdot (Neturl.split_path path)))
+             path
          in
-         display_page wiki_info wikibox action_create_page sp path ())
+         display_page 
+           wiki_info wikibox action_create_page sp path page ())
   in
   Wiki_syntax.add_naservpage wiki naservpage;
 

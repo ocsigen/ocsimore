@@ -25,6 +25,17 @@ let (>>=) = Lwt.bind
 
 module W = Wikicreole
 
+(** Type used to avoid wikibox loops *)
+type ancestors = (Wiki_sql.wiki * int32) list
+
+type box_info =
+  {bi_subbox: Xhtmltypes_duce.flows option;
+   bi_ancestors: ancestors;
+   bi_sp: Eliom_sessions.server_params;
+   bi_sd: Ocsimore_common.session_data;
+   bi_page: string list option}
+
+
 module H = Hashtbl.Make(struct
                           type t = string
                           let equal = (=)
@@ -35,8 +46,6 @@ let block_extension_table = H.create 8
 let a_content_extension_table = H.create 8
 let link_extension_table = H.create 8
 
-(** Type used to avoid wikibox loops *)
-type ancestors = (Wiki_sql.wiki * int32) list
 
 let in_ancestors box ancestors =
   List.mem box ancestors
@@ -52,7 +61,8 @@ let add_a_content_extension k f = H.add a_content_extension_table k f
 let add_link_extension k f = H.add link_extension_table k f
 
 
-(* a table containing the Eliom services generating pages 
+
+(* a table containing the Eliom services generating pages
    for each wiki associated to an URL *)
 module Servpages = 
   Hashtbl.Make(struct 
@@ -277,18 +287,16 @@ let builder wiki_id =
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let xml_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
+let xml_of_wiki wiki_id bi s = 
   Lwt_util.map_serial
-    (fun x -> x) 
-    (Wikicreole.from_string sp 
-       (sp, sd, (subbox, ancestors))
-       (builder wiki_id) s)
+    (fun x -> x)
+    (Wikicreole.from_string bi.bi_sp bi (builder wiki_id) s)
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
-let inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s : Xhtmltypes_duce.inlines Lwt.t = 
-  match Wikicreole.from_string sp 
-    (sp, sd, (subbox, ancestors))
+let inline_of_wiki wiki_id bi s : Xhtmltypes_duce.inlines Lwt.t = 
+  match Wikicreole.from_string bi.bi_sp 
+    bi
     (builder wiki_id) s
   with
     | [] -> Lwt.return {{ [] }}
@@ -297,8 +305,8 @@ let inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s : Xhtmltypes_duce.inline
 (*VVV What can I do with trailing data? *)
                        | {{ _ }} -> Lwt.return {{ [ <b>"error" ] }})
 
-let a_content_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s = 
-  inline_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id s >>= fun r ->
+let a_content_of_wiki wiki_id bi s = 
+  inline_of_wiki wiki_id bi s >>= fun r ->
   Lwt.return
     {{ map r with
          |  <a (Xhtmltypes_duce.a_attrs)>l -> l
@@ -338,12 +346,12 @@ let set_page_displayable sd pd =
 let _ =
 
   add_block_extension "div"
-    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+    (fun wiki_id bi args c -> 
        let content = match c with
          | Some c -> c
          | None -> ""
        in
-       xml_of_wiki ?subbox ~ancestors ~sp ~sd w content >>= fun content ->
+       xml_of_wiki wiki_id bi content >>= fun content ->
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -372,12 +380,12 @@ let _ =
   ;
 
   add_a_content_extension "span"
-    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+    (fun wiki_id bi args c -> 
        let content = match c with
          | Some c -> c
          | None -> ""
        in
-       inline_of_wiki ?subbox ~ancestors ~sp ~sd w content >>= fun content ->
+       inline_of_wiki wiki_id bi content >>= fun content ->
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -406,8 +414,8 @@ let _ =
   ;
 
   add_a_content_extension "wikiname"
-    (fun wiki _ _args _content ->
-       Wiki_sql.get_wiki_by_id wiki
+    (fun wiki_id _ _ _ ->
+       Wiki_sql.get_wiki_by_id wiki_id
        >>= fun wiki_info ->
        let s = wiki_info.Wiki_sql.descr in
        Lwt.return {{ {: s :} }});
@@ -424,7 +432,7 @@ let _ =
     );
 
   add_block_extension "content"
-    (fun _ (_sp, _sd, (subbox, _ancestors)) args _ -> 
+    (fun _ bi args _ -> 
        let classe = 
          try
            let a = List.assoc "class" args in
@@ -437,14 +445,14 @@ let _ =
            {{ { id={: a :} } }} 
          with Not_found -> {{ {} }} 
        in
-       match subbox with
+       match bi.bi_subbox with
          | None -> Lwt.return {{ [ <div (classe ++ id) >
                                      [<strong>[<em>"<<content>>"]]] }}
          | Some subbox -> Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
     );
 
   add_block_extension "menu"
-    (fun wiki_id (sp, sd, (subbox, ancestors)) args _ -> 
+    (fun wiki_id bi args _ -> 
        let classe = 
          let c =
            "wikimenu"^
@@ -465,8 +473,8 @@ let _ =
              Ocsigen_lib.sep '|' s 
            with Not_found -> s, s
          in
-         a_content_of_wiki ?subbox ~ancestors ~sp ~sd wiki_id text >>= fun text2 ->
-         if Eliom_sessions.get_current_sub_path_string sp = link
+         a_content_of_wiki wiki_id bi text >>= fun text2 ->
+         if Eliom_sessions.get_current_sub_path_string bi.bi_sp = link
          then 
            let classe = match classe with
              | None -> {{ { class="wikimenu_current" } }}
@@ -488,7 +496,7 @@ let _ =
                      in
                      Eliom_duce.Xhtml.make_uri
                        ~service:servpage
-                       ~sp
+                       ~sp:bi.bi_sp
                        path
                  | _ -> link
            in
@@ -525,7 +533,9 @@ let _ =
 
 
   add_block_extension "cond"
-    (fun w (sp, sd, (subbox, ancestors)) args c -> 
+    (fun wiki_id bi args c -> 
+       let sp = bi.bi_sp in
+       let sd = bi.bi_sd in
        let content = match c with
          | Some c -> c
          | None -> ""
@@ -559,7 +569,7 @@ let _ =
           | [c] -> eval_cond c
           | _ -> Lwt.return false)
         >>= function
-          | true -> xml_of_wiki ?subbox ~ancestors ~sp ~sd w content
+          | true -> xml_of_wiki wiki_id bi content
           | false -> Lwt.return {{ [] }}
        )
     );

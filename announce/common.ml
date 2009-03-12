@@ -75,12 +75,21 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   let page = Ocsigen_lib.string_of_url_path ~encode:false path in
   let sd = Ocsimore_common.get_sd sp in
   contents sp sd
-      >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
-  Ocsisite.wikibox#editable_wikibox ~sp ~sd ~data:wiki_box
-    ~subbox ~cssmenu:None
-    ~ancestors:Wiki_syntax.no_ancestors
+  >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
+  let bi =
+    { Wiki_syntax.bi_sp = sp;
+      Wiki_syntax.bi_sd = sd;
+      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+      Wiki_syntax.bi_subbox = Some subbox;
+      Wiki_syntax.bi_page = Some path;
+    }
+  in
+  Ocsisite.wikibox#editable_wikibox
+    ~bi
+    ~data:wiki_box
+    ~cssmenu:None
     () >>= fun box ->
-  Ocsisite.wikibox#get_css_header ~sp ~wiki:wiki_id
+  Ocsisite.wikibox#get_css_header ~bi ~wiki:wiki_id
     ?admin:(Some false) ~page ()
   >>= fun css ->
   Lwt.return

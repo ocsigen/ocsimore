@@ -39,8 +39,15 @@ let format_date_and_speakers d speakers =
   if speakers = [] then "" else (" — " ^ format_speakers speakers)
 
 let format_description sp sd desc =
-  Ocsisite.wikibox#noneditable_wikibox ~sp ~sd ~data:(Common.wiki_id, desc)
-    ~ancestors:Wiki_syntax.no_ancestors ()
+  let bi = 
+    { Wiki_syntax.bi_sp = sp;
+      Wiki_syntax.bi_sd = sd;
+      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+      Wiki_syntax.bi_subbox = None;
+      Wiki_syntax.bi_page = None;
+    }
+  in
+  Ocsisite.wikibox#noneditable_wikibox ~bi ~data:(Common.wiki_id, desc) ()
 
 let format_location location room =
   match room, location with

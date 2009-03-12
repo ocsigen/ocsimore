@@ -31,6 +31,14 @@ val in_ancestors : (Wiki_sql.wiki * int32) -> ancestors -> bool
 
 val add_ancestor : (Wiki_sql.wiki * int32) -> ancestors -> ancestors
 
+(** Information available to display a box *)
+type box_info =
+  {bi_subbox: Xhtmltypes_duce.flows option;
+   bi_ancestors: ancestors;
+   bi_sp: Eliom_sessions.server_params;
+   bi_sd: Ocsimore_common.session_data;
+   bi_page: string list option}
+
 
 (** find services for each wiki *)
 val find_naservpage : Wiki_sql.wiki ->
@@ -76,34 +84,32 @@ val add_servwikicss : Wiki_sql.wiki ->
 
 (** Define new extensions to the wiki syntax. *)
 val add_block_extension : 
-  string -> 
+  string ->
   (Wiki_sql.wiki ->
-     (Eliom_sessions.server_params * 
-      Ocsimore_common.session_data *
-      (Xhtmltypes_duce.flows option * ancestors)) ->
+     box_info ->
      (string * string) list -> 
        string option -> 
-         Xhtmltypes_duce.flows Lwt.t) -> unit
+         Xhtmltypes_duce.flows Lwt.t) -> 
+  unit
 
 val add_a_content_extension : 
   string -> 
   (Wiki_sql.wiki ->
-     (Eliom_sessions.server_params * 
-      Ocsimore_common.session_data *
-      (Xhtmltypes_duce.flows option * ancestors)) ->
-     (string * string) list -> 
-       string option -> 
-         {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> unit
+     box_info ->
+       (string * string) list -> 
+         string option -> 
+           {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> 
+  unit
 
 val add_link_extension : 
   string -> 
-  (Wiki_sql.wiki ->
-     (Eliom_sessions.server_params * 
-      Ocsimore_common.session_data *
-      (Xhtmltypes_duce.flows option * ancestors)) ->
+  (Wiki_sql.wiki -> 
+     box_info ->
      (string * string) list -> 
        string option -> 
-         string * Wikicreole.attribs * {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> unit
+         string * Wikicreole.attribs * 
+           {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> 
+  unit
 
 
 (** Returns the XHTML corresponding to a wiki page.
@@ -111,22 +117,16 @@ val add_link_extension :
     and the default wiki id is the same as the one of the surrounding box).
 *)
 val xml_of_wiki :
-  ?subbox: Xhtmltypes_duce.flows ->
-  ancestors:ancestors ->
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
-  Wiki_sql.wiki ->
+  Wiki_sql.wiki -> 
+  box_info ->
   string -> 
   Xhtmltypes_duce.flows Lwt.t
 
 (** returns only the content of the first paragraph of a wiki text.
 *)
 val inline_of_wiki :
-  ?subbox: Xhtmltypes_duce.flows ->
-  ancestors:ancestors ->
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
-  Wiki_sql.wiki ->
+  Wiki_sql.wiki -> 
+  box_info ->
   string -> 
   Xhtmltypes_duce.inlines Lwt.t
 
@@ -134,11 +134,8 @@ val inline_of_wiki :
     after having removed links.
 *)
 val a_content_of_wiki :
-  ?subbox: Xhtmltypes_duce.flows ->
-  ancestors:ancestors ->
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
-  Wiki_sql.wiki ->
+  Wiki_sql.wiki -> 
+  box_info ->
   string -> 
   {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t
 

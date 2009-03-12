@@ -408,9 +408,17 @@ let summary_contents category sp sd =
   let start = Calendar.create start Common.midnight in
   let finish = Calendar.create finish Common.midnight in
   Event_sql.find_category_by_path category >>= fun cat ->
-  Ocsisite.wikibox#editable_wikibox ~sp ~sd
+  let bi =
+    { Wiki_syntax.bi_sp = sp;
+      Wiki_syntax.bi_sd = sd;
+      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
+      Wiki_syntax.bi_subbox = None;
+      Wiki_syntax.bi_page = None;
+    }
+  in
+  Ocsisite.wikibox#editable_wikibox ~bi
     ~data:(Common.wiki_id, cat.cat_desc)
-    ~ancestors:Wiki_syntax.no_ancestors () >>= fun desc ->
+    () >>= fun desc ->
   let show_all = true in (*XXXX*)
   Seminaire_sql.find_in_interval (site_filter show_all) category start finish
       >>= fun rows ->
