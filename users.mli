@@ -76,6 +76,8 @@ val create_unique_user:
 
 val delete_user : userid:User_sql.userid -> unit Lwt.t
 
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
 val update_user_data: 
   user:userdata -> 
   ?pwd:User_sql.pwd -> 
@@ -84,6 +86,7 @@ val update_user_data:
   ?groups: User_sql.userid list ->
   unit -> 
   unit Lwt.t
+*)
 
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
 

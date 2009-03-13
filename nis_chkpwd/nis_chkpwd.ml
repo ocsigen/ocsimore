@@ -65,19 +65,42 @@ external crypt : string -> string -> string = "crypt_stub"
 (* crypt(3) uses a global state *)
 let check_mutex = Lwt_mutex.create ()
 
-let check login passwd =
+let () = Random.self_init ()
+
+let crypt_passwd pwd =
+  let salt () =
+    let s = Random.int 64 in
+    if s < 26 then
+      Char.chr (s + 97 (* 'a' *))
+    else if s < 52 then
+      Char.chr (s - 26 + 65 (* 'A' *))
+    else if s < 62 then
+      Char.chr (s - 52 + 48 (* '0' *))
+    else if s = 52 then
+      '.'
+    else '/'
+  in
+  let salt = Printf.sprintf "%c%c" (salt ()) (salt ()) in
+  Lwt_mutex.lock check_mutex >>= fun () ->
+  let r = crypt pwd salt in
+  Lwt_mutex.unlock check_mutex;
+  Lwt.return r
+
+let check_passwd ~passwd ~hash =
+  Lwt_mutex.lock check_mutex >>= fun () ->
+    let computed = crypt passwd hash in
+    Lwt_mutex.unlock check_mutex;
+    return (computed = hash)
+
+let check_nis ~login ~passwd =
   run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |] >>= function
     | (Unix.WEXITED 0, output) ->
         begin try
           let start_hash = String.index output ':' in
           let end_hash = String.index_from output (start_hash+1) ':' in
           let hash = String.sub output (start_hash+1) (end_hash-start_hash-1) in
-          Lwt_mutex.lock check_mutex >>= fun () ->
-          let computed = crypt passwd hash in
-          Lwt_mutex.unlock check_mutex;
-          return (computed = hash)
+          check_passwd ~passwd ~hash
         with Not_found ->
-          Lwt_mutex.unlock check_mutex;
           return false
         end
     | _ -> return false

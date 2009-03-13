@@ -31,10 +31,32 @@ open Sql
 
 type userid = int32
 
-type pwd = 
+type pwd =
   | Connect_forbidden
-  | Ocsimore_user of string
+  | Ocsimore_user_plain of string
+  | Ocsimore_user_crypt of string
   | External_Auth
+
+(* Transforms an incoming value of type [pwd], in which
+   [Ocsimore_user_crypt] is supposed to contain the unencrypted password,
+   into the outgoing value of type [pwd] ([Ocsimore_user_crypt] contains the
+   encrypted password) and the database representation of this value,
+   for the columns password and authtype respectively *)
+let pass_authtype_from_pass pwd = match pwd with
+  | Connect_forbidden ->
+      Lwt.return (pwd, (None, "l"))
+
+  | External_Auth ->
+      Lwt.return (pwd, (None, "p"))
+
+  | Ocsimore_user_plain p ->
+      Lwt.return (pwd, (Some p, "l"))
+
+  | Ocsimore_user_crypt pass ->
+      Nis_chkpwd.crypt_passwd pass >>=
+      fun crypt ->
+      Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
+
 
 let populate_groups db id groups =
   match groups with
@@ -58,12 +80,8 @@ let populate_groups db id groups =
           groups
 
 let new_user ~name ~password ~fullname ~email ~groups ~dyn =
-  let password, authtype =
-    match password with
-      | Connect_forbidden -> None, "l"
-      | Ocsimore_user p -> (Some p), "l"
-      | External_Auth -> None, "p"
-  in
+  pass_authtype_from_pass password
+  >>= fun (pwd, (password, authtype)) ->
   Sql.full_transaction_block
     (fun db ->
        (match password, email with
@@ -82,7 +100,7 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
        ) >>= fun () -> 
     serial4 db "users_id_seq" >>= fun id ->
     populate_groups db id groups >>= fun () ->
-    Lwt.return id)
+    Lwt.return (id, pwd))
 
 let find_user_ ?db ?id ?name () =
   (match db with
@@ -113,12 +131,12 @@ let find_user_ ?db ?id ?name () =
         | _ -> Lwt.fail Not_found) 
      >>= fun (id, login, pwd, name, email, dyn, authtype) ->
      PGSQL(db) "SELECT groupid FROM userrights WHERE id = $id" >>= fun perm ->
-     let password = 
-       if authtype = "p"
-       then External_Auth
-       else match pwd with
-         | None -> Connect_forbidden
-         | Some p -> Ocsimore_user p
+     let password =
+       match authtype, pwd with
+         | "p", _ -> External_Auth
+         | "c", Some p -> Ocsimore_user_crypt p
+         | "l", Some p -> Ocsimore_user_plain p
+         | _ -> Connect_forbidden
      in
      Lwt.return ((id, login, password, name, email, dyn), perm)
     )
@@ -144,13 +162,12 @@ let delete_user_ ~userid =
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
+
+(* BY 2009-03-13: deactivated because probably buggued. Check the DEFAULT below *)
+(*
 let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
-  let password, authtype =
-    match password with
-      | Connect_forbidden -> None, "l"
-      | Ocsimore_user p -> (Some p), "l"
-      | External_Auth -> None, "p"
-  in
+  pass_authtype_from_pass password
+  >>= fun (pwd, (password, authtype)) ->
   Sql.full_transaction_block
     (fun db ->
        (match password, email with
@@ -158,7 +175,6 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
              PGSQL(db) "UPDATE users SET fullname = $fullname, email = DEFAULT, password = DEFAULT, authtype = $authtype WHERE id = $userid"
          | None, Some email -> 
              PGSQL(db) "UPDATE users SET fullname = $fullname, password = DEFAULT, email = $email, authtype = $authtype WHERE id = $userid"
-               (*VVV is it ok when pwd/email becomes NULL? *)
          | Some pwd, None -> 
              PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = DEFAULT, authtype = $authtype WHERE id = $userid"
          | Some pwd, Some email -> 
@@ -172,9 +188,13 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
        >>= fun () ->
          (match groups with
             | Some groups ->
-                PGSQL(db) "DELETE FROM userrights WHERE id=$userid" >>= fun () ->
-                  populate_groups db userid groups;
-                | None -> Lwt.return ()))
+                PGSQL(db) "DELETE FROM userrights WHERE id=$userid"
+                >>= fun () ->
+                populate_groups db userid groups;
+            | None -> Lwt.return ())
+       >>= fun () -> Lwt.return pwd
+    )
+*)
 
 let get_groups_ ~userid =
   Lwt_pool.use Sql.pool

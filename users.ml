@@ -67,7 +67,7 @@ let create_anonymous () =
               ~email:None
               ~groups:[]
               ~dyn:false
-            >>= fun i ->
+            >>= fun (i, _) ->
            Lwt.return { id = i;
                         name = "anonymous"; 
                         pwd = User_sql.Connect_forbidden; 
@@ -91,7 +91,7 @@ let create_nobody () =
               ~email:None
               ~groups:[]
               ~dyn:false
-            >>= fun i ->
+            >>= fun (i, _) ->
            Lwt.return { id = i;
                         name = "nobody"; 
                         pwd = User_sql.Connect_forbidden; 
@@ -153,15 +153,15 @@ let create_admin () =
            let email = ask_email () in
            (User_sql.new_user 
               ~name:"admin" 
-              ~password:(User_sql.Ocsimore_user pwd)
+              ~password:(User_sql.Ocsimore_user_crypt pwd)
               ~fullname:"Admin"
               ~email:(Some email)
               ~groups:[]
               ~dyn:false
-            >>= fun i ->
+            >>= fun (i, pwd) ->
            Lwt.return { id = i;
-                        name = "admin"; 
-                        pwd = User_sql.Ocsimore_user pwd; 
+                        name = "admin";
+                        pwd = pwd;
                         fullname = "Admin"; 
                         email = Some email;
                         dyn = false;
@@ -265,14 +265,14 @@ let create_user ~name ~pwd ~fullname ?email ~groups ?test () =
   then begin (* the user does not exist *)
     let dyn = not (test = None) in
     User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups ~dyn
-    >>= fun i ->
+    >>= fun (i, pwd) ->
     (match test with
        | None -> ()
        | Some f -> add_dyn_group i f);
     Lwt.return 
       { id = i;
         name = name; 
-        pwd = pwd; 
+        pwd = pwd;
         fullname = fullname; 
         email = email;
         dyn = dyn;
@@ -305,14 +305,16 @@ let create_unique_user =
     Lwt_mutex.unlock lock;
     Lwt.return r
 
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
 let update_user_data ~user 
-    ?(pwd = user.pwd)
+    ?pwd
     ?(fullname = user.fullname) 
     ?(email = user.email)
     ?groups () =
-  user.pwd <- pwd;
   user.fullname <- fullname;
   user.email <- email;
+  (match pwd with None -> () | Some pwd -> user.pwd <- pwd);
   User_cache.update_data
     ~userid:user.id
     ~password:pwd
@@ -320,7 +322,7 @@ let update_user_data ~user
     ~email
     ?groups
     ()
-
+*)
 
 
 let authenticate ~name ~pwd =
@@ -328,13 +330,16 @@ let authenticate ~name ~pwd =
   if (u = nobody)
   then Lwt.fail BadUser
   else
-    if u.pwd = User_sql.External_Auth
-    then Lwt.fail (UseAuth u)
-(*VVV Mouaif *)
-    else 
-      if u.pwd = User_sql.Ocsimore_user pwd
-      then Lwt.return u
-      else Lwt.fail BadPassword
+    match u.pwd with
+      | User_sql.External_Auth -> Lwt.fail (UseAuth u)
+      | User_sql.Ocsimore_user_plain p ->
+          if p = pwd then Lwt.return u else Lwt.fail BadPassword
+      | User_sql.Ocsimore_user_crypt h ->
+          Nis_chkpwd.check_passwd ~passwd:pwd ~hash:h
+          >>= fun ok ->
+          if ok then Lwt.return u else Lwt.fail BadPassword
+      | User_sql.Connect_forbidden ->
+          Lwt.fail BadPassword
 
 
 

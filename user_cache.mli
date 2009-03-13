@@ -26,6 +26,8 @@ val find_user:
 (** Returns the groups for one user (level 1) *)
 val get_groups : userid:User_sql.userid -> User_sql.userid list Lwt.t
 
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
 val update_data: 
   userid:User_sql.userid -> 
   password:User_sql.pwd -> 
@@ -34,6 +36,7 @@ val update_data:
   ?groups:User_sql.userid list ->
   unit ->
   unit Lwt.t
+*)
 
 val add_to_group : userid:User_sql.userid -> groupid:User_sql.userid -> unit Lwt.t
 

@@ -124,9 +124,12 @@ let delete_user ~userid =
   GroupCache.remove group_cache userid;
   User_sql.delete_user_ ~userid
 
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
 let update_data ~userid ~password ~fullname ~email ?groups () =
   IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
   IUserCache.remove iusercache userid;
   NUserCache.remove nusercache n;
   GroupCache.remove group_cache userid;
   User_sql.update_data_ ~userid ~password ~fullname ~email ?groups ()
+*)

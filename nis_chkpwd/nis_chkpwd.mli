@@ -20,8 +20,15 @@
  * 02111-1307, USA.  *)
 
 
-val check : string -> string -> bool Lwt.t
-(** [check login passwd] checks whether [passwd] is password of
+val crypt_passwd : string -> string Lwt.t
+(** [crypt_passwd passwd] encrypts [passwd] using the crypt(3) function.
+    The salt is automatically randomly chosen *)
+
+val check_passwd : passwd:string -> hash:string -> bool Lwt.t
+(** [check_passwd passwd hash] checks whether [hash] is correct for [passwd] *)
+
+val check_nis : login:string -> passwd:string -> bool Lwt.t
+(** [check_nis login passwd] checks whether [passwd] is password of
     [login] in NIS. *)
 
 val userinfo : string -> Unix.passwd_entry option Lwt.t

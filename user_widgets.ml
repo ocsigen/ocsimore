@@ -236,7 +236,7 @@ let valid_emailaddr email =
 
 
 
-let mail_password ~name ~from_name ~from_addr ~subject =
+let mail_password ~name ~password ~from_name ~from_addr ~subject =
   Lwt.catch
     (fun () -> 
        Users.get_user_by_name ~name >>= fun user -> 
@@ -256,11 +256,7 @@ let mail_password ~name ~from_name ~from_addr ~subject =
                         ^ "\n"
                         ^ "Your account is:\n"
                         ^ "\tUsername:\t" ^ name ^ "\n"
-                        ^ "\tPassword:\t" ^ (match user.Users.pwd with 
-                                               | User_sql.Ocsimore_user p -> p
-                                               | User_sql.External_Auth -> "(system password)"
-                                               | User_sql.Connect_forbidden -> "(connection forbidden)")
-                        ^ "\n"));
+                        ^ "\tPassword:\t" ^ password ^ "\n"));
                   true
               | None -> false) ())
     (function _ -> Lwt.return false)
@@ -274,7 +270,7 @@ let generate_password () =
     for i = 0 to 7 do
       pwd.[i] <- String.get chars (Random.int (10+2*26))
     done;
-    User_sql.Ocsimore_user pwd
+    pwd
 
 
 type basic_user_creation = {
@@ -306,6 +302,8 @@ class login_widget_basic_user_creation ?sp
     Eliom_services.new_post_coservice
       ~fallback:internal_srv_register
       ~post_params:(string "usr") ()
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
   and internal_srv_edit = 
     Eliom_services.new_coservice
       ~fallback:internal_srv_register
@@ -315,7 +313,8 @@ class login_widget_basic_user_creation ?sp
       ~https:(Session_manager.get_secure ())
       ~fallback:internal_srv_register
       ~post_params:(string "pwd" ** 
-                      (string "pwd2" ** (string "descr" ** string "email"))) () 
+                      (string "pwd2" ** (string "descr" ** string "email"))) ()
+*)
   in
 object (self)
 
@@ -359,13 +358,16 @@ object (self)
                       Eliom_services.https_void_coservice'
                       sp switchtohttps () :} ] ] }}
       
-  method private display_logout_box ~sp u =
+  method private display_logout_box ~sp:_sp u =
     {{ [<table>[
            <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
            <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
            <tr>[<td>[{: Eliom_duce.Xhtml.a self#srv_edit
                         sp {{ "Manage your account" }} () :}]]
+*)
          ]] }}
         
 
@@ -392,7 +394,9 @@ object (self)
      unit, 
      [`Registrable]) Eliom_services.service
     = internal_srv_reminder
-    
+
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
   method srv_edit : 
     (unit, 
      unit, 
@@ -402,7 +406,8 @@ object (self)
      unit, 
      [`Registrable]) Eliom_services.service 
     = internal_srv_edit
-    
+*)
+
   method container
     ~sp:(_ : Eliom_sessions.server_params)
     ~sd:(_ : Ocsimore_common.session_data)
@@ -462,10 +467,10 @@ object (self)
     else 
       let pwd = generate_password () in
       Users.create_unique_user
-        ~name:usr ~pwd ~fullname ~email
+        ~name:usr ~pwd:(User_sql.Ocsimore_user_crypt pwd) ~fullname ~email
         ~groups:basic_user_creation_options.new_user_groups >>= fun (user, n) ->
       mail_password
-        ~name:n
+        ~name:n ~password:pwd
         ~from_name:basic_user_creation_options.mail_from
         ~from_addr:basic_user_creation_options.mail_addr
         ~subject:basic_user_creation_options.mail_subject >>= fun b ->
@@ -542,7 +547,9 @@ object (self)
          ~contents:{{ [<h1>"Failure"
          <p>"The username you entered doesn't exist, or \
          the service is unavailable at the moment."] }}) *)
-      
+
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
   method private page_edit err = fun sp () () ->
     let sd = Ocsimore_common.get_sd sp in
     Users.is_logged_on sp sd >>= fun logged ->
@@ -603,7 +610,7 @@ object (self)
                     }}) () :} 
              <p>[<strong>{: err :}]] }}
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
-      
+
   method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
     let sd = Ocsimore_common.get_sd sp in
     Users.is_logged_on sp sd >>= fun logged ->
@@ -614,21 +621,38 @@ object (self)
         self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
       else if pwd <> pwd2 then
         self#page_edit "ERROR: Passwords don't match!" sp () ()
-      else
-        (Ocsigen_messages.debug2 (Printf.sprintf "fullname: %s" fullname);
-         let email = Some email in
-         ignore (if pwd = ""
-                 then Users.update_user_data ~user ~fullname ~email ()
-                 else Users.update_user_data ~user ~fullname ~email
-                   ~pwd:(User_sql.Ocsimore_user pwd) ());
-         Users.set_session_data sp sd user >>= fun () ->
-         self#container
-           ~sp
-           ~sd (*VVV was: Users.anonymous_sd, but why? *)
-           ~contents:{{ [<h1>"Personal information updated"] }})
+      else (
+        Ocsigen_messages.debug2 (Printf.sprintf "Updating infos for '%s'"
+                                   fullname);
+        let email = Some email in
+        try
+          let pwd = match user.Users.pwd with
+            | User_sql.Connect_forbidden (* Should never happen, the user cannot
+                                            be logged *) -> None
+
+            | User_sql.External_Auth (* We cannot change this password,
+                                        we should not leave the possibility
+                                        to the user XXX *) ->
+                failwith "ERROR: Cannot change NIS or PAM passwords \
+                    from Ocsimore!"
+            | User_sql.Ocsimore_user_plain _ ->
+                if pwd = "" then None else Some (User_sql.Ocsimore_user_plain pwd)
+            | User_sql.Ocsimore_user_crypt _ ->
+                if pwd = "" then None else Some (User_sql.Ocsimore_user_crypt pwd)
+          in
+          ignore (Users.update_user_data ~user ~fullname ~email ?pwd ());
+          Users.set_session_data sp sd user >>= fun () ->
+            self#container
+              ~sp
+              ~sd (*VVV was: Users.anonymous_sd, but why? *)
+              ~contents:{{ [<h1>"Personal information updated"] }}
+
+        with Failure s -> self#page_edit s sp () ()
+      )
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
 (*VVV: Must be accessible only to logged users *)
-      
+*)
+
   initializer
     begin
       Eliom_duce.Xhtml.register ?sp
@@ -641,10 +665,13 @@ object (self)
         ~service:internal_srv_reminder (self#page_reminder "");
       Eliom_duce.Xhtml.register ?sp
         ~service:srv_reminder_done self#page_reminder_done;
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
       Eliom_duce.Xhtml.register ?sp
         ~service:internal_srv_edit (self#page_edit "");
       Eliom_duce.Xhtml.register ?sp
         ~service:srv_edit_done self#page_edit_done;
+*)
     end
 
 

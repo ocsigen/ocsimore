@@ -19,11 +19,14 @@
 (** The abstract type of user ids *)
 type userid = int32
 
-type pwd = 
+type pwd =
   | Connect_forbidden
-  | Ocsimore_user of string
+  | Ocsimore_user_plain of string
+  | Ocsimore_user_crypt of string
   | External_Auth
 
+(** Creates a user. The password passed as argument must be unencrypted.
+    Returns the user id and its password after an eventual encryption. *)
 val new_user: 
   name:string -> 
   password:pwd -> 
@@ -31,7 +34,7 @@ val new_user:
   email:string option -> 
   groups:userid list ->
   dyn:bool ->
-  userid Lwt.t
+  (userid * pwd) Lwt.t
 
 
 (**/**)
@@ -49,6 +52,8 @@ val find_user_:
   ((userid * string * pwd * string * string option * bool) * 
      userid list) Lwt.t
 
+(* BY 2009-03-13: deactivated. See .ml *)
+(*
 val update_data_: 
   userid:userid -> 
   password:pwd -> 
@@ -58,6 +63,7 @@ val update_data_:
   ?dyn:bool ->
   unit ->
   unit Lwt.t
+*)
 
 val add_to_group_ : userid:userid -> groupid:userid -> unit Lwt.t
 

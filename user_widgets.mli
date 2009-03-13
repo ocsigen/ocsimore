@@ -76,7 +76,9 @@ object
      unit, 
      unit,
      [`Registrable ]) Eliom_services.service
-    
+
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
   method srv_edit: 
     (unit, 
      unit, 
@@ -85,7 +87,8 @@ object
      unit, 
      unit,
      [`Registrable ]) Eliom_services.service
-    
+*)
+
   method container: 
     sp:Eliom_sessions.server_params -> 
     sd:Ocsimore_common.session_data ->
