@@ -174,10 +174,13 @@ let _ = Lwt_unix.run
      Lwt_util.iter
        (fun (wiki, path) ->
           let (wiki : Wiki_sql.wiki) = Opaque.int32_t wiki in
-          match path with
-            | None -> Lwt.return ()
-            | Some path ->
-                let path = Ocsigen_lib.split '/' path in
-                Wiki.register_wiki ~path ~wikibox ~wiki ()
+          if wiki <> wiki_admin.Wiki_sql.id then
+            match path with
+              | None -> Lwt.return ()
+              | Some path ->
+                  let path = Ocsigen_lib.split '/' path in
+                  Wiki.register_wiki ~path ~wikibox ~wiki ()
+          else
+            Lwt.return ()
        ) l
   )
