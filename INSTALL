@@ -15,22 +15,24 @@ sh configure <password>
    If you do not have ocamlpam installed, set PAM to NO in Makefile.config
 
 
-3. Create a postgresql user with that name (here ocsimore) 
-and a database called ocsimore. The database user needs no special role
+3. Create a postgresql user with that name (here ocsimore).
+The new user needs no special role.
 
 sudo -u postgres createuser -P ocsimore
-sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 
 Adapt /etc/postgresql/.../pg_hba.conf to give Ident access
-for user ocsimore
-by copying the following line at the right place
-(usually before the "local all all ident sameuser" line,
-no modification needed):
- local ocsimore ocsimore password
+for user ocsimore by copying the following line at the right place
+(usually before the "local all all ident sameuser" line):
 
+ local ocsimore ocsimore password
 
 Restart postgresql, for example:
 sudo /etc/init.d/postgresql restart
+
+
+4. Create a database called ocsimore
+
+sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 
 Then do:
 psql -U ocsimore -f createdb.sql ocsimore
@@ -38,28 +40,35 @@ psql -U ocsimore -f user_createdb.sql ocsimore
 psql -U ocsimore -f forum_createdb.sql ocsimore
 psql -U ocsimore -f wiki_createdb.sql ocsimore
 
-If something goes wrong, you can delete the database by typing:
-sudo -u postgres dropdb ocsimore
+Finally, update the database by typing make check_db and following the
+instructions.
 
-4. Install pgocaml with lwt support (lwt branch of cvs)
+
+If something goes wrong, you can delete the database by typing:
+
+sudo -u postgres dropdb ocsimore
+rm -f database-state
+
+
+5. Install pgocaml with lwt support (lwt branch of cvs)
 http://merjis.com/developers/pgocaml
 Make sure to properly set DEFAULT_UNIX_DOMAIN_SOCKET_DIR in
 pgocaml's Makefile.config, depending on your installation
 
-5. Compile ocsimore
+
+6. Compile ocsimore
 make depend
 make
-If your database is not up to date, you will be given the instructions to
-type for the update. Then start make again.
 
-6. Write and compile your site
 
-7. Adapt your ocsigen.conf using ocsigen.conf.example
+7. Write and compile your site
 
-8. Create a file containing the database password 
-   (at the position set in the config file) and give right access
-   only to Ocsigen's process user.
+8. Adapt your ocsigen.conf using ocsigen.conf.example
 
-9. Run Ocsigen, for example:
+9. Create a file containing the database password (at the position set
+   in the config file) and give right access only to Ocsigen's process
+   user.
+
+10. Run Ocsigen, for example:
 
 CAML_LD_LIBRARY_PATH=nis_chkpwd ocsigen -c ocsigen.conf.example

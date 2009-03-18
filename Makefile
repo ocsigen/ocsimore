@@ -138,7 +138,7 @@ wikicreole.ml: wikicreole.cmi
 	$(CAMLLEX) $<
 
 
-depend:
+depend: check_db
 	ocamlducefind ocamldep $(OCSIMORE_SRC_NOSQL) $(OCSIMORE_OTHER_SRC) $(OCSIMORE_MLI) > .depend
 #	PGHOST=$(HOST) 
 	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \

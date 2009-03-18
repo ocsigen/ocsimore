@@ -128,30 +128,6 @@ COMMENT ON COLUMN threads.frm_id IS 'forum';
 
 
 --
--- Name: forums_moderator_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
---
-
-ALTER TABLE ONLY forums
-    ADD CONSTRAINT forums_moderator_fkey FOREIGN KEY (moderator) REFERENCES users(id);
-
-
---
--- Name: forums_reader_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
---
-
-ALTER TABLE ONLY forums
-    ADD CONSTRAINT forums_reader_fkey FOREIGN KEY (reader) REFERENCES users(id);
-
-
---
--- Name: forums_writer_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
---
-
-ALTER TABLE ONLY forums
-    ADD CONSTRAINT forums_writer_fkey FOREIGN KEY (writer) REFERENCES users(id);
-
-
---
 -- Name: messages_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: ocsimore
 --
 
@@ -196,8 +172,3 @@ ALTER TABLE ONLY threads
 
 ALTER TABLE ONLY threads
     ADD CONSTRAINT threads_frm_id_fkey FOREIGN KEY (frm_id) REFERENCES forums(id);
-
-
-ALTER TABLE messages RENAME TO forums_messages;
-ALTER TABLE textdata RENAME TO forums_textdata;
-ALTER TABLE threads RENAME TO forums_threads;

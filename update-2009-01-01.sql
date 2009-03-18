@@ -5,7 +5,7 @@ ALTER TABLE threads RENAME TO forums_threads;
 
 
 -- Missing primary key on wikipages
-ALTER TABLE wikipages ADD PRIMARY KEY (sourcewiki, pagename);
+ALTER TABLE wikipages ADD PRIMARY KEY (wiki, pagename);
 
 -- Limited form of redirections for wikipages : can now refer to a wikibox of another wiki
 ALTER TABLE wikipages ADD COLUMN destwiki integer;

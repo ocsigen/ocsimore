@@ -35,13 +35,10 @@ $(NAME).cma: $(WEBSITE)
 realclean::
 	rm -f $(BINARIES)
 
-.PHONY: drop-db make-db
+.PHONY: drop-db
 
 drop-db:
 	-echo "DROP SCHEMA announcement CASCADE;" | $(PSQL)
-
-make-db:
-	$(PSQL) < tables.sql
 
 reload: $(NAME).cma
 	-[ -p /tmp/cpipe ] && echo reload > /tmp/cpipe

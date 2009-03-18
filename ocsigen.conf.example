@@ -32,7 +32,7 @@
       <passwordfile name="/etc/ocsigen/ocsimorepassword" />
     </extension>
 
-    <host hostname="localhost">
+    <host defaulthostname="localhost">
 
       <static dir="static" />
       <eliommodule module="ocsisite.cmo">
@@ -55,7 +55,7 @@
 
       <!-- The following option has effect only the first time, and creates the
            specified wiki. Already created wikis are automatically reloaded -->
-      <!--eliommodule module="ocsicreatewiki.cmo">
+      <eliommodule module="ocsicreatewiki.cmo">
         <name>My wiki</name>
         <path>/</path>
 
@@ -68,7 +68,7 @@
         <csseditors>users</csseditors>
         <admins>admin</admins>
         <boxrights/>
-      </eliommodule-->
+      </eliommodule>
 
       <eliom/>
 
