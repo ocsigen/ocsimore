@@ -11,8 +11,8 @@ type role = Admin | Author | Lurker | Nonauthorized;;
 (** Admin can changes the permissions on boxes (if the wiki allows this) *)
 
 
-(** Creates a new wiki or returns its id without modification
-    if a wiki of the same name already exists.
+(** Creates a new wiki or returns its id without modification if a wiki of the
+    same name already exists.
 
     If the optional argument [path] is present, the wiki will be bound to the
     URL represented by [path].

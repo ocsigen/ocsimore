@@ -549,7 +549,7 @@ let default_container_page =
   "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
 
 
-(* Create a wiki if it does not already exists, and registers it *)
+(* Creates and registers a wiki if it does not already exists  *)
 let create_wiki ~title ~descr
     ?sp
     ?path
@@ -570,18 +570,21 @@ let create_wiki ~title ~descr
     (fun () -> get_wiki_by_name title)
     (function
        | Not_found ->
-           really_create_wiki ~title ~descr ?path ~readers ~writers ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators ~css_editors ~admins ~boxrights ?staticdir ~container_page ()
-           >>= fun wiki_id ->
-           get_wiki_by_id wiki_id
+           begin
+             really_create_wiki ~title ~descr ?path ~readers ~writers
+               ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators
+               ~css_editors ~admins ~boxrights ?staticdir ~container_page ()
+             >>= fun wiki_id ->
+             get_wiki_by_id wiki_id
+             >>= fun w ->
+             match path with
+               | None -> Lwt.return w
+               | Some path ->
+                   register_wiki ?sp ~path ~wikibox ~wiki:w.id ~wiki_info:w ()
+             >>= fun () ->
+             Lwt.return w
+           end
        | e -> Lwt.fail e)
-  >>= fun w ->
-  match path with
-    | None -> Lwt.return w
-    | Some path ->
-        register_wiki ?sp ~path ~wikibox ~wiki:w.id ~wiki_info:w ()
-        >>= fun () ->
-        Lwt.return w
-
 
 
 
