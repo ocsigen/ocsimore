@@ -14,9 +14,9 @@ let split s ch =
   in                               
   try                              
     go s                           
-  with Not_found -> !x             
-                                                                                                                                                                                                                                                                                                                                                            
-let split_nl s = split s '\n'                                                                                                                                                 
+  with Not_found -> !x
+
+let split_nl s = split s '\n'
 
 let before_space s =
   try               
@@ -27,11 +27,13 @@ let before_space s =
 let find_packages () =                 
   List.map before_space (split_nl & run_and_read "ocamlfind list")
 
-(* this is supposed to list available syntaxes, but I don't know how to do it. *)
-let find_syntaxes () = ["camlp4o"; "camlp4r"]                                    
+(* this is supposed to list available syntaxes, 
+   but I don't know how to do it. *)
+let find_syntaxes () = ["camlp4o"; "camlp4r"]
 
 (* ocamlfind command *)
 let ocamlfind x = S[A"ocamlfind"; x]
+
 
 let _ = dispatch begin function
    | Before_options ->         
@@ -47,7 +49,8 @@ let _ = dispatch begin function
 
    | After_rules ->
 
-       (* When one link an OCaml library/binary/package, one should use -linkpkg *)
+       (* When one link an OCaml library/binary/package, 
+        * one should use -linkpkg *)
        flag ["ocaml"; "link"] & A"-linkpkg";
 
        (* For each ocamlfind package one inject the -package option when
@@ -76,11 +79,9 @@ let _ = dispatch begin function
           To solve this, one approach is to add the "-thread" option when using
           the "threads" package using the previous plugin.
         *)
-(*       flag ["ocaml"; "pkg_pgocaml"; "pp"] (S[A "camlp4o"]);
-       flag ["ocaml"; "pkg_pgocaml"; "compile"] (S[A "-pgocaml -pgocaml.statement"]);
-       flag ["ocaml"; "pkg_pgocaml"; "link"] (S[A "-pgocaml"]); *)
        flag ["ocaml"; "pkg_threads"; "compile"] (S[A "-thread"]);
-       flag ["ocaml"; "pkg_threads"; "link"] (S[A "-thread"])
+       flag ["ocaml"; "pkg_threads"; "link"] (S[A "-thread"]);
+       flag ["ocaml"; "pkg_threads"; "infer_interface"] (S[A "-thread"])
 
    | _ -> ()
 end
