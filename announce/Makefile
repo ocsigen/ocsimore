@@ -4,7 +4,7 @@ PGOPTS=PGUSER=$(USER) PGPASSWORD=$(PASSWORD)
 PSQL=$(PGOPTS) psql
 LINK_PKG=ocsigen,pgocaml
 COMP_PKG=ocsigen,pgocaml
-COMP_FLAGS=-thread -I ..
+COMP_FLAGS=-thread -I .. -dtypes
 
 BINARIES=$(NAME).cma load.cma
 WEBSITE=xform.cmo \
