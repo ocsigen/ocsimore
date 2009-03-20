@@ -417,8 +417,8 @@ let _ =
     (fun wiki_id _ _ _ ->
        Wiki_sql.get_wiki_by_id wiki_id
        >>= fun wiki_info ->
-       let s = wiki_info.Wiki_sql.descr in
-       Lwt.return {{ {: s :} }});
+       let s =  wiki_info.Wiki_sql.descr in
+       Lwt.return {{ {: Ocamlduce.Utf8.make s :} }});
 
 
   add_a_content_extension "raw"
