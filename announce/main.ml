@@ -11,7 +11,7 @@ let _ =
     ~get_params:P.unit
     (fun sp () () ->
        Lwt.return
-         {{<html>[
+         {{<html xmlns="http://www.w3.org/1999/xhtml">[
              {:Common.head sp "":}
              <body>[<h1>{:str "":}
                     <ul>[

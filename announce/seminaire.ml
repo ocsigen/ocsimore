@@ -217,7 +217,8 @@ let create_event =
                 cat.cat_id start finish room location
                 persons title description comment status >>= fun id ->
              Lwt.return
-               {{<html>[{:Common.head sp "":}
+               {{<html xmlns="http://www.w3.org/1999/xhtml">
+                    [{:Common.head sp "":}
                          <body>[<p>{:(str (Format.sprintf "OK: %ld" id)):}]] }}));
   create_event
 
@@ -265,7 +266,8 @@ let edit_event =
                 Common.wiki_id Users.admin.Users.id
                 ev' desc comment persons >>= fun () ->
               Lwt.return
-                {{<html>[{:Common.head sp "":}
+                {{<html xmlns="http://www.w3.org/1999/xhtml">
+                     [{:Common.head sp "":}
                          <body>[<p>{:(str (Format.sprintf "OK")):}]] }}));
   edit_event
 

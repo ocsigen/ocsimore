@@ -138,7 +138,7 @@ object (self)
               self#display_login_widget ~sp ~sd () >>= fun lb ->
               Lwt.return
                 {{
-                   <html>[
+                   <html xmlns="http://www.w3.org/1999/xhtml">[
                      <head>[
                        <title>"Ocsimore login"
                          {: Eliom_duce.Xhtml.css_link 
@@ -412,7 +412,7 @@ object (self)
     ~sd:(_ : Ocsimore_common.session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     Lwt.return {{ 
-              <html>[
+              <html xmlns="http://www.w3.org/1999/xhtml">[
                 <head>[<title>"Ocsimore default login widget"]
                 <body>{: contents :}
               ]

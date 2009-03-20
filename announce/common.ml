@@ -93,7 +93,7 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
     ?admin:(Some false) ~page ()
   >>= fun css ->
   Lwt.return
-    ({{ <html>[ <head>[<title>title !css !headers] <body>[box] ] }} :
+    ({{ <html xmlns="http://www.w3.org/1999/xhtml">[ <head>[<title>title !css !headers] <body>[box] ] }} :
      {{ Xhtmltypes_duce.html }})
 
 (****)

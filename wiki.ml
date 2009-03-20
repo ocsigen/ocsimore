@@ -348,7 +348,7 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
            in
            Eliom_duce.Xhtml.send ~sp ~code
              {{
-                <html>[
+                <html xmlns="http://www.w3.org/1999/xhtml">[
                   <head>[
                     <title>title
                       !css
