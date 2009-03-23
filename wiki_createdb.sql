@@ -17,7 +17,6 @@ COMMENT ON COLUMN wikis.boxrights IS
   'True if each wikibox of the wiki has its own rights';
 
 
-
 ALTER TABLE public.wikis OWNER TO ocsimore;
 
 

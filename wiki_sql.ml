@@ -20,6 +20,7 @@
    @author Piero Furiesi
    @author Jaap Boender
    @author Vincent Balat
+   @author Boris Yakobowski
 *)
 
 open Opaque
