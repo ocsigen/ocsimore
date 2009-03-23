@@ -266,6 +266,7 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
            (* otherwise, we serve the wiki page: *)
            Lwt.catch
              (fun () ->
+                (* We render the wikibox for the page *)
                 Wiki_sql.get_box_for_page w.id page
                 >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
                           wikipage_wikibox = box; wikipage_title = title } ->
@@ -289,6 +290,8 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
              )
              (function
                 | Not_found ->
+                    (* No page. We create a default page, which will be
+                       inserted into the container *)
                     Users.get_user_id ~sp ~sd
                     >>= fun userid ->
                     let draw_form name =
@@ -320,6 +323,8 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
              )
            >>= fun (subbox, err_code, title) ->
            Wiki_syntax.set_page_displayable sd err_code;
+
+           (* We render the container *)
            let bi = { Wiki_syntax.bi_sp = sp;
                       Wiki_syntax.bi_sd = sd;
                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
@@ -327,11 +332,8 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
                       Wiki_syntax.bi_page = Some path;
                     }
            in
-           wikibox#editable_wikibox 
-             ~bi
-             ~data:(w.id, w.container_id)
-             ~cssmenu:None
-             ()
+           wikibox#editable_wikibox ~bi ~data:(w.id, w.container_id)
+             ~cssmenu:None ()
 
            >>= fun pagecontent ->
            wikibox#get_css_header ~bi ~wiki:w.id ~admin:false ~page ()
@@ -352,18 +354,11 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
                   <head>[
                     <title>title
                       !css
-    (*VVV quel titre ? quel layout de page ? *)
                    ]
                   <body>[ pagecontent ]
                 ]
               }}
   | e -> Lwt.fail e)
-
-
-
-
-
-
 
 
 
@@ -654,11 +649,10 @@ let save_wikibox ~sp ~sd ~wiki_id ~box_id ~content ~content_type =
 
 
 let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
-  get_role sp sd d >>= fun role ->
-  match role with
-    | Admin ->
-        let (addr, (addw, (adda, (addc, 
-                                  (delr, (delw, (dela, delc))))))) = rights in
+  get_role sp sd d >>= function
+   | Admin ->
+        let (addr, (addw, (adda, (addc, (delr, (delw, (dela, delc))))))) = rights
+        in
         Users.group_list_of_string addr >>= fun readers ->
         Wiki_sql.populate_readers wiki_id box_id readers >>= fun () ->
         Users.group_list_of_string addw >>= fun w ->
