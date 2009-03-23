@@ -257,13 +257,20 @@ class virtual editable_wikibox ?sp () =
               ) **
              Eliom_parameters.string "content")))
       (fun sp () (actionname, (((wiki_id, (box_id, boxversion)), content))) ->
-         if actionname = "save"
-         then
-           let sd = Ocsimore_common.get_sd sp in
-           Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
-           >>= fun content ->
-           Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content
-             ~content_type:Wiki_sql.Wiki
+         Wiki.modified_wikibox (wiki_id, box_id) boxversion
+         >>= fun modified ->
+         if actionname = "save" then
+           match modified with
+             | None ->
+                 let sd = Ocsimore_common.get_sd sp in
+                 Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
+                 >>= fun content ->
+                   Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content
+                     ~content_type:Wiki_sql.Wiki
+             | Some _ ->
+                 Eliom_predefmod.Action.send ~sp
+                   [Wiki.Wiki_action_info
+                      (Wiki.Preview ((wiki_id, box_id), (content, boxversion)))]
          else
            Eliom_predefmod.Action.send ~sp
              [Wiki.Wiki_action_info
@@ -478,7 +485,28 @@ object (self)
      (content, boxversion)
      =
      let sp = bi.Wiki_syntax.bi_sp in
-     let draw_form warning (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
+     Wiki.modified_wikibox (wiki_id, message_id) boxversion >>= (function
+       | Some curversion -> Lwt.return
+          (curversion,
+           {{ [ <em>['Warning: ']
+                'the content of this wikibox has been updated since you started \
+                 editing it. The preview and the code below reflect your \
+                 modifications, not the current saved version.'
+            <br>[] <br>[]
+            ]
+            }},
+           {{ [ <br>[]
+                <b> [ <em> ['Warning: ']
+                   'If you save your changes, you will overwrite the updated
+                    version of the page currently in the wiki.'
+              ]
+              <br>[]
+              ] }} )
+
+       | None -> Lwt.return (boxversion, {{ [] }}, {{ [] }})
+     ) >>= fun (curversion, warning1, warning2)  ->
+
+     let draw_form (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
        let f =
          {{ [
               {: Eliom_duce.Xhtml.user_type_input
@@ -492,7 +520,7 @@ object (self)
                 {: Eliom_duce.Xhtml.int32_input
                    ~input_type:{: "hidden" :}
                    ~name:wikiboxversion
-                   ~value:boxversion () :}
+                   ~value:curversion () :}
                 {: Eliom_duce.Xhtml.textarea
                    ~name:contentname
                    ~rows
@@ -502,9 +530,8 @@ object (self)
             ]
           }}
        in
-
        {{ [
-           <p>[!f !warning
+           <p>[!warning1 !f !warning2
                  !{:
                    let prev =
                      Eliom_duce.Xhtml.string_button
@@ -521,32 +548,11 @@ object (self)
                      ] :}
               ]] }}
      in
-     Wiki_sql.current_wikibox_version (wiki_id, message_id)
-     >>= (function
-            | None -> Lwt.return {{ [] }}
-            | Some curversion ->
-                Lwt.return
-                  (if curversion > boxversion then
-                     {{ [<br>[]
-                          <em>['Warning: ']
-                          'the content of this wikibox has been updated since \
-                            you started editing it \
-                            (the preview and the code above reflects your \
-                               modification, not the current version).'
-                         <br>[]
-                         'If you save your changes, you will overwrite the \
-                           updated version of the page.'
-                         <br>[]
-                        ] }}
-                   else {{ [] }}
-                  )
-         )
-     >>= fun warning ->
      Lwt.return
        (Eliom_duce.Xhtml.post_form
           ~a:{{ { accept-charset="utf-8" } }}
           ~service:action_send_wikibox
-          ~sp (draw_form warning) ()
+          ~sp draw_form ()
        )
 
    method display_full_edit_form

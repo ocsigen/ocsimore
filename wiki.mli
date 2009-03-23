@@ -227,7 +227,7 @@ val can_create_wikibox :
   sd:Ocsimore_common.session_data ->
   Wiki_sql.wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
 
-(** *)
+(** Operations on wikiboxes *)
 type wiki_errors =
   | Action_failed of exn
   | Operation_not_allowed
@@ -243,6 +243,12 @@ type wiki_action_info =
   | Delete_Box of (Wiki_sql.wiki * int32)
 
 exception Wiki_action_info of wiki_action_info
+
+(** [modified_wikibox box version] returns [Some curversion] iff the current
+    version [curversion] of [box] is greater than [version], [None]
+    otherwise *)
+val modified_wikibox: Wiki_sql.wiki * int32 -> Int32.t -> Int32.t option Lwt.t
+
 
 (** Administration wiki *)
 

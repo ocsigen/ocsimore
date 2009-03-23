@@ -672,6 +672,17 @@ let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
     | _ -> Lwt.return ()
 
 
+let modified_wikibox (wiki_id, wikibox_id) boxversion =
+  Wiki_sql.current_wikibox_version (wiki_id, wikibox_id)
+  >>= function
+    | None -> (* This case is not supposed to happen *)
+        Lwt.return None
+    | Some curversion ->
+        if curversion > boxversion then
+          Lwt.return (Some curversion)
+        else
+          Lwt.return None
+
 
 (* Information related to the administration wiki; caution when
    changing this. See mli *)
