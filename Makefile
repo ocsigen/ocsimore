@@ -18,16 +18,16 @@ OCSIMORE_SRC1 = opaque.ml polytables.ml cache.ml language.ml	\
         ocsimore_config.ml parse_config.ml ocsimore_common.ml	\
         ocsimore_lib.ml
 OCSIMORE_SRC2 = user_cache.ml users.ml
-OCSIMORE_SRC3 = forum.ml ocsimore_nis.ml session_manager.ml widget.ml \
+OCSIMORE_SRC3 = ocsimore_nis.ml session_manager.ml widget.ml \
 	wikicreole.ml wiki_filter.ml wiki_syntax.ml \
 	wiki.ml wiki_widgets.ml \
-        user_widgets.ml forum_widgets.ml \
+        user_widgets.ml \
         dyngroups.ml $(PAM)
 
 OCSIMORE_OTHER_SRC = ocsisite.ml ocsicreatewiki.ml wikiperso.ml
 
 OCSIMORE_SQL1 = sql.ml user_sql.ml
-OCSIMORE_SQL2 = forum_sql.ml wiki_sql.ml
+OCSIMORE_SQL2 = wiki_sql.ml
 
 OCSIMORE_SRC = $(OCSIMORE_SRC1) $(OCSIMORE_SQL1) $(OCSIMORE_SRC2) \
                $(OCSIMORE_SQL2) $(OCSIMORE_SRC3)
@@ -38,7 +38,7 @@ OCSIMORE_SQL = $(OCSIMORE_SQL1) $(OCSIMORE_SQL2)
 
 # services.ml
 OCSIMORE_MLI = $(OCSIMORE_SRC:.ml=.mli)
-#widget.mli forum_widgets.mli forum.mli \
+#widget.mli \
 #	session_manager.mli setOfSets.mli users.mli user_widgets.mli \
 #	wiki.mli wiki_parser.mli wiki_widgets.mli
 #services.mli 
