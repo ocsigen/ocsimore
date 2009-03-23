@@ -4,7 +4,7 @@
 open Ocsimore_lib
 open CalendarLib
 
-module PGOCaml : PGOCaml_generic.PGOCAML_GENERIC with type 'a thread = 'a Lwt.t
+module PGOCaml : PGOCaml_generic.PGOCAML_GENERIC with type 'a monad = 'a Lwt.t
 
 
 type db_t = PGOCaml.pa_pg_data PGOCaml.t
