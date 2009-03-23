@@ -77,20 +77,6 @@ class virtual editable_wikibox :
     inherit Widget.widget_with_error_box
     inherit noneditable_wikibox
 
-    method display_edit_box :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
-
-    method display_edit_perm :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
-
     method display_edit_form :
       bi:Wiki_syntax.box_info ->
       ?rows:int ->
@@ -110,25 +96,11 @@ class virtual editable_wikibox :
       Wiki_sql.wiki * int32 ->
       Xhtmltypes_duce.flows Lwt.t
 
-    method display_editable_box :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
-
     method display_history :
       bi:Wiki_syntax.box_info ->
       Wiki_sql.wiki * int32 ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
       Xhtmltypes_duce.flows Lwt.t
-
-    method display_history_box :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_menu_box :
       classe:string list ->
@@ -137,22 +109,6 @@ class virtual editable_wikibox :
       ?title:string ->
       bi:Wiki_syntax.box_info ->
       Wiki_sql.wiki * int32 ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
-
-    method display_old_wikibox :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
-
-    method display_src_wikibox :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method editable_wikibox :
@@ -173,12 +129,6 @@ class virtual editable_wikibox :
       ?cssmenu:string option ->
       unit -> (Xhtmltypes_duce.block * bool) Lwt.t
 
-    method private retrieve_history :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      unit ->
-      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list Lwt.t
-
     method retrieve_old_wikibox_content :
       bi:Wiki_syntax.box_info ->
       Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
@@ -191,14 +141,6 @@ class virtual editable_wikibox :
       Ocamlduce.Utf8.repr ->
       Xhtmltypes_duce.flows Lwt.t
 
-    method display_edit_css_box :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      string ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
-
     method edit_css_box :
       bi:Wiki_syntax.box_info ->
       data:Wiki_sql.wiki * string ->
@@ -206,13 +148,6 @@ class virtual editable_wikibox :
       ?cols:int ->
       ?classe:string list ->
       unit -> Xhtmltypes_duce.block Lwt.t
-
-    method display_edit_wikicss_box :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 ->
-      classe:string list ->
-      ?cssmenu:string option ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method display_edit_wikicss_form :
       bi:Wiki_syntax.box_info ->

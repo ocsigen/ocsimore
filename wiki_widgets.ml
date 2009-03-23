@@ -158,7 +158,8 @@ type menu_item =
 
 
 class virtual editable_wikibox ?sp () =
-  (* The registration must be done during site loading, nor before! *)
+  (* The registration of the services below must be done during site loading,
+     not before! *)
 
   let service_edit_wikibox =
     Eliom_services.new_service ?sp
@@ -394,78 +395,61 @@ object (self)
     | Wiki.Operation_not_allowed -> "Operation not allowed"
     | Wiki.Action_failed _ -> "Action failed"
 
-   method private box_menu ~sp ?(perm = false) ?cssmenu ?service
-     ?(title = "")
-     ((wiki, _) as ids) =
-     let history = Eliom_services.preapply action_wikibox_history ids
-     and edit = Eliom_services.preapply action_edit_wikibox ids
-     and delete = Eliom_services.preapply action_delete_wikibox ids
-     and edit_perm = Eliom_services.preapply action_edit_wikibox_permissions ids
-     in
-     let view = Eliom_services.void_coservice' in
-     let edit_css =
-       match cssmenu with
-         | Some (Some page) ->
-             let cssedit = Eliom_services.preapply
-               service_edit_css (wiki, page)
-             in
-             (Some (cssedit, (cssedit, {{ "edit page css" }})))
-         | Some None ->
-             let cssedit = Eliom_services.preapply
-               service_edit_wikicss wiki
-             in
-             (Some (cssedit, (cssedit, {{ "edit wiki css" }})))
-         | None -> None
-     in
-     let service =
-       match service with
-         | None -> None
-         | Some current ->
-             if current == View
-             then Some view
-             else
-               if current == Edit
-               then Some edit
-               else
-                 if current == Edit_perm
-                 then Some edit_perm
-                 else
-                   match edit_css with
-                     | Some (edit_css, _) ->
-                         if current == Edit_css
-                         then Some edit_css
-                         else Some history
-                     | None -> Some history
-     in
-     let l =
-       [ (delete, {{ "delete" }});
-         (edit, {{ "edit" }});
-         (view, {{ "view" }});
+  method private box_menu ~sp ?(perm = false) ?cssmenu ?service ?(title = "") ((wiki, _) as ids) =
+    let history = Eliom_services.preapply action_wikibox_history ids
+    and edit = Eliom_services.preapply action_edit_wikibox ids
+    and delete = Eliom_services.preapply action_delete_wikibox ids
+    and edit_perm = Eliom_services.preapply action_edit_wikibox_permissions ids
+    in
+    let view = Eliom_services.void_coservice' in
+    let edit_css =
+      match cssmenu with
+        | Some (Some page) ->
+            let cssedit = Eliom_services.preapply
+              service_edit_css (wiki, page)
+            in
+            (Some (cssedit, (cssedit, {{ "edit page css" }})))
+        | Some None ->
+            let cssedit = Eliom_services.preapply
+              service_edit_wikicss wiki
+            in
+            (Some (cssedit, (cssedit, {{ "edit wiki css" }})))
+        | None -> None
+    in
+    let service = match service with
+      | None -> None
+      | Some View -> Some view
+      | Some Edit -> Some edit
+      | Some Edit_perm -> Some edit_perm
+      | Some Edit_css ->
+          (match edit_css with
+             | Some (edit_css, _) -> Some edit_css
+             | None -> None
+          )
+      | Some History -> Some history
+    in
+    let l = [
+      (delete, {{ "delete" }});
+      (edit, {{ "edit" }});
+      (view, {{ "view" }});
+    ] in
+    let l =
+      if perm
+      then (edit_perm, {{ "edit permissions" }})::l
+      else l
+    in
+    let l = match edit_css with
+      | Some (_, mi) -> mi::l
+      | None -> l
+    in
+    let title = Ocamlduce.Utf8.make title in
+    {{ [ {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
+            (history, {{ "history" }}) l ?service :}
+         <p class={: box_title_class :}>title
        ]
-     in
-     let l =
-       if perm
-       then (edit_perm, {{ "edit permissions" }})::l
-       else l
-     in
-     let l = match edit_css with
-       | Some (_, mi) -> mi::l
-       | None -> l
-     in
-     let title = Ocamlduce.Utf8.make title in
-     {{ [ {: Eliom_duce_tools.menu
-             ~sp
-             ~classe:[box_button_class]
-             (history, {{ "history" }})
-             l
-             ?service
-             :}
-          <p class={: box_title_class :}>title
-        ]
-      }}
+     }}
 
-   method display_menu_box
-     ~classe ?service ?cssmenu ?title ~bi ids content =
+   method display_menu_box ~classe ?service ?cssmenu ?title ~bi ids content =
      let sp = bi.Wiki_syntax.bi_sp in
      let sd = bi.Wiki_syntax.bi_sd in
      let classe = Ocsimore_lib.build_class_attr classe in
@@ -476,16 +460,10 @@ object (self)
             !{: self#box_menu ~sp ~perm ?cssmenu ?service ?title ids :}
             <div>content ]}}
 
-   method display_edit_form
-     ~bi
-     ?(rows=25)
-     ?(cols=80)
-     ~previewonly
-     (wiki_id, message_id)
-     (content, boxversion)
-     =
+   (* Wikibox in editing mode *)
+   method display_edit_form ~bi ?(rows=25) ?(cols=80) ~previewonly (wiki_id, message_id as wikibox) (content, boxversion) =
      let sp = bi.Wiki_syntax.bi_sp in
-     Wiki.modified_wikibox (wiki_id, message_id) boxversion >>= (function
+     Wiki.modified_wikibox wikibox boxversion >>= (function
        | Some curversion -> Lwt.return
           (curversion,
            {{ [ <em>['Warning: ']
@@ -509,60 +487,37 @@ object (self)
      let draw_form (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
        let f =
          {{ [
-              {: Eliom_duce.Xhtml.user_type_input
-                 ~input_type:{: "hidden" :}
-                 ~name:wikiidname
-                 ~value:wiki_id Wiki_sql.wiki_id_s :}
-                {: Eliom_duce.Xhtml.int32_input
-                   ~input_type:{: "hidden" :}
-                   ~name:boxidname
-                   ~value:message_id () :}
-                {: Eliom_duce.Xhtml.int32_input
-                   ~input_type:{: "hidden" :}
-                   ~name:wikiboxversion
-                   ~value:curversion () :}
-                {: Eliom_duce.Xhtml.textarea
-                   ~name:contentname
-                   ~rows
-                   ~cols
-                   ~value:(Ocamlduce.Utf8.make content) () :}
+              {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
+                 ~name:wikiidname ~value:wiki_id Wiki_sql.wiki_id_s :}
+              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                 ~name:boxidname ~value:message_id () :}
+              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                 ~name:wikiboxversion ~value:curversion () :}
+              {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
+                 ~value:(Ocamlduce.Utf8.make content) () :}
               <br>[]
             ]
           }}
        in
        {{ [
            <p>[!warning1 !f !warning2
-                 !{:
-                   let prev =
-                     Eliom_duce.Xhtml.string_button
-                       ~name:actionname
-                       ~value:"preview" {{ "Preview" }}
+               !{: let prev = Eliom_duce.Xhtml.string_button
+                     ~name:actionname ~value:"preview" {{ "Preview" }}
                    in
-                   if previewonly
-                   then [prev]
+                   if previewonly then [prev]
                    else
                      [prev;
-                      Eliom_duce.Xhtml.string_button
-                        ~name:actionname
+                      Eliom_duce.Xhtml.string_button ~name:actionname
                         ~value:"save" {{ "Save" }}
                      ] :}
               ]] }}
      in
      Lwt.return
-       (Eliom_duce.Xhtml.post_form
-          ~a:{{ { accept-charset="utf-8" } }}
-          ~service:action_send_wikibox
-          ~sp draw_form ()
-       )
+       (Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+          ~service:action_send_wikibox ~sp draw_form ())
 
-   method display_full_edit_form
-     ~bi
-     ?rows
-     ?cols
-     ~previewonly
-     (wiki_id, message_id)
-     (content, boxversion)
-     =
+   (* Wikibox in editing mode, with an help box on the syntax of the wiki *)
+   method display_full_edit_form ~bi ?rows ?cols ~previewonly (wiki_id, message_id) (content, boxversion) =
      Wiki.get_admin_wiki () >>= fun admin_wiki ->
      self#bind_or_display_error
        ~classe:["wikihelp"]
@@ -570,21 +525,14 @@ object (self)
        (self#pretty_print_wikisyntax ~wiki:admin_wiki ~bi)
        (self#display_noneditable_box)
      >>= fun b ->
-     self#display_edit_form
-       ~bi
-       ?rows
-       ?cols
-       ~previewonly
-       (wiki_id, message_id)
-       (content, boxversion)
+       self#display_edit_form ~bi ?rows ?cols ~previewonly
+         (wiki_id, message_id) (content, boxversion)
      >>= fun f ->
      Lwt.return {{ [ b f ] }}
 
 
-   method display_edit_perm_form
-     ~bi
-     ((wiki_id, message_id) as ids)
-     =
+   (* Edition of the permissions of a wiki *)
+   method display_edit_perm_form ~bi ((wiki_id, message_id) as ids) =
      let sp = bi.Wiki_syntax.bi_sp in
      let aux u =
        Ocsimore_lib.lwt_bind_opt
@@ -609,145 +557,87 @@ object (self)
      let a = Ocsimore_lib.string_of_string_opt a in
      let c = Ocsimore_lib.string_of_string_opt c in
 
-     let draw_form
-         ((wikiidname, boxidname),
-          (addrn, (addwn, (addan, (addc,
-                                   (delrn, (delwn, (delan, delc)))))))) =
-           {{ [<p>[
-                  {: Eliom_duce.Xhtml.user_type_input
-                     ~input_type:{: "hidden" :}
-                     ~name:wikiidname
-                     ~value:wiki_id Wiki_sql.wiki_id_s :}
-                    {: Eliom_duce.Xhtml.int32_input
-                       ~input_type:{: "hidden" :}
-                       ~name:boxidname
-                       ~value:message_id () :}
-                  'Users who can read this wiki box: '
-                    !{: r :}
-                  <br>[]
-                    'Add readers: '
-                    {: Eliom_duce.Xhtml.string_input
-                       ~input_type:{: "text" :}
-                       ~name:addrn
-                       () :}
-                  <br>[]
-                    'Remove readers: '
-                    {: Eliom_duce.Xhtml.string_input
-                       ~input_type:{: "text" :}
-                       ~name:delrn
-                       () :}
-                  <br>[]
-                    'Users who can modify this wiki box: '
-                    !{: w :}
-                  <br>[]
-                    'Add writers: '
-                    {: Eliom_duce.Xhtml.string_input
-                       ~input_type:{: "text" :}
-                       ~name:addwn
-                       () :}
-                  <br>[]
-                    'Remove writers: '
-                    {: Eliom_duce.Xhtml.string_input
-                       ~input_type:{: "text" :}
-                       ~name:delwn
-                       () :}
-                  <br>[]
-                    'Users who can change rights of this wiki box: '
-                      !{: a :}
-                      <br>[]
-                      'Add: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:addan
-                         () :}
-                      <br>[]
-                      'Remove: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:delan
-                         () :}
-                      <br>[]
-                      'Users who can create wikiboxes inside this wiki box: '
-                      !{: c :}
-                      <br>[]
-                      'Add: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:addc
-                         () :}
-                      <br>[]
-                      'Remove: '
-                      {: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "text" :}
-                         ~name:delc
-                         () :}
-                      <br>[]
-                      {:
-                         Eliom_duce.Xhtml.button
-                         ~button_type:{: "submit" :}
-                         {{ "Save" }}
-                         :}
-                ]
-              ]
-            }}
-
+     let string_input arg =
+       Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+     let draw_form ((wid, bid), (addrn, (addwn, (addan, (addc, (delrn, (delwn, (delan, delc)))))))) =
+       {{ [<p>[
+            {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
+               ~name:wid ~value:wiki_id Wiki_sql.wiki_id_s :}
+            {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+               ~name:bid ~value:message_id () :}
+            'Users who can read this wiki box: ' !{: r :}  <br>[]
+            'Add readers: '    {: string_input addrn :} <br>[]
+            'Remove readers: ' {: string_input delrn :} <br>[]
+            'Users who can modify this wiki box: ' !{: w :} <br>[]
+            'Add writers: '    {: string_input addwn :} <br>[]
+            'Remove writers: ' {: string_input delwn :} <br>[]
+            'Users who can change rights of this wiki box: ' !{: a :} <br>[]
+            'Add: '            {: string_input addan :} <br>[]
+            'Remove: '         {: string_input delan :} <br>[]
+            'Users who can create wikiboxes inside this wiki box: ' !{: c:} <br>[]
+            'Add: '            {: string_input addc :}  <br>[]
+            'Remove: '         {: string_input delc :}  <br>[]
+            {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :} {{ "Save" }} :}
+            ]
+          ]
+        }}
      in
      Lwt.return
-       {{[
-           {:
-              Eliom_duce.Xhtml.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:action_send_wikibox_permissions
-              ~sp draw_form ()
-              :}]
-        }}
+       {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wikibox_permissions ~sp draw_form () :}] }}
 
+   (* Auxiliary method to factorize some code *)
+   method private display_menu_box_aux ?title ?service cl (wid, bid) ~bi ~classe ?cssmenu content =
+     self#display_menu_box ~classe:(cl::classe) ?service ?title
+       ~bi ?cssmenu (wid, bid) content
 
-
-   method display_edit_box
-     ~bi
-     ((w, b) as ids)
-     ~classe
-     ?cssmenu
-     content
-     =
-     let title = "Edit - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b in
-     self#display_menu_box
-       ~classe:(editform_class::classe)
-       ~service:Edit
-       ~title
-       ~bi
-       ?cssmenu
-       ids
-       content
-
-   method display_edit_perm
-     ~bi
-     ((w, b) as ids)
-     ~classe
-     ?cssmenu
-     content
-     =
-     let title = "Permissions - Wiki "^Wiki_sql.wiki_id_s w^
-       ", box "^Int32.to_string b
+   method private display_edit_box (w, b as wb) =
+     let title = Printf.sprintf "Edit - Wiki %s, box %ld"
+       (Wiki_sql.wiki_id_s w) b
      in
-     self#display_menu_box
-       ~classe:(editform_class::classe)
-       ~service:Edit_perm
-       ~title
-       ~bi
-       ?cssmenu
-       ids
-       content
+     self#display_menu_box_aux ~title ~service:Edit editform_class wb
 
-   method display_editable_box ~bi ids ~classe ?cssmenu content =
-     self#display_menu_box
-       ~classe:(editable_class::classe)
-       ~service:View
-       ~bi
-       ?cssmenu
-       ids
-       content
+   method private display_edit_perm (w, b as wb) =
+     let title = Printf.sprintf "Permissions - Wiki %s, box %ld"
+       (Wiki_sql.wiki_id_s w) b
+     in
+     self#display_menu_box_aux ~title ~service:Edit_perm editform_class wb
+
+   method private display_history_box (w, b as wb) =
+     let title = Printf.sprintf "History - Wiki %s, box %ld"
+       (Wiki_sql.wiki_id_s w) b
+     in
+     self#display_menu_box_aux ~title ~service:History history_class wb
+
+   method private display_editable_box =
+     self#display_menu_box_aux ~service:View editable_class
+
+   method private display_old_wikibox (w, b as wb) version =
+     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"
+       (Wiki_sql.wiki_id_s w) b version
+     in
+     self#display_menu_box_aux ~title oldwikibox_class wb
+
+   method private display_src_wikibox (w, b as wb) version =
+     let title = Printf.sprintf "Source - Wiki %s, box %ld, version %ld"
+       (Wiki_sql.wiki_id_s w) b version
+     in
+     self#display_menu_box_aux ~title srcwikibox_class wb
+
+   method private display_edit_css_box ((w, _) as wb) page =
+     let title = Printf.sprintf "CSS for wiki %s, %s"
+       (Wiki_sql.wiki_id_s w) (if page = "" then "main page" else "page " ^ page)
+     in
+     self#display_menu_box_aux ~title ~service:Edit_css css_class wb
+
+   method private display_edit_wikicss_box ((w, _) as wb) =
+     let title = Printf.sprintf "CSS for wiki %s (global stylesheet)"
+       (Wiki_sql.wiki_id_s w)
+     in
+     self#display_menu_box_aux ~title ~service:Edit_css css_class wb
+
+
+
 
    method retrieve_old_wikibox_content ~bi:_ ids version =
      Wiki_sql.get_wikibox_data ~version ~wikibox:ids ()
@@ -761,29 +651,6 @@ object (self)
              | Wiki_sql.Deleted ->
                  Lwt.return "At this date, this page was deleted"
 
-   method display_old_wikibox ~bi
-     ((w, b) as ids) version ~classe ?cssmenu content =
-     let title = "Old version - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b^
-       ", version "^Int32.to_string version in
-     self#display_menu_box
-       ~classe:(oldwikibox_class::classe)
-       ~title
-       ~bi
-       ?cssmenu
-       ids
-       content
-
-   method display_src_wikibox ~bi ((w, b) as ids)
-     version ~classe ?cssmenu content =
-     let title = "Source - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b^
-       ", version "^Int32.to_string version in
-     self#display_menu_box
-       ~classe:(srcwikibox_class::classe)
-       ~bi
-       ?cssmenu
-       ~title
-       ids
-       content
 
    method private retrieve_history ~bi:_ (wiki_id, message_id) () =
      Wiki_sql.get_history wiki_id message_id
@@ -794,66 +661,19 @@ object (self)
        (fun (version, _comment, author, date) ->
           Users.get_user_name_by_id author >>= fun author ->
           Lwt.return
-            {{ [
-                 !{: Int32.to_string version :}
-                   '. '
-                   !{: CalendarLib.Printer.Calendar.to_string date :}
-                   ' '
-                 <em>[ 'by ' !{: author :} ]
-                   ' '
-                   {:
-                      Eliom_duce.Xhtml.a
-                      ~service:action_old_wikibox
-                      ~sp
-                      {{ "view" }}
-                      (ids, version)
-                      :}
-                   ' ('
-                        {:
-                           Eliom_duce.Xhtml.a
-                           ~service:action_src_wikibox
-                           ~sp
-                           {{ "source" }}
-                           (ids, version)
-                           :}
-                        ')'
-                      <br>[]
-                     ]
-               }})
-            l
-            >>= fun l ->
-     Lwt.return {{ map {: l :} with i -> i
-        }}
-(*       {{ map
-            {: List.map
-               (fun (version, comment, author, date) ->
-                  {{ {: Int32.to_string version :} }})
-               l
-               :}
-          with i ->
-            [ {: Eliom_duce.Xhtml.a
-                 ~service:action_old_wikibox
-                 ~sp
-                 i
-                 (ids, Int32.of_string {: i :})
-(*VVV How to get version without converting back!!! *)
-                 :}
-              <br>[] ]
-        }}
-*)
-
-   method display_history_box ~bi ((w, b) as ids) ~classe ?cssmenu content =
-     let title =
-       "History - Wiki "^Wiki_sql.wiki_id_s w^", box "^Int32.to_string b
-     in
-     self#display_menu_box
-       ~classe:(history_class::classe)
-       ~service:History
-       ~title
-       ~bi
-       ?cssmenu
-       ids
-       content
+            {{ [ !{: Int32.to_string version :}'. '
+                   !{: CalendarLib.Printer.Calendar.to_string date :}' '
+                 <em>[ 'by ' !{: author :} ]' '
+                 {:  Eliom_duce.Xhtml.a ~service:action_old_wikibox
+                      ~sp {{ "view" }} (ids, version) :}
+                   ' ''(' {: Eliom_duce.Xhtml.a ~service:action_src_wikibox
+                             ~sp {{ "source" }} (ids, version) :} ')'
+                 <br>[]
+               ]
+             }})
+       l
+     >>= fun l ->
+     Lwt.return {{ map {: l :} with i -> i }}
 
 
    (* Display a wikibox, plus some potentials actions on the wikibox, which
@@ -1048,78 +868,25 @@ object (self)
      >>= fun (r, _allowed) -> Lwt.return r
 
 
-   method display_edit_css_form
-     ~bi
-     ?(rows=25)
-     ?(cols=80)
-     ~data:(wiki_id, page)
-     (content : string)
-     =
+   method display_edit_css_form ~bi ?(rows=25) ?(cols=80) ~data:(wiki_id, page) content =
      let sp = bi.Wiki_syntax.bi_sp in
      let draw_form ((wikiidname, pagename), contentname) =
        {{ [<p>[
-              {: Eliom_duce.Xhtml.user_type_input
-                 ~input_type:{: "hidden" :}
-                 ~name:wikiidname
-                 ~value:wiki_id Wiki_sql.wiki_id_s :}
-                {: Eliom_duce.Xhtml.string_input
-                   ~input_type:{: "hidden" :}
-                   ~name:pagename
-                   ~value:page () :}
-                {: Eliom_duce.Xhtml.textarea
-                   ~name:contentname
-                   ~rows
-                   ~cols
-                   ~value:(Ocamlduce.Utf8.make content) () :}
-              <br>[]
-                 {:
-                    Eliom_duce.Xhtml.button
-                    ~button_type:{{ "submit" }}
-                      {{ "Save" }}
-                    :}
-              ]] }}
+            {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
+               ~name:wikiidname ~value:wiki_id Wiki_sql.wiki_id_s :}
+            {: Eliom_duce.Xhtml.string_input ~input_type:{: "hidden" :}
+               ~name:pagename ~value:page () :}
+            {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
+               ~value:(Ocamlduce.Utf8.make content) () :}
+            <br>[]
+            {: Eliom_duce.Xhtml.button ~button_type:{{ "submit" }} {{ "Save" }} :}
+            ]] }}
      in
      Lwt.return
-       {{[
-           {:
-              Eliom_duce.Xhtml.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:action_send_css
-              ~sp draw_form ()
-              :}]
-        }}
+       {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_css ~sp draw_form () :}] }}
 
-
-   method display_edit_css_box
-     ~bi
-     ((w, _) as ids)
-     page
-     ~classe
-     ?cssmenu
-     content
-     =
-     let title = "CSS for wiki "^Wiki_sql.wiki_id_s w^
-       (if page = ""
-        then ", main page"
-        else ", page "^page)
-     in
-     self#display_menu_box
-       ~classe:(css_class::editable_class::classe)
-       ~service:Edit_css
-       ~title
-       ~bi
-       ?cssmenu
-       ids
-       content
-
-   method edit_css_box
-     ~bi
-     ~data
-     ?rows
-     ?cols
-     ?(classe=[])
-     ()
-     =
+   method edit_css_box ~bi ~data ?rows ?cols ?(classe=[]) ()  =
      let sp = bi.Wiki_syntax.bi_sp in
      let sd = bi.Wiki_syntax.bi_sd in
      let (wiki, page) = data in
@@ -1128,92 +895,35 @@ object (self)
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
      Wiki_sql.get_box_for_page wiki page
      >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
-     self#bind_or_display_error
-       ~classe
-       (if c
-        then
+     self#bind_or_display_error ~classe
+       (if c then
           Lwt.catch
             (fun () ->
-               Wiki_sql.get_css_for_page wiki page (* The css exists *)
-            )
+               Wiki_sql.get_css_for_page wiki page (* The css exists *))
             (function
                | Not_found -> Lwt.return ""
-               | e -> Lwt.fail e
-            )
+               | e -> Lwt.fail e)
         else Lwt.fail Not_css_editor)
        (self#display_edit_css_form ~bi ?rows ?cols ~data)
-       (self#display_edit_css_box ~bi ~cssmenu:(Some page)
-          (wiki', box) page)
+       (self#display_edit_css_box ~bi ~cssmenu:(Some page) (wiki', box) page)
 
-
-
-   method display_edit_wikicss_box
-     ~bi
-     ((w, _) as ids)
-     ~classe
-     ?cssmenu
-     content
-     =
-     let title = "CSS for wiki "^Wiki_sql.wiki_id_s w^
-       " (global stylesheet)"
-     in
-     self#display_menu_box
-       ~classe:(css_class::editable_class::classe)
-       ~service:Edit_css
-       ~title
-       ~bi
-       ?cssmenu
-       ids
-       content
-
-
-   method display_edit_wikicss_form
-     ~bi
-     ?(rows=25)
-     ?(cols=80)
-     ~wiki
-     (content : string)
-     =
+   method display_edit_wikicss_form ~bi ?(rows=25) ?(cols=80) ~wiki (content : string) =
      let sp = bi.Wiki_syntax.bi_sp in
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
-              {: Eliom_duce.Xhtml.user_type_input
-                 ~input_type:{: "hidden" :}
-                 ~name:wikiidname
-                 ~value:wiki Wiki_sql.wiki_id_s :}
-                {: Eliom_duce.Xhtml.textarea
-                   ~name:contentname
-                   ~rows
-                   ~cols
-                   ~value:(Ocamlduce.Utf8.make content) () :}
-              <br>[]
-                 {:
-                    Eliom_duce.Xhtml.button
-                    ~button_type:{{ "submit" }}
-                      {{ "Save" }}
-                    :}
-              ]] }}
+            {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
+               ~name:wikiidname ~value:wiki Wiki_sql.wiki_id_s :}
+            {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
+               ~value:(Ocamlduce.Utf8.make content) () :}
+            <br>[]
+            {: Eliom_duce.Xhtml.button ~button_type:{{ "submit" }} {{ "Save" }} :}
+            ]] }}
      in
      Lwt.return
-       {{[
-           {:
-              Eliom_duce.Xhtml.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:action_send_wiki_css
-              ~sp draw_form ()
-              :}]
-        }}
+       {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wiki_css ~sp draw_form () :}] }}
 
-
-
-   method edit_wikicss_box
-     ~bi
-     ~wiki
-     ?rows
-     ?cols
-     ?(classe=[])
-     ()
-     =
+   method edit_wikicss_box ~bi ~wiki ?rows ?cols ?(classe=[]) () =
      let sp = bi.Wiki_syntax.bi_sp in
      let sd = bi.Wiki_syntax.bi_sd in
      Users.get_user_id ~sp ~sd >>= fun userid ->
@@ -1307,16 +1017,21 @@ object (self)
 
    initializer
      begin
-       (* BY: Helper function, which factorizes a bot of code. Very mysterious:
+       (* BY: Helper functions, which factorizes a bot of code. Some of them
+          (eg. extract_wiki_id) are very mysterious:
           - I believe there is always a field "wiki" present, so the
             exception handler is useless
           - Why do we need to extract this value since we have a default ?
        *)
        let extract_wiki_id args default =
-         try
-           Wiki_sql.s_wiki_id (List.assoc "wiki" args)
-         with
-           | Failure _ | Not_found -> default
+         try Wiki_sql.s_wiki_id (List.assoc "wiki" args)
+         with Failure _ | Not_found -> default
+       and extract_https args =
+         try match List.assoc "protocol" args with
+           | "http" -> Some false
+           | "https" -> Some true
+           | _ -> None
+         with Not_found -> None
        in
 
        Wiki_syntax.add_block_extension "wikibox"
@@ -1325,21 +1040,17 @@ object (self)
               let wiki = extract_wiki_id args wiki_id in
               try
                 let box = Int32.of_string (List.assoc "box" args) in
-                if Wiki_syntax.in_ancestors
-                  (wiki, box) bi.Wiki_syntax.bi_ancestors
+                if Wiki_syntax.in_ancestors(wiki, box) bi.Wiki_syntax.bi_ancestors
                 then
-                  let b =
-                    self#display_error_box
-                      ~message:"Wiki error: loop of wikiboxes" ()
-                  in
-                  Lwt.return {{ [ b ] }}
+                  Lwt.return {{ [ {: self#display_error_box
+                              ~message:"Wiki error: loop of wikiboxes" () :} ] }}
                 else begin
                   (match c with
                      | None -> Lwt.return None
                      | Some c ->
-                         Wiki_syntax.xml_of_wiki
-                           wiki_id bi c >>= fun r ->
-                         Lwt.return (Some r)) >>= fun subbox ->
+                         Wiki_syntax.xml_of_wiki wiki_id bi c
+                         >>= fun r -> Lwt.return (Some r)
+                  ) >>=fun subbox ->
                   self#editable_wikibox
                     ?rows:(Ocsimore_lib.int_of_string_opt
                              (Ocsimore_lib.list_assoc_opt "rows" args))
@@ -1350,21 +1061,20 @@ object (self)
                     ~data:(wiki, box)
                     ~bi:{bi with
                            Wiki_syntax.bi_ancestors =
-                        Wiki_syntax.add_ancestor 
+                        Wiki_syntax.add_ancestor
                           (wiki, box) bi.Wiki_syntax.bi_ancestors;
                            Wiki_syntax.bi_subbox = subbox}
-                    () >>= fun b ->
+                    ()
+                  >>= fun b ->
                   Lwt.return {{ [ b ] }}
                 end
               with Not_found ->
                 Lwt.return {{ [ <code>"<<wikibox>>" ] }}
             with
               | Failure _ ->
-                  let b =
-                    self#display_error_box
-                      ~message:"Wiki error: error in wikibox extension" ()
-                  in
-                  Lwt.return {{ [ b ] }});
+                  Lwt.return {{ [ {: self#display_error_box
+                    ~message:"Wiki error: error in wikibox extension" () :} ] }}
+         );
 
        Wiki_filter.add_preparser_extension "wikibox"
          (fun wiki_id (sp, sd, father) args c ->
@@ -1403,29 +1113,14 @@ object (self)
                 end
                 else Lwt.return None
             with Failure _ -> Lwt.return None)
-
          );
 
        Wiki_syntax.add_link_extension "link"
         (fun wiki_id bi args c ->
            let sp = bi.Wiki_syntax.bi_sp in
-           let href =
-             try
-               List.assoc "page" args
-             with Not_found -> ""
-           in
+           let href = Ocsimore_lib.list_assoc_default "page" args "" in
            let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-           let https =
-             try
-               let a = List.assoc "protocol" args in
-               if a = "http"
-               then Some false
-               else
-                 if a = "https"
-                 then Some true
-                 else None
-             with Not_found -> None
-           in
+           let https = extract_https args in
            let wiki_id = extract_wiki_id args wiki_id in
            let content =
              match c with
@@ -1457,35 +1152,17 @@ object (self)
        Wiki_syntax.add_link_extension "nonattachedlink"
         (fun wiki_id bi args c ->
            let sp = bi.Wiki_syntax.bi_sp in
-           let href =
-             try
-               List.assoc "page" args
-             with Not_found -> ""
-           in
+           let href = Ocsimore_lib.list_assoc_default "page" args "" in
            let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-           let https =
-             try
-               let a = List.assoc "protocol" args in
-               if a = "http"
-               then Some false
-               else
-                 if a = "https"
-                 then Some true
-                 else None
-             with Not_found -> None
-           in
+           let https = extract_https args in
            let wiki_id = extract_wiki_id args wiki_id in
            let content =
                match c with
                  | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
                  | None -> Lwt.return (Ocamlduce.Utf8.make href)
            in
-           ((Eliom_duce.Xhtml.make_uri
-               ?https
-               ?fragment
-               ~service:(Wiki_syntax.find_naservpage wiki_id)
-               ~sp
-               href
+           ((Eliom_duce.Xhtml.make_uri ?https ?fragment
+               ~service:(Wiki_syntax.find_naservpage wiki_id) ~sp href
             ),
             args,
             content)
@@ -1498,10 +1175,8 @@ object (self)
                  | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
                  | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
            in
-           ((Eliom_duce.Xhtml.make_uri
-               ~service:Eliom_services.void_coservice'
-               ~sp:bi.Wiki_syntax.bi_sp
-               ()
+           ((Eliom_duce.Xhtml.make_uri ~service:Eliom_services.void_coservice'
+               ~sp:bi.Wiki_syntax.bi_sp ()
             ),
             args,
             content)
@@ -1510,29 +1185,11 @@ object (self)
 
        Wiki_syntax.add_a_content_extension "object"
         (fun wiki_id bi args _c ->
-           let type_ =
-             try
-               List.assoc "type" args
-             with Not_found -> ""
-           in
-           let href =
-             try
-               List.assoc "data" args
-             with Not_found -> ""
-           in
+           let type_ = Ocsimore_lib.list_assoc_default "type" args "" in
+           let href = Ocsimore_lib.list_assoc_default "data" args "" in
            let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
            let wiki_id = extract_wiki_id args wiki_id in
-           let https =
-             try
-               let a = List.assoc "protocol" args in
-               if a = "http"
-               then Some false
-               else
-                 if a = "https"
-                 then Some true
-                 else None
-             with Not_found -> None
-           in
+           let https = extract_https args in
            let atts = Wiki_syntax.parse_common_attribs args in
            let url =
              if Wiki_syntax.is_absolute_link href
@@ -1544,46 +1201,22 @@ object (self)
                        Ocsigen_lib.remove_slash_at_beginning
                          (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
                      in
-                     Eliom_duce.Xhtml.make_uri
-                       ?https
-                       ?fragment
-                       ~service:s
-                       ~sp:bi.Wiki_syntax.bi_sp
-                       href
+                     Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s
+                       ~sp:bi.Wiki_syntax.bi_sp href
                  | None -> href
            in
            Lwt.return
              {{ [<object
-                    ({data={: Ocamlduce.Utf8.make url :}
-                         type={: Ocamlduce.Utf8.make type_ :}}
-                     ++
-                         atts)
-                  >[] ] }});
+                    ({data = {: Ocamlduce.Utf8.make url :}
+                      type = {: Ocamlduce.Utf8.make type_ :}}
+                      ++ atts)>[] ] }});
 
        Wiki_syntax.add_a_content_extension "img"
         (fun wiki_id bi args c ->
-           let href =
-             try
-               List.assoc "name" args
-             with Not_found -> ""
-           in
-           let https =
-             try
-               let a = List.assoc "protocol" args in
-               if a = "http"
-               then Some false
-               else
-                 if a = "https"
-                 then Some true
-                 else None
-             with Not_found -> None
-           in
+           let href = Ocsimore_lib.list_assoc_default "name" args "" in
+           let https = extract_https args in
            let wiki_id = extract_wiki_id args wiki_id in
-           let alt =
-               match c with
-                 | Some c -> c
-                 | None -> href
-           in
+           let alt = match c with Some c -> c | None -> href in
            let atts = Wiki_syntax.parse_common_attribs args in
            let url =
              if Wiki_syntax.is_absolute_link href
@@ -1595,111 +1228,75 @@ object (self)
                        Ocsigen_lib.remove_slash_at_beginning
                          (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
                      in
-                     Eliom_duce.Xhtml.make_uri
-                       ?https
-                       ~service:s
-                       ~sp:bi.Wiki_syntax.bi_sp
-                       href
+                     Eliom_duce.Xhtml.make_uri ?https ~service:s
+                       ~sp:bi.Wiki_syntax.bi_sp href
                  | _ -> href
            in
            Lwt.return
-             {{ [<img
-                    ({src={: Ocamlduce.Utf8.make url :}
+             {{ [<img ({ src={: Ocamlduce.Utf8.make url :}
                          alt={: Ocamlduce.Utf8.make alt :}}
-                     ++
-                         atts)
-                  >[] ] }});
+                         ++ atts )>[] ] }});
 
-       Eliom_duce.Xhtml.register
-         service_edit_wikibox
+       Eliom_duce.Xhtml.register service_edit_wikibox
          (fun sp ((w, _b) as g) () ->
             let sd = Ocsimore_common.get_sd sp in
-            self#editable_wikibox 
-              ~bi:{ Wiki_syntax.bi_sp = sp;
-                    Wiki_syntax.bi_sd = sd;
-                    Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-                    Wiki_syntax.bi_subbox = None;
-                    Wiki_syntax.bi_page = None;
-                  }
-              ~data:g
-              ~rows:30
-              () >>= fun subbox ->
-            Wiki.get_admin_wiki () >>= fun admin_wiki ->
             let bi = { Wiki_syntax.bi_sp = sp;
-                       Wiki_syntax.bi_sd = sd;
-                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-                       Wiki_syntax.bi_subbox = Some {{ [ subbox ] }};
-                       Wiki_syntax.bi_page = None;
+                       bi_sd = sd;
+                       bi_ancestors = Wiki_syntax.no_ancestors;
+                       bi_subbox = None;
+                       bi_page = None;
                      }
             in
-            self#editable_wikibox 
-              ~bi
-              ~data:(admin_wiki, wikiadmin_container_id)
-              ?cssmenu:(Some None)
-              () >>= fun page ->
-            self#get_css_header
-              ~admin:true ~bi
-              ~wiki:w ?page:None () >>= fun css ->
+            self#editable_wikibox ~bi ~data:g ~rows:30 ()
+            >>= fun subbox ->
+            Wiki.get_admin_wiki () >>= fun admin_wiki ->
+            let bi = { bi with Wiki_syntax.bi_subbox = Some {{ [ subbox ] }} } in
+            self#editable_wikibox ~bi ~data:(admin_wiki, wikiadmin_container_id)
+              ?cssmenu:(Some None) ()
+            >>= fun page ->
+            self#get_css_header ~admin:true ~bi ~wiki:w ?page:None ()
+            >>= fun css ->
             Lwt.return (self#container ~css {{ [ page ] }})
-
          );
 
-       Eliom_duce.Xhtml.register
-         service_edit_css
+       Eliom_duce.Xhtml.register service_edit_css
          (fun sp ((wiki, page) as g) () ->
             let sd = Ocsimore_common.get_sd sp in
             let bi = { Wiki_syntax.bi_sp = sp;
-                       Wiki_syntax.bi_sd = sd;
-                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-                       Wiki_syntax.bi_subbox = None;
-                       Wiki_syntax.bi_page = None;
+                       bi_sd = sd;
+                       bi_ancestors = Wiki_syntax.no_ancestors;
+                       bi_subbox = None;
+                       bi_page = None;
                      }
             in
-            Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
+            Wiki_sql.get_wiki_by_id wiki
+            >>= fun wiki_info ->
               self#edit_css_box ~bi ~rows:30 ~data:g ()
             >>= fun subbox ->
-              let bi = { bi with
-                           Wiki_syntax.bi_subbox = Some {{ [ subbox ] }};
-                       }
-              in
-              self#editable_wikibox
-                ~bi
-                ~data:(wiki, wiki_info.Wiki_sql.container_id)
-                ?cssmenu:(Some None)
-                ()
+            let bi = { bi with Wiki_syntax.bi_subbox = Some {{ [ subbox ] }} } in
+            self#editable_wikibox ~bi ?cssmenu:(Some None)
+              ~data:(wiki, wiki_info.Wiki_sql.container_id) ()
             >>= fun pagecontent ->
             self#get_css_header ~bi ~wiki ?page:(Some page) ()
             >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
-
          );
 
-       Eliom_duce.Xhtml.register
-         service_edit_wikicss
+       Eliom_duce.Xhtml.register service_edit_wikicss
          (fun sp wiki () ->
             let sd = Ocsimore_common.get_sd sp in
             let bi = { Wiki_syntax.bi_sp = sp;
-                       Wiki_syntax.bi_sd = sd;
-                       Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-                       Wiki_syntax.bi_subbox = None;
-                       Wiki_syntax.bi_page = None;
+                       bi_sd = sd;
+                       bi_ancestors = Wiki_syntax.no_ancestors;
+                       bi_subbox = None;
+                       bi_page = None;
                      }
             in
-            self#edit_wikicss_box
-              ~bi
-              ~rows:30 ~wiki ()
-(*              >>= fun subbox ->
-            self#editable_wikibox ~sp ~sd
-              ~ancestors:Wiki_syntax.no_ancestors
-              ~data:(wiki, Wiki.wikiadmin_container_id)
-              ?cssmenu:(Some None)
-              ~subbox:{{ [ subbox ] }} ()
-*)
+            self#edit_wikicss_box ~bi ~rows:30 ~wiki ()
             >>= fun pagecontent ->
-            self#get_css_header 
-              ~admin:true ~bi ~wiki ?page:None () >>= fun css ->
+            self#get_css_header ~admin:true ~bi ~wiki ?page:None ()
+            >>= fun css ->
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
-
          )
 
      end
