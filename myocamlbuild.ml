@@ -32,7 +32,7 @@ let find_packages () =
 let find_syntaxes () = ["camlp4o"; "camlp4r"]
 
 (* ocamlfind command *)
-let ocamlfind x = S[A"ocamlfind"; x]
+let ocamlfind x = S[A"./myocamlfind.byte"; x]
 
 
 let _ = dispatch begin function
@@ -81,7 +81,16 @@ let _ = dispatch begin function
         *)
        flag ["ocaml"; "pkg_threads"; "compile"] (S[A "-thread"]);
        flag ["ocaml"; "pkg_threads"; "link"] (S[A "-thread"]);
-       flag ["ocaml"; "pkg_threads"; "infer_interface"] (S[A "-thread"])
+       flag ["ocaml"; "pkg_threads"; "infer_interface"] (S[A "-thread"]);
+
+       flag ["ocaml"; "ocamlduce"; "compile"] (S[A "-duce"]);
+       flag ["ocaml"; "ocamlduce"; "ocamldep"] (S[A "-duce"]);
+       flag ["ocaml"; "ocamlduce"; "doc"] (S[A "-duce"]);
+       flag ["ocaml"; "ocamlduce"; "link"] (S[A "-duce"]);
+
+       (* internal libraries *)
+(*       ocaml_lib "nis_chkpwd/nis_chkpwd"; *)
+       flag ["ocaml"; "link"; "with_nis_chkpwd"] (S[A "nis_chkpwd.cma"]);
 
    | _ -> ()
 end

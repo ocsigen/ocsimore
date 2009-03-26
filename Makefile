@@ -81,14 +81,6 @@ all: check_db nis_chkpwd_ ocsimore.cma $(OCSIMORE_OTHER_CMO)
 check_db:
 	./update-db.sh
 
-ob:
-	PGUSER=$(USER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
-	ocamlbuild -classic-display ocsimore.cma
-	ocamlbuild ocsisite.cmo
-	ocamlbuild ocsicreatewiki.cmo
-	ocamlbuild wikiperso.cmo
-	cd announce; make
-
 doc:
 	ocamlducefind ocamldoc $(PACKAGES) -html -d html $(OCSIMORE_MLI)
 
@@ -151,9 +143,6 @@ clean:
 	make -C nis_chkpwd clean
 	make -C announce clean
 
-obclean:
-	ocamlbuild -clean
-	make -C nis_chkpwd clean
 
 dist: clean
 	tar -C .. -cjf ../$(NAME)-$(shell date -u +"%Y%m%d").tar.bz2 $(notdir $(PWD))
