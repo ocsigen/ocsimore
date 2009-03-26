@@ -49,6 +49,6 @@ ocsimore.mllib: ocsimore.mllib.IN
 
 clean:
 	rm -Rf _build
-        make -C nis_chkpwd clean
+	make -C nis_chkpwd clean
 
 .PHONY: all ocamlbuild clean check_db ocsimore.mllib nis_chkpwd_
