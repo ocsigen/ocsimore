@@ -176,11 +176,34 @@ val new_wikibox :
   ?wikiboxes_creators: User_sql.userid list ->
   unit -> int32 Lwt.t
 
+
+(** Operations on wikiboxes *)
+type wiki_errors =
+  | Action_failed of exn
+  | Operation_not_allowed
+
+exception Not_css_editor
+exception CssInsteadOfWiki
+exception Unknown_box of Wiki_sql.wikibox
+
+type wiki_action_info =
+  | Edit_box of Wiki_sql.wikibox
+  | Edit_perm of Wiki_sql.wikibox
+  | History of Wiki_sql.wikibox
+  | Oldversion of (Wiki_sql.wikibox * int32)
+  | Src of (Wiki_sql.wikibox * int32)
+  | Error of (Wiki_sql.wikibox * wiki_errors)
+  | Delete_Box of Wiki_sql.wikibox
+  | Preview of (Wiki_sql.wikibox * (string * int32))
+
+exception Wiki_action_info of wiki_action_info
+
+
 val save_wikibox :
+  enough_rights:(sp:Eliom_sessions.server_params -> sd:Ocsimore_common.session_data -> Wiki_sql.wikibox -> bool Lwt.t) ->
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  wiki_id:Wiki_sql.wiki ->
-  box_id:int32 ->
+  wikibox:Wiki_sql.wikibox ->
   content:string ->
   content_type:Wiki_sql.wikibox_content_type ->
   Eliom_services.result_to_send Lwt.t
@@ -188,66 +211,52 @@ val save_wikibox :
 val save_wikibox_permissions :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data -> 
-  ((Wiki_sql.wiki * int32) *
+  Wiki_sql.wikibox *
      (string *
         (string *
            (string * 
-              (string * (string * (string * (string * string)))))))) ->
+              (string * (string * (string * (string * string))))))) ->
   unit Lwt.t
 
-(*
-val can_read : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
-val can_write : wiki_info -> int32 -> Users.userdata -> bool Lwt.t
-*)
 
-val get_role : 
+val get_role :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data -> 
-  (Wiki_sql.wiki * int32) ->
+  sd:Ocsimore_common.session_data ->
+  Wiki_sql.wikibox ->
   role Lwt.t
 
-val get_readers : 
-  (Wiki_sql.wiki * int32) ->
+val get_readers :
+  Wiki_sql.wikibox ->
   User_sql.userid list option Lwt.t
 
-val get_writers : 
-  (Wiki_sql.wiki * int32) ->
+val get_writers :
+  Wiki_sql.wikibox ->
   User_sql.userid list option Lwt.t
 
-val get_rights_adm : 
-  (Wiki_sql.wiki * int32) ->
+val get_rights_adm :
+  Wiki_sql.wikibox ->
   User_sql.userid list option Lwt.t
 
-val get_wikiboxes_creators : 
-  (Wiki_sql.wiki * int32) ->
+val get_wikiboxes_creators :
+  Wiki_sql.wikibox ->
   User_sql.userid list option Lwt.t
+
+val user_can_save_wikibox :
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  Wiki_sql.wikibox -> bool Lwt.t
 
 val can_create_wikibox : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   Wiki_sql.wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
 
-(** Operations on wikiboxes *)
-type wiki_errors =
-  | Action_failed of exn
-  | Operation_not_allowed
-
-type wiki_action_info =
-  | Edit_box of (Wiki_sql.wiki * int32)
-  | Edit_perm of (Wiki_sql.wiki * int32)
-  | Preview of ((Wiki_sql.wiki * int32) * (string * int32))
-  | History of (Wiki_sql.wiki * int32)
-  | Oldversion of ((Wiki_sql.wiki * int32) * int32)
-  | Src of ((Wiki_sql.wiki * int32) * int32)
-  | Error of ((Wiki_sql.wiki * int32) * wiki_errors)
-  | Delete_Box of (Wiki_sql.wiki * int32)
-
-exception Wiki_action_info of wiki_action_info
 
 (** [modified_wikibox box version] returns [Some curversion] iff the current
     version [curversion] of [box] is greater than [version], [None]
     otherwise *)
-val modified_wikibox: Wiki_sql.wiki * int32 -> Int32.t -> Int32.t option Lwt.t
+val modified_wikibox:
+  wikibox:Wiki_sql.wikibox -> boxversion:Int32.t -> Int32.t option Lwt.t
 
 
 (** Administration wiki *)
@@ -262,3 +271,13 @@ val get_admin_wiki : unit -> Wiki_sql.wiki Lwt.t
 
 (** *)
 val wikicss_service_handler : Wiki_sql.wiki -> unit -> string Lwt.t
+val wikipagecss_service_handler : Wiki_sql.wiki * string -> unit -> string Lwt.t
+
+
+val retrieve_wikibox_wikitext_at_version:
+  int32 -> Wiki_sql.wikibox -> string Lwt.t
+
+val retrieve_wikibox_current_wikitext_and_version:
+  Wiki_sql.wikibox -> (string * int32) Lwt.t
+
+val retrieve_wikibox_current_wikitext: Wiki_sql.wikibox -> string Lwt.t

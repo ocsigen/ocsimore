@@ -191,7 +191,7 @@ let insert_event
 
 let update_desc wiki author wikibox comment content =
   Wiki_sql.update_wikibox
-     ~wiki ~author ~wikibox ~comment ~content ~content_type:Wiki_sql.Wiki
+    ~wikibox:(wiki, wikibox) ~author ~comment ~content ~content_type:Wiki_sql.Wiki
 
 let check_no_concurrent_update dbh ev =
   let id = ev.id in

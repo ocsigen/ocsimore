@@ -48,12 +48,12 @@ class virtual noneditable_wikibox :
        Xhtmltypes_duce.blocks ->
        Xhtmltypes_duce.html
 
-     method display_noneditable_box :
+     method display_basic_box :
       classe:string list ->
       Xhtmltypes_duce.flows ->
       Xhtmltypes_duce.block Lwt.t
 
-    method noneditable_wikibox :
+    method display_noneditable_wikibox :
       bi:Wiki_syntax.box_info ->
       ?classe:string list ->
       data:Wiki_sql.wiki * int32 ->
@@ -63,9 +63,6 @@ class virtual noneditable_wikibox :
       wiki:Wiki_sql.wiki ->
       bi:Wiki_syntax.box_info ->
       string -> Xhtmltypes_duce.flows Lwt.t
-
-    method private retrieve_wikibox_content :
-      Wiki_sql.wiki * int32 -> string Lwt.t
 
   end
 
@@ -120,7 +117,7 @@ class virtual editable_wikibox :
       ?cssmenu:string option ->
       unit -> Xhtmltypes_duce.block Lwt.t
 
-    method editable_wikibox_allowed :
+    method editable_wikibox_aux :
       bi:Wiki_syntax.box_info ->
       data:Wiki_sql.wiki * int32 ->
       ?rows:int ->
@@ -128,10 +125,6 @@ class virtual editable_wikibox :
       ?classe:string list ->
       ?cssmenu:string option ->
       unit -> (Xhtmltypes_duce.block * bool) Lwt.t
-
-    method retrieve_old_wikibox_content :
-      bi:Wiki_syntax.box_info ->
-      Wiki_sql.wiki * int32 -> int32 -> string Lwt.t
 
     method display_edit_css_form :
       bi:Wiki_syntax.box_info ->

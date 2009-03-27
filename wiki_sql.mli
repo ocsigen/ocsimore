@@ -24,12 +24,16 @@
    @author Vincent Balat
 *)
 
-(** Abstract type for a wiki *)
+(** Semi-abstract type for a wiki *)
 type wiki = [`Wiki] Opaque.int32_t
 
 (** Conversions from a wiki index *)
 val wiki_id_s : wiki -> string
 val s_wiki_id : string -> wiki
+
+
+type wikibox_id = int32
+type wikibox = wiki * wikibox_id
 
 (** Data stored in a wikibox *)
 type wikibox_content_type =
@@ -59,25 +63,23 @@ val new_wiki :
   staticdir:string option ->
   container_page:string ->
   unit ->
-  (wiki * int32) Lwt.t
+  (wiki * wikibox_id) Lwt.t
 
 (** Inserts a new wikibox in an existing wiki and return the id of the 
     wikibox. *)
 val new_wikibox :
   wiki:wiki ->
-  ?box:int32 ->
+  ?wbid:wikibox_id ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->
   content_type:wikibox_content_type ->
   ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list * User_sql.userid list ->
   unit ->
-  int32 Lwt.t
+  wikibox_id Lwt.t
 
 (** return the history of a wikibox. *)
-val get_history : 
-  wiki:wiki -> 
-  id:int32 ->
+val get_history : wikibox:wikibox ->
   (int32 * string * User_sql.userid * CalendarLib.Calendar.t) list Lwt.t
 
 
@@ -87,7 +89,7 @@ type wikipage = {
   wikipage_source_wiki: wiki;
   wikipage_page: string;
   wikipage_dest_wiki: wiki;
-  wikipage_wikibox: int32;
+  wikipage_wikibox: wikibox_id;
   wikipage_title: string option;
 }
 
@@ -100,13 +102,20 @@ val get_box_for_page : wiki:wiki -> page:string -> wikipage Lwt.t
     to NULL (and the title for the wiki will be used).
 *)
 val set_box_for_page :
-  sourcewiki:wiki -> page:string -> ?destwiki:wiki -> wikibox:int32 -> ?title:string -> unit -> unit Lwt.t
+  sourcewiki:wiki -> page:string -> ?destwiki:wiki -> wbid:wikibox_id -> ?title:string -> unit -> unit Lwt.t
 
-(** returns the css for a page or fails with [Not_found] if it does not exist *)
-val get_css_for_page : wiki:wiki -> page:string -> string Lwt.t
+(** returns the wikibox for the css for a page or fails with [Not_found] if it
+    the page has no css *)
+val get_css_wikibox_for_page : wiki:wiki -> page:string -> wikibox_id option Lwt.t
+
+(** returns the the css for a page or fails with [Not_found] if it
+    the page has no css *)
+val get_css_for_page : wiki:wiki -> page:string -> string option Lwt.t
+
 
 (** Sets the css for a wikipage *)
-val set_css_for_page : wiki:wiki -> page:string -> string -> unit Lwt.t
+val set_css_for_page : wiki:wiki -> page:string -> author : User_sql.userid
+  -> string -> unit Lwt.t
 
 (** returns the global css for a wiki 
     or fails with [Not_found] if it does not exist *)
@@ -123,7 +132,7 @@ type wiki_info = {
   descr : string;
   boxrights : bool;
   pages : string option;
-  container_id : int32;
+  container_id : wikibox_id;
   staticdir : string option; (** if static dir is given,
                                 ocsimore will serve static pages if present,
                                 instead of wiki pages *)
@@ -140,20 +149,19 @@ val get_wiki_by_name : name:string -> wiki_info Lwt.t
     content_type, version)], or [None] if the page doesn't exist. *)
 val get_wikibox_data : 
   ?version:int32 ->
-  wikibox:(wiki * int32) ->
+  wikibox:wikibox ->
   unit ->
   (string * User_sql.userid * string * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
 
 
 (** Current revision number of a wikibox *)
-val current_wikibox_version : wikibox:(wiki * int32) -> Int32.t option Lwt.t
+val current_wikibox_version : wikibox:wikibox -> Int32.t option Lwt.t
 
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 val update_wikibox :
-  wiki:wiki ->
-  wikibox:int32 ->
+  wikibox:wikibox ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->
@@ -163,36 +171,28 @@ val update_wikibox :
 (** Update container_id (only, for now). *)
 val update_wiki :
   wiki_id:wiki ->
-  container_id:int32 ->
+  container_id:wikibox_id ->
   unit ->
   unit Lwt.t
 
-val populate_readers :
-  wiki -> int32 -> int32 list -> unit Lwt.t
-val populate_writers :
-  wiki -> int32 -> int32 list -> unit Lwt.t
-val populate_rights_adm :
-  wiki -> int32 -> int32 list -> unit Lwt.t
-val populate_wikiboxes_creators :
-  wiki -> int32 -> int32 list -> unit Lwt.t
+val populate_readers : wikibox -> int32 list -> unit Lwt.t
+val populate_writers : wikibox -> int32 list -> unit Lwt.t
+val populate_rights_adm : wikibox -> int32 list -> unit Lwt.t
+val populate_wikiboxes_creators : wikibox -> int32 list -> unit Lwt.t
 
-val remove_readers :
-  wiki -> int32 -> int32 list -> unit Lwt.t
-val remove_writers :
-  wiki -> int32 -> int32 list -> unit Lwt.t
-val remove_rights_adm :
-  wiki -> int32 -> int32 list -> unit Lwt.t
-val remove_wikiboxes_creators :
-  wiki -> int32 -> int32 list -> unit Lwt.t
+val remove_readers : wikibox -> int32 list -> unit Lwt.t
+val remove_writers : wikibox -> int32 list -> unit Lwt.t
+val remove_rights_adm : wikibox -> int32 list -> unit Lwt.t
+val remove_wikiboxes_creators : wikibox -> int32 list -> unit Lwt.t
 
 
-val get_readers : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_writers : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_rights_adm : (wiki * int32) -> User_sql.userid list Lwt.t
-val get_wikiboxes_creators : (wiki * int32) -> User_sql.userid list Lwt.t
+val get_readers : wikibox -> User_sql.userid list Lwt.t
+val get_writers : wikibox -> User_sql.userid list Lwt.t
+val get_rights_adm : wikibox -> User_sql.userid list Lwt.t
+val get_wikiboxes_creators : wikibox -> User_sql.userid list Lwt.t
 
 
-(** Path associated to a wiki. Does not currently return a list
+(** Paths associated to wikis. Does not currently return a list
     of (wiki * _) because of limitations in our phantom types based
     representation *)
 val wikis_path : unit -> (int32 * string option) list Lwt.t

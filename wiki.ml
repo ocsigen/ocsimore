@@ -32,7 +32,6 @@ let (>>=) = Lwt.bind
 
 (** Role of user in the wiki (for one box) *)
 type role = Admin | Author | Lurker | Nonauthorized;;
-(* Admin can changes the permissions on boxes *)
 
 
 let get_sthg_ f ((w, _) as k) =
@@ -112,25 +111,16 @@ let new_wikibox ?boxid ~wiki ~author ~comment ~content ~content_type ?readers ?w
     (fun () ->
        (match boxid with
           | None -> Lwt.return ()
-          | Some b -> 
-             Wiki_sql.get_wikibox_data
-               ~wikibox:(wiki.id, b) () >>= 
-             function 
+          | Some b ->
+             Wiki_sql.get_wikibox_data ~wikibox:(wiki.id, b) () >>=
+             function
                | None -> Lwt.return ()
                | _ -> Lwt.fail (Found b))
-(*VVV may create holes in the sequence of wikibox numbers *)
        >>= fun () ->
-       Wiki_sql.new_wikibox
-         ~wiki:wiki.id
-         ?box:boxid
-         ~author
-         ~comment
-         ~content
-         ~content_type
-         ?rights
-         ())
+       Wiki_sql.new_wikibox ~wiki:wiki.id ?wbid:boxid ~author ~comment
+         ~content ~content_type ?rights ())
     (function Found b -> Lwt.return b | e -> Lwt.fail e)
-      
+
 
 let create_group_ name fullname =
   Users.create_user 
@@ -190,10 +180,6 @@ let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
       else Lwt.return Nonauthorized
 
 
-
-
-(** {2 Session data} *)
-
 module Roles = Map.Make(struct
                           type t = Wiki_sql.wiki * int32
                           let compare = compare
@@ -231,10 +217,15 @@ let get_wiki_sd ~sp ~sd =
 
 
 
-
 let get_role ~sp ~sd k =
   let wiki_sd = get_wiki_sd ~sp ~sd in
   wiki_sd.role k
+
+
+let user_can_save_wikibox ~sp ~sd wb =
+  get_role sp sd wb >>= function
+    | Admin | Author -> Lwt.return true
+    | Lurker | Nonauthorized -> Lwt.return false
 
 
 
@@ -278,7 +269,7 @@ let display_page w (wikibox : Wiki_widgets.editable_wikibox)
                       Wiki_syntax.bi_page = Some path;
                     }
                   in
-                wikibox#editable_wikibox_allowed ~bi ~data:(wiki', box)
+                wikibox#editable_wikibox_aux ~bi ~data:(wiki', box)
                   ~cssmenu:(Some page) ()
                 >>= fun (subbox, allowed) ->
                 Lwt.return ({{ [ subbox ] }},
@@ -371,6 +362,13 @@ let wikicss_service_handler wiki () =
        | e -> Lwt.fail e
     )
 
+let wikipagecss_service_handler (wiki, page) () =
+  Wiki_sql.get_css_for_page wiki page >>= function
+    | Some css -> Lwt.return css
+    | None -> Lwt.fail Eliom_common.Eliom_404
+
+
+
 (** Functions related to the creation of a wiki *)
 (* Register the wiki [wiki] *)
 let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wiki_info () =
@@ -405,9 +403,9 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets.editable_wikibox) ~wiki ?wi
                         ~comment:"new wikipage"
                         ~content:("=="^page^"==") ~content_type:Wiki_sql.Wiki ()
                         (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
-                      >>= fun box ->
+                      >>= fun wbid ->
                         Wiki_sql.set_box_for_page
-                          ~sourcewiki:wiki ~wikibox:box ~page ()
+                          ~sourcewiki:wiki ~wbid ~page ()
                       >>= fun () ->
                         Lwt.return [Ocsimore_common.Session_data sd]
                   | e -> Lwt.fail e)
@@ -550,13 +548,13 @@ let really_create_wiki ~title ~descr
      add_to_group_ container_adm container_adm_data.Users.id
    >>= fun () ->
 
-   Wiki_sql.populate_readers wiki_id wikibox_container
+   Wiki_sql.populate_readers (wiki_id, wikibox_container)
      [readers_data.Users.id] >>= fun () ->
-   Wiki_sql.populate_writers wiki_id wikibox_container
+   Wiki_sql.populate_writers (wiki_id, wikibox_container)
      [container_adm_data.Users.id] >>= fun () ->
-   Wiki_sql.populate_rights_adm wiki_id wikibox_container
+   Wiki_sql.populate_rights_adm (wiki_id, wikibox_container)
      [rights_adm_data.Users.id] >>= fun () ->
-   Wiki_sql.populate_wikiboxes_creators wiki_id wikibox_container
+   Wiki_sql.populate_wikiboxes_creators (wiki_id, wikibox_container)
      [wikiboxes_creators_data.Users.id] >>= fun () ->
 
    Lwt.return wiki_id
@@ -604,34 +602,72 @@ let create_wiki ~title ~descr
        | e -> Lwt.fail e)
 
 
+(* Checks that [boxversion] is the current version of the wikibox *)
+let modified_wikibox ~wikibox ~boxversion =
+  Wiki_sql.current_wikibox_version wikibox
+  >>= function
+    | None -> Lwt.return None (* This case is not supposed to happen *)
+    | Some curversion ->
+        if curversion > boxversion then
+          Lwt.return (Some curversion)
+        else
+          Lwt.return None
 
-(** {2 } *)
+
+(** Information related to the administration wiki; caution when
+   changing this. See mli *)
+let wiki_admin_name = "Adminwiki"
+let get_admin_wiki () =
+  get_wiki_by_name wiki_admin_name
+  >>= fun wiki -> Lwt.return wiki.id
+
+
+
+(** Operations on wikiboxes *)
+
 type wiki_errors =
   | Action_failed of exn
   | Operation_not_allowed
 
+exception Not_css_editor
+exception CssInsteadOfWiki
+exception Unknown_box of Wiki_sql.wikibox
+
+
+(** Information related to the administration wiki; caution when
+   changing this. See mli *)
+let wiki_admin_name = "Adminwiki"
+let get_admin_wiki () =
+  get_wiki_by_name wiki_admin_name
+  >>= fun wiki -> Lwt.return wiki.id
+
+
+
+(** Operations on wikiboxes *)
+
 type wiki_action_info =
-  | Edit_box of (Wiki_sql.wiki * int32)
-  | Edit_perm of (Wiki_sql.wiki * int32)
-  | Preview of ((Wiki_sql.wiki * int32) * (string * int32)) (* The second uple is the content of the wikibox, and the version number of the wikibox *when the edition started* *)
-  | History of (Wiki_sql.wiki * int32)
-  | Oldversion of ((Wiki_sql.wiki * int32) * int32)
-  | Src of ((Wiki_sql.wiki * int32) * int32)
-  | Error of ((Wiki_sql.wiki * int32) * wiki_errors)
-  | Delete_Box of (Wiki_sql.wiki * int32)
+  | Edit_box of Wiki_sql.wikibox
+  | Edit_perm of Wiki_sql.wikibox
+  | History of Wiki_sql.wikibox
+  | Oldversion of (Wiki_sql.wikibox * int32)
+  | Src of (Wiki_sql.wikibox * int32)
+  | Error of (Wiki_sql.wikibox * wiki_errors)
+  | Delete_Box of Wiki_sql.wikibox
+(* The second uple is the content of the wikibox, and the version number of the
+   wikibox *when the edition started*. This is used to display a warning in case
+   of concurrent edits*)
+  | Preview of (Wiki_sql.wikibox * (string * int32))
 
 exception Wiki_action_info of wiki_action_info
 
-let save_wikibox ~sp ~sd ~wiki_id ~box_id ~content ~content_type =
-  let d = (wiki_id, box_id) in
-  get_role sp sd d >>= fun role ->
-  match role with
-    | Admin
-    | Author ->
+
+let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =
+  enough_rights ~sp ~sd wikibox >>= function
+    | true ->
         Lwt.catch
           (fun () ->
               Users.get_user_data sp sd >>= fun user ->
-              Wiki_sql.update_wikibox ~wiki:wiki_id ~wikibox:box_id
+              Wiki_sql.update_wikibox ~wikibox
                 ~author:user.Users.id ~comment:"" ~content ~content_type
               >>= fun _ ->
                 (* I'm using a redirection to prevent repost *)
@@ -641,52 +677,62 @@ let save_wikibox ~sp ~sd ~wiki_id ~box_id ~content ~content_type =
           (fun e -> 
              Eliom_predefmod.Action.send ~sp
                [Ocsimore_common.Session_data sd;
-                Wiki_action_info (Error (d, Action_failed e))])
-    | _ -> 
+                Wiki_action_info (Error (wikibox, Action_failed e))])
+    | false ->
         Eliom_predefmod.Action.send ~sp
           [Ocsimore_common.Session_data sd;
-           Wiki_action_info (Error (d, Operation_not_allowed))]
+           Wiki_action_info (Error (wikibox, Operation_not_allowed))]
 
-
-let save_wikibox_permissions ~sp ~sd (((wiki_id, box_id) as d), rights) =
-  get_role sp sd d >>= function
+let save_wikibox_permissions ~sp ~sd (wikibox, rights) =
+  get_role sp sd wikibox >>= function
    | Admin ->
-        let (addr, (addw, (adda, (addc, (delr, (delw, (dela, delc))))))) = rights
+       let (addr, (addw, (adda, (addc, (delr, (delw, (dela, delc))))))) = rights
         in
         Users.group_list_of_string addr >>= fun readers ->
-        Wiki_sql.populate_readers wiki_id box_id readers >>= fun () ->
+        Wiki_sql.populate_readers wikibox readers >>= fun () ->
         Users.group_list_of_string addw >>= fun w ->
-        Wiki_sql.populate_writers wiki_id box_id w >>= fun () ->
+        Wiki_sql.populate_writers wikibox w >>= fun () ->
         Users.group_list_of_string adda >>= fun a ->
-        Wiki_sql.populate_rights_adm wiki_id box_id a >>= fun () ->
+        Wiki_sql.populate_rights_adm wikibox a >>= fun () ->
         Users.group_list_of_string addc >>= fun a ->
-        Wiki_sql.populate_wikiboxes_creators wiki_id box_id a >>= fun () ->
+        Wiki_sql.populate_wikiboxes_creators wikibox a >>= fun () ->
         Users.group_list_of_string delr >>= fun readers ->
-        Wiki_sql.remove_readers wiki_id box_id readers >>= fun () ->
+        Wiki_sql.remove_readers wikibox readers >>= fun () ->
         Users.group_list_of_string delw >>= fun w ->
-        Wiki_sql.remove_writers wiki_id box_id w >>= fun () ->
+        Wiki_sql.remove_writers wikibox w >>= fun () ->
         Users.group_list_of_string dela >>= fun a ->
-        Wiki_sql.remove_rights_adm wiki_id box_id a >>= fun () ->
+        Wiki_sql.remove_rights_adm wikibox a >>= fun () ->
         Users.group_list_of_string delc >>= fun a ->
-        Wiki_sql.remove_wikiboxes_creators wiki_id box_id a
-    | _ -> Lwt.return ()
+        Wiki_sql.remove_wikiboxes_creators wikibox a
+    | _ -> Lwt.return () (* XXX Notify an error *)
 
 
-let modified_wikibox (wiki_id, wikibox_id) boxversion =
-  Wiki_sql.current_wikibox_version (wiki_id, wikibox_id)
-  >>= function
-    | None -> (* This case is not supposed to happen *)
-        Lwt.return None
-    | Some curversion ->
-        if curversion > boxversion then
-          Lwt.return (Some curversion)
-        else
-          Lwt.return None
 
 
-(* Information related to the administration wiki; caution when
-   changing this. See mli *)
-let wiki_admin_name = "Adminwiki"
-let get_admin_wiki () =
-  get_wiki_by_name wiki_admin_name
-  >>= fun wiki -> Lwt.return wiki.id
+(* The functions below read the content of a wikibox which is supposed
+     to contain wikitext *)
+
+let retrieve_wikibox_wikitext_aux err ?version wikibox =
+  Wiki_sql.get_wikibox_data ?version ~wikibox ()
+  >>= fun result ->
+  match result with
+    | None -> Lwt.fail Not_found
+    | Some (_com, _a, cont, _d, ct, ver) ->
+        match ct with
+          | Wiki_sql.Wiki -> Lwt.return (cont, ver)
+          | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
+          | Wiki_sql.Deleted ->
+              Lwt.return (err, ver)
+
+let retrieve_wikibox_wikitext_at_version version wikibox =
+  retrieve_wikibox_wikitext_aux "As this date, this page had been deleted"
+    ~version wikibox
+  >>= fun (r, _) -> Lwt.return r
+
+let retrieve_wikibox_current_wikitext_and_version wikibox =
+  retrieve_wikibox_wikitext_aux "This page has been deleted" wikibox
+
+let retrieve_wikibox_current_wikitext wikibox =
+  retrieve_wikibox_current_wikitext_and_version wikibox
+  >>= fun (content, _version) ->
+  Lwt.return content

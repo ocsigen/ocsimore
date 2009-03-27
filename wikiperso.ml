@@ -330,7 +330,7 @@ let () =
            ~author:Users.admin.Users.id ()
          >>= fun box ->
          Wiki_sql.set_box_for_page ~sourcewiki:admin_wiki
-           ~wikibox:box ~page:template_pagename ()
+           ~wbid:box ~page:template_pagename ()
 
        | e -> Lwt.fail e)
   )

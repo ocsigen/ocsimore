@@ -35,37 +35,10 @@ type wiki_data = {
 }
 
 
-(*
-let retrieve_full_wikibox_data ((wiki_id, _) as ids) =
-  self#bind_or_display_error
-    (Wiki_sql.get_wikibox_data ~wikibox:ids ())
-    (fun result ->
-       match result with
-         | None -> Lwt.fail Not_found
-         | Some (com, a, cont, d) ->
-             Lwt.catch
-               (fun () ->
-                  Users.get_user_by_name a >>= fun user ->
-                    Lwt.return (Some user))
-               (function
-                  | Users.NoSuchUser -> Lwt.return None
-                  | e -> Lwt.fail e) >>= fun user ->
-                 Lwt.return
-                   ({ wiki_id = wiki_id;
-                      content = cont;
-                      author = user;
-                      datetime = d;
-                      comment = com }))
-*)
-
-exception Unknown_box of (Wiki_sql.wiki * int32)
-exception Not_css_editor
-exception CssInsteadOfWiki
-
 class virtual noneditable_wikibox =
 object (self)
 
-  inherit Widget.widget_with_error_box as papa
+  inherit Widget.widget_with_error_box as error_box
 
   val ne_class = "noned_wikibox"
 
@@ -87,20 +60,20 @@ object (self)
 
   method display_error_box ?classe ?message ?exn () =
     match exn with
-      | Some (Unknown_box (w, i)) ->
-          papa#display_error_box
+      | Some (Wiki.Unknown_box (w, i)) ->
+          error_box#display_error_box
             ?classe
             ~message:("The box "^Int32.to_string i^
                         " does not exist in wiki "^ Wiki_sql.wiki_id_s w^".")
             ?exn
             ()
-      | Some Not_css_editor ->
-          papa#display_error_box
+      | Some Wiki.Not_css_editor ->
+          error_box#display_error_box
             ?classe
             ~message:("You are not allowed to modify the stylesheet for that page.")
             ?exn
             ()
-      | _ -> papa#display_error_box ?classe ?message ?exn ()
+      | _ -> error_box#display_error_box ?classe ?message ?exn ()
 
   method virtual pretty_print_wikisyntax :
     wiki:Wiki_sql.wiki ->
@@ -108,46 +81,30 @@ object (self)
     string -> Xhtmltypes_duce.flows Lwt.t
 
 
-  method private retrieve_wikibox_content_version ids =
-    Wiki_sql.get_wikibox_data ~wikibox:ids () >>= fun result ->
-    match result with
-      | None -> Lwt.fail (Unknown_box ids)
-      | Some (_com, _a, cont, _d, ct, ver) ->
-          match ct with
-            | Wiki_sql.Wiki -> Lwt.return (cont, ver)
-            | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
-            | Wiki_sql.Deleted -> Lwt.return ("This page has been deleted", ver)
-
-  method private retrieve_wikibox_content ids =
-    self#retrieve_wikibox_content_version ids
-    >>= fun (content, _version) -> Lwt.return content
-
-  method display_noneditable_box ~classe content =
+  method display_basic_box ~classe content =
     let classe = Ocsimore_lib.build_class_attr (ne_class::classe) in
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method noneditable_wikibox ~bi ?(classe=[]) ~data () =
-    Wiki.get_role
-      ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd data >>= fun role ->
-    match role with
+  method display_noneditable_wikibox ~bi ?(classe=[]) ~data () =
+    Wiki.get_role ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd data
+    >>= function
       | Wiki.Admin
       | Wiki.Author
       | Wiki.Lurker ->
           self#bind_or_display_error
             ~classe
-            (self#retrieve_wikibox_content data)
+            (Wiki.retrieve_wikibox_current_wikitext data)
             (self#pretty_print_wikisyntax ~wiki:(fst data) ~bi)
-            (self#display_noneditable_box)
+            (self#display_basic_box)
       | Wiki.Nonauthorized ->
           Lwt.return
             (self#display_error_box
                ~classe:(ne_class::classe)
                ~message:"You are not allowed to see this content."
                ())
-
-
 end;;
+
 
 type menu_item =
   | Edit
@@ -157,125 +114,108 @@ type menu_item =
   | View
 
 
+let eliom_wiki_args = Wiki_sql.eliom_wiki "wikiid"
+
+let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "boxid")
+
+let eliom_wikipage_args =
+  (Wiki_sql.eliom_wiki "wikiid") ** (Eliom_parameters.string "page")
+
+
 class virtual editable_wikibox ?sp () =
   (* The registration of the services below must be done during site loading,
      not before! *)
 
-  let service_edit_wikibox =
-    Eliom_services.new_service ?sp
-      ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
-      ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
-                     (Eliom_parameters.int32 "boxid"))
-      ()
+  let service_edit_wikibox = Eliom_services.new_service ?sp
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
+    ~get_params:eliom_wikibox_args ()
   in
 
-  let service_edit_css =
-    Eliom_services.new_coservice'
-      ~name:"css_edit"
-      ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
-                     (Eliom_parameters.string "page"))
-      ()
+  let service_edit_wikipage_css = Eliom_services.new_coservice'
+    ~name:"css_edit" ~get_params:eliom_wikipage_args ()
   in
 
-  let service_edit_wikicss =
-    Eliom_services.new_coservice'
-      ~name:"wiki_css_edit"
-      ~get_params:(Wiki_sql.eliom_wiki "wikiid")
-      ()
+  let service_edit_wiki_css = Eliom_services.new_coservice'
+    ~name:"wiki_css_edit" ~get_params:eliom_wiki_args ()
   in
 
-  let action_edit_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice'
-      ~name:"wiki_edit"
-      ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
-                     (Eliom_parameters.int32 "boxid"))
-      (fun _sp g () ->
-         Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box g)])
+  let action_edit_wikibox = Eliom_predefmod.Actions.register_new_coservice'
+    ~name:"wiki_edit" ~get_params:eliom_wikibox_args
+      (fun _sp wbox () ->
+         Lwt.return [Wiki.Wiki_action_info (Wiki.Edit_box wbox)])
   in
 
-  let action_delete_wikibox =
-    Eliom_predefmod.Any.register_new_coservice'
-      ~name:"wiki_delete"
-      ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
-                     (Eliom_parameters.int32 "boxid"))
-      (fun sp (wiki_id, box_id) () ->
-         let sd = Ocsimore_common.get_sd sp in
-         Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content:""
-           ~content_type:Wiki_sql.Deleted
-      )
+  let action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
+    ~name:"wiki_delete" ~get_params:eliom_wikibox_args
+    (fun sp wikibox () ->
+       let sd = Ocsimore_common.get_sd sp in
+       Wiki.save_wikibox ~enough_rights:Wiki.user_can_save_wikibox
+         ~sp ~sd ~wikibox ~content:"" ~content_type:Wiki_sql.Deleted
+    )
   in
 
   let action_edit_wikibox_permissions =
     Eliom_predefmod.Actions.register_new_coservice'
-      ~name:"wiki_edit_perm"
-      ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
-                     (Eliom_parameters.int32 "boxid"))
-      (fun sp g () ->
+      ~name:"wiki_edit_perm" ~get_params:eliom_wikibox_args
+      (fun sp wbox () ->
          let sd = Ocsimore_common.get_sd sp in
-         Wiki.get_role sp sd g >>= fun role ->
-         if role = Wiki.Admin
-         then
-           Lwt.return [Ocsimore_common.Session_data sd;
-                       Wiki.Wiki_action_info (Wiki.Edit_perm g)]
-         else Lwt.return [Ocsimore_common.Session_data sd])
+         Wiki.get_role sp sd wbox
+         >>= fun role ->
+           if role = Wiki.Admin then
+             Lwt.return [Ocsimore_common.Session_data sd;
+                         Wiki.Wiki_action_info (Wiki.Edit_perm wbox)]
+           else Lwt.return [Ocsimore_common.Session_data sd])
   in
 
-  let action_wikibox_history =
-    Eliom_predefmod.Actions.register_new_coservice'
-      ~name:"wiki_history"
-      ~get_params:((Wiki_sql.eliom_wiki "wikiid") **
-                     (Eliom_parameters.int32 "boxid"))
-      (fun _sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.History g)])
+  let action_wikibox_history = Eliom_predefmod.Actions.register_new_coservice'
+    ~name:"wiki_history" ~get_params:eliom_wikibox_args
+    (fun _sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.History g)])
   in
 
-  let action_old_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice'
-      ~name:"wiki_old_version"
-      ~get_params:(((Wiki_sql.eliom_wiki "wikiid") **
-                      (Eliom_parameters.int32 "boxid")) **
-                     (Eliom_parameters.int32 "version"))
-      (fun _sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Oldversion g)])
+  let action_old_wikibox = Eliom_predefmod.Actions.register_new_coservice'
+    ~name:"wiki_old_version"
+    ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
+    (fun _sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Oldversion g)])
   in
 
-  let action_src_wikibox =
-    Eliom_predefmod.Actions.register_new_coservice'
+  let action_src_wikibox = Eliom_predefmod.Actions.register_new_coservice'
       ~name:"wiki_src"
-      ~get_params:(((Wiki_sql.eliom_wiki "wikiid") **
-                      (Eliom_parameters.int32 "boxid")) **
-                     (Eliom_parameters.int32 "version"))
+      ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
       (fun _sp g () -> Lwt.return [Wiki.Wiki_action_info (Wiki.Src g)])
   in
 
-  let action_send_wikibox =
-    Eliom_predefmod.Any.register_new_post_coservice' ?sp
-      ~keep_get_na_params:false
-      ~name:"wiki_send"
-      ~post_params:
-      (Eliom_parameters.string "actionname" **
-         (((Wiki_sql.eliom_wiki "wikiid" **
-              (Eliom_parameters.int32 "boxid" **
-                 Eliom_parameters.int32 "boxversion")
-              ) **
-             Eliom_parameters.string "content")))
-      (fun sp () (actionname, (((wiki_id, (box_id, boxversion)), content))) ->
-         Wiki.modified_wikibox (wiki_id, box_id) boxversion
-         >>= fun modified ->
-         if actionname = "save" then
-           match modified with
-             | None ->
-                 let sd = Ocsimore_common.get_sd sp in
-                 Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
-                 >>= fun content ->
-                   Wiki.save_wikibox ~sp ~sd ~wiki_id ~box_id ~content
-                     ~content_type:Wiki_sql.Wiki
-             | Some _ ->
-                 Eliom_predefmod.Action.send ~sp
-                   [Wiki.Wiki_action_info
-                      (Wiki.Preview ((wiki_id, box_id), (content, boxversion)))]
-         else
-           Eliom_predefmod.Action.send ~sp
-             [Wiki.Wiki_action_info
-                (Wiki.Preview ((wiki_id, box_id), (content, boxversion)))]
+  let action_send_wikibox = Eliom_predefmod.Any.register_new_post_coservice'
+    ?sp ~keep_get_na_params:false ~name:"wiki_send"
+    ~post_params:
+    (Eliom_parameters.string "actionname" **
+       (((Wiki_sql.eliom_wiki "wikiid" **
+            (Eliom_parameters.int32 "boxid" **
+               Eliom_parameters.int32 "boxversion")
+         ) **
+           Eliom_parameters.string "content")))
+    (fun sp () (actionname, (((wiki_id, (box_id, boxversion)), content))) ->
+       let wikibox = (wiki_id, box_id) in
+       (* We always show a preview before saving. Moreover, we check that the
+          wikibox that the wikibox has not been modified in parallel of our
+          modifications. If this is the case, we also show a warning *)
+       Wiki.modified_wikibox wikibox boxversion
+       >>= fun modified ->
+       if actionname = "save" then
+         match modified with
+           | None ->
+               let sd = Ocsimore_common.get_sd sp in
+               Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
+               >>= fun content ->
+               Wiki.save_wikibox ~enough_rights:Wiki.user_can_save_wikibox
+                 ~sp ~sd ~wikibox ~content ~content_type:Wiki_sql.Wiki
+           | Some _ ->
+               Eliom_predefmod.Action.send ~sp
+                 [Wiki.Wiki_action_info
+                    (Wiki.Preview (wikibox, (content, boxversion)))]
+       else
+         Eliom_predefmod.Action.send ~sp
+           [Wiki.Wiki_action_info
+              (Wiki.Preview (wikibox, (content, boxversion)))]
       )
   in
 
@@ -284,8 +224,7 @@ class virtual editable_wikibox ?sp () =
       ~keep_get_na_params:true
       ~name:"wiki_send_permissions"
       ~post_params:
-      ((Wiki_sql.eliom_wiki "wikiid" **
-              Eliom_parameters.int32 "boxid") **
+      (eliom_wikibox_args **
          (Eliom_parameters.string "addreaders" **
             (Eliom_parameters.string "addwriters" **
                (Eliom_parameters.string "addrightadm" **
@@ -294,27 +233,25 @@ class virtual editable_wikibox ?sp () =
                         (Eliom_parameters.string "delwriters" **
                            (Eliom_parameters.string "delrightadm" **
                               Eliom_parameters.string "delwbcr")
-            )))))))
+                        )))))))
       (fun sp () p ->
          let sd = Ocsimore_common.get_sd sp in
          Wiki.save_wikibox_permissions sp sd p >>= fun () ->
-(*  Lwt.return [Ocsimore_common.Session_data sd] NO! We want a new sd, or at least, remove role *)
-(* if we want to use actions: Lwt.return [] *)
          Eliom_predefmod.Redirection.send ~sp
-           Eliom_services.void_hidden_coservice'
+         Eliom_services.void_hidden_coservice'
       )
   in
 
-  let action_send_css =
+  let action_send_wikipage_css =
     Eliom_predefmod.Redirection.register_new_post_coservice' ?sp
-      ~keep_get_na_params:false
-      ~name:"css_send"
-      ~post_params:
-      ((Wiki_sql.eliom_wiki "wikiid" **
-              Eliom_parameters.string "page") **
-             Eliom_parameters.string "content")
-      (fun _sp () ((wiki, page), content) ->
-         Wiki_sql.set_css_for_page ~wiki ~page content >>= fun () ->
+      ~keep_get_na_params:false ~name:"css_send"
+      ~post_params:(eliom_wikipage_args ** Eliom_parameters.string "content")
+      (fun sp () ((wiki, page), content) ->
+         let sd = Ocsimore_common.get_sd sp in
+         Users.get_user_data sp sd
+         >>= fun user ->
+         Wiki_sql.set_css_for_page ~wiki ~page content ~author:user.Users.id
+         >>= fun () ->
          Lwt.return Eliom_services.void_coservice'
       )
   in
@@ -331,54 +268,34 @@ class virtual editable_wikibox ?sp () =
       )
   in
 
-  (* Registering the service for css *)
-  let (* wikicss_admin_service *) _ =
-    (* do not use this one for css <link>s inside page *)
-    Eliom_predefmod.CssText.register_new_service ?sp
+  (* The functions below register the services for the css of wikis
+     and wikipages.  The css at the level of wikis are registered in
+     Wiki.ml *)
+
+  (* do not use this service, but the one below for css <link>s inside page *)
+  let _ = Eliom_predefmod.CssText.register_new_service ?sp
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "pagecss"]
+    ~get_params:(Eliom_parameters.suffix eliom_wikipage_args)
+    (fun _sp -> Wiki.wikipagecss_service_handler)
+  in
+
+  (* This is a non attached coservice, so that the css is in the same
+     directory as the page. Important for relative links inside the css. *)
+  let pagecss_service = Eliom_predefmod.CssText.register_new_coservice' ?sp
+    ~name:"pagecss" ~get_params:eliom_wikipage_args
+    (fun _sp -> Wiki.wikipagecss_service_handler)
+  in
+
+  let  _ = Eliom_predefmod.CssText.register_new_service ?sp
       ~path:[Ocsimore_lib.ocsimore_admin_dir; "wikicss"]
       ~get_params:(Wiki_sql.eliom_wiki "wiki")
       (fun _sp -> Wiki.wikicss_service_handler)
   in
 
-  (* Registering the service for page css *)
-  let pagecss_service_handler _sp (wiki, page) () =
-    Lwt.catch
-      (fun () -> Wiki_sql.get_css_for_page wiki page)
-      (function
-         | Not_found -> Lwt.fail Eliom_common.Eliom_404
-         | e -> Lwt.fail e
-      )
-  in
-
-  (* Note that a service for wiki css is registered for each wiki in wiki.ml *)
-  let (* pagecss_admin_service *) _ =
-    (* do not use this one for css <link>s inside page *)
-    Eliom_predefmod.CssText.register_new_service ?sp
-      ~path:[Ocsimore_lib.ocsimore_admin_dir; "pagecss"]
-      ~get_params:(Eliom_parameters.suffix
-                     (Eliom_parameters.prod
-                        (Wiki_sql.eliom_wiki "wiki")
-                        (Eliom_parameters.all_suffix_string "page")))
-      pagecss_service_handler
-  in
-
-  let pagecss_service =
-    (* This is a non attached coservice, so that the css is in the same
-       directory as the page. Important for relative links inside the css. *)
-    Eliom_predefmod.CssText.register_new_coservice' ?sp
-      ~name:"pagecss"
-      ~get_params:(Eliom_parameters.prod
-                     (Wiki_sql.eliom_wiki "wiki")
-                     (Eliom_parameters.string "page"))
-      pagecss_service_handler
-  in
-
 
 fun (wikiadmin_container_id, wiki_help_box) ->
-(*  fun <other parameters if any> -> *)
 object (self)
 
-  inherit Widget.widget_with_error_box as error_class
   inherit noneditable_wikibox
 
   val editform_class = "wikibox editform"
@@ -406,12 +323,12 @@ object (self)
       match cssmenu with
         | Some (Some page) ->
             let cssedit = Eliom_services.preapply
-              service_edit_css (wiki, page)
+              service_edit_wikipage_css (wiki, page)
             in
             (Some (cssedit, (cssedit, {{ "edit page css" }})))
         | Some None ->
             let cssedit = Eliom_services.preapply
-              service_edit_wikicss wiki
+              service_edit_wiki_css wiki
             in
             (Some (cssedit, (cssedit, {{ "edit wiki css" }})))
         | None -> None
@@ -521,9 +438,9 @@ object (self)
      Wiki.get_admin_wiki () >>= fun admin_wiki ->
      self#bind_or_display_error
        ~classe:["wikihelp"]
-       (self#retrieve_wikibox_content (admin_wiki, wiki_help_box))
+       (Wiki.retrieve_wikibox_current_wikitext (admin_wiki, wiki_help_box))
        (self#pretty_print_wikisyntax ~wiki:admin_wiki ~bi)
-       (self#display_noneditable_box)
+       (self#display_basic_box)
      >>= fun b ->
        self#display_edit_form ~bi ?rows ?cols ~previewonly
          (wiki_id, message_id) (content, boxversion)
@@ -636,25 +553,6 @@ object (self)
      in
      self#display_menu_box_aux ~title ~service:Edit_css css_class wb
 
-
-
-
-   method retrieve_old_wikibox_content ~bi:_ ids version =
-     Wiki_sql.get_wikibox_data ~version ~wikibox:ids ()
-     >>= fun result ->
-     match result with
-       | None -> Lwt.fail Not_found
-       | Some (_com, _a, cont, _d, ct, _) ->
-           match ct with
-             | Wiki_sql.Wiki -> Lwt.return cont
-             | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
-             | Wiki_sql.Deleted ->
-                 Lwt.return "At this date, this page was deleted"
-
-
-   method private retrieve_history ~bi:_ (wiki_id, message_id) () =
-     Wiki_sql.get_history wiki_id message_id
-
    method display_history ~bi ids l =
      let sp = bi.Wiki_syntax.bi_sp in
      Lwt_util.map
@@ -679,8 +577,10 @@ object (self)
    (* Display a wikibox, plus some potentials actions on the wikibox, which
       are extracted from sp. This function returns the wikibox, as well
       as a boolean indicating whether the page is correctly displayed, or
-      whether we should return a 403 *)
-   method editable_wikibox_allowed ~bi ~data ?rows ?cols ?(classe=[])
+      whether the user has not even rights to see the box (in which case
+      a 403 is returned in Wiki.ml)
+   *)
+   method editable_wikibox_aux ~bi ~data ?rows ?cols ?(classe=[])
      ?cssmenu () =
      let sp = bi.Wiki_syntax.bi_sp in
      let sd = bi.Wiki_syntax.bi_sd in
@@ -697,9 +597,8 @@ object (self)
         | Wiki.Author ->
             (match action with
                | Some (Wiki.Edit_box i) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
-                     (self#retrieve_wikibox_content_version data)
+                   self#bind_or_display_error ~classe
+                     (Wiki.retrieve_wikibox_current_wikitext_and_version data)
                      (self#display_full_edit_form ~bi ?cols ?rows
                         ~previewonly:true data)
                      (self#display_edit_box ~bi ?cssmenu data)
@@ -707,8 +606,7 @@ object (self)
                    Lwt.return (r, true)
 
                | Some (Wiki.Edit_perm i) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
+                   self#bind_or_display_error ~classe
                      (Lwt.return data)
                      (self#display_edit_perm_form ~bi)
                      (self#display_edit_perm ~bi ?cssmenu data)
@@ -716,8 +614,7 @@ object (self)
                    Lwt.return (r, true)
 
                | Some (Wiki.Preview (i, (content, version))) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
+                   self#bind_or_display_error ~classe
                      (Lwt.return (content, version))
                      (fun ((c, _v) as cv) ->
                         self#pretty_print_wikisyntax
@@ -729,7 +626,7 @@ object (self)
                           }
                           c
                         >>= fun pp ->
-                        self#display_noneditable_box ~classe:[preview_class] pp
+                        self#display_basic_box ~classe:[preview_class] pp
                         >>= fun preview ->
                         self#display_full_edit_form
                           ~bi ?cols ?rows ~previewonly:false data cv
@@ -743,18 +640,16 @@ object (self)
                    Lwt.return (r, true)
 
                | Some (Wiki.History i) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
-                     (self#retrieve_history ~bi data ())
+                   self#bind_or_display_error ~classe
+                     (Wiki_sql.get_history data)
                      (self#display_history ~bi data)
                      (self#display_history_box ~bi ?cssmenu data)
                    >>= fun r ->
                    Lwt.return (r, true)
 
                | Some (Wiki.Oldversion (i, version)) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
-                     (self#retrieve_old_wikibox_content ~bi data version)
+                   self#bind_or_display_error ~classe
+                     (Wiki.retrieve_wikibox_wikitext_at_version version data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
                         ~bi:{bi with
@@ -767,9 +662,8 @@ object (self)
                    Lwt.return (r, true)
 
                | Some (Wiki.Src (i, version)) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
-                     (self#retrieve_old_wikibox_content ~bi data version)
+                   self#bind_or_display_error ~classe
+                     (Wiki.retrieve_wikibox_wikitext_at_version version data)
                      (fun c ->
                         let c = Ocamlduce.Utf8.make c in
                         Lwt.return {{ [ <pre>c ] }})
@@ -778,10 +672,9 @@ object (self)
                    Lwt.return (r, true)
 
                | Some (Wiki.Error (i, error)) when i = data ->
-                   self#bind_or_display_error
-                     ~classe
+                   self#bind_or_display_error ~classe
                      ~error:(self#create_error_message error)
-                     (self#retrieve_wikibox_content data)
+                     (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
                         ~bi:{bi with
@@ -798,9 +691,8 @@ object (self)
                | _ ->
                    (* No action, or the action does not concern this page.
                       We simply display the wikipage itself *)
-                   self#bind_or_display_error
-                     ~classe
-                     (self#retrieve_wikibox_content data)
+                   self#bind_or_display_error ~classe
+                     (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
                         ~bi:{bi with
@@ -823,7 +715,7 @@ object (self)
                      ~classe
                      ~error:(self#create_error_message
                                Wiki.Operation_not_allowed)
-                     (self#retrieve_wikibox_content data)
+                     (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
                         ~bi:{bi with
@@ -831,7 +723,7 @@ object (self)
                             Wiki_syntax.add_ancestor
                               data bi.Wiki_syntax.bi_ancestors}
                      )
-                     (self#display_noneditable_box)
+                     (self#display_basic_box)
                    (* Returning true would also be meaningful: the action
                       is forbidden but the wikibox itself is shown *)
                    >>= fun r ->
@@ -841,7 +733,7 @@ object (self)
                    (* As for Author/default *)
                    self#bind_or_display_error
                      ~classe
-                     (self#retrieve_wikibox_content data)
+                     (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
                         ~bi:{bi with
@@ -849,7 +741,7 @@ object (self)
                             Wiki_syntax.add_ancestor 
                               data bi.Wiki_syntax.bi_ancestors}
                      )
-                     (self#display_noneditable_box)
+                     (self#display_basic_box)
                    >>= fun r ->
                    Lwt.return (r, true)
             )
@@ -864,7 +756,7 @@ object (self)
      )
 
    method editable_wikibox ~bi ~data ?rows ?cols ?(classe=[]) ?cssmenu () =
-     self#editable_wikibox_allowed ~bi ~data ?rows ?cols ~classe ?cssmenu ()
+     self#editable_wikibox_aux ~bi ~data ?rows ?cols ~classe ?cssmenu ()
      >>= fun (r, _allowed) -> Lwt.return r
 
 
@@ -884,7 +776,7 @@ object (self)
      in
      Lwt.return
        {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-              ~service:action_send_css ~sp draw_form () :}] }}
+              ~service:action_send_wikipage_css ~sp draw_form () :}] }}
 
    method edit_css_box ~bi ~data ?rows ?cols ?(classe=[]) ()  =
      let sp = bi.Wiki_syntax.bi_sp in
@@ -897,13 +789,10 @@ object (self)
      >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
      self#bind_or_display_error ~classe
        (if c then
-          Lwt.catch
-            (fun () ->
-               Wiki_sql.get_css_for_page wiki page (* The css exists *))
-            (function
-               | Not_found -> Lwt.return ""
-               | e -> Lwt.fail e)
-        else Lwt.fail Not_css_editor)
+          Wiki_sql.get_css_for_page wiki page >>= function
+            | Some css -> Lwt.return css
+            | None -> Lwt.return ""
+        else Lwt.fail Wiki.Not_css_editor)
        (self#display_edit_css_form ~bi ?rows ?cols ~data)
        (self#display_edit_css_box ~bi ~cssmenu:(Some page) (wiki', box) page)
 
@@ -929,90 +818,62 @@ object (self)
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
      Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
-     Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
-           self#bind_or_display_error
-             ~classe
-             (if c
-              then
-                Lwt.catch
-                  (fun () ->
-                     Wiki_sql.get_css_for_wiki wiki (* The css exists *)
-                  )
-                  (function
-                     | Not_found -> Lwt.return ""
-                     | e -> Lwt.fail e
-                  )
-              else Lwt.fail Not_css_editor)
-             (self#display_edit_wikicss_form ~bi ?rows ?cols ~wiki)
-             (self#display_edit_wikicss_box ~bi
-                ?cssmenu:(Some None)
-                (wiki, wiki_info.Wiki_sql.container_id))
+     Users.in_group ~sp ~sd ~user:userid ~group:editors ()
+     >>= fun c ->
+     self#bind_or_display_error ~classe
+       (if c then
+          Lwt.catch
+            (fun () -> Wiki_sql.get_css_for_wiki wiki (* The css exists *))
+            (function
+               | Not_found -> Lwt.return ""
+               | e -> Lwt.fail e)
+        else Lwt.fail Wiki.Not_css_editor)
+       (self#display_edit_wikicss_form ~bi ?rows ?cols ~wiki)
+       (self#display_edit_wikicss_box ~bi ?cssmenu:(Some None)
+          (wiki, wiki_info.Wiki_sql.container_id))
 
    method get_css_header ~bi ~wiki ?(admin=false) ?page () =
      let sp = bi.Wiki_syntax.bi_sp in
-     if admin
-     then
+     let css_url_service service args = Eliom_duce.Xhtml.css_link
+       (Eliom_duce.Xhtml.make_uri service sp args) () in
+     let css_url path = css_url_service (Eliom_services.static_dir sp) path in
+
+     if admin then
        Lwt.return
-         {{ [ {:Eliom_duce.Xhtml.css_link
-                 (Eliom_duce.Xhtml.make_uri
-                    (Eliom_services.static_dir sp)
-                    sp ["ocsiwikistyle.css"]) ():}
-                {:Eliom_duce.Xhtml.css_link
-                   (Eliom_duce.Xhtml.make_uri
-                      (Eliom_services.static_dir sp)
-                      sp ["ocsiwikiadmin.css"]) ():}
-            ] }}
+         {{ [ {: css_url ["ocsiwikistyle.css"] :}
+              {: css_url ["ocsiwikiadmin.css"] :} ] }}
      else
-       let css =
-         Eliom_duce.Xhtml.css_link
-           (Eliom_duce.Xhtml.make_uri
-              (Eliom_services.static_dir sp)
-              sp ["ocsiwikistyle.css"]) ()
-(*VVV CSS? *)
-       in
+       let css = css_url ["ocsiwikistyle.css"] in
        (match Wiki_syntax.find_servwikicss wiki with
-         | None -> Lwt.return {{ [ css ] }}
-         | Some wikicss_service ->
-             Lwt.catch
-               (fun () ->
-                  Wiki_sql.get_css_for_wiki wiki >>= fun _ ->
-                    Lwt.return
-                      {{ [ css
-                             {:
-                                Eliom_duce.Xhtml.css_link
-                                (Eliom_duce.Xhtml.make_uri
-                                   wikicss_service sp ())
-                                ()
-(*VVV encoding? *)
-                                :}
-                         ]}}
-               )
-               (function
-                  | Not_found -> Lwt.return {{ [ css ] }}
-                  | e -> Lwt.fail e))
+          | None -> Lwt.return {{ [ css ] }}
+          | Some wikicss_service ->
+              Lwt.catch
+                (fun () ->
+                   Wiki_sql.get_css_for_wiki wiki
+                   >>= fun _ -> Lwt.return
+                     {{ [ css
+                          {: css_url_service wikicss_service () (* encoding? *) :}
+                        ]}})
+                (function
+                   | Not_found -> Lwt.return {{ [ css ] }}
+                   | e -> Lwt.fail e)
+       )
        >>= fun css ->
-         Lwt.catch
-           (fun () ->
-              match page with
-                | None -> Lwt.return css
-                | Some page ->
-                    Wiki_sql.get_css_for_page wiki page >>= fun _ ->
-                    Lwt.return
-                      {{ [ !css
-                             {:
-                                Eliom_duce.Xhtml.css_link
-                                  (Eliom_duce.Xhtml.make_uri
-                                     pagecss_service sp (wiki, page))
-                                  ()
-(*VVV encoding? *)
-                             :}
-                         ]}}
-           )
-           (function
-              | Not_found -> Lwt.return css
-              | e -> Lwt.fail e)
-
-
+       Lwt.catch
+         (fun () ->
+            match page with
+              | None -> Lwt.return css
+              | Some page ->
+                  Wiki_sql.get_css_for_page wiki page
+                  >>= fun _ -> Lwt.return
+                    {{ [ !css
+                         {: css_url_service pagecss_service (wiki, page)
+                            (*VVV encoding? *) :}
+                       ]}}
+         )
+         (function
+            | Not_found -> Lwt.return css
+            | e -> Lwt.fail e)
 
 
    initializer
@@ -1259,7 +1120,7 @@ object (self)
             Lwt.return (self#container ~css {{ [ page ] }})
          );
 
-       Eliom_duce.Xhtml.register service_edit_css
+       Eliom_duce.Xhtml.register service_edit_wikipage_css
          (fun sp ((wiki, page) as g) () ->
             let sd = Ocsimore_common.get_sd sp in
             let bi = { Wiki_syntax.bi_sp = sp;
@@ -1282,7 +1143,7 @@ object (self)
             Lwt.return (self#container ~css {{ [ pagecontent ] }})
          );
 
-       Eliom_duce.Xhtml.register service_edit_wikicss
+       Eliom_duce.Xhtml.register service_edit_wiki_css
          (fun sp wiki () ->
             let sd = Ocsimore_common.get_sd sp in
             let bi = { Wiki_syntax.bi_sp = sp;

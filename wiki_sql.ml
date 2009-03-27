@@ -35,6 +35,12 @@ let eliom_wiki = Eliom_parameters.user_type
   (fun s -> (int32_t (Int32.of_string s) : wiki))
   wiki_id_s
 
+
+(* For now. Someday the second int32 will be a properly opacified type *)
+type wikibox_id = int32
+type wikibox = wiki * wikibox_id
+
+
 open Lwt
 open Sql.PGOCaml
 open Ocsimore_lib
@@ -42,7 +48,7 @@ open CalendarLib
 open Sql
 
 
-let new_wiki ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
+let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
   let container_wikibox = 0l in
   Sql.full_transaction_block
     (fun db ->
@@ -74,7 +80,7 @@ let update_wiki_ ~wiki ~container_id () =
 
 
 
-let populate_readers_ db wiki id readers =
+let populate_readers_ db (wiki, id) readers =
   let wiki = t_int32 (wiki : wiki) in
   match readers with
     | [] -> Lwt.return ()
@@ -96,7 +102,7 @@ let populate_readers_ db wiki id readers =
           )
           readers
 
-let populate_writers_ db wiki id writers =
+let populate_writers_ db (wiki, id) writers =
   let wiki = t_int32 (wiki : wiki) in
   match writers with
     | [] -> Lwt.return ()
@@ -118,7 +124,7 @@ let populate_writers_ db wiki id writers =
           )
           writers
 
-let populate_rights_adm_ db wiki id ra =
+let populate_rights_adm_ db (wiki, id) ra =
   let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
@@ -140,7 +146,7 @@ let populate_rights_adm_ db wiki id ra =
           )
           ra
 
-let populate_wikiboxes_creators_ db wiki id ra =
+let populate_wikiboxes_creators_ db (wiki, id) ra =
   let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
@@ -162,7 +168,7 @@ let populate_wikiboxes_creators_ db wiki id ra =
           )
           ra
 
-let remove_readers_ db wiki id readers =
+let remove_readers_ db (wiki, id) readers =
   let wiki = t_int32 (wiki : wiki) in
   match readers with
     | [] -> Lwt.return ()
@@ -186,7 +192,7 @@ let remove_readers_ db wiki id readers =
           )
           readers
 
-let remove_writers_ db wiki id writers =
+let remove_writers_ db (wiki, id) writers =
   let wiki = t_int32 (wiki : wiki) in
   match writers with
     | [] -> Lwt.return ()
@@ -210,7 +216,7 @@ let remove_writers_ db wiki id writers =
           )
           writers
 
-let remove_rights_adm_ db wiki id ra =
+let remove_rights_adm_ db (wiki, id) ra =
   let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
@@ -234,7 +240,7 @@ let remove_rights_adm_ db wiki id ra =
           )
           ra
 
-let remove_wikiboxes_creators_ db wiki id ra =
+let remove_wikiboxes_creators_ db (wiki, id) ra =
   let wiki = t_int32 (wiki : wiki) in
   match ra with
     | [] -> Lwt.return ()
@@ -278,12 +284,12 @@ let string_of_wikibox_content_type = function
 
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox ~wiki ?box ~author ~comment ~content ~content_type ?rights () = 
+let new_wikibox_ ~wiki ?wbid ~author ~comment ~content ~content_type ?rights () = 
   let wiki' = t_int32 (wiki : wiki)
   and content_type = string_of_wikibox_content_type content_type in
   Sql.full_transaction_block
     (fun db ->
-       (match box with
+       (match wbid with
           | None ->
               PGSQL(db)
                 "SELECT max(id) FROM wikiboxes 
@@ -313,23 +319,24 @@ let new_wikibox ~wiki ?box ~author ~comment ~content ~content_type ?rights () =
        (match rights with
          | None -> Lwt.return ()
          | Some (r, w, ra, wc) -> 
-             populate_writers_ db wiki wbx_id w >>= fun () ->
-             populate_readers_ db wiki wbx_id r >>= fun () ->
-             populate_rights_adm_ db wiki wbx_id ra >>= fun () ->
-             populate_wikiboxes_creators_ db wiki wbx_id wc
+             populate_writers_ db (wiki, wbx_id) w >>= fun () ->
+             populate_readers_ db (wiki, wbx_id) r >>= fun () ->
+             populate_rights_adm_ db (wiki, wbx_id) ra >>= fun () ->
+             populate_wikiboxes_creators_ db (wiki, wbx_id) wc
        ) >>= fun () ->
       Lwt.return wbx_id)
 
+
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-let update_wikibox_ ~wiki ~wikibox ~author ~comment ~content ~content_type =
+let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_type =
   let wiki = t_int32 (wiki : wiki)
   and content_type = string_of_wikibox_content_type content_type in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "INSERT INTO wikiboxes \
                     (id, wiki_id, author, comment, content, content_type) \
-                  VALUES ($wikibox, $wiki, $author, \
+                  VALUES ($wbox, $wiki, $author, \
                           $comment, $content, $content_type)" >>= fun () ->
        serial4 db "wikiboxes_version_seq")
 
@@ -410,15 +417,15 @@ let current_wikibox_version_ ~wikibox:(wiki, id) =
 
 (** returns subject, text, author, datetime of a wikibox; 
     None if non-existant *)
-let get_history ~wiki ~id =
+let get_history ~wikibox:(wiki, wbid) =
   let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
+  Lwt_pool.use
     Sql.pool
     (fun db ->
        PGSQL(db) "SELECT version, comment, author, datetime \
                   FROM wikiboxes \
                   WHERE wiki_id = $wiki \
-                  AND id = $id \
+                  AND id = $wbid \
                   ORDER BY version DESC")
 
 type wikipage = {
@@ -451,7 +458,7 @@ let get_box_for_page_ ~wiki ~page =
           })
 
 (** Sets the box corresponding to a wikipage *)
-let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wikibox ?title () =
+let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () =
   let sourcewiki = t_int32 (sourcewiki : wiki)
   and destwiki = t_int32 (destwiki: wiki) in
   Lwt_pool.use
@@ -459,7 +466,7 @@ let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wikibox ?title (
     (fun db ->
        PGSQL(db) "DELETE FROM wikipages WHERE sourcewiki=$sourcewiki AND pagename = $page"
        >>= fun () ->
-       PGSQL(db) "INSERT INTO wikipages VALUES ($sourcewiki, $wikibox, $page, $destwiki, $?title)"
+       PGSQL(db) "INSERT INTO wikipages VALUES ($sourcewiki, $wbid, $page, $destwiki, $?title)"
     )
 
 
@@ -546,60 +553,51 @@ let get_wikiboxes_creators_ (wiki, id) =
              WHERE id = $id AND wiki_id = $wiki")
 
 (****)
-let populate_readers_ wiki_id id readers =
+let populate_readers_ (wiki_id, id) readers =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_readers_ db wiki_id id readers)
+  populate_readers_ db (wiki_id, id) readers)
 
-let populate_writers_ wiki_id id writers =
+let populate_writers_ (wiki_id, id) writers =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_writers_ db wiki_id id writers)
+  populate_writers_ db (wiki_id, id) writers)
 
-let populate_rights_adm_ wiki_id id wbadmins =
+let populate_rights_adm_ (wiki_id, id) wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_rights_adm_ db wiki_id id wbadmins)
+  populate_rights_adm_ db (wiki_id, id) wbadmins)
 
-let populate_wikiboxes_creators_ wiki_id id wbadmins =
+let populate_wikiboxes_creators_ (wiki_id, id) wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  populate_wikiboxes_creators_ db wiki_id id wbadmins)
+  populate_wikiboxes_creators_ db (wiki_id, id) wbadmins)
 
-let remove_readers_ wiki_id id readers =
+let remove_readers_ (wiki_id, id) readers =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_readers_ db wiki_id id readers)
+  remove_readers_ db (wiki_id, id) readers)
 
-let remove_writers_ wiki_id id writers =
+let remove_writers_ (wiki_id, id) writers =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_writers_ db wiki_id id writers)
+  remove_writers_ db (wiki_id, id) writers)
 
-let remove_rights_adm_ wiki_id id wbadmins =
+let remove_rights_adm_ (wiki_id, id) wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_rights_adm_ db wiki_id id wbadmins)
+  remove_rights_adm_ db (wiki_id, id) wbadmins)
 
-let remove_wikiboxes_creators_ wiki_id id wbadmins =
+let remove_wikiboxes_creators_ (wiki_id, id) wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
-  remove_wikiboxes_creators_ db wiki_id id wbadmins)
+  remove_wikiboxes_creators_ db (wiki_id, id) wbadmins)
 
-(** returns the css for a page or fails with [Not_found] if it does not exist *)
-let get_css_for_page_ ~wiki ~page =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
+
+let get_css_wikibox_for_page_ ~wiki ~page =
+  let wiki' = t_int32 (wiki : wiki) in
+  Lwt_pool.use
     Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT css FROM css \
-                  WHERE wiki = $wiki AND page = $page"
+       PGSQL(db) "SELECT wikibox FROM css \
+                  WHERE wiki = $wiki' AND page = $page"
        >>= function
          | [] -> Lwt.return None
-         | x::_ -> Lwt.return (Some x))
-
-(** Sets the css for a wikipage *)
-let set_css_for_page_ ~wiki ~page content =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
-    Sql.pool
-    (fun db -> 
-       PGSQL(db) "DELETE FROM css WHERE wiki = $wiki AND page = $page" 
-       >>= fun () ->
-       PGSQL(db) "INSERT INTO css VALUES ($wiki, $page, $content)"
+         | x::_ -> Lwt.return (Some x)
     )
+
 
 (** returns the global css for a wiki or fails with [Not_found] if it does not exist *)
 let get_css_for_wiki_ ~wiki =
@@ -652,11 +650,13 @@ let get_wikibox_data,
   remove_writers,
   remove_rights_adm,
   remove_wikiboxes_creators,
+  new_wiki,
+  new_wikibox,
   update_wikibox,
   current_wikibox_version
   =
   let module C = Cache.Make (struct 
-                               type key = (wiki * int32)
+                               type key = wikibox
                                type value = (string * 
                                                User_sql.userid * 
                                                string * 
@@ -667,12 +667,12 @@ let get_wikibox_data,
                              end) 
   in
   let module C2 = Cache.Make (struct 
-                                type key = (wiki * int32)
+                                type key = wikibox
                                 type value = User_sql.userid list
                              end) 
   in
   let module C3 = Cache.Make(struct
-                               type key = (wiki * int32)
+                               type key = wikibox
                                type value = int32 option (* currently wikibox version*)
                              end)
   in
@@ -695,22 +695,34 @@ let get_wikibox_data,
    (fun a -> print_cache "cache writers "; C2.find cachew a),
    (fun a -> print_cache "cache ra "; C2.find cachera a),
    (fun a -> print_cache "cache wc "; C2.find cachewc a),
-  (fun a b r -> C2.remove cacher (a, b);  populate_readers_ a b r),
-  (fun a b r -> C2.remove cachew (a, b);  populate_writers_ a b r),
-  (fun a b r -> C2.remove cachera (a, b);  populate_rights_adm_ a b r),
-  (fun a b r -> C2.remove cachewc (a, b);  populate_wikiboxes_creators_ a b r),
-  (fun a b r -> C2.remove cacher (a, b);  remove_readers_ a b r),
-  (fun a b r -> C2.remove cachew (a, b);  remove_writers_ a b r),
-  (fun a b r -> C2.remove cachera (a, b);  remove_rights_adm_ a b r),
-  (fun a b r -> C2.remove cachewc (a, b);  remove_wikiboxes_creators_ a b r),
-  (fun ~wiki ~wikibox ~author ~comment ~content ->
+  (fun (a, b) r -> C2.remove cacher (a, b);  populate_readers_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachew (a, b);  populate_writers_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachera (a, b);  populate_rights_adm_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachewc (a, b);  populate_wikiboxes_creators_ (a, b) r),
+  (fun (a, b) r -> C2.remove cacher (a, b);  remove_readers_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachew (a, b);  remove_writers_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachera (a, b);  remove_rights_adm_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachewc (a, b);  remove_wikiboxes_creators_ (a, b) r),
+  (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_page () ->
+     new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page ()
+     >>= function (wiki, wikibox) ->
      C.remove cache (wiki, wikibox);
-     C2.remove cacher (wiki, wikibox);
-     C2.remove cachew (wiki, wikibox);
-     C2.remove cachera (wiki, wikibox);
-     C2.remove cachewc (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);
-     update_wikibox_ ~wiki ~wikibox ~author ~comment ~content),
+     Lwt.return (wiki, wikibox)),
+  (fun ~wiki ?wbid ~author ~comment ~content ~content_type ?rights () ->
+     new_wikibox_ ~wiki ?wbid ~author ~comment ~content ~content_type ?rights ()
+     >>= fun wikibox ->
+     C.remove cache (wiki, wikibox);
+     C3.remove cachewv (wiki, wikibox);
+     Lwt.return wikibox),
+  (fun ~wikibox ~author ~comment ~content ->
+     C.remove cache wikibox;
+     C2.remove cacher wikibox;
+     C2.remove cachew wikibox;
+     C2.remove cachera wikibox;
+     C2.remove cachewc wikibox;
+     C3.remove cachewv wikibox;
+     update_wikibox_ ~wikibox ~author ~comment ~content),
    (fun ~wikibox -> C3.find cachewv wikibox)
   )
 
@@ -728,10 +740,10 @@ let get_box_for_page, set_box_for_page =
       let page = Ocsigen_lib.remove_end_slash page in
       print_cache "cache wikipage ";
       C.find cache (wiki, page)),
-   (fun ~sourcewiki ~page ?(destwiki=sourcewiki) ~wikibox ?title () ->
+   (fun ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () ->
       let page = Ocsigen_lib.remove_end_slash page in
       C.remove cache (sourcewiki, page);
-      set_box_for_page_ ~sourcewiki ~page ~destwiki ~wikibox ?title ()
+      set_box_for_page_ ~sourcewiki ~page ~destwiki ~wbid ?title ()
    ))
 
 
@@ -777,24 +789,21 @@ let get_wiki_by_id, get_wiki_by_name, update_wiki =
 
 
 (***)
-let get_css_for_page, set_css_for_page =
+let get_css_wikibox_for_page, set_css_wikibox_for_page_in_cache =
   let module C = Cache.Make (struct 
                                type key = (wiki * string)
-                               type value = string option
+                               type value = int32 option
                              end) 
   in
   let cache = 
-    C.create (fun (wiki, page) -> get_css_for_page_ ~wiki ~page) 64 
+    C.create (fun (wiki, page) -> get_css_wikibox_for_page_ ~wiki ~page) 64 
   in
   ((fun ~wiki ~page -> 
       print_cache "cache css";
-      C.find cache (wiki, page) >>= function
-        | None -> Lwt.fail Not_found
-        | Some p -> Lwt.return p),
-   (fun ~wiki ~page content ->
-      C.remove cache (wiki, page);
-      set_css_for_page_ ~wiki ~page content
-   ))
+      C.find cache (wiki, page)),
+   (fun ~wiki ~page box ->
+      C.add cache (wiki, page) box)
+  )
 
 (***)
 let get_css_for_wiki, set_css_for_wiki =
@@ -815,3 +824,28 @@ let get_css_for_wiki, set_css_for_wiki =
       C.remove cache wiki;
       set_css_for_wiki_ ~wiki content
    ))
+
+
+let get_css_for_page ~wiki ~page =
+  get_css_wikibox_for_page ~wiki ~page
+  >>= function
+    | None -> Lwt.return None
+    | Some wikibox ->
+        get_wikibox_data (wiki, wikibox) ()
+        >>= function
+          | Some (_, _, content, _, _, _) -> Lwt.return (Some content)
+          | None -> Lwt.return None
+
+
+let set_css_for_page ~wiki ~page ~author content =
+  get_css_wikibox_for_page ~wiki ~page
+  >>= function
+    | None ->
+        new_wikibox_ ~wiki ~comment:"" ~author ~content ~content_type:Css ()
+        >>= fun wikibox ->
+        set_css_wikibox_for_page_in_cache ~wiki ~page (Some wikibox);
+        Lwt.return ()
+    | Some wbid ->
+        update_wikibox ~wikibox:(wiki, wbid) ~author ~comment:"" ~content
+          ~content_type:Css
+        >>= fun _ -> Lwt.return ()
