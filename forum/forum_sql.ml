@@ -1,5 +1,6 @@
 (* Ocsimore
- * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,82 +16,133 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
-
-
-  (* Lots of queries here take a ~frm_id parameter, even if other ones
-     should be enough to determinate a primary key.  This has been
-     done because of the need to match every query request against a
-     forum's ACL.  TO BE DONE: A LAYER FOR ACCESS CONTROL *)
-
 (**
-@author Jaap Boender
-@author Vincent Balat
+   @author Piero Furiesi
+   @author Jaap Boender
+   @author Vincent Balat
+   @author Boris Yakobowski
 *)
+
+open Sql.PGOCaml
+open Sql
+
+let (>>=) = Lwt.bind
 
 type forum = int32
 
-open Lwt
-open Sql.PGOCaml
-open Ocsimore_lib
-open CalendarLib
-open Sql
-
-(** Role of user in the forum *)
-type role = Moderator | Author of int32 | Lurker of string | Unknown;;
-
-type message_info =
-    int32 * string * string * Calendar.t * bool * int32 option * string option;;
-(* type 'a collection = List of 'a list | Forest of 'a tree list;; *)
-
 let get_id x = x
 let of_id x = x
+let forum_id_s = Int32.to_string 
 
-let new_forum
-    ~title ~descr ~moderated ~arborescent ~reader ~writer
-    ~moderator =
-  (* inserts a new forum *)
-  Ocsigen_messages.debug2 "[Sql] new_forum";
+let new_forum ~title ~descr ?(arborescent = true) () =
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) 
-         "INSERT INTO forums (title, descr, moderated,
-     arborescent, reader, writer, moderator) \
-     VALUES ($title, $descr, $moderated, $arborescent, $reader, $writer,
-     $moderator)" >>= fun () -> 
+         "INSERT INTO forums (title, descr, arborescent) \
+          VALUES ($title, $descr, $arborescent)" >>= fun () -> 
        serial4 db "forums_id_seq")
-  >>= fun frm_id -> 
-  Ocsigen_messages.debug2 "[Sql] new_forum: finish"; 
-  return frm_id
 
-let new_thread_and_message ~frm_id ~author_id ~subject ~txt = 
-  (* inserts a message starting a new thread; both thread and message
-     will be hidden if forum is moderated *)
-  Ocsigen_messages.debug2 "[Sql] new_thread_and_message";
+let new_message ~forum_id ~author_id
+    ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text = 
   Sql.full_transaction_block
     (fun db ->
-  PGSQL(db) "SELECT moderated FROM forums WHERE id=$frm_id" >>= fun y -> 
-  (match y with [x] -> return x | _ -> fail Not_found) >>= fun hidden -> 
-  PGSQL(db) "INSERT INTO forums_threads (frm_id, subject, hidden, author_id) \
-             VALUES ($frm_id, $subject, $hidden, $author_id)" >>= fun () -> 
-  serial4 db "threads_id_seq" >>= fun thr_id -> 
-  PGSQL(db) "INSERT INTO forums_textdata (txt) VALUES ($txt)" >>= fun () ->
-  serial4 db "textdata_id_seq" >>= fun txt_id -> 
-  PGSQL(db) "SELECT MAX(tree_max) FROM forums_messages \
-             WHERE thr_id = $thr_id" >>= fun z -> 
-  (match z with
-     | [x] -> (match x with
-                 | None -> return 0l
-                 | Some y -> return y)
-     | _ -> return 0l) >>= fun db_max -> 
-  PGSQL(db) "INSERT INTO forums_messages \
-               (author_id, thr_id, txt_id, hidden, tree_min, tree_max) \
-             VALUES ($author_id, $thr_id, $txt_id, $hidden, \
-                     $db_max + 1, $db_max + 2)" >>= fun () -> 
-  serial4 db "messages_id_seq"
-  >>= fun msg_id -> 
-  Ocsigen_messages.debug2 "[Sql] new_thread_and_message: finish";
-  return (thr_id, msg_id))
+       (match parent_id with
+         | None ->
+             serial4 db "forums_messages_seq" >>= fun last_id ->
+             PGSQL(db) "INSERT INTO forums_messages \
+               (subject, author_id, parent_id, root_id, forum_id, text, \
+                moderated, sticky) \
+             VALUES ($?subject, $author_id, $?parent_id, $last_id + 1, 
+                     $forum_id, $text, $moderated, $sticky)"
+         | Some p -> 
+             PGSQL(db) "SELECT tree_max, root_id FROM forums_messages \
+                        WHERE parent_id = $p" >>= fun r ->
+             match r with
+               | [(m, root_id)] ->
+                   (PGSQL(db) "UPDATE forums_messages \
+                               SET tree_max = tree_max + 2 \
+                               WHERE root_id = $root_id AND \
+                                     tree_max >= $m" >>= fun () ->
+                    PGSQL(db) "UPDATE forums_messages \
+                               SET tree_min = tree_min + 2 \
+                               WHERE root_id = $root_id AND \
+                                     tree_min >= $m" >>= fun () ->
+                    PGSQL(db) "INSERT INTO forums_messages \
+                        (subject, author_id, parent_id, root_id, forum_id,
+                         text, moderated, sticky, tree_min, tree_max) \
+                      VALUES ($?subject, $author_id, $p, \
+                              $root_id, $forum_id, $text, \
+                              $moderated, $sticky, $m, $m + 1)"
+                   )
+               | _ -> Lwt.fail (Failure
+                                  "Forum_sql.new_message: parent does not exist or is not unique")
+       ) >>= fun () -> 
+      serial4 db "forums_messages_seq")
+
+
+let set_deleted ~message_id ~deleted =
+  Lwt_pool.use Sql.pool (fun db ->
+  PGSQL(db) "UPDATE forums_messages SET deleted = $deleted \
+             WHERE id = $message_id")
+
+let set_moderated ~message_id ~moderated =
+  Lwt_pool.use Sql.pool (fun db ->
+  PGSQL(db) "UPDATE forums_messages SET moderated = $moderated \
+             WHERE id = $message_id")
+
+let set_sticky ~message_id ~sticky =
+  Lwt_pool.use Sql.pool (fun db ->
+  PGSQL(db) "UPDATE forums_messages SET sticky = $sticky \
+             WHERE id = $message_id")
+
+let find_forum ?forum_id ?title () =
+  Sql.full_transaction_block
+    (fun db -> match (title, forum_id) with
+     | (Some t, Some i) -> 
+         PGSQL(db) "SELECT id, title, descr, arborescent, deleted, readonly \
+                FROM forums \
+                WHERE title = $t AND id = $i"
+     | (Some t, None) -> 
+         PGSQL(db) "SELECT id, title, descr, arborescent, deleted, readonly \
+                FROM forums \
+                WHERE title = $t"
+     | (None, Some i) -> 
+         PGSQL(db) "SELECT id, title, descr, arborescent, deleted, readonly \
+                FROM forums \
+                WHERE id = $i"
+     | (None, None) -> Lwt.fail (Invalid_argument "Forum_sql.find_forum"))
+  >>= fun r -> 
+  (match r with
+     | [a] -> Lwt.return a
+     | a::_ -> 
+         Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
+         Lwt.return a
+     | _ -> Lwt.fail Not_found)
+
+let get_forums_list () =
+  Sql.full_transaction_block 
+    (fun db ->
+       PGSQL(db) 
+         "SELECT id, title, descr, arborescent, deleted, readonly \
+          FROM forums")
+
+let get_message ~message_id =
+  Lwt_pool.use Sql.pool (fun db ->
+  PGSQL(db) "SELECT id, subject, author_id, datetime, text, \
+               moderated, deleted, sticky \
+             FROM forums_messages \
+             WHERE forums_messages.id = $message_id" >>= fun y -> 
+  (match y with
+     | [] -> Lwt.fail Not_found
+     | [x] -> return x 
+     | _ -> 
+         Lwt.fail 
+           (Failure 
+              "Forum_sql.get_message: several messages have the same id")))
+
+
     
+(*
 let new_thread_and_article ~frm_id ~author_id ~subject ~txt =
   Ocsigen_messages.debug2 "[Sql] new_thread_and_article";
   Sql.full_transaction_block
@@ -186,58 +238,6 @@ let message_toggle_sticky ~frm_id ~msg_id =
              AND forums_messages.thr_id = forums_threads.id \
              AND forums_threads.frm_id = $frm_id")
 
-let find_forum ?id ?title () =
-  Sql.full_transaction_block
-    (fun db -> match (title, id) with
-     | (Some t, Some i) -> 
-         PGSQL(db) "SELECT * \
-                FROM forums \
-                WHERE title = $t AND id = $i"
-(* old version was:
-         PGSQL(db) "SELECT forums.id, title, descr, r.login, w.login, m.login \
-                FROM forums, users AS r, users AS w, users AS m \
-                WHERE r.id = reader AND w.id = writer AND m.id = moderator \
-                AND title = $t AND forums.id = $i"
-*)
-     | (Some t, None) -> 
-         PGSQL(db) "SELECT * \
-                FROM forums \
-                WHERE title = $t"
-(* old version was:
-         PGSQL(db) "SELECT forums.id, title, descr, r.login, w.login, m.login \
-                FROM forums, users AS r, users AS w, users AS m \
-                WHERE r.id = reader AND w.id = writer AND m.id = moderator \
-                AND title = $t"
-*)
-     | (None, Some i) -> 
-         PGSQL(db) "SELECT * \
-                FROM forums \
-                WHERE id = $i"
-(* old version was:
-         PGSQL(db) "SELECT forums.id, title, descr, r.login, w.login, m.login \
-                FROM forums, users AS r, users AS w, users AS m \
-                WHERE r.id = reader AND w.id = writer AND m.id = moderator \
-                AND forums.id = $i"
-*)
-     | (None, None) -> fail (Invalid_argument "Forum_sql.find_forum"))
-  >>= fun r -> 
-  (match r with
-     | [(id, title, descr, mo, a, r, w, m)] -> 
-         return (id, title, descr, mo, a, r, w, m)
-     | (id, title, descr, mo, a, r, w, m)::_ -> 
-         Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
-         return (id, title, descr, mo, a, r, w, m)
-     | _ -> fail Not_found)
-
-let get_forums_list () =
-  Sql.full_transaction_block 
-    (fun db ->
-       Ocsigen_messages.debug2 "[Sql] get_forums_list";
-       PGSQL(db) 
-         "SELECT id, title, descr, moderated, arborescent FROM forums")
-  >>= fun r -> 
-  Ocsigen_messages.debug2 "[Sql] get_forums_list: finish"; 
-  return r
 
 let forum_get_data ~frm_id ~role =
   (* returns id, title, description, mod status, number of shown/hidden
@@ -370,22 +370,6 @@ let thread_get_data (* ~frm_id *) ~thr_id ~role =
     (id, subject, author_id, article, datetime, 
      hidden, n_shown_msg, n_hidden_msg))
 
-let message_get_data ~frm_id ~msg_id =
-  (* returns id, text, author, datetime, hidden status of a message *)
-  Lwt_pool.use Sql.pool (fun db ->
-  Ocsigen_messages.debug2 "[Sql] message_get_data";
-  PGSQL(db) "SELECT forums_messages.id, forums_textdata.txt, fullname, \
-             forums_messages.datetime, forums_messages.hidden \
-             FROM forums_messages, forums_textdata, forums_threads, users \
-             WHERE forums_messages.id = $msg_id \
-             AND forums_messages.txt_id = forums_textdata.id \
-             AND forums_messages.thr_id = forums_threads.id \
-             AND forums_threads.frm_id = $frm_id \
-             AND users.id = forums_messages.author_id" >>= fun y -> 
-  (match y with [x] -> return x | _ -> fail Not_found)
-    >>= fun (id, text, author_id, datetime, hidden) ->
-  Ocsigen_messages.debug2 "[Sql] message_get_data: finish";
-  Lwt.return (id, text, author_id, datetime, hidden))
       
 let thread_get_neighbours ~frm_id ~thr_id ~role =
   (* returns None|Some id of prev & next thread in the same forum. *)
@@ -792,3 +776,4 @@ let get_latest_messages ~frm_ids ~limit () =
 
 
 
+*)

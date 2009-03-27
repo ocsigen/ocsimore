@@ -1,3 +1,30 @@
+(* Ocsimore
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
+(**
+   @author Piero Furiesi
+   @author Jaap Boender
+   @author Vincent Balat
+   @author Boris Yakobowski
+*)
+
+
+(*
 open Lwt
 open Eliommod
 open Eliom_parameters
@@ -8,12 +35,6 @@ open CalendarLib
 open Session_manager
 open Widget
 
-(**
-This module contains forum widgets for forums
-
-@author Jaap Boender
-@author Vincent Balat
-*)
 
 type message_data =
 {
@@ -195,6 +216,7 @@ class forum_form_widget:
 class forum_add_action :
   [string * string * string * bool * bool] parametrized_unit_div_widget_t
 
+*)
 
 (*
 (** A parametrized_div_widget that displays one message *)

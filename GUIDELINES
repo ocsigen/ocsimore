@@ -59,8 +59,8 @@ See for example {{{wiki.ml}}}.
 Is it really useful? Actually I use it only for few things. For most cases,
 we use a cache of sql requests.
 
-Warning: Polytables is not thread-safe. Do not use function that access {{{~sd}}}
-inside {{{Lwt_preemptive.detach!}}}
+Warning: Polytables is not thread-safe. 
+Do not use function that access {{{~sd}}} inside {{{Lwt_preemptive.detach!}}}
 
 When doing an action, DO NOT FORGET to send the session data to the
 subsequent service by returning the exception Ocsimore_common.Session_data.
@@ -97,6 +97,18 @@ Predefined users/groups:
  - users: group of authenticated users
  - nobody: a special user with no right at all 
  (for ex when the user does not exist)
+
+When creating a new extension, create a group for each possible action
+(for example "write in the forum number 4", "edit page css for wiki 3"...).
+Then set the relations between these groups.
+
+You probably want to compute the permission for one user at the
+beginning of the request. To do that, create a record with boolean
+fields for each possible action (for one forum, one box in a wiki, one
+wiki, etc). The function that will compute this can be memoised in sd
+to avoid to compute several times the same thing. See forum.ml for an
+example.
+
 
 * Wiki
 Warning: if the wiki is associated to a path, we register an Eliom service

@@ -1,5 +1,6 @@
 (* Ocsimore
- * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
+ * Copyright (C) 2005
+ * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,12 +16,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
+(**
+   @author Piero Furiesi
+   @author Jaap Boender
+   @author Vincent Balat
+   @author Boris Yakobowski
+*)
 
 
 type forum
-
-(** Role of user in the forum *)
-type role = Moderator | Author of int32 | Lurker of string | Unknown;;
 
 (** returns forum id *)
 val get_id : forum -> int32
@@ -28,110 +32,62 @@ val get_id : forum -> int32
 (** returns forum from id *)
 val of_id : int32 -> forum
 
-(** inserts a new forum *)
+(** returns forum id as a string *)
+val forum_id_s : forum -> string
+
+(** create a new forum. [?arborescent] is true by default. 
+    Setting it to false will prevent to comment comments. *)
 val new_forum : 
   title:string -> 
   descr:string -> 
-  moderated:bool ->
-  arborescent:bool -> 
-  reader:User_sql.userid -> 
-  writer:User_sql.userid ->
-  moderator:User_sql.userid ->  
+  ?arborescent:bool -> 
+  unit ->
   forum Lwt.t
 
-(** inserts a message starting a new thread; both thread and message
-    will be hidden if forum is moderated *)
-val new_thread_and_message :
-  frm_id:forum ->
-  author_id:int32 -> 
-  subject:string -> 
-  txt:string -> 
-  (int32 * int32) Lwt.t
-
-(** inserts a thread with an article; the thread will be hidden if the forum
-    is moderated *)
-val new_thread_and_article:
-  frm_id:forum -> 
-  author_id:int32 -> 
-  subject:string -> txt:string ->
-  (int32 * int32) Lwt.t
-
-(** inserts a message for an existing thread; message will be hidden
-    if forum is moderated *)
+(** inserts a message in a forum. 
+    [?moderated] and [?sticky] are false by default. *)
 val new_message :
-  thr_id:int32 ->
-  ?parent_id:int32 -> 
+  forum_id:forum ->
   author_id:int32 ->
-  txt:string -> 
-  sticky:bool -> 
-  unit -> 
+  ?subject:string ->
+  ?parent_id:int32 ->
+  ?moderated:bool ->
+  ?sticky:bool ->
+  text:string ->
   int32 Lwt.t
 
-(** toggle moderation status of a forum *)
-val forum_toggle_moderated : frm_id:forum -> unit Lwt.t
+(** delete or undelete a message *)
+val set_deleted :
+  message_id:int32 -> deleted:bool -> unit Lwt.t
   
-(** hides/shows a thread *)
-val thread_toggle_hidden : 
-  frm_id:forum -> thr_id:int32 -> unit Lwt.t
+(** set ou unset sticky flag on a message *)
+val set_sticky :
+  message_id:int32 -> sticky:bool -> unit Lwt.t
   
-(** hides/shows a message *)
-val message_toggle_hidden :
-  frm_id:forum -> msg_id:int32 -> unit Lwt.t
-
-(** makes a message sticky (or not) *)
-val message_toggle_sticky: 
-  frm_id:forum -> msg_id:int32 -> unit Lwt.t
-
-(** Find forum information for a wiki, given its id or title *)
+(** set or unset moderated flag on a message *)
+val set_moderated :
+  message_id:int32 -> moderated:bool -> unit Lwt.t
+  
+(** Find forum information, given its id or title *)
 val find_forum: 
-  ?id:forum -> 
+  ?forum_id:forum -> 
   ?title:string -> 
   unit -> 
-  (forum * string * string * bool * bool * 
-     User_sql.userid * User_sql.userid * User_sql.userid) Lwt.t
+  (forum * string * string * bool * bool * bool) Lwt.t
 
-(** returns the list of available forums *)
+(** returns the list of forums *)
 val get_forums_list : unit ->
-  (forum * string * string * bool * bool) list Lwt.t
-
-(** returns id, title, description, moderation status, number of shown/hidden
-    threads and messages of a forum.  
-    NB: a message is counted as hidden if: 
-    - its hidden status is true, or 
-    - it's in a hidden thread. *)
-val forum_get_data: 
-  frm_id:forum -> 
-  role:role -> 
-  (int32 * string * string * bool * int64 * int64 * int64 * int64) Lwt.t
- 
-(** returns the number of visible messages in a thread *)
-val thread_get_nr_messages : 
-  thr_id:int32 -> role:role -> int64 Lwt.t
-
-(** returns id, subject, author, datetime, hidden status, number of shown/hidden
-    messages of a thread.  
-    NB: a message is counted as hidden if:
-    - its hidden status is true, or 
-    - it's in a hidden thread. *)
-val thread_get_data : 
-  (* frm_id:forum -> *) 
-  thr_id:int32 -> 
-  role:role -> 
-  (int32 * 
-     string * 
-     string * 
-     string option * 
-     CalendarLib.Calendar.t * 
-     bool * 
-     int64 * 
-     int64) Lwt.t
+  (forum * string * string * bool * bool * bool) list Lwt.t
   
-(** returns id, text, author, datetime, hidden status of a message *)
-val message_get_data : 
-  frm_id:forum -> 
-  msg_id:int32 -> 
- (int32 * string * string * CalendarLib.Calendar.t * bool) Lwt.t
+(** returns id, subject, author, datetime, text,
+    and moderated, deleted, sticky status of a message *)
+val get_message : 
+  message_id:int32 -> 
+ (int32 * string option * int32 * CalendarLib.Calendar.t * string * 
+    bool * bool * bool) Lwt.t
   
+
+(*
 (** returns None|Some id of prev & next thread in the same forum *)
 val thread_get_neighbours :
   frm_id:forum ->  
@@ -191,3 +147,4 @@ val get_latest_messages:
   unit ->
   (forum * string * string) list Lwt.t
 
+  *)
