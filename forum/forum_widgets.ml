@@ -23,6 +23,44 @@
    @author Boris Yakobowski
 *)
 
+let (>>=) = Lwt.bind
+
+class message_widget (widget_with_error_box : Widget.widget_with_error_box) =
+object (self)
+
+  val msg_class = "ocsiforum_msg"
+
+  method get_message ~message_id =
+    Forum_sql.get_message ~message_id
+    
+  method display_message ~classe content =
+    let classe = Ocsimore_lib.build_class_attr (msg_class::classe) in
+    Lwt.return
+      {{ <div class={: classe :}>content }}
+
+  method pretty_print_message
+    (_, subjecto, authorid, datetime, content, moderated, deleted, sticky) =
+    Users.get_user_fullname_by_id authorid >>= fun author ->
+    Lwt.return
+      {{ [!{: match subjecto with
+              | None -> {{ [] }} 
+              | Some s -> {{ [<h1>{: s :}] }} :}
+          <span class="ocsiforum_message_info">
+            {: Format.sprintf "posted by: %s %s" author 
+               (Ocsimore_lib.sod datetime) :}
+          <p>{: content :}
+         ] }}
+
+  method display ?(classe=[]) ~data:message_id () =
+(*    Forum.get_role sp sd forum_id >>= fun role -> *)
+    widget_with_error_box#bind_or_display_error
+      ~classe
+      (self#get_message message_id)
+      (self#pretty_print_message)
+      (self#display_message)
+
+end
+
 
 (*
 

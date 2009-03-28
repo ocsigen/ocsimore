@@ -51,7 +51,7 @@ and {{{display_old_wikibox}}}
 * Use as much as possible the same names for labels.
 
 * Each widget takes an optional {{{?classe}}} label of type string list
-for the {{{class xhtml attribute. Each widget has its own attribute names
+for the {{{class}}} xhtml attribute. Each widget has its own attribute names
 
 * Session data:
 most widgets take {{{~sp}}} as parameter (Eliom's server parameters) and also

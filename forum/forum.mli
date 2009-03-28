@@ -44,6 +44,38 @@ val create_forum :
 
 
 
+(** {2 Session data} *)
+
+type role = 
+    {
+      messages_writers : bool;
+      messages_writers_notmod : bool;
+      messages_moderators : bool;
+      messages_deletors : bool;
+      messages_sticky_setters : bool;
+      messages_readers : bool;
+
+      comments_writers : bool;
+      comments_writers_notmod : bool;
+      comments_moderators : bool;
+      comments_deletors : bool;
+      comments_sticky_setters : bool;
+      comments_readers : bool;
+
+      writers : bool;
+      writers_notmod : bool;
+      moderators : bool;
+      deletors : bool;
+      sticky_setters : bool;
+      readers : bool;
+
+      forum_admin : bool;
+    }
+
+val get_role : 
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data -> 
+  Forum_sql.forum -> role Lwt.t
 
 
 
@@ -61,8 +93,4 @@ val can_write : forum_info -> Users.userdata -> bool
 val can_moderate : forum_info -> Users.userdata -> bool
 *)
 
-val get_role : 
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data -> 
-  Forum_sql.forum -> Forum_sql.role Lwt.t
 *)
