@@ -51,6 +51,7 @@ val get_user_id_by_name : string -> int32 Lwt.t
 
 val get_user_name_by_id : int32 -> string Lwt.t
 val get_user_by_id : id:int32 -> userdata Lwt.t
+val get_user_fullname_by_id : int32 -> string Lwt.t
 
 
 (** Creates a new user with given parameters. 
