@@ -19,6 +19,7 @@
 (**
    Pretty print wiki to OcamlDuce
    @author Vincent Balat
+   @author Boris Yakobowski
 *)
 
 let (>>=) = Lwt.bind

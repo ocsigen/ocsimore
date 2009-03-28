@@ -659,7 +659,7 @@ object (self)
      let sp = bi.Wiki_syntax.bi_sp in
      Lwt_util.map
        (fun (version, _comment, author, date) ->
-          Users.get_user_name_by_id author >>= fun author ->
+          Users.get_user_fullname_by_id author >>= fun author ->
           Lwt.return
             {{ [ !{: Int32.to_string version :}'. '
                    !{: CalendarLib.Printer.Calendar.to_string date :}' '

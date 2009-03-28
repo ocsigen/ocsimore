@@ -200,6 +200,17 @@ let get_user_name_by_id id =
      | Not_found -> Lwt.return nobody.name
      | e -> Lwt.fail e)
 
+let get_user_fullname_by_id id =
+  Lwt.catch
+  (fun () ->
+     User_cache.find_user ~id () >>= fun ((_i, n, _p, _d, _e, _dy), _pm) -> 
+     Lwt.return d
+  )
+  (function
+(*     | Not_found -> Lwt.fail (NoSuchUser (Ocsigen_lib.Right id)) *)
+     | Not_found -> Lwt.return nobody.fullname
+     | e -> Lwt.fail e)
+
 let get_user_by_id_from_db ~id =
   Lwt.catch
   (fun () ->
