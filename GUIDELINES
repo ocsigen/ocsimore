@@ -10,6 +10,18 @@ extensions, we recommend to follow these guidelines:
 Decompose each of them into several methods, one for each subtask to perform
 (retrieve data, display ...) and for each widget kind.
 
+The instanciation of classes must be done in a separate module, that
+can be rewritten by programmers who want to redefine some methods.
+
+* The creation and registration of services is also done in this
+  separate module that can be loaded several times inside the
+  {{{<host>}}} section of the configuration file. 
+
+  Usually, widgets depend on services, and service handlers depend on
+  widgets. This means that there is an instance of classes for each
+  site. For example, create services, then give them as parameters to
+  the class constructor to create the object, then register services.
+
 * Decompose your module in 5 parts:
 {{{_createdb.sql}}} SQL creation of databases
 {{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool

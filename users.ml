@@ -203,7 +203,7 @@ let get_user_name_by_id id =
 let get_user_fullname_by_id id =
   Lwt.catch
   (fun () ->
-     User_cache.find_user ~id () >>= fun ((_i, n, _p, _d, _e, _dy), _pm) -> 
+     User_cache.find_user ~id () >>= fun ((_i, _n, _p, d, _e, _dy), _pm) -> 
      Lwt.return d
   )
   (function
