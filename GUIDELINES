@@ -1,8 +1,9 @@
 ===Guidelines and implementation notes===
 (work in progress)
 
-If  you  want  to  contribute   to  Ocsimore  and/or  write  your  own
-extensions, we recommend to follow these guidelines:
+If you want to contribute to Ocsimore and/or write your own
+extensions, we recommend to follow these guidelines. Have a look at
+the forum code for an example.
 
 * Please try to make things as generic and configurable as possible.
 
@@ -23,13 +24,22 @@ can be rewritten by programmers who want to redefine some methods.
   the class constructor to create the object, then register services.
 
 
-* Decompose your module in 6 parts:
+* Decompose your extension in 7 parts:
 {{{_createdb.sql}}} SQL creation of databases
 {{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool
-{{{.ml}}} defining and exporting session data for the module (see below)
 {{{_cache.ml}}} cache on database requests, using the Cache module
-{{{_widgets.ml}}} your widgets
-{{{_wikiext.ml}}} the wiki extensions you define for your module
+{{{.ml}}} higher level functions needed by the module. Creation of groups
+    and services ...
+    This module also defines session data ({{{sd}}}) for this extension,
+    (and the permission system).
+{{{_data.ml}}} database access with cache and verification of permissions
+    Almost the same interface as {{{_sql.ml}}} and {{{_cache.ml}}}, 
+    but every function takes {{{~sp}}} and {{{~sd}}} as parameters,
+    calls the cached function if authorized,
+    then filters the result (if needed) to remove forbidden content.
+    They may fail with exception {{{Ocsimore_common.Permission_denied}}}.
+{{{_widgets.ml}}} widgets defined by the extension
+{{{_wikiext.ml}}} the wiki syntax extensions you define for your module
 
 For all cached requests, I use a name ending with {{{_}}} in {{{*_sql.ml}}}
 to and without

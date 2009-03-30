@@ -31,8 +31,8 @@ object (self)
   val msg_class = "ocsiforum_msg"
   val info_class = "ocsiforum_msg_info"
 
-  method get_message ~message_id =
-    Forum_sql.get_message ~message_id
+  method get_message ~sp ~sd ~message_id =
+    Forum_data.get_message ~sp ~sd ~message_id
     
   method display_message ~classe content =
     let classe = Ocsimore_lib.build_class_attr (msg_class::classe) in
@@ -40,7 +40,7 @@ object (self)
       {{ <div class={: classe :}>content }}
 
   method pretty_print_message
-    (_, subjecto, authorid, datetime, parent_id, 
+    (_, subjecto, authorid, datetime, parent_id, root_id, forum_id,
      content, moderated, deleted, sticky) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
     Lwt.return
@@ -56,11 +56,11 @@ object (self)
           <p>{: content :}
          ] }}
 
-  method display ?(classe=[]) ~data:message_id () =
+  method display ~sp ~sd ?(classe=[]) ~data:message_id () =
 (*    Forum.get_role sp sd forum_id >>= fun role -> *)
     widget_with_error_box#bind_or_display_error
       ~classe
-      (self#get_message message_id)
+      (self#get_message ~sp ~sd ~message_id)
       (self#pretty_print_message)
       (self#display_message)
 
@@ -74,8 +74,8 @@ object (self)
   val thr_class = "ocsiforum_thread"
   val thr_msg_class = "ocsiforum_thread_msg"
 
-  method get_thread ~message_id =
-    Forum_sql.get_thread ~message_id
+  method get_thread ~sp ~sd ~message_id =
+    Forum_data.get_thread ~sp ~sd ~message_id
     
   method display_thread ~classe content =
     let classe = Ocsimore_lib.build_class_attr (thr_class::classe) in
@@ -87,8 +87,8 @@ object (self)
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
-         | ((id, subjecto, authorid, datetime, parent_id, content, 
-             moderated, deleted, sticky) as m)::l ->
+         | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
+             content, moderated, deleted, sticky) as m)::l ->
              message_widget#pretty_print_message m >>= fun msg_info ->
              message_widget#display_message ~classe:[] msg_info >>= fun first ->
              print_children id l >>= fun (s, l) ->
@@ -97,7 +97,7 @@ object (self)
       Lwt.return ({{ <div class={: thr_msg_class :}>s }}, l)
     and print_children pid = function
       | [] -> Lwt.return ({{ [] }}, [])
-      | (((_, _, _, _, parent_id, _, _, _, _)::_) as th) 
+      | (((_, _, _, _, parent_id, _, _, _, _, _, _)::_) as th) 
           when parent_id = Some pid ->
           (print_one_message_and_children th >>= fun (b, l) ->
            print_children pid l >>= fun (s, l) ->
@@ -107,11 +107,11 @@ object (self)
     print_one_message_and_children thread >>= fun (a, _) -> 
     Lwt.return {{[a]}}
 
-  method display ?(classe=[]) ~data:message_id () =
+  method display ~sp ~sd ?(classe=[]) ~data:message_id () =
 (*    Forum.get_role sp sd forum_id >>= fun role -> *)
     widget_with_error_box#bind_or_display_error
       ~classe
-      (self#get_thread message_id)
+      (self#get_thread ~sp ~sd ~message_id)
       (self#pretty_print_thread)
       (self#display_thread)
 

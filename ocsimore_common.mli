@@ -20,6 +20,11 @@
    @author Vincent Balat
 *)
 
+(** Exception raised by modules when a function tries to read or write
+    data in the database without permission.
+*)
+exception Permission_denied
+
 (** The type of session data. It is a polytable, so that any module
     (like Forum or Wiki) can save its own data.
 *)

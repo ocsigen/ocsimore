@@ -54,8 +54,9 @@ val get_user_by_id : id:int32 -> userdata Lwt.t
 val get_user_fullname_by_id : int32 -> string Lwt.t
 
 
-(** Creates a new user with given parameters. 
-    Raises {!Users.UserExists} if [name] is already present. *)
+(** Creates a new user with given parameters,
+    or returns the existing user without modification
+    if [name] is already present. *)
 val create_user: 
   name:string -> 
   pwd:User_sql.pwd -> 

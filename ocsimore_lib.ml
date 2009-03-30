@@ -87,3 +87,13 @@ let string_of_string_opt = function
   | None -> ""
   | Some s -> s
 
+let rec lwt_filter f = function
+  | [] -> Lwt.return []
+  | a::l -> 
+      let llt = lwt_filter f l in
+      f a >>= fun b ->
+      llt >>= fun ll ->
+      if b
+      then Lwt.return (a::ll)
+      else Lwt.return ll
+  

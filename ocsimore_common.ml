@@ -22,6 +22,7 @@
 
 type session_data = Polytables.t
 
+exception Permission_denied
 exception Session_data of session_data
 
 let create_empty_sd = Polytables.create

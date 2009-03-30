@@ -42,25 +42,27 @@ val create_forum :
   unit ->
   forum_info Lwt.t
 
+val forum_visible_group : int32 -> User_sql.userid Lwt.t
 
+val forum_creators : Users.userdata
 
 (** {2 Session data} *)
 
 type role = 
     {
-      messages_writers : bool;
-      messages_writers_notmod : bool;
-      messages_moderators : bool;
-      messages_deletors : bool;
-      messages_sticky_setters : bool;
-      messages_readers : bool;
+      message_writers : bool;
+      message_writers_notmod : bool;
+      message_moderators : bool;
+      message_deletors : bool;
+      message_sticky_setters : bool;
+      message_readers : bool;
 
-      comments_writers : bool;
-      comments_writers_notmod : bool;
-      comments_moderators : bool;
-      comments_deletors : bool;
-      comments_sticky_setters : bool;
-      comments_readers : bool;
+      comment_writers : bool;
+      comment_writers_notmod : bool;
+      comment_moderators : bool;
+      comment_deletors : bool;
+      comment_sticky_setters : bool;
+      comment_readers : bool;
 
       writers : bool;
       writers_notmod : bool;
