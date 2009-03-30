@@ -128,7 +128,7 @@ let get_forums_list () =
 
 let get_message ~message_id =
   Lwt_pool.use Sql.pool (fun db ->
-  PGSQL(db) "SELECT id, subject, author_id, datetime, text, \
+  PGSQL(db) "SELECT id, subject, author_id, datetime, parent_id, text, \
                moderated, deleted, sticky \
              FROM forums_messages \
              WHERE forums_messages.id = $message_id" >>= fun y -> 
@@ -139,6 +139,25 @@ let get_message ~message_id =
          Lwt.fail 
            (Failure 
               "Forum_sql.get_message: several messages have the same id")))
+
+let get_thread ~message_id =
+  Sql.full_transaction_block
+    (fun db -> 
+       PGSQL(db) "SELECT tree_min, tree_max \
+                  FROM forums_messages \
+                  WHERE forums_messages.id = $message_id" >>= fun y -> 
+       (match y with
+          | [] -> Lwt.fail Not_found
+          | [(min, max)] -> 
+              PGSQL(db) "SELECT id, subject, author_id, datetime, 
+                           parent_id, text, moderated, deleted, sticky \
+                         FROM forums_messages \
+                         WHERE tree_min >= $min AND tree_max <= $max \
+                         ORDER BY tree_min"
+          | _ -> 
+              Lwt.fail 
+                (Failure 
+                   "Forum_sql.get_thread: several messages have the same id")))
 
 
     

@@ -29,6 +29,7 @@ class message_widget (widget_with_error_box : Widget.widget_with_error_box) =
 object (self)
 
   val msg_class = "ocsiforum_msg"
+  val info_class = "ocsiforum_msg_info"
 
   method get_message ~message_id =
     Forum_sql.get_message ~message_id
@@ -39,15 +40,19 @@ object (self)
       {{ <div class={: classe :}>content }}
 
   method pretty_print_message
-    (_, subjecto, authorid, datetime, content, moderated, deleted, sticky) =
+    (_, subjecto, authorid, datetime, parent_id, 
+     content, moderated, deleted, sticky) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
     Lwt.return
       {{ [!{: match subjecto with
               | None -> {{ [] }} 
-              | Some s -> {{ [<h1>{: s :}] }} :}
-          <span class="ocsiforum_message_info">
-            {: Format.sprintf "posted by: %s %s" author 
-               (Ocsimore_lib.sod datetime) :}
+              | Some s -> 
+                  let s = Ocamlduce.Utf8.make s in 
+                  {{ [<h1>{: s :}] }} :}
+          <span class={: info_class :}>
+            {: Ocamlduce.Utf8.make
+                 (Format.sprintf "posted by %s %s" 
+                    author (Ocsimore_lib.sod datetime)) :}
           <p>{: content :}
          ] }}
 
@@ -58,6 +63,57 @@ object (self)
       (self#get_message message_id)
       (self#pretty_print_message)
       (self#display_message)
+
+end
+
+class thread_widget
+  (widget_with_error_box : Widget.widget_with_error_box)
+  (message_widget : message_widget) =
+object (self)
+
+  val thr_class = "ocsiforum_thread"
+  val thr_msg_class = "ocsiforum_thread_msg"
+
+  method get_thread ~message_id =
+    Forum_sql.get_thread ~message_id
+    
+  method display_thread ~classe content =
+    let classe = Ocsimore_lib.build_class_attr (thr_class::classe) in
+    Lwt.return
+      {{ <div class={: classe :}>content }}
+
+  method pretty_print_thread thread =
+    let rec print_one_message_and_children thread : 
+        (Xhtmltypes_duce.block * 'a list) Lwt.t = 
+      (match thread with
+         | [] -> Lwt.return ({{[]}}, [])
+         | ((id, subjecto, authorid, datetime, parent_id, content, 
+             moderated, deleted, sticky) as m)::l ->
+             message_widget#pretty_print_message m >>= fun msg_info ->
+             message_widget#display_message ~classe:[] msg_info >>= fun first ->
+             print_children id l >>= fun (s, l) ->
+             Lwt.return ({{ [first !s] }}, l))
+      >>= fun (s, l) ->
+      Lwt.return ({{ <div class={: thr_msg_class :}>s }}, l)
+    and print_children pid = function
+      | [] -> Lwt.return ({{ [] }}, [])
+      | (((_, _, _, _, parent_id, _, _, _, _)::_) as th) 
+          when parent_id = Some pid ->
+          (print_one_message_and_children th >>= fun (b, l) ->
+           print_children pid l >>= fun (s, l) ->
+           Lwt.return (({{ [b !s] }} : Xhtmltypes_duce.flows), l))
+      | l -> Lwt.return ({{ [] }}, l)
+    in
+    print_one_message_and_children thread >>= fun (a, _) -> 
+    Lwt.return {{[a]}}
+
+  method display ?(classe=[]) ~data:message_id () =
+(*    Forum.get_role sp sd forum_id >>= fun role -> *)
+    widget_with_error_box#bind_or_display_error
+      ~classe
+      (self#get_thread message_id)
+      (self#pretty_print_thread)
+      (self#display_thread)
 
 end
 

@@ -79,12 +79,22 @@ val find_forum:
 val get_forums_list : unit ->
   (forum * string * string * bool * bool * bool) list Lwt.t
   
-(** returns id, subject, author, datetime, text,
+(** returns id, subject, author, datetime, parent id, text,
     and moderated, deleted, sticky status of a message *)
 val get_message : 
   message_id:int32 -> 
- (int32 * string option * int32 * CalendarLib.Calendar.t * string * 
-    bool * bool * bool) Lwt.t
+ (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option * 
+    string * bool * bool * bool) Lwt.t
+  
+(** returns a list of messages containing the message of id [~message_id]
+    and all its children, ordered according depth first traversal of the tree.
+    For each message, the information retrieved is:
+    [(id, subject, author, datetime, parent_id, text, 
+    moderated, deleted, sticky)]. *)
+val get_thread : 
+  message_id:int32 -> 
+ (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
+    string * bool * bool * bool) list Lwt.t
   
 
 (*

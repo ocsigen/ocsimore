@@ -22,12 +22,14 @@ can be rewritten by programmers who want to redefine some methods.
   site. For example, create services, then give them as parameters to
   the class constructor to create the object, then register services.
 
-* Decompose your module in 5 parts:
+
+* Decompose your module in 6 parts:
 {{{_createdb.sql}}} SQL creation of databases
 {{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool
 {{{.ml}}} defining and exporting session data for the module (see below)
 {{{_cache.ml}}} cache on database requests, using the Cache module
 {{{_widgets.ml}}} your widgets
+{{{_wikiext.ml}}} the wiki extensions you define for your module
 
 For all cached requests, I use a name ending with {{{_}}} in {{{*_sql.ml}}}
 to and without
