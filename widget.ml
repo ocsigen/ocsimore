@@ -47,6 +47,8 @@ object(self)
     let message =
       match exn with
         | None -> {{ [<strong>{: message :}] }}
+        | Some Ocsimore_common.Permission_denied ->
+            {{ [<strong>"You are not allowed to see this content" ] }}
         | Some exn ->
             if Ocsigen_config.get_debugmode ()
             then {{ [<strong>{: message :}
