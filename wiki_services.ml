@@ -1,5 +1,33 @@
-open Wiki_sql
+(* Ocsimore
+ * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
 
+
+(**
+These are all the services related to wikis
+
+@author Vincent Balat
+@author Boris Yakobowski
+@author Jaap Boender
+@author Piero Furiesi
+
+*)
+
+open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
 
@@ -11,17 +39,17 @@ type wiki_errors =
 exception Not_css_editor
 
 type wiki_action_info =
-  | Edit_box of Wiki_sql.wikibox
-  | Edit_perm of Wiki_sql.wikibox
-  | History of Wiki_sql.wikibox
-  | Oldversion of (Wiki_sql.wikibox * int32)
-  | Src of (Wiki_sql.wikibox * int32)
-  | Error of (Wiki_sql.wikibox * wiki_errors)
-  | Delete_Box of Wiki_sql.wikibox
+  | Edit_box of wikibox
+  | Edit_perm of wikibox
+  | History of wikibox
+  | Oldversion of (wikibox * int32)
+  | Src of (wikibox * int32)
+  | Error of (wikibox * wiki_errors)
+  | Delete_Box of wikibox
 (* The second uple is the content of the wikibox, and the version number of the
    wikibox *when the edition started*. This is used to display a warning in case
    of concurrent edits*)
-  | Preview of (Wiki_sql.wikibox * (string * int32))
+  | Preview of (wikibox * (string * int32))
 
 exception Wiki_action_info of wiki_action_info
 
@@ -36,8 +64,8 @@ exception Wiki_action_info of wiki_action_info
 let wiki_admin_name = "Adminwiki"
 
 let get_admin_wiki () =
-  get_wiki_by_name wiki_admin_name
-  >>= fun wiki -> Lwt.return wiki.id
+  Wiki_sql.get_wiki_by_name wiki_admin_name
+  >>= fun wiki -> Lwt.return wiki.wiki_id
 
 
 
@@ -47,12 +75,11 @@ let default_container_page =
 
 
 let send_static_file sp sd wiki dir page =
-  Wiki.readers_group wiki.id >>= fun g -> 
+  Wiki.readers_group wiki.wiki_id >>= fun g ->
   Users.get_user_id ~sp ~sd >>= fun userid ->
-  Users.in_group ~sp ~sd ~user:userid ~group:g () >>= fun b ->
-  if b
-  then Eliom_predefmod.Files.send ~sp (dir^"/"^page)
-  else Lwt.fail Eliom_common.Eliom_404
+  Users.in_group ~sp ~sd ~user:userid ~group:g () >>= function
+    | true -> Eliom_predefmod.Files.send ~sp (dir^"/"^page)
+    | false -> Lwt.fail Eliom_common.Eliom_404
 
 
 let wikicss_service_handler wiki () =
@@ -75,7 +102,7 @@ let wikipagecss_service_handler (wiki, page) () =
    for each wiki associated to an URL *)
 module Servpages = 
   Hashtbl.Make(struct 
-                 type t = Wiki_sql.wiki
+                 type t = wiki
                  let equal = (=) 
                  let hash = Hashtbl.hash 
                end)
@@ -167,7 +194,7 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
   (* if there is a static page, we serve it: *)
   Lwt.catch
     (fun () ->
-       match w.staticdir with
+       match w.wiki_staticdir with
          | Some d -> send_static_file sp sd w d page
          | None -> Lwt.fail Eliom_common.Eliom_404)
     (function
@@ -176,7 +203,7 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
            Lwt.catch
              (fun () ->
                 (* We render the wikibox for the page *)
-                Wiki_sql.get_box_for_page w.id page
+                Wiki_sql.get_box_for_page w.wiki_id page
                 >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
                           wikipage_wikibox = box; wikipage_title = title } ->
                   let bi =
@@ -192,9 +219,9 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
                 >>= fun (subbox, allowed) ->
                 Lwt.return ({{ [ subbox ] }},
                             (if allowed then
-                               Wiki_syntax.Page_displayable
+                               Wiki_widgets_interface.Page_displayable
                              else
-                               Wiki_syntax.Page_403),
+                               Wiki_widgets_interface.Page_403),
                             title)
              )
              (function
@@ -211,7 +238,7 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
                             ~input_type:{: "submit" :} ~value:"Create it!" () :}
                            ]] }}
                     in
-                    Wiki.page_creators_group w.id
+                    Wiki.page_creators_group w.wiki_id
                     >>= fun creators ->
                     Users.in_group ~sp ~sd ~user:userid ~group:creators ()
                     >>= fun c ->
@@ -226,12 +253,12 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
                       in
                       Lwt.return
                         ({{ [ <p>{:err_msg:} !form ] }},
-                         Wiki_syntax.Page_404,
+                         Wiki_widgets_interface.Page_404,
                          None)
                 | e -> Lwt.fail e
              )
            >>= fun (subbox, err_code, title) ->
-           Wiki_syntax.set_page_displayable sd err_code;
+           Wiki_widgets_interface.set_page_displayable sd err_code;
 
            (* We render the container *)
            let bi = { Wiki_widgets_interface.bi_sp = sp;
@@ -241,21 +268,21 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
                       bi_page = Some path;
                     }
            in
-           wikibox#editable_wikibox ~bi ~data:(w.id, w.container_id)
+           wikibox#editable_wikibox ~bi ~data:(w.wiki_id, w.wiki_container)
              ~cssmenu:None ()
 
            >>= fun pagecontent ->
-           wikibox#get_css_header ~bi ~wiki:w.id ~admin:false ~page ()
+           wikibox#get_css_header ~bi ~wiki:w.wiki_id ~admin:false ~page ()
 
            >>= fun css ->
            let title = Ocamlduce.Utf8.make
              (match title with
                 | Some title -> title
-                | None -> w.descr)
+                | None -> w.wiki_descr)
            and code = match err_code with
-                      | Wiki_syntax.Page_displayable -> 200
-                      | Wiki_syntax.Page_404 -> 404
-                      | Wiki_syntax.Page_403 -> 403
+                      | Wiki_widgets_interface.Page_displayable -> 200
+                      | Wiki_widgets_interface.Page_404 -> 404
+                      | Wiki_widgets_interface.Page_403 -> 403
            in
            Eliom_duce.Xhtml.send ~sp ~code
              {{
@@ -272,12 +299,12 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
 (* Register the wiki [wiki] *)
 let register_wiki ?sp ~path ~(wikibox : Wiki_widgets_interface.editable_wikibox) ~wiki ?wiki_info () =
   (match wiki_info with
-    | None -> get_wiki_by_id wiki
+    | None -> Wiki_sql.get_wiki_by_id wiki
     | Some info -> Lwt.return info
   ) >>= fun wiki_info ->
   let action_create_page =
     Eliom_predefmod.Actions.register_new_post_coservice' ?sp
-      ~name:("wiki_page_create"^Wiki_sql.wiki_id_s wiki)
+      ~name:("wiki_page_create"^wiki_id_s wiki)
       ~post_params:(Eliom_parameters.string "page")
       (fun sp () page ->
          let sd = Ocsimore_common.get_sd sp in
@@ -298,10 +325,9 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets_interface.editable_wikibox)
                )
                (function
                   | Not_found ->
-                      new_wikibox ~wiki ~author:userid
+                      Wiki.new_wikibox ~wiki:wiki_info ~author:userid
                         ~comment:"new wikipage"
                         ~content:("=="^page^"==") ~content_type:Wiki_sql.Wiki ()
-                        (*VVV readers, writers, rights_adm, wikiboxes_creators? *)
                       >>= fun wbid ->
                         Wiki_sql.set_box_for_page
                           ~sourcewiki:wiki ~wbid ~page ()
@@ -330,7 +356,7 @@ let register_wiki ?sp ~path ~(wikibox : Wiki_widgets_interface.editable_wikibox)
   (* the same, but non attached: *)
   let naservpage =
     Eliom_predefmod.Any.register_new_coservice' ?sp
-      ~name:("display"^Wiki_sql.wiki_id_s wiki)
+      ~name:("display"^wiki_id_s wiki)
       ~get_params:(Eliom_parameters.string "page")
       (fun sp page () ->
          let path =
@@ -376,7 +402,7 @@ let create_wiki ~title ~descr
     ~container_page
     () =
   Lwt.catch
-    (fun () -> get_wiki_by_name title)
+    (fun () -> Wiki_sql.get_wiki_by_name title)
     (function
        | Not_found ->
            begin
@@ -384,12 +410,12 @@ let create_wiki ~title ~descr
                ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators
                ~css_editors ~admins ~boxrights ?staticdir ~container_page ()
              >>= fun wiki_id ->
-             get_wiki_by_id wiki_id
+             Wiki_sql.get_wiki_by_id wiki_id
              >>= fun w ->
              match path with
                | None -> Lwt.return w
                | Some path ->
-                   register_wiki ?sp ~path ~wikibox ~wiki:w.id ~wiki_info:w ()
+                  register_wiki ?sp ~path ~wikibox ~wiki:w.wiki_id ~wiki_info:w ()
              >>= fun () ->
              Lwt.return w
            end
@@ -634,7 +660,7 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
        let bi = { bi with Wiki_widgets_interface.bi_subbox =
            Some {{ [ subbox ] }} } in
        wikibox_widget#editable_wikibox ~bi ?cssmenu:(Some None)
-         ~data:(wiki, wiki_info.Wiki_sql.container_id) ()
+         ~data:(wiki, wiki_info.wiki_container) ()
        >>= fun pagecontent ->
        wikibox_widget#get_css_header ~bi ~wiki ?page:(Some page) ()
        >>= fun css ->

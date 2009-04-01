@@ -1,5 +1,9 @@
+open Wiki_sql.Types
+
+(*********************************************************************)
+
 (** Type used to avoid wikibox loops *)
-type ancestors = Wiki_sql.wikibox list
+type ancestors = wikibox list
 
 type box_info =
   {bi_subbox: Xhtmltypes_duce.flows option;
@@ -40,6 +44,42 @@ type box_info =
 *)
 
 
+(*********************************************************************)
+
+(* Used for conditions of the form <<cond http_code= >> *)
+type page_displayable =
+  | Page_displayable
+  | Page_404
+  | Page_403
+
+let page_displayable_key : page_displayable Polytables.key =
+  Polytables.make_key ()
+
+let page_displayable sd =
+  try Polytables.get ~table:sd ~key:page_displayable_key
+  with Not_found -> Page_displayable
+
+let set_page_displayable sd pd =
+  Polytables.set ~table:sd ~key:page_displayable_key ~value:pd
+
+(*
+(** To be passed as information inside [sd] for evaluating conditions
+<<cond http_code='404'| >> *)
+
+type page_displayable =
+  | Page_displayable
+  | Page_404
+  | Page_403
+
+val page_displayable: Polytables.t -> page_displayable
+
+val set_page_displayable: Polytables.t -> page_displayable -> unit
+*)
+
+
+(*********************************************************************)
+
+
 
 class type virtual noneditable_wikibox =
   object
@@ -59,11 +99,11 @@ class type virtual noneditable_wikibox =
     method display_noneditable_wikibox :
       bi:box_info ->
       ?classe:string list ->
-      data:Wiki_sql.wiki * int32 ->
+      data:wikibox ->
       unit -> Xhtmltypes_duce.block Lwt.t
 
     method virtual pretty_print_wikisyntax :
-      wiki:Wiki_sql.wiki ->
+      wiki:wiki ->
       bi:box_info ->
       string -> Xhtmltypes_duce.flows Lwt.t
 
@@ -88,23 +128,23 @@ class type virtual editable_wikibox =
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      Wiki_sql.wiki * int32 -> string * int32 -> Xhtmltypes_duce.form Lwt.t
+      wikibox -> string * int32 -> Xhtmltypes_duce.form Lwt.t
 
     method display_full_edit_form :
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      Wiki_sql.wiki * int32 -> string * int32 -> Xhtmltypes_duce.flows Lwt.t
+      wikibox -> string * int32 -> Xhtmltypes_duce.flows Lwt.t
 
     method display_edit_perm_form :
       bi:box_info ->
-      Wiki_sql.wiki * int32 ->
+      wikibox ->
       Xhtmltypes_duce.flows Lwt.t
 
     method display_history :
       bi:box_info ->
-      Wiki_sql.wiki * int32 ->
+      wikibox ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
       Xhtmltypes_duce.flows Lwt.t
 
@@ -114,12 +154,12 @@ class type virtual editable_wikibox =
       ?cssmenu:string option ->
       ?title:string ->
       bi:box_info ->
-      Wiki_sql.wiki * int32 ->
+      wikibox ->
       Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
 
     method editable_wikibox :
       bi:box_info ->
-      data:Wiki_sql.wiki * int32 ->
+      data:wikibox ->
       ?rows:int ->
       ?cols:int ->
       ?classe:string list ->
@@ -128,7 +168,7 @@ class type virtual editable_wikibox =
 
     method editable_wikibox_aux :
       bi:box_info ->
-      data:Wiki_sql.wiki * int32 ->
+      data:wikibox ->
       ?rows:int ->
       ?cols:int ->
       ?classe:string list ->
@@ -139,13 +179,13 @@ class type virtual editable_wikibox =
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
-      data:Wiki_sql.wiki * string ->
+      data:wikipage ->
       Ocamlduce.Utf8.repr ->
       Xhtmltypes_duce.flows Lwt.t
 
     method edit_css_box :
       bi:box_info ->
-      data:Wiki_sql.wiki * string ->
+      data:wikipage ->
       ?rows:int ->
       ?cols:int ->
       ?classe:string list ->
@@ -155,12 +195,12 @@ class type virtual editable_wikibox =
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
-      wiki:Wiki_sql.wiki ->
+      wiki:wiki ->
       Ocamlduce.Utf8.repr -> Xhtmltypes_duce.flows Lwt.t
 
     method edit_wikicss_box :
       bi:box_info ->
-      wiki:Wiki_sql.wiki ->
+      wiki:wiki ->
       ?rows:int ->
       ?cols:int ->
       ?classe:string list -> unit -> Xhtmltypes_duce.block Lwt.t
@@ -170,7 +210,7 @@ class type virtual editable_wikibox =
     *)
     method get_css_header :
       bi:box_info ->
-      wiki:Wiki_sql.wiki ->
+      wiki:wiki ->
       ?admin:bool ->
       ?page:string ->
       unit ->

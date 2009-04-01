@@ -23,7 +23,7 @@
 *)
 
 open Wiki_widgets_interface
-
+open Wiki_sql.Types
 
 let (>>=) = Lwt.bind
 let ( ** ) = Eliom_parameters.prod
@@ -59,7 +59,7 @@ object (self)
           error_box#display_error_box
             ?classe
             ~message:("The box "^Int32.to_string i^
-                        " does not exist in wiki "^ Wiki_sql.wiki_id_s w^".")
+                        " does not exist in wiki "^ wiki_id_s w^".")
             ?exn
             ()
       | Some Wiki_services.Not_css_editor ->
@@ -71,7 +71,7 @@ object (self)
       | _ -> error_box#display_error_box ?classe ?message ?exn ()
 
   method virtual pretty_print_wikisyntax :
-    wiki:Wiki_sql.wiki -> bi:box_info -> string -> Xhtmltypes_duce.flows Lwt.t
+    wiki:wiki -> bi:box_info -> string -> Xhtmltypes_duce.flows Lwt.t
 
 
   method display_basic_box ~classe content =
@@ -234,7 +234,7 @@ object (self)
       let f =
         {{ [
              {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-                ~name:wikiidname ~value:wiki_id Wiki_sql.wiki_id_s :}
+                ~name:wikiidname ~value:wiki_id wiki_id_s :}
              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                 ~name:boxidname ~value:message_id () :}
              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -308,7 +308,7 @@ object (self)
     let draw_form ((wid, bid), (addrn, (addwn, (addan, (addc, (delrn, (delwn, (delan, delc)))))))) =
       {{ [<p>[
             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-               ~name:wid ~value:wiki_id Wiki_sql.wiki_id_s :}
+               ~name:wid ~value:wiki_id wiki_id_s :}
             {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                ~name:bid ~value:message_id () :}
             'Users who can read this wiki box: ' !{: r :}  <br>[]
@@ -339,21 +339,15 @@ object (self)
       ~bi ?cssmenu (wid, bid) content
 
   method private display_edit_box (w, b as wb) =
-    let title = Printf.sprintf "Edit - Wiki %s, box %ld"
-      (Wiki_sql.wiki_id_s w) b
-    in
+    let title = Printf.sprintf "Edit - Wiki %s, box %ld" (wiki_id_s w) b in
     self#display_menu_box_aux ~title ~service:Edit editform_class wb
 
   method private display_edit_perm (w, b as wb) =
-    let title = Printf.sprintf "Permissions - Wiki %s, box %ld"
-      (Wiki_sql.wiki_id_s w) b
-    in
+    let title = Printf.sprintf "Permissions - Wiki %s, box %ld" (wiki_id_s w) b in
     self#display_menu_box_aux ~title ~service:Edit_perm editform_class wb
 
   method private display_history_box (w, b as wb) =
-    let title = Printf.sprintf "History - Wiki %s, box %ld"
-      (Wiki_sql.wiki_id_s w) b
-    in
+    let title = Printf.sprintf "History - Wiki %s, box %ld" (wiki_id_s w) b in
     self#display_menu_box_aux ~title ~service:History history_class wb
 
   method private display_editable_box =
@@ -361,25 +355,25 @@ object (self)
 
   method private display_old_wikibox (w, b as wb) version =
     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"
-      (Wiki_sql.wiki_id_s w) b version
+      (wiki_id_s w) b version
     in
     self#display_menu_box_aux ~title oldwikibox_class wb
 
   method private display_src_wikibox (w, b as wb) version =
     let title = Printf.sprintf "Source - Wiki %s, box %ld, version %ld"
-      (Wiki_sql.wiki_id_s w) b version
+      (wiki_id_s w) b version
     in
     self#display_menu_box_aux ~title srcwikibox_class wb
 
   method private display_edit_css_box ((w, _) as wb) page =
     let title = Printf.sprintf "CSS for wiki %s, %s"
-      (Wiki_sql.wiki_id_s w) (if page = "" then "main page" else "page " ^ page)
+      (wiki_id_s w) (if page = "" then "main page" else "page " ^ page)
     in
     self#display_menu_box_aux ~title ~service:Edit_css css_class wb
 
   method private display_edit_wikicss_box ((w, _) as wb) =
     let title = Printf.sprintf "CSS for wiki %s (global stylesheet)"
-      (Wiki_sql.wiki_id_s w)
+      (wiki_id_s w)
     in
     self#display_menu_box_aux ~title ~service:Edit_css css_class wb
 
@@ -579,7 +573,7 @@ object (self)
      let draw_form ((wikiidname, pagename), contentname) =
        {{ [<p>[
             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-               ~name:wikiidname ~value:wiki_id Wiki_sql.wiki_id_s :}
+               ~name:wikiidname ~value:wiki_id wiki_id_s :}
             {: Eliom_duce.Xhtml.string_input ~input_type:{: "hidden" :}
                ~name:pagename ~value:page () :}
             {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
@@ -616,7 +610,7 @@ object (self)
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-               ~name:wikiidname ~value:wiki Wiki_sql.wiki_id_s :}
+               ~name:wikiidname ~value:wiki wiki_id_s :}
             {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
                ~value:(Ocamlduce.Utf8.make content) () :}
             <br>[]
@@ -645,7 +639,7 @@ object (self)
         else Lwt.fail Wiki_services.Not_css_editor)
        (self#display_edit_wikicss_form ~bi ?rows ?cols ~wiki)
        (self#display_edit_wikicss_box ~bi ?cssmenu:(Some None)
-          (wiki, wiki_info.Wiki_sql.container_id))
+          (wiki, wiki_info.wiki_container))
 
    method get_css_header ~bi ~wiki ?(admin=false) ?page () =
      let sp = bi.bi_sp in
@@ -699,7 +693,7 @@ initializer
    - Why do we need to extract this value since we have a default ?
 *)
 let extract_wiki_id args default =
-  try Wiki_sql.s_wiki_id (List.assoc "wiki" args)
+  try s_wiki_id (List.assoc "wiki" args)
   with Failure _ | Not_found -> default
 and extract_https args =
   try match List.assoc "protocol" args with
@@ -749,18 +743,18 @@ Wiki_syntax.add_block_extension "wikibox"
   );
 
 Wiki_filter.add_preparser_extension "wikibox"
-  (fun wiki_id (sp, sd, father) args c ->
+  (fun wid (sp, sd, father) args c ->
      (try
-        let wiki = extract_wiki_id args wiki_id in
+        let wid = extract_wiki_id args wid in
         try
           ignore (List.assoc "box" args);
           Lwt.return None
         with Not_found ->
-          Wiki_sql.get_wiki_by_id wiki
+          Wiki_sql.get_wiki_by_id wid
           >>= fun wiki ->
           Users.get_user_id ~sp ~sd
           >>= fun userid ->
-          let ids = (wiki_id, father) in
+          let ids = (wid, father) in
           Wiki.can_create_wikibox ~sp ~sd wiki father userid >>= function
             | true ->
                 Wiki.get_readers ids >>= fun readers ->
@@ -771,7 +765,7 @@ Wiki_filter.add_preparser_extension "wikibox"
                   ~wiki
                   ~author:userid
                   ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"
-                              (Wiki_sql.wiki_id_s wiki.Wiki_sql.id) father)
+                              (wiki_id_s wid) father)
                   ~content:"**//new wikibox//**"
                   ~content_type:Wiki_sql.Wiki
                   ?readers

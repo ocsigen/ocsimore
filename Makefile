@@ -21,9 +21,8 @@ OCSIMORE_SQL1 = sql.ml user_sql.ml
 OCSIMORE_SRC2 = user_cache.ml users.ml
 OCSIMORE_SQL2 = wiki_sql.ml
 OCSIMORE_SRC3 = ocsimore_nis.ml session_manager.ml widget.ml \
-	wikicreole.ml wiki_widgets_interface.ml \
-	wiki_filter.ml wiki_syntax.ml \
-	wiki.ml wiki_services.ml wiki_widgets.ml \
+	wikicreole.ml wiki_widgets_interface.ml wiki_filter.ml \
+	wiki.ml wiki_services.ml wiki_syntax.ml wiki_widgets.ml \
         user_widgets.ml \
         dyngroups.ml $(PAM)
 

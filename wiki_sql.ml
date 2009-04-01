@@ -24,28 +24,44 @@
 *)
 
 open Opaque
+open Lwt
+open Sql.PGOCaml
+open Ocsimore_lib
+open CalendarLib
+open Sql
 
+
+module Types = struct
 type wiki = [`Wiki] int32_t
 let wiki_from_sql (i : int32) = (int32_t i : wiki)
 let sql_from_wiki (i : wiki) = t_int32 i
 let wiki_id_s i = Int32.to_string (sql_from_wiki i)
 let s_wiki_id s = (Opaque.int32_t (Int32.of_string s) : wiki)
 
-let eliom_wiki = Eliom_parameters.user_type
-  (fun s -> (int32_t (Int32.of_string s) : wiki))
-  wiki_id_s
-
 
 (* For now. Someday the second int32 will be a properly opacified type *)
 type wikibox_id = int32
 type wikibox = wiki * wikibox_id
 
+type wikipage = wiki * string
 
-open Lwt
-open Sql.PGOCaml
-open Ocsimore_lib
-open CalendarLib
-open Sql
+type wiki_info = {
+  wiki_id : wiki;
+  wiki_title : string;
+  wiki_descr : string;
+  wiki_boxrights : bool;
+  wiki_pages : string option;
+  wiki_container : wikibox_id;
+  wiki_staticdir : string option;
+}
+
+end
+open Types
+
+let eliom_wiki = Eliom_parameters.user_type
+  (fun s -> (int32_t (Int32.of_string s) : wiki))
+  wiki_id_s
+
 
 
 let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
@@ -264,12 +280,13 @@ let remove_wikiboxes_creators_ db (wiki, id) ra =
           )
           ra
 
+
+exception IncorrectWikiboxContentType of string
+
 type wikibox_content_type =
   | Css
   | Wiki
   | Deleted
-
-exception IncorrectWikiboxContentType of string
 
 let wikibox_content_type_of_string = function
   | "wiki" -> Wiki
@@ -470,25 +487,14 @@ let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () =
     )
 
 
-type wiki_info = {
-  id : wiki;
-  title : string;
-  descr : string;
-  boxrights : bool;
-  pages : string option;
-  container_id : int32;
-  staticdir : string option;
-}
-
-
 let reencapsulate_wiki (w, t, d, p, br, ci, s) =
-  { id = wiki_from_sql w;
-    title = t;
-    descr = d;
-    boxrights = br;
-    pages = p;
-    container_id = ci;
-    staticdir = s;
+  { wiki_id = wiki_from_sql w;
+    wiki_title = t;
+    wiki_descr = d;
+    wiki_boxrights = br;
+    wiki_pages = p;
+    wiki_container = ci;
+    wiki_staticdir = s;
   }
 
 
@@ -623,9 +629,15 @@ let set_css_for_wiki_ ~wiki content =
     )
 
 
-let wikis_path () =
+let iter_wikis_path f =
   Sql.full_transaction_block
     (fun db -> PGSQL(db) "SELECT id, pages FROM wikis")
+  >>= fun l ->
+  Lwt_util.iter (fun (wiki, page) ->
+                   match page with
+                     | None -> Lwt.return ()
+                     | Some page -> f (wiki_from_sql wiki) page)
+    l
 
 
 

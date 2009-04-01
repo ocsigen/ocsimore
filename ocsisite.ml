@@ -1,5 +1,5 @@
 open Lwt
-
+open Wiki_sql.Types
 
 type user_creation =
   | NoUserCreation
@@ -171,18 +171,12 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 
 (* Registering the existing wikis *)
 let _ = Lwt_unix.run
-  (Wiki_sql.wikis_path ()
-   >>= fun l ->
-     Lwt_util.iter
-       (fun (wiki, path) ->
-          let (wiki : Wiki_sql.wiki) = Opaque.int32_t wiki in
-          if wiki <> wiki_admin.Wiki_sql.id then
-            match path with
-              | None -> Lwt.return ()
-              | Some path ->
-                  let path = Ocsigen_lib.split '/' path in
-                  Wiki_services.register_wiki ~path ~wikibox ~wiki ()
-          else
-            Lwt.return ()
-       ) l
+  (Wiki_sql.iter_wikis_path
+     (fun wiki path ->
+        if wiki <> wiki_admin.wiki_id then
+          let path = Ocsigen_lib.split '/' path in
+          Wiki_services.register_wiki ~path ~wikibox ~wiki ()
+        else
+          Lwt.return ()
+     )
   )

@@ -22,6 +22,7 @@
    @author Boris Yakobowski
 *)
 
+open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
 module W = Wikicreole
@@ -266,25 +267,6 @@ let string_of_extension name args content =
 
 (*********************************************************************)
 
-(* Used for conditions of the form <<cond http_code= >> *)
-type page_displayable =
-  | Page_displayable
-  | Page_404
-  | Page_403
-
-let page_displayable_key : page_displayable Polytables.key =
-  Polytables.make_key ()
-
-let page_displayable sd =
-  try Polytables.get ~table:sd ~key:page_displayable_key
-  with Not_found -> Page_displayable
-
-let set_page_displayable sd pd =
-  Polytables.set ~table:sd ~key:page_displayable_key ~value:pd
-
-
-(*********************************************************************)
-
 let _ =
 
   add_block_extension "div"
@@ -359,8 +341,7 @@ let _ =
     (fun wiki_id _ _ _ ->
        Wiki_sql.get_wiki_by_id wiki_id
        >>= fun wiki_info ->
-       let s =  wiki_info.Wiki_sql.descr in
-       Lwt.return {{ {: Ocamlduce.Utf8.make s :} }});
+       Lwt.return {{ {: Ocamlduce.Utf8.make (wiki_info.wiki_descr) :} }});
 
 
   add_a_content_extension "raw"
@@ -496,11 +477,14 @@ let _ =
                    Users.in_group ~sp ~sd ~group ())
                 (function _ -> Lwt.return false)
           | ("http_code", "404") ->
-              Lwt.return (page_displayable sd = Page_404)
+              Lwt.return (Wiki_widgets_interface.page_displayable sd =
+                  Wiki_widgets_interface.Page_404)
           | ("http_code", "403") ->
-              Lwt.return (page_displayable sd = Page_403)
+              Lwt.return (Wiki_widgets_interface.page_displayable sd =
+                  Wiki_widgets_interface.Page_403)
           | ("http_code", "40?") ->
-              Lwt.return (page_displayable sd <> Page_displayable)
+              Lwt.return (Wiki_widgets_interface.page_displayable sd <>
+                            Wiki_widgets_interface.Page_displayable)
          | (err, value) when String.length err >= 3 &&
              String.sub err 0 3 = "not" ->
              let cond' = (String.sub err 3 (String.length err - 3), value) in

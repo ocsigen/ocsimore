@@ -22,6 +22,7 @@
 open Lwt
 open Ocsigen_extensions
 open Simplexmlparser
+open Wiki_sql.Types
 
 
 (** Wikiperso is an eliom extension that can be used to provide
@@ -313,7 +314,7 @@ th {
 
 let template_pagename = "wikiperso-template"
 
-let admin_wiki = Ocsisite.wiki_admin.Wiki_sql.id
+let admin_wiki = Ocsisite.wiki_admin.wiki_id
 
 
 let () =
@@ -389,19 +390,19 @@ let gen sp =
                  (* Register the personal wiki at the correct url *)
                  >>= fun wiki ->
                  Wiki_services.register_wiki ~sp ~path:(wiki_path user)
-                   ~wikibox:Ocsisite.wikibox ~wiki:wiki.Wiki_sql.id
+                   ~wikibox:Ocsisite.wikibox ~wiki:wiki.wiki_id
                    ~wiki_info:wiki ()
                  >>= fun () ->
                  catch
 (*VVV à revoir ! *)
                    (fun () ->
                       Wiki_sql.get_css_for_wiki 
-                        ~wiki:wiki.Wiki_sql.id >>= fun _ ->
+                        ~wiki:wiki.wiki_id >>= fun _ ->
                       Lwt.return ())
                    (function
                       | Not_found ->
                           Wiki_sql.set_css_for_wiki 
-                            ~wiki:wiki.Wiki_sql.id default_wikicss
+                            ~wiki:wiki.wiki_id default_wikicss
                       | e -> Lwt.fail e)
           )
           >>= fun () ->

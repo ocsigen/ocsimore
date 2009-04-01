@@ -16,8 +16,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Wiki_sql
-
 
 (**
 This is the wiki component of Ocsimore.
@@ -28,16 +26,18 @@ This is the wiki component of Ocsimore.
 *)
 
 
+open Wiki_sql.Types
 let (>>=) = Lwt.bind
+
 
 (** Role of user in the wiki (for one box) *)
 type role = Admin | Author | Lurker | Nonauthorized;;
 
 
 let get_sthg_ f ((w, _) as k) =
-  get_wiki_by_id w
+  Wiki_sql.get_wiki_by_id w
   >>= fun wiki_info ->
-  if wiki_info.boxrights
+  if wiki_info.wiki_boxrights
   then
     f k >>= fun r -> Lwt.return (Some r)
   else Lwt.return None
@@ -55,14 +55,14 @@ let get_wikiboxes_creators =
   get_sthg_ Wiki_sql.get_wikiboxes_creators
 
 
-let readers_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_readers"
-let writers_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_writers"
-let rights_adm_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_rights_givers"
-let page_creators_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_page_creators"
-let css_editors_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_css_editors"
-let wikiboxes_creators_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_wikiboxes_creators"
-let container_adm_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_container_adm"
-let admin_group_name i = "wiki"^Wiki_sql.wiki_id_s i^"_admin"
+let readers_group_name i = "wiki"^wiki_id_s i^"_readers"
+let writers_group_name i = "wiki"^wiki_id_s i^"_writers"
+let rights_adm_group_name i = "wiki"^wiki_id_s i^"_rights_givers"
+let page_creators_group_name i = "wiki"^wiki_id_s i^"_page_creators"
+let css_editors_group_name i = "wiki"^wiki_id_s i^"_css_editors"
+let wikiboxes_creators_group_name i = "wiki"^wiki_id_s i^"_wikiboxes_creators"
+let container_adm_group_name i = "wiki"^wiki_id_s i^"_container_adm"
+let admin_group_name i = "wiki"^wiki_id_s i^"_admin"
 
 let readers_group i = Users.get_user_id_by_name (readers_group_name i)
 let writers_group i = Users.get_user_id_by_name (writers_group_name i)
@@ -82,27 +82,28 @@ let admin_group i =   Users.get_user_id_by_name (admin_group_name i)
 exception Found of int32
 
 let new_wikibox ?boxid ~wiki ~author ~comment ~content ~content_type ?readers ?writers ?rights_adm ?wikiboxes_creators () =
-  (if wiki.boxrights
+  let wid = wiki.wiki_id in
+  (if wiki.wiki_boxrights
   then (
-    (match readers with 
+    (match readers with
        | Some r -> Lwt.return r
-       | None -> 
-           readers_group wiki.id >>= fun r -> 
+       | None ->
+           readers_group wid >>= fun r ->
            Lwt.return [r]) >>= fun readers ->
-    (match writers with 
+    (match writers with
        | Some r -> Lwt.return r
-       | None -> 
-           writers_group wiki.id >>= fun r -> 
+       | None ->
+           writers_group wid >>= fun r ->
            Lwt.return [r]) >>= fun writers ->
-    (match rights_adm with 
+    (match rights_adm with
        | Some r -> Lwt.return r
-       | None -> 
-           rights_adm_group wiki.id >>= fun r -> 
+       | None ->
+           rights_adm_group wid >>= fun r ->
            Lwt.return [r]) >>= fun rights_adm ->
-    (match wikiboxes_creators with 
+    (match wikiboxes_creators with
        | Some r -> Lwt.return r
-       | None -> 
-           wikiboxes_creators_group wiki.id >>= fun r -> 
+       | None ->
+           wikiboxes_creators_group wid >>= fun r ->
            Lwt.return [r]) >>= fun wikiboxes_creators ->
     Lwt.return
       (Some (readers, writers, rights_adm, wikiboxes_creators)))
@@ -112,12 +113,12 @@ let new_wikibox ?boxid ~wiki ~author ~comment ~content ~content_type ?readers ?w
        (match boxid with
           | None -> Lwt.return ()
           | Some b ->
-             Wiki_sql.get_wikibox_data ~wikibox:(wiki.id, b) () >>=
+             Wiki_sql.get_wikibox_data ~wikibox:(wid, b) () >>=
              function
                | None -> Lwt.return ()
                | _ -> Lwt.fail (Found b))
        >>= fun () ->
-       Wiki_sql.new_wikibox ~wiki:wiki.id ?wbid:boxid ~author ~comment
+       Wiki_sql.new_wikibox ~wiki:wid ?wbid:boxid ~author ~comment
          ~content ~content_type ?rights ())
     (function Found b -> Lwt.return b | e -> Lwt.fail e)
 
@@ -143,7 +144,7 @@ let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
   if userid == Users.admin.Users.id
   then Lwt.return true
   else
-    rights_box (wiki.id, id) >>= function
+    rights_box (wiki.wiki_id, id) >>= function
       | Some l -> (* acl are activated *)
           List.fold_left
             (fun b a ->
@@ -153,7 +154,7 @@ let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
             (Lwt.return false)
             l
       | None ->
-          rights_wiki wiki.id >>= fun g ->
+          rights_wiki wiki.wiki_id >>= fun g ->
           Users.in_group ~sp ~sd ~user:userid ~group:g ()
 
 
@@ -162,8 +163,8 @@ let can_read = can_sthg get_readers readers_group
 let can_write = can_sthg get_writers writers_group
 let can_create_wikibox = can_sthg get_wikiboxes_creators wikiboxes_creators_group
 
-let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
-  get_wiki_by_id wiki >>= fun w ->
+let get_role_ ~sp ~sd ((wiki : wiki), id) =
+  Wiki_sql.get_wiki_by_id wiki >>= fun w ->
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
   can_change_rights ~sp ~sd w id u >>= fun cana ->
@@ -181,13 +182,13 @@ let get_role_ ~sp ~sd ((wiki : Wiki_sql.wiki), id) =
 
 
 module Roles = Map.Make(struct
-                          type t = Wiki_sql.wiki * int32
+                          type t = wikibox
                           let compare = compare
                         end)
 
 type wiki_sd = 
     {
-      role : (Wiki_sql.wiki * int32) -> role Lwt.t;
+      wikibox_role : wikibox -> role Lwt.t;
     }
 
 let cache_find table f box =
@@ -201,7 +202,7 @@ let cache_find table f box =
 let default_wiki_sd ~sp ~sd =
   let cache = ref Roles.empty in
   (* We cache the values to retrieve them only once *)
-  {role = cache_find cache (get_role_ ~sp ~sd);
+  {wikibox_role = cache_find cache (get_role_ ~sp ~sd);
   }
 
 (** The polytable key for retrieving wiki data inside session data *)
@@ -219,7 +220,7 @@ let get_wiki_sd ~sp ~sd =
 
 let get_role ~sp ~sd k =
   let wiki_sd = get_wiki_sd ~sp ~sd in
-  wiki_sd.role k
+  wiki_sd.wikibox_role k
 
 
 let user_can_save_wikibox ~sp ~sd wb =
@@ -259,28 +260,28 @@ let really_create_wiki ~title ~descr
 
    (* Creating groups *)
    create_group_ (readers_group_name wiki_id)
-     ("Users who can read wiki "^Wiki_sql.wiki_id_s wiki_id)
+     ("Users who can read wiki "^wiki_id_s wiki_id)
    >>= fun readers_data ->
      create_group_ (writers_group_name wiki_id)
-       ("Users who can write in wiki "^Wiki_sql.wiki_id_s wiki_id)
+       ("Users who can write in wiki "^wiki_id_s wiki_id)
    >>= fun writers_data ->
      create_group_ (rights_adm_group_name wiki_id)
-       ("Users who can change rights in wiki "^Wiki_sql.wiki_id_s wiki_id)
+       ("Users who can change rights in wiki "^wiki_id_s wiki_id)
    >>= fun rights_adm_data ->
      create_group_ (page_creators_group_name wiki_id)
-       ("Users who can create pages in wiki "^Wiki_sql.wiki_id_s wiki_id)
+       ("Users who can create pages in wiki "^wiki_id_s wiki_id)
    >>= fun page_creators_data ->
      create_group_ (css_editors_group_name wiki_id)
-       ("Users who can edit css for wikipages of wiki "^Wiki_sql.wiki_id_s wiki_id)
+       ("Users who can edit css for wikipages of wiki "^wiki_id_s wiki_id)
    >>= fun css_editors_data ->
        create_group_ (wikiboxes_creators_group_name wiki_id)
-         ("Users who can create wikiboxes in wiki "^Wiki_sql.wiki_id_s wiki_id)
+         ("Users who can create wikiboxes in wiki "^wiki_id_s wiki_id)
    >>= fun wikiboxes_creators_data ->
      create_group_ (container_adm_group_name wiki_id)
-       ("Users who can change the layout of pages "^Wiki_sql.wiki_id_s wiki_id)
+       ("Users who can change the layout of pages "^wiki_id_s wiki_id)
    >>= fun container_adm_data ->
      create_group_ (admin_group_name wiki_id)
-       ("Wiki administrator "^Wiki_sql.wiki_id_s wiki_id)
+       ("Wiki administrator "^wiki_id_s wiki_id)
    >>= fun admin_data ->
 
    (* Putting users in groups *)
@@ -351,7 +352,7 @@ let modified_wikibox ~wikibox ~boxversion =
 
 
 exception CssInsteadOfWiki
-exception Unknown_box of Wiki_sql.wikibox
+exception Unknown_box of wikibox
 
 
 
@@ -368,8 +369,7 @@ let retrieve_wikibox_wikitext_aux err ?version wikibox =
         match ct with
           | Wiki_sql.Wiki -> Lwt.return (cont, ver)
           | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
-          | Wiki_sql.Deleted ->
-              Lwt.return (err, ver)
+          | Wiki_sql.Deleted -> Lwt.return (err, ver)
 
 let retrieve_wikibox_wikitext_at_version version wikibox =
   retrieve_wikibox_wikitext_aux "As this date, this page had been deleted"

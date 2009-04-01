@@ -22,7 +22,7 @@
 
 include Makefile.config
 
-OCAMLBUILD := ocamlbuild -X nis_chkpwd -classic-display -verbose 0
+OCAMLBUILD := ocamlbuild -X nis_chkpwd -verbose 0
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 
@@ -52,3 +52,5 @@ clean:
 	make -C nis_chkpwd clean
 
 .PHONY: all ocamlbuild clean check_db ocsimore.mllib nis_chkpwd_
+
+SHELL=bash

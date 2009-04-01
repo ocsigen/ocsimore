@@ -16,8 +16,10 @@ Session_manager
 Widget
 Wikicreole
 Wiki_filter
-Wiki_syntax
 User_widgets
 Dyngroups
+Wiki_widgets_interface
+Wiki_services
+Wiki_syntax
 Wiki
 Wiki_widgets

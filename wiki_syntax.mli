@@ -21,12 +21,13 @@
    @author Vincent Balat
 *)
 
+open Wiki_sql.Types
 
 
 (** Define new extensions to the wiki syntax. *)
 val add_block_extension : 
   string ->
-  (Wiki_sql.wiki ->
+  (wiki ->
      Wiki_widgets_interface.box_info ->
      (string * string) list -> 
        string option -> 
@@ -35,7 +36,7 @@ val add_block_extension :
 
 val add_a_content_extension : 
   string -> 
-  (Wiki_sql.wiki ->
+  (wiki ->
      Wiki_widgets_interface.box_info ->
        (string * string) list -> 
          string option -> 
@@ -44,7 +45,7 @@ val add_a_content_extension :
 
 val add_link_extension : 
   string -> 
-  (Wiki_sql.wiki -> 
+  (wiki -> 
      Wiki_widgets_interface.box_info ->
      (string * string) list -> 
        string option -> 
@@ -58,7 +59,7 @@ val add_link_extension :
     and the default wiki id is the same as the one of the surrounding box).
 *)
 val xml_of_wiki :
-  Wiki_sql.wiki -> 
+  wiki -> 
   Wiki_widgets_interface.box_info ->
   string -> 
   Xhtmltypes_duce.flows Lwt.t
@@ -66,7 +67,7 @@ val xml_of_wiki :
 (** returns only the content of the first paragraph of a wiki text.
 *)
 val inline_of_wiki :
-  Wiki_sql.wiki -> 
+  wiki -> 
   Wiki_widgets_interface.box_info ->
   string -> 
   Xhtmltypes_duce.inlines Lwt.t
@@ -75,7 +76,7 @@ val inline_of_wiki :
     after having removed links.
 *)
 val a_content_of_wiki :
-  Wiki_sql.wiki -> 
+  wiki -> 
   Wiki_widgets_interface.box_info ->
   string -> 
   {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t
@@ -91,16 +92,3 @@ val parse_common_attribs : (string * string) list -> Xhtmltypes_duce.coreattrs
 
 (** returns true if the string is an absolute URL (http://...) *)
 val is_absolute_link : string -> bool
-
-
-(** To be passed as information inside [sd] for evaluating conditions
-<<cond http_code='404'| >> *)
-
-type page_displayable =
-  | Page_displayable
-  | Page_404
-  | Page_403
-
-val page_displayable: Polytables.t -> page_displayable
-
-val set_page_displayable: Polytables.t -> page_displayable -> unit

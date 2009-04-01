@@ -24,6 +24,8 @@
    @author Vincent Balat
 *)
 
+module Types : sig
+
 (** Semi-abstract type for a wiki *)
 type wiki = [`Wiki] Opaque.int32_t
 
@@ -34,6 +36,24 @@ val s_wiki_id : string -> wiki
 
 type wikibox_id = int32
 type wikibox = wiki * wikibox_id
+type wikipage = wiki * string
+
+
+(** Fields for a wiki *)
+type wiki_info = {
+  wiki_id : wiki;
+  wiki_title : string;
+  wiki_descr : string;
+  wiki_boxrights : bool;
+  wiki_pages : string option;
+  wiki_container : wikibox_id;
+  wiki_staticdir : string option (** if static dir is given,
+                                ocsimore will serve static pages if present,
+                                instead of wiki pages *);
+}
+end
+open Types
+
 
 (** Data stored in a wikibox *)
 type wikibox_content_type =
@@ -125,19 +145,6 @@ val get_css_for_wiki : wiki:wiki -> string Lwt.t
 val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
 
 
-(** Fields for a wiki *)
-type wiki_info = {
-  id : wiki;
-  title : string;
-  descr : string;
-  boxrights : bool;
-  pages : string option;
-  container_id : wikibox_id;
-  staticdir : string option; (** if static dir is given,
-                                ocsimore will serve static pages if present,
-                                instead of wiki pages *)
-}
-
 
 (** Find wiki information for a wiki, given its id *)
 val get_wiki_by_id : id:wiki -> wiki_info Lwt.t
@@ -192,7 +199,5 @@ val get_rights_adm : wikibox -> User_sql.userid list Lwt.t
 val get_wikiboxes_creators : wikibox -> User_sql.userid list Lwt.t
 
 
-(** Paths associated to wikis. Does not currently return a list
-    of (wiki * _) because of limitations in our phantom types based
-    representation *)
-val wikis_path : unit -> (int32 * string option) list Lwt.t
+(** Iterator on the wikis that are associated to a path  *)
+val iter_wikis_path : (wiki  -> string -> unit Lwt.t) -> unit Lwt.t
