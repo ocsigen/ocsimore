@@ -310,8 +310,9 @@ include Load_sql
 let create_wiki () =
   let wikibox = Ocsisite.wikibox in
   Lwt_unix.run
-    (Wiki.create_wiki ~title:"Announcements" ~descr:"Announcement manager"
-       ~wikibox ~container_page:Wiki.default_container_page ())
+    (Wiki_services.create_wiki
+       ~title:"Announcements" ~descr:"Announcement manager"
+       ~wikibox ~container_page:Wiki_services.default_container_page ())
 
 let et = Str.regexp_string " et "
 let persons = Hashtbl.create 101

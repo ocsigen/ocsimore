@@ -1,44 +1,4 @@
-(* Ocsimore
- * Copyright (C) 2005
- * Laboratoire PPS - Université Paris Diderot - CNRS
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
- *)
-(**
-   @author Piero Furiesi
-   @author Jaap Boender
-   @author Vincent Balat
-*)
-
-
-type wiki_data = {
-  wiki_id: Wiki_sql.wiki;
-  comment: string;
-  author: Users.userdata option;
-  content: string;
-  datetime: CalendarLib.Calendar.t;
-}
-
-type menu_item =
-  | Edit
-  | Edit_perm
-  | Edit_css
-  | History
-  | View
-
-class virtual noneditable_wikibox :
+class type virtual noneditable_wikibox =
   object
 
     inherit Widget.widget_with_error_box
@@ -66,9 +26,15 @@ class virtual noneditable_wikibox :
 
   end
 
-class virtual editable_wikibox :
-  ?sp:Eliom_sessions.server_params ->
-  unit -> (int32 * int32) ->
+type menu_item =
+  | Edit
+  | Edit_perm
+  | Edit_css
+  | History
+  | View
+
+
+class type virtual editable_wikibox =
   object
 
     inherit Widget.widget_with_error_box
@@ -168,16 +134,3 @@ class virtual editable_wikibox :
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
   end
-
-class creole_wikibox :
-  ?sp:Eliom_sessions.server_params ->
-  unit -> (int32 * int32) ->
-object
-  inherit editable_wikibox
-
-  method pretty_print_wikisyntax :
-    wiki:Wiki_sql.wiki ->
-    bi:Wiki_syntax.box_info ->
-    string -> Xhtmltypes_duce.flows Lwt.t
-
-end

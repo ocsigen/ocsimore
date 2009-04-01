@@ -10,7 +10,7 @@ This is the wiki component of Ocsimore.
 type role = Admin | Author | Lurker | Nonauthorized;;
 (** Admin can changes the permissions on boxes (if the wiki allows this) *)
 
-
+(*
 (** Creates a new wiki or returns its id without modification if a wiki of the
     same name already exists.
 
@@ -68,10 +68,26 @@ val register_wiki :
   ?wiki_info:Wiki_sql.wiki_info ->
   unit ->
   unit Lwt.t
+*)
 
 
-(** A text suitable as the default text for a container page *)
-val default_container_page:string
+val really_create_wiki :
+  title:string ->
+  descr:string ->
+  ?path: string list ->
+  ?readers:User_sql.userid list -> 
+  ?writers:User_sql.userid list -> 
+  ?rights_adm:User_sql.userid list ->
+  ?wikiboxes_creators:User_sql.userid list ->
+  ?container_adm:User_sql.userid list ->
+  ?page_creators:User_sql.userid list ->
+  ?css_editors:User_sql.userid list ->
+  ?admins:User_sql.userid list ->
+  ?boxrights:bool ->
+  ?staticdir:string ->
+  container_page:string ->
+  unit -> 
+  Wiki_sql.wiki Lwt.t
 
 
 (** {2 Groups } *)
@@ -177,28 +193,7 @@ val new_wikibox :
   unit -> int32 Lwt.t
 
 
-(** Operations on wikiboxes *)
-type wiki_errors =
-  | Action_failed of exn
-  | Operation_not_allowed
-
-exception Not_css_editor
-exception CssInsteadOfWiki
-exception Unknown_box of Wiki_sql.wikibox
-
-type wiki_action_info =
-  | Edit_box of Wiki_sql.wikibox
-  | Edit_perm of Wiki_sql.wikibox
-  | History of Wiki_sql.wikibox
-  | Oldversion of (Wiki_sql.wikibox * int32)
-  | Src of (Wiki_sql.wikibox * int32)
-  | Error of (Wiki_sql.wikibox * wiki_errors)
-  | Delete_Box of Wiki_sql.wikibox
-  | Preview of (Wiki_sql.wikibox * (string * int32))
-
-exception Wiki_action_info of wiki_action_info
-
-
+(* Saves a wikibox and returns the new version id of this wikibox. *)
 val save_wikibox :
   enough_rights:(sp:Eliom_sessions.server_params -> sd:Ocsimore_common.session_data -> Wiki_sql.wikibox -> bool Lwt.t) ->
   sp:Eliom_sessions.server_params ->
@@ -206,17 +201,18 @@ val save_wikibox :
   wikibox:Wiki_sql.wikibox ->
   content:string ->
   content_type:Wiki_sql.wikibox_content_type ->
-  Eliom_services.result_to_send Lwt.t
+  int32 Lwt.t
 
 val save_wikibox_permissions :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data -> 
+  sd:Ocsimore_common.session_data ->
   Wiki_sql.wikibox *
      (string *
         (string *
-           (string * 
+           (string *
               (string * (string * (string * (string * string))))))) ->
   unit Lwt.t
+
 
 
 val get_role :
@@ -259,20 +255,13 @@ val modified_wikibox:
   wikibox:Wiki_sql.wikibox -> boxversion:Int32.t -> Int32.t option Lwt.t
 
 
-(** Administration wiki *)
-
-(** Name of the administration wiki. This is the name that must
-    be used when creating (or searching for) this wiki. If that
-    name is changed, the database *must* be upgraded manually to
-    reflect the change *)
-val wiki_admin_name : string
-val get_admin_wiki : unit -> Wiki_sql.wiki Lwt.t
 
 
 (** *)
+(*
 val wikicss_service_handler : Wiki_sql.wiki -> unit -> string Lwt.t
 val wikipagecss_service_handler : Wiki_sql.wiki * string -> unit -> string Lwt.t
-
+*)
 
 val retrieve_wikibox_wikitext_at_version:
   int32 -> Wiki_sql.wikibox -> string Lwt.t
@@ -281,3 +270,8 @@ val retrieve_wikibox_current_wikitext_and_version:
   Wiki_sql.wikibox -> (string * int32) Lwt.t
 
 val retrieve_wikibox_current_wikitext: Wiki_sql.wikibox -> string Lwt.t
+
+
+
+exception CssInsteadOfWiki
+exception Unknown_box of Wiki_sql.wikibox

@@ -376,7 +376,7 @@ let gen sp =
                  let gid = [userdata.Users.id] in
                  template_page_contents ()
                  >>= fun template ->
-                 Wiki.create_wiki
+                 Wiki_services.create_wiki
                    ~title:(Printf.sprintf "wikiperso for %s" user)
                    ~descr:(Printf.sprintf
                              !Language.messages.Language.wikiperso_wikidescr
@@ -388,7 +388,7 @@ let gen sp =
                    ()
                  (* Register the personal wiki at the correct url *)
                  >>= fun wiki ->
-                 Wiki.register_wiki ~sp ~path:(wiki_path user)
+                 Wiki_services.register_wiki ~sp ~path:(wiki_path user)
                    ~wikibox:Ocsisite.wikibox ~wiki:wiki.Wiki_sql.id
                    ~wiki_info:wiki ()
                  >>= fun () ->

@@ -116,7 +116,7 @@ let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 
 let _ =
   Lwt_unix.run (
-     Wiki.create_wiki
+     Wiki_services.create_wiki
        ~title:wiki_data.name
        ~descr:""
        ~wikibox:Ocsisite.wikibox
@@ -130,7 +130,7 @@ let _ =
        ?css_editors:wiki_data.css_editors
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
-       ~container_page:Wiki.default_container_page
+       ~container_page:Wiki_services.default_container_page
        ()
     )
 

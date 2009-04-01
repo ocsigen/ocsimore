@@ -76,6 +76,7 @@ let wikiadmin_container_id = 2l
 let wiki_help_box = 3l
 
 
+let services = Wiki_services.services ()
 
 let wikibox =
   Lwt_unix.run
@@ -105,9 +106,10 @@ let wikibox =
             ignore (new User_widgets.login_widget sm)
      );
 
-     Lwt.return (new Wiki_widgets.creole_wikibox ()
-                   (wikiadmin_container_id, wiki_help_box))
+     Lwt.return (new Wiki_widgets.creole_wikibox wiki_help_box services)
     )
+
+let () = Wiki_services.register_services services wikiadmin_container_id wikibox
 
 
 
@@ -115,8 +117,8 @@ let wikibox =
 let wiki_admin =
     Lwt_unix.run
       ((* creating a wiki for the administration boxes: *)
-        Wiki.create_wiki
-          ~title:Wiki.wiki_admin_name
+        Wiki_services.create_wiki
+          ~title:Wiki_services.wiki_admin_name
           ~descr:"Administration boxes"
           ~wikibox:wikibox
           ~path:[Ocsimore_lib.ocsimore_admin_dir]
@@ -129,7 +131,7 @@ let wiki_admin =
                    ~css_editors:[Users.admin]
                    ~admins:[Users.admin] *)
           ~boxrights:true
-          ~container_page:Wiki.default_container_page
+          ~container_page:Wiki_services.default_container_page
           ()
       )
 
@@ -179,7 +181,7 @@ let _ = Lwt_unix.run
               | None -> Lwt.return ()
               | Some path ->
                   let path = Ocsigen_lib.split '/' path in
-                  Wiki.register_wiki ~path ~wikibox ~wiki ()
+                  Wiki_services.register_wiki ~path ~wikibox ~wiki ()
           else
             Lwt.return ()
        ) l
