@@ -408,8 +408,6 @@ let gen sp =
           >>= fun () ->
             (* In all cases, we just tell Eliom to continue. It will answer with
                the wiki if it has been successfully created *)
-            Ocsigen_messages.debug (fun () -> Printf.sprintf "Code %d"
-                                      (Eliom_sessions.get_previous_extension_error_code sp));
             return
               (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
 
