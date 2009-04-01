@@ -77,11 +77,11 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   contents sp sd
   >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
   let bi =
-    { Wiki_syntax.bi_sp = sp;
-      Wiki_syntax.bi_sd = sd;
-      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-      Wiki_syntax.bi_subbox = Some subbox;
-      Wiki_syntax.bi_page = Some path;
+    { Wiki_widgets_interface.bi_sp = sp;
+      bi_sd = sd;
+      bi_ancestors = Wiki_widgets_interface.no_ancestors;
+      bi_subbox = Some subbox;
+      bi_page = Some path;
     }
   in
   Ocsisite.wikibox#editable_wikibox

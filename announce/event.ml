@@ -40,11 +40,11 @@ let format_date_and_speakers d speakers =
 
 let format_description sp sd desc =
   let bi = 
-    { Wiki_syntax.bi_sp = sp;
-      Wiki_syntax.bi_sd = sd;
-      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-      Wiki_syntax.bi_subbox = None;
-      Wiki_syntax.bi_page = None;
+    { Wiki_widgets_interface.bi_sp = sp;
+      bi_sd = sd;
+      bi_ancestors = Wiki_widgets_interface.no_ancestors;
+      bi_subbox = None;
+      bi_page = None;
     }
   in
   Ocsisite.wikibox#display_noneditable_wikibox ~bi ~data:(Common.wiki_id, desc) ()

@@ -22,23 +22,6 @@
 *)
 
 
-(** Type used to avoid wikibox loops *)
-type ancestors
-
-val no_ancestors : ancestors
-
-val in_ancestors : (Wiki_sql.wiki * int32) -> ancestors -> bool
-
-val add_ancestor : (Wiki_sql.wiki * int32) -> ancestors -> ancestors
-
-(** Information available to display a box *)
-type box_info =
-  {bi_subbox: Xhtmltypes_duce.flows option;
-   bi_ancestors: ancestors;
-   bi_sp: Eliom_sessions.server_params;
-   bi_sd: Ocsimore_common.session_data;
-   bi_page: string list option}
-
 
 (** find services for each wiki *)
 val find_naservpage : Wiki_sql.wiki ->
@@ -86,7 +69,7 @@ val add_servwikicss : Wiki_sql.wiki ->
 val add_block_extension : 
   string ->
   (Wiki_sql.wiki ->
-     box_info ->
+     Wiki_widgets_interface.box_info ->
      (string * string) list -> 
        string option -> 
          Xhtmltypes_duce.flows Lwt.t) -> 
@@ -95,7 +78,7 @@ val add_block_extension :
 val add_a_content_extension : 
   string -> 
   (Wiki_sql.wiki ->
-     box_info ->
+     Wiki_widgets_interface.box_info ->
        (string * string) list -> 
          string option -> 
            {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> 
@@ -104,7 +87,7 @@ val add_a_content_extension :
 val add_link_extension : 
   string -> 
   (Wiki_sql.wiki -> 
-     box_info ->
+     Wiki_widgets_interface.box_info ->
      (string * string) list -> 
        string option -> 
          string * Wikicreole.attribs * 
@@ -118,7 +101,7 @@ val add_link_extension :
 *)
 val xml_of_wiki :
   Wiki_sql.wiki -> 
-  box_info ->
+  Wiki_widgets_interface.box_info ->
   string -> 
   Xhtmltypes_duce.flows Lwt.t
 
@@ -126,7 +109,7 @@ val xml_of_wiki :
 *)
 val inline_of_wiki :
   Wiki_sql.wiki -> 
-  box_info ->
+  Wiki_widgets_interface.box_info ->
   string -> 
   Xhtmltypes_duce.inlines Lwt.t
 
@@ -135,7 +118,7 @@ val inline_of_wiki :
 *)
 val a_content_of_wiki :
   Wiki_sql.wiki -> 
-  box_info ->
+  Wiki_widgets_interface.box_info ->
   string -> 
   {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t
 

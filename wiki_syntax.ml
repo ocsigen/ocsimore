@@ -26,40 +26,17 @@ let (>>=) = Lwt.bind
 
 module W = Wikicreole
 
-(** Type used to avoid wikibox loops *)
-type ancestors = (Wiki_sql.wiki * int32) list
 
-type box_info =
-  {bi_subbox: Xhtmltypes_duce.flows option;
-   bi_ancestors: ancestors;
-   bi_sp: Eliom_sessions.server_params;
-   bi_sd: Ocsimore_common.session_data;
-   bi_page: string list option}
+let block_extension_table = Hashtbl.create 8
+let a_content_extension_table = Hashtbl.create 8
+let link_extension_table = Hashtbl.create 8
 
 
-module H = Hashtbl.Make(struct
-                          type t = string
-                          let equal = (=)
-                          let hash = Hashtbl.hash 
-                        end)
+let add_block_extension k f = Hashtbl.add block_extension_table k f
 
-let block_extension_table = H.create 8
-let a_content_extension_table = H.create 8
-let link_extension_table = H.create 8
+let add_a_content_extension k f = Hashtbl.add a_content_extension_table k f
 
-
-let in_ancestors box ancestors =
-  List.mem box ancestors
-
-let no_ancestors = []
-
-let add_ancestor x a = x::a
-
-let add_block_extension k f = H.add block_extension_table k f
-
-let add_a_content_extension k f = H.add a_content_extension_table k f
-
-let add_link_extension k f = H.add link_extension_table k f
+let add_link_extension k f = Hashtbl.add link_extension_table k f
 
 
 
@@ -270,13 +247,13 @@ let builder wiki_id =
              Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }});
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
     W.block_plugin = 
-      (fun name -> H.find block_extension_table name wiki_id);
+      (fun name -> Hashtbl.find block_extension_table name wiki_id);
     W.link_plugin =
-      (fun name -> H.find link_extension_table name wiki_id);
+      (fun name -> Hashtbl.find link_extension_table name wiki_id);
     W.a_content_plugin =
       (fun name param args content -> 
          let f = 
-           try H.find a_content_extension_table name
+           try Hashtbl.find a_content_extension_table name
            with Not_found -> 
              (fun _ _ _ _ ->
                 Lwt.return
@@ -291,12 +268,13 @@ let builder wiki_id =
 let xml_of_wiki wiki_id bi s = 
   Lwt_util.map_serial
     (fun x -> x)
-    (Wikicreole.from_string bi.bi_sp bi (builder wiki_id) s)
+    (Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+       (builder wiki_id) s)
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
 let inline_of_wiki wiki_id bi s : Xhtmltypes_duce.inlines Lwt.t = 
-  match Wikicreole.from_string bi.bi_sp 
+  match Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp
     bi
     (builder wiki_id) s
   with
@@ -446,7 +424,7 @@ let _ =
            {{ { id={: a :} } }} 
          with Not_found -> {{ {} }} 
        in
-       match bi.bi_subbox with
+       match bi.Wiki_widgets_interface.bi_subbox with
          | None -> Lwt.return {{ [ <div (classe ++ id) >
                                      [<strong>[<em>"<<content>>"]]] }}
          | Some subbox -> Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
@@ -475,7 +453,8 @@ let _ =
            with Not_found -> s, s
          in
          a_content_of_wiki wiki_id bi text >>= fun text2 ->
-         if Eliom_sessions.get_current_sub_path_string bi.bi_sp = link
+         if Eliom_sessions.get_current_sub_path_string
+           bi.Wiki_widgets_interface.bi_sp = link
          then 
            let classe = match classe with
              | None -> {{ { class="wikimenu_current" } }}
@@ -497,7 +476,7 @@ let _ =
                      in
                      Eliom_duce.Xhtml.make_uri
                        ~service:servpage
-                       ~sp:bi.bi_sp
+                       ~sp:bi.Wiki_widgets_interface.bi_sp
                        path
                  | _ -> link
            in
@@ -535,8 +514,8 @@ let _ =
 
   add_block_extension "cond"
     (fun wiki_id bi args c -> 
-       let sp = bi.bi_sp in
-       let sd = bi.bi_sd in
+       let sp = bi.Wiki_widgets_interface.bi_sp in
+       let sd = bi.Wiki_widgets_interface.bi_sd in
        let content = match c with
          | Some c -> c
          | None -> ""

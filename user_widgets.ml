@@ -125,7 +125,9 @@ object (self)
            let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args in
            self#display_login_widget
              ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps
-             ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd () >>= fun b ->
+             ~sp:bi.Wiki_widgets_interface.bi_sp
+             ~sd:bi.Wiki_widgets_interface.bi_sd ()
+           >>= fun b ->
            Lwt.return {{ [ b ] }});
 
       ignore 
@@ -157,8 +159,10 @@ object (self)
       Wiki_syntax.add_a_content_extension "username"
         (fun _w bi _args _c -> 
            Users.get_user_data 
-             ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd >>= fun ud ->
-             Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
+             ~sp:bi.Wiki_widgets_interface.bi_sp
+             ~sd:bi.Wiki_widgets_interface.bi_sd
+           >>= fun ud ->
+           Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
         );
       
       Wiki_syntax.add_block_extension "logoutbutton"
@@ -172,7 +176,8 @@ object (self)
              {{ [ {:
                      Eliom_duce.Xhtml.post_form
                      ~a:{{ { class="logoutbutton"} }} 
-                     ~service:sessman#act_logout ~sp:bi.Wiki_syntax.bi_sp
+                     ~service:sessman#act_logout
+                     ~sp:bi.Wiki_widgets_interface.bi_sp
                      (fun () -> 
                         {{ [<p>[ 
                                {: Eliom_duce.Xhtml.button
@@ -202,7 +207,8 @@ object (self)
              | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
            in
            ((Eliom_duce.Xhtml.make_uri
-               ~service:sessman#act_logout_get ~sp:bi.Wiki_syntax.bi_sp
+               ~service:sessman#act_logout_get
+               ~sp:bi.Wiki_widgets_interface.bi_sp
                ()
             ),
             args,

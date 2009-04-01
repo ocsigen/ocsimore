@@ -70,6 +70,8 @@ let wikipagecss_service_handler (wiki, page) () =
 
 
 
+
+
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
 let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_create_page sp path page () =
@@ -90,11 +92,11 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
                 >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
                           wikipage_wikibox = box; wikipage_title = title } ->
                   let bi =
-                    { Wiki_syntax.bi_sp = sp;
-                      Wiki_syntax.bi_sd = sd;
-                      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-                      Wiki_syntax.bi_subbox = None;
-                      Wiki_syntax.bi_page = Some path;
+                    { Wiki_widgets_interface.bi_sp = sp;
+                      bi_sd = sd;
+                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                      bi_subbox = None;
+                      bi_page = Some path;
                     }
                   in
                 wikibox#editable_wikibox_aux ~bi ~data:(wiki', box)
@@ -144,11 +146,11 @@ let display_page w (wikibox : Wiki_widgets_interface.editable_wikibox) action_cr
            Wiki_syntax.set_page_displayable sd err_code;
 
            (* We render the container *)
-           let bi = { Wiki_syntax.bi_sp = sp;
-                      Wiki_syntax.bi_sd = sd;
-                      Wiki_syntax.bi_ancestors = Wiki_syntax.no_ancestors;
-                      Wiki_syntax.bi_subbox = Some subbox;
-                      Wiki_syntax.bi_page = Some path;
+           let bi = { Wiki_widgets_interface.bi_sp = sp;
+                      bi_sd = sd;
+                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                      bi_subbox = Some subbox;
+                      bi_page = Some path;
                     }
            in
            wikibox#editable_wikibox ~bi ~data:(w.id, w.container_id)
@@ -507,9 +509,9 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
   Eliom_duce.Xhtml.register service_edit_wikibox
     (fun sp ((w, _b) as g) () ->
        let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_syntax.bi_sp = sp;
+       let bi = { Wiki_widgets_interface.bi_sp = sp;
                   bi_sd = sd;
-                  bi_ancestors = Wiki_syntax.no_ancestors;
+                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
                   bi_subbox = None;
                   bi_page = None;
                 }
@@ -517,7 +519,8 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
        wikibox_widget#editable_wikibox ~bi ~data:g ~rows:30 ()
        >>= fun subbox ->
        get_admin_wiki () >>= fun admin_wiki ->
-       let bi = { bi with Wiki_syntax.bi_subbox = Some {{ [ subbox ] }} } in
+       let bi = { bi with Wiki_widgets_interface.bi_subbox =
+           Some {{ [ subbox ] }} } in
        wikibox_widget#editable_wikibox ~bi
          ~data:(admin_wiki, wikiadmin_container_id) ?cssmenu:(Some None) ()
        >>= fun page ->
@@ -529,9 +532,9 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
   Eliom_duce.Xhtml.register service_edit_wikipage_css
     (fun sp ((wiki, page) as g) () ->
        let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_syntax.bi_sp = sp;
+       let bi = { Wiki_widgets_interface.bi_sp = sp;
                   bi_sd = sd;
-                  bi_ancestors = Wiki_syntax.no_ancestors;
+                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
                   bi_subbox = None;
                   bi_page = None;
                 }
@@ -540,7 +543,8 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
        >>= fun wiki_info ->
        wikibox_widget#edit_css_box ~bi ~rows:30 ~data:g ()
        >>= fun subbox ->
-       let bi = { bi with Wiki_syntax.bi_subbox = Some {{ [ subbox ] }} } in
+       let bi = { bi with Wiki_widgets_interface.bi_subbox =
+           Some {{ [ subbox ] }} } in
        wikibox_widget#editable_wikibox ~bi ?cssmenu:(Some None)
          ~data:(wiki, wiki_info.Wiki_sql.container_id) ()
        >>= fun pagecontent ->
@@ -552,9 +556,9 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
   Eliom_duce.Xhtml.register service_edit_wiki_css
     (fun sp wiki () ->
        let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_syntax.bi_sp = sp;
+       let bi = { Wiki_widgets_interface.bi_sp = sp;
                   bi_sd = sd;
-                  bi_ancestors = Wiki_syntax.no_ancestors;
+                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
                   bi_subbox = None;
                   bi_page = None;
                 }

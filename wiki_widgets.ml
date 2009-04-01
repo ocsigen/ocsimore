@@ -71,9 +71,7 @@ object (self)
       | _ -> error_box#display_error_box ?classe ?message ?exn ()
 
   method virtual pretty_print_wikisyntax :
-    wiki:Wiki_sql.wiki ->
-    bi:Wiki_syntax.box_info ->
-    string -> Xhtmltypes_duce.flows Lwt.t
+    wiki:Wiki_sql.wiki -> bi:box_info -> string -> Xhtmltypes_duce.flows Lwt.t
 
 
   method display_basic_box ~classe content =
@@ -82,7 +80,7 @@ object (self)
       {{ <div class={: classe :}>content }}
 
   method display_noneditable_wikibox ~bi ?(classe=[]) ~data () =
-    Wiki.get_role ~sp:bi.Wiki_syntax.bi_sp ~sd:bi.Wiki_syntax.bi_sd data
+    Wiki.get_role ~sp:bi.bi_sp ~sd:bi.bi_sd data
     >>= function
       | Wiki.Admin
       | Wiki.Author
@@ -197,8 +195,8 @@ object (self)
      }}
 
   method display_menu_box ~classe ?service ?cssmenu ?title ~bi ids content =
-    let sp = bi.Wiki_syntax.bi_sp in
-    let sd = bi.Wiki_syntax.bi_sd in
+    let sp = bi.bi_sp in
+    let sd = bi.bi_sd in
     let classe = Ocsimore_lib.build_class_attr classe in
     Wiki.get_role ~sp ~sd ids
     >>= fun role ->
@@ -210,7 +208,7 @@ object (self)
 
   (* Wikibox in editing mode *)
   method display_edit_form ~bi ?(rows=25) ?(cols=80) ~previewonly (wiki_id, message_id as wikibox) (content, boxversion) =
-    let sp = bi.Wiki_syntax.bi_sp in
+    let sp = bi.bi_sp in
     Wiki.modified_wikibox wikibox boxversion >>=
     (function
        | Some curversion -> Lwt.return
@@ -281,7 +279,7 @@ object (self)
 
   (* Edition of the permissions of a wiki *)
   method display_edit_perm_form ~bi ((wiki_id, message_id) as ids) =
-    let sp = bi.Wiki_syntax.bi_sp in
+    let sp = bi.bi_sp in
     let aux u =
       Ocsimore_lib.lwt_bind_opt u
         (List.fold_left
@@ -386,7 +384,7 @@ object (self)
     self#display_menu_box_aux ~title ~service:Edit_css css_class wb
 
   method display_history ~bi ids l =
-    let sp = bi.Wiki_syntax.bi_sp in
+    let sp = bi.bi_sp in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
          Users.get_user_fullname_by_id author
@@ -417,8 +415,8 @@ object (self)
      a 403 is returned in Wiki.ml)
   *)
   method editable_wikibox_aux ~bi ~data ?rows ?cols ?(classe=[]) ?cssmenu () =
-    let sp = bi.Wiki_syntax.bi_sp in
-    let sd = bi.Wiki_syntax.bi_sd in
+    let sp = bi.bi_sp in
+    let sd = bi.bi_sd in
     let rec find_action = function
       | [] -> None
       | (Wiki_services.Wiki_action_info e)::_ -> Some e
@@ -454,11 +452,7 @@ object (self)
                      (fun ((c, _v) as cv) ->
                         self#pretty_print_wikisyntax
                           wiki_id
-                          {bi with
-                             Wiki_syntax.bi_ancestors = 
-                              Wiki_syntax.add_ancestor 
-                                data bi.Wiki_syntax.bi_ancestors
-                          }
+                          (Wiki_widgets_interface.add_ancestor_bi data bi)
                           c
                         >>= fun pp ->
                         self#display_basic_box ~classe:[preview_class] pp
@@ -487,10 +481,8 @@ object (self)
                      (Wiki.retrieve_wikibox_wikitext_at_version version data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
-                        ~bi:{bi with
-                               Wiki_syntax.bi_ancestors =
-                            Wiki_syntax.add_ancestor 
-                              data bi.Wiki_syntax.bi_ancestors }
+                        ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
+
                      )
                      (self#display_old_wikibox ~bi ?cssmenu data version)
                    >>= fun r ->
@@ -512,10 +504,7 @@ object (self)
                      (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
-                        ~bi:{bi with
-                               Wiki_syntax.bi_ancestors =
-                            Wiki_syntax.add_ancestor
-                              data bi.Wiki_syntax.bi_ancestors}
+                        ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
                      )
                      (self#display_editable_box ~bi ?cssmenu data)
                    >>= fun r ->
@@ -530,10 +519,7 @@ object (self)
                      (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
-                        ~bi:{bi with
-                           Wiki_syntax.bi_ancestors =
-                            Wiki_syntax.add_ancestor
-                              data bi.Wiki_syntax.bi_ancestors}
+                        ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
                      )
                      (self#display_editable_box ~bi ?cssmenu data)
                    >>= fun r ->
@@ -553,10 +539,7 @@ object (self)
                      (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
-                        ~bi:{bi with
-                           Wiki_syntax.bi_ancestors =
-                            Wiki_syntax.add_ancestor
-                              data bi.Wiki_syntax.bi_ancestors}
+                        ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
                      )
                      (self#display_basic_box)
                    (* Returning true would also be meaningful: the action
@@ -571,10 +554,7 @@ object (self)
                      (Wiki.retrieve_wikibox_current_wikitext data)
                      (self#pretty_print_wikisyntax
                         ~wiki:wiki_id
-                        ~bi:{bi with
-                           Wiki_syntax.bi_ancestors =
-                            Wiki_syntax.add_ancestor 
-                              data bi.Wiki_syntax.bi_ancestors}
+                        ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
                      )
                      (self#display_basic_box)
                    >>= fun r ->
@@ -595,7 +575,7 @@ object (self)
 
 
    method display_edit_css_form ~bi ?(rows=25) ?(cols=80) ~data:(wiki_id, page) content =
-     let sp = bi.Wiki_syntax.bi_sp in
+     let sp = bi.bi_sp in
      let draw_form ((wikiidname, pagename), contentname) =
        {{ [<p>[
             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
@@ -614,8 +594,8 @@ object (self)
               ~sp draw_form () :}] }}
 
    method edit_css_box ~bi ~data ?rows ?cols ?(classe=[]) ()  =
-     let sp = bi.Wiki_syntax.bi_sp in
-     let sd = bi.Wiki_syntax.bi_sd in
+     let sp = bi.bi_sp in
+     let sd = bi.bi_sd in
      let (wiki, page) = data in
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
@@ -632,7 +612,7 @@ object (self)
        (self#display_edit_css_box ~bi ~cssmenu:(Some page) (wiki', box) page)
 
    method display_edit_wikicss_form ~bi ?(rows=25) ?(cols=80) ~wiki (content : string) =
-     let sp = bi.Wiki_syntax.bi_sp in
+     let sp = bi.bi_sp in
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
@@ -648,8 +628,8 @@ object (self)
               ~service:action_send_wiki_css ~sp draw_form () :}] }}
 
    method edit_wikicss_box ~bi ~wiki ?rows ?cols ?(classe=[]) () =
-     let sp = bi.Wiki_syntax.bi_sp in
-     let sd = bi.Wiki_syntax.bi_sd in
+     let sp = bi.bi_sp in
+     let sd = bi.bi_sd in
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
      Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
@@ -668,7 +648,7 @@ object (self)
           (wiki, wiki_info.Wiki_sql.container_id))
 
    method get_css_header ~bi ~wiki ?(admin=false) ?page () =
-     let sp = bi.Wiki_syntax.bi_sp in
+     let sp = bi.bi_sp in
      let css_url_service service args = Eliom_duce.Xhtml.css_link
        (Eliom_duce.Xhtml.make_uri service sp args) () in
      let css_url path = css_url_service (Eliom_services.static_dir sp) path in
@@ -735,7 +715,7 @@ Wiki_syntax.add_block_extension "wikibox"
        let wiki = extract_wiki_id args wiki_id in
        try
          let box = Int32.of_string (List.assoc "box" args) in
-         if Wiki_syntax.in_ancestors (wiki, box) bi.Wiki_syntax.bi_ancestors then
+         if Wiki_widgets_interface.in_ancestors (wiki, box) bi.bi_ancestors then
            Lwt.return {{ [ {: self#display_error_box
                               ~message:"Wiki error: loop of wikiboxes" () :} ] }}
          else
@@ -754,10 +734,9 @@ Wiki_syntax.add_block_extension "wikibox"
                       with Not_found -> None)
              ~data:(wiki, box)
              ~bi:{bi with
-                    Wiki_syntax.bi_ancestors =
-                 Wiki_syntax.add_ancestor
-                   (wiki, box) bi.Wiki_syntax.bi_ancestors;
-                    Wiki_syntax.bi_subbox = subbox}
+                    bi_ancestors = Wiki_widgets_interface.add_ancestor
+                        (wiki, box) bi.bi_ancestors;
+                    bi_subbox = subbox}
              ()
            >>= fun b ->
            Lwt.return {{ [ b ] }}
@@ -810,7 +789,7 @@ Wiki_filter.add_preparser_extension "wikibox"
 
 Wiki_syntax.add_link_extension "link"
   (fun wiki_id bi args c ->
-     let sp = bi.Wiki_syntax.bi_sp in
+     let sp = bi.bi_sp in
      let href = Ocsimore_lib.list_assoc_default "page" args "" in
      let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
      let https = extract_https args in
@@ -837,7 +816,7 @@ Wiki_syntax.add_link_extension "link"
 
 Wiki_syntax.add_link_extension "nonattachedlink"
   (fun wiki_id bi args c ->
-     let sp = bi.Wiki_syntax.bi_sp in
+     let sp = bi.bi_sp in
      let href = Ocsimore_lib.list_assoc_default "page" args "" in
      let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
      let https = extract_https args in
@@ -861,7 +840,7 @@ Wiki_syntax.add_link_extension "cancellink"
          | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
      in
      (Eliom_duce.Xhtml.make_uri ~service:Eliom_services.void_coservice'
-         ~sp:bi.Wiki_syntax.bi_sp (),
+        ~sp:bi.bi_sp (),
       args,
       content)
   );
@@ -885,7 +864,7 @@ Wiki_syntax.add_a_content_extension "object"
                  (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
                in
                Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s
-                 ~sp:bi.Wiki_syntax.bi_sp href
+                 ~sp:bi.bi_sp href
            | None -> href
      in
      Lwt.return
@@ -912,7 +891,7 @@ Wiki_syntax.add_a_content_extension "img"
                    (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
                in
                Eliom_duce.Xhtml.make_uri ?https ~service:s
-                 ~sp:bi.Wiki_syntax.bi_sp href
+                 ~sp:bi.bi_sp href
            | _ -> href
      in
      Lwt.return
