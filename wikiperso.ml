@@ -387,22 +387,20 @@ let gen sp =
                    ~page_creators:gid ~css_editors:gid ~container_adm:gid
                    ~container_page:template
                    ()
-                 (* Register the personal wiki at the correct url *)
+                 (* Register the personal wiki at the correct url,
+                    for this session only *)
                  >>= fun wiki ->
                  Wiki_services.register_wiki ~sp ~path:(wiki_path user)
                    ~wikibox:Ocsisite.wikibox ~wiki:wiki.wiki_id
                    ~wiki_info:wiki ()
                  >>= fun () ->
-                 catch
-(*VVV à revoir ! *)
+                 Lwt.catch
                    (fun () ->
-                      Wiki_sql.get_css_for_wiki 
-                        ~wiki:wiki.wiki_id >>= fun _ ->
+                      Wiki_sql.get_css_for_wiki ~wiki:wiki.wiki_id >>= fun _ ->
                       Lwt.return ())
                    (function
-                      | Not_found ->
-                          Wiki_sql.set_css_for_wiki 
-                            ~wiki:wiki.wiki_id default_wikicss
+                      | Not_found -> Wiki_sql.set_css_for_wiki
+                          ~wiki:wiki.wiki_id default_wikicss
                       | e -> Lwt.fail e)
           )
           >>= fun () ->
