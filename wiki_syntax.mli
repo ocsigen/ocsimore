@@ -23,48 +23,6 @@
 
 
 
-(** find services for each wiki *)
-val find_naservpage : Wiki_sql.wiki ->
-  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
-   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
-   unit, [`Registrable ])
-    Eliom_services.service
-
-val find_servpage : Wiki_sql.wiki ->
-  (string list, unit,
-   Eliom_services.get_service_kind,
-   [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
-     unit, [ `Registrable ])
-    Eliom_services.service option
-
-val find_servwikicss : Wiki_sql.wiki ->
-  (unit, unit,
-   [ `Attached of
-       [> `Internal of [> `Service ] * [ `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-    Eliom_services.service option
-
-val add_naservpage : Wiki_sql.wiki ->
-  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
-   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
-   unit, [`Registrable ])
-    Eliom_services.service -> unit
-
-val add_servpage : Wiki_sql.wiki ->
-  (string list, unit,
-   Eliom_services.get_service_kind,
-   [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
-     unit, [ `Registrable ])
-    Eliom_services.service -> unit
-
-val add_servwikicss : Wiki_sql.wiki ->
-  (unit, unit,
-   [ `Attached of
-      [ `Internal of [ `Service ] * [ `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-    Eliom_services.service -> unit
-
-
 (** Define new extensions to the wiki syntax. *)
 val add_block_extension : 
   string ->

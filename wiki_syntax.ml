@@ -40,43 +40,6 @@ let add_link_extension k f = Hashtbl.add link_extension_table k f
 
 
 
-(* a table containing the Eliom services generating pages
-   for each wiki associated to an URL *)
-module Servpages = 
-  Hashtbl.Make(struct 
-                 type t = Wiki_sql.wiki
-                 let equal = (=) 
-                 let hash = Hashtbl.hash 
-               end)
-
-let naservpages = Servpages.create 5
-let servpages = Servpages.create 5
-let servwikicss = Servpages.create 5
-
-let add_naservpage = Servpages.add naservpages
-let add_servpage = Servpages.add servpages
-let add_servwikicss = Servpages.add servwikicss
-let find_naservpage = Servpages.find naservpages
-let find_servpage k = 
-  try Some (Servpages.find servpages k)
-  with Not_found -> None
-let find_servwikicss k = 
-  try Some ((Servpages.find servwikicss k) :
-              (unit, unit,
-               [ `Attached of
-                    [ `Internal of [ `Service ] * [ `Get ] ] Eliom_services.a_s ],
-               [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-              Eliom_services.service :>
-              (unit, unit,
-               [ `Attached of
-                   [> `Internal of [> `Service ] * [ `Get ] ] Eliom_services.a_s ],
-               [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-              Eliom_services.service
-           )
-  with Not_found -> None
-
-
-
 
 (***)
 let make_string s = Lwt.return (Ocamlduce.Utf8.make s)
@@ -132,7 +95,7 @@ let is_absolute_link addr =
   (Netstring_pcre.string_match absolute_link_regexp addr 0) <> None
 
 let builder wiki_id =
-  let servpage = find_servpage wiki_id in
+  let servpage = Wiki_services.find_servpage wiki_id in
   { W.chars = make_string;
     W.strong_elem = (fun attribs a -> 
                        let atts = parse_common_attribs attribs in
@@ -468,7 +431,7 @@ let _ =
              if is_absolute_link link
              then link
              else 
-               match find_servpage wiki_id with
+               match Wiki_services.find_servpage wiki_id with
                  | Some servpage -> 
                      let path =
                        Ocsigen_lib.remove_slash_at_beginning

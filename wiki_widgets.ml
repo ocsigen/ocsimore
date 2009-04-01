@@ -659,7 +659,7 @@ object (self)
               {: css_url ["ocsiwikiadmin.css"] :} ] }}
      else
        let css = css_url ["ocsiwikistyle.css"] in
-       (match Wiki_syntax.find_servwikicss wiki with
+       (match Wiki_services.find_servwikicss wiki with
           | None -> Lwt.return {{ [ css ] }}
           | Some wikicss_service ->
               Lwt.catch
@@ -803,7 +803,7 @@ Wiki_syntax.add_link_extension "link"
      ((if Wiki_syntax.is_absolute_link href then
          href
        else
-         match Wiki_syntax.find_servpage wiki_id with
+         match Wiki_services.find_servpage wiki_id with
            | Some s ->
                let href = Ocsigen_lib.remove_slash_at_beginning
                  (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
@@ -827,7 +827,7 @@ Wiki_syntax.add_link_extension "nonattachedlink"
          | None -> Lwt.return (Ocamlduce.Utf8.make href)
      in
      (Eliom_duce.Xhtml.make_uri ?https ?fragment
-        ~service:(Wiki_syntax.find_naservpage wiki_id) ~sp href,
+        ~service:(Wiki_services.find_naservpage wiki_id) ~sp href,
       args,
       content)
   );
@@ -858,7 +858,7 @@ Wiki_syntax.add_a_content_extension "object"
        if Wiki_syntax.is_absolute_link href then
          href
        else
-         match Wiki_syntax.find_servpage wiki_id with
+         match Wiki_services.find_servpage wiki_id with
            | Some s ->
                let href = Ocsigen_lib.remove_slash_at_beginning
                  (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
@@ -884,7 +884,7 @@ Wiki_syntax.add_a_content_extension "img"
        if Wiki_syntax.is_absolute_link href then
          href
        else
-         match Wiki_syntax.find_servpage wiki_id with
+         match Wiki_services.find_servpage wiki_id with
            | Some s ->
                let href =
                  Ocsigen_lib.remove_slash_at_beginning

@@ -68,7 +68,7 @@ let _ =
       ~get_params:Eliom_parameters.unit
       (fun sp () () -> Wiki_services.wikicss_service_handler wiki_id ())
   in
-  Wiki_syntax.add_servwikicss wiki_id wikicss_service
+  Wiki_services.add_servwikicss wiki_id wikicss_service
 
 
 let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
