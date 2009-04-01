@@ -54,6 +54,7 @@ type role =
       message_writers_notmod : bool;
       message_moderators : bool;
       message_deletors : bool;
+      message_deletors_if_author : bool;
       message_sticky_setters : bool;
       message_readers : bool;
 
@@ -61,6 +62,7 @@ type role =
       comment_writers_notmod : bool;
       comment_moderators : bool;
       comment_deletors : bool;
+      comment_deletors_if_author : bool;
       comment_sticky_setters : bool;
       comment_readers : bool;
 
@@ -68,6 +70,7 @@ type role =
       writers_notmod : bool;
       moderators : bool;
       deletors : bool;
+      deletors_if_author : bool;
       sticky_setters : bool;
       readers : bool;
 
@@ -83,16 +86,4 @@ val get_role :
 
 (*
 
-    
-val get_forum_by_name : string -> forum_info Lwt.t
-val get_forum_by_id : Forum_sql.forum -> forum_info Lwt.t
-  
-
-(** *)
-(* remove
-val can_read : forum_info -> Users.userdata -> bool
-val can_write : forum_info -> Users.userdata -> bool
-val can_moderate : forum_info -> Users.userdata -> bool
-*)
-
-*)
+exception Forum_action_info of forum_action_info

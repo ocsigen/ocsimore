@@ -43,4 +43,3 @@ COMMENT ON COLUMN forums_messages.sticky IS
   'Sticky messages will be displayed first';
 
 ALTER TABLE public.forums_messages OWNER TO ocsimore;
-

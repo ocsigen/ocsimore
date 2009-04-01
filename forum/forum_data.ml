@@ -55,11 +55,16 @@ let new_message ~sp ~sd ~forum_id ~author_id
 
 let set_deleted ~sp ~sd ~message_id ~deleted =
   Forum_sql.get_message ~message_id
-  >>= fun (_, _, _, _, parent_id, _, forum_id, _, _, _, _) ->
+  >>= fun (_, _, author_id, _, parent_id, _, forum_id, _, _, _, _) ->
   Forum.get_role sp sd forum_id >>= fun role ->
+  Users.get_user_data sp sd >>= fun u ->
+  let uid = u.Users.id in
   let first_msg = parent_id = None in
-  if ((first_msg && role.message_deletors)
-      || (not first_msg && role.comment_deletors))
+  if ((first_msg && (role.message_deletors ||
+                       (author_id = uid && role.message_deletors_if_author)))
+      || (not first_msg &&
+            (role.comment_deletors ||
+               (author_id = uid && role.comment_deletors_if_author))))
   then Forum_sql.set_deleted ~message_id ~deleted
   else Lwt.fail Ocsimore_common.Permission_denied
 

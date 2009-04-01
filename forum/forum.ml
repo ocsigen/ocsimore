@@ -56,6 +56,7 @@ let message_writers_group_name i = "forum"^i^"_message_writers"
 let message_writers_notmod_group_name i = "forum"^i^"_message_writers_notmod"
 let message_moderators_group_name i = "forum"^i^"_message_moderators"
 let message_deletors_group_name i = "forum"^i^"_message_deletors"
+let message_deletors_if_author_group_name i = "forum"^i^"_message_deletors_if_author"
 let message_sticky_setters_group_name i = "forum"^i^"_message_sticky_setters"
 let message_readers_group_name i = "forum"^i^"_message_readers"
 
@@ -63,6 +64,7 @@ let comment_writers_group_name i = "forum"^i^"_comment_writers"
 let comment_writers_notmod_group_name i = "forum"^i^"_comment_writers_notmod"
 let comment_moderators_group_name i = "forum"^i^"_comment_moderators"
 let comment_deletors_group_name i = "forum"^i^"_comment_deletors"
+let comment_deletors_if_author_group_name i = "forum"^i^"_comment_deletors_if_author"
 let comment_sticky_setters_group_name i = "forum"^i^"_comment_sticky_setters"
 let comment_readers_group_name i = "forum"^i^"_comment_readers"
 
@@ -70,6 +72,7 @@ let writers_group_name i = "forum"^i^"_writers"
 let writers_notmod_group_name i = "forum"^i^"_writers_notmod"
 let moderators_group_name i = "forum"^i^"_moderators"
 let deletors_group_name i = "forum"^i^"_deletors"
+let deletors_if_author_group_name i = "forum"^i^"_deletors_if_author"
 let sticky_setters_group_name i = "forum"^i^"_sticky_setters"
 let readers_group_name i = "forum"^i^"_readers"
 
@@ -80,6 +83,7 @@ let message_writers_group i = Users.get_user_id_by_name (message_writers_group_n
 let message_writers_notmod_group i = Users.get_user_id_by_name (message_writers_notmod_group_name i)
 let message_moderators_group i = Users.get_user_id_by_name (message_moderators_group_name i)
 let message_deletors_group i = Users.get_user_id_by_name (message_deletors_group_name i)
+let message_deletors_if_author_group i = Users.get_user_id_by_name (message_deletors_if_author_group_name i)
 let message_sticky_setters_group i = Users.get_user_id_by_name (message_sticky_setters_group_name i)
 let message_readers_group i = Users.get_user_id_by_name (message_readers_group_name i)
 
@@ -87,6 +91,7 @@ let comment_writers_group i = Users.get_user_id_by_name (comment_writers_group_n
 let comment_writers_notmod_group i = Users.get_user_id_by_name (comment_writers_notmod_group_name i)
 let comment_moderators_group i = Users.get_user_id_by_name (comment_moderators_group_name i)
 let comment_deletors_group i = Users.get_user_id_by_name (comment_deletors_group_name i)
+let comment_deletors_if_author_group i = Users.get_user_id_by_name (comment_deletors_if_author_group_name i)
 let comment_sticky_setters_group i = Users.get_user_id_by_name (comment_sticky_setters_group_name i)
 let comment_readers_group i = Users.get_user_id_by_name (comment_readers_group_name i)
 
@@ -94,6 +99,7 @@ let writers_group i = Users.get_user_id_by_name (writers_group_name i)
 let writers_notmod_group i = Users.get_user_id_by_name (writers_notmod_group_name i)
 let moderators_group i = Users.get_user_id_by_name (moderators_group_name i)
 let deletors_group i = Users.get_user_id_by_name (deletors_group_name i)
+let deletors_if_author_group i = Users.get_user_id_by_name (deletors_if_author_group_name i)
 let sticky_setters_group i = Users.get_user_id_by_name (sticky_setters_group_name i)
 let readers_group i = Users.get_user_id_by_name (readers_group_name i)
 
@@ -134,6 +140,9 @@ let really_create_forum ~title ~descr ~arborescent () =
    create_group_ (message_deletors_group_name forum_id_s)
        ("Users who can delete messages in "^forum_id_s)
    >>= fun message_deletors_data ->
+   create_group_ (message_deletors_if_author_group_name forum_id_s)
+       ("Users who can delete their own messages in "^forum_id_s)
+   >>= fun message_deletors_if_author_data ->
    create_group_ (message_sticky_setters_group_name forum_id_s)
        ("Users who can set messages sticky in "^forum_id_s)
    >>= fun message_sticky_setters_data ->
@@ -154,6 +163,9 @@ let really_create_forum ~title ~descr ~arborescent () =
      create_group_ (comment_deletors_group_name forum_id_s)
        ("Users who can delete comments in "^forum_id_s)
    >>= fun comment_deletors_data ->
+     create_group_ (comment_deletors_if_author_group_name forum_id_s)
+       ("Users who can delete their own comments in "^forum_id_s)
+   >>= fun comment_deletors_if_author_data ->
      create_group_ (comment_sticky_setters_group_name forum_id_s)
        ("Users who can set comments sticky in "^forum_id_s)
    >>= fun comment_sticky_setters_data ->
@@ -174,6 +186,9 @@ let really_create_forum ~title ~descr ~arborescent () =
      create_group_ (deletors_group_name forum_id_s)
        ("Users who can delete messages and comments in "^forum_id_s)
    >>= fun deletors_data ->
+     create_group_ (deletors_if_author_group_name forum_id_s)
+       ("Users who can delete their own messages and comments in "^forum_id_s)
+   >>= fun deletors_if_author_data ->
      create_group_ (sticky_setters_group_name forum_id_s)
        ("Users who can set messages or comments sticky in "^forum_id_s)
    >>= fun sticky_setters_data ->
@@ -203,6 +218,16 @@ let really_create_forum ~title ~descr ~arborescent () =
      add_to_group_ [deletors_data.Users.id] message_deletors_data.Users.id
    >>= fun () ->
      add_to_group_ [deletors_data.Users.id] comment_deletors_data.Users.id
+   >>= fun () ->
+     add_to_group_ [deletors_data.Users.id] deletors_if_author_data.Users.id
+   >>= fun () ->
+     add_to_group_ [deletors_if_author_data.Users.id] message_deletors_if_author_data.Users.id
+   >>= fun () ->
+     add_to_group_ [deletors_if_author_data.Users.id] comment_deletors_if_author_data.Users.id
+   >>= fun () ->
+     add_to_group_ [message_deletors_data.Users.id] message_deletors_if_author_data.Users.id
+   >>= fun () ->
+     add_to_group_ [comment_deletors_data.Users.id] comment_deletors_if_author_data.Users.id
    >>= fun () ->
      add_to_group_ [sticky_setters_data.Users.id] message_sticky_setters_data.Users.id
    >>= fun () ->
@@ -285,6 +310,7 @@ type role =
       message_writers_notmod : bool;
       message_moderators : bool;
       message_deletors : bool;
+      message_deletors_if_author : bool;
       message_sticky_setters : bool;
       message_readers : bool;
 
@@ -292,6 +318,7 @@ type role =
       comment_writers_notmod : bool;
       comment_moderators : bool;
       comment_deletors : bool;
+      comment_deletors_if_author : bool;
       comment_sticky_setters : bool;
       comment_readers : bool;
 
@@ -299,6 +326,7 @@ type role =
       writers_notmod : bool;
       moderators : bool;
       deletors : bool;
+      deletors_if_author : bool;
       sticky_setters : bool;
       readers : bool;
 
@@ -314,6 +342,7 @@ let get_role ~sp ~sd ~forum_id =
   message_writers_notmod_group i >>= fun  message_writers_notmod_group ->
   message_moderators_group i >>= fun message_moderators_group ->
   message_deletors_group i >>= fun message_deletors_group ->
+  message_deletors_if_author_group i >>= fun message_deletors_if_author_group ->
   message_sticky_setters_group i >>= fun message_sticky_setters_group ->
   message_readers_group i >>= fun message_readers_group ->
   
@@ -321,6 +350,7 @@ let get_role ~sp ~sd ~forum_id =
   comment_writers_notmod_group i >>= fun comment_writers_notmod_group ->
   comment_moderators_group i >>= fun comment_moderators_group ->
   comment_deletors_group i >>= fun comment_deletors_group ->
+  comment_deletors_if_author_group i >>= fun comment_deletors_if_author_group ->
   comment_sticky_setters_group i >>= fun comment_sticky_setters_group ->
   comment_readers_group i >>= fun comment_readers_group ->
   
@@ -328,6 +358,7 @@ let get_role ~sp ~sd ~forum_id =
   writers_notmod_group i >>= fun writers_notmod_group ->
   moderators_group i >>= fun moderators_group ->
   deletors_group i >>= fun deletors_group ->
+  deletors_if_author_group i >>= fun deletors_if_author_group ->
   sticky_setters_group i >>= fun sticky_setters_group ->
   readers_group i >>= fun readers_group ->
   
@@ -337,6 +368,7 @@ let get_role ~sp ~sd ~forum_id =
   Users.in_group ~sp ~sd ~user:u ~group:message_writers_notmod_group () >>= fun message_writers_notmod ->
   Users.in_group ~sp ~sd ~user:u ~group:message_moderators_group () >>= fun message_moderators ->
   Users.in_group ~sp ~sd ~user:u ~group:message_deletors_group () >>= fun message_deletors ->
+  Users.in_group ~sp ~sd ~user:u ~group:message_deletors_if_author_group () >>= fun message_deletors_if_author ->
   Users.in_group ~sp ~sd ~user:u ~group:message_sticky_setters_group () >>= fun message_sticky_setters ->
   Users.in_group ~sp ~sd ~user:u ~group:message_readers_group () >>= fun message_readers ->
     
@@ -344,6 +376,7 @@ let get_role ~sp ~sd ~forum_id =
   Users.in_group ~sp ~sd ~user:u ~group:comment_writers_notmod_group () >>= fun comment_writers_notmod ->
   Users.in_group ~sp ~sd ~user:u ~group:comment_moderators_group () >>= fun comment_moderators ->
   Users.in_group ~sp ~sd ~user:u ~group:comment_deletors_group () >>= fun comment_deletors ->
+  Users.in_group ~sp ~sd ~user:u ~group:comment_deletors_if_author_group () >>= fun comment_deletors_if_author ->
   Users.in_group ~sp ~sd ~user:u ~group:comment_sticky_setters_group () >>= fun comment_sticky_setters ->
   Users.in_group ~sp ~sd ~user:u ~group:comment_readers_group () >>= fun comment_readers ->
     
@@ -351,6 +384,7 @@ let get_role ~sp ~sd ~forum_id =
   Users.in_group ~sp ~sd ~user:u ~group:writers_notmod_group () >>= fun writers_notmod ->
   Users.in_group ~sp ~sd ~user:u ~group:moderators_group () >>= fun moderators ->
   Users.in_group ~sp ~sd ~user:u ~group:deletors_group () >>= fun deletors ->
+  Users.in_group ~sp ~sd ~user:u ~group:deletors_if_author_group () >>= fun deletors_if_author ->
   Users.in_group ~sp ~sd ~user:u ~group:sticky_setters_group () >>= fun sticky_setters ->
   Users.in_group ~sp ~sd ~user:u ~group:readers_group () >>= fun readers ->
      
@@ -362,6 +396,7 @@ let get_role ~sp ~sd ~forum_id =
       message_writers_notmod = message_writers_notmod;
       message_moderators = message_moderators;
       message_deletors = message_deletors;
+      message_deletors_if_author = message_deletors_if_author;
       message_sticky_setters = message_sticky_setters;
       message_readers = message_readers;
       
@@ -369,6 +404,7 @@ let get_role ~sp ~sd ~forum_id =
       comment_writers_notmod = comment_writers_notmod;
       comment_moderators = comment_moderators;
       comment_deletors = comment_deletors;
+      comment_deletors_if_author = comment_deletors_if_author;
       comment_sticky_setters = comment_sticky_setters;
       comment_readers = comment_readers;
       
@@ -376,6 +412,7 @@ let get_role ~sp ~sd ~forum_id =
       writers_notmod = writers_notmod;
       moderators = moderators;
       deletors = deletors;
+      deletors_if_author = deletors_if_author;
       sticky_setters = sticky_setters;
       readers = readers;
       
