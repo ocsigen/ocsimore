@@ -13,10 +13,10 @@ let (auth, basicusercreation) =
   let rec find_wikidata ((auth, basicusercreation) as data) = function
     | [] -> Lwt.return data
 
-    | (Simplexmlparser.Element ("nis", [], []))::l -> 
+    | (Simplexmlparser.Element ("nis", [], []))::l ->
         find_wikidata (Nis, basicusercreation) l
 
-    | (Simplexmlparser.Element ("pam", ["service", s], []))::l -> 
+    | (Simplexmlparser.Element ("pam", ["service", s], []))::l ->
         if Session_manager.pam_loaded ()
         then find_wikidata (Pam (Some s), basicusercreation) l
         else
@@ -24,7 +24,7 @@ let (auth, basicusercreation) =
             (Ocsigen_config.Config_file_error
                "Ocsimore compiled without PAM support");
 
-    | (Simplexmlparser.Element ("pam", [], []))::l -> 
+    | (Simplexmlparser.Element ("pam", [], []))::l ->
         if Session_manager.pam_loaded ()
         then find_wikidata (Pam None, basicusercreation) l
         else
@@ -32,11 +32,11 @@ let (auth, basicusercreation) =
             (Ocsigen_config.Config_file_error
                "Ocsimore compiled without PAM support");
 
-    | (Simplexmlparser.Element ("notsecure", [], []))::l -> 
+    | (Simplexmlparser.Element ("notsecure", [], []))::l ->
         Session_manager.set_secure false;
         find_wikidata data l
 
-    | (Simplexmlparser.Element ("basicusercreation", atts, []))::l -> 
+    | (Simplexmlparser.Element ("basicusercreation", atts, []))::l ->
         let registration_mail_from =
           Ocsimore_lib.list_assoc_exn "registration_mail_from" atts
             (Ocsigen_config.Config_file_error
@@ -87,14 +87,14 @@ let wikibox =
        logout_actions = (fun _sp -> return ());
      }
      in
-     let sm = 
+     let sm =
        match auth with
-         | Pam pam_service -> 
+         | Pam pam_service ->
              new Session_manager.sessionmanager_pam pam_service sminfo
-         | Nis -> 
+         | Nis ->
              new Session_manager.sessionmanager_nis sminfo
          | NoExternalAuth ->
-             new Session_manager.sessionmanager sminfo 
+             new Session_manager.sessionmanager sminfo
      in
 
      (* Creation of the login box. This register some extensions at the level
@@ -140,16 +140,16 @@ let _ =
 
       (* Filling the admin container *)
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
-    (Wiki.new_wikibox 
+    (Wiki.new_wikibox
        ~boxid:wikiadmin_container_id
        ~wiki:wiki_admin
        ~author:Users.admin.Users.id
-       ~comment:"Admin container" 
+       ~comment:"Admin container"
        ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
        ~content_type:Wiki_sql.Wiki
        ()
      >>= fun _ ->
-    
+
 
        (* Filling the wikisyntax help *)
 (*VVV Warning!! Dangerous! How to do this in cleaner way? *)
@@ -157,7 +157,7 @@ let _ =
        ~boxid:wiki_help_box
        ~wiki:wiki_admin
        ~author:Users.admin.Users.id
-       ~comment:"Wikisyntax help" 
+       ~comment:"Wikisyntax help"
        ~content:"===Wiki syntax===
 
 This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few extensions.
