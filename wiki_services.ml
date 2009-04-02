@@ -494,8 +494,10 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
              (function
                 | Not_found ->
                     Wiki.new_wikibox ~wiki ~author:userid
-                      ~comment:"new wikipage"
-                      ~content:("=="^page^"==") ~content_type:Wiki_sql.Wiki ()
+                      ~comment:(Printf.sprintf "wikipage %s in wiki %s"
+                                  page (wiki_id_s wiki))
+                      ~content:("== Page "^page^"==")
+                      ~content_type:Wiki_sql.Wiki ()
                     >>= fun wbid ->
                       Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
                       >>= fun () ->
