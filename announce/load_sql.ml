@@ -4,7 +4,7 @@
 let insert_text wiki author content =
   Lwt_unix.run
     (Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
-       ~wiki ~author ~comment:"" ~content ())
+       ~wiki:wiki.Wiki_sql.Types.wiki_id ~author ~comment:"" ~content ())
 
 let insert_person dbh name affiliation =
   PGSQL(dbh) "insert

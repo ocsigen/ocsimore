@@ -81,44 +81,37 @@ let admin_group i =   Users.get_user_id_by_name (admin_group_name i)
 
 exception Found of int32
 
-let new_wikibox ?boxid ~wiki ~author ~comment ~content ~content_type ?readers ?writers ?rights_adm ?wikiboxes_creators () =
-  let wid = wiki.wiki_id in
-  (if wiki.wiki_boxrights
+let new_wikibox ~wiki ~author ~comment ~content ~content_type ?readers ?writers ?rights_adm ?wikiboxes_creators () =
+  Wiki_sql.get_wiki_info_by_id wiki
+  >>= fun wiki_info ->
+  (if wiki_info.wiki_boxrights
   then (
     (match readers with
        | Some r -> Lwt.return r
        | None ->
-           readers_group wid >>= fun r ->
+           readers_group wiki >>= fun r ->
            Lwt.return [r]) >>= fun readers ->
     (match writers with
        | Some r -> Lwt.return r
        | None ->
-           writers_group wid >>= fun r ->
+           writers_group wiki >>= fun r ->
            Lwt.return [r]) >>= fun writers ->
     (match rights_adm with
        | Some r -> Lwt.return r
        | None ->
-           rights_adm_group wid >>= fun r ->
+           rights_adm_group wiki >>= fun r ->
            Lwt.return [r]) >>= fun rights_adm ->
     (match wikiboxes_creators with
        | Some r -> Lwt.return r
        | None ->
-           wikiboxes_creators_group wid >>= fun r ->
+           wikiboxes_creators_group wiki >>= fun r ->
            Lwt.return [r]) >>= fun wikiboxes_creators ->
     Lwt.return
       (Some (readers, writers, rights_adm, wikiboxes_creators)))
   else Lwt.return None) >>= fun rights ->
   Lwt.catch
     (fun () ->
-       (match boxid with
-          | None -> Lwt.return ()
-          | Some b ->
-             Wiki_sql.get_wikibox_data ~wikibox:(wid, b) () >>=
-             function
-               | None -> Lwt.return ()
-               | _ -> Lwt.fail (Found b))
-       >>= fun () ->
-       Wiki_sql.new_wikibox ~wiki:wid ?wbid:boxid ~author ~comment
+       Wiki_sql.new_wikibox ~wiki ~author ~comment
          ~content ~content_type ?rights ())
     (function Found b -> Lwt.return b | e -> Lwt.fail e)
 

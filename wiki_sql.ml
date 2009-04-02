@@ -302,47 +302,35 @@ let string_of_wikibox_content_type = function
 
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox_ ~wiki ?wbid ~author ~comment ~content ~content_type ?rights () = 
+let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () = 
   let wiki' = t_int32 (wiki : wiki)
   and content_type = string_of_wikibox_content_type content_type in
   Sql.full_transaction_block
     (fun db ->
-       (match wbid with
-          | None ->
-              PGSQL(db)
-                "SELECT max(id) FROM wikiboxes 
-                 WHERE wiki_id = $wiki'" >>= fun last ->
-              let boxid = match last with
-                | [] | None::_ -> 1l
-                | (Some last)::_ -> Int32.add last 1l
-              in
-              PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id)
-                         VALUES ($wiki', $boxid)";
-              >>= fun () ->
-              PGSQL(db) "INSERT INTO wikiboxes \
-                          (id, wiki_id, author, comment, content, content_type) \
-                         VALUES \ 
-                          ($boxid, $wiki', $author, $comment, $content, $content_type)"
-              >>= fun () ->
-              Lwt.return boxid
-          | Some box ->
-              PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id)
-                         VALUES ($wiki', $box)"
-              >>= fun () ->
-              PGSQL(db) "INSERT INTO wikiboxes \
-                    (id, wiki_id, author, comment, content, content_type) \
-                  VALUES ($box, $wiki', $author, $comment, $content, $content_type)"
-              >>= fun () ->
-              Lwt.return box) >>= fun wbx_id ->
-       (match rights with
-         | None -> Lwt.return ()
-         | Some (r, w, ra, wc) -> 
-             populate_writers_ db (wiki, wbx_id) w >>= fun () ->
-             populate_readers_ db (wiki, wbx_id) r >>= fun () ->
-             populate_rights_adm_ db (wiki, wbx_id) ra >>= fun () ->
-             populate_wikiboxes_creators_ db (wiki, wbx_id) wc
-       ) >>= fun () ->
-      Lwt.return wbx_id)
+       (PGSQL(db) "SELECT max(id) FROM wikiboxes WHERE wiki_id = $wiki'"
+        >>= fun last ->
+        let boxid = match last with
+          | [] | None::_ -> 1l
+          | (Some last)::_ -> Int32.add last 1l
+        in
+        PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id)
+                   VALUES ($wiki', $boxid)"
+        >>= fun () ->
+        PGSQL(db) "INSERT INTO wikiboxes
+                  (id, wiki_id, author, comment, content, content_type)
+                  VALUES
+                  ($boxid, $wiki', $author, $comment, $content, $content_type)"
+        >>= fun () ->
+        (match rights with
+           | None -> Lwt.return ()
+           | Some (r, w, ra, wc) -> 
+               populate_writers_ db (wiki, boxid) w >>= fun () ->
+               populate_readers_ db (wiki, boxid) r >>= fun () ->
+               populate_rights_adm_ db (wiki, boxid) ra >>= fun () ->
+               populate_wikiboxes_creators_ db (wiki, boxid) wc
+        ) >>= fun () ->
+        Lwt.return boxid)
+    )
 
 
 (** Inserts a new version of an existing wikibox in a wiki 
@@ -722,8 +710,8 @@ let get_wikibox_data,
      C.remove cache (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);
      Lwt.return (wiki, wikibox)),
-  (fun ~wiki ?wbid ~author ~comment ~content ~content_type ?rights () ->
-     new_wikibox_ ~wiki ?wbid ~author ~comment ~content ~content_type ?rights ()
+  (fun ~wiki ~author ~comment ~content ~content_type ?rights () ->
+     new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights ()
      >>= fun wikibox ->
      C.remove cache (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);

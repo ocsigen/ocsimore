@@ -89,7 +89,6 @@ val new_wiki :
     wikibox. *)
 val new_wikibox :
   wiki:wiki ->
-  ?wbid:wikibox_id ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->

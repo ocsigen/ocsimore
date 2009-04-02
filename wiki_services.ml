@@ -187,162 +187,23 @@ val add_servwikicss : Wiki_sql.wiki ->
 
 
 
-(* Displaying of an entire page. We essentially render the page,
-   and then include it inside its container *)
-let display_page w (wikibox_widget : Wiki_widgets_interface.editable_wikibox) action_create_page sp path page () =
-  let sd = Ocsimore_common.get_sd sp in
-  (* if there is a static page, we serve it: *)
-  Lwt.catch
-    (fun () ->
-       match w.wiki_staticdir with
-         | Some d -> send_static_file sp sd w d page
-         | None -> Lwt.fail Eliom_common.Eliom_404)
-    (function
-       | Eliom_common.Eliom_404 ->
-           (* otherwise, we serve the wiki page: *)
-           Lwt.catch
-             (fun () ->
-                (* We render the wikibox for the page *)
-                Wiki_sql.get_box_for_page w.wiki_id page
-                >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
-                          wikipage_wikibox = box; wikipage_title = title } ->
-                  let bi =
-                    { Wiki_widgets_interface.bi_sp = sp;
-                      bi_sd = sd;
-                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                      bi_subbox = None;
-                      bi_page = Some path;
-                    }
-                  in
-                wikibox_widget#editable_wikibox_aux ~bi ~data:(wiki', box)
-                  ~cssmenu:(Some page) ()
-                >>= fun (subbox, allowed) ->
-                Lwt.return ({{ [ subbox ] }},
-                            (if allowed then
-                               Wiki_widgets_interface.Page_displayable
-                             else
-                               Wiki_widgets_interface.Page_403),
-                            title)
-             )
-             (function
-                | Not_found ->
-                    (* No page. We create a default page, which will be
-                       inserted into the container *)
-                    Users.get_user_id ~sp ~sd
-                    >>= fun userid ->
-                    let draw_form name =
-                      {{ [<p>[
-                         {: Eliom_duce.Xhtml.string_input ~name
-                            ~input_type:{: "hidden" :} ~value:page () :}
-                         {: Eliom_duce.Xhtml.string_input
-                            ~input_type:{: "submit" :} ~value:"Create it!" () :}
-                           ]] }}
-                    in
-                    Wiki.page_creators_group w.wiki_id
-                    >>= fun creators ->
-                    Users.in_group ~sp ~sd ~user:userid ~group:creators ()
-                    >>= fun c ->
-                      let form =
-                        if c then
-                          {{ [ {: Eliom_duce.Xhtml.post_form
-                                  ~service:action_create_page
-                                  ~sp draw_form () :} ] }}
-                        else {{ [] }}
-                      and err_msg =
-                        !Language.messages.Language.page_does_not_exist
-                      in
-                      Lwt.return
-                        ({{ [ <p>{:err_msg:} !form ] }},
-                         Wiki_widgets_interface.Page_404,
-                         None)
-                | e -> Lwt.fail e
-             )
-           >>= fun (subbox, err_code, title) ->
-           Wiki_widgets_interface.set_page_displayable sd err_code;
 
-           (* We render the container *)
-           let bi = { Wiki_widgets_interface.bi_sp = sp;
-                      bi_sd = sd;
-                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                      bi_subbox = Some subbox;
-                      bi_page = Some path;
-                    }
-           in
-           wikibox_widget#editable_wikibox ~bi ~data:(w.wiki_id, w.wiki_container)
-             ~cssmenu:None ()
+let ( ** ) = Eliom_parameters.prod
 
-           >>= fun pagecontent ->
-           wikibox_widget#get_css_header ~bi ~wiki:w.wiki_id ~admin:false ~page ()
 
-           >>= fun css ->
-           let title = Ocamlduce.Utf8.make
-             (match title with
-                | Some title -> title
-                | None -> w.wiki_descr)
-           and code = match err_code with
-                      | Wiki_widgets_interface.Page_displayable -> 200
-                      | Wiki_widgets_interface.Page_404 -> 404
-                      | Wiki_widgets_interface.Page_403 -> 403
-           in
-           Eliom_duce.Xhtml.send ~sp ~code
-             {{
-                <html xmlns="http://www.w3.org/1999/xhtml">[
-                  <head>[
-                    <title>title
-                      !css
-                   ]
-                  <body>[ pagecontent ]
-                ]
-              }}
-  | e -> Lwt.fail e)
+let eliom_wiki_args = Wiki_sql.eliom_wiki "wikiid"
+let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "boxid")
+let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
+
 
 
 (* Register the services for the wiki [wiki] *)
 let register_wiki =
   let registered_wikis = Hashtbl.create 17 in
-  fun ?sp ~path ~(wikibox_widget : Wiki_widgets_interface.editable_wikibox) ~wiki ?wiki_info () ->
+  fun ?sp ~path ~(wikibox_widget : Wiki_widgets_interface.editable_wikibox) ~wiki  () ->
   try ignore (Hashtbl.find registered_wikis wiki); Lwt.return ()
   with Not_found ->
     Hashtbl.add registered_wikis wiki ();
-    (match wiki_info with
-       | None -> Wiki_sql.get_wiki_info_by_id wiki
-       | Some info -> Lwt.return info
-    ) >>= fun wiki_info ->
-    let action_create_page =
-      Eliom_predefmod.Actions.register_new_post_coservice' ?sp
-        ~name:("wiki_page_create"^wiki_id_s wiki)
-        ~post_params:(Eliom_parameters.string "page")
-        (fun sp () page ->
-           let sd = Ocsimore_common.get_sd sp in
-           Users.get_user_id ~sp ~sd
-           >>= fun userid ->
-           Wiki.page_creators_group wiki
-           >>= fun creators ->
-           Users.in_group ~sp ~sd ~user:userid ~group:creators ()
-           >>= fun c ->
-             if c then
-               Lwt.catch
-                 (fun () ->
-                    Wiki_sql.get_box_for_page wiki page
-                    >>= fun _ ->
-                    (* The page already exists *)
-                    Lwt.return [Ocsimore_common.Session_data sd]
-                    (*VVV Put an error message *)
-                 )
-                 (function
-                    | Not_found ->
-                        Wiki.new_wikibox ~wiki:wiki_info ~author:userid
-                          ~comment:"new wikipage"
-                          ~content:("=="^page^"==") ~content_type:Wiki_sql.Wiki ()
-                        >>= fun wbid ->
-                        Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
-                        >>= fun () ->
-                          Lwt.return [Ocsimore_common.Session_data sd]
-                    | e -> Lwt.fail e)
-             else Lwt.return [Ocsimore_common.Session_data sd]
-               (*VVV Put an error message *)
-        )
-    in
 
     (* Registering the service with suffix for wikipages *)
     (* Note that Eliom will look for the service corresponding to
@@ -353,8 +214,16 @@ let register_wiki =
       Eliom_predefmod.Any.register_new_service ~path ?sp
         ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
         (fun sp path () ->
-           display_page wiki_info wikibox_widget action_create_page sp
-             path (Ocsigen_lib.string_of_url_path ~encode:true path) ())
+           let sd = Ocsimore_common.get_sd sp in
+           let bi = { Wiki_widgets_interface.bi_sp = sp;
+                      bi_sd = sd;
+                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                      bi_subbox = None;
+                      bi_page = None;
+                    } in
+           wikibox_widget#display_page ~bi ~wiki ~path
+             ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
+        )
     in
     add_servpage wiki servpage;
 
@@ -368,9 +237,16 @@ let register_wiki =
              Ocsigen_lib.remove_slash_at_beginning
                (Ocsigen_lib.remove_dotdot (Neturl.split_path page))
            in
-           let page = Ocsigen_lib.string_of_url_path ~encode:true path
-         in
-         display_page wiki_info wikibox_widget action_create_page sp path page ())
+           let page = Ocsigen_lib.string_of_url_path ~encode:true path in
+           let sd = Ocsimore_common.get_sd sp in
+           let bi = { Wiki_widgets_interface.bi_sp = sp;
+                      bi_sd = sd;
+                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                      bi_subbox = None;
+                      bi_page = None;
+                    } in
+           wikibox_widget#display_page ~bi ~wiki ~path ~page
+        )
     in
     add_naservpage wiki naservpage;
 
@@ -418,20 +294,13 @@ let create_and_register_wiki ~title ~descr
              match path with
                | None -> Lwt.return w
                | Some path -> register_wiki ?sp ~path ~wikibox_widget
-                   ~wiki:w.wiki_id ~wiki_info:w ()
+                   ~wiki:w.wiki_id ()
              >>= fun () ->
              Lwt.return w
            end
        | e -> Lwt.fail e)
 
 
-
-let ( ** ) = Eliom_parameters.prod
-
-
-let eliom_wiki_args = Wiki_sql.eliom_wiki "wikiid"
-let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "boxid")
-let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
 
 
 
@@ -603,6 +472,39 @@ and  _ = Eliom_predefmod.CssText.register_new_service
   ~get_params:(Wiki_sql.eliom_wiki "wiki")
   (fun _sp -> wikicss_service_handler)
 
+and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
+  ~name:"wiki_page_create" ~post_params:eliom_wikipage_args
+  (fun sp () (wiki, page) ->
+     let sd = Ocsimore_common.get_sd sp in
+     Users.get_user_id ~sp ~sd
+     >>= fun userid ->
+     Wiki.page_creators_group wiki
+     >>= fun creators ->
+     Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+     >>= function
+       | true ->
+           Lwt.catch
+             (fun () ->
+                Wiki_sql.get_box_for_page wiki page
+                >>= fun _ ->
+                  (* The page already exists *)
+                  Lwt.return [Ocsimore_common.Session_data sd]
+                    (*VVV Put an error message *)
+             )
+             (function
+                | Not_found ->
+                    Wiki.new_wikibox ~wiki ~author:userid
+                      ~comment:"new wikipage"
+                      ~content:("=="^page^"==") ~content_type:Wiki_sql.Wiki ()
+                    >>= fun wbid ->
+                      Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
+                      >>= fun () ->
+                        Lwt.return [Ocsimore_common.Session_data sd]
+                      | e -> Lwt.fail e)
+       | false ->  Lwt.fail Ocsimore_common.Permission_denied
+  )
+
+
 in
 (service_edit_wikibox,
  service_edit_wikipage_css,
@@ -617,10 +519,11 @@ in
  action_send_wikibox_permissions,
  action_send_wikipage_css,
  action_send_wiki_css,
- pagecss_service)
+ pagecss_service,
+ action_create_page)
 
 
-let register_services (service_edit_wikibox, service_edit_wikipage_css, service_edit_wiki_css, _, _, _, _, _, _, _, _, _, _, _) (wikibox_widget : Wiki_widgets_interface.editable_wikibox) =
+let register_services (service_edit_wikibox, service_edit_wikipage_css, service_edit_wiki_css, _, _, _, _, _, _, _, _, _, _, _, _) (wikibox_widget : Wiki_widgets_interface.editable_wikibox) =
 
   Eliom_duce.Xhtml.register service_edit_wikibox
     (fun sp ((w, _b) as g) () ->

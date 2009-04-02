@@ -221,4 +221,11 @@ class type virtual editable_wikibox =
       unit ->
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
+    method display_page :
+      bi:box_info ->
+      wiki:wiki ->
+      page:string ->
+      path:string list ->
+      Eliom_services.result_to_send Lwt.t
+
   end

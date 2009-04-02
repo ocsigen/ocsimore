@@ -160,7 +160,7 @@ let insert_persons l =
 
 let insert_desc wiki author comment content =
   Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
-     ~wiki ~author ~comment ~content ()
+     ~wiki:wiki.Wiki_sql.Types.wiki_id ~author ~comment ~content ()
 
 let insert_event_person dbh event persons =
   Lwt_util.iter_serial

@@ -183,8 +183,7 @@ val admin_group_name : wiki -> string
     does not already exist. It it exists, returns the existing
     box without modification. *)
 val new_wikibox :
-  ?boxid:int32 ->
-  wiki:wiki_info ->
+  wiki:wiki ->
   author:User_sql.userid ->
   comment:string ->
   content:string ->
