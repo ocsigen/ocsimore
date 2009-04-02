@@ -1,7 +1,3 @@
-ALTER TABLE css ADD PRIMARY KEY (wiki, page);
-ALTER TABLE css DROP CONSTRAINT css_page_key;
-ALTER TABLE css ADD COLUMN wikibox integer;
-
 CREATE or REPLACE FUNCTION "update_db_css_versioning"() RETURNS void AS
 $BODY$
 DECLARE
@@ -25,9 +21,13 @@ $BODY$
 LANGUAGE plpgsql VOLATILE;
 
 BEGIN TRANSACTION;
+ALTER TABLE css ADD PRIMARY KEY (wiki, page);
+ALTER TABLE css DROP CONSTRAINT css_page_key;
+ALTER TABLE css ADD COLUMN wikibox integer;
+
 SELECT update_db_css_versioning();
 ALTER TABLE css ADD FOREIGN KEY (wiki, wikibox) REFERENCES wikiboxindex
-      ON UPDATE DELETE CASCADE ON UPDATE CASCADE ;
+      ON DELETE CASCADE ON UPDATE CASCADE ;
 ALTER TABLE css ALTER COLUMN wikibox SET NOT NULL;
 ALTER TABLE css DROP COLUMN css;
 END;
