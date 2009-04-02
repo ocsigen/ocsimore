@@ -245,6 +245,7 @@ let really_create_wiki ~title ~descr
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir
+    ?wiki_css
     ~container_page
     () =
   let path_string = Ocsimore_lib.bind_opt
@@ -329,6 +330,11 @@ let really_create_wiki ~title ~descr
      [rights_adm_data.Users.id] >>= fun () ->
    Wiki_sql.populate_wikiboxes_creators (wiki_id, wikibox_container)
      [wikiboxes_creators_data.Users.id] >>= fun () ->
+
+   (match wiki_css with
+      | None -> Lwt.return ()
+      | Some css -> Wiki_sql.set_css_for_wiki ~wiki:wiki_id css
+   ) >>= fun () ->
 
    Lwt.return wiki_id
 

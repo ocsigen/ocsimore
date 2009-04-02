@@ -111,6 +111,9 @@ let external_user user =
           "PAM authentification not supported by wikiperso";
         return None
 
+(** Template pages, for the containers and the css of the new wikis. They are
+    copied each time a new wiki is created *)
+
 let default_welcome_page =
 "=== <<wikiname>>\r\n\
 \r\n\
@@ -124,231 +127,21 @@ If you are an administator of this wiki, you can login to create this page:
 <<cond ingroup='users'|Your are connected as <<username>>.
 <<logoutlink|Logout>>.>>
 "
+let default_wikicss = ""
 
-(*VVV PPS CSS hardcoded!!! Clean quickly!!! *)
-let default_wikicss =
-"body,div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,h6,pre,form,fieldset,input,textarea,p,blockquote,th,td {
-        margin: 0;                                                                                
-        padding: 0;                                                                               
-}                                                                                                 
+let template_container_pagename = "wikiperso-template"
+let template_css_pagename = "wikiperso_css-template"
 
-fieldset, img { border: 0; }
-                            
-option { padding-left: 0.4em; }
-                               
-ul, ol, dl { margin: 1em 0; padding-left: 30px }
-dl { margin: 1em 0; }                           
-dd { padding-left: 40px; }                      
+let template_container = Ocsisite.register_named_wikibox
+  ~page:template_container_pagename ~content:default_welcome_page
+  ~content_type:Wiki_sql.Wiki ~comment:"Template for wikipersos container pages"
 
-blockquote { margin: 0 0 1em 1.5em; }
-
-p { 
-  margin: 1em 0; 
-  text-align: justify;
-}                     
-
-li {
-  text-align: justify;
-}                     
-
-td, th { padding: 1px; }
-
-html {
-        height: 100%;
-        margin-bottom: 1px;
-}                          
-
-strong {
-        font-weight: bold;
-}                         
-
-/* */
-a {  
-  color: #dd0000;
-  font-weight: bold;
-  text-decoration: none;
-}                       
-
-img {
-  border: none;
-}              
-
-h1,h2,h3,h4 {
-  color: #224078;
-  font-weight: bold;
-}                   
-
-h1 {
-  font-size: 2.1em;
-  padding-top: 1em;
-  padding-bottom: 0.5em;
-}                       
-
-h2 {
-  font-size: 1.8em;  
-  padding-top: 1em;  
-  padding-bottom: 0.5em;
-}                       
-
-h3 {
-  font-size: 1.4em;  
-  padding-top: 0.8em;
-  padding-bottom: 0.5em;
-}                       
-
-h4 {
-  font-size: 1em;  
-  padding-top: 0.6em;
-  padding-bottom: 0.1em;
-}                       
-
-body {
-  background-color: #224078;
-  font-family: Verdana, Arial, sans-serif;
-  font-size: 0.9em;                       
-  margin: 10px 40px;                      
-  padding: 0px;                           
-}                                         
-
-div.header {
-}           
-
-div.contenu {
-  border: 3px solid black;
-  border-bottom: none;    
-  background-image: url(../pps4.png);
-  background-repeat: no-repeat;      
-  background-position: top left;     
-  background-attachment: scroll;     
-  background-color: #ffffff;         
-  padding: 0px 15px 15px 15px;       
-  margin: 0px;                       
-}                                    
-
-div.titre {
-  margin: 40px 0px 2em 0px;
-  color: #224078;          
-  font-weight: bold;       
-  font-size: 1.1em;        
-}                          
-
-div.titre p {
-  padding: 0px;
-  margin: 0px 0px 0px 40px;
-}                          
-
-div.titre img {
-  position: relative;
-  left: -10px;       
-  float:left;        
-}                    
-
-h1 {
-  padding: 0px 0px 10px 40px;
-  margin: 0px;               
-}                            
-
-div.logos1 {
-  float: right;
-  margin: 40px 0px 0px 0px;
-  padding: 0px 10px 0px 0px;
-}                           
-
-div.logos1 p {
-  text-align: right;
-  margin: 0px;      
-  padding: 0px;     
-}                   
-
-div#menus {
-  margin: 3em 0px 0.4em 40px;
-  padding: 0px;              
-}                            
-
-ul.wikimenu {
-  margin: 0px 0px 0.5em 0px;
-  padding: 0px;             
-}                           
-
-ul.wikimenu li a {
-  color: #dd0000; 
-}                 
-
-ul.wikimenu li {
-  color: #224078;
-  display: inline;
-  font-weight: bold;
-  padding: 0px 24px 0px 0px;
-  margin: 0px;              
-}
-
-div#contenu2 {
-  padding-left: 140px;
-  overflow: auto;
-}
-
-div.footer {
-  position: relative;
-  top: 0px;
-  left: 0px;
-  background-color: #224078;
-  border: 3px solid black;
-  border-top: 1px solid black;
-  padding: 10px 15px 6px 15px;
-  margin: 0px 0px 10px 0px;
-}
-div.footer p {
-  margin: 0;
-  padding: 0;
-  text-align: center;
-}
-
-table {
-  width: 100%;
-}
-
-th {
-  text-align: left;
-}
-"
-
-let template_pagename = "wikiperso-template"
-
-let admin_wiki = Ocsisite.wiki_admin.wiki_id
+let template_wiki_css = Ocsisite.register_named_wikibox
+  ~page:template_css_pagename ~content:default_wikicss
+  ~content_type:Wiki_sql.Css ~comment:"Template for wikipersos css"
 
 
-let () =
-  Lwt_unix.run(
-    Lwt.catch
-      (fun () ->
-         Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:template_pagename
-         >>= fun _ -> Lwt.return ()
-      )
-      (function Not_found ->
-         Wiki_sql.new_wikibox ~wiki:admin_wiki
-           ~comment:"Template for wikipersos container pages"
-           ~content:default_welcome_page ~content_type:Wiki_sql.Wiki
-           ~author:Users.admin.Users.id ()
-         >>= fun box ->
-         Wiki_sql.set_box_for_page ~sourcewiki:admin_wiki
-           ~wbid:box ~page:template_pagename ()
-
-       | e -> Lwt.fail e)
-  )
-
-let template_page_contents () =
-  Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:template_pagename
-  >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
-  Wiki_sql.get_wikibox_data ~wikibox:(wiki', box) ()
-  >>= function
-    | Some (_, _, content, _, _, _) ->
-        Lwt.return content
-    | None ->
-        (* fallback, should not happen if the wikiadmin is not corrupted *)
-        Lwt.return default_welcome_page
-
-
-(* The function that answers for the extension. *)
+(** The function that answers for the extension. *)
 let gen sp =
   let ri = Eliom_sessions.get_ri sp in
   (* We check that the url corresponds to a wiki *)
@@ -375,8 +168,10 @@ let gen sp =
                     registered in the database so as to make their relocation
                     easier *)
                  let gid = [userdata.Users.id] in
-                 template_page_contents ()
-                 >>= fun template ->
+                 template_container ()
+                 >>= fun container ->
+                 template_wiki_css ()
+                 >>= fun css ->
                  Wiki_services.create_wiki
                    ~title:(Printf.sprintf "wikiperso for %s" user)
                    ~descr:(Printf.sprintf
@@ -385,7 +180,7 @@ let gen sp =
                    ~wikibox:Ocsisite.wikibox (* ~boxrights:false *)
                    ~writers:gid ~wikiboxes_creators:gid
                    ~page_creators:gid ~css_editors:gid ~container_adm:gid
-                   ~container_page:template
+                   ~wiki_css:css ~container_page:container
                    ()
                  (* Register the personal wiki at the correct url,
                     for this session only *)
@@ -393,15 +188,6 @@ let gen sp =
                  Wiki_services.register_wiki ~sp ~path:(wiki_path user)
                    ~wikibox:Ocsisite.wikibox ~wiki:wiki.wiki_id
                    ~wiki_info:wiki ()
-                 >>= fun () ->
-                 Lwt.catch
-                   (fun () ->
-                      Wiki_sql.get_css_for_wiki ~wiki:wiki.wiki_id >>= fun _ ->
-                      Lwt.return ())
-                   (function
-                      | Not_found -> Wiki_sql.set_css_for_wiki
-                          ~wiki:wiki.wiki_id default_wikicss
-                      | e -> Lwt.fail e)
           )
           >>= fun () ->
             (* In all cases, we just tell Eliom to continue. It will answer with

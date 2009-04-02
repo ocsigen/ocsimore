@@ -69,6 +69,7 @@ let get_admin_wiki () =
 
 
 
+
 (** A text suitable as the default text for a container page *)
 let default_container_page =
   "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
@@ -398,8 +399,9 @@ let create_wiki ~title ~descr
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir
-    ~wikibox
+    ?wiki_css
     ~container_page
+    ~wikibox
     () =
   Lwt.catch
     (fun () -> Wiki_sql.get_wiki_by_name title)
@@ -408,7 +410,8 @@ let create_wiki ~title ~descr
            begin
              Wiki.really_create_wiki ~title ~descr ?path ~readers ~writers
                ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators
-               ~css_editors ~admins ~boxrights ?staticdir ~container_page ()
+               ~css_editors ~admins ~boxrights ?staticdir ?wiki_css
+               ~container_page ()
              >>= fun wiki_id ->
              Wiki_sql.get_wiki_by_id wiki_id
              >>= fun w ->

@@ -87,6 +87,7 @@ val really_create_wiki :
   ?admins:User_sql.userid list ->
   ?boxrights:bool ->
   ?staticdir:string ->
+  ?wiki_css:string ->
   container_page:string ->
   unit -> 
   wiki Lwt.t

@@ -135,6 +135,39 @@ let wiki_admin =
           ()
       )
 
+let wiki_admin_id = wiki_admin.wiki_id
+
+(** Registers a page inside the administration wiki if it does not
+    exists, and returns a function giving the current value of the
+    corresponding wikibox *)
+let register_named_wikibox ~page ~content ~content_type ~comment =
+  Lwt_unix.run(
+    Lwt.catch
+      (fun () ->
+         Wiki_sql.get_box_for_page ~wiki:wiki_admin_id ~page
+         >>= fun _ -> Lwt.return ()
+      )
+      (function Not_found ->
+         Wiki_sql.new_wikibox ~wiki:wiki_admin_id ~comment ~content ~content_type
+           ~author:Users.admin.Users.id ()
+         >>= fun box ->
+         Wiki_sql.set_box_for_page ~sourcewiki:wiki_admin_id ~wbid:box ~page ()
+
+       | e -> Lwt.fail e)
+  );
+  (fun () ->
+     Wiki_sql.get_box_for_page ~wiki:wiki_admin_id ~page
+     >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
+     Wiki_sql.get_wikibox_data ~wikibox:(wiki', box) ()
+     >>= function
+     | Some (_, _, content, _, _, _) ->
+         Lwt.return content
+     | None ->
+         (* fallback, should not happen if the wikiadmin is not corrupted *)
+         Lwt.return content)
+
+
+
 let _ =
   Lwt_unix.run
 
