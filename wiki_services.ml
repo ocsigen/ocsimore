@@ -498,10 +498,10 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
                       ~content:("== Page "^page^"==")
                       ~content_type:Wiki_sql.Wiki ()
                     >>= fun wbid ->
-                      Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
-                      >>= fun () ->
-                        Lwt.return [Ocsimore_common.Session_data sd]
-                      | e -> Lwt.fail e)
+                    Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
+                    >>= fun () ->
+                    Lwt.return [Ocsimore_common.Session_data sd]
+                | e -> Lwt.fail e)
        | false ->  Lwt.fail Ocsimore_common.Permission_denied
   )
 
