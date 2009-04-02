@@ -922,7 +922,7 @@ Wiki_syntax.add_link_extension "link"
          match Wiki_services.find_servpage wiki_id with
            | Some s ->
                let href = Ocsigen_lib.remove_slash_at_beginning
-                 (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
+                 (Neturl.split_path href)
                in Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s ~sp href
            | None -> href
       ),
@@ -977,7 +977,7 @@ Wiki_syntax.add_a_content_extension "object"
          match Wiki_services.find_servpage wiki_id with
            | Some s ->
                let href = Ocsigen_lib.remove_slash_at_beginning
-                 (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
+                 (Neturl.split_path href)
                in
                Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s
                  ~sp:bi.bi_sp href
@@ -1004,7 +1004,7 @@ Wiki_syntax.add_a_content_extension "img"
            | Some s ->
                let href =
                  Ocsigen_lib.remove_slash_at_beginning
-                   (Ocsigen_lib.remove_dotdot (Neturl.split_path href))
+                    (Neturl.split_path href)
                in
                Eliom_duce.Xhtml.make_uri ?https ~service:s
                  ~sp:bi.bi_sp href

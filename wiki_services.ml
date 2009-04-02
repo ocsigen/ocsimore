@@ -234,8 +234,7 @@ let register_wiki =
         ~get_params:(Eliom_parameters.string "page")
         (fun sp page () ->
            let path =
-             Ocsigen_lib.remove_slash_at_beginning
-               (Ocsigen_lib.remove_dotdot (Neturl.split_path page))
+             Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
            in
            let page = Ocsigen_lib.string_of_url_path ~encode:true path in
            let sd = Ocsimore_common.get_sd sp in

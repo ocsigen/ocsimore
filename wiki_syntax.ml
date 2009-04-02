@@ -118,8 +118,7 @@ let builder wiki_id =
          match servpage, is_absolute_link addr with
            | (Some servpage, false) ->
                let addr =
-                 Ocsigen_lib.remove_slash_at_beginning
-                   (Ocsigen_lib.remove_dotdot (Neturl.split_path addr))
+                 Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path addr)
                in
                Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
            | _ -> addr);
@@ -416,7 +415,7 @@ let _ =
                  | Some servpage -> 
                      let path =
                        Ocsigen_lib.remove_slash_at_beginning
-                         (Ocsigen_lib.remove_dotdot (Neturl.split_path link))
+                          (Neturl.split_path link)
                      in
                      Eliom_duce.Xhtml.make_uri
                        ~service:servpage
