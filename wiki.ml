@@ -35,7 +35,7 @@ type role = Admin | Author | Lurker | Nonauthorized;;
 
 
 let get_sthg_ f ((w, _) as k) =
-  Wiki_sql.get_wiki_by_id w
+  Wiki_sql.get_wiki_info_by_id w
   >>= fun wiki_info ->
   if wiki_info.wiki_boxrights
   then
@@ -164,7 +164,7 @@ let can_write = can_sthg get_writers writers_group
 let can_create_wikibox = can_sthg get_wikiboxes_creators wikiboxes_creators_group
 
 let get_role_ ~sp ~sd ((wiki : wiki), id) =
-  Wiki_sql.get_wiki_by_id wiki >>= fun w ->
+  Wiki_sql.get_wiki_info_by_id wiki >>= fun w ->
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
   can_change_rights ~sp ~sd w id u >>= fun cana ->

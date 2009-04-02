@@ -72,13 +72,11 @@ let (auth, basicusercreation) =
 
 
 
-let wikiadmin_container_id = 2l
-let wiki_help_box = 3l
-
 
 let services = Wiki_services.services ()
 
-let wikibox =
+(** We create the widget that will be used to display the wikiboxes *)
+let wikibox_widget =
   Lwt_unix.run
     (let sminfo = {
        Session_manager.url = ["users"];
@@ -106,38 +104,36 @@ let wikibox =
             ignore (new User_widgets.login_widget sm)
      );
 
-     Lwt.return (new Wiki_widgets.creole_wikibox wiki_help_box services)
+     Lwt.return (new Wiki_widgets.creole_wikibox services)
     )
 
-let () = Wiki_services.register_services services wikiadmin_container_id wikibox
+(** And register the services for the wiki *)
+let () = Wiki_services.register_services services wikibox_widget
 
 
 
-
-let wiki_admin =
-    Lwt_unix.run
-      ((* creating a wiki for the administration boxes: *)
-        Wiki_services.create_wiki
-          ~title:Wiki_services.wiki_admin_name
-          ~descr:"Administration boxes"
-          ~wikibox:wikibox
-          ~path:[Ocsimore_lib.ocsimore_admin_dir]
-          (*       ~readers:[Users.admin]
-                   ~writers:[Users.admin]
-                   ~rights_adm:[Users.admin]
-                   ~wikiboxes_creators:[Users.admin]
-                   ~container_adm:[Users.admin]
-                   ~page_creators:[Users.admin]
-                   ~css_editors:[Users.admin]
-                   ~admins:[Users.admin] *)
-          ~boxrights:true
-          ~container_page:Wiki_services.default_container_page
-          ()
-      )
+(** (We create the wiki containing the administration boxes *)
+let wiki_admin = Lwt_unix.run
+  (Lwt.catch
+     (fun () -> Wiki_sql.get_wiki_info_by_name Wiki_services.wiki_admin_name)
+     (function
+        | Not_found ->
+            Wiki.really_create_wiki
+              ~title:Wiki_services.wiki_admin_name
+              ~descr:"Administration boxes"
+              ~path:[Ocsimore_lib.ocsimore_admin_dir]
+              ~boxrights:true
+              ~container_page:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+              ()
+            >>= fun wid ->
+            Wiki_sql.get_wiki_info_by_id wid
+        | e -> Lwt.fail e)
+  )
 
 let wiki_admin_id = wiki_admin.wiki_id
 
-(** Registers a page inside the administration wiki if it does not
+
+(** This function registers a page inside the administration wiki if it does not
     exists, and returns a function giving the current value of the
     corresponding wikibox *)
 let register_named_wikibox ~page ~content ~content_type ~comment =
@@ -167,49 +163,23 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
          Lwt.return content)
 
 
-
-let _ =
-  Lwt_unix.run
-
-      (* Filling the admin container *)
-(*VVV Warning!! Dangerous! How to do this in cleaner way? *)
-    (Wiki.new_wikibox
-       ~boxid:wikiadmin_container_id
-       ~wiki:wiki_admin
-       ~author:Users.admin.Users.id
-       ~comment:"Admin container"
-       ~content:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
-       ~content_type:Wiki_sql.Wiki
-       ()
-     >>= fun _ ->
-
-
-       (* Filling the wikisyntax help *)
-(*VVV Warning!! Dangerous! How to do this in cleaner way? *)
-     Wiki.new_wikibox
-       ~boxid:wiki_help_box
-       ~wiki:wiki_admin
-       ~author:Users.admin.Users.id
-       ~comment:"Wikisyntax help"
-       ~content:"===Wiki syntax===
+(** We create the page for the help on the syntax of the wiki *)
+let _ = register_named_wikibox
+  ~page:Wiki_widgets_interface.wikisyntax_help_name
+  ~content_type:Wiki_sql.Wiki
+  ~comment:"Wikisyntax help"
+  ~content:"===Wiki syntax===
 
 This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few extensions.
 
 {{../creole_cheat_sheet.png|Wikicreole's syntax}}"
-       ~content_type:Wiki_sql.Wiki
-         ()
-       >>= fun _ -> Lwt.return ()
-      )
 
 
-(* Registering the existing wikis *)
+(** Finally, we registering the existing wikis of the database *)
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis_path
      (fun wiki path ->
-        if wiki <> wiki_admin.wiki_id then
-          let path = Ocsigen_lib.split '/' path in
-          Wiki_services.register_wiki ~path ~wikibox ~wiki ()
-        else
-          Lwt.return ()
+        let path = Ocsigen_lib.split '/' path in
+        Wiki_services.register_wiki ~path ~wikibox_widget ~wiki ()
      )
   )

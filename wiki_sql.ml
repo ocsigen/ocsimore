@@ -68,8 +68,9 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
   let container_wikibox = 0l in
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
-             VALUES ($title, $descr, $?pages, $boxrights, 0, $?staticdir);
+       PGSQL(db)
+         "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
+          VALUES ($title, $descr, $?pages, $boxrights, $container_wikibox, $?staticdir);
                   "
      >>= fun () ->
      serial4 db "wikis_id_seq"
@@ -80,7 +81,7 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
      >>= fun () ->
      let admin = Users.admin.Users.id in
      PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
-                VALUES (0, $wiki_id, $admin, $container_page)"
+                VALUES ($container_wikibox, $wiki_id, $admin, $container_page)"
      >>= fun () ->
        return (wiki_from_sql wiki_id, container_wikibox)
     )
@@ -762,7 +763,7 @@ let get_box_for_page, set_box_for_page =
 
 (***)
 
-let get_wiki_by_id, get_wiki_by_name, update_wiki =
+let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
   let module HW = Hashtbl.Make(struct
                                 type t = wiki
                                 let equal = (=)

@@ -47,7 +47,8 @@ let format_description sp sd desc =
       bi_page = None;
     }
   in
-  Ocsisite.wikibox#display_noneditable_wikibox ~bi ~data:(Common.wiki_id, desc) ()
+  Ocsisite.wikibox_widget#display_noneditable_wikibox
+    ~bi ~data:(Common.wiki_id, desc) ()
 
 let format_location location room =
   match room, location with

@@ -1,4 +1,5 @@
-(** Eliom module that creates a new wiki *)
+(* Eliom module that creates a new wiki. Will be removed when administration
+   pages are written *)
 
 open Lwt
 open Eliom_duce.Xhtml
@@ -116,10 +117,9 @@ let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 
 let _ =
   Lwt_unix.run (
-     Wiki_services.create_wiki
+     Wiki_services.create_and_register_wiki
        ~title:wiki_data.name
        ~descr:""
-       ~wikibox:Ocsisite.wikibox
        ~path:wiki_data.path
        ?readers:wiki_data.readers
        ?writers:wiki_data.writers
@@ -131,6 +131,7 @@ let _ =
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
        ~container_page:Wiki_services.default_container_page
+       ~wikibox_widget:Ocsisite.wikibox_widget
        ()
     )
 

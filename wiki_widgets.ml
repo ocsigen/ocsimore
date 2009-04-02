@@ -107,7 +107,7 @@ let eliom_wikipage_args =
   (Wiki_sql.eliom_wiki "wikiid") ** (Eliom_parameters.string "page")
 
 
-class virtual editable_wikibox wiki_help_box
+class virtual editable_wikibox
   (service_edit_wikibox,
    service_edit_wikipage_css,
    service_edit_wiki_css,
@@ -265,13 +265,16 @@ object (self)
   (* Wikibox in editing mode, with an help box on the syntax of the wiki *)
   method display_full_edit_form ~bi ?rows ?cols ~previewonly (wiki_id, message_id) (content, boxversion) =
     Wiki_services.get_admin_wiki ()
-    >>= fun admin_wiki ->
+    >>= fun { wiki_id = admin_wiki } ->
+    Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:"wikisyntax-help"
+    >>= fun { Wiki_sql.wikipage_dest_wiki = wiki;
+              wikipage_wikibox = wiki_help_box } ->
     self#bind_or_display_error ~classe:["wikihelp"]
-      (Wiki.retrieve_wikibox_current_wikitext (admin_wiki, wiki_help_box))
+      (Wiki.retrieve_wikibox_current_wikitext (wiki, wiki_help_box))
       (self#pretty_print_wikisyntax ~wiki:admin_wiki ~bi)
       (self#display_basic_box)
     >>= fun b ->
-      self#display_edit_form ~bi ?rows ?cols ~previewonly
+    self#display_edit_form ~bi ?rows ?cols ~previewonly
         (wiki_id, message_id) (content, boxversion)
    >>= fun f ->
    Lwt.return {{ [ b f ] }}
@@ -626,7 +629,7 @@ object (self)
      let sd = bi.bi_sd in
      Users.get_user_id ~sp ~sd >>= fun userid ->
      Wiki.css_editors_group wiki >>= fun editors ->
-     Wiki_sql.get_wiki_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors ()
      >>= fun c ->
      self#bind_or_display_error ~classe
@@ -750,7 +753,7 @@ Wiki_filter.add_preparser_extension "wikibox"
           ignore (List.assoc "box" args);
           Lwt.return None
         with Not_found ->
-          Wiki_sql.get_wiki_by_id wid
+          Wiki_sql.get_wiki_info_by_id wid
           >>= fun wiki ->
           Users.get_user_id ~sp ~sd
           >>= fun userid ->
@@ -895,8 +898,8 @@ Wiki_syntax.add_a_content_extension "img"
 end
 
 
-class creole_wikibox adminwikiinfo services = object
-  inherit editable_wikibox adminwikiinfo services
+class creole_wikibox services = object
+  inherit editable_wikibox services
 
   method pretty_print_wikisyntax ~wiki ~bi = Wiki_syntax.xml_of_wiki wiki bi
 

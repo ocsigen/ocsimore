@@ -79,6 +79,11 @@ val set_page_displayable: Polytables.t -> page_displayable -> unit
 
 (*********************************************************************)
 
+(* Name of the wikipage containing the help for the syntax of the wiki *)
+let wikisyntax_help_name = "wikisyntax-help"
+
+
+(*********************************************************************)
 
 
 class type virtual noneditable_wikibox =

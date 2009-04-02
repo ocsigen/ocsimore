@@ -339,7 +339,7 @@ let _ =
 
   add_a_content_extension "wikiname"
     (fun wiki_id _ _ _ ->
-       Wiki_sql.get_wiki_by_id wiki_id
+       Wiki_sql.get_wiki_info_by_id wiki_id
        >>= fun wiki_info ->
        Lwt.return {{ {: Ocamlduce.Utf8.make (wiki_info.wiki_descr) :} }});
 

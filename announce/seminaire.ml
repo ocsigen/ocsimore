@@ -418,7 +418,7 @@ let summary_contents category sp sd =
       bi_page = None;
     }
   in
-  Ocsisite.wikibox#editable_wikibox ~bi
+  Ocsisite.wikibox_widget#editable_wikibox ~bi
     ~data:(Common.wiki_id, cat.cat_desc)
     () >>= fun desc ->
   let show_all = true in (*XXXX*)

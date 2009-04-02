@@ -55,7 +55,7 @@ let opt default c l = match l with [] -> default | x :: r -> c x r
 
 open Wiki_sql.Types
 
-let wiki_info = Lwt_unix.run (Wiki_sql.get_wiki_by_name "Announcements")
+let wiki_info = Lwt_unix.run (Wiki_sql.get_wiki_info_by_name "Announcements")
 
 let wiki_id = wiki_info.wiki_id
 let page_id = wiki_info.wiki_container
@@ -86,12 +86,12 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
       bi_page = Some path;
     }
   in
-  Ocsisite.wikibox#editable_wikibox
+  Ocsisite.wikibox_widget#editable_wikibox
     ~bi
     ~data:wiki_box
     ~cssmenu:None
     () >>= fun box ->
-  Ocsisite.wikibox#get_css_header ~bi ~wiki:wiki_id
+  Ocsisite.wikibox_widget#get_css_header ~bi ~wiki:wiki_id
     ?admin:(Some false) ~page ()
   >>= fun css ->
   Lwt.return

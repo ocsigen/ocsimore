@@ -308,11 +308,11 @@ let ignored_files =
 include Load_sql
 
 let create_wiki () =
-  let wikibox = Ocsisite.wikibox in
+  let wikibox_widget = Ocsisite.wikibox_widget in
   Lwt_unix.run
-    (Wiki_services.create_wiki
+    (Wiki_services.create_and_register_wiki
        ~title:"Announcements" ~descr:"Announcement manager"
-       ~wikibox ~container_page:Wiki_services.default_container_page ())
+       ~wikibox_widget ~container_page:Wiki_services.default_container_page ())
 
 let et = Str.regexp_string " et "
 let persons = Hashtbl.create 101

@@ -141,6 +141,24 @@ let template_wiki_css = Ocsisite.register_named_wikibox
   ~content_type:Wiki_sql.Css ~comment:"Template for wikipersos css"
 
 
+(** The function that creates the wikiperso when needed *)
+let create_wikiperso ~wiki_title ~userdata =
+  let gid = [userdata.Users.id] in
+  template_container ()
+  >>= fun container ->
+  template_wiki_css ()
+  >>= fun css ->
+  (* We create the wiki, without supplying the [path] field. This will make
+     the relocation of the wiki easier *)
+  Wiki.really_create_wiki ~title:wiki_title
+    ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
+              userdata.Users.fullname)
+    (* ~boxrights:false *) ~writers:gid ~wikiboxes_creators:gid
+    ~page_creators:gid ~css_editors:gid ~container_adm:gid
+    ~wiki_css:css ~container_page:container
+    ()
+
+
 (** The function that answers for the extension. *)
 let gen sp =
   let ri = Eliom_sessions.get_ri sp in
@@ -152,48 +170,35 @@ let gen sp =
            authentification *)
         Users.get_user_by_name user
         >>= fun userdata ->
-          (if userdata <> Users.nobody then
-             Lwt.return (Some userdata)
-           else
-             external_user user
-          )
+        (if userdata <> Users.nobody then
+           Lwt.return (Some userdata)
+         else
+           external_user user
+        )
         >>= fun userinfo ->
-          (match userinfo with
-             | None -> Lwt.return ()
-             | Some userdata ->
-                 (* If the user for which we must create a wiki
-                    exists, we create this wiki. If this wiki already
-                    exists, [create_wiki] will silently ignore the
-                    creation call. The url of wikiperso pages are not
-                    registered in the database so as to make their relocation
-                    easier *)
-                 let gid = [userdata.Users.id] in
-                 template_container ()
-                 >>= fun container ->
-                 template_wiki_css ()
-                 >>= fun css ->
-                 Wiki_services.create_wiki
-                   ~title:(Printf.sprintf "wikiperso for %s" user)
-                   ~descr:(Printf.sprintf
-                             !Language.messages.Language.wikiperso_wikidescr
-                             userdata.Users.fullname)
-                   ~wikibox:Ocsisite.wikibox (* ~boxrights:false *)
-                   ~writers:gid ~wikiboxes_creators:gid
-                   ~page_creators:gid ~css_editors:gid ~container_adm:gid
-                   ~wiki_css:css ~container_page:container
-                   ()
-                 (* Register the personal wiki at the correct url,
-                    for this session only *)
-                 >>= fun wiki ->
-                 Wiki_services.register_wiki ~sp ~path:(wiki_path user)
-                   ~wikibox:Ocsisite.wikibox ~wiki:wiki.wiki_id
-                   ~wiki_info:wiki ()
-          )
-          >>= fun () ->
-            (* In all cases, we just tell Eliom to continue. It will answer with
-               the wiki if it has been successfully created *)
-            return
-              (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
+        (match userinfo with
+           | None -> Lwt.return ()
+           | Some userdata ->
+               (* If the user for which we must create a wiki
+                  exists, we create this wiki if it does not already exists. *)
+               let wiki_title = "wikiperso for " ^ user in
+               Lwt.catch
+                 (fun () -> Wiki_sql.get_wiki_info_by_name wiki_title
+                    >>= fun { wiki_id = wiki } -> Lwt.return wiki)
+                 (function
+                    | Not_found -> create_wikiperso wiki_title userdata
+                    | e -> Lwt.fail e)
+               >>= fun wiki ->
+               (* We then register the personal wiki at the correct url *)
+               Wiki_services.register_wiki ~sp
+                 ~path:(wiki_path userdata.Users.name)
+                 ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
+        )
+        >>= fun () ->
+          (* In all cases, we just tell Eliom to continue. It will answer with
+             the wiki if it has been successfully created *)
+         return
+           (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
 
     | None -> return
         (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
