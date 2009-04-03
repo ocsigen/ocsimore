@@ -456,8 +456,8 @@ let get_role ~sp ~sd k =
 
 (** {2 } *)
 type forum_action_info =
-  | Preview of ((Forum_sql.forum * int32) * string)
-  | Msg_creation_not_allowed of (Forum_sql.forum * int32)
+  | Preview of ((Forum_sql.forum * int32 option (* parent *)) * string)
+  | Msg_creation_not_allowed of (Forum_sql.forum * int32 option (* parent *))
 
 exception Forum_action_info of forum_action_info
 

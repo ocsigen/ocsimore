@@ -53,6 +53,7 @@ val new_message :
   ?parent_id:int32 ->
   ?sticky:bool ->
   text:string ->
+  unit ->
   int32 Lwt.t
 
 (** delete or undelete a message.

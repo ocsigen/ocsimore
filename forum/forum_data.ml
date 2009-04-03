@@ -38,7 +38,7 @@ let new_forum ~sp ~sd ~title ~descr ?arborescent () =
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let new_message ~sp ~sd ~forum_id ~author_id
-    ?subject ?parent_id ?sticky ~text = 
+    ?subject ?parent_id ?sticky ~text () = 
   Forum.get_role sp sd forum_id >>= fun role ->
   let first_msg = parent_id = None in
   if (first_msg && role.message_writers)

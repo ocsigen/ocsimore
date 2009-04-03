@@ -40,7 +40,7 @@ let _ =
          let sp = bi.Wiki_syntax.bi_sp in
          let sd = bi.Wiki_syntax.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
-         message_widget#display ~sp ~sd ?classe
+         message_widget#display ~commentable:false  ~sp ~sd ?classe
            ~data:message_id () >>= fun b ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 
@@ -59,7 +59,7 @@ let _ =
          let sp = bi.Wiki_syntax.bi_sp in
          let sd = bi.Wiki_syntax.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
-         thread_widget#display ~sp ~sd ?classe
+         thread_widget#display ~commentable:true ~sp ~sd ?classe
            ~data:message_id () >>= fun b ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 

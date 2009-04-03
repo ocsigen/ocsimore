@@ -30,6 +30,7 @@ object (self)
 
   val msg_class = "ocsiforum_msg"
   val info_class = "ocsiforum_msg_info"
+  val comment_class = "ocsiforum_comment_line"
 
   method get_message ~sp ~sd ~message_id =
     Forum_data.get_message ~sp ~sd ~message_id
@@ -39,10 +40,20 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method pretty_print_message
+  method pretty_print_message ~commentable ~sp ~sd
     (_, subjecto, authorid, datetime, parent_id, root_id, forum_id,
      content, moderated, deleted, sticky) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
+    Forum.get_role sp sd forum_id >>= fun role ->
+    let comment_line =
+      if role.Forum.comment_writers
+      then
+        {{ [
+             <span class={: comment_class :}>
+               {: Ocamlduce.Utf8.make "Comment" :}
+           ] }}
+      else {{[]}}
+    in
     Lwt.return
       {{ [!{: match subjecto with
               | None -> {{ [] }} 
@@ -54,14 +65,15 @@ object (self)
                  (Format.sprintf "posted by %s %s" 
                     author (Ocsimore_lib.sod datetime)) :}
           <p>{: content :}
+          !comment_line
          ] }}
 
-  method display ~sp ~sd ?(classe=[]) ~data:message_id () =
-(*    Forum.get_role sp sd forum_id >>= fun role -> *)
+  method display ?(commentable = false) ~sp ~sd
+    ?(classe=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       ~classe
       (self#get_message ~sp ~sd ~message_id)
-      (self#pretty_print_message)
+      (self#pretty_print_message ~commentable ~sp ~sd)
       (self#display_message)
 
 end
@@ -82,14 +94,15 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method pretty_print_thread thread =
+  method pretty_print_thread ~commentable ~sp ~sd thread =
     let rec print_one_message_and_children thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
          | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
              content, moderated, deleted, sticky) as m)::l ->
-             message_widget#pretty_print_message m >>= fun msg_info ->
+             message_widget#pretty_print_message ~commentable ~sp ~sd m
+             >>= fun msg_info ->
              message_widget#display_message ~classe:[] msg_info >>= fun first ->
              print_children id l >>= fun (s, l) ->
              Lwt.return ({{ [first !s] }}, l))
@@ -107,12 +120,12 @@ object (self)
     print_one_message_and_children thread >>= fun (a, _) -> 
     Lwt.return {{[a]}}
 
-  method display ~sp ~sd ?(classe=[]) ~data:message_id () =
-(*    Forum.get_role sp sd forum_id >>= fun role -> *)
+  method display ?(commentable = true) ~sp ~sd
+    ?(classe=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       ~classe
       (self#get_thread ~sp ~sd ~message_id)
-      (self#pretty_print_thread)
+      (self#pretty_print_thread ~commentable ~sp ~sd)
       (self#display_thread)
 
 end
