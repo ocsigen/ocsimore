@@ -50,31 +50,31 @@ val forum_creators : Users.userdata
 
 type role = 
     {
-      message_writers : bool;
-      message_writers_notmod : bool;
-      message_moderators : bool;
-      message_deletors : bool;
-      message_deletors_if_author : bool;
-      message_sticky_setters : bool;
-      message_readers : bool;
+      message_writers : bool Lwt.t Lazy.t;
+      message_writers_notmod : bool Lwt.t Lazy.t;
+      message_moderators : bool Lwt.t Lazy.t;
+      message_deletors : bool Lwt.t Lazy.t;
+      message_deletors_if_author : bool Lwt.t Lazy.t;
+      message_sticky_setters : bool Lwt.t Lazy.t;
+      message_readers : bool Lwt.t Lazy.t;
 
-      comment_writers : bool;
-      comment_writers_notmod : bool;
-      comment_moderators : bool;
-      comment_deletors : bool;
-      comment_deletors_if_author : bool;
-      comment_sticky_setters : bool;
-      comment_readers : bool;
+      comment_writers : bool Lwt.t Lazy.t;
+      comment_writers_notmod : bool Lwt.t Lazy.t;
+      comment_moderators : bool Lwt.t Lazy.t;
+      comment_deletors : bool Lwt.t Lazy.t;
+      comment_deletors_if_author : bool Lwt.t Lazy.t;
+      comment_sticky_setters : bool Lwt.t Lazy.t;
+      comment_readers : bool Lwt.t Lazy.t;
 
-      writers : bool;
-      writers_notmod : bool;
-      moderators : bool;
-      deletors : bool;
-      deletors_if_author : bool;
-      sticky_setters : bool;
-      readers : bool;
+      writers : bool Lwt.t Lazy.t;
+      writers_notmod : bool Lwt.t Lazy.t;
+      moderators : bool Lwt.t Lazy.t;
+      deletors : bool Lwt.t Lazy.t;
+      deletors_if_author : bool Lwt.t Lazy.t;
+      sticky_setters : bool Lwt.t Lazy.t;
+      readers : bool Lwt.t Lazy.t;
 
-      forum_admin : bool;
+      forum_admin : bool Lwt.t Lazy.t;
     }
 
 val get_role : 

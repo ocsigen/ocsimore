@@ -306,31 +306,31 @@ let create_forum
 
 type role = 
     {
-      message_writers : bool;
-      message_writers_notmod : bool;
-      message_moderators : bool;
-      message_deletors : bool;
-      message_deletors_if_author : bool;
-      message_sticky_setters : bool;
-      message_readers : bool;
+      message_writers : bool Lwt.t Lazy.t;
+      message_writers_notmod : bool Lwt.t Lazy.t;
+      message_moderators : bool Lwt.t Lazy.t;
+      message_deletors : bool Lwt.t Lazy.t;
+      message_deletors_if_author : bool Lwt.t Lazy.t;
+      message_sticky_setters : bool Lwt.t Lazy.t;
+      message_readers : bool Lwt.t Lazy.t;
 
-      comment_writers : bool;
-      comment_writers_notmod : bool;
-      comment_moderators : bool;
-      comment_deletors : bool;
-      comment_deletors_if_author : bool;
-      comment_sticky_setters : bool;
-      comment_readers : bool;
+      comment_writers : bool Lwt.t Lazy.t;
+      comment_writers_notmod : bool Lwt.t Lazy.t;
+      comment_moderators : bool Lwt.t Lazy.t;
+      comment_deletors : bool Lwt.t Lazy.t;
+      comment_deletors_if_author : bool Lwt.t Lazy.t;
+      comment_sticky_setters : bool Lwt.t Lazy.t;
+      comment_readers : bool Lwt.t Lazy.t;
 
-      writers : bool;
-      writers_notmod : bool;
-      moderators : bool;
-      deletors : bool;
-      deletors_if_author : bool;
-      sticky_setters : bool;
-      readers : bool;
+      writers : bool Lwt.t Lazy.t;
+      writers_notmod : bool Lwt.t Lazy.t;
+      moderators : bool Lwt.t Lazy.t;
+      deletors : bool Lwt.t Lazy.t;
+      deletors_if_author : bool Lwt.t Lazy.t;
+      sticky_setters : bool Lwt.t Lazy.t;
+      readers : bool Lwt.t Lazy.t;
 
-      forum_admin : bool;
+      forum_admin : bool Lwt.t Lazy.t;
     }
 
 let get_role ~sp ~sd ~forum_id =
@@ -338,85 +338,99 @@ let get_role ~sp ~sd ~forum_id =
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
 
-  message_writers_group i >>= fun message_writers_group ->
-  message_writers_notmod_group i >>= fun  message_writers_notmod_group ->
-  message_moderators_group i >>= fun message_moderators_group ->
-  message_deletors_group i >>= fun message_deletors_group ->
-  message_deletors_if_author_group i >>= fun message_deletors_if_author_group ->
-  message_sticky_setters_group i >>= fun message_sticky_setters_group ->
-  message_readers_group i >>= fun message_readers_group ->
-  
-  comment_writers_group i >>= fun comment_writers_group ->
-  comment_writers_notmod_group i >>= fun comment_writers_notmod_group ->
-  comment_moderators_group i >>= fun comment_moderators_group ->
-  comment_deletors_group i >>= fun comment_deletors_group ->
-  comment_deletors_if_author_group i >>= fun comment_deletors_if_author_group ->
-  comment_sticky_setters_group i >>= fun comment_sticky_setters_group ->
-  comment_readers_group i >>= fun comment_readers_group ->
-  
-  writers_group i >>= fun writers_group ->
-  writers_notmod_group i >>= fun writers_notmod_group ->
-  moderators_group i >>= fun moderators_group ->
-  deletors_group i >>= fun deletors_group ->
-  deletors_if_author_group i >>= fun deletors_if_author_group ->
-  sticky_setters_group i >>= fun sticky_setters_group ->
-  readers_group i >>= fun readers_group ->
-  
-  forum_admin_group i >>= fun forum_admin_group ->
-
-  Users.in_group ~sp ~sd ~user:u ~group:message_writers_group () >>= fun message_writers ->
-  Users.in_group ~sp ~sd ~user:u ~group:message_writers_notmod_group () >>= fun message_writers_notmod ->
-  Users.in_group ~sp ~sd ~user:u ~group:message_moderators_group () >>= fun message_moderators ->
-  Users.in_group ~sp ~sd ~user:u ~group:message_deletors_group () >>= fun message_deletors ->
-  Users.in_group ~sp ~sd ~user:u ~group:message_deletors_if_author_group () >>= fun message_deletors_if_author ->
-  Users.in_group ~sp ~sd ~user:u ~group:message_sticky_setters_group () >>= fun message_sticky_setters ->
-  Users.in_group ~sp ~sd ~user:u ~group:message_readers_group () >>= fun message_readers ->
-    
-  Users.in_group ~sp ~sd ~user:u ~group:comment_writers_group () >>= fun comment_writers ->
-  Users.in_group ~sp ~sd ~user:u ~group:comment_writers_notmod_group () >>= fun comment_writers_notmod ->
-  Users.in_group ~sp ~sd ~user:u ~group:comment_moderators_group () >>= fun comment_moderators ->
-  Users.in_group ~sp ~sd ~user:u ~group:comment_deletors_group () >>= fun comment_deletors ->
-  Users.in_group ~sp ~sd ~user:u ~group:comment_deletors_if_author_group () >>= fun comment_deletors_if_author ->
-  Users.in_group ~sp ~sd ~user:u ~group:comment_sticky_setters_group () >>= fun comment_sticky_setters ->
-  Users.in_group ~sp ~sd ~user:u ~group:comment_readers_group () >>= fun comment_readers ->
-    
-  Users.in_group ~sp ~sd ~user:u ~group:writers_group () >>= fun writers ->
-  Users.in_group ~sp ~sd ~user:u ~group:writers_notmod_group () >>= fun writers_notmod ->
-  Users.in_group ~sp ~sd ~user:u ~group:moderators_group () >>= fun moderators ->
-  Users.in_group ~sp ~sd ~user:u ~group:deletors_group () >>= fun deletors ->
-  Users.in_group ~sp ~sd ~user:u ~group:deletors_if_author_group () >>= fun deletors_if_author ->
-  Users.in_group ~sp ~sd ~user:u ~group:sticky_setters_group () >>= fun sticky_setters ->
-  Users.in_group ~sp ~sd ~user:u ~group:readers_group () >>= fun readers ->
-     
-  Users.in_group ~sp ~sd ~user:u ~group:forum_admin_group () >>= fun forum_admin ->
-
   Lwt.return
     {
-      message_writers = message_writers;
-      message_writers_notmod = message_writers_notmod;
-      message_moderators = message_moderators;
-      message_deletors = message_deletors;
-      message_deletors_if_author = message_deletors_if_author;
-      message_sticky_setters = message_sticky_setters;
-      message_readers = message_readers;
+      message_writers = 
+        lazy 
+          (message_writers_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_writers_notmod = 
+        lazy 
+          (message_writers_notmod_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_moderators = 
+        lazy 
+          (message_moderators_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_deletors = 
+        lazy 
+          (message_deletors_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_deletors_if_author = 
+        lazy 
+          (message_deletors_if_author_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_sticky_setters = 
+        lazy 
+          (message_sticky_setters_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_readers = 
+        lazy 
+          (message_readers_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
       
-      comment_writers = comment_writers;
-      comment_writers_notmod = comment_writers_notmod;
-      comment_moderators = comment_moderators;
-      comment_deletors = comment_deletors;
-      comment_deletors_if_author = comment_deletors_if_author;
-      comment_sticky_setters = comment_sticky_setters;
-      comment_readers = comment_readers;
+      comment_writers = 
+        lazy 
+          (comment_writers_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_writers_notmod = 
+        lazy 
+          (comment_writers_notmod_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_moderators = 
+        lazy 
+          (comment_moderators_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_deletors = 
+        lazy 
+          (comment_deletors_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_deletors_if_author = 
+        lazy 
+          (comment_deletors_if_author_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_sticky_setters = 
+        lazy 
+          (comment_sticky_setters_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_readers = 
+        lazy 
+          (comment_readers_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
       
-      writers = writers;
-      writers_notmod = writers_notmod;
-      moderators = moderators;
-      deletors = deletors;
-      deletors_if_author = deletors_if_author;
-      sticky_setters = sticky_setters;
-      readers = readers;
+      writers = 
+        lazy 
+          (writers_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      writers_notmod = 
+        lazy 
+          (writers_notmod_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      moderators = 
+        lazy 
+          (moderators_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      deletors = 
+        lazy 
+          (deletors_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      deletors_if_author = 
+        lazy 
+          (deletors_if_author_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      sticky_setters = 
+        lazy 
+          (sticky_setters_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
+      readers = 
+        lazy 
+          (readers_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
       
-      forum_admin = forum_admin;
+      forum_admin = 
+        lazy 
+          (forum_admin_group i >>= fun group ->
+           Users.in_group ~sp ~sd ~user:u ~group ());
     }
 
 module Roles = Map.Make(struct

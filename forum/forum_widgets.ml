@@ -24,6 +24,7 @@
 *)
 
 let (>>=) = Lwt.bind
+let (!!) = Lazy.force
 
 class message_widget (widget_with_error_box : Widget.widget_with_error_box) =
 object (self)
@@ -45,8 +46,9 @@ object (self)
      content, moderated, deleted, sticky) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
     Forum.get_role sp sd forum_id >>= fun role ->
+    !!(role.Forum.comment_writers) >>= fun commentator ->
     let comment_line =
-      if role.Forum.comment_writers
+      if commentator
       then
         {{ [
              <span class={: comment_class :}>
