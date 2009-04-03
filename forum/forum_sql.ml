@@ -48,15 +48,21 @@ let new_message ~forum_id ~author_id
     (fun db ->
        (match parent_id with
          | None ->
-             serial4 db "forums_messages_seq" >>= fun last_id ->
+             PGSQL(db) "SELECT NEXTVAL('forums_messages_id_seq')"
+             >>= (function
+               | [Some next_id] ->
+                   let next_id = Int64.to_int32 next_id in
              PGSQL(db) "INSERT INTO forums_messages \
-               (subject, author_id, parent_id, root_id, forum_id, text, \
+               (id, subject, author_id, parent_id, root_id, forum_id, text, \
                 moderated, sticky) \
-             VALUES ($?subject, $author_id, $?parent_id, $last_id + 1, 
+             VALUES ($next_id, $?subject, $author_id, $?parent_id, $next_id, 
                      $forum_id, $text, $moderated, $sticky)"
+               | _ -> Lwt.fail 
+                   (Failure
+                      "Forum_sql.new_message: error in nextval(id) in table forums_messages"))
          | Some p -> 
              PGSQL(db) "SELECT tree_max, root_id FROM forums_messages \
-                        WHERE parent_id = $p" >>= fun r ->
+                        WHERE id = $p" >>= fun r ->
              match r with
                | [(m, root_id)] ->
                    (PGSQL(db) "UPDATE forums_messages \
@@ -74,10 +80,11 @@ let new_message ~forum_id ~author_id
                               $root_id, $forum_id, $text, \
                               $moderated, $sticky, $m, $m + 1)"
                    )
-               | _ -> Lwt.fail (Failure
-                                  "Forum_sql.new_message: parent does not exist or is not unique")
+               | _ -> Lwt.fail 
+                   (Failure
+                      "Forum_sql.new_message: parent does not exist or is not unique")
        ) >>= fun () -> 
-      serial4 db "forums_messages_seq")
+      serial4 db "forums_messages_id_seq")
 
 
 let set_deleted ~message_id ~deleted =

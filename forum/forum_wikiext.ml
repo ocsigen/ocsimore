@@ -23,44 +23,56 @@
 
 let (>>=) = Lwt.bind
 
+let register_wikiext (message_widget, thread_widget) =
 
-(*VVV mettre ça ailleurs *)
-let widget_err = new Widget.widget_with_error_box
-let message_widget = new Forum_widgets.message_widget widget_err
-let thread_widget = new Forum_widgets.thread_widget widget_err message_widget
-
-let _ =
   Wiki_syntax.add_block_extension "forum_message"
     (fun wiki_id bi args content -> 
        let classe = 
          try Some [List.assoc "class" args]
          with Not_found -> None
        in
+       let rows = 
+         try Some (int_of_string (List.assoc "rows" args))
+         with Not_found | Failure _ -> None
+       in
+       let cols = 
+         try Some (int_of_string (List.assoc "cols" args))
+         with Not_found | Failure _ -> None
+       in
        try
          let sp = bi.Wiki_syntax.bi_sp in
          let sd = bi.Wiki_syntax.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
-         message_widget#display ~commentable:false  ~sp ~sd ?classe
-           ~data:message_id () >>= fun b ->
+         message_widget#display
+           ?commentable:(Some false) ~sp ~sd ?rows ?cols ?classe
+           ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 
          let s = Wiki_syntax.string_of_extension "raw" args content in
          Lwt.return {{ [ <b>{: s :} ] }}
-    )
+    );
 
-let _ =
   Wiki_syntax.add_block_extension "forum_thread"
     (fun wiki_id bi args content ->
        let classe = 
          try Some [List.assoc "class" args]
          with Not_found -> None
        in
+       let rows = 
+         try Some (int_of_string (List.assoc "rows" args))
+         with Not_found | Failure _ -> None
+       in
+       let cols = 
+         try Some (int_of_string (List.assoc "cols" args))
+         with Not_found | Failure _ -> None
+       in
        try
          let sp = bi.Wiki_syntax.bi_sp in
          let sd = bi.Wiki_syntax.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
-         thread_widget#display ~commentable:true ~sp ~sd ?classe
-           ~data:message_id () >>= fun b ->
+         thread_widget#display ?commentable:(Some true) ~sp ~sd
+           ?rows ?cols ?classe
+           ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 
          let s = Wiki_syntax.string_of_extension "raw" args content in

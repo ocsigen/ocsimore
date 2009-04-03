@@ -26,12 +26,13 @@
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
-class message_widget (widget_with_error_box : Widget.widget_with_error_box) =
+class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
+  add_message_service =
 object (self)
 
   val msg_class = "ocsiforum_msg"
   val info_class = "ocsiforum_msg_info"
-  val comment_class = "ocsiforum_comment_line"
+  val comment_class = "ocsiforum_comment_form"
 
   method get_message ~sp ~sd ~message_id =
     Forum_data.get_message ~sp ~sd ~message_id
@@ -41,18 +42,34 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method pretty_print_message ~commentable ~sp ~sd
-    (_, subjecto, authorid, datetime, parent_id, root_id, forum_id,
+  method pretty_print_message ~commentable ~sp ~sd ?(rows = 3) ?(cols = 50)
+    (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
      content, moderated, deleted, sticky) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
     Forum.get_role sp sd forum_id >>= fun role ->
     !!(role.Forum.comment_writers) >>= fun commentator ->
+    let draw_form (actionnamename, ((parentname, _), (_, textname))) =
+         {{ [<p>[
+              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                 ~name:parentname ~value:message_id () :}
+              {: Eliom_duce.Xhtml.textarea ~name:textname ~rows ~cols () :}
+              ]
+              <p>[{: Eliom_duce.Xhtml.string_button ~name:actionnamename
+                     ~value:"save" {{ "Send" }} :} ]
+            ]
+          }}
+    in
     let comment_line =
       if commentator
       then
         {{ [
              <span class={: comment_class :}>
                {: Ocamlduce.Utf8.make "Comment" :}
+             <div class={: comment_class :}>[
+               {: Eliom_duce.Xhtml.post_form
+                  ~a:{{ { accept-charset="utf-8" } }}
+                  ~service:add_message_service
+                  ~sp draw_form () :}]
            ] }}
       else {{[]}}
     in
@@ -70,19 +87,20 @@ object (self)
           !comment_line
          ] }}
 
-  method display ?(commentable = false) ~sp ~sd
+  method display ?(commentable = false) ~sp ~sd ?rows ?cols
     ?(classe=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       ~classe
       (self#get_message ~sp ~sd ~message_id)
-      (self#pretty_print_message ~commentable ~sp ~sd)
+      (self#pretty_print_message ~commentable ~sp ~sd ?rows ?cols)
       (self#display_message)
 
 end
 
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
-  (message_widget : message_widget) =
+  (message_widget : message_widget) 
+  add_message_service =
 object (self)
 
   val thr_class = "ocsiforum_thread"
@@ -96,14 +114,15 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method pretty_print_thread ~commentable ~sp ~sd thread =
+  method pretty_print_thread ~commentable ~sp ~sd ?rows ?cols thread =
     let rec print_one_message_and_children thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
          | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
              content, moderated, deleted, sticky) as m)::l ->
-             message_widget#pretty_print_message ~commentable ~sp ~sd m
+             message_widget#pretty_print_message
+               ~commentable ~sp ~sd ?rows ?cols m
              >>= fun msg_info ->
              message_widget#display_message ~classe:[] msg_info >>= fun first ->
              print_children id l >>= fun (s, l) ->
@@ -122,12 +141,12 @@ object (self)
     print_one_message_and_children thread >>= fun (a, _) -> 
     Lwt.return {{[a]}}
 
-  method display ?(commentable = true) ~sp ~sd
+  method display ?(commentable = true) ~sp ~sd ?rows ?cols
     ?(classe=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       ~classe
       (self#get_thread ~sp ~sd ~message_id)
-      (self#pretty_print_thread ~commentable ~sp ~sd)
+      (self#pretty_print_thread ~commentable ~sp ~sd ?rows ?cols)
       (self#display_thread)
 
 end

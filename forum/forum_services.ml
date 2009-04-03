@@ -24,8 +24,10 @@
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 
-let add_message_service =
-  Eliom_services.new_post_coservice'
+
+let register_services () =
+  let add_message_service =
+    Eliom_services.new_post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_add"
       ~post_params:
@@ -35,11 +37,12 @@ let add_message_service =
              (Eliom_parameters.int32 "forum")) **
             (Eliom_parameters.opt (Eliom_parameters.string "subject") **
                Eliom_parameters.string "content")))
-    ()
+      ()
+  in
 
-
-let _ = Eliom_predefmod.Any.register add_message_service
-  (fun sp () (actionname, (parent, (subject, text))) ->
+  Eliom_predefmod.Any.register 
+    ~service:add_message_service
+    (fun sp () (actionname, (parent, (subject, text))) ->
 
      let sd = Ocsimore_common.get_sd sp in
      (match parent with
@@ -80,4 +83,6 @@ let _ = Eliom_predefmod.Any.register add_message_service
            [Ocsimore_common.Session_data sd;
             Forum.Forum_action_info
               (Forum.Preview ((forum_id, parent_id), text))]
-  )
+    );
+
+  add_message_service

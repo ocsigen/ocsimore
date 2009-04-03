@@ -24,22 +24,26 @@ can be rewritten by programmers who want to redefine some methods.
   the class constructor to create the object, then register services.
 
 
-* Decompose your extension in 7 parts:
-{{{_createdb.sql}}} SQL creation of databases
-{{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool
-{{{_cache.ml}}} cache on database requests, using the Cache module
+* Decompose your extension in 8 parts:\\
+{{{_createdb.sql}}} SQL creation of databases\\
+{{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool\\
+{{{_cache.ml}}} cache on database requests, using the Cache module\\
 {{{.ml}}} higher level functions needed by the module. Creation of groups
     and services ...
     This module also defines session data ({{{sd}}}) for this extension,
-    (and the permission system).
+    (and the permission system).\\
 {{{_data.ml}}} database access with cache and verification of permissions
     Almost the same interface as {{{_sql.ml}}} and {{{_cache.ml}}}, 
     but every function takes {{{~sp}}} and {{{~sd}}} as parameters,
     calls the cached function if authorized,
     then filters the result (if needed) to remove forbidden content.
-    They may fail with exception {{{Ocsimore_common.Permission_denied}}}.
-{{{_widgets.ml}}} widgets defined by the extension
-{{{_wikiext.ml}}} the wiki syntax extensions you define for your module
+    They may fail with exception {{{Ocsimore_common.Permission_denied}}}.\\
+{{{_widgets.ml}}} widgets defined by the extension\\
+{{{_wikiext.ml}}} the wiki syntax extensions you define for your module\\
+{{{_site.ml}}} a separate module to be loaded dynamically from config file
+    inside the {{{<host>}}} section. Will register services, but also
+    instanciates widget classes and create wiki extensions.\\
+**ARG wiki extension sont crées plusieurs fois si l'on a plusieurs sites !!! **
 
 For all cached requests, I use a name ending with {{{_}}} in {{{*_sql.ml}}}
 to and without

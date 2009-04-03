@@ -20,7 +20,7 @@ CREATE TABLE forums_messages (
     subject text,
     author_id integer NOT NULL REFERENCES users(id),
     datetime timestamp DEFAULT (now())::timestamp NOT NULL,
-    parent_id integer REFERENCES forums_messages(id),
+    parent_id int4 REFERENCES forums_messages(id),
     root_id integer NOT NULL REFERENCES forums_messages(id),
     forum_id integer NOT NULL REFERENCES forums(id),
     text text DEFAULT ''::text NOT NULL,

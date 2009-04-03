@@ -37,7 +37,6 @@ sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 Then do:
 psql -U ocsimore -f createdb.sql ocsimore
 psql -U ocsimore -f user_createdb.sql ocsimore
-psql -U ocsimore -f forum_createdb.sql ocsimore
 psql -U ocsimore -f wiki_createdb.sql ocsimore
 
 Finally, update the database by typing make check_db and following the
