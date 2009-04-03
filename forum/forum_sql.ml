@@ -102,7 +102,7 @@ let set_sticky ~message_id ~sticky =
   PGSQL(db) "UPDATE forums_messages SET sticky = $sticky \
              WHERE id = $message_id")
 
-let find_forum ?forum_id ?title () =
+let get_forum ?forum_id ?title () =
   Sql.full_transaction_block
     (fun db -> match (title, forum_id) with
      | (Some t, Some i) -> 

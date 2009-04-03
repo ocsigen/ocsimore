@@ -80,10 +80,10 @@ val set_moderated :
   sd:Ocsimore_common.session_data ->
   message_id:int32 -> moderated:bool -> unit Lwt.t
   
-(** Find forum information, given its id or title.
+(** Get forum information, given its id or title.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
-val find_forum: 
+val get_forum: 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   ?forum_id:Forum_sql.forum -> 

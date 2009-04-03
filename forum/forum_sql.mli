@@ -68,8 +68,8 @@ val set_sticky :
 val set_moderated :
   message_id:int32 -> moderated:bool -> unit Lwt.t
   
-(** Find forum information, given its id or title *)
-val find_forum: 
+(** Get forum information, given its id or title *)
+val get_forum: 
   ?forum_id:forum -> 
   ?title:string -> 
   unit -> 

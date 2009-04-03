@@ -44,7 +44,7 @@ let register_wikiext (message_widget, thread_widget) =
          let sd = bi.Wiki_syntax.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
          message_widget#display
-           ?commentable:(Some false) ~sp ~sd ?rows ?cols ?classe
+           ~sp ~sd ?rows ?cols ?classe
            ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 

@@ -42,12 +42,17 @@ object (self)
     Lwt.return
       {{ <div class={: classe :}>content }}
 
-  method pretty_print_message ~commentable ~sp ~sd ?(rows = 3) ?(cols = 50)
+  method pretty_print_message
+    ~commentable ?(arborescent = true) ~sp ~sd ?(rows = 3) ?(cols = 50)
     (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
      content, moderated, deleted, sticky) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
     Forum.get_role sp sd forum_id >>= fun role ->
     !!(role.Forum.comment_writers) >>= fun commentator ->
+    let draw_comment_form =
+      (commentable && 
+         commentator && (arborescent || (message_id = root_id))) 
+    in
     let draw_form (actionnamename, ((parentname, _), (_, textname))) =
          {{ [<p>[
               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -60,7 +65,7 @@ object (self)
           }}
     in
     let comment_line =
-      if commentator
+      if draw_comment_form
       then
         {{ [
              <span class={: comment_class :}>
@@ -87,12 +92,12 @@ object (self)
           !comment_line
          ] }}
 
-  method display ?(commentable = false) ~sp ~sd ?rows ?cols
+  method display ~sp ~sd ?rows ?cols
     ?(classe=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       ~classe
       (self#get_message ~sp ~sd ~message_id)
-      (self#pretty_print_message ~commentable ~sp ~sd ?rows ?cols)
+      (self#pretty_print_message ~commentable:false ~sp ~sd ?rows ?cols)
       (self#display_message)
 
 end
@@ -115,31 +120,37 @@ object (self)
       {{ <div class={: classe :}>content }}
 
   method pretty_print_thread ~commentable ~sp ~sd ?rows ?cols thread =
-    let rec print_one_message_and_children thread : 
+    let rec print_one_message_and_children ~arborescent thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
          | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
              content, moderated, deleted, sticky) as m)::l ->
              message_widget#pretty_print_message
-               ~commentable ~sp ~sd ?rows ?cols m
+               ~commentable ~arborescent ~sp ~sd ?rows ?cols m
              >>= fun msg_info ->
              message_widget#display_message ~classe:[] msg_info >>= fun first ->
-             print_children id l >>= fun (s, l) ->
+             print_children ~arborescent id l >>= fun (s, l) ->
              Lwt.return ({{ [first !s] }}, l))
       >>= fun (s, l) ->
       Lwt.return ({{ <div class={: thr_msg_class :}>s }}, l)
-    and print_children pid = function
+    and print_children ~arborescent pid = function
       | [] -> Lwt.return ({{ [] }}, [])
       | (((_, _, _, _, parent_id, _, _, _, _, _, _)::_) as th) 
           when parent_id = Some pid ->
-          (print_one_message_and_children th >>= fun (b, l) ->
-           print_children pid l >>= fun (s, l) ->
+          (print_one_message_and_children ~arborescent th >>= fun (b, l) ->
+           print_children ~arborescent pid l >>= fun (s, l) ->
            Lwt.return (({{ [b !s] }} : Xhtmltypes_duce.flows), l))
       | l -> Lwt.return ({{ [] }}, l)
     in
-    print_one_message_and_children thread >>= fun (a, _) -> 
-    Lwt.return {{[a]}}
+    match thread with
+      | [] -> Lwt.return {{[]}}
+      | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
+          content, moderated, deleted, sticky) as m)::l ->
+          Forum_sql.get_forum ~forum_id () >>= fun
+            (_, _, _, arborescent, deleted, readonly) ->
+          print_one_message_and_children ~arborescent thread >>= fun (a, _) -> 
+          Lwt.return {{[a]}}
 
   method display ?(commentable = true) ~sp ~sd ?rows ?cols
     ?(classe=[]) ~data:message_id () =

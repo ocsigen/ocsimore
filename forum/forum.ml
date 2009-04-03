@@ -278,7 +278,7 @@ let create_forum
     ?(arborescent=true)
     () =
   Lwt.catch
-    (fun () -> Forum_sql.find_forum ~title () >>= fun (id, title, descr, arborescent, deleted, readonly) ->
+    (fun () -> Forum_sql.get_forum ~title () >>= fun (id, title, descr, arborescent, deleted, readonly) ->
        Lwt.return { id = id; 
                     title = title; 
                     descr = descr;

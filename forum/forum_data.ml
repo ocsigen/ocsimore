@@ -55,8 +55,24 @@ let new_message ~sp ~sd ~forum_id ~author_id
       (first_msg && (message_moderators || message_writers_notmod))
       || (not first_msg && (comment_moderators || comment_writers_notmod))
     in
-    Forum_sql.new_message ~forum_id ~author_id
-      ?subject ?parent_id ~moderated ?sticky ~text
+    ((* If the forum is not arborescent, we must not comment comments *)
+      match parent_id with
+       | None -> (* it is not a comment *) Lwt.return true
+       | Some parent_id -> (* it is a comment *)
+           Forum_sql.get_forum ~forum_id ()
+           >>= fun (_, _, _, arborescent, deleted, readonly) ->
+           if arborescent
+           then Lwt.return true
+           else 
+             Forum_sql.get_message ~message_id:parent_id
+             >>= fun (id, _, _, _, parparent_id, root_id, _, _, _, _, _) ->
+             Lwt.return (parparent_id = None)
+    ) >>= fun ok ->
+    if ok
+    then
+      Forum_sql.new_message ~forum_id ~author_id
+        ?subject ?parent_id ~moderated ?sticky ~text
+    else Lwt.fail Ocsimore_common.Permission_denied
   end
   else Lwt.fail Ocsimore_common.Permission_denied
 
@@ -103,8 +119,8 @@ let set_sticky ~sp ~sd ~message_id ~sticky =
   then Forum_sql.set_sticky ~message_id ~sticky
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let find_forum ~sp ~sd ?forum_id ?title () =
-  Forum_sql.find_forum ?forum_id ?title () 
+let get_forum ~sp ~sd ?forum_id ?title () =
+  Forum_sql.get_forum ?forum_id ?title () 
   >>= fun ((i, _, _, _, _, _) as f) ->
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
