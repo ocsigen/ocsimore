@@ -68,16 +68,18 @@ val set_sticky :
 val set_moderated :
   message_id:int32 -> moderated:bool -> unit Lwt.t
   
-(** Get forum information, given its id or title *)
+(** Get forum information, given its id or title.
+    Information is: (forum id, title, description, arborescent, deleted)
+*)
 val get_forum: 
   ?forum_id:forum -> 
   ?title:string -> 
   unit -> 
-  (forum * string * string * bool * bool * bool) Lwt.t
+  (forum * string * string * bool * bool) Lwt.t
 
 (** returns the list of forums *)
 val get_forums_list : unit ->
-  (forum * string * string * bool * bool * bool) list Lwt.t
+  (forum * string * string * bool * bool) list Lwt.t
   
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message *)

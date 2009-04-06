@@ -89,14 +89,14 @@ val get_forum:
   ?forum_id:Forum_sql.forum -> 
   ?title:string -> 
   unit -> 
-  (Forum_sql.forum * string * string * bool * bool * bool) Lwt.t
+  (Forum_sql.forum * string * string * bool * bool) Lwt.t
 
 (** returns the list of forums visible to the user. *)
 val get_forums_list : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   unit ->
-  (Forum_sql.forum * string * string * bool * bool * bool) list Lwt.t
+  (Forum_sql.forum * string * string * bool * bool) list Lwt.t
   
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message.

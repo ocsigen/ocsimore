@@ -106,15 +106,15 @@ let get_forum ?forum_id ?title () =
   Sql.full_transaction_block
     (fun db -> match (title, forum_id) with
      | (Some t, Some i) -> 
-         PGSQL(db) "SELECT id, title, descr, arborescent, deleted, readonly \
+         PGSQL(db) "SELECT id, title, descr, arborescent, deleted \
                 FROM forums \
                 WHERE title = $t AND id = $i"
      | (Some t, None) -> 
-         PGSQL(db) "SELECT id, title, descr, arborescent, deleted, readonly \
+         PGSQL(db) "SELECT id, title, descr, arborescent, deleted \
                 FROM forums \
                 WHERE title = $t"
      | (None, Some i) -> 
-         PGSQL(db) "SELECT id, title, descr, arborescent, deleted, readonly \
+         PGSQL(db) "SELECT id, title, descr, arborescent, deleted \
                 FROM forums \
                 WHERE id = $i"
      | (None, None) -> Lwt.fail (Invalid_argument "Forum_sql.find_forum"))
@@ -130,7 +130,7 @@ let get_forums_list () =
   Sql.full_transaction_block 
     (fun db ->
        PGSQL(db) 
-         "SELECT id, title, descr, arborescent, deleted, readonly \
+         "SELECT id, title, descr, arborescent, deleted \
           FROM forums")
 
 let get_message ~message_id =

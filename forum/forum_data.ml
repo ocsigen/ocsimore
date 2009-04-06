@@ -41,40 +41,42 @@ let new_forum ~sp ~sd ~title ~descr ?arborescent () =
 let new_message ~sp ~sd ~forum_id ~author_id
     ?subject ?parent_id ?sticky ~text () = 
   Forum.get_role sp sd forum_id >>= fun role ->
-  let first_msg = parent_id = None in
-  !!(role.message_writers) >>= fun message_writers ->
-  !!(role.comment_writers) >>= fun comment_writers ->
-  if (first_msg && message_writers)
-    || (not first_msg && comment_writers)
-  then begin
-    !!(role.message_moderators) >>= fun message_moderators ->
-    !!(role.message_writers_notmod) >>= fun message_writers_notmod ->
-    !!(role.comment_moderators) >>= fun comment_moderators ->
-    !!(role.comment_writers_notmod) >>= fun comment_writers_notmod ->
-    let moderated =
-      (first_msg && (message_moderators || message_writers_notmod))
-      || (not first_msg && (comment_moderators || comment_writers_notmod))
-    in
-    ((* If the forum is not arborescent, we must not comment comments *)
-      match parent_id with
-       | None -> (* it is not a comment *) Lwt.return true
-       | Some parent_id -> (* it is a comment *)
-           Forum_sql.get_forum ~forum_id ()
-           >>= fun (_, _, _, arborescent, deleted, readonly) ->
-           if arborescent
-           then Lwt.return true
-           else 
-             Forum_sql.get_message ~message_id:parent_id
-             >>= fun (id, _, _, _, parparent_id, root_id, _, _, _, _, _) ->
-             Lwt.return (parparent_id = None)
-    ) >>= fun ok ->
-    if ok
-    then
-      Forum_sql.new_message ~forum_id ~author_id
-        ?subject ?parent_id ~moderated ?sticky ~text
+  Forum_sql.get_forum ~forum_id () >>= fun (_, _, _, arborescent, deleted) ->
+  if deleted
+  then Lwt.fail Ocsimore_common.Permission_denied
+  else
+    let first_msg = parent_id = None in
+    !!(role.message_writers) >>= fun message_writers ->
+    !!(role.comment_writers) >>= fun comment_writers ->
+    if (first_msg && message_writers)
+      || (not first_msg && comment_writers)
+    then begin
+      !!(role.message_moderators) >>= fun message_moderators ->
+      !!(role.message_writers_notmod) >>= fun message_writers_notmod ->
+      !!(role.comment_moderators) >>= fun comment_moderators ->
+      !!(role.comment_writers_notmod) >>= fun comment_writers_notmod ->
+      let moderated =
+        (first_msg && (message_moderators || message_writers_notmod))
+        || (not first_msg && (comment_moderators || comment_writers_notmod))
+      in
+      ((* If the forum is not arborescent, we must not comment comments *)
+        match parent_id with
+         | None -> (* it is not a comment *) Lwt.return true
+         | Some parent_id -> (* it is a comment *)
+             if arborescent
+             then Lwt.return true
+             else 
+               Forum_sql.get_message ~message_id:parent_id
+               >>= fun (id, _, _, _, parparent_id, root_id, _, _, _, _, _) ->
+               Lwt.return (parparent_id = None)
+      ) >>= fun ok ->
+      if ok
+      then
+        Forum_sql.new_message ~forum_id ~author_id
+          ?subject ?parent_id ~moderated ?sticky ~text
+      else Lwt.fail Ocsimore_common.Permission_denied
+    end
     else Lwt.fail Ocsimore_common.Permission_denied
-  end
-  else Lwt.fail Ocsimore_common.Permission_denied
 
 let set_deleted ~sp ~sd ~message_id ~deleted =
   Forum_sql.get_message ~message_id
@@ -121,51 +123,65 @@ let set_sticky ~sp ~sd ~message_id ~sticky =
 
 let get_forum ~sp ~sd ?forum_id ?title () =
   Forum_sql.get_forum ?forum_id ?title () 
-  >>= fun ((i, _, _, _, _, _) as f) ->
-  Users.get_user_data sp sd >>= fun u ->
-  let u = u.Users.id in
-  Forum.forum_visible_group i >>= fun g ->
-  Users.in_group ~sp ~sd ~user:u ~group:g ()
-  >>= fun b ->
-  if b
-  then Lwt.return f
-  else Lwt.fail Ocsimore_common.Permission_denied
+  >>= fun ((i, _, _, _, deleted) as f) ->
+  if deleted
+  then Lwt.fail Not_found
+  else
+    Users.get_user_data sp sd >>= fun u ->
+    let u = u.Users.id in
+    Forum.forum_visible_group i >>= fun g ->
+    Users.in_group ~sp ~sd ~user:u ~group:g ()
+    >>= fun b ->
+    if b
+    then Lwt.return f
+    else Lwt.fail Ocsimore_common.Permission_denied
 
 let get_forums_list ~sp ~sd () =
   Users.get_user_data sp sd >>= fun u ->
   let u = u.Users.id in
   Forum_sql.get_forums_list () >>= fun l ->
   Ocsimore_lib.lwt_filter
-    (fun (i, _, _, _, _, _) ->
-       Forum.forum_visible_group i >>= fun g ->
-       Users.in_group ~sp ~sd ~user:u ~group:g ())
+    (fun (i, _, _, _, deleted) ->
+       if deleted
+       then Lwt.return false
+       else
+         Forum.forum_visible_group i >>= fun g ->
+         Users.in_group ~sp ~sd ~user:u ~group:g ())
     l
 
 let get_message ~sp ~sd ~message_id =
   Forum_sql.get_message ~message_id
   >>= fun ((_, _, _, _, parent_id, _, forum_id, _, _, _, _) as msg) ->
-  Forum.get_role sp sd forum_id >>= fun role ->
-  let first_msg = parent_id = None in
-  !!(role.message_readers) >>= fun message_readers ->
-  !!(role.comment_readers) >>= fun comment_readers ->
-  if ((first_msg && message_readers)
-      || (not first_msg && comment_readers))
-  then Lwt.return msg
-  else Lwt.fail Ocsimore_common.Permission_denied
+  Forum_sql.get_forum ~forum_id () >>= fun (_, _, _, _, deleted) ->
+  if deleted
+  then Lwt.fail Not_found
+  else
+    Forum.get_role sp sd forum_id >>= fun role ->
+    let first_msg = parent_id = None in
+    !!(role.message_readers) >>= fun message_readers ->
+    !!(role.comment_readers) >>= fun comment_readers ->
+    if ((first_msg && message_readers)
+        || (not first_msg && comment_readers))
+    then Lwt.return msg
+    else Lwt.fail Ocsimore_common.Permission_denied
 
 let get_thread ~sp ~sd ~message_id =
   Forum_sql.get_thread ~message_id
   >>= function
     | [] -> Lwt.return []
     | (((_, _, _, _, parent_id, _, forum_id, _, _, _, _) as msg)::l) as th ->
-        Forum.get_role sp sd forum_id >>= fun role ->
-        let first_msg = parent_id = None in
-        !!(role.message_readers) >>= fun message_readers ->
-        !!(role.comment_readers) >>= fun comment_readers ->
-        if (first_msg && message_readers)
-        then (if comment_readers
-              then Lwt.return th
-              else Lwt.return [msg])
-        else (if (not first_msg && comment_readers)
-              then Lwt.return th
-              else Lwt.fail Ocsimore_common.Permission_denied)
+        Forum_sql.get_forum ~forum_id () >>= fun (_, _, _, _, deleted) ->
+        if deleted
+        then Lwt.fail Not_found
+        else
+          Forum.get_role sp sd forum_id >>= fun role ->
+          let first_msg = parent_id = None in
+          !!(role.message_readers) >>= fun message_readers ->
+          !!(role.comment_readers) >>= fun comment_readers ->
+          if (first_msg && message_readers)
+          then (if comment_readers
+                then Lwt.return th
+                else Lwt.return [msg])
+          else (if (not first_msg && comment_readers)
+                then Lwt.return th
+                else Lwt.fail Ocsimore_common.Permission_denied)

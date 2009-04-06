@@ -145,10 +145,10 @@ object (self)
     in
     match thread with
       | [] -> Lwt.return {{[]}}
-      | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-          content, moderated, deleted, sticky) as m)::l ->
-          Forum_sql.get_forum ~forum_id () >>= fun
-            (_, _, _, arborescent, deleted, readonly) ->
+      | (id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
+         content, moderated, deleted, sticky)::l ->
+          Forum_sql.get_forum ~forum_id ()
+          >>= fun (_, _, _, arborescent, deleted) ->
           print_one_message_and_children ~arborescent thread >>= fun (a, _) -> 
           Lwt.return {{[a]}}
 

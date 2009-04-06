@@ -31,7 +31,6 @@ type forum_info = {
   descr: string;
   arborescent: bool;
   deleted: bool;
-  readonly: bool;
 }
 
 let create_group_ name fullname =
@@ -278,13 +277,14 @@ let create_forum
     ?(arborescent=true)
     () =
   Lwt.catch
-    (fun () -> Forum_sql.get_forum ~title () >>= fun (id, title, descr, arborescent, deleted, readonly) ->
+    (fun () -> 
+       Forum_sql.get_forum ~title ()
+       >>= fun (id, title, descr, arborescent, deleted) ->
        Lwt.return { id = id; 
                     title = title; 
                     descr = descr;
                     arborescent = arborescent;
-                    deleted = deleted;
-                    readonly = readonly;
+                    deleted = deleted
                   }
     )
     (function
@@ -295,8 +295,7 @@ let create_forum
                         title = title; 
                         descr = descr;
                         arborescent = arborescent;
-                        deleted = false;
-                        readonly = false;
+                        deleted = false
                       }
        | e -> Lwt.fail e)
 

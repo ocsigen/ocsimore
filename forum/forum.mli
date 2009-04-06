@@ -30,7 +30,6 @@ type forum_info = {
   descr: string;
   arborescent: bool;
   deleted: bool;
-  readonly: bool;
 }
 
 (** Creates a new forum or returns its id without modification
