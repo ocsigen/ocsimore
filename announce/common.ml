@@ -83,7 +83,6 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
       bi_sd = sd;
       bi_ancestors = Wiki_widgets_interface.no_ancestors;
       bi_subbox = Some subbox;
-      bi_page = Some path;
     }
   in
   Ocsisite.wikibox_widget#editable_wikibox

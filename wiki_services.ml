@@ -219,9 +219,8 @@ let register_wiki =
                       bi_sd = sd;
                       bi_ancestors = Wiki_widgets_interface.no_ancestors;
                       bi_subbox = None;
-                      bi_page = None;
                     } in
-           wikibox_widget#display_page ~bi ~wiki ~path
+           wikibox_widget#display_page ~bi ~wiki
              ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
         )
     in
@@ -242,9 +241,8 @@ let register_wiki =
                       bi_sd = sd;
                       bi_ancestors = Wiki_widgets_interface.no_ancestors;
                       bi_subbox = None;
-                      bi_page = None;
                     } in
-           wikibox_widget#display_page ~bi ~wiki ~path ~page
+           wikibox_widget#display_page ~bi ~wiki ~page
         )
     in
     add_naservpage wiki naservpage;
@@ -532,7 +530,6 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
                   bi_sd = sd;
                   bi_ancestors = Wiki_widgets_interface.no_ancestors;
                   bi_subbox = None;
-                  bi_page = None;
                 }
        in
        wikibox_widget#editable_wikibox ~bi ~data:g ~rows:30 ()
@@ -555,7 +552,6 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
                   bi_sd = sd;
                   bi_ancestors = Wiki_widgets_interface.no_ancestors;
                   bi_subbox = None;
-                  bi_page = None;
                 }
        in
        Wiki_sql.get_wiki_info_by_id wiki
@@ -579,7 +575,6 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
                   bi_sd = sd;
                   bi_ancestors = Wiki_widgets_interface.no_ancestors;
                   bi_subbox = None;
-                  bi_page = None;
                 }
        in
        wikibox_widget#edit_wikicss_box ~bi ~rows:30 ~wiki ()

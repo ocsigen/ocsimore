@@ -10,7 +10,7 @@ type box_info =
    bi_ancestors: ancestors;
    bi_sp: Eliom_sessions.server_params;
    bi_sd: Ocsimore_common.session_data;
-   bi_page: string list option}
+}
 
 
 
@@ -225,7 +225,6 @@ class type virtual editable_wikibox =
       bi:box_info ->
       wiki:wiki ->
       page:string ->
-      path:string list ->
       Eliom_services.result_to_send Lwt.t
 
   end

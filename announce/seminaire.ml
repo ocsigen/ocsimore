@@ -415,7 +415,6 @@ let summary_contents category sp sd =
       bi_sd = sd;
       bi_ancestors = Wiki_widgets_interface.no_ancestors;
       bi_subbox = None;
-      bi_page = None;
     }
   in
   Ocsisite.wikibox_widget#editable_wikibox ~bi

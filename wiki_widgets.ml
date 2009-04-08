@@ -691,7 +691,7 @@ object (self)
 
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
-   method display_page ~bi ~wiki ~page ~path =
+   method display_page ~bi ~wiki ~page =
      let sp = bi.bi_sp
      and sd = bi.bi_sd in
      Wiki_sql.get_wiki_info_by_id wiki
@@ -720,7 +720,6 @@ object (self)
                       bi_sd = sd;
                       bi_ancestors = Wiki_widgets_interface.no_ancestors;
                       bi_subbox = None;
-                      bi_page = Some path;
                     }
                   in
                 self#editable_wikibox_aux ~bi ~data:(wiki', box)
@@ -777,7 +776,6 @@ object (self)
                       bi_sd = sd;
                       bi_ancestors = Wiki_widgets_interface.no_ancestors;
                       bi_subbox = Some subbox;
-                      bi_page = Some path;
                     }
            in
            self#editable_wikibox ~bi ~data:(wiki, wiki_info.wiki_container)
