@@ -1,9 +1,3 @@
--- Isolated forum-related tables
-ALTER TABLE messages RENAME TO forums_messages;
-ALTER TABLE textdata RENAME TO forums_textdata;
-ALTER TABLE threads RENAME TO forums_threads;
-
-
 -- Missing primary key on wikipages
 ALTER TABLE wikipages ADD PRIMARY KEY (wiki, pagename);
 
