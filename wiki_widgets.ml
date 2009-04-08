@@ -653,10 +653,10 @@ object (self)
 
      if admin then
        Lwt.return
-         {{ [ {: css_url ["ocsiwikistyle.css"] :}
-              {: css_url ["ocsiwikiadmin.css"] :} ] }}
+         {{ [ {: css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikistyle.css"] :}
+              {: css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikiadmin.css"] :} ] }}
      else
-       let css = css_url ["ocsiwikistyle.css"] in
+       let css = css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikistyle.css"] in
        (match Wiki_services.find_servwikicss wiki with
           | None -> Lwt.return {{ [ css ] }}
           | Some wikicss_service ->
@@ -700,7 +700,11 @@ object (self)
   Lwt.catch
     (fun () ->
        match wiki_info.wiki_staticdir with
-         | Some d -> Wiki_services.send_static_file sp sd wiki_info d page
+         | Some d ->
+             Ocsigen_messages.debug
+               (fun () -> Printf.sprintf "Trying static file '%s' at path '%s'"
+                  page d);
+             Wiki_services.send_static_file sp sd wiki_info d page
          | None -> Lwt.fail Eliom_common.Eliom_404)
     (function
        | Eliom_common.Eliom_404 ->

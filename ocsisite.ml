@@ -7,18 +7,21 @@ type user_creation =
 
 type external_auth = NoExternalAuth | Nis | Pam of string option
 
-let default_data = (NoExternalAuth, NoUserCreation)
+let default_data = (NoExternalAuth, NoUserCreation, None)
 
-let (auth, basicusercreation) =
-  let rec find_wikidata ((auth, basicusercreation) as data) = function
+let (auth, basicusercreation, admin_staticdir) =
+  let rec find_wikidata ((auth, basicusercreation, staticadm) as data) = function
     | [] -> Lwt.return data
 
+    | (Simplexmlparser.Element ("admin", ["staticdir",path], []))::l ->
+        find_wikidata (auth, basicusercreation, Some path) l
+
     | (Simplexmlparser.Element ("nis", [], []))::l ->
-        find_wikidata (Nis, basicusercreation) l
+        find_wikidata (Nis, basicusercreation, staticadm) l
 
     | (Simplexmlparser.Element ("pam", ["service", s], []))::l ->
         if Session_manager.pam_loaded ()
-        then find_wikidata (Pam (Some s), basicusercreation) l
+        then find_wikidata (Pam (Some s), basicusercreation, staticadm) l
         else
           raise
             (Ocsigen_config.Config_file_error
@@ -26,7 +29,7 @@ let (auth, basicusercreation) =
 
     | (Simplexmlparser.Element ("pam", [], []))::l ->
         if Session_manager.pam_loaded ()
-        then find_wikidata (Pam None, basicusercreation) l
+        then find_wikidata (Pam None, basicusercreation, staticadm) l
         else
           raise
             (Ocsigen_config.Config_file_error
@@ -59,7 +62,9 @@ let (auth, basicusercreation) =
              User_widgets.mail_from = registration_mail_from;
              mail_addr = registration_mail_addr;
              mail_subject = registration_mail_subject;
-             new_user_groups = default_groups}
+             new_user_groups = default_groups
+           },
+           staticadm
           )
           l
     | _ ->
@@ -69,8 +74,13 @@ let (auth, basicusercreation) =
   let c = Eliom_sessions.get_config () in
   Lwt_unix.run (find_wikidata default_data c)
 
+exception No_admin_staticdir
 
-
+let () =
+  match admin_staticdir with
+    | Some _ -> ()
+    | None -> Ocsigen_messages.errlog "Ocsisite: please supply a path for the css and images of the Ocsimore administration wiki.\n  Syntax: <admin staticdir=\"path\" />";
+        raise No_admin_staticdir
 
 
 let services = Wiki_services.services ()
@@ -128,6 +138,13 @@ let wiki_admin = Lwt_unix.run
             >>= fun wid ->
             Wiki_sql.get_wiki_info_by_id wid
         | e -> Lwt.fail e)
+   >>= fun id ->
+   (** We update the field [staticdir] for the administration wiki *)
+   match admin_staticdir with
+     | None -> Lwt.return id
+     | Some path ->
+         Wiki_sql.update_wiki_staticdir id.wiki_id (Some path) >>= fun () ->
+         Lwt.return id
   )
 
 let wiki_admin_id = wiki_admin.wiki_id
@@ -172,7 +189,7 @@ let _ = register_named_wikibox
 
 This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few extensions.
 
-{{../creole_cheat_sheet.png|Wikicreole's syntax}}"
+{{creole_cheat_sheet.png|Wikicreole's syntax}}"
 
 
 (** Finally, we registering the existing wikis of the database *)

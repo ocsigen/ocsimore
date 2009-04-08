@@ -174,12 +174,11 @@ val update_wikibox :
   content_type:wikibox_content_type ->
   int32 Lwt.t
 
-(** Update container_id (only, for now). *)
-val update_wiki :
-  wiki_id:wiki ->
-  container_id:wikibox_id ->
-  unit ->
-  unit Lwt.t
+(** Update container_id field of a wiki *)
+val update_wiki_container : wiki_id:wiki -> container_id:wikibox_id -> unit Lwt.t
+
+val update_wiki_staticdir : wiki_id:wiki -> staticdir:string option -> unit Lwt.t
+
 
 val populate_readers : wikibox -> int32 list -> unit Lwt.t
 val populate_writers : wikibox -> int32 list -> unit Lwt.t

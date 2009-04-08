@@ -37,7 +37,11 @@
       <static dir="static" />
       <eliommodule module="ocsisite.cmo">
 
-        <!-- All the arguments are optional: -->
+        <!-- Update this path if you do not launch Ocsigen from the directory
+             in which Ocsimore is compiled -->
+        <admin staticdir="static" />
+
+        <!-- The following arguments are optional: -->
 
         <notsecure/> <!-- accept login with http or https (DANGEROUS!)
                           If you do not want that option,

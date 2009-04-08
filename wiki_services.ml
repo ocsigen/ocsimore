@@ -505,7 +505,6 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
        | false ->  Lwt.fail Ocsimore_common.Permission_denied
   )
 
-
 in
 (service_edit_wikibox,
  service_edit_wikipage_css,
