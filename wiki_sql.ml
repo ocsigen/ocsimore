@@ -619,15 +619,11 @@ let get_css_wikibox_for_wiki_ ~wiki =
   get_css_wikibox_aux_ ~wiki ~page:None
 
 
-let iter_wikis_path f =
+let iter_wikis f =
   Sql.full_transaction_block
-    (fun db -> PGSQL(db) "SELECT id, pages FROM wikis")
+    (fun db -> PGSQL(db) "SELECT * FROM wikis")
   >>= fun l ->
-  Lwt_util.iter (fun (wiki, page) ->
-                   match page with
-                     | None -> Lwt.return ()
-                     | Some page -> f (wiki_from_sql wiki) page)
-    l
+  Lwt_util.iter (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l
 
 
 

@@ -202,5 +202,5 @@ val get_rights_adm : wikibox -> User_sql.userid list Lwt.t
 val get_wikiboxes_creators : wikibox -> User_sql.userid list Lwt.t
 
 
-(** Iterator on the wikis that are associated to a path  *)
-val iter_wikis_path : (wiki  -> string -> unit Lwt.t) -> unit Lwt.t
+(** Iterator on all the wikis  *)
+val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t

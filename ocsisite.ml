@@ -195,9 +195,12 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 
 (** Finally, we registering the existing wikis of the database *)
 let _ = Lwt_unix.run
-  (Wiki_sql.iter_wikis_path
-     (fun wiki path ->
-        let path = Ocsigen_lib.split '/' path in
-        Wiki_services.register_wiki ~path ~wikibox_widget ~wiki ()
+  (Wiki_sql.iter_wikis
+     (fun { wiki_id = wiki; wiki_pages = path } ->
+        match path with
+          | None -> Lwt.return ()
+          | Some path ->
+              let path = Ocsigen_lib.split '/' path in
+              Wiki_services.register_wiki ~path ~wikibox_widget ~wiki ()
      )
   )
