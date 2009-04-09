@@ -600,36 +600,23 @@ let get_css_wikibox_aux_ ~wiki ~page =
   Lwt_pool.use
     Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT wikibox FROM css \
-                  WHERE wiki = $wiki AND page = $?page"
-       >>= function
+       (match page with
+         | None ->
+             PGSQL(db) "SELECT wikibox FROM css \
+                        WHERE wiki = $wiki AND page IS NULL"
+         | Some page ->
+             PGSQL(db) "SELECT wikibox FROM css \
+                        WHERE wiki = $wiki AND page = $page"
+       ) >>= function
          | [] -> Lwt.return None
          | x::_ -> Lwt.return (Some x)
     )
 
+let get_css_wikibox_for_wikipage_ ~wiki ~page =
+  get_css_wikibox_aux_ ~wiki ~page:(Some page)
 
-(** returns the global css for a wiki or fails with [Not_found] if it does not exist *)
-let get_css_for_wiki_ ~wiki =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
-    Sql.pool
-    (fun db ->
-       PGSQL(db) "SELECT css FROM wikicss \
-                  WHERE wiki = $wiki"
-       >>= function
-         | [] -> Lwt.return None
-         | x::_ -> Lwt.return (Some x))
-
-(** Sets the global css for a wiki *)
-let set_css_for_wiki_ ~wiki content =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
-    Sql.pool
-    (fun db -> 
-       PGSQL(db) "DELETE FROM wikicss WHERE wiki = $wiki" 
-       >>= fun () ->
-       PGSQL(db) "INSERT INTO wikicss VALUES ($wiki, $content)"
-    )
+let get_css_wikibox_for_wiki_ ~wiki =
+  get_css_wikibox_aux_ ~wiki ~page:None
 
 
 let iter_wikis_path f =
@@ -803,14 +790,16 @@ let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
      update_wiki_ ?container_id ?staticdir ?pages wiki_id)
 
 (***)
-let get_css_wikibox_for_page, set_css_wikibox_for_page_in_cache =
+(* Functions related to css. Since css are stored in wikiboxes,
+   we only cache the association the association (wiki, page) -> wikibox *)
+let get_css_wikibox, set_css_wikibox_in_cache =
   let module C = Cache.Make (struct 
-                               type key = (wiki * string)
+                               type key = (wiki * string option)
                                type value = int32 option
                              end) 
   in
   let cache = 
-    C.create (fun (wiki, page) -> get_css_wikibox_for_page_ ~wiki ~page) 64 
+    C.create (fun (wiki, page) -> get_css_wikibox_aux_ ~wiki ~page) 64
   in
   ((fun ~wiki ~page -> 
       print_cache "cache css";
@@ -819,29 +808,15 @@ let get_css_wikibox_for_page, set_css_wikibox_for_page_in_cache =
       C.add cache (wiki, page) box)
   )
 
-(***)
-let get_css_for_wiki, set_css_for_wiki =
-  let module C = Cache.Make (struct 
-                               type key = wiki
-                               type value = string option
-                             end) 
-  in
-  let cache = 
-    C.create (fun wiki -> get_css_for_wiki_ ~wiki) 8
-  in
-  ((fun ~wiki -> 
-      print_cache "cache wikicss";
-      C.find cache wiki >>= function
-        | None -> Lwt.fail Not_found
-        | Some p -> Lwt.return p),
-   (fun ~wiki content ->
-      C.remove cache wiki;
-      set_css_for_wiki_ ~wiki content
-   ))
 
+let get_css_wikibox_for_wiki ~wiki =
+  get_css_wikibox ~wiki ~page:None
 
-let get_css_for_page ~wiki ~page =
-  get_css_wikibox_for_page ~wiki ~page
+let get_css_wikibox_for_wikipage ~wiki ~page =
+  get_css_wikibox ~wiki ~page:(Some page)
+
+let get_css_aux ~wiki ~page =
+  get_css_wikibox ~wiki ~page
   >>= function
     | None -> Lwt.return None
     | Some wikibox ->
@@ -850,16 +825,28 @@ let get_css_for_page ~wiki ~page =
           | Some (_, _, content, _, _, _) -> Lwt.return (Some content)
           | None -> Lwt.return None
 
+let get_css_for_wikipage ~wiki ~page =
+  get_css_aux ~wiki ~page:(Some page)
 
-let set_css_for_page ~wiki ~page ~author content =
-  get_css_wikibox_for_page ~wiki ~page
+let get_css_for_wiki ~wiki =
+  get_css_aux ~wiki ~page:None
+
+
+let set_css_aux ~wiki ~page ~author content =
+  get_css_wikibox ~wiki ~page
   >>= function
     | None ->
         new_wikibox_ ~wiki ~comment:"" ~author ~content ~content_type:Css ()
         >>= fun wikibox ->
-        set_css_wikibox_for_page_in_cache ~wiki ~page (Some wikibox);
+        set_css_wikibox_in_cache ~wiki ~page (Some wikibox);
         Lwt.return ()
     | Some wbid ->
         update_wikibox ~wikibox:(wiki, wbid) ~author ~comment:"" ~content
           ~content_type:Css
         >>= fun _ -> Lwt.return ()
+
+let set_css_for_wikipage ~wiki ~page ~author content =
+  set_css_aux ~wiki ~page:(Some page) ~author content
+
+let set_css_for_wiki ~wiki ~author content =
+  set_css_aux ~wiki ~page:None ~author content

@@ -123,26 +123,28 @@ val get_box_for_page : wiki:wiki -> page:string -> wikipage Lwt.t
 val set_box_for_page :
   sourcewiki:wiki -> page:string -> ?destwiki:wiki -> wbid:wikibox_id -> ?title:string -> unit -> unit Lwt.t
 
-(** returns the wikibox for the css for a page or fails with [Not_found] if it
-    the page has no css *)
-val get_css_wikibox_for_page : wiki:wiki -> page:string -> wikibox_id option Lwt.t
 
-(** returns the the css for a page or fails with [Not_found] if it
-    the page has no css *)
-val get_css_for_page : wiki:wiki -> page:string -> string option Lwt.t
 
+(** returns the wikibox for the css of a page or [None] if the page has no css *)
+val get_css_wikibox_for_wikipage :
+  wiki:wiki -> page:string -> wikibox_id option Lwt.t
+
+(** returns the css of a wikipage or [None] if  the page has no css *)
+val get_css_for_wikipage : wiki:wiki -> page:string -> string option Lwt.t
 
 (** Sets the css for a wikipage *)
-val set_css_for_page : wiki:wiki -> page:string -> author : User_sql.userid
-  -> string -> unit Lwt.t
+val set_css_for_wikipage :
+  wiki:wiki -> page:string -> author:User_sql.userid -> string -> unit Lwt.t
 
-(** returns the global css for a wiki 
-    or fails with [Not_found] if it does not exist *)
-val get_css_for_wiki : wiki:wiki -> string Lwt.t
 
-(** Sets the global css for a wiki *)
-val set_css_for_wiki : wiki:wiki -> string -> unit Lwt.t
+(** returns the wikibox for the global css of a wiki, or [None] if the wiki
+    has no such css *)
+val get_css_wikibox_for_wiki : wiki:wiki -> wikibox_id option Lwt.t
 
+(** returns the global css of a wiki, or [None] if the wiki has no such css *)
+val get_css_for_wiki : wiki:wiki -> string option Lwt.t
+
+val set_css_for_wiki : wiki:wiki -> author:User_sql.userid -> string -> unit Lwt.t
 
 
 (** Find wiki information for a wiki, given its id *)
@@ -174,10 +176,13 @@ val update_wikibox :
   content_type:wikibox_content_type ->
   int32 Lwt.t
 
-(** Update container_id field of a wiki *)
-val update_wiki_container : wiki_id:wiki -> container_id:wikibox_id -> unit Lwt.t
-
-val update_wiki_staticdir : wiki_id:wiki -> staticdir:string option -> unit Lwt.t
+(** Update the information of a wiki. All arguments not passed are left
+    unchanged *)
+val update_wiki :
+  ?container_id:wikibox_id ->
+  ?staticdir:string option ->
+  ?pages:string option ->
+  wiki -> unit Lwt.t
 
 
 val populate_readers : wikibox -> int32 list -> unit Lwt.t

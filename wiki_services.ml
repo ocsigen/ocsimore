@@ -83,15 +83,12 @@ let send_static_file sp sd wiki dir page =
 
 
 let wikicss_service_handler wiki () =
-  Lwt.catch
-    (fun () -> Wiki_sql.get_css_for_wiki wiki)
-    (function
-       | Not_found -> Lwt.fail Eliom_common.Eliom_404
-       | e -> Lwt.fail e
-    )
+  Wiki_sql.get_css_for_wiki wiki >>= function
+    | None -> Lwt.fail Eliom_common.Eliom_404
+    | Some css -> Lwt.return css
 
 let wikipagecss_service_handler (wiki, page) () =
-  Wiki_sql.get_css_for_page wiki page >>= function
+  Wiki_sql.get_css_for_wikipage wiki page >>= function
     | Some css -> Lwt.return css
     | None -> Lwt.fail Eliom_common.Eliom_404
 
@@ -432,7 +429,7 @@ and action_send_wikipage_css =
        let sd = Ocsimore_common.get_sd sp in
        Users.get_user_data sp sd
        >>= fun user ->
-       Wiki_sql.set_css_for_page ~wiki ~page content ~author:user.Users.id
+       Wiki_sql.set_css_for_wikipage ~wiki ~page content ~author:user.Users.id
        >>= fun () ->
        Lwt.return Eliom_services.void_coservice'
     )
@@ -443,9 +440,12 @@ and action_send_wiki_css =
     ~name:"wiki_css_send"
     ~post_params:
     (Wiki_sql.eliom_wiki "wikiid" ** Eliom_parameters.string "content")
-    (fun _sp () (wiki, content) ->
-       Wiki_sql.set_css_for_wiki ~wiki content >>= fun () ->
-         Lwt.return Eliom_services.void_coservice'
+    (fun sp () (wiki, content) ->
+       let sd = Ocsimore_common.get_sd sp in
+       Users.get_user_data sp sd
+       >>= fun user ->
+       Wiki_sql.set_css_for_wiki ~wiki ~author:user.Users.id content >>= fun () ->
+       Lwt.return Eliom_services.void_coservice'
     )
 
 (* Below are the services for the css of wikis and wikipages.  The css

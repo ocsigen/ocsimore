@@ -602,7 +602,7 @@ object (self)
      >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
      self#bind_or_display_error ~classe
        (if c then
-          Wiki_sql.get_css_for_page wiki page >>= function
+          Wiki_sql.get_css_for_wikipage wiki page >>= function
             | Some css -> Lwt.return css
             | None -> Lwt.return ""
         else Lwt.fail Wiki_services.Not_css_editor)
@@ -635,11 +635,9 @@ object (self)
      >>= fun c ->
      self#bind_or_display_error ~classe
        (if c then
-          Lwt.catch
-            (fun () -> Wiki_sql.get_css_for_wiki wiki (* The css exists *))
-            (function
-               | Not_found -> Lwt.return ""
-               | e -> Lwt.fail e)
+          Wiki_sql.get_css_for_wiki wiki >>= function
+            | None -> Lwt.return ""
+            | Some css -> Lwt.return css
         else Lwt.fail Wiki_services.Not_css_editor)
        (self#display_edit_wikicss_form ~bi ?rows ?cols ~wiki)
        (self#display_edit_wikicss_box ~bi ?cssmenu:(Some None)
@@ -672,21 +670,16 @@ object (self)
                    | e -> Lwt.fail e)
        )
        >>= fun css ->
-       Lwt.catch
-         (fun () ->
-            match page with
-              | None -> Lwt.return css
-              | Some page ->
-                  Wiki_sql.get_css_for_page wiki page
-                  >>= fun _ -> Lwt.return
-                    {{ [ !css
-                         {: css_url_service pagecss_service (wiki, page)
-                            (*VVV encoding? *) :}
-                       ]}}
-         )
-         (function
-            | Not_found -> Lwt.return css
-            | e -> Lwt.fail e)
+       match page with
+         | None -> Lwt.return css
+         | Some page ->
+             Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
+               | None -> Lwt.return css
+               | Some _ -> Lwt.return
+                   {{ [ !css
+                        {: css_url_service pagecss_service (wiki, page)
+                           (* encoding? *) :}
+                      ]}}
 
 
 (* Displaying of an entire page. We essentially render the page,

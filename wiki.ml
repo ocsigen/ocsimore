@@ -326,7 +326,8 @@ let really_create_wiki ~title ~descr
 
    (match wiki_css with
       | None -> Lwt.return ()
-      | Some css -> Wiki_sql.set_css_for_wiki ~wiki:wiki_id css
+      | Some css -> Wiki_sql.set_css_for_wiki
+          ~wiki:wiki_id ~author:css_editors_data.Users.id css
    ) >>= fun () ->
 
    Lwt.return wiki_id
