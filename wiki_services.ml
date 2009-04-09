@@ -211,7 +211,7 @@ let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
                     bi_ancestors = Wiki_widgets_interface.no_ancestors;
                     bi_subbox = None;
                   } in
-         wikibox_widget#display_page ~bi ~wiki
+         wikibox_widget#send_page ~bi ~wiki
            ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
       )
   in
@@ -232,7 +232,7 @@ let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
                     bi_ancestors = Wiki_widgets_interface.no_ancestors;
                     bi_subbox = None;
                   } in
-         wikibox_widget#display_page ~bi ~wiki ~page
+         wikibox_widget#send_page ~bi ~wiki ~page
       )
   in
   add_naservpage wiki naservpage;

@@ -246,6 +246,12 @@ class type virtual editable_wikibox =
       bi:box_info ->
       wiki:wiki ->
       page:string ->
+      (Xhtmltypes_duce.html * int) Lwt.t
+
+    method send_page :
+      bi:box_info ->
+      wiki:wiki ->
+      page:string ->
       Eliom_services.result_to_send Lwt.t
 
   end

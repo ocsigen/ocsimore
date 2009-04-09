@@ -27,8 +27,6 @@ open Wiki_widgets_interface
 open Wiki_sql.Types
 
 let (>>=) = Lwt.bind
-let ( ** ) = Eliom_parameters.prod
-
 
 
 class virtual noneditable_wikibox =
@@ -99,13 +97,6 @@ object (self)
                ())
 end;;
 
-
-let eliom_wiki_args = Wiki_sql.eliom_wiki "wikiid"
-
-let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "boxid")
-
-let eliom_wikipage_args =
-  (Wiki_sql.eliom_wiki "wikiid") ** (Eliom_parameters.string "page")
 
 
 class virtual editable_wikibox
@@ -690,116 +681,119 @@ object (self)
      and sd = bi.bi_sd in
      Wiki_sql.get_wiki_info_by_id wiki
      >>= fun wiki_info ->
-  (* if there is a static page, we serve it: *)
-  Lwt.catch
-    (fun () ->
-       match wiki_info.wiki_staticdir with
-         | Some d ->
-             Ocsigen_messages.debug
-               (fun () -> Printf.sprintf "Trying static file '%s' at path '%s'"
-                  page d);
-             Wiki_services.send_static_file sp sd wiki_info d page
-         | None -> Lwt.fail Eliom_common.Eliom_404)
-    (function
-       | Eliom_common.Eliom_404 ->
-           (* otherwise, we serve the wiki page: *)
-           Lwt.catch
-             (fun () ->
-                (* We render the wikibox for the page *)
-                Wiki_sql.get_box_for_page wiki page
-                >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
-                          wikipage_wikibox = box; wikipage_title = title } ->
-                  let bi =
-                    { Wiki_widgets_interface.bi_sp = sp;
-                      bi_sd = sd;
-                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                      bi_subbox = None;
-                    }
-                  in
-                self#editable_wikibox_aux ~bi ~data:(wiki', box)
-                  ~cssmenu:(Some page) ()
-                >>= fun (subbox, allowed) ->
-                Lwt.return ({{ [ subbox ] }},
-                            (if allowed then
-                               Wiki_widgets_interface.Page_displayable
-                             else
-                               Wiki_widgets_interface.Page_403),
-                            title)
-             )
-             (function
-                | Not_found ->
-                    (* No page. We create a default page, which will be
-                       inserted into the container *)
-                    Users.get_user_id ~sp ~sd
-                    >>= fun userid ->
-                    let draw_form (wikiidname, pagename) =
-                      {{ [<p>[
-                         {: Eliom_duce.Xhtml.user_type_input
-                            ~input_type:{: "hidden" :}
-                            ~name:wikiidname ~value:wiki wiki_id_s :}
-                         {: Eliom_duce.Xhtml.string_input ~name:pagename
-                            ~input_type:{: "hidden" :} ~value:page () :}
-                         {: Eliom_duce.Xhtml.string_input
-                            ~input_type:{: "submit" :} ~value:"Create it!" () :}
-                           ]] }}
-                    in
-                    Wiki.page_creators_group wiki
-                    >>= fun creators ->
-                    Users.in_group ~sp ~sd ~user:userid ~group:creators ()
-                    >>= fun c ->
-                      let form =
-                        if c then
-                          {{ [ {: Eliom_duce.Xhtml.post_form
-                                  ~service:action_create_page
-                                  ~sp draw_form () :} ] }}
-                        else {{ [] }}
-                      and err_msg =
-                        !Language.messages.Language.page_does_not_exist
-                      in
-                      Lwt.return
-                        ({{ [ <p>{:err_msg:} !form ] }},
-                         Wiki_widgets_interface.Page_404,
-                         None)
-                | e -> Lwt.fail e
-             )
-           >>= fun (subbox, err_code, title) ->
-           Wiki_widgets_interface.set_page_displayable sd err_code;
+     Lwt.catch
+       (fun () ->
+          (* We render the wikibox for the page *)
+          Wiki_sql.get_box_for_page wiki page
+          >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
+                    wikipage_wikibox = box; wikipage_title = title } ->
+          let bi = {
+            Wiki_widgets_interface.bi_sp = sp;
+            bi_sd = sd;
+            bi_ancestors = Wiki_widgets_interface.no_ancestors;
+            bi_subbox = None;
+          } in
+          self#editable_wikibox_aux ~bi ~data:(wiki', box) ~cssmenu:(Some page) ()
+          >>= fun (subbox, allowed) ->
+          Lwt.return ({{ [ subbox ] }},
+                      (if allowed then Wiki_widgets_interface.Page_displayable
+                       else            Wiki_widgets_interface.Page_403),
+                      title)
+       )
+       (function
+          | Not_found ->
+              (* No page. We create a default page, which will be
+                 inserted into the container *)
+              Users.get_user_id ~sp ~sd
+              >>= fun userid ->
+              let draw_form (wikiidname, pagename) =
+                {{ [<p>[
+                       {: Eliom_duce.Xhtml.user_type_input
+                          ~input_type:{: "hidden" :}
+                          ~name:wikiidname ~value:wiki wiki_id_s :}
+                       {: Eliom_duce.Xhtml.string_input ~name:pagename
+                          ~input_type:{: "hidden" :} ~value:page () :}
+                       {: Eliom_duce.Xhtml.string_input
+                          ~input_type:{: "submit" :} ~value:"Create it!" () :}
+                     ]] }}
+              in
+              Wiki.page_creators_group wiki
+              >>= fun creators ->
+              Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+              >>= fun c ->
+              let form =
+                if c then
+                  {{ [ {: Eliom_duce.Xhtml.post_form ~service:action_create_page
+                          ~sp draw_form () :} ] }}
+                else {{ [] }}
+              and err_msg = !Language.messages.Language.page_does_not_exist
+              in
+              Lwt.return
+                ({{ [ <p>{:err_msg:} !form ] }},
+                 Wiki_widgets_interface.Page_404,
+                 None)
+          | e -> Lwt.fail e
+       )
+       >>= fun (subbox, err_code, title) ->
+       Wiki_widgets_interface.set_page_displayable sd err_code;
 
-           (* We render the container *)
-           let bi = { Wiki_widgets_interface.bi_sp = sp;
-                      bi_sd = sd;
-                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                      bi_subbox = Some subbox;
-                    }
-           in
-           self#editable_wikibox ~bi ~data:(wiki, wiki_info.wiki_container)
-             ~cssmenu:None ()
+       (* We render the container *)
+       let bi = {
+         Wiki_widgets_interface.bi_sp = sp;
+         bi_sd = sd;
+         bi_ancestors = Wiki_widgets_interface.no_ancestors;
+         bi_subbox = Some subbox;
+       } in
+       self#editable_wikibox ~bi ~data:(wiki, wiki_info.wiki_container)
+         ~cssmenu:None ()
 
-           >>= fun pagecontent ->
-           self#get_css_header ~bi ~wiki ~admin:false ~page ()
+       >>= fun pagecontent ->
+       self#get_css_header ~bi ~wiki ~admin:false ~page ()
 
-           >>= fun css ->
-           let title = Ocamlduce.Utf8.make
-             (match title with
-                | Some title -> title
-                | None -> wiki_info.wiki_descr)
-           and code = match err_code with
-                      | Wiki_widgets_interface.Page_displayable -> 200
-                      | Wiki_widgets_interface.Page_404 -> 404
-                      | Wiki_widgets_interface.Page_403 -> 403
-           in
-           let html = {{
-                 <html xmlns="http://www.w3.org/1999/xhtml">[
-                   <head>[
-                     <title>title
-                     !css
-                   ]
-                   <body>[ pagecontent ]
-                 ]
-               }}
-           in
-           Eliom_duce.Xhtml.send ~sp ~code html
-  | e -> Lwt.fail e)
+       >>= fun css ->
+       let title = Ocamlduce.Utf8.make
+         (match title with
+            | Some title -> title
+            | None -> wiki_info.wiki_descr)
+       and code = match err_code with
+         | Wiki_widgets_interface.Page_displayable -> 200
+         | Wiki_widgets_interface.Page_404 -> 404
+         | Wiki_widgets_interface.Page_403 -> 403
+       in
+       Lwt.return
+         ({{ <html xmlns="http://www.w3.org/1999/xhtml">[
+               <head>[
+                 <title>title
+                 !css
+               ]
+               <body>[ pagecontent ]
+             ] }},
+          code)
+
+
+(* Displaying of an entire page. We essentially render the page,
+   and then include it inside its container *)
+   method send_page ~bi ~wiki ~page =
+     let sp = bi.bi_sp
+     and sd = bi.bi_sd in
+     Wiki_sql.get_wiki_info_by_id wiki
+     >>= fun wiki_info ->
+     (* if there is a static page, we serve it: *)
+     Lwt.catch
+       (fun () ->
+          match wiki_info.wiki_staticdir with
+            | Some d ->
+                Ocsigen_messages.debug
+                  (fun () -> Printf.sprintf "Trying static file '%s' at path '%s'"
+                     page d);
+                Wiki_services.send_static_file sp sd wiki_info d page
+            | None -> Lwt.fail Eliom_common.Eliom_404)
+       (function
+          | Eliom_common.Eliom_404 ->
+              self#display_page ~bi ~wiki ~page
+              >>= fun (html, code) ->
+              Eliom_duce.Xhtml.send ~sp ~code html
+          | e -> Lwt.fail e)
 
 
 initializer
