@@ -139,11 +139,12 @@ let wiki_admin = Lwt_unix.run
             Wiki_sql.get_wiki_info_by_id wid
         | e -> Lwt.fail e)
    >>= fun id ->
-   (** We update the field [staticdir] for the administration wiki *)
+   (** We update the fields [staticdir] and [pages] for the administration wiki *)
    match admin_staticdir with
      | None -> Lwt.return id
      | Some path ->
-         Wiki_sql.update_wiki_staticdir id.wiki_id (Some path) >>= fun () ->
+         Wiki_sql.update_wiki ~staticdir:(Some path)
+           ~pages:(Some Ocsimore_lib.ocsimore_admin_dir) id.wiki_id >>= fun () ->
          Lwt.return id
   )
 

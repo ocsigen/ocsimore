@@ -87,20 +87,29 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
     )
 
 
-let update_wiki_container_ ~wiki ~container_id =
+let update_wiki_ ?container_id ?staticdir ?pages wiki =
   let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "UPDATE wikis SET container_id = $container_id \
-                  WHERE id = $wiki")
-
-let update_wiki_staticdir_ ~wiki ~staticdir =
-  let wiki = t_int32 (wiki : wiki) in
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db) "UPDATE wikis SET staticdir = $?staticdir \
-                  WHERE id = $wiki")
-
+       (match container_id with
+          | None -> Lwt.return ()
+          | Some container_id ->
+              PGSQL(db) "UPDATE wikis SET container_id = $container_id \
+                         WHERE id = $wiki"
+       ) >>= fun () ->
+       (match staticdir with
+          | None -> Lwt.return ()
+          | Some staticdir ->
+              PGSQL(db) "UPDATE wikis SET staticdir = $?staticdir \
+                         WHERE id = $wiki"
+       ) >>= fun () ->
+       (match pages with
+          | None -> Lwt.return ()
+          | Some pages ->
+              PGSQL(db) "UPDATE wikis SET pages = $?pages \
+                         WHERE id = $wiki"
+       )
+    )
 
 let populate_readers_ db (wiki, id) readers =
   let wiki = t_int32 (wiki : wiki) in
@@ -586,13 +595,13 @@ let remove_wikiboxes_creators_ (wiki_id, id) wbadmins =
   remove_wikiboxes_creators_ db (wiki_id, id) wbadmins)
 
 
-let get_css_wikibox_for_page_ ~wiki ~page =
-  let wiki' = t_int32 (wiki : wiki) in
+let get_css_wikibox_aux_ ~wiki ~page =
+  let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use
     Sql.pool
     (fun db ->
        PGSQL(db) "SELECT wikibox FROM css \
-                  WHERE wiki = $wiki' AND page = $page"
+                  WHERE wiki = $wiki AND page = $?page"
        >>= function
          | [] -> Lwt.return None
          | x::_ -> Lwt.return (Some x)
@@ -756,7 +765,7 @@ let get_box_for_page, set_box_for_page =
 
 (***)
 
-let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki_container, update_wiki_staticdir =
+let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
   let module HW = Hashtbl.Make(struct
                                 type t = wiki
                                 let equal = (=)
@@ -784,20 +793,14 @@ let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki_container, update_wi
        print_cache "cache wiki ";
        Lwt.return (HN.find wiki_info_name_table name)
      with Not_found -> find_wiki_by_name_ ~name),
-  (* update_wiki_container *)
-  (fun ~wiki_id ~container_id ->
+  (* update_wiki *)
+  (fun ?container_id ?staticdir ?pages wiki_id ->
      HW.remove wiki_info_wiki_table  wiki_id;
      (* A bit drastic, but search by name (and update_wiki) are rarely
         used anyway. The alternative is to find the the id of the
         wiki, and to remove only this key *)
      HN.clear wiki_info_name_table;
-     update_wiki_container_ ~wiki:wiki_id ~container_id),
-  (* update_wiki_staticdir *)
-  (fun ~wiki_id ~staticdir ->
-     HW.remove wiki_info_wiki_table wiki_id;
-     HN.clear wiki_info_name_table;
-     update_wiki_staticdir_ ~wiki:wiki_id ~staticdir)
-
+     update_wiki_ ?container_id ?staticdir ?pages wiki_id)
 
 (***)
 let get_css_wikibox_for_page, set_css_wikibox_for_page_in_cache =
