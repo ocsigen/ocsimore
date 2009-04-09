@@ -195,64 +195,59 @@ let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
 
 
 (* Register the services for the wiki [wiki] *)
-let register_wiki =
-  let registered_wikis = Hashtbl.create 17 in
-  fun ?sp ~path ~(wikibox_widget : Wiki_widgets_interface.editable_wikibox) ~wiki  () ->
-  try ignore (Hashtbl.find registered_wikis wiki); Lwt.return ()
-  with Not_found ->
-    Hashtbl.add registered_wikis wiki ();
+let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
+  Ocsigen_messages.debug (fun () -> Printf.sprintf "Registering wiki %s"
+                            (wiki_id_s wiki));
+  (* Registering the service with suffix for wikipages *)
+  (* Note that Eliom will look for the service corresponding to
+     the longest prefix. Thus it is possible to register a wiki
+     at URL / and another one at URL /wiki and it works,
+     whatever be the order of registration *)
+  let servpage =
+    Eliom_predefmod.Any.register_new_service ~path ?sp
+      ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
+      (fun sp path () ->
+         let sd = Ocsimore_common.get_sd sp in
+         let bi = { Wiki_widgets_interface.bi_sp = sp;
+                    bi_sd = sd;
+                    bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                    bi_subbox = None;
+                  } in
+         wikibox_widget#display_page ~bi ~wiki
+           ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
+      )
+  in
+  add_servpage wiki servpage;
 
-    (* Registering the service with suffix for wikipages *)
-    (* Note that Eliom will look for the service corresponding to
-       the longest prefix. Thus it is possible to register a wiki
-       at URL / and another one at URL /wiki and it works,
-       whatever be the order of registration *)
-    let servpage =
-      Eliom_predefmod.Any.register_new_service ~path ?sp
-        ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
-        (fun sp path () ->
-           let sd = Ocsimore_common.get_sd sp in
-           let bi = { Wiki_widgets_interface.bi_sp = sp;
-                      bi_sd = sd;
-                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                      bi_subbox = None;
-                    } in
-           wikibox_widget#display_page ~bi ~wiki
-             ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
-        )
-    in
-    add_servpage wiki servpage;
+  (* the same, but non attached: *)
+  let naservpage =
+    Eliom_predefmod.Any.register_new_coservice' ?sp
+      ~name:("display"^wiki_id_s wiki)
+      ~get_params:(Eliom_parameters.string "page")
+      (fun sp page () ->
+         let path = Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
+         in
+         let page = Ocsigen_lib.string_of_url_path ~encode:true path in
+         let sd = Ocsimore_common.get_sd sp in
+         let bi = { Wiki_widgets_interface.bi_sp = sp;
+                    bi_sd = sd;
+                    bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                    bi_subbox = None;
+                  } in
+         wikibox_widget#display_page ~bi ~wiki ~page
+      )
+  in
+  add_naservpage wiki naservpage;
 
-    (* the same, but non attached: *)
-    let naservpage =
-      Eliom_predefmod.Any.register_new_coservice' ?sp
-        ~name:("display"^wiki_id_s wiki)
-        ~get_params:(Eliom_parameters.string "page")
-        (fun sp page () ->
-           let path =
-             Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
-           in
-           let page = Ocsigen_lib.string_of_url_path ~encode:true path in
-           let sd = Ocsimore_common.get_sd sp in
-           let bi = { Wiki_widgets_interface.bi_sp = sp;
-                      bi_sd = sd;
-                      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                      bi_subbox = None;
-                    } in
-           wikibox_widget#display_page ~bi ~wiki ~page
-        )
-    in
-    add_naservpage wiki naservpage;
+  let wikicss_service =
+    Eliom_predefmod.CssText.register_new_service ?sp
+      ~path:(path@["__ocsiwikicss"])
+      ~get_params:Eliom_parameters.unit
+      (fun _sp () () -> wikicss_service_handler wiki ())
+  in
+  add_servwikicss wiki wikicss_service;
 
-    let wikicss_service =
-      Eliom_predefmod.CssText.register_new_service ?sp
-        ~path:(path@["__ocsiwikicss"])
-        ~get_params:Eliom_parameters.unit
-        (fun _sp () () -> wikicss_service_handler wiki ())
-    in
-    add_servwikicss wiki wikicss_service;
-
-    Lwt.return ()
+  Lwt.return ()
 
 
 (* Creates and registers a wiki if it does not already exists  *)

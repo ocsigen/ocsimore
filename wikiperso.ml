@@ -159,6 +159,17 @@ let create_wikiperso ~wiki_title ~userdata =
     ()
 
 
+(* Given a user name, we find the id of the corresponding ocsimore
+   user. If it does not exists, we try external authentification *)
+let find_user user =
+  Users.get_user_by_name user
+  >>= fun userdata ->
+    if userdata <> Users.nobody then
+      Lwt.return (Some userdata)
+    else
+      external_user user
+
+
 (** The function that answers for the extension. *)
 let gen sp =
   let ri = Eliom_sessions.get_ri sp in
@@ -166,17 +177,9 @@ let gen sp =
   match extract_user_name ri.ri_sub_path_string with
     | Some user ->
         (* If this is the case, we try to find the id of the corresponding
-           ocsimore user. If it does not exists, we try external
-           authentification *)
-        Users.get_user_by_name user
-        >>= fun userdata ->
-        (if userdata <> Users.nobody then
-           Lwt.return (Some userdata)
-         else
-           external_user user
-        )
-        >>= fun userinfo ->
-        (match userinfo with
+           ocsimore user. *)
+        find_user user >>=
+        (function
            | None -> Lwt.return ()
            | Some userdata ->
                (* If the user for which we must create a wiki
@@ -184,15 +187,16 @@ let gen sp =
                let wiki_title = "wikiperso for " ^ user in
                Lwt.catch
                  (fun () -> Wiki_sql.get_wiki_info_by_name wiki_title
-                    >>= fun { wiki_id = wiki } -> Lwt.return wiki)
+                    >>= fun _ -> Lwt.return ())
                  (function
-                    | Not_found -> create_wikiperso wiki_title userdata
+                    | Not_found ->
+                        create_wikiperso wiki_title userdata
+                        >>= fun wiki ->
+                        (* We then register the wiki at the correct url *)
+                        Wiki_services.register_wiki ~sp
+                          ~path:(wiki_path userdata.Users.name)
+                          ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
                     | e -> Lwt.fail e)
-               >>= fun wiki ->
-               (* We then register the personal wiki at the correct url *)
-               Wiki_services.register_wiki ~sp
-                 ~path:(wiki_path userdata.Users.name)
-                 ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
         )
         >>= fun () ->
           (* In all cases, we just tell Eliom to continue. It will answer with
@@ -203,6 +207,22 @@ let gen sp =
     | None -> return
         (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
 
+
+(* We load the existing wikipersos at the correct path *)
+let () =
+  let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
+  Lwt_unix.run
+  (Wiki_sql.iter_wikis
+     (fun { wiki_id = wiki; wiki_title = title } ->
+        match Netstring_pcre.string_match regexp title 0 with
+          | Some result ->
+              let user = Netstring_pcre.matched_string result title in
+              Wiki_services.register_wiki ~path:(wiki_path user)
+                ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
+          | None ->
+              Lwt.return ()
+     )
+  )
 
 
 let _ =
