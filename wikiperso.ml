@@ -1,8 +1,7 @@
-(* Ocsigen
+(* Ocsimore
  * http://www.ocsigen.org
- * Module extensiontemplate.ml
- * Copyright (C) 2007 Boris Yakobowski
- * CNRS - Université Paris Diderot Paris 7
+ * Copyright (C) 2008-2009
+ * Boris Yakobowski - CNRS - Université Paris Diderot Paris 7
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by

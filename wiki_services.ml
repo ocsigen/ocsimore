@@ -1,5 +1,8 @@
 (* Ocsimore
- * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
+ * http://www.ocsigen.org
+ * Copyright (C) 2005-2009
+ * Piero Furiesi - Jaap Boender - Vincent Balat - Boris Yakobowski -
+ * CNRS - Université Paris Diderot Paris 7
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,11 +22,6 @@
 
 (**
 These are all the services related to wikis
-
-@author Vincent Balat
-@author Boris Yakobowski
-@author Jaap Boender
-@author Piero Furiesi
 
 *)
 
