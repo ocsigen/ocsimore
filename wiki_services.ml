@@ -194,8 +194,9 @@ let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
 
 (* Register the services for the wiki [wiki] *)
 let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
-  Ocsigen_messages.debug (fun () -> Printf.sprintf "Registering wiki %s"
-                            (wiki_id_s wiki));
+  Ocsigen_messages.debug
+    (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
+       (wiki_id_s wiki) (String.concat "/"  path));
   (* Registering the service with suffix for wikipages *)
   (* Note that Eliom will look for the service corresponding to
      the longest prefix. Thus it is possible to register a wiki
