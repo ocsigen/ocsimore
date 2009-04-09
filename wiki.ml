@@ -223,7 +223,10 @@ let user_can_save_wikibox ~sp ~sd wb =
 
 
 
-
+(* An exception raised when we register two wikis at the same path.
+   The first two strings are the description of the conflicting wikis,
+   the third string is the path *)
+exception Wiki_already_registered_at_path of (string * string) * string
 
 (* Create a wiki that is supposed not to exist already *)
 let really_create_wiki ~title ~descr
@@ -244,6 +247,15 @@ let really_create_wiki ~title ~descr
   let path_string = Ocsimore_lib.bind_opt
     path (Ocsigen_lib.string_of_url_path ~encode:true)
   in
+  (* We check that no wiki is already registered at the same path *)
+  Ocsimore_lib.lwt_bind_opt path_string
+    (fun path -> Wiki_sql.iter_wikis
+       (fun { wiki_descr = wiki; wiki_pages = path' } ->
+          if path' = Some path then
+            Lwt.fail (Wiki_already_registered_at_path ((wiki, descr), path))
+          else
+            Lwt.return ())
+    ) >>= fun _ ->
   (* Notice that there is a theoretical race condition in the code below,
      when the container wikibox receives its rights, in the case this
      container has changed between the creation of the wiki and the moments
