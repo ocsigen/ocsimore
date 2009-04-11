@@ -33,7 +33,7 @@ sudo /etc/init.d/postgresql restart
 4. Create a database called ocsimore and add the language plpgsql
 
 sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
-createlang plpgsql ocsimore
+createlang -U ocsimore plpgsql ocsimore
 
 Then do:
 psql -U ocsimore -f createdb.sql ocsimore
