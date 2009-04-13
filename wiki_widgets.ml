@@ -653,16 +653,11 @@ object (self)
        (match Wiki_services.find_servwikicss wiki with
           | None -> Lwt.return {{ [ css ] }}
           | Some wikicss_service ->
-              Lwt.catch
-                (fun () ->
-                   Wiki_sql.get_css_for_wiki wiki
-                   >>= fun _ -> Lwt.return
-                     {{ [ css
-                          {: css_url_service wikicss_service () (* encoding? *) :}
-                        ]}})
-                (function
-                   | Not_found -> Lwt.return {{ [ css ] }}
-                   | e -> Lwt.fail e)
+              Wiki_sql.get_css_for_wiki wiki
+              >>= function
+                | Some _ -> Lwt.return (* encoding? *)
+                    {{ [ css  {: css_url_service wikicss_service ():} ]}}
+                | None -> Lwt.return {{ [ css ] }}
        )
        >>= fun css ->
        match page with
