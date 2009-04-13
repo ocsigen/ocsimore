@@ -26,6 +26,10 @@
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+let new_id =
+  let c = ref 0 in
+  fun () -> incr c; "__"^string_of_int !c
+
 class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
   add_message_service =
 object (self)
@@ -65,6 +69,8 @@ object (self)
           }}
     in
     let comment_line =
+      let id1 = new_id () in
+      let id2 = new_id () in
       if draw_comment_form
       then
         {{ [
@@ -76,6 +82,20 @@ object (self)
                   ~service:add_message_service
                   ~sp draw_form () :}]
            ] }}
+(*
+        let rec n1 = {{ <span class={: comment_class :}
+                          onclick=(fun () -> show n1 n2) >
+                          {: Ocamlduce.Utf8.make "Comment" :} }}
+(*               onclick="caml_run_from_table(main_vm, 132)" *)
+        and n2 =
+          {{ <div class={: comment_class :}>[
+               {: Eliom_duce.Xhtml.post_form
+                  ~a:{{ { accept-charset="utf-8" } }}
+                  ~service:add_message_service
+                  ~sp draw_form () :}] }}
+        in 
+        {{ [ n1 n2 ] }}
+*)
       else {{[]}}
     in
     Lwt.return

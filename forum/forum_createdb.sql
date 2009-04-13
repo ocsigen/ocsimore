@@ -3,7 +3,7 @@ CREATE TABLE forums (
     title text DEFAULT ''::text NOT NULL,
     descr text DEFAULT ''::text NOT NULL,
     arborescent boolean DEFAULT true NOT NULL,
-    deleted boolean DEFAULT false NOT NULL,
+    deleted boolean DEFAULT false NOT NULL
 );
 COMMENT ON COLUMN forums.title IS
   'Title of the forum. Sometimes used to find the forum by name';

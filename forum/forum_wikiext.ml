@@ -40,8 +40,8 @@ let register_wikiext (message_widget, thread_widget) =
          with Not_found | Failure _ -> None
        in
        try
-         let sp = bi.Wiki_syntax.bi_sp in
-         let sd = bi.Wiki_syntax.bi_sd in
+         let sp = bi.Wiki_widgets_interface.bi_sp in
+         let sd = bi.Wiki_widgets_interface.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
          message_widget#display
            ~sp ~sd ?rows ?cols ?classe
@@ -67,8 +67,8 @@ let register_wikiext (message_widget, thread_widget) =
          with Not_found | Failure _ -> None
        in
        try
-         let sp = bi.Wiki_syntax.bi_sp in
-         let sd = bi.Wiki_syntax.bi_sd in
+         let sp = bi.Wiki_widgets_interface.bi_sp in
+         let sd = bi.Wiki_widgets_interface.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
          thread_widget#display ?commentable:(Some true) ~sp ~sd
            ?rows ?cols ?classe

@@ -92,6 +92,10 @@ let _ = dispatch begin function
 (*       ocaml_lib "nis_chkpwd/nis_chkpwd"; *)
        flag ["ocaml"; "link"; "with_nis_chkpwd"] (S[A "nis_chkpwd.cma"]);
 
+       (* With obrowser's standard library *)
+       flag ["ocaml"; "compile"; "obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
+       flag ["ocaml"; "link"; "obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
+
    | _ -> ()
 end
 
