@@ -618,6 +618,15 @@ let get_css_wikibox_for_wikipage_ ~wiki ~page =
 let get_css_wikibox_for_wiki_ ~wiki =
   get_css_wikibox_aux_ ~wiki ~page:None
 
+let set_css_wikibox_aux_ ~wiki ~page ~wikibox =
+  let wiki = t_int32 (wiki : wiki) in
+  Lwt_pool.use
+    Sql.pool
+    (fun db ->
+       PGSQL(db) "INSERT INTO css (wiki, page, wikibox) \
+                  VALUES ($wiki, $?page, $wikibox)"
+    )
+
 
 let iter_wikis f =
   Sql.full_transaction_block
@@ -787,7 +796,7 @@ let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
 
 (***)
 (* Functions related to css. Since css are stored in wikiboxes,
-   we only cache the association the association (wiki, page) -> wikibox *)
+   we only cache the association (wiki, page) -> wikibox *)
 let get_css_wikibox, set_css_wikibox_in_cache =
   let module C = Cache.Make (struct 
                                type key = (wiki * string option)
@@ -801,7 +810,9 @@ let get_css_wikibox, set_css_wikibox_in_cache =
       print_cache "cache css";
       C.find cache (wiki, page)),
    (fun ~wiki ~page box ->
-      C.add cache (wiki, page) box)
+      C.add cache (wiki, page) (Some box);
+      set_css_wikibox_aux_ wiki page box
+   )
   )
 
 
@@ -834,8 +845,7 @@ let set_css_aux ~wiki ~page ~author content =
     | None ->
         new_wikibox_ ~wiki ~comment:"" ~author ~content ~content_type:Css ()
         >>= fun wikibox ->
-        set_css_wikibox_in_cache ~wiki ~page (Some wikibox);
-        Lwt.return ()
+        set_css_wikibox_in_cache ~wiki ~page wikibox
     | Some wbid ->
         update_wikibox ~wikibox:(wiki, wbid) ~author ~comment:"" ~content
           ~content_type:Css
