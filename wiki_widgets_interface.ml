@@ -108,32 +108,38 @@ let wikisyntax_help_name = "wikisyntax-help"
 
 
 class type virtual noneditable_wikibox =
-  object
+object
 
-    inherit Widget.widget_with_error_box
+  inherit Widget.widget_with_error_box
 
-     method container :
-       ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
-       Xhtmltypes_duce.blocks ->
-       Xhtmltypes_duce.html
+  val ne_class: string
 
-     method display_basic_box :
-      classe:string list ->
-      Xhtmltypes_duce.flows ->
-      Xhtmltypes_duce.block Lwt.t
+  method container :
+    ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
+    Xhtmltypes_duce.blocks ->
+    Xhtmltypes_duce.html
 
-    method display_noneditable_wikibox :
-      bi:box_info ->
-      ?classe:string list ->
-      data:wikibox ->
-      unit -> Xhtmltypes_duce.block Lwt.t
+  method display_basic_box :
+    classe:string list ->
+    Xhtmltypes_duce.flows ->
+    Xhtmltypes_duce.block Lwt.t
 
-    method virtual pretty_print_wikisyntax :
-      wiki:wiki ->
-      bi:box_info ->
-      string -> Xhtmltypes_duce.flows Lwt.t
+  method display_noneditable_wikibox :
+    bi:box_info ->
+    ?classe:string list ->
+    data:wikibox ->
+    unit -> Xhtmltypes_duce.block Lwt.t
 
-  end
+  method display_wikiboxcontent :
+    wiki:wiki -> bi:box_info ->
+    Wiki_sql.wikibox_content_type * string * int32 ->
+    Xhtmltypes_duce.flows Lwt.t
+
+  method display_raw_wikiboxcontent :
+    Wiki_sql.wikibox_content_type * string * int32 ->
+    Xhtmltypes_duce.flows Lwt.t
+
+end
 
 type menu_item =
   | Edit
@@ -161,7 +167,9 @@ class type virtual editable_wikibox =
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      wikibox -> string * int32 -> Xhtmltypes_duce.flows Lwt.t
+      wikibox ->
+      Wiki_sql.wikibox_content_type * string * int32 ->
+      Xhtmltypes_duce.flows Lwt.t
 
     method display_edit_perm_form :
       bi:box_info ->

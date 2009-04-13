@@ -265,15 +265,8 @@ val wikicss_service_handler : wiki -> unit -> string Lwt.t
 val wikipagecss_service_handler : wiki * string -> unit -> string Lwt.t
 *)
 
-val retrieve_wikibox_wikitext_at_version:
-  int32 -> wikibox -> string Lwt.t
+val retrieve_wikibox_aux:
+  ?version:int32 -> wikibox ->
+  (Wiki_sql.wikibox_content_type * string * int32) Lwt.t
 
-val retrieve_wikibox_current_wikitext_and_version:
-  wikibox -> (string * int32) Lwt.t
-
-val retrieve_wikibox_current_wikitext: wikibox -> string Lwt.t
-
-
-
-exception CssInsteadOfWiki
 exception Unknown_box of wikibox

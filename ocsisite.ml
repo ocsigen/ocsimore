@@ -114,7 +114,7 @@ let wikibox_widget =
             ignore (new User_widgets.login_widget sm)
      );
 
-     Lwt.return (new Wiki_widgets.creole_wikibox services)
+     Lwt.return (new Wiki_widgets.editable_wikibox services)
     )
 
 (** And register the services for the wiki *)
@@ -184,7 +184,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
 (** We create the page for the help on the syntax of the wiki *)
 let _ = register_named_wikibox
   ~page:Wiki_widgets_interface.wikisyntax_help_name
-  ~content_type:Wiki_sql.Wiki
+  ~content_type:Wiki_sql.WikiCreole
   ~comment:"Wikisyntax help"
   ~content:"===Wiki syntax===
 

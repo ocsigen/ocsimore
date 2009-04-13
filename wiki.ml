@@ -363,39 +363,15 @@ let modified_wikibox ~wikibox ~boxversion =
 
 
 
-exception CssInsteadOfWiki
 exception Unknown_box of wikibox
 
 
-
-
-(* The functions below read the content of a wikibox which is supposed
-     to contain wikitext *)
-
-let retrieve_wikibox_wikitext_aux err ?version wikibox =
+let retrieve_wikibox_aux ?version wikibox =
   Wiki_sql.get_wikibox_data ?version ~wikibox ()
   >>= fun result ->
   match result with
     | None -> Lwt.fail Not_found
-    | Some (_com, _a, cont, _d, ct, ver) ->
-        match ct with
-          | Wiki_sql.Wiki -> Lwt.return (cont, ver)
-          | Wiki_sql.Css -> Lwt.fail CssInsteadOfWiki
-          | Wiki_sql.Deleted -> Lwt.return (err, ver)
-
-let retrieve_wikibox_wikitext_at_version version wikibox =
-  retrieve_wikibox_wikitext_aux "As this date, this page had been deleted"
-    ~version wikibox
-  >>= fun (r, _) -> Lwt.return r
-
-let retrieve_wikibox_current_wikitext_and_version wikibox =
-  retrieve_wikibox_wikitext_aux "This page has been deleted" wikibox
-
-let retrieve_wikibox_current_wikitext wikibox =
-  retrieve_wikibox_current_wikitext_and_version wikibox
-  >>= fun (content, _version) ->
-  Lwt.return content
-
+    | Some (_com, _a, cont, _d, ct, ver) -> Lwt.return (ct, cont, ver)
 
 
 let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =

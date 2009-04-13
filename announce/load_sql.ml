@@ -3,7 +3,7 @@
 
 let insert_text wiki author content =
   Lwt_unix.run
-    (Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
+    (Wiki.new_wikibox ~content_type:Wiki_sql.WikiCreole
        ~wiki:wiki.Wiki_sql.Types.wiki_id ~author ~comment:"" ~content ())
 
 let insert_person dbh name affiliation =

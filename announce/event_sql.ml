@@ -159,7 +159,7 @@ let insert_persons l =
   Lwt_util.map_serial (fun (n, a) -> insert_person n a) l
 
 let insert_desc wiki author comment content =
-  Wiki.new_wikibox ~content_type:Wiki_sql.Wiki
+  Wiki.new_wikibox ~content_type:Wiki_sql.WikiCreole
      ~wiki:wiki.Wiki_sql.Types.wiki_id ~author ~comment ~content ()
 
 let insert_event_person dbh event persons =
@@ -191,7 +191,8 @@ let insert_event
 
 let update_desc wiki author wikibox comment content =
   Wiki_sql.update_wikibox
-    ~wikibox:(wiki, wikibox) ~author ~comment ~content ~content_type:Wiki_sql.Wiki
+    ~wikibox:(wiki, wikibox) ~author ~comment ~content
+    ~content_type:Wiki_sql.WikiCreole
 
 let check_no_concurrent_update dbh ev =
   let id = ev.id in

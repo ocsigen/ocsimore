@@ -300,17 +300,17 @@ exception IncorrectWikiboxContentType of string
 
 type wikibox_content_type =
   | Css
-  | Wiki
+  | WikiCreole
   | Deleted
 
 let wikibox_content_type_of_string = function
-  | "wiki" -> Wiki
+  | "wiki" -> WikiCreole
   | "css" -> Css
   | "deleted" -> Deleted
   | s -> raise (IncorrectWikiboxContentType s)
 
 let string_of_wikibox_content_type = function
-  | Wiki -> "wiki"
+  | WikiCreole -> "wiki"
   | Css -> "css"
   | Deleted -> "deleted"
 

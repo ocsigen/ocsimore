@@ -385,7 +385,7 @@ and action_send_wikibox = Eliom_predefmod.Any.register_new_post_coservice'
                Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
                >>= fun content ->
                save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
-                 ~sp ~sd ~wikibox ~content ~content_type:Wiki_sql.Wiki
+                 ~sp ~sd ~wikibox ~content ~content_type:Wiki_sql.WikiCreole
            | Some _ ->
                Eliom_predefmod.Action.send ~sp
                  [Wiki_action_info (Preview (wikibox, (content, boxversion)))]
@@ -488,7 +488,7 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
                       ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                   page (wiki_id_s wiki))
                       ~content:("== Page "^page^"==")
-                      ~content_type:Wiki_sql.Wiki ()
+                      ~content_type:Wiki_sql.WikiCreole ()
                     >>= fun wbid ->
                     Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
                     >>= fun () ->

@@ -133,7 +133,8 @@ let template_css_pagename = "wikiperso_css-template"
 
 let template_container = Ocsisite.register_named_wikibox
   ~page:template_container_pagename ~content:default_welcome_page
-  ~content_type:Wiki_sql.Wiki ~comment:"Template for wikipersos container pages"
+  ~content_type:Wiki_sql.WikiCreole
+  ~comment:"Template for wikipersos container pages"
 
 let template_wiki_css = Ocsisite.register_named_wikibox
   ~page:template_css_pagename ~content:default_wikicss

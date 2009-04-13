@@ -58,7 +58,7 @@ open Types
 (** Data stored in a wikibox *)
 type wikibox_content_type =
   | Css
-  | Wiki
+  | WikiCreole
   | Deleted
 
 exception IncorrectWikiboxContentType of string
