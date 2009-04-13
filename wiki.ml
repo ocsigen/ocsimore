@@ -222,11 +222,11 @@ let user_can_save_wikibox ~sp ~sd wb =
     | Lurker | Nonauthorized -> Lwt.return false
 
 
-
 (* An exception raised when we register two wikis at the same path.
    The first two strings are the description of the conflicting wikis,
    the third string is the path *)
 exception Wiki_already_registered_at_path of (string * string) * string
+
 
 (* Create a wiki that is supposed not to exist already *)
 let really_create_wiki ~title ~descr
