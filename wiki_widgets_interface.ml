@@ -155,7 +155,7 @@ class type virtual editable_wikibox =
     inherit Widget.widget_with_error_box
     inherit noneditable_wikibox
 
-    method display_edit_form :
+    method display_wikitext_edit_form :
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
@@ -163,7 +163,6 @@ class type virtual editable_wikibox =
       wikibox -> string * int32 -> Xhtmltypes_duce.form Lwt.t
 
     method display_full_edit_form :
-      classe:string list ->
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->

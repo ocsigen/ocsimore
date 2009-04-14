@@ -213,7 +213,7 @@ object (self)
          <div>content ]}}
 
   (* Wikibox in editing mode *)
-  method display_edit_form ~bi ?(rows=25) ?(cols=80) ~previewonly (wiki_id, message_id as wikibox) (content, boxversion) =
+  method display_wikitext_edit_form ~bi ?(rows=25) ?(cols=80) ~previewonly (wiki_id, message_id as wikibox) (content, boxversion) =
     let sp = bi.bi_sp in
     Wiki.modified_wikibox wikibox boxversion >>=
     (function
@@ -286,7 +286,7 @@ object (self)
         | None, Wiki_sql.WikiCreole -> "<<|  Deleted >>"
         | Some content, _ -> content
       in
-    self#display_edit_form ~bi ?rows ?cols ~previewonly
+    self#display_wikitext_edit_form ~bi ?rows ?cols ~previewonly
         (wiki_id, message_id) (content, boxversion)
    >>= fun f ->
    Lwt.return (classe, {{ [ b f ] }})
@@ -442,7 +442,7 @@ object (self)
              | Some (Wiki_services.Edit_box i) when i = data ->
                  self#bind_or_display_error
                    (Wiki.retrieve_wikibox_aux data)
-                   (self#display_full_edit_form ~classe ~bi ?cols ?rows
+                   (self#display_full_edit_form ~bi ?cols ?rows
                       ~previewonly:true data)
                    (self#display_edit_box ~bi ?cssmenu data)
                  >>= fun r ->
@@ -456,8 +456,7 @@ object (self)
                  >>= fun r ->
                  Lwt.return (r, true)
 
-               (* Currently, only wikitext can be previewed *)
-             | Some (Wiki_services.Preview (i, (content, version))) when i = data ->
+             | Some (Wiki_services.PreviewWikitext (i, (content, version))) when i = data ->
                  self#bind_or_display_error
                    (Lwt.return (Wiki_sql.WikiCreole, Some content, version))
                    (fun cv ->
@@ -466,7 +465,7 @@ object (self)
                       >>= fun (classe, pp) ->
                       self#display_basic_box ~classe:(preview_class::classe) pp
                       >>= fun preview ->
-                      self#display_full_edit_form ~classe:[]
+                      self#display_full_edit_form
                         ~bi ?cols ?rows ~previewonly:false data cv
                       >>= fun (_, form) ->
                       Lwt.return

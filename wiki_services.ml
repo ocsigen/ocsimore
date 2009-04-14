@@ -47,7 +47,7 @@ type wiki_action_info =
 (* The second uple is the content of the wikibox, and the version number of the
    wikibox *when the edition started*. This is used to display a warning in case
    of concurrent edits*)
-  | Preview of (wikibox * (string * int32))
+  | PreviewWikitext of (wikibox * (string * int32))
 
 exception Wiki_action_info of wiki_action_info
 
@@ -389,10 +389,11 @@ and action_send_wikibox = Eliom_predefmod.Any.register_new_post_coservice'
                  ~content:(Some content) ~content_type:Wiki_sql.WikiCreole
            | Some _ ->
                Eliom_predefmod.Action.send ~sp
-                 [Wiki_action_info (Preview (wikibox, (content, boxversion)))]
+                 [Wiki_action_info (PreviewWikitext
+                                      (wikibox, (content, boxversion)))]
        else
          Eliom_predefmod.Action.send ~sp
-           [Wiki_action_info (Preview (wikibox, (content, boxversion)))]
+           [Wiki_action_info (PreviewWikitext (wikibox, (content, boxversion)))]
       )
 
 and action_send_wikibox_permissions =
