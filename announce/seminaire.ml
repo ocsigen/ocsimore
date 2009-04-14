@@ -237,8 +237,9 @@ let edit_event =
        Event_sql.find_speakers id >>= fun speakers ->
        Wiki_sql.get_wikibox_data ~wikibox:(Common.wiki_id, ev.description) ()
            >>= fun desc ->
-       let (desc, comment) =
-         match desc with None -> ("", "") | Some (c, _, d, _, _, _) -> (d, c) in
+       let (desc, comment) = match desc with
+         | None | Some (_, _, None , _, _, _) -> ("", "")
+         | Some (c, _, Some d, _, _, _) -> (d, c) in
        Event_sql.find_category_by_id ev.category >>= fun cat ->
        (*XXX BOGUS*)
        let sl =
@@ -264,7 +265,7 @@ let edit_event =
               Event_sql.insert_persons persons >>= fun persons ->
               Event_sql.update_event
                 Common.wiki_id Users.admin.Users.id
-                ev' desc comment persons >>= fun () ->
+                ev' (Some desc) comment persons >>= fun () ->
               Lwt.return
                 {{<html xmlns="http://www.w3.org/1999/xhtml">
                      [{:Common.head sp "":}

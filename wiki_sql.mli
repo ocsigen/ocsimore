@@ -59,7 +59,6 @@ open Types
 type wikibox_content_type =
   | Css
   | WikiCreole
-  | Deleted
 
 exception IncorrectWikiboxContentType of string
 
@@ -130,13 +129,13 @@ val get_css_for_wikipage : wiki:wiki -> page:string -> string option Lwt.t
 
 (** Sets the css for a wikipage *)
 val set_css_for_wikipage :
-  wiki:wiki -> page:string -> author:User_sql.userid -> string -> unit Lwt.t
+  wiki:wiki -> page:string -> author:User_sql.userid -> string option -> unit Lwt.t
 
 
 (** returns the global css of a wiki, or [None] if the wiki has no such css *)
 val get_css_for_wiki : wiki:wiki -> string option Lwt.t
 
-val set_css_for_wiki : wiki:wiki -> author:User_sql.userid -> string -> unit Lwt.t
+val set_css_for_wiki : wiki:wiki -> author:User_sql.userid -> string option -> unit Lwt.t
 
 
 (** Find wiki information for a wiki, given its id *)
@@ -151,7 +150,7 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:wikibox ->
   unit ->
-  (string * User_sql.userid * string * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
+  (string * User_sql.userid * string option * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
 
 
 (** Current revision number of a wikibox *)
@@ -164,7 +163,7 @@ val update_wikibox :
   wikibox:wikibox ->
   author:User_sql.userid ->
   comment:string ->
-  content:string ->
+  content:string option ->
   content_type:wikibox_content_type ->
   int32 Lwt.t
 

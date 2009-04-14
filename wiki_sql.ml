@@ -301,18 +301,15 @@ exception IncorrectWikiboxContentType of string
 type wikibox_content_type =
   | Css
   | WikiCreole
-  | Deleted
 
 let wikibox_content_type_of_string = function
   | "wiki" -> WikiCreole
   | "css" -> Css
-  | "deleted" -> Deleted
   | s -> raise (IncorrectWikiboxContentType s)
 
 let string_of_wikibox_content_type = function
   | WikiCreole -> "wiki"
   | Css -> "css"
-  | Deleted -> "deleted"
 
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
@@ -357,7 +354,7 @@ let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_typ
        PGSQL(db) "INSERT INTO wikiboxes \
                     (id, wiki_id, author, comment, content, content_type) \
                   VALUES ($wbox, $wiki, $author, \
-                          $comment, $content, $content_type)" >>= fun () ->
+                          $comment, $?content, $content_type)" >>= fun () ->
        serial4 db "wikiboxes_version_seq")
 
 
@@ -666,7 +663,7 @@ let get_wikibox_data,
                                type key = wikibox
                                type value = (string * 
                                                User_sql.userid * 
-                                               string * 
+                                               string option *
                                                CalendarLib.Calendar.t *
                                                wikibox_content_type *
                                                int32
@@ -829,8 +826,8 @@ let get_css_aux ~wiki ~page =
     | Some wikibox ->
         get_wikibox_data (wiki, wikibox) ()
         >>= function
-          | Some (_, _, content, _, _, _) -> Lwt.return (Some content)
-          | None -> Lwt.return None
+          | Some (_, _, Some content, _, _, _) -> Lwt.return (Some content)
+          | Some (_, _, None, _, _, _) | None -> Lwt.return None
 
 let get_css_for_wikipage ~wiki ~page =
   get_css_aux ~wiki ~page:(Some page)
@@ -843,12 +840,20 @@ let set_css_aux ~wiki ~page ~author content =
   get_css_wikibox ~wiki ~page
   >>= function
     | None ->
-        new_wikibox_ ~wiki ~comment:"" ~author ~content ~content_type:Css ()
-        >>= fun wikibox ->
-        set_css_wikibox_in_cache ~wiki ~page wikibox
+        (* If the CSS must be deleted ([content=None]) and no css currently
+           exists, we do simply do nothing. (Alternatively, we could create
+           a box and set its content to NULL, but this does not seem really
+           useful.) *)
+        (match content with
+           | None -> Lwt.return ()
+           | Some content ->
+               new_wikibox ~wiki ~comment:"" ~author ~content ~content_type:Css ()
+               >>= fun wikibox ->
+               set_css_wikibox_in_cache ~wiki ~page wikibox
+        )
     | Some wbid ->
-        update_wikibox ~wikibox:(wiki, wbid) ~author ~comment:"" ~content
-          ~content_type:Css
+        update_wikibox ~wikibox:(wiki, wbid) ~author ~comment:""
+          ~content ~content_type:Css
         >>= fun _ -> Lwt.return ()
 
 let set_css_for_wikipage ~wiki ~page ~author content =

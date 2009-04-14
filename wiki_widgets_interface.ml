@@ -132,11 +132,10 @@ object
 
   method display_wikiboxcontent :
     wiki:wiki -> bi:box_info -> classe:string list ->
-    Wiki_sql.wikibox_content_type * string * int32 ->
+    Wiki_sql.wikibox_content_type * string option * int32 ->
     (string list * Xhtmltypes_duce.flows) Lwt.t
 
   method display_raw_wikiboxcontent :
-    classe:string list ->
     Wiki_sql.wikibox_content_type * string * int32 ->
     (string list * Xhtmltypes_duce.flows) Lwt.t
 
@@ -170,7 +169,7 @@ class type virtual editable_wikibox =
       ?cols:int ->
       previewonly:bool ->
       wikibox ->
-      Wiki_sql.wikibox_content_type * string * int32 ->
+      Wiki_sql.wikibox_content_type * string option * int32 ->
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_edit_perm_form :

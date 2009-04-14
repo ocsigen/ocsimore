@@ -70,22 +70,23 @@ object (self)
       | _ -> error_box#display_error_box ?classe ?message ?exn ()
 
 
-  method display_wikiboxcontent ~wiki ~bi ~classe (content_type, content, _ver) =
-    (match content_type with
+  method display_wikiboxcontent ~wiki ~bi (content_type, content, _ver) =
+    match content_type with
       | Wiki_sql.Deleted -> Lwt.return {{ [<em>"//Deleted//"] }}
       | Wiki_sql.Css  -> Lwt.return {{ [<pre>{:Ocamlduce.Utf8.make content :}]}}
-      | Wiki_sql.WikiCreole -> Wiki_syntax.xml_of_wiki wiki bi content)
-    >>= fun c ->
-    Lwt.return (classe, c)
+      | Wiki_sql.WikiCreole -> Wiki_syntax.xml_of_wiki wiki bi content
 
-  method display_raw_wikiboxcontent ~classe (content_type, content, _ver) =
-    (match content_type with
+  method display_raw_wikiboxcontent (content_type, content, _ver) =
+    match content_type with
       | Wiki_sql.Deleted -> Lwt.return {{ [<em>"//Deleted//"] }}
       | Wiki_sql.Css | Wiki_sql.WikiCreole ->
           Lwt.return {{ [<pre>{:Ocamlduce.Utf8.make content :}] }})
     >>= fun c ->
     Lwt.return (classe, c)
-
+      | Wiki_sql.Css, None -> Lwt.return {{ [<em>"/* Deleted Css */"] }}
+      | Wiki_sql.WikiCreole, None -> Lwt.return {{ [<em>"//Deleted//"] }}
+      | Wiki_sql.Css, Some content  ->
+          Lwt.return {{ [<pre>{:Ocamlduce.Utf8.make content :}]}}
 
   method display_basic_box ~classe content =
     let classe = Ocsimore_lib.build_class_attr (ne_class::classe) in
@@ -269,7 +270,7 @@ object (self)
 
   (* Wikibox in editing mode, with an help box on the syntax of the wiki *)
       (* XXX!! content_type *)
-  method display_full_edit_form ~classe ~bi ?rows ?cols ~previewonly (wiki_id, message_id) (content_type, content, boxversion) =
+  method display_full_edit_form ~bi ?rows ?cols ~previewonly (wiki_id, message_id) (content_type, content, boxversion) =
     Wiki_services.get_admin_wiki ()
     >>= fun { wiki_id = admin_wiki } ->
     Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:"wikisyntax-help"
@@ -280,6 +281,11 @@ object (self)
       (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classe:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
+      let content = match content, content_type with
+        | None, Wiki_sql.Css -> "/* Deleted CSS */"
+        | None, Wiki_sql.WikiCreole -> "<<|  Deleted >>"
+        | Some content, _ -> content
+      in
     self#display_edit_form ~bi ?rows ?cols ~previewonly
         (wiki_id, message_id) (content, boxversion)
    >>= fun f ->
@@ -453,7 +459,7 @@ object (self)
                (* Currently, only wikitext can be previewed *)
              | Some (Wiki_services.Preview (i, (content, version))) when i = data ->
                  self#bind_or_display_error
-                   (Lwt.return (Wiki_sql.WikiCreole, content, version))
+                   (Lwt.return (Wiki_sql.WikiCreole, Some content, version))
                    (fun cv ->
                       self#display_wikiboxcontent ~classe:[] ~wiki:wiki_id
                         ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi) cv

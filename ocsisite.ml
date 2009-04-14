@@ -174,10 +174,11 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
      >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
      Wiki_sql.get_wikibox_data ~wikibox:(wiki', box) ()
      >>= function
-     | Some (_, _, content, _, _, _) ->
+     | Some (_, _, Some content, _, _, _) ->
          Lwt.return content
-     | None ->
-         (* fallback, should not happen if the wikiadmin is not corrupted *)
+     | None | Some (_, _, None, _, _, _) ->
+         (* fallback, should not happen if the wikiadmin is not corrupted
+         or if the templates are not deleted *)
          Lwt.return content)
 
 

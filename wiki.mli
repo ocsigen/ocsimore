@@ -179,9 +179,6 @@ val admin_group_name : wiki -> string
 
 
 
-(** If [?boxid] specified, creates the box only if the box 
-    does not already exist. It it exists, returns the existing
-    box without modification. *)
 val new_wikibox :
   wiki:wiki ->
   author:User_sql.userid ->
@@ -201,7 +198,7 @@ val save_wikibox :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   wikibox:wikibox ->
-  content:string ->
+  content:string option ->
   content_type:Wiki_sql.wikibox_content_type ->
   int32 Lwt.t
 
@@ -267,6 +264,6 @@ val wikipagecss_service_handler : wiki * string -> unit -> string Lwt.t
 
 val retrieve_wikibox_aux:
   ?version:int32 -> wikibox ->
-  (Wiki_sql.wikibox_content_type * string * int32) Lwt.t
+  (Wiki_sql.wikibox_content_type * string option * int32) Lwt.t
 
 exception Unknown_box of wikibox

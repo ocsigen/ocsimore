@@ -333,7 +333,7 @@ and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   (fun sp wikibox () ->
      let sd = Ocsimore_common.get_sd sp in
      save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
-       ~sp ~sd ~wikibox ~content:"" ~content_type:Wiki_sql.Deleted
+       ~sp ~sd ~wikibox ~content:None ~content_type:Wiki_sql.WikiCreole
   )
 
 and action_edit_wikibox_permissions =
@@ -385,7 +385,8 @@ and action_send_wikibox = Eliom_predefmod.Any.register_new_post_coservice'
                Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
                >>= fun content ->
                save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
-                 ~sp ~sd ~wikibox ~content ~content_type:Wiki_sql.WikiCreole
+                 ~sp ~sd ~wikibox
+                 ~content:(Some content) ~content_type:Wiki_sql.WikiCreole
            | Some _ ->
                Eliom_predefmod.Action.send ~sp
                  [Wiki_action_info (Preview (wikibox, (content, boxversion)))]
@@ -423,7 +424,8 @@ and action_send_wikipage_css =
        let sd = Ocsimore_common.get_sd sp in
        Users.get_user_data sp sd
        >>= fun user ->
-       Wiki_sql.set_css_for_wikipage ~wiki ~page content ~author:user.Users.id
+       Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:user.Users.id
+         (Some content)
        >>= fun () ->
        Lwt.return Eliom_services.void_coservice'
     )
@@ -438,7 +440,8 @@ and action_send_wiki_css =
        let sd = Ocsimore_common.get_sd sp in
        Users.get_user_data sp sd
        >>= fun user ->
-       Wiki_sql.set_css_for_wiki ~wiki ~author:user.Users.id content >>= fun () ->
+       Wiki_sql.set_css_for_wiki ~wiki ~author:user.Users.id
+         (Some content) >>= fun () ->
        Lwt.return Eliom_services.void_coservice'
     )
 
