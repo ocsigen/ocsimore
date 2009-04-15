@@ -160,15 +160,15 @@ class type virtual editable_wikibox =
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      wikibox -> string * int32 -> Xhtmltypes_duce.form Lwt.t
+      wikibox -> string option * int32 ->
+      Xhtmltypes_duce.form Lwt.t
 
     method display_full_edit_form :
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      wikibox ->
-      Wiki_sql.wikibox_content_type * string option * int32 ->
+      wikibox -> string option * int32 ->
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_edit_perm_form :

@@ -122,7 +122,7 @@ class editable_wikibox
    action_wikibox_history,
    action_old_wikibox,
    action_src_wikibox,
-   action_send_wikibox,
+   action_send_wikiboxtext,
    action_send_wikibox_permissions,
    action_send_wikipage_css,
    action_send_wiki_css,
@@ -212,9 +212,13 @@ object (self)
          !{: self#box_menu ~sp ~perm ?cssmenu ?service ?title ids :}
          <div>content ]}}
 
-  (* Wikibox in editing mode *)
+
+  (* Wikitext in editing mode *)
   method display_wikitext_edit_form ~bi ?(rows=25) ?(cols=80) ~previewonly (wiki_id, message_id as wikibox) (content, boxversion) =
-    let sp = bi.bi_sp in
+    let content = match content with
+      | None -> "<<|  Deleted >>"
+      | Some content -> content
+    and sp = bi.bi_sp in
     Wiki.modified_wikibox wikibox boxversion >>=
     (function
        | Some curversion -> Lwt.return
@@ -266,7 +270,7 @@ object (self)
     in
     Lwt.return
       (Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-         ~service:action_send_wikibox ~sp draw_form ())
+         ~service:action_send_wikiboxtext ~sp draw_form ())
 
   (* Wikibox in editing mode, with an help box on the syntax of the wiki *)
       (* XXX!! content_type *)
@@ -281,15 +285,66 @@ object (self)
       (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classe:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
-      let content = match content, content_type with
-        | None, Wiki_sql.Css -> "/* Deleted CSS */"
-        | None, Wiki_sql.WikiCreole -> "<<|  Deleted >>"
-        | Some content, _ -> content
-      in
     self#display_wikitext_edit_form ~bi ?rows ?cols ~previewonly
         (wiki_id, message_id) (content, boxversion)
    >>= fun f ->
    Lwt.return (classe, {{ [ b f ] }})
+
+
+  (* Wikicssbox in editing mode *)
+  method private display_css_edit_form ~bi ?(rows=25) ?(cols=80) (wiki_id, message_id as wikibox) (content, boxversion) =
+    let content = match content with
+      | None -> "/* Deleted CSS */"
+      | Some content -> content
+    and sp = bi.bi_sp in
+    Wiki.modified_wikibox wikibox boxversion >>=
+    (function
+       | Some curversion -> Lwt.return
+           (curversion,
+            {{ [ <em>['Warning: ']
+                 'this css has been updated since you started \
+                  editing it. If you save your changes, you will overwrite \
+                  the updated version of the css currently in the wiki.'
+                 <br>[] <br>[]
+             ]
+             }} )
+
+       | None -> Lwt.return (boxversion, {{ [] }} )
+    ) >>= fun (curversion, warning)  ->
+    let draw_form (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
+      let f =
+        {{ [
+             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
+                ~name:wikiidname ~value:wiki_id wiki_id_s :}
+             {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                ~name:boxidname ~value:message_id () :}
+             {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                ~name:wikiboxversion ~value:curversion () :}
+             {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
+                ~value:(Ocamlduce.Utf8.make content) () :}
+             <br>[]
+           ]
+         }}
+      in
+      {{ [
+           <p>[!warning !f
+               !{: [Eliom_duce.Xhtml.string_button ~name:actionname
+                      ~value:"save" {{ "Save" }}] :}
+              ] ] }}
+    in
+    Lwt.return
+      {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+                ~service:action_send_wikiboxtext ~sp draw_form () :} ] }}
+
+
+  method private display_wikibox_edit_form ~bi ?(rows=25) ?(cols=80) wikibox (content_type, content, boxversion) =
+    match content_type with
+      | Wiki_sql.WikiCreole ->
+          self#display_wikitext_edit_form_help ~bi ~rows ~cols ~previewonly:true
+            wikibox (content, boxversion)
+      | Wiki_sql.Css ->
+          self#display_css_edit_form ~bi ~rows ~cols
+            wikibox (content, boxversion)
 
 
   (* Edition of the permissions of a wiki *)
@@ -458,12 +513,12 @@ object (self)
 
              | Some (Wiki_services.PreviewWikitext (i, (content, version))) when i = data ->
                  self#bind_or_display_error
-                   (Lwt.return (Wiki_sql.WikiCreole, Some content, version))
-                   (fun cv ->
-                      self#display_wikiboxcontent ~classe:[] ~wiki:wiki_id
-                        ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi) cv
-                      >>= fun (classe, pp) ->
-                      self#display_basic_box ~classe:(preview_class::classe) pp
+                   (Lwt.return (Some content, version))
+                   (fun (content, version as cv) ->
+                      self#display_wikiboxcontent wiki_id
+                        (Wiki_widgets_interface.add_ancestor_bi data bi) cv
+                      >>= fun pp ->
+                      self#display_basic_box ~classe:[preview_class] pp
                       >>= fun preview ->
                       self#display_full_edit_form
                         ~bi ?cols ?rows ~previewonly:false data cv

@@ -362,7 +362,7 @@ and action_src_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
   (fun _sp g () -> Lwt.return [Wiki_action_info (Src g)])
 
-and action_send_wikibox = Eliom_predefmod.Any.register_new_post_coservice'
+and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
   ~keep_get_na_params:false ~name:"wiki_send"
   ~post_params:
   (Eliom_parameters.string "actionname" **
@@ -511,7 +511,7 @@ in
  action_wikibox_history,
  action_old_wikibox,
  action_src_wikibox,
- action_send_wikibox,
+ action_send_wikiboxtext,
  action_send_wikibox_permissions,
  action_send_wikipage_css,
  action_send_wiki_css,
