@@ -147,6 +147,7 @@ type menu_item =
   | Edit_css
   | History
   | View
+  | History_css
 
 
 class type virtual editable_wikibox =
@@ -168,7 +169,14 @@ class type virtual editable_wikibox =
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      wikibox -> string option * int32 ->
+      wikibox -> Wiki_sql.wikibox_content_type * string option * int32 ->
+      Xhtmltypes_duce.flows Lwt.t
+
+    method display_css_edit_form :
+      bi:box_info ->
+      ?rows:int ->
+      ?cols:int ->
+      wikibox -> Wiki_sql.wikibox_content_type * string option * int32 ->
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_edit_perm_form :
@@ -183,6 +191,13 @@ class type virtual editable_wikibox =
       wikibox ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
       (string list * Xhtmltypes_duce.flows) Lwt.t
+
+    method display_csshistory :
+      bi:box_info ->
+      wikibox ->
+      wikibox * string option ->
+      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
+      Xhtmltypes_duce.flows Lwt.t
 
     method display_menu_box :
       classe:string list ->
@@ -211,6 +226,7 @@ class type virtual editable_wikibox =
       ?cssmenu:string option ->
       unit -> (Xhtmltypes_duce.block * bool) Lwt.t
 
+(*
     method display_edit_css_form :
       classe:string list ->
       bi:box_info ->
@@ -243,6 +259,8 @@ class type virtual editable_wikibox =
       ?rows:int ->
       ?cols:int ->
       ?classe:string list -> unit -> Xhtmltypes_duce.block Lwt.t
+*)
+
 
     (** returns the css headers for one wiki and optionally one page.
         Set [?admin] to [true] for administration pages.

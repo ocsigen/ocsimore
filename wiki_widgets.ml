@@ -84,7 +84,7 @@ object (self)
     >>= fun c ->
     Lwt.return (classe, c)
       | Wiki_sql.Css, None -> Lwt.return {{ [<em>"/* Deleted Css */"] }}
-      | Wiki_sql.WikiCreole, None -> Lwt.return {{ [<em>"//Deleted//"] }}
+      | Wiki_sql.WikiCreole, None -> Lwt.return {{ [<em>"Deleted wikibox"] }}
       | Wiki_sql.Css, Some content  ->
           Lwt.return {{ [<pre>{:Ocamlduce.Utf8.make content :}]}}
 
@@ -112,22 +112,24 @@ end
 
 
 
-class editable_wikibox
-  (service_edit_wikibox,
-   service_edit_wikipage_css,
-   service_edit_wiki_css,
-   action_edit_wikibox,
-   action_delete_wikibox,
-   action_edit_wikibox_permissions,
-   action_wikibox_history,
-   action_old_wikibox,
-   action_src_wikibox,
-   action_send_wikiboxtext,
-   action_send_wikibox_permissions,
-   action_send_wikipage_css,
-   action_send_wiki_css,
-   pagecss_service,
-   action_create_page
+class editable_wikibox (
+  service_edit_wikibox,
+  action_edit_css,
+  action_edit_wikibox,
+  action_delete_wikibox,
+  action_edit_wikibox_permissions,
+  action_wikibox_history,
+  action_css_history,
+  action_old_wikibox,
+  action_old_wikiboxcss,
+  action_src_wikibox,
+  action_send_wikiboxtext,
+  action_send_wikibox_permissions,
+  action_send_wikipage_css,
+  action_send_wiki_css,
+  pagecss_service,
+  action_create_page,
+  action_create_css
   ) : Wiki_widgets_interface.editable_wikibox =
 object (self)
 
@@ -135,6 +137,7 @@ object (self)
 
   val editform_class = "wikibox editform"
   val history_class = "wikibox history"
+  val css_history_class = "wikibox history"
   val editable_class = "wikibox editable"
   val oldwikibox_class = "wikibox editable oldversion"
   val srcwikibox_class = "wikibox editable src"
@@ -148,36 +151,59 @@ object (self)
     | Wiki_services.Action_failed _ -> "Action failed"
 
   method private box_menu ~sp ?(perm = false) ?cssmenu ?service ?(title = "") ((wiki, _) as ids) =
-    let history = Eliom_services.preapply action_wikibox_history ids
-    and edit = Eliom_services.preapply action_edit_wikibox ids
-    and delete = Eliom_services.preapply action_delete_wikibox ids
-    and edit_perm = Eliom_services.preapply action_edit_wikibox_permissions ids
+    let preapply = Eliom_services.preapply in
+    let history = preapply action_wikibox_history ids
+    and edit = preapply action_edit_wikibox ids
+    and delete = preapply action_delete_wikibox ids
+    and edit_perm = preapply action_edit_wikibox_permissions ids
     in
     let view = Eliom_services.void_coservice' in
-    let edit_css =
-      match cssmenu with
-        | Some (Some page) ->
-            let cssedit = Eliom_services.preapply
-              service_edit_wikipage_css (wiki, page)
-            in
-            (Some (cssedit, (cssedit, {{ "edit page css" }})))
-        | Some None ->
-            let cssedit = Eliom_services.preapply service_edit_wiki_css wiki
-            in
-            (Some (cssedit, (cssedit, {{ "edit wiki css" }})))
-        | None -> None
-    in
+    (match cssmenu with
+       | Some (Some page) -> (* Edition of the css for page [page] *)
+           (Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
+              | None -> Lwt.return (None, None)
+              | Some box ->
+                  let args = (ids, ((wiki, box), (Some page))) in
+                  let edit = preapply action_edit_css args
+                  and history = preapply action_css_history args
+                  in
+                  Lwt.return
+                    (Some (history, {{ "page css history" }}),
+                     Some (edit, {{ "edit page css" }}))
+           )
+
+       | Some None -> (* Edition of the global css for [wiki] *)
+           (Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
+              | None -> Lwt.return (None, None)
+              | Some box ->
+                  let args = (ids, ((wiki, box), None)) in
+                  let edit = preapply action_edit_css args
+                  and history = preapply action_css_history args
+                  in
+                  Lwt.return
+                    (Some (history, {{ "wiki css history" }}),
+                     Some (edit, {{ "edit wiki css" }}))
+           )
+
+
+       | None -> Lwt.return (None, None)
+    ) >>= fun (history_css, edit_css) ->
     let service = match service with
       | None -> None
       | Some View -> Some view
       | Some Edit -> Some edit
       | Some Edit_perm -> Some edit_perm
+      | Some History -> Some history
       | Some Edit_css ->
           (match edit_css with
              | Some (edit_css, _) -> Some edit_css
              | None -> None
           )
-      | Some History -> Some history
+      | Some History_css ->
+          (match history_css with
+             | Some (history_css, _) -> Some history_css
+             | None -> None
+          )
     in
     let l = [
       (delete, {{ "delete" }});
@@ -190,15 +216,19 @@ object (self)
       else l
     in
     let l = match edit_css with
-      | Some (_, mi) -> mi::l
+      | Some mi -> mi::l
+      | None -> l
+    in
+    let l = match history_css with
+      | Some mi -> mi :: l
       | None -> l
     in
     let title = Ocamlduce.Utf8.make title in
-    {{ [ {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
-            (history, {{ "history" }}) l ?service :}
-         <p class={: box_title_class :}>title
-       ]
-     }}
+    Lwt.return
+      {{ [ {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
+              (history, {{ "history" }}) l ?service :}
+           <p class={: box_title_class :}>title
+         ]  }}
 
   method display_menu_box ~classe ?service ?cssmenu ?title ~bi ids content =
     let sp = bi.bi_sp in
@@ -207,10 +237,11 @@ object (self)
     Wiki.get_role ~sp ~sd ids
     >>= fun role ->
     let perm = role = Wiki.Admin in
-    Lwt.return
+    self#box_menu ~sp ~perm ?cssmenu ?service ?title ids >>=
+    fun menu -> Lwt.return
       {{ <div class={: classe :}>[
-         !{: self#box_menu ~sp ~perm ?cssmenu ?service ?title ids :}
-         <div>content ]}}
+           !menu
+           <div>content ]}}
 
 
   (* Wikitext in editing mode *)
@@ -292,7 +323,8 @@ object (self)
 
 
   (* Wikicssbox in editing mode *)
-  method private display_css_edit_form ~bi ?(rows=25) ?(cols=80) (wiki_id, message_id as wikibox) (content, boxversion) =
+  method display_css_edit_form ~bi ?(rows=25) ?(cols=80) (wiki_id, message_id as wikibox) (_, content, boxversion) =
+Ocsigen_messages.debug2 "*****FORM*****";
     let content = match content with
       | None -> "/* Deleted CSS */"
       | Some content -> content
@@ -335,16 +367,6 @@ object (self)
     Lwt.return
       {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
                 ~service:action_send_wikiboxtext ~sp draw_form () :} ] }}
-
-
-  method private display_wikibox_edit_form ~bi ?(rows=25) ?(cols=80) wikibox (content_type, content, boxversion) =
-    match content_type with
-      | Wiki_sql.WikiCreole ->
-          self#display_wikitext_edit_form_help ~bi ~rows ~cols ~previewonly:true
-            wikibox (content, boxversion)
-      | Wiki_sql.Css ->
-          self#display_css_edit_form ~bi ~rows ~cols
-            wikibox (content, boxversion)
 
 
   (* Edition of the permissions of a wiki *)
@@ -421,12 +443,25 @@ object (self)
     let title = Printf.sprintf "History - Wiki %s, box %ld" (wiki_id_s w) b in
     self#display_menu_box_aux ~title ~service:History history_class wb
 
+  (* XXX add page / wiki information ? *)
+  method private display_csshistory_box ((w, _) as wb) page =
+    let title = Printf.sprintf "CSS history, wiki %s, %s"
+      (wiki_id_s w) (self#css_wikibox_text page)
+    in
+    self#display_menu_box_aux ~title ~service:History_css css_history_class wb
+
   method private display_editable_box =
     self#display_menu_box_aux ~service:View editable_class
 
   method private display_old_wikibox (w, b as wb) version =
     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"
       (wiki_id_s w) b version
+    in
+    self#display_menu_box_aux ~title oldwikibox_class wb
+
+  method private display_old_css ((w, _) as wb) page =
+    let title = Printf.sprintf "Old css version, wiki %s, %s"
+      (wiki_id_s w) (self#css_wikibox_text page)
     in
     self#display_menu_box_aux ~title oldwikibox_class wb
 
@@ -438,15 +473,15 @@ object (self)
 
   method private display_edit_css_box ((w, _) as wb) page =
     let title = Printf.sprintf "CSS for wiki %s, %s"
-      (wiki_id_s w) (if page = "" then "main page" else "page " ^ page)
+      (wiki_id_s w) (self#css_wikibox_text page)
     in
     self#display_menu_box_aux ~title ~service:Edit_css css_class wb
 
-  method private display_edit_wikicss_box ((w, _) as wb) =
-    let title = Printf.sprintf "CSS for wiki %s (global stylesheet)"
-      (wiki_id_s w)
-    in
-    self#display_menu_box_aux ~title ~service:Edit_css css_class wb
+  method private css_wikibox_text = function
+    | None -> "global stylesheet"
+    | Some "" -> "main page"
+    | Some page ->  "page " ^ page
+
 
   method display_history ~classe ~bi ids l =
     let sp = bi.bi_sp in
@@ -473,6 +508,25 @@ object (self)
     >>= fun l ->
     Lwt.return (classe, {{ map {: l :} with i -> i }})
 
+  method display_csshistory ~bi wb wbcss l =
+    let sp = bi.bi_sp in
+    Lwt_util.map
+      (fun (version, _comment, author, date) ->
+         Users.get_user_fullname_by_id author
+         >>= fun author ->
+           Lwt.return
+             {{ [ !{: Int32.to_string version :}'. '
+                  !{: CalendarLib.Printer.Calendar.to_string date :}' '
+                  <em>[ 'by ' !{: author :} ]' '
+                  {:  Eliom_duce.Xhtml.a ~sp ~service:action_old_wikiboxcss
+                     {{ "view" }} (wb, (wbcss, version)) :}
+                  <br>[]
+                ]
+              }})
+      l
+    >>= fun l ->
+    Lwt.return {{ map {: l :} with i -> i }}
+
   (* Display a wikibox, plus some potentials actions on the wikibox, which
      are extracted from sp. This function returns the wikibox, as well
      as a boolean indicating whether the page is correctly displayed, or
@@ -494,7 +548,7 @@ object (self)
       | Wiki.Admin
       | Wiki.Author ->
           (match action with
-             | Some (Wiki_services.Edit_box i) when i = data ->
+             | Some (Wiki_services.EditBox i) when i = data ->
                  self#bind_or_display_error
                    (Wiki.retrieve_wikibox_aux data)
                    (self#display_full_edit_form ~bi ?cols ?rows
@@ -503,7 +557,15 @@ object (self)
                  >>= fun r ->
                  Lwt.return (r, true)
 
-             | Some (Wiki_services.Edit_perm i) when i = data ->
+             | Some (Wiki_services.EditCss (i, (wbcss, page))) when i = data ->
+                 self#bind_or_display_error ~classe
+                   (Wiki.retrieve_wikibox_aux wbcss)
+                   (self#display_css_edit_form ~bi ?cols ?rows wbcss)
+                   (self#display_edit_css_box ~bi ?cssmenu data page)
+                 >>= fun r ->
+                 Lwt.return (r, true)
+
+             | Some (Wiki_services.EditPerms i) when i = data ->
                  self#bind_or_display_error
                    (Lwt.return data)
                    (self#display_edit_perm_form ~bi ~classe)
@@ -513,8 +575,8 @@ object (self)
 
              | Some (Wiki_services.PreviewWikitext (i, (content, version))) when i = data ->
                  self#bind_or_display_error
-                   (Lwt.return (Some content, version))
-                   (fun (content, version as cv) ->
+                   (Lwt.return (Wiki_sql.WikiCreole, Some content, version))
+                   (fun (_, content, version as cv) ->
                       self#display_wikiboxcontent wiki_id
                         (Wiki_widgets_interface.add_ancestor_bi data bi) cv
                       >>= fun pp ->
@@ -541,6 +603,14 @@ object (self)
                  >>= fun r ->
                  Lwt.return (r, true)
 
+             | Some (Wiki_services.CssHistory (i, (cssbox, page))) when i = data ->
+                 self#bind_or_display_error ~classe
+                   (Wiki_sql.get_history cssbox)
+                   (self#display_csshistory ~bi i (cssbox, page))
+                   (self#display_csshistory_box ~bi ?cssmenu i page)
+                 >>= fun r ->
+                 Lwt.return (r, true)
+
              | Some (Wiki_services.Oldversion (i, version)) when i = data ->
                  self#bind_or_display_error
                    (Wiki.retrieve_wikibox_aux ~version data)
@@ -550,6 +620,16 @@ object (self)
                       ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
                    )
                    (self#display_old_wikibox ~bi ?cssmenu data version)
+                 >>= fun r ->
+                 Lwt.return (r, true)
+
+             | Some (Wiki_services.CssOldversion (i, (icss, page), version)) when i = data ->
+                 self#bind_or_display_error ~classe
+                   (Wiki.retrieve_wikibox_aux ~version icss)
+                   (self#display_wikiboxcontent ~wiki:wiki_id
+                      ~bi:(Wiki_widgets_interface.add_ancestor_bi data bi)
+                   )
+                   (self#display_old_css ~bi ?cssmenu data page)
                  >>= fun r ->
                  Lwt.return (r, true)
 
@@ -572,8 +652,6 @@ object (self)
                  >>= fun r ->
                  Lwt.return (r, true)
 
-             | Some (Wiki_services.Delete_Box i) when i = data -> assert false
-
              | _ ->
                    (* No action, or the action does not concern this page.
                       We simply display the wikipage itself *)
@@ -589,7 +667,8 @@ object (self)
 
         | Wiki.Lurker ->
             (match action with
-               | Some (Wiki_services.Edit_box i)
+                 (* XXX update below with correct rights *)
+               | Some (Wiki_services.EditBox i)
                | Some (Wiki_services.History i)
                | Some (Wiki_services.Oldversion (i, _))
                | Some (Wiki_services.Error (i, _)) when i = data ->
@@ -630,7 +709,7 @@ object (self)
      self#editable_wikibox_aux ~bi ~data ?rows ?cols ~classe ?cssmenu ()
      >>= fun (r, _allowed) -> Lwt.return r
 
-
+(*
    method display_edit_css_form ~classe ~bi ?(rows=25) ?(cols=80) ~data:(wiki_id, page) content =
      let sp = bi.bi_sp in
      let draw_form ((wikiidname, pagename), contentname) =
@@ -646,11 +725,11 @@ object (self)
             ]] }}
      in
      Lwt.return
-       (classe,
-        {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-               ~service:action_send_wikipage_css
-               ~sp draw_form () :}] }})
+       {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wikipage_css
+              ~sp draw_form () :}] }}
 
+(*
    method edit_css_box ~bi ~data ?rows ?cols ?(classe=[]) ()  =
      let sp = bi.bi_sp in
      let sd = bi.bi_sd in
@@ -703,6 +782,8 @@ object (self)
        (self#display_edit_wikicss_form ~classe ~bi ?rows ?cols ~wiki)
        (self#display_edit_wikicss_box ~bi ?cssmenu:(Some None)
           (wiki, wiki_info.wiki_container))
+*)
+
 
    method get_css_header ~bi ~wiki ?(admin=false) ?page () =
      let sp = bi.bi_sp in

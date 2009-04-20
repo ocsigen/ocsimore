@@ -35,19 +35,29 @@ type wiki_errors =
   | Operation_not_allowed
 
 exception Not_css_editor
+exception Css_already_exists
 
 type wiki_action_info =
-  | Edit_box of wikibox
-  | Edit_perm of wikibox
+  | EditBox of wikibox
+  | EditPerms of wikibox
   | History of wikibox
   | Oldversion of (wikibox * int32)
   | Src of (wikibox * int32)
   | Error of (wikibox * wiki_errors)
-  | Delete_Box of wikibox
-(* The second uple is the content of the wikibox, and the version number of the
+(* Preview of a wikibox containing wikitext.
+   The second uple is the content of the wikibox, and the version number of the
    wikibox *when the edition started*. This is used to display a warning in case
    of concurrent edits*)
   | PreviewWikitext of (wikibox * (string * int32))
+  (* Actions related to CSS. The first wikibox is the wikibox in which
+     the action takes place. The second wikibox is the wikibox holding
+     the css. The string option contains the page, or None if the css
+     is for a wiki *)
+  | EditCss of (wikibox * (wikibox  * string option))
+  | CssHistory of (wikibox * (wikibox * string option))
+  | CssOldversion of wikibox * (wikibox * string option) * int32
+
+
 
 exception Wiki_action_info of wiki_action_info
 
@@ -189,6 +199,10 @@ let ( ** ) = Eliom_parameters.prod
 let eliom_wiki_args = Wiki_sql.eliom_wiki "wikiid"
 let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "boxid")
 let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
+let eliom_css_args =
+  (Wiki_sql.eliom_wiki "wikiidcss" ** (Eliom_parameters.int32 "boxidcss"))
+  ** (Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
+
 
 
 
@@ -316,17 +330,14 @@ let service_edit_wikibox = Eliom_services.new_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
   ~get_params:eliom_wikibox_args ()
 
-
-and service_edit_wikipage_css = Eliom_services.new_coservice'
-    ~name:"css_edit" ~get_params:eliom_wikipage_args ()
-
-and service_edit_wiki_css = Eliom_services.new_coservice'
-  ~name:"wiki_css_edit" ~get_params:eliom_wiki_args ()
+and action_edit_css = Eliom_predefmod.Actions.register_new_coservice'
+  ~name:"css_edit" ~get_params:(eliom_wikibox_args ** eliom_css_args)
+  (fun _sp args () -> Lwt.return [Wiki_action_info (EditCss args)])
 
 and action_edit_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_edit" ~get_params:eliom_wikibox_args
   (fun _sp wbox () ->
-     Lwt.return [Wiki_action_info (Edit_box wbox)])
+     Lwt.return [Wiki_action_info (EditBox wbox)])
 
 and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
@@ -345,17 +356,28 @@ and action_edit_wikibox_permissions =
        >>= fun role ->
          if role = Wiki.Admin then
            Lwt.return [Ocsimore_common.Session_data sd;
-                       Wiki_action_info (Edit_perm wbox)]
+                       Wiki_action_info (EditPerms wbox)]
          else Lwt.return [Ocsimore_common.Session_data sd])
 
 and action_wikibox_history = Eliom_predefmod.Actions.register_new_coservice'
-  ~name:"wiki_history" ~get_params:eliom_wikibox_args
+  ~name:"wikibox_history" ~get_params:eliom_wikibox_args
   (fun _sp g () -> Lwt.return [Wiki_action_info (History g)])
+
+and action_css_history = Eliom_predefmod.Actions.register_new_coservice'
+  ~name:"css_history" ~get_params:(eliom_wikibox_args ** eliom_css_args)
+  (fun _sp args () -> Lwt.return [Wiki_action_info (CssHistory args)])
 
 and action_old_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_old_version"
   ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
   (fun _sp g () -> Lwt.return [Wiki_action_info (Oldversion g)])
+
+and action_old_wikiboxcss = Eliom_predefmod.Actions.register_new_coservice'
+  ~name:"css_old_version"
+  ~get_params:(eliom_wikibox_args **
+                 (eliom_css_args ** (Eliom_parameters.int32 "version")))
+  (fun _sp (wb, (wbcss, version)) () ->
+     Lwt.return [Wiki_action_info (CssOldversion (wb, wbcss, version))])
 
 and action_src_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_src"
@@ -501,25 +523,58 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
        | false ->  Lwt.fail Ocsimore_common.Permission_denied
   )
 
-in
-(service_edit_wikibox,
- service_edit_wikipage_css,
- service_edit_wiki_css,
- action_edit_wikibox,
- action_delete_wikibox,
- action_edit_wikibox_permissions,
- action_wikibox_history,
- action_old_wikibox,
- action_src_wikibox,
- action_send_wikiboxtext,
- action_send_wikibox_permissions,
- action_send_wikipage_css,
- action_send_wiki_css,
- pagecss_service,
- action_create_page)
+and action_create_css = Eliom_predefmod.Actions.register_new_post_coservice'
+  ~name:"wiki_create_css"
+  ~post_params:(eliom_wiki_args **
+                  (Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
+  (fun sp () (wiki, page) ->
+     let sd = Ocsimore_common.get_sd sp in
+     Users.get_user_id ~sp ~sd
+     >>= fun userid ->
+     (* XXX rights *)
+     let text = Some "" (* empty CSS by default *) in
+     match page with
+       | None -> (* Global CSS for the wiki *)
+           (Wiki_sql.get_css_for_wiki wiki >>= function
+              | None ->
+                  Wiki_sql.set_css_for_wiki ~wiki ~author:userid text
+                  >>= fun () ->
+                  Lwt.return [Ocsimore_common.Session_data sd]
+              | Some _ -> Lwt.fail Css_already_exists
+           )
+
+       | Some page -> (* Global CSS for the wiki *)
+           Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
+             | None ->
+                 Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:userid text
+                 >>= fun () ->
+                 Lwt.return [Ocsimore_common.Session_data sd]
+             | Some _ -> Lwt.fail Css_already_exists
+  )
 
 
-let register_services (service_edit_wikibox, service_edit_wikipage_css, service_edit_wiki_css, _, _, _, _, _, _, _, _, _, _, _, _) (wikibox_widget : Wiki_widgets_interface.editable_wikibox) =
+in (
+  service_edit_wikibox,
+  action_edit_css,
+  action_edit_wikibox,
+  action_delete_wikibox,
+  action_edit_wikibox_permissions,
+  action_wikibox_history,
+  action_css_history,
+  action_old_wikibox,
+  action_old_wikiboxcss,
+  action_src_wikibox,
+  action_send_wikiboxtext,
+  action_send_wikibox_permissions,
+  action_send_wikipage_css,
+  action_send_wiki_css,
+  pagecss_service,
+  action_create_page,
+  action_create_css
+)
+
+
+let register_services (service_edit_wikibox, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) (wikibox_widget : Wiki_widgets_interface.editable_wikibox) =
 
   Eliom_duce.Xhtml.register service_edit_wikibox
     (fun sp ((w, _b) as g) () ->
@@ -542,7 +597,7 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
        >>= fun css ->
          Lwt.return (wikibox_widget#container ~css {{ [ page ] }})
     );
-
+(*
   Eliom_duce.Xhtml.register service_edit_wikipage_css
     (fun sp ((wiki, page) as g) () ->
        let sd = Ocsimore_common.get_sd sp in
@@ -582,3 +637,4 @@ let register_services (service_edit_wikibox, service_edit_wikipage_css, service_
        Lwt.return (wikibox_widget#container ~css {{ [ pagecontent ] }})
     )
 
+*)
