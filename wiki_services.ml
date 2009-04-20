@@ -53,7 +53,7 @@ type wiki_action_info =
      the action takes place. The second wikibox is the wikibox holding
      the css. The string option contains the page, or None if the css
      is for a wiki *)
-  | EditCss of (wikibox * (wikibox  * string option))
+  | EditCss of ((wikibox * (wikibox  * string option)) *(string * int32) option)
   | CssHistory of (wikibox * (wikibox * string option))
   | CssOldversion of wikibox * (wikibox * string option) * int32
 
@@ -326,12 +326,11 @@ let save_wikibox_aux ~sp ~sd ~wikibox ~enough_rights ~content ~content_type =
 
 let services () =
 
-let service_edit_wikibox = Eliom_services.new_service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
-  ~get_params:eliom_wikibox_args ()
-
-and action_edit_css = Eliom_predefmod.Actions.register_new_coservice'
-  ~name:"css_edit" ~get_params:(eliom_wikibox_args ** eliom_css_args)
+let action_edit_css = Eliom_predefmod.Actions.register_new_coservice'
+  ~name:"css_edit"
+  ~get_params:((eliom_wikibox_args ** eliom_css_args) **
+                 (Eliom_parameters.opt (Eliom_parameters.string "css" **
+                                          Eliom_parameters.int32 "version")))
   (fun _sp args () -> Lwt.return [Wiki_action_info (EditCss args)])
 
 and action_edit_wikibox = Eliom_predefmod.Actions.register_new_coservice'
@@ -385,15 +384,12 @@ and action_src_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   (fun _sp g () -> Lwt.return [Wiki_action_info (Src g)])
 
 and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
-  ~keep_get_na_params:false ~name:"wiki_send"
+  ~keep_get_na_params:false ~name:"wiki_save_wikitext"
   ~post_params:
   (Eliom_parameters.string "actionname" **
-     (((Wiki_sql.eliom_wiki "wikiid" **
-          (Eliom_parameters.int32 "boxid" **
-             Eliom_parameters.int32 "boxversion")
-       ) **
-         Eliom_parameters.string "content")))
-  (fun sp () (actionname, (((wiki_id, (box_id, boxversion)), content))) ->
+     ((eliom_wikibox_args ** Eliom_parameters.int32 "boxversion") **
+        Eliom_parameters.string "content"))
+  (fun sp () (actionname, (((wiki_id, box_id), boxversion), content)) ->
      let wikibox = (wiki_id, box_id) in
      (* We always show a preview before saving. Moreover, we check that the
         wikibox that the wikibox has not been modified in parallel of our
@@ -418,6 +414,30 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
            [Wiki_action_info (PreviewWikitext (wikibox, (content, boxversion)))]
       )
 
+and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
+  ~keep_get_na_params:false ~name:"wiki_save_css"
+  ~post_params:
+  ((eliom_wikibox_args ** (eliom_css_args **
+                             Eliom_parameters.int32 "boxversion")) **
+     Eliom_parameters.string "content")
+  (fun sp () (((wiki_id, box_id), ((wbcss, page), boxversion)), content) ->
+     (* We always show a preview before saving. Moreover, we check that the
+        wikibox that the wikibox has not been modified in parallel of our
+        modifications. If this is the case, we also show a warning *)
+     Wiki.modified_wikibox wbcss boxversion
+     >>= fun modified ->
+       match modified with
+         | None ->
+             let sd = Ocsimore_common.get_sd sp in
+             save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
+               ~sp ~sd ~wikibox:wbcss
+               ~content:(Some content) ~content_type:Wiki_sql.Css
+         | Some _ ->
+             Eliom_predefmod.Action.send ~sp
+               [Wiki_action_info (EditCss (((wiki_id, box_id), (wbcss, page)),
+                                           Some (content, boxversion)))]
+  )
+
 and action_send_wikibox_permissions =
   Eliom_predefmod.Any.register_new_post_coservice'
     ~keep_get_na_params:true
@@ -437,35 +457,6 @@ and action_send_wikibox_permissions =
        let sd = Ocsimore_common.get_sd sp in
        Wiki.save_wikibox_permissions sp sd p >>= fun () ->
        Eliom_predefmod.Redirection.send ~sp  Eliom_services.void_hidden_coservice'
-    )
-
-and action_send_wikipage_css =
-  Eliom_predefmod.Redirection.register_new_post_coservice'
-    ~keep_get_na_params:false ~name:"css_send"
-    ~post_params:(eliom_wikipage_args ** Eliom_parameters.string "content")
-    (fun sp () ((wiki, page), content) ->
-       let sd = Ocsimore_common.get_sd sp in
-       Users.get_user_data sp sd
-       >>= fun user ->
-       Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:user.Users.id
-         (Some content)
-       >>= fun () ->
-       Lwt.return Eliom_services.void_coservice'
-    )
-
-and action_send_wiki_css =
-  Eliom_predefmod.Redirection.register_new_post_coservice'
-    ~keep_get_na_params:false
-    ~name:"wiki_css_send"
-    ~post_params:
-    (Wiki_sql.eliom_wiki "wikiid" ** Eliom_parameters.string "content")
-    (fun sp () (wiki, content) ->
-       let sd = Ocsimore_common.get_sd sp in
-       Users.get_user_data sp sd
-       >>= fun user ->
-       Wiki_sql.set_css_for_wiki ~wiki ~author:user.Users.id
-         (Some content) >>= fun () ->
-       Lwt.return Eliom_services.void_coservice'
     )
 
 (* Below are the services for the css of wikis and wikipages.  The css
@@ -554,7 +545,6 @@ and action_create_css = Eliom_predefmod.Actions.register_new_post_coservice'
 
 
 in (
-  service_edit_wikibox,
   action_edit_css,
   action_edit_wikibox,
   action_delete_wikibox,
@@ -565,76 +555,9 @@ in (
   action_old_wikiboxcss,
   action_src_wikibox,
   action_send_wikiboxtext,
+  action_send_css,
   action_send_wikibox_permissions,
-  action_send_wikipage_css,
-  action_send_wiki_css,
   pagecss_service,
   action_create_page,
   action_create_css
 )
-
-
-let register_services (service_edit_wikibox, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _) (wikibox_widget : Wiki_widgets_interface.editable_wikibox) =
-
-  Eliom_duce.Xhtml.register service_edit_wikibox
-    (fun sp ((w, _b) as g) () ->
-       let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_widgets_interface.bi_sp = sp;
-                  bi_sd = sd;
-                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                  bi_subbox = None;
-                }
-       in
-       wikibox_widget#editable_wikibox ~bi ~data:g ~rows:30 ()
-       >>= fun subbox ->
-       get_admin_wiki () >>= fun admin_wiki ->
-       let bi = { bi with Wiki_widgets_interface.bi_subbox =
-           Some {{ [ subbox ] }} } in
-       wikibox_widget#editable_wikibox ~bi ?cssmenu:(Some None)
-         ~data:(admin_wiki.wiki_id, admin_wiki.wiki_container)  ()
-       >>= fun page ->
-       wikibox_widget#get_css_header ~admin:true ~bi ~wiki:w ?page:None ()
-       >>= fun css ->
-         Lwt.return (wikibox_widget#container ~css {{ [ page ] }})
-    );
-(*
-  Eliom_duce.Xhtml.register service_edit_wikipage_css
-    (fun sp ((wiki, page) as g) () ->
-       let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_widgets_interface.bi_sp = sp;
-                  bi_sd = sd;
-                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                  bi_subbox = None;
-                }
-       in
-       Wiki_sql.get_wiki_info_by_id wiki
-       >>= fun wiki_info ->
-       wikibox_widget#edit_css_box ~bi ~rows:30 ~data:g ()
-       >>= fun subbox ->
-       let bi = { bi with Wiki_widgets_interface.bi_subbox =
-           Some {{ [ subbox ] }} } in
-       wikibox_widget#editable_wikibox ~bi ?cssmenu:(Some None)
-         ~data:(wiki, wiki_info.wiki_container) ()
-       >>= fun pagecontent ->
-       wikibox_widget#get_css_header ~bi ~wiki ?page:(Some page) ()
-       >>= fun css ->
-         Lwt.return (wikibox_widget#container ~css {{ [ pagecontent ] }})
-    );
-
-  Eliom_duce.Xhtml.register service_edit_wiki_css
-    (fun sp wiki () ->
-       let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_widgets_interface.bi_sp = sp;
-                  bi_sd = sd;
-                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                  bi_subbox = None;
-                }
-       in
-       wikibox_widget#edit_wikicss_box ~bi ~rows:30 ~wiki ()
-       >>= fun pagecontent ->
-       wikibox_widget#get_css_header ~admin:true ~bi ~wiki ?page:None ()
-       >>= fun css ->
-       Lwt.return (wikibox_widget#container ~css {{ [ pagecontent ] }})
-    )
-
-*)

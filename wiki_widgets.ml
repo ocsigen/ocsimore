@@ -112,8 +112,8 @@ end
 
 
 
-class editable_wikibox (
-  service_edit_wikibox,
+class editable_wikibox (* : Wiki_widgets_interface.editable_wikibox = *)
+(
   action_edit_css,
   action_edit_wikibox,
   action_delete_wikibox,
@@ -124,13 +124,13 @@ class editable_wikibox (
   action_old_wikiboxcss,
   action_src_wikibox,
   action_send_wikiboxtext,
+  action_send_css,
   action_send_wikibox_permissions,
-  action_send_wikipage_css,
-  action_send_wiki_css,
   pagecss_service,
   action_create_page,
   action_create_css
-  ) : Wiki_widgets_interface.editable_wikibox =
+) : Wiki_widgets_interface.editable_wikibox =
+(* = Wiki_services.services () in *)
 object (self)
 
   inherit noneditable_wikibox
@@ -164,7 +164,7 @@ object (self)
               | None -> Lwt.return (None, None)
               | Some box ->
                   let args = (ids, ((wiki, box), (Some page))) in
-                  let edit = preapply action_edit_css args
+                  let edit = preapply action_edit_css (args, None)
                   and history = preapply action_css_history args
                   in
                   Lwt.return
@@ -177,7 +177,7 @@ object (self)
               | None -> Lwt.return (None, None)
               | Some box ->
                   let args = (ids, ((wiki, box), None)) in
-                  let edit = preapply action_edit_css args
+                  let edit = preapply action_edit_css (args, None)
                   and history = preapply action_css_history args
                   in
                   Lwt.return
@@ -271,7 +271,7 @@ object (self)
 
        | None -> Lwt.return (boxversion, {{ [] }}, {{ [] }})
     ) >>= fun (curversion, warning1, warning2)  ->
-    let draw_form (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
+    let draw_form (actionname, (((wikiidname, boxidname), wikiboxversion), contentname)) =
       let f =
         {{ [
              {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
@@ -319,17 +319,17 @@ object (self)
     self#display_wikitext_edit_form ~bi ?rows ?cols ~previewonly
         (wiki_id, message_id) (content, boxversion)
    >>= fun f ->
-   Lwt.return (classe, {{ [ b f ] }})
+   Lwt.return {{ [ b f ] }}
 
 
   (* Wikicssbox in editing mode *)
-  method display_css_edit_form ~bi ?(rows=25) ?(cols=80) (wiki_id, message_id as wikibox) (_, content, boxversion) =
+  method display_css_edit_form ~bi ?(rows=25) ?(cols=80) (wiki, wb) (wbcss_wiki, wbcss_wb as wbcss) page (_, content, boxversion) =
 Ocsigen_messages.debug2 "*****FORM*****";
     let content = match content with
       | None -> "/* Deleted CSS */"
       | Some content -> content
     and sp = bi.bi_sp in
-    Wiki.modified_wikibox wikibox boxversion >>=
+    Wiki.modified_wikibox wbcss boxversion >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -343,15 +343,27 @@ Ocsigen_messages.debug2 "*****FORM*****";
 
        | None -> Lwt.return (boxversion, {{ [] }} )
     ) >>= fun (curversion, warning)  ->
-    let draw_form (actionname, (((wikiidname, (boxidname, wikiboxversion)), contentname))) =
+    let draw_form (((wikiname, wbname), (((wikicssname, wbcssname), wikipagename), versionname)), contentname)
+        (*((wikiidname, boxidname), wikiboxversion), contentname*) =
       let f =
         {{ [
              {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-                ~name:wikiidname ~value:wiki_id wiki_id_s :}
+                ~name:wikiname ~value:wiki wiki_id_s :}
              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
-                ~name:boxidname ~value:message_id () :}
+                ~name:wbname ~value:wb () :}
+             {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
+                ~name:wikicssname ~value:wbcss_wiki wiki_id_s :}
              {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
-                ~name:wikiboxversion ~value:curversion () :}
+                ~name:wbcssname ~value:wbcss_wb () :}
+             !{: match page with
+                 | None -> {{ [] }}
+                 | Some page ->
+                     {{ [ {: Eliom_duce.Xhtml.string_input
+                             ~input_type:{: "hidden" :}
+                             ~name:wikipagename ~value:page () :} ] }}
+               :}
+             {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                ~name:versionname ~value:curversion () :}
              {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
                 ~value:(Ocamlduce.Utf8.make content) () :}
              <br>[]
@@ -360,13 +372,13 @@ Ocsigen_messages.debug2 "*****FORM*****";
       in
       {{ [
            <p>[!warning !f
-               !{: [Eliom_duce.Xhtml.string_button ~name:actionname
-                      ~value:"save" {{ "Save" }}] :}
+               !{: [Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                      {{ "Save" }}] :}
               ] ] }}
     in
     Lwt.return
       {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-                ~service:action_send_wikiboxtext ~sp draw_form () :} ] }}
+                ~service:action_send_css ~sp draw_form () :} ] }}
 
 
   (* Edition of the permissions of a wiki *)
@@ -443,7 +455,6 @@ Ocsigen_messages.debug2 "*****FORM*****";
     let title = Printf.sprintf "History - Wiki %s, box %ld" (wiki_id_s w) b in
     self#display_menu_box_aux ~title ~service:History history_class wb
 
-  (* XXX add page / wiki information ? *)
   method private display_csshistory_box ((w, _) as wb) page =
     let title = Printf.sprintf "CSS history, wiki %s, %s"
       (wiki_id_s w) (self#css_wikibox_text page)
@@ -557,10 +568,14 @@ Ocsigen_messages.debug2 "*****FORM*****";
                  >>= fun r ->
                  Lwt.return (r, true)
 
-             | Some (Wiki_services.EditCss (i, (wbcss, page))) when i = data ->
+             | Some (Wiki_services.EditCss ((i, (wbcss, page)), css)) when i = data ->
                  self#bind_or_display_error ~classe
-                   (Wiki.retrieve_wikibox_aux wbcss)
-                   (self#display_css_edit_form ~bi ?cols ?rows wbcss)
+                   (match css with
+                      | None -> Wiki.retrieve_wikibox_aux wbcss
+                      | Some (content, version) ->
+                          Lwt.return (Wiki_sql.Css, Some content, version)
+                   )
+                   (self#display_css_edit_form ~bi ?cols ?rows data wbcss page)
                    (self#display_edit_css_box ~bi ?cssmenu data page)
                  >>= fun r ->
                  Lwt.return (r, true)
@@ -710,7 +725,7 @@ Ocsigen_messages.debug2 "*****FORM*****";
      >>= fun (r, _allowed) -> Lwt.return r
 
 (*
-   method display_edit_css_form ~classe ~bi ?(rows=25) ?(cols=80) ~data:(wiki_id, page) content =
+   method display_edit_css_form ~bi ?(rows=25) ?(cols=80) ~data:(wiki_id, page) content =
      let sp = bi.bi_sp in
      let draw_form ((wikiidname, pagename), contentname) =
        {{ [<p>[
@@ -739,16 +754,16 @@ Ocsigen_messages.debug2 "*****FORM*****";
      Users.in_group ~sp ~sd ~user:userid ~group:editors () >>= fun c ->
      Wiki_sql.get_box_for_page wiki page
      >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
-     self#bind_or_display_error
+     self#bind_or_display_error ~classe
        (if c then
           Wiki_sql.get_css_for_wikipage wiki page >>= function
             | Some css -> Lwt.return css
             | None -> Lwt.return ""
         else Lwt.fail Wiki_services.Not_css_editor)
-       (self#display_edit_css_form ~classe ~bi ?rows ?cols ~data)
+       (self#display_edit_css_form ~bi ?rows ?cols ~data)
        (self#display_edit_css_box ~bi ~cssmenu:(Some page) (wiki', box) page)
 
-   method display_edit_wikicss_form ~classe ~bi ?(rows=25) ?(cols=80) ~wiki (content : string) =
+   method display_edit_wikicss_form ~bi ?(rows=25) ?(cols=80) ~wiki (content : string) =
      let sp = bi.bi_sp in
      let draw_form (wikiidname, contentname) =
        {{ [<p>[
@@ -761,9 +776,8 @@ Ocsigen_messages.debug2 "*****FORM*****";
             ]] }}
      in
      Lwt.return
-       (classe,
-        {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-               ~service:action_send_wiki_css ~sp draw_form () :}] }})
+       {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wiki_css ~sp draw_form () :}] }}
 
    method edit_wikicss_box ~bi ~wiki ?rows ?cols ?(classe=[]) () =
      let sp = bi.bi_sp in
@@ -773,13 +787,13 @@ Ocsigen_messages.debug2 "*****FORM*****";
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      Users.in_group ~sp ~sd ~user:userid ~group:editors ()
      >>= fun c ->
-     self#bind_or_display_error
+     self#bind_or_display_error ~classe
        (if c then
           Wiki_sql.get_css_for_wiki wiki >>= function
             | None -> Lwt.return ""
             | Some css -> Lwt.return css
         else Lwt.fail Wiki_services.Not_css_editor)
-       (self#display_edit_wikicss_form ~classe ~bi ?rows ?cols ~wiki)
+       (self#display_edit_wikicss_form ~bi ?rows ?cols ~wiki)
        (self#display_edit_wikicss_box ~bi ?cssmenu:(Some None)
           (wiki, wiki_info.wiki_container))
 *)

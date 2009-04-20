@@ -176,7 +176,8 @@ class type virtual editable_wikibox =
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
-      wikibox -> Wiki_sql.wikibox_content_type * string option * int32 ->
+      wikibox -> wikibox -> string option ->
+      Wiki_sql.wikibox_content_type * string option * int32 ->
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_edit_perm_form :

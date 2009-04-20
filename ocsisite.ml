@@ -117,8 +117,34 @@ let wikibox_widget =
      Lwt.return (new Wiki_widgets.editable_wikibox services)
     )
 
-(** And register the services for the wiki *)
-let () = Wiki_services.register_services services wikibox_widget
+(** We register the auxiliary services *)
+
+let service_edit_wikibox = Eliom_services.new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
+  ~get_params:Wiki_services.eliom_wikibox_args ()
+
+let () =
+  Eliom_duce.Xhtml.register service_edit_wikibox
+    (fun sp ((w, _b) as g) () ->
+       let sd = Ocsimore_common.get_sd sp in
+       let bi = { Wiki_widgets_interface.bi_sp = sp;
+                  bi_sd = sd;
+                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
+                  bi_subbox = None;
+                }
+       in
+       wikibox_widget#editable_wikibox ~bi ~data:g ~rows:30 ()
+       >>= fun subbox ->
+       Wiki_services.get_admin_wiki () >>= fun admin_wiki ->
+       let bi = { bi with Wiki_widgets_interface.bi_subbox =
+           Some {{ [ subbox ] }} } in
+       wikibox_widget#editable_wikibox ~bi ?cssmenu:(Some None)
+         ~data:(admin_wiki.wiki_id, admin_wiki.wiki_container)  ()
+       >>= fun page ->
+       wikibox_widget#get_css_header ~admin:true ~bi ~wiki:w ?page:None ()
+       >>= fun css ->
+         Lwt.return (wikibox_widget#container ~css {{ [ page ] }})
+    )
 
 
 
