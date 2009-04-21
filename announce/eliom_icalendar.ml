@@ -25,7 +25,7 @@ let result_of_content c =
 module Reg_ = struct
   type page = Icalendar.t
   type options
-  let send ?options ?(cookies=[]) ?charset ?code ~sp content =
+  let send ?options:_options ?cookies:(_cookies=[]) ?charset:_charset ?code:_code ~sp:_sp content =
     Lwt.return (Eliom_services.EliomResult (result_of_content content))
 end
 

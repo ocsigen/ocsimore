@@ -61,7 +61,7 @@ let dl def l =
   Common.opt def
     (fun x r ->{{ [<dl>[!x !(map {:r:} with s -> s)]] }}) l
 
-let format_events sp sd events =
+let format_events sp _sd events =
   Common.lwt_map
     (fun (start, finish, id, name, room, location) ->
        let loc =
@@ -74,7 +74,7 @@ let format_events sp sd events =
            Format.sprintf " (%s, %s)" room location
        in
        Event_sql.find_event id
-           >>= fun {start = date; room = room; title = title; description = abstract} ->
+           >>= fun {start = _date; room = _room; title = title; description = _abstract} ->
        Event_sql.find_speakers id >>= fun speakers ->
        let desc =
          format_entry_short Seminaire.events sp id title speakers in

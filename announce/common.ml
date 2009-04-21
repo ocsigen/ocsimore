@@ -68,7 +68,7 @@ let _ =
     Eliom_predefmod.CssText.register_new_service
       ~path:["talks"; "__ocsiwikicss"]
       ~get_params:Eliom_parameters.unit
-      (fun sp () () -> Wiki_services.wikicss_service_handler wiki_id ())
+      (fun _sp () () -> Wiki_services.wikicss_service_handler wiki_id ())
   in
   Wiki_services.add_servwikicss wiki_id wikicss_service
 

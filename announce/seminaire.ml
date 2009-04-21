@@ -120,8 +120,8 @@ let talk_editor path service arg sp
       (Time.Period.to_minutes
          (Calendar.Period.to_time (Calendar.sub finish start)) +. 0.5)
   in
-  let page sp arg error form =
-   Common.wiki_page path sp {{ [] }} (fun sp sd ->
+  let page sp _arg error form =
+   Common.wiki_page path sp {{ [] }} (fun _sp _sd ->
     let txt =
       if error then "Erreur" else (cat.cat_name ^ ": nouvel événement") in
     Lwt.return
@@ -171,7 +171,7 @@ let talk_editor path service arg sp
           (Xform.submit_button "Valider" @@ Xform.submit_button "Annuler")
         |> (fun ((start, duration), ((room, location),
                  (persons, (title, (description, (comment, (status,
-                 (validate, cancel)))))))) sp ->
+                 (_validate, _cancel)))))))) _sp ->
               let finish =
                 Calendar.add start (Calendar.Period.minute duration)
               in
@@ -282,7 +282,7 @@ let events =
        (*XXX Validate *)
        let id = Int32.of_string id in
        Event_sql.find_event id
-           >>= fun {category = cat_id; start = date; room = room; title = title; description = abstract} ->
+           >>= fun {category = cat_id; start = date; room = _room; title = title; description = abstract} ->
        Event_sql.find_speakers id >>= fun speakers ->
        Event_sql.find_category_by_id cat_id
            >>= fun cat ->
@@ -472,7 +472,7 @@ let groupes =
     ~path ~get_params:P.unit
     (fun sp () () ->
        Common.wiki_page path sp {{ [] }}
-         (fun sp sd ->
+         (fun sp _sd ->
             Seminaire_sql.find_categories () >>= fun cat ->
             let l =
               List.map
