@@ -195,7 +195,8 @@ let gen sp =
                         (* We then register the wiki at the correct url *)
                         Wiki_services.register_wiki ~sp
                           ~path:(wiki_path userdata.Users.name)
-                          ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
+                          ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ();
+                        Lwt.return ()
                     | e -> Lwt.fail e)
         )
         >>= fun () ->
@@ -214,13 +215,14 @@ let () =
   Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = title } ->
-        match Netstring_pcre.string_match regexp title 0 with
-          | Some result ->
-              let user = Netstring_pcre.matched_group result 1 title in
-              Wiki_services.register_wiki ~path:(wiki_path user)
-                ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
-          | None ->
-              Lwt.return ()
+        (match Netstring_pcre.string_match regexp title 0 with
+           | Some result ->
+               let user = Netstring_pcre.matched_group result 1 title in
+               Wiki_services.register_wiki ~path:(wiki_path user)
+                 ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
+           | None -> ()
+        );
+        Lwt.return ()
      )
   )
 

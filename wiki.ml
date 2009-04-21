@@ -366,12 +366,16 @@ let modified_wikibox ~wikibox ~boxversion =
 exception Unknown_box of wikibox
 
 
-let retrieve_wikibox_aux ?version wikibox =
+let wikibox_content ?version wikibox =
   Wiki_sql.get_wikibox_data ?version ~wikibox ()
   >>= fun result ->
   match result with
     | None -> Lwt.fail Not_found
     | Some (_com, _a, cont, _d, ct, ver) -> Lwt.return (ct, cont, ver)
+
+let wikibox_content' ?version wikibox =
+  wikibox_content ?version wikibox >>= fun (_, cont, ver) ->
+  Lwt.return (cont, ver)
 
 
 let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =

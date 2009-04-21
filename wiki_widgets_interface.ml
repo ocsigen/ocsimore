@@ -21,53 +21,60 @@
 
 open Wiki_sql.Types
 
+
+(** This module declares the interface for the widget that is used
+    to display wikiboxes, as well a few related types and functions.
+    The widget itself is defined in wiki_widgets.ml
+*)
+
 (*********************************************************************)
 
+module Ancestors : sig
+
 (** Type used to avoid wikibox loops *)
+type ancestors
+val no_ancestors : ancestors
+val in_ancestors : wikibox -> ancestors -> bool
+val add_ancestor : wikibox -> ancestors -> ancestors
+
+end = struct
+
 type ancestors = wikibox list
+
+let in_ancestors box (ancestors : ancestors) = List.mem box ancestors
+let no_ancestors : ancestors = []
+let add_ancestor x (a : ancestors) = x::a
+
+end
+
+(** Information available to display a box *)
 
 type box_info =
   {bi_subbox: Xhtmltypes_duce.flows option;
-   bi_ancestors: ancestors;
+   bi_ancestors: Ancestors.ancestors;
    bi_sp: Eliom_sessions.server_params;
    bi_sd: Ocsimore_common.session_data;
 }
 
+let add_ancestor_bi x bi =
+  { bi with bi_ancestors = Ancestors.add_ancestor x bi.bi_ancestors }
 
+let default_bi ?sd ~sp =
+  let sd = match sd with
+    | None -> Ocsimore_common.get_sd sp
+    | Some sd -> sd
+  in {
+    bi_sp = sp;
+    bi_sd = sd;
+    bi_ancestors = Ancestors.no_ancestors;
+    bi_subbox = None;
+  }
 
-let in_ancestors box (ancestors : ancestors) =
-  List.mem box ancestors
-
-let no_ancestors : ancestors = []
-
-let add_ancestor x (a : ancestors) = x::a
-
-let add_ancestor_bi x bi = { bi with
-                               bi_ancestors = add_ancestor x bi.bi_ancestors }
-
-(*
-(** Type used to avoid wikibox loops *)
-type ancestors
-
-val no_ancestors : ancestors
-
-val in_ancestors : (Wiki_sql.wiki * int32) -> ancestors -> bool
-
-val add_ancestor : (Wiki_sql.wiki * int32) -> ancestors -> ancestors
-
-(** Information available to display a box *)
-type box_info =
-  {bi_subbox: Xhtmltypes_duce.flows option;
-   bi_ancestors: ancestors;
-   bi_sp: Eliom_sessions.server_params;
-   bi_sd: Ocsimore_common.session_data;
-   bi_page: string list option}
-*)
 
 
 (*********************************************************************)
 
-(* Used for conditions of the form <<cond http_code= >> *)
+(** Return code, used for conditions of the form <<cond http_code= >> *)
 type page_displayable =
   | Page_displayable
   | Page_404
@@ -83,20 +90,6 @@ let page_displayable sd =
 let set_page_displayable sd pd =
   Polytables.set ~table:sd ~key:page_displayable_key ~value:pd
 
-(*
-(** To be passed as information inside [sd] for evaluating conditions
-<<cond http_code='404'| >> *)
-
-type page_displayable =
-  | Page_displayable
-  | Page_404
-  | Page_403
-
-val page_displayable: Polytables.t -> page_displayable
-
-val set_page_displayable: Polytables.t -> page_displayable -> unit
-*)
-
 
 (*********************************************************************)
 
@@ -107,40 +100,57 @@ let wikisyntax_help_name = "wikisyntax-help"
 (*********************************************************************)
 
 
-class type virtual noneditable_wikibox =
+(** A class containing a few auxiliary methods related to wikis *)
+class type wikibox_aux =
 object
 
-  inherit Widget.widget_with_error_box
-
-  val ne_class: string
-
-  method container :
+  (** Wraps some xhtml blocks inside an entire xhtml page *)
+  method display_container :
     ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
+    ?title:string ->
     Xhtmltypes_duce.blocks ->
     Xhtmltypes_duce.html
 
+  (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
     classe:string list ->
     Xhtmltypes_duce.flows ->
     Xhtmltypes_duce.block Lwt.t
 
-  method display_noneditable_wikibox :
-    bi:box_info ->
-    ?classe:string list ->
-    data:wikibox ->
-    unit -> Xhtmltypes_duce.block Lwt.t
-
+  (** Pretty-print the content of a wikibox *)
   method display_wikiboxcontent :
     wiki:wiki -> bi:box_info -> classe:string list ->
-    Wiki_sql.wikibox_content_type * string option * int32 ->
+    Wiki_sql.wikibox_content ->
     (string list * Xhtmltypes_duce.flows) Lwt.t
 
+  (** Display a wikibox without pretty-printing *)
   method display_raw_wikiboxcontent :
     Wiki_sql.wikibox_content_type * string * int32 ->
     (string list * Xhtmltypes_duce.flows) Lwt.t
 
 end
 
+
+(** A widget displaying wikiboxes with which the user cannot interact *)
+class type frozen_wikibox =
+object
+
+  inherit wikibox_aux
+
+
+  (** Css class for noneditable wikiboxes *)
+  val frozen_wb_class: string
+
+  method display_frozen_wikibox :
+    bi:box_info ->
+    ?classe:string list ->
+    wikibox:wikibox ->
+    Xhtmltypes_duce.block Lwt.t
+
+end
+
+
+(** The various tabs on top of an interactive wikibox *)
 type menu_item =
   | Edit
   | Edit_perm
@@ -149,19 +159,38 @@ type menu_item =
   | View
   | History_css
 
+(** Argument passed when building the interactive menu. We can edit the CSS
+    for the current wiki, or the CSS for a wikipage *)
+type css_menu =
+  | CssWiki
+  | CssWikipage of string
 
-class type virtual editable_wikibox =
+(** A wikibox with which the user can interact *)
+class type virtual interactive_wikibox =
   object
 
-    inherit Widget.widget_with_error_box
-    inherit noneditable_wikibox
+    inherit frozen_wikibox
 
+    (** Displays the edition form for a wikibox [wb] containing wikitext.
+       The flag [previewonly] governs the display of a button "save". If
+       [previewonly] is true, [wb] is only previewed, and cannot saved
+       immediately.
+
+       The argument [content] is the text that is displayed in the edit form,
+       or [None] if for example the box has been deleted and the user has not
+       entered  new text yet.
+
+       The argument [version] is the version of the wikibox when the user
+       started edited the box, and is used to check for concurrent
+       modifications.
+    *)
     method display_wikitext_edit_form :
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      wikibox -> string option * int32 ->
+      wb:wikibox ->
+      (** content *) string option * (** version *) int32 ->
       Xhtmltypes_duce.form Lwt.t
 
     method display_full_edit_form :
@@ -169,17 +198,27 @@ class type virtual editable_wikibox =
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
-      wikibox -> Wiki_sql.wikibox_content_type * string option * int32 ->
+      wb:wikibox ->
+      string option * int32 ->
       Xhtmltypes_duce.flows Lwt.t
 
+    (** Displays the edition form for the wikibox [wbcss], which is supposed
+       to contain a CSS. The form is supposed to be displayed instead of the
+       wikibox [wb]. (This information is used to create menu buttons.)
+       The argument [wikipage] is supposed to be such that
+       the css associated to the wikipage is in [wbcss]. The arguments
+       [version] and [content] are as in [display_wikitext_edit_form]. *)
     method display_css_edit_form :
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
-      wikibox -> wikibox -> string option ->
-      Wiki_sql.wikibox_content_type * string option * int32 ->
+      wb:wikibox ->
+      wbcss:wikibox ->
+      wikipage:string option ->
+      (** content *) string option * (** version *) int32 ->
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
+    (* XXX *)
     method display_edit_perm_form :
       classe:string list ->
       bi:box_info ->
@@ -187,55 +226,60 @@ class type virtual editable_wikibox =
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_history :
-      classe:string list ->
       bi:box_info ->
-      wikibox ->
-      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
+      wb:wikibox ->
+      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list->
       (string list * Xhtmltypes_duce.flows) Lwt.t
 
-    method display_csshistory :
+    (** Display the history of the wikibox [wb], which is supposed to contain
+       a CSS. See [display_css_edit_form] for the arguments [wbcss] and
+       [wikipage]. *)
+    method display_css_history :
       bi:box_info ->
-      wikibox ->
-      wikibox * string option ->
-      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
+      wb:wikibox ->
+      wbcss:wikibox ->
+      wikipage:string option ->
+      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list->
       Xhtmltypes_duce.flows Lwt.t
 
+
+    (** Adds an interactive menu and a title on top of [content]. The result
+       of displaying [wb] is supposed to be the argument [content]. The
+       argument [service] is used to know which tab to highlight in the menu.
+       The argument [cssmenu] is used to specify whether we should add buttons
+       to edit a css. The [classe] argument must contain a list of
+       css classes that will be added to the outermost xhtml element. *)
     method display_menu_box :
+      bi:box_info ->
       classe:string list ->
       ?service:menu_item ->
-      ?cssmenu:string option ->
+      ?cssmenu:css_menu ->
       ?title:string ->
-      bi:box_info ->
-      wikibox ->
-      Xhtmltypes_duce.flows -> Xhtmltypes_duce.block Lwt.t
+      wb:wikibox ->
+      (** content:*)Xhtmltypes_duce.flows ->
+      Xhtmltypes_duce.block Lwt.t
 
-    method editable_wikibox :
+
+    (** Display the wikibox [wb] as an interactive wikibox. We return the
+       xhtml code, and the http return code. The options [classe] and
+       [cssmenu] are the same as in [display_menu_box]. *)
+    method interactive_wikibox_aux :
       bi:box_info ->
-      data:wikibox ->
       ?rows:int ->
       ?cols:int ->
       ?classe:string list ->
-      ?cssmenu:string option ->
-      unit -> Xhtmltypes_duce.block Lwt.t
-
-    method editable_wikibox_aux :
-      bi:box_info ->
-      data:wikibox ->
-      ?rows:int ->
-      ?cols:int ->
-      ?classe:string list ->
-      ?cssmenu:string option ->
-      unit -> (Xhtmltypes_duce.block * bool) Lwt.t
+      ?cssmenu:css_menu ->
+      (** wb:*)wikibox ->
+      (Xhtmltypes_duce.block * bool) Lwt.t
 
 (*
     method display_edit_css_form :
-      classe:string list ->
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       data:wikipage ->
       Ocamlduce.Utf8.repr ->
-      (string list * Xhtmltypes_duce.flows) Lwt.t
+      Xhtmltypes_duce.flows Lwt.t
 
     method edit_css_box :
       bi:box_info ->
@@ -246,13 +290,11 @@ class type virtual editable_wikibox =
       unit -> Xhtmltypes_duce.block Lwt.t
 
     method display_edit_wikicss_form :
-      classe:string list ->
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       wiki:wiki ->
-      Ocamlduce.Utf8.repr -> 
-      (string list * Xhtmltypes_duce.flows) Lwt.t
+      Ocamlduce.Utf8.repr -> Xhtmltypes_duce.flows Lwt.t
 
     method edit_wikicss_box :
       bi:box_info ->
@@ -263,24 +305,28 @@ class type virtual editable_wikibox =
 *)
 
 
-    (** returns the css headers for one wiki and optionally one page.
-        Set [?admin] to [true] for administration pages.
-    *)
-    method get_css_header :
+    (** Returns the css headers for one wiki and optionally one page.
+        Set [?admin] to [true] for administration pages. *)
+    method css_header :
       bi:box_info ->
-      wiki:wiki ->
       ?admin:bool ->
       ?page:string ->
-      unit ->
+      wiki ->
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
-    method display_page :
+
+    (** Displaying of the content of an entire wikipage *)
+    method display_wikipage :
       bi:box_info ->
       wiki:wiki ->
       page:string ->
       (Xhtmltypes_duce.html * int) Lwt.t
 
-    method send_page :
+    (** Response to an url matching a wikipage. Depending on the field
+        staticdir of the corresponding wiki, we either send the
+        corresponding local file, or the content of the wikipage
+        after pretty-printing *)
+    method send_wikipage :
       bi:box_info ->
       wiki:wiki ->
       page:string ->

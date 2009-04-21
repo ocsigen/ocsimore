@@ -256,14 +256,12 @@ val modified_wikibox:
 
 
 
-(** *)
-(*
-val wikicss_service_handler : wiki -> unit -> string Lwt.t
-val wikipagecss_service_handler : wiki * string -> unit -> string Lwt.t
-*)
-
-val retrieve_wikibox_aux:
+val wikibox_content:
   ?version:int32 -> wikibox ->
-  (Wiki_sql.wikibox_content_type * string option * int32) Lwt.t
+  Wiki_sql.wikibox_content Lwt.t
+
+val wikibox_content':
+  ?version:int32 -> wikibox ->
+  (string option * int32) Lwt.t
 
 exception Unknown_box of wikibox

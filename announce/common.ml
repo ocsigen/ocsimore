@@ -78,20 +78,11 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   let sd = Ocsimore_common.get_sd sp in
   contents sp sd
   >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
-  let bi =
-    { Wiki_widgets_interface.bi_sp = sp;
-      bi_sd = sd;
-      bi_ancestors = Wiki_widgets_interface.no_ancestors;
-      bi_subbox = Some subbox;
-    }
-  in
-  Ocsisite.wikibox_widget#editable_wikibox
-    ~bi
-    ~data:wiki_box
-    ~cssmenu:None
-    () >>= fun box ->
-  Ocsisite.wikibox_widget#get_css_header ~bi ~wiki:wiki_id
-    ?admin:(Some false) ~page ()
+  let bi = { (Wiki_widgets_interface.default_bi ~sp ~sd)
+             with Wiki_widgets_interface.bi_subbox = Some subbox } in
+  Ocsisite.wikibox_widget#interactive_wikibox ~bi ?cssmenu:None wiki_box
+  >>= fun box ->
+  Ocsisite.wikibox_widget#css_header ~bi ~admin:false ~page wiki_id
   >>= fun css ->
   Lwt.return
     ({{ <html xmlns="http://www.w3.org/1999/xhtml">[ <head>[<title>title !css !headers] <body>[box] ] }} :

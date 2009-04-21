@@ -96,4 +96,7 @@ let rec lwt_filter f = function
       if b
       then Lwt.return (a::ll)
       else Lwt.return ll
-  
+
+let rec find_opt f = function
+  | [] -> None
+  | e :: l -> if f e then e else find_opt f l

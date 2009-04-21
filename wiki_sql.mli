@@ -55,7 +55,7 @@ end
 open Types
 
 
-(** Data stored in a wikibox *)
+(** Type of the data stored in a wikibox *)
 type wikibox_content_type =
   | Css
   | WikiCreole
@@ -65,6 +65,12 @@ exception IncorrectWikiboxContentType of string
 val wikibox_content_type_of_string : string -> wikibox_content_type
 
 val string_of_wikibox_content_type : wikibox_content_type -> string
+
+
+(** Content of a wikibox. The second field is the actual content. It is [None]
+    if the wikibox has been deleted. The third field is the version id *)
+type wikibox_content =
+    wikibox_content_type * string option * int32
 
 
 (** Direct reading of wikis from eliom *)

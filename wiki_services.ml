@@ -105,109 +105,69 @@ let wikipagecss_service_handler (wiki, page) () =
 
 (* a table containing the Eliom services generating pages
    for each wiki associated to an URL *)
-module Servpages = 
-  Hashtbl.Make(struct 
+module Servpages =
+  Hashtbl.Make(struct
                  type t = wiki
-                 let equal = (=) 
-                 let hash = Hashtbl.hash 
+                 let equal = (=)
+                 let hash = Hashtbl.hash
                end)
 
 let naservpages :
-    (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
-     [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
-     unit, [`Registrable ]) Eliom_services.service Servpages.t =
-  Servpages.create 5
+    (string,
+     unit,
+     [ `Nonattached of [ `Get ] Eliom_services.na_s ],
+     [ `WithoutSuffix ],
+     [ `One of string ] Eliom_parameters.param_name,
+     unit,
+     [`Registrable ]
+    ) Eliom_services.service Servpages.t = Servpages.create 5
 let servpages :
-    (string list, unit, Eliom_services.get_service_kind,
-     [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
-     unit, [ `Registrable ]) Eliom_services.service Servpages.t =
-  Servpages.create 5
-let servwikicss = Servpages.create 5
+    (string list,
+     unit,
+     Eliom_services.get_service_kind,
+     [ `WithSuffix ],
+     [ `One of string list ] Eliom_parameters.param_name,
+     unit,
+     [ `Registrable ]
+    ) Eliom_services.service Servpages.t = Servpages.create 5
+let servwikicss :
+    (unit,
+     unit,
+     [ `Attached of
+         [ `Internal of [ `Service | `Coservice ] * [ `Get ]
+         | `External ] Eliom_services.a_s ],
+     [ `WithoutSuffix ],
+     unit,
+     unit,
+     [ `Registrable ]
+    ) Eliom_services.service Servpages.t = Servpages.create 5
 
 let add_naservpage = Servpages.add naservpages
 let add_servpage = Servpages.add servpages
 let add_servwikicss = Servpages.add servwikicss
 let find_naservpage = Servpages.find naservpages
-let find_servpage k = 
+let find_servpage k =
   try Some (Servpages.find servpages k)
   with Not_found -> None
-let find_servwikicss k = 
-  try Some ((Servpages.find servwikicss k) :
-              (unit, unit,
-               [ `Attached of
-                    [ `Internal of [ `Service ] * [ `Get ] ] Eliom_services.a_s ],
-               [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-              Eliom_services.service :>
-              (unit, unit,
-               [ `Attached of
-                   [> `Internal of [> `Service ] * [ `Get ] ] Eliom_services.a_s ],
-               [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-              Eliom_services.service
-           )
+let find_servwikicss k =
+  try Some (Servpages.find servwikicss k)
   with Not_found -> None
-
-
-(*
-(** find services for each wiki *)
-val find_naservpage : Wiki_sql.wiki ->
-  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
-   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
-   unit, [`Registrable ])
-    Eliom_services.service
-
-val find_servpage : Wiki_sql.wiki ->
-  (string list, unit,
-   Eliom_services.get_service_kind,
-   [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
-     unit, [ `Registrable ])
-    Eliom_services.service option
-
-val find_servwikicss : Wiki_sql.wiki ->
-  (unit, unit,
-   [ `Attached of
-       [> `Internal of [> `Service ] * [ `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-    Eliom_services.service option
-
-val add_naservpage : Wiki_sql.wiki ->
-  (string, unit, [ `Nonattached of [ `Get ] Eliom_services.na_s ],
-   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name,
-   unit, [`Registrable ])
-    Eliom_services.service -> unit
-
-val add_servpage : Wiki_sql.wiki ->
-  (string list, unit,
-   Eliom_services.get_service_kind,
-   [ `WithSuffix ], [ `One of string list ] Eliom_parameters.param_name,
-     unit, [ `Registrable ])
-    Eliom_services.service -> unit
-
-val add_servwikicss : Wiki_sql.wiki ->
-  (unit, unit,
-   [ `Attached of
-      [ `Internal of [ `Service ] * [ `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [ `Registrable ])
-    Eliom_services.service -> unit
-*)
-
 
 
 
 let ( ** ) = Eliom_parameters.prod
 
-
-let eliom_wiki_args = Wiki_sql.eliom_wiki "wikiid"
-let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "boxid")
+let eliom_wiki_args = Wiki_sql.eliom_wiki "wid"
+let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "wbid")
 let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
 let eliom_css_args =
-  (Wiki_sql.eliom_wiki "wikiidcss" ** (Eliom_parameters.int32 "boxidcss"))
+  (Wiki_sql.eliom_wiki "widcss" ** (Eliom_parameters.int32 "wbidcss"))
   ** (Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
 
 
 
-
 (* Register the services for the wiki [wiki] *)
-let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
+let register_wiki ?sp ~path ~(wikibox_widget:Wiki_widgets_interface.interactive_wikibox) ~wiki () =
   Ocsigen_messages.debug
     (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
        (wiki_id_s wiki) (String.concat "/"  path));
@@ -220,13 +180,8 @@ let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
     Eliom_predefmod.Any.register_new_service ~path ?sp
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
-         let sd = Ocsimore_common.get_sd sp in
-         let bi = { Wiki_widgets_interface.bi_sp = sp;
-                    bi_sd = sd;
-                    bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                    bi_subbox = None;
-                  } in
-         wikibox_widget#send_page ~bi ~wiki
+         let bi = Wiki_widgets_interface.default_bi sp in
+         wikibox_widget#send_wikipage ~bi ~wiki
            ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
       )
   in
@@ -241,13 +196,8 @@ let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
          let path = Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
          in
          let page = Ocsigen_lib.string_of_url_path ~encode:true path in
-         let sd = Ocsimore_common.get_sd sp in
-         let bi = { Wiki_widgets_interface.bi_sp = sp;
-                    bi_sd = sd;
-                    bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                    bi_subbox = None;
-                  } in
-         wikibox_widget#send_page ~bi ~wiki ~page
+         let bi = Wiki_widgets_interface.default_bi sp in
+         wikibox_widget#send_wikipage ~bi ~wiki ~page
       )
   in
   add_naservpage wiki naservpage;
@@ -258,9 +208,7 @@ let register_wiki ?sp ~path ~wikibox_widget ~wiki () =
       ~get_params:Eliom_parameters.unit
       (fun _sp () () -> wikicss_service_handler wiki ())
   in
-  add_servwikicss wiki wikicss_service;
-
-  Lwt.return ()
+  add_servwikicss wiki wikicss_service
 
 
 (* Creates and registers a wiki if it does not already exists  *)
@@ -293,17 +241,14 @@ let create_and_register_wiki ~title ~descr
              >>= fun wiki_id ->
              Wiki_sql.get_wiki_info_by_id wiki_id
              >>= fun w ->
-             match path with
-               | None -> Lwt.return w
-               | Some path -> register_wiki ?sp ~path ~wikibox_widget
-                   ~wiki:w.wiki_id ()
-             >>= fun () ->
+             (match path with
+                | None -> ()
+                | Some path ->
+                    register_wiki ?sp ~path ~wikibox_widget ~wiki:w.wiki_id ()
+             );
              Lwt.return w
            end
        | e -> Lwt.fail e)
-
-
-
 
 
 let save_wikibox_aux ~sp ~sd ~wikibox ~enough_rights ~content ~content_type =

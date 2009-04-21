@@ -312,6 +312,10 @@ let string_of_wikibox_content_type = function
   | Css -> "css"
 
 
+type wikibox_content =
+    wikibox_content_type * string option * int32
+
+
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () = 
   let wiki' = t_int32 (wiki : wiki)

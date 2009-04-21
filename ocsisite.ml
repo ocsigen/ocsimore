@@ -83,6 +83,9 @@ let () =
         raise No_admin_staticdir
 
 
+let error_box = new Wiki_widgets.wikibox_error_box
+
+(** We are at eliom registration time, we can create the services *)
 let services = Wiki_services.services ()
 
 (** We create the widget that will be used to display the wikiboxes *)
@@ -114,10 +117,14 @@ let wikibox_widget =
             ignore (new User_widgets.login_widget sm)
      );
 
-     Lwt.return (new Wiki_widgets.editable_wikibox services)
+     Lwt.return (new Wiki_widgets.dynamic_wikibox error_box services)
     )
 
-(** We register the auxiliary services *)
+let () =
+  Wiki_widgets.register_wikibox_syntax_extensions wikibox_widget error_box
+
+
+(** We register auxiliary services for administration boxes *)
 
 let service_edit_wikibox = Eliom_services.new_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
@@ -125,25 +132,19 @@ let service_edit_wikibox = Eliom_services.new_service
 
 let () =
   Eliom_duce.Xhtml.register service_edit_wikibox
-    (fun sp ((w, _b) as g) () ->
-       let sd = Ocsimore_common.get_sd sp in
-       let bi = { Wiki_widgets_interface.bi_sp = sp;
-                  bi_sd = sd;
-                  bi_ancestors = Wiki_widgets_interface.no_ancestors;
-                  bi_subbox = None;
-                }
-       in
-       wikibox_widget#editable_wikibox ~bi ~data:g ~rows:30 ()
+    (fun sp ((w, _b) as wb) () ->
+       let bi = Wiki_widgets_interface.default_bi sp in
+       wikibox_widget#interactive_wikibox ~bi ~rows:30 wb
        >>= fun subbox ->
        Wiki_services.get_admin_wiki () >>= fun admin_wiki ->
        let bi = { bi with Wiki_widgets_interface.bi_subbox =
            Some {{ [ subbox ] }} } in
-       wikibox_widget#editable_wikibox ~bi ?cssmenu:(Some None)
-         ~data:(admin_wiki.wiki_id, admin_wiki.wiki_container)  ()
+       wikibox_widget#interactive_wikibox ~bi ?cssmenu:None
+         (admin_wiki.wiki_id, admin_wiki.wiki_container)
        >>= fun page ->
-       wikibox_widget#get_css_header ~admin:true ~bi ~wiki:w ?page:None ()
+       wikibox_widget#css_header ~admin:true ~bi ?page:None w
        >>= fun css ->
-         Lwt.return (wikibox_widget#container ~css {{ [ page ] }})
+       Lwt.return (wikibox_widget#display_container ~css {{ [ page ] }})
     )
 
 
@@ -165,13 +166,15 @@ let wiki_admin = Lwt_unix.run
             Wiki_sql.get_wiki_info_by_id wid
         | e -> Lwt.fail e)
    >>= fun id ->
-   (** We update the fields [staticdir] and [pages] for the administration wiki *)
-   match admin_staticdir with
-     | None -> Lwt.return id
-     | Some path ->
-         Wiki_sql.update_wiki ~staticdir:(Some path)
-           ~pages:(Some Ocsimore_lib.ocsimore_admin_dir) id.wiki_id >>= fun () ->
-         Lwt.return id
+   (** We update the fields [staticdir] and [pages] for the admin wiki *)
+   (match admin_staticdir with
+      | None -> Lwt.return ()
+      | Some path ->
+          Wiki_sql.update_wiki
+            ~staticdir:(Some path) ~pages:(Some Ocsimore_lib.ocsimore_admin_dir)
+            id.wiki_id
+   ) >>=fun () ->
+   Lwt.return id
   )
 
 let wiki_admin_id = wiki_admin.wiki_id
@@ -224,10 +227,12 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_pages = path } ->
-        match path with
-          | None -> Lwt.return ()
-          | Some path ->
-              let path = Ocsigen_lib.split '/' path in
-              Wiki_services.register_wiki ~path ~wikibox_widget ~wiki ()
+        (match path with
+           | None -> ()
+           | Some path ->
+               let path = Ocsigen_lib.split '/' path in
+               Wiki_services.register_wiki ~path ~wikibox_widget ~wiki ()
+        );
+        Lwt.return ()
      )
   )
