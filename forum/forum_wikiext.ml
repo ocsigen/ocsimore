@@ -26,7 +26,7 @@ let (>>=) = Lwt.bind
 let register_wikiext (message_widget, thread_widget) =
 
   Wiki_syntax.add_block_extension "forum_message"
-    (fun wiki_id bi args content -> 
+    (fun _wiki_id bi args content -> 
        let classe = 
          try Some [List.assoc "class" args]
          with Not_found -> None
@@ -53,7 +53,7 @@ let register_wikiext (message_widget, thread_widget) =
     );
 
   Wiki_syntax.add_block_extension "forum_thread"
-    (fun wiki_id bi args content ->
+    (fun _wiki_id bi args content ->
        let classe = 
          try Some [List.assoc "class" args]
          with Not_found -> None

@@ -45,7 +45,14 @@ object (self)
 
   method display_comment_line ~sp ~sd ~role ?(rows = 3) ?(cols = 50)
     (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
-     content, moderated, deleted, sticky, _, _) =
+     content, moderated, deleted, sticky) =
+    Users.get_user_fullname_by_id authorid >>= fun author ->
+    Forum.get_role sp sd forum_id >>= fun role ->
+    !!(role.Forum.comment_writers) >>= fun commentator ->
+    let draw_comment_form =
+      (commentable && 
+         commentator && (arborescent || (message_id = root_id))) 
+    in
     let draw_form (actionnamename, ((parentname, _), (_, textname))) =
          {{ [<p>[
               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -57,16 +64,20 @@ object (self)
             ]
           }}
     in
-    Lwt.return
-      {{ [
-         <span class={: comment_class :}>
-           {: Ocamlduce.Utf8.make "Comment" :}
-         <div class={: comment_class :}>[
-           {: Eliom_duce.Xhtml.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:add_message_service
-              ~sp draw_form () :}]
-         ] }}
+    let comment_line =
+      let id1 = new_id () in
+      let id2 = new_id () in
+      if draw_comment_form
+      then
+        {{ [
+             <span class={: comment_class :}>
+               {: Ocamlduce.Utf8.make "Comment" :}
+             <div class={: comment_class :}>[
+               {: Eliom_duce.Xhtml.post_form
+                  ~a:{{ { accept-charset="utf-8" } }}
+                  ~service:add_message_service
+                  ~sp draw_form () :}]
+           ] }}
 (*
         let rec n1 = {{ <span class={: comment_class :}
                           onclick=(fun () -> show n1 n2) >
@@ -197,7 +208,7 @@ object (self)
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
          | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-             content, moderated, deleted, sticky, _, _) as m)::l ->
+             content, moderated, deleted, sticky) as m)::l ->
              message_widget#pretty_print_message
                ~classe:[]
                ~commentable ~arborescent ~sp ~sd ?rows ?cols m
@@ -219,9 +230,9 @@ object (self)
     match thread with
       | [] -> Lwt.return (classe, {{[]}})
       | (id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-         content, moderated, deleted, sticky, _, _)::l ->
+         content, moderated, deleted, sticky)::l ->
           Forum_sql.get_forum ~forum_id ()
-          >>= fun (_, _, _, arborescent, deleted) ->
+          >>= fun (_, _, _, arborescent, _deleted) ->
           print_one_message_and_children ~arborescent thread >>= fun (a, _) -> 
           Lwt.return (classe, {{[a]}})
 
