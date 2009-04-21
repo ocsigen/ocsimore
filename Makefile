@@ -22,7 +22,7 @@
 
 include Makefile.config
 
-OCAMLBUILD := ocamlbuild -X nis_chkpwd -verbose 0
+OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 
