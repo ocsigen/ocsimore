@@ -45,7 +45,7 @@ $(MYOCAMLFIND):
 
 ocsimore.mllib: ocsimore.mllib.IN
 	cp -f ocsimore.mllib.IN ocsimore.mllib
-	[ $(PAM) = YES ] && echo Ocsimore_pam >> ocsimore.mllib
+	if [ $(PAM) = YES ]; then echo Ocsimore_pam >> ocsimore.mllib; fi
 
 clean:
 	rm -Rf _build
