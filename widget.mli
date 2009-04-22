@@ -49,13 +49,13 @@ class widget_with_error_box :
       ?error: string ->
       'a Lwt.t -> 
       ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) -> 
-      (classe:string list -> 
+      (classes:string list -> 
         Xhtmltypes_duce.flows -> 
         Xhtmltypes_duce.block Lwt.t) -> 
       Xhtmltypes_duce.block Lwt.t
 
     method display_error_box :
-      ?classe:string list ->
+      ?classes:string list ->
       ?message:string ->
       ?exn:exn ->
       unit ->

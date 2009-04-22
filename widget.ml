@@ -42,8 +42,8 @@ object(self)
     | None ->
         {{ [] }}
 
-  method display_error_box ?(classe=[]) ?(message = "Error") ?exn () =
-    let classe = Ocsimore_lib.build_class_attr (error_class::classe) in
+  method display_error_box ?(classes=[]) ?(message = "Error") ?exn () =
+    let classe = Ocsimore_lib.build_class_attr (error_class::classes) in
     let message =
       match exn with
         | None -> {{ [<strong>{: message :}] }}
@@ -65,7 +65,7 @@ object(self)
     ?error: string ->
     'a Lwt.t ->
     ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) ->
-    (classe:string list ->
+    (classes:string list ->
       Xhtmltypes_duce.flows ->
       Xhtmltypes_duce.block Lwt.t) ->
     Xhtmltypes_duce.block Lwt.t
@@ -75,9 +75,9 @@ object(self)
          (fun exn ->
             Lwt.return ([error_class],
                         {{ [ {{ self#display_error_box ~exn () }} ] }}) ))
-      >>= fun (classe, content) ->
+      >>= fun (classes, content) ->
       let err = self#display_error_message error in
-      display_box ~classe {{ [ !err !content ] }}
+      display_box ~classes {{ [ !err !content ] }}
 
 end
 

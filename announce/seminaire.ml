@@ -412,7 +412,8 @@ let summary_contents category sp sd =
   let finish = Calendar.create finish Common.midnight in
   Event_sql.find_category_by_path category >>= fun cat ->
   let bi = Wiki_widgets_interface.default_bi ~sd ~sp in
-  Ocsisite.wikibox_widget#interactive_wikibox ~bi (Common.wiki_id, cat.cat_desc)
+  Ocsisite.wikibox_widget#display_interactive_wikibox
+    ~bi (Common.wiki_id, cat.cat_desc)
   >>= fun desc ->
   let show_all = true in (*XXXX*)
   Seminaire_sql.find_in_interval (site_filter show_all) category start finish

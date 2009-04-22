@@ -66,8 +66,8 @@ let new_message ~sp ~sd ~forum_id ~author_id
              if arborescent
              then Lwt.return true
              else 
-               Forum_sql.get_message ~message_id:parent_id
-               >>= fun (id, _, _, _, parparent_id, root_id, _, _, _, _, _) ->
+               Forum_sql.get_message ~message_id:parent_id ()
+               >>= fun (id, _, _, _, parparent_id, root_id, _, _, _, _, _, _, _) ->
                Lwt.return (parparent_id = None)
       ) >>= fun ok ->
       if ok
@@ -179,9 +179,10 @@ let get_thread ~sp ~sd ~message_id =
   in
   Forum_sql.get_thread ~message_id ()
   >>= function
-    | [] -> Lwt.return []
-    | (((_, _, _, _, parent_id, _, forum_id, _, _, _, _) as msg)::l) as th ->
-        Forum_sql.get_forum ~forum_id () >>= fun (_, _, _, _, deleted) ->
+    | [] -> Lwt.fail Not_found
+    | (((id, _, _, _, parent_id, _, forum_id, _, moderated, deleted, sticky, _, _)
+          as msg)::l) as th ->
+        assert (message_id = id);
         if deleted
         then Lwt.fail Not_found
         else

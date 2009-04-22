@@ -38,21 +38,14 @@ object (self)
   method get_message ~sp ~sd ~message_id =
     Forum_data.get_message ~sp ~sd ~message_id
     
-  method display_message ~classe content =
-    let classe = Ocsimore_lib.build_class_attr (msg_class::classe) in
+  method display_message ~classes content =
+    let classes = Ocsimore_lib.build_class_attr (msg_class::classes) in
     Lwt.return
-      {{ <div class={: classe :}>content }}
+      {{ <div class={: classes :}>content }}
 
   method display_comment_line ~sp ~sd ~role ?(rows = 3) ?(cols = 50)
     (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
-     content, moderated, deleted, sticky) =
-    Users.get_user_fullname_by_id authorid >>= fun author ->
-    Forum.get_role sp sd forum_id >>= fun role ->
-    !!(role.Forum.comment_writers) >>= fun commentator ->
-    let draw_comment_form =
-      (commentable && 
-         commentator && (arborescent || (message_id = root_id))) 
-    in
+     content, moderated, deleted, sticky, _, _) =
     let draw_form (actionnamename, ((parentname, _), (_, textname))) =
          {{ [<p>[
               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -64,20 +57,16 @@ object (self)
             ]
           }}
     in
-    let comment_line =
-      let id1 = new_id () in
-      let id2 = new_id () in
-      if draw_comment_form
-      then
-        {{ [
-             <span class={: comment_class :}>
-               {: Ocamlduce.Utf8.make "Comment" :}
-             <div class={: comment_class :}>[
-               {: Eliom_duce.Xhtml.post_form
-                  ~a:{{ { accept-charset="utf-8" } }}
-                  ~service:add_message_service
-                  ~sp draw_form () :}]
-           ] }}
+    Lwt.return
+      {{ [
+         <span class={: comment_class :}>
+           {: Ocamlduce.Utf8.make "Comment" :}
+         <div class={: comment_class :}>[
+           {: Eliom_duce.Xhtml.post_form
+              ~a:{{ { accept-charset="utf-8" } }}
+              ~service:add_message_service
+              ~sp draw_form () :}]
+         ] }}
 (*
         let rec n1 = {{ <span class={: comment_class :}
                           onclick=(fun () -> show n1 n2) >
@@ -143,7 +132,7 @@ object (self)
     else Lwt.return moderation_line
 
   method pretty_print_message
-    ~classe
+    ~classes
     ~commentable ?(arborescent = true) ~sp ~sd ?rows ?cols
     ((message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
       content, moderated, deleted, sticky, _, _) as msg) =
@@ -158,9 +147,9 @@ object (self)
     (if draw_comment_form
      then self#display_comment_line ~sp ~sd ~role ?rows ?cols msg
      else Lwt.return {{[]}}) >>= fun comment_line ->
-    let classe = if moderated then classe else not_moderated_class::classe in
+    let classes = if moderated then classes else not_moderated_class::classes in
     Lwt.return
-      (classe,
+      (classes,
        {{ [
           !admin_line
           !{: match subjecto with
@@ -177,10 +166,10 @@ object (self)
          ] }})
 
   method display ~sp ~sd ?rows ?cols
-    ?(classe=[]) ~data:message_id () =
+    ?(classes=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       (self#get_message ~sp ~sd ~message_id)
-      (self#pretty_print_message ~classe ~commentable:false ~sp ~sd ?rows ?cols)
+      (self#pretty_print_message ~classes ~commentable:false ~sp ~sd ?rows ?cols)
       (self#display_message)
 
 end
@@ -197,23 +186,23 @@ object (self)
   method get_thread ~sp ~sd ~message_id =
     Forum_data.get_thread ~sp ~sd ~message_id
     
-  method display_thread ~classe content =
-    let classe = Ocsimore_lib.build_class_attr (thr_class::classe) in
+  method display_thread ~classes content =
+    let classes = Ocsimore_lib.build_class_attr (thr_class::classes) in
     Lwt.return
-      {{ <div class={: classe :}>content }}
+      {{ <div class={: classes :}>content }}
 
-  method pretty_print_thread ~classe ~commentable ~sp ~sd ?rows ?cols thread =
+  method pretty_print_thread ~classes ~commentable ~sp ~sd ?rows ?cols thread =
     let rec print_one_message_and_children ~arborescent thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
          | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-             content, moderated, deleted, sticky) as m)::l ->
+             content, moderated, deleted, sticky, _, _) as m)::l ->
              message_widget#pretty_print_message
-               ~classe:[]
+               ~classes:[]
                ~commentable ~arborescent ~sp ~sd ?rows ?cols m
-             >>= fun (classe, msg_info) ->
-             message_widget#display_message ~classe msg_info >>= fun first ->
+             >>= fun (classes, msg_info) ->
+             message_widget#display_message ~classes msg_info >>= fun first ->
              print_children ~arborescent id l >>= fun (s, l) ->
              Lwt.return ({{ [first !s] }}, l))
       >>= fun (s, l) ->
@@ -228,21 +217,20 @@ object (self)
       | l -> Lwt.return ({{ [] }}, l)
     in
     match thread with
-      | [] -> Lwt.return (classe, {{[]}})
+      | [] -> Lwt.return (classes, {{[]}})
       | (id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-         content, moderated, deleted, sticky)::l ->
+         content, moderated, deleted, sticky, _, _)::l ->
           Forum_sql.get_forum ~forum_id ()
-          >>= fun (_, _, _, arborescent, _deleted) ->
+          >>= fun (_, _, _, arborescent, deleted) ->
           print_one_message_and_children ~arborescent thread >>= fun (a, _) -> 
-          Lwt.return (classe, {{[a]}})
+          Lwt.return (classes, {{[a]}})
 
   method display ?(commentable = true) ~sp ~sd ?rows ?cols
-    ?(classe=[]) ~data:message_id () =
+    ?(classes=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       (self#get_thread ~sp ~sd ~message_id)
-      (self#pretty_print_thread ~classe ~commentable ~sp ~sd ?rows ?cols)
+      (self#pretty_print_thread ~classes ~commentable ~sp ~sd ?rows ?cols)
       (self#display_thread)
 
 end
-
 

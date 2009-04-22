@@ -80,7 +80,7 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
   let bi = { (Wiki_widgets_interface.default_bi ~sp ~sd)
              with Wiki_widgets_interface.bi_subbox = Some subbox } in
-  Ocsisite.wikibox_widget#interactive_wikibox ~bi ?cssmenu:None wiki_box
+  Ocsisite.wikibox_widget#display_interactive_wikibox ~bi ?cssmenu:None wiki_box
   >>= fun box ->
   Ocsisite.wikibox_widget#css_header ~bi ~admin:false ~page wiki_id
   >>= fun css ->

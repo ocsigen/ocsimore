@@ -100,6 +100,9 @@ let wikisyntax_help_name = "wikisyntax-help"
 (*********************************************************************)
 
 
+type classes = string list
+
+
 (** A class containing a few auxiliary methods related to wikis *)
 class type wikibox_aux =
 object
@@ -113,20 +116,23 @@ object
 
   (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
-    classe:string list ->
+    classes:classes ->
     Xhtmltypes_duce.flows ->
     Xhtmltypes_duce.block Lwt.t
 
   (** Pretty-print the content of a wikibox *)
   method display_wikiboxcontent :
-    wiki:wiki -> bi:box_info -> classe:string list ->
+    bi:box_info ->
+    wiki:wiki ->
+    classes:classes ->
     Wiki_sql.wikibox_content ->
-    (string list * Xhtmltypes_duce.flows) Lwt.t
+    (classes * Xhtmltypes_duce.flows) Lwt.t
 
   (** Display a wikibox without pretty-printing *)
   method display_raw_wikiboxcontent :
-    Wiki_sql.wikibox_content_type * string * int32 ->
-    (string list * Xhtmltypes_duce.flows) Lwt.t
+    classes:classes ->
+    Wiki_sql.wikibox_content ->
+    (classes * Xhtmltypes_duce.flows) Lwt.t
 
 end
 
@@ -143,7 +149,7 @@ object
 
   method display_frozen_wikibox :
     bi:box_info ->
-    ?classe:string list ->
+    ?classes:string list ->
     wikibox:wikibox ->
     Xhtmltypes_duce.block Lwt.t
 
@@ -186,21 +192,25 @@ class type virtual interactive_wikibox =
     *)
     method display_wikitext_edit_form :
       bi:box_info ->
+      classes:string list ->
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
       wb:wikibox ->
       (** content *) string option * (** version *) int32 ->
-      Xhtmltypes_duce.form Lwt.t
+      (classes * Xhtmltypes_duce.form) Lwt.t
 
-    method display_full_edit_form :
+    (** Same as [display_wikitext_edit_form], but with an help for the
+       syntax of the wiki *)
+    method display_wikitext_edit_form_help :
       bi:box_info ->
+      classes:string list ->
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
       wb:wikibox ->
       string option * int32 ->
-      Xhtmltypes_duce.flows Lwt.t
+      (classes * Xhtmltypes_duce.flows) Lwt.t
 
     (** Displays the edition form for the wikibox [wbcss], which is supposed
        to contain a CSS. The form is supposed to be displayed instead of the
@@ -210,37 +220,43 @@ class type virtual interactive_wikibox =
        [version] and [content] are as in [display_wikitext_edit_form]. *)
     method display_css_edit_form :
       bi:box_info ->
+      classes:string list ->
       ?rows:int ->
       ?cols:int ->
       wb:wikibox ->
       wbcss:wikibox ->
       wikipage:string option ->
       (** content *) string option * (** version *) int32 ->
-      (string list * Xhtmltypes_duce.flows) Lwt.t
+      (classes * Xhtmltypes_duce.flows) Lwt.t
 
     (* XXX *)
     method display_edit_perm_form :
-      classe:string list ->
       bi:box_info ->
+      classes:string list ->
       wikibox ->
-      (string list * Xhtmltypes_duce.flows) Lwt.t
+      (classes * Xhtmltypes_duce.flows) Lwt.t
 
-    method display_history :
+
+    (** Display the history of the wikibox [wb], which is supposed to contain
+       wikitext *)
+    method display_wikitext_history :
       bi:box_info ->
+      classes:string list ->
       wb:wikibox ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list->
-      (string list * Xhtmltypes_duce.flows) Lwt.t
+      (classes * Xhtmltypes_duce.flows) Lwt.t
 
     (** Display the history of the wikibox [wb], which is supposed to contain
        a CSS. See [display_css_edit_form] for the arguments [wbcss] and
        [wikipage]. *)
     method display_css_history :
       bi:box_info ->
+      classes:string list ->
       wb:wikibox ->
       wbcss:wikibox ->
       wikipage:string option ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list->
-      Xhtmltypes_duce.flows Lwt.t
+      (classes * Xhtmltypes_duce.flows) Lwt.t
 
 
     (** Adds an interactive menu and a title on top of [content]. The result
@@ -251,7 +267,7 @@ class type virtual interactive_wikibox =
        css classes that will be added to the outermost xhtml element. *)
     method display_menu_box :
       bi:box_info ->
-      classe:string list ->
+      classes:string list ->
       ?service:menu_item ->
       ?cssmenu:css_menu ->
       ?title:string ->
@@ -263,46 +279,25 @@ class type virtual interactive_wikibox =
     (** Display the wikibox [wb] as an interactive wikibox. We return the
        xhtml code, and the http return code. The options [classe] and
        [cssmenu] are the same as in [display_menu_box]. *)
-    method interactive_wikibox_aux :
+    method display_interactive_wikibox_aux :
       bi:box_info ->
+      ?classes:string list ->
       ?rows:int ->
       ?cols:int ->
-      ?classe:string list ->
       ?cssmenu:css_menu ->
       (** wb:*)wikibox ->
       (Xhtmltypes_duce.block * bool) Lwt.t
 
-(*
-    method display_edit_css_form :
+    (** Same as [interactive_wikibox_aux], except that the http error
+        code is not returned.. *)
+    method display_interactive_wikibox :
       bi:box_info ->
+      ?classes:string list ->
       ?rows:int ->
       ?cols:int ->
-      data:wikipage ->
-      Ocamlduce.Utf8.repr ->
-      Xhtmltypes_duce.flows Lwt.t
-
-    method edit_css_box :
-      bi:box_info ->
-      data:wikipage ->
-      ?rows:int ->
-      ?cols:int ->
-      ?classe:string list ->
-      unit -> Xhtmltypes_duce.block Lwt.t
-
-    method display_edit_wikicss_form :
-      bi:box_info ->
-      ?rows:int ->
-      ?cols:int ->
-      wiki:wiki ->
-      Ocamlduce.Utf8.repr -> Xhtmltypes_duce.flows Lwt.t
-
-    method edit_wikicss_box :
-      bi:box_info ->
-      wiki:wiki ->
-      ?rows:int ->
-      ?cols:int ->
-      ?classe:string list -> unit -> Xhtmltypes_duce.block Lwt.t
-*)
+      ?cssmenu:css_menu ->
+      (** wb:*)wikibox ->
+      Xhtmltypes_duce.block Lwt.t
 
 
     (** Returns the css headers for one wiki and optionally one page.

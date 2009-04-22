@@ -27,7 +27,7 @@ let register_wikiext (message_widget, thread_widget) =
 
   Wiki_syntax.add_block_extension "forum_message"
     (fun _wiki_id bi args content -> 
-       let classe = 
+       let classes = 
          try Some [List.assoc "class" args]
          with Not_found -> None
        in
@@ -44,7 +44,7 @@ let register_wikiext (message_widget, thread_widget) =
          let sd = bi.Wiki_widgets_interface.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
          message_widget#display
-           ~sp ~sd ?rows ?cols ?classe
+           ~sp ~sd ?rows ?cols ?classes
            ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 
@@ -54,7 +54,7 @@ let register_wikiext (message_widget, thread_widget) =
 
   Wiki_syntax.add_block_extension "forum_thread"
     (fun _wiki_id bi args content ->
-       let classe = 
+       let classes = 
          try Some [List.assoc "class" args]
          with Not_found -> None
        in
@@ -71,7 +71,7 @@ let register_wikiext (message_widget, thread_widget) =
          let sd = bi.Wiki_widgets_interface.bi_sd in
          let message_id = Int32.of_string (List.assoc "message" args) in
          thread_widget#display ?commentable:(Some true) ~sp ~sd
-           ?rows ?cols ?classe
+           ?rows ?cols ?classes
            ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
          Lwt.return {{ [ {: b :} ] }}
        with Not_found | Failure _ -> 

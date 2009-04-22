@@ -100,44 +100,9 @@ let register_services () =
     (fun sp () msg ->
 
      let sd = Ocsimore_common.get_sd sp in
-     (match parent with
-        | Eliom_parameters.Inj2 forum_id -> (* new messages *)
-            Lwt.return (forum_id, None)
-        | Eliom_parameters.Inj1 parent_id -> (* comment *)
-            (* We do not require the user to be allowed to read the message ... 
-               (Forum_sql.get_message and not Forum_data.get_message) *)
-            Forum_sql.get_message ~message_id:parent_id ()
-            >>= fun (_, _, _, _, _, _, forum_id, _, _, _, _, _, _) ->
-            Lwt.return (forum_id, Some parent_id))
-       >>= fun (forum_id, parent_id) ->
-
-       Forum.get_role sp sd forum_id >>= fun role ->
-
-       if actionname = "save" 
-       then
-         (Lwt.catch
-            (fun () ->
-               Users.get_user_data sp sd >>= fun u ->
-               Forum_data.new_message ~sp ~sd ~forum_id 
-                 ~author_id:u.Users.id ?subject ?parent_id ~text ()
-               >>= fun _ ->
-               Eliom_predefmod.Redirection.send ~sp 
-                 Eliom_services.void_hidden_coservice'
-            )
-            (function
-               | Ocsimore_common.Permission_denied ->
-                   Eliom_predefmod.Action.send ~sp 
-                     [Ocsimore_common.Session_data sd;
-                      Forum.Forum_action_info 
-                        (Forum.Msg_creation_not_allowed (forum_id, parent_id))
-                     ]
-               | e -> Lwt.fail e)
-         )
-       else (* preview *)
-         Eliom_predefmod.Action.send ~sp
-           [Ocsimore_common.Session_data sd;
-            Forum.Forum_action_info
-              (Forum.Preview ((forum_id, parent_id), text))]
+     Forum_data.set_moderated ~sp ~sd ~message_id:msg ~moderated:true
+     >>= fun () ->
+     Lwt.return [Ocsimore_common.Session_data sd]
     );
 
   (* Deletion *)
