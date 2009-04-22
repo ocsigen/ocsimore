@@ -27,7 +27,7 @@ let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
 class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
-  add_message_service =
+  (add_message_service, moderate_message_service) =
 object (self)
 
   val msg_class = "ocsiforum_msg"
@@ -85,6 +85,14 @@ object (self)
   method display_admin_line ~sp ~sd ~role 
     (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
      content, moderated, deleted, sticky, _, _) =
+
+    let draw_moderate_form name =
+         {{ [<p>[{: Eliom_duce.Xhtml.int32_button ~name:name
+                    ~value:message_id {{ "Accept message" }} :} ]
+            ]
+          }}
+    in
+
     let first_msg = parent_id = None in
     (if not moderated
     then begin
@@ -95,7 +103,12 @@ object (self)
         "This message has not been accepted by moderators yet." 
       in
       if moderator
-      then Lwt.return {{ [ !s ] }} (**FORM**)
+      then
+        let form = Eliom_duce.Xhtml.post_form
+          ~service:moderate_message_service
+          ~sp draw_moderate_form () 
+        in
+        Lwt.return {{ [ !s form ] }}
       else Lwt.return s
     end
     else Lwt.return {{ [] }}) >>= fun moderation_line ->
@@ -152,7 +165,7 @@ end
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget) 
-  add_message_service =
+  (add_message_service, moderate_message_service) =
 object (self)
 
   val thr_class = "ocsiforum_thread"
