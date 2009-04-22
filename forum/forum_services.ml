@@ -105,5 +105,25 @@ let register_services () =
      Lwt.return [Ocsimore_common.Session_data sd]
     );
 
+  (* Deletion *)
+  let delete_message_service =
+    Eliom_services.new_post_coservice'
+      ~keep_get_na_params:false
+      ~name:"forum_delete_message"
+      ~post_params:(Eliom_parameters.int32 "msg")
+      ()
+  in
+
+  Eliom_predefmod.Action.register 
+    ~service:delete_message_service
+    (fun sp () msg ->
+
+     let sd = Ocsimore_common.get_sd sp in
+     Forum_data.set_deleted ~sp ~sd ~message_id:msg ~deleted:true
+     >>= fun () ->
+     Lwt.return [Ocsimore_common.Session_data sd]
+    );
+
   (add_message_service,
-   moderate_message_service)
+   moderate_message_service,
+   delete_message_service)

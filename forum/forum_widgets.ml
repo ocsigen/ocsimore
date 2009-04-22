@@ -27,7 +27,7 @@ let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
 class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
-  (add_message_service, moderate_message_service) =
+  (add_message_service, moderate_message_service, delete_message_service) =
 object (self)
 
   val msg_class = "ocsiforum_msg"
@@ -93,6 +93,13 @@ object (self)
           }}
     in
 
+    let draw_delete_form name =
+         {{ [<p>[{: Eliom_duce.Xhtml.int32_button ~name:name
+                    ~value:message_id {{ "Delete message" }} :} ]
+            ]
+          }}
+    in
+
     let first_msg = parent_id = None in
     (if not moderated
     then begin
@@ -116,7 +123,12 @@ object (self)
      then !!(role.Forum.message_deletors)
      else !!(role.Forum.comment_deletors)) >>= fun deletor ->
     if deletor
-    then Lwt.return {{ [ !moderation_line ] }} (**FORM**)
+    then 
+      let form = Eliom_duce.Xhtml.post_form
+        ~service:delete_message_service
+        ~sp draw_delete_form () 
+      in
+      Lwt.return {{ [ !moderation_line form ] }}
     else Lwt.return moderation_line
 
   method pretty_print_message
@@ -165,7 +177,7 @@ end
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget) 
-  (add_message_service, moderate_message_service) =
+  (add_message_service, moderate_message_service, delete_message_service) =
 object (self)
 
   val thr_class = "ocsiforum_thread"
