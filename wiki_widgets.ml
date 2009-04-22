@@ -670,7 +670,7 @@ object (self)
         | Wiki.Lurker ->
             (match action with
                  (* XXX update below with correct rights *)
-               | Some (Wiki_services.EditBox i)
+               | Some (Wiki_services.EditWikitext i)
                | Some (Wiki_services.History i)
                | Some (Wiki_services.Oldversion (i, _))
                | Some (Wiki_services.Error (i, _)) when i = data ->

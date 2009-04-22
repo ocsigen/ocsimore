@@ -37,26 +37,49 @@ type wiki_errors =
 exception Not_css_editor
 exception Css_already_exists
 
+(* Inductive types used by services to govern the displaying of wikiboxes.
+   Each constructor modifies the display of its first wikibox argument;
+   see Wiki_widgets, method interactive_wikibox for details.
+
+   For CSS related wikiboxes, the second wikibox is the wikibox holding
+   the css. The string option contains the corresponding wikipage, or None
+   if the css is for a wiki *)
 type wiki_action_info =
-  | EditBox of wikibox
-  | EditPerms of wikibox
+  (* Edition of a wikibox containing wikitext *)
+  | EditWikitext of wikibox
+
+  (* History of some wikitext *)
   | History of wikibox
+
+  (* Old version of a wikitext. The second argument is the version number *)
   | Oldversion of (wikibox * int32)
+
+  (* Src of a wikitext (same arguments as Oldversion) *)
   | Src of (wikibox * int32)
-  | Error of (wikibox * wiki_errors)
-(* Preview of a wikibox containing wikitext.
-   The second uple is the content of the wikibox, and the version number of the
-   wikibox *when the edition started*. This is used to display a warning in case
-   of concurrent edits*)
+
+  (* Preview of a wikibox containing wikitext. The second uple is the
+     wikitext, and the version number of the wikibox *when the
+     edition started*.  This is used to display a warning in case
+     of concurrent edits*)
   | PreviewWikitext of (wikibox * (string * int32))
-  (* Actions related to CSS. The first wikibox is the wikibox in which
-     the action takes place. The second wikibox is the wikibox holding
-     the css. The string option contains the page, or None if the css
-     is for a wiki *)
+
+  (* Edition of a CSS. The first arguments are standard CSS arguments.
+     The (string * int32) is the CSS and the time at which the edition
+     started (as for PreviewWikitext), or None if we are about to
+     start the edition *)
   | EditCss of ((wikibox * (wikibox  * string option)) *(string * int32) option)
+
+  (* History of a css *)
   | CssHistory of (wikibox * (wikibox * string option))
+
+  (* Old version of a wikibox *)
   | CssOldversion of wikibox * (wikibox * string option) * int32
 
+  (* Edition of the permissions of a wikibox *)
+  | EditPerms of wikibox
+
+  (* Error message *)
+  | Error of (wikibox * wiki_errors)
 
 
 exception Wiki_action_info of wiki_action_info
@@ -281,7 +304,7 @@ let action_edit_css = Eliom_predefmod.Actions.register_new_coservice'
 and action_edit_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_edit" ~get_params:eliom_wikibox_args
   (fun _sp wbox () ->
-     Lwt.return [Wiki_action_info (EditBox wbox)])
+     Lwt.return [Wiki_action_info (EditWikitext wbox)])
 
 and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
