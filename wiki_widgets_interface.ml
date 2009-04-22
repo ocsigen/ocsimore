@@ -29,6 +29,57 @@ open Wiki_sql.Types
 
 (*********************************************************************)
 
+(** Inductive type used by services to specify a special way to display a
+   wikibox. See Wiki_widgets, method interactive_wikibox for details.
+
+   For CSS related constructors, the wikibox is the wikibox holding
+   the css. The string option contains the corresponding wikipage, or None
+   if the css is for a wiki *)
+type wikibox_override =
+  (** Edition of a wikibox containing wikitext *)
+  | EditWikitext of wikibox
+
+  (** History of some wikitext *)
+  | History of wikibox
+
+  (** Old version of a wikitext. The second argument is the version number *)
+  | Oldversion of (wikibox * int32)
+
+  (** Src of a wikitext (same arguments as Oldversion) *)
+  | Src of (wikibox * int32)
+
+  (** Preview of a wikibox containing wikitext. The second uple is the
+     wikitext, and the version number of the wikibox *when the
+     edition started*.  This is used to display a warning in case
+     of concurrent edits*)
+  | PreviewWikitext of (wikibox * (string * int32))
+
+  (** Edition of a CSS. The first arguments is the standard CSS arguments.
+     The (string * int32) is the CSS and the time at which the edition
+     started (as for PreviewWikitext), or None if we are about to
+     start the edition *)
+  | EditCss of ((wikibox  * string option) *(string * int32) option)
+
+  (** History of a css *)
+  | CssHistory of (wikibox * string option)
+
+  (** Old version of a wikibox *)
+  | CssOldversion of (wikibox * string option) * int32
+
+  (** Edition of the permissions of a wikibox *)
+  | EditPerms of wikibox
+
+  (** Error message *)
+  | Error of exn
+
+
+(** How to change the display of a wikibox: which wikibox is concerned,
+   and what should be displayed instead *)
+exception Override_wikibox of wikibox * wikibox_override
+
+
+(*********************************************************************)
+
 module Ancestors : sig
 
 (** Type used to avoid wikibox loops *)
@@ -158,12 +209,12 @@ end
 
 (** The various tabs on top of an interactive wikibox *)
 type menu_item =
-  | Edit
-  | Edit_perm
-  | Edit_css
-  | History
-  | View
-  | History_css
+  | Menu_Edit
+  | Menu_EditPerm
+  | Menu_History
+  | Menu_View
+  | Menu_HistoryCss
+  | Menu_EditCss
 
 (** Argument passed when building the interactive menu. We can edit the CSS
     for the current wiki, or the CSS for a wikipage *)
@@ -298,6 +349,19 @@ class type virtual interactive_wikibox =
       ?cssmenu:css_menu ->
       (** wb:*)wikibox ->
       Xhtmltypes_duce.block Lwt.t
+
+    (** Display the wikibox [wb_loc], but entirely overrides the content
+        according to the argument [override]. The argument [wb_loc] is
+        only used to build the interactive menu. *)
+    method display_overriden_interactive_wikibox :
+      bi:box_info ->
+      ?classes:string list ->
+      ?rows:int ->
+      ?cols:int ->
+      ?cssmenu:css_menu ->
+      wb_loc:wikibox ->
+      override:wikibox_override ->
+      (Xhtmltypes_duce.block * bool) Lwt.t
 
 
     (** Returns the css headers for one wiki and optionally one page.

@@ -51,6 +51,12 @@ object
             ~message:("You are not allowed to modify the stylesheet for that page.")
             ?exn
             ()
+      | Some Wiki_services.Operation_insufficient_permissions ->
+          error_box#display_error_box
+            ?classes
+            ~message:("Operation denied: insufficient permissions")
+            ?exn
+            ()
       | _ -> error_box#display_error_box ?classes ?message ?exn ()
 
 end
@@ -130,7 +136,10 @@ end;;
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
     or navigate through viewing options *)
-class dynamic_wikibox (error_box : Widget.widget_with_error_box) (* : Wiki_widgets_interface.interactive_wikibox = *)
+class dynamic_wikibox (error_box : Widget.widget_with_error_box)
+(* (* Debugging code, to obtain useful error messages *)
+   : Wiki_widgets_interface.interactive_wikibox =
+   let *)
 (
   action_edit_css,
   action_edit_wikibox,
@@ -164,26 +173,23 @@ object (self)
   val preview_class = "preview"
   val css_class = "editcss"
 
-  method private create_error_message = function
-    | Wiki_services.Operation_not_allowed -> "Operation not allowed"
-    | Wiki_services.Action_failed _ -> "Action failed"
 
-  method private box_menu ~sp ?(perm = false) ?cssmenu ?service ?(title = "") ((wiki, _) as ids) =
+  method private box_menu ~sp ?(perm = false) ?cssmenu ?service ?(title = "") ((wid, _) as wb) =
     let preapply = Eliom_services.preapply in
-    let history = preapply action_wikibox_history ids
-    and edit = preapply action_edit_wikibox ids
-    and delete = preapply action_delete_wikibox ids
-    and edit_perm = preapply action_edit_wikibox_permissions ids
+    let history = preapply action_wikibox_history wb
+    and edit = preapply action_edit_wikibox wb
+    and delete = preapply action_delete_wikibox wb
+    and edit_perm = preapply action_edit_wikibox_permissions wb
     in
     let view = Eliom_services.void_coservice' in
     (match cssmenu with
        | Some (CssWikipage page) -> (* Edition of the css for page [page] *)
-           (Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
+           (Wiki_sql.get_css_wikibox_for_wikipage wid page >>= function
               | None -> Lwt.return (None, None)
-              | Some box ->
-                  let args = (ids, ((wiki, box), (Some page))) in
-                  let edit = preapply action_edit_css (args, None)
-                  and history = preapply action_css_history args
+              | Some wbidcss ->
+                  let wbcss = ((wid, wbidcss), Some page) in
+                  let edit = preapply action_edit_css (wb, (wbcss, None))
+                  and history = preapply action_css_history (wb, wbcss)
                   in
                   Lwt.return
                     (Some (history, {{ "page css history" }}),
@@ -191,12 +197,12 @@ object (self)
            )
 
        | Some CssWiki -> (* Edition of the global css for [wiki] *)
-           (Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
+           (Wiki_sql.get_css_wikibox_for_wiki wid >>= function
               | None -> Lwt.return (None, None)
-              | Some box ->
-                  let args = (ids, ((wiki, box), None)) in
-                  let edit = preapply action_edit_css (args, None)
-                  and history = preapply action_css_history args
+              | Some wbidcss ->
+                  let wbcss = ((wid, wbidcss), None) in
+                  let edit = preapply action_edit_css (wb, (wbcss, None))
+                  and history = preapply action_css_history (wb, wbcss)
                   in
                   Lwt.return
                     (Some (history, {{ "wiki css history" }}),
@@ -208,16 +214,16 @@ object (self)
     ) >>= fun (history_css, edit_css) ->
     let service = match service with
       | None -> None
-      | Some View -> Some view
-      | Some Edit -> Some edit
-      | Some Edit_perm -> Some edit_perm
-      | Some History -> Some history
-      | Some Edit_css ->
+      | Some Menu_View -> Some view
+      | Some Menu_Edit -> Some edit
+      | Some Menu_EditPerm -> Some edit_perm
+      | Some Menu_History -> Some history
+      | Some Menu_EditCss ->
           (match edit_css with
              | Some (edit_css, _) -> Some edit_css
              | None -> None
           )
-      | Some History_css ->
+      | Some Menu_HistoryCss ->
           (match history_css with
              | Some (history_css, _) -> Some history_css
              | None -> None
@@ -444,24 +450,24 @@ object (self)
 
   method private menu_edit_wikitext (w, b as wb) =
     let title = Printf.sprintf "Edit - Wiki %s, box %ld" (wiki_id_s w) b in
-    self#menu_box_aux ~title ~service:Edit editform_class wb
+    self#menu_box_aux ~title ~service:Menu_Edit editform_class wb
 
   method private menu_edit_perm (w, b as wb) =
     let title = Printf.sprintf "Permissions - Wiki %s, box %ld"
       (wiki_id_s w) b in
-    self#menu_box_aux ~title ~service:Edit_perm editform_class wb
+    self#menu_box_aux ~title ~service:Menu_EditPerm editform_class wb
 
   method private menu_wikitext_history (w, b as wb) =
     let title = Printf.sprintf "History - Wiki %s, box %ld" (wiki_id_s w) b in
-    self#menu_box_aux ~title ~service:History history_class wb
+    self#menu_box_aux ~title ~service:Menu_History history_class wb
 
   method private menu_css_history ((w, _) as wb) page =
     let title = Printf.sprintf "CSS history, wiki %s, %s"
       (wiki_id_s w) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~service:History_css css_history_class wb
+    self#menu_box_aux ~title ~service:Menu_HistoryCss css_history_class wb
 
   method private menu_view =
-    self#menu_box_aux ~service:View interactive_class
+    self#menu_box_aux ~service:Menu_View interactive_class
 
   method private menu_old_wikitext (w, b as wb) version =
     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"
@@ -481,7 +487,7 @@ object (self)
   method private menu_edit_css ((w, _) as wb) page =
     let title = Printf.sprintf "CSS for wiki %s, %s"
       (wiki_id_s w) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~service:Edit_css css_class wb
+    self#menu_box_aux ~title ~service:Menu_EditCss css_class wb
 
   method private css_wikibox_text = function
     | None -> "global stylesheet"
@@ -534,181 +540,165 @@ object (self)
     Lwt.return (classes, {{ map {: l :} with i -> i }})
 
 
-  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?cssmenu wb =
+  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?cssmenu (wid, _ as wb) =
     let sp = bi.bi_sp in
     let sd = bi.bi_sd in
-    let rec find_action = function
-      | [] -> None
-      | (Wiki_services.Wiki_action_info e)::_ -> Some e
-      | _ :: l -> find_action l
+    let override = Ocsimore_lib.find_opt
+      (function
+         | Wiki_widgets_interface.Override_wikibox (wb', o) -> Some (wb', o)
+         | _ -> None)
+      (Eliom_sessions.get_exn sp)
     in
-    let (wiki_id, _) = wb in
-    let action = find_action (Eliom_sessions.get_exn sp) in
-    Wiki.get_role ~sp ~sd wb
-    >>= function
-      | Wiki.Admin
-      | Wiki.Author ->
-          (match action with
-             | Some (Wiki_services.EditWikitext i) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Wiki.wikibox_content' wb)
-                   (self#display_wikitext_edit_form_help ~bi ?cols ?rows
-                      ~previewonly:true ~wb ~classes)
-                   (self#menu_edit_wikitext ~bi ?cssmenu wb)
-                 >>= fun r ->
-                 Lwt.return (r, true)
+    match override with
+      | Some (wb', override) when wb = wb' ->
+          self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
+            ?cssmenu ~wb_loc:wb ~override
+      | _ ->
+          Wiki.get_role ~sp ~sd wb
+          >>= function
+            | Wiki.Admin | Wiki.Author ->
+                error_box#bind_or_display_error
+                  (Wiki.wikibox_content wb)
+                  (self#display_wikiboxcontent ~classes ~wiki:wid
+                     ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
+                  (self#menu_view ~bi ?cssmenu wb)
+                >>= fun r ->
+                Lwt.return (r, true)
 
-             | Some (Wiki_services.EditCss ((i, (wbcss, wikipage)), css)) when i = wb ->
-                 error_box#bind_or_display_error
-                   (match css with
-                      | None -> Wiki.wikibox_content' wbcss
-                      | Some (content, version) ->
-                          Lwt.return (Some content, version)
-                   )
-                   (self#display_css_edit_form ~bi ?cols ?rows
-                      ~wb:wb ~wbcss ~wikipage ~classes)
-                   (self#menu_edit_css ~bi ?cssmenu wb wikipage)
-                 >>= fun r ->
-                 Lwt.return (r, true)
+            | Wiki.Lurker ->
+                error_box#bind_or_display_error
+                  (Wiki.wikibox_content wb)
+                  (self#display_wikiboxcontent ~classes ~wiki:wid
+                     ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
+                  (self#display_basic_box)
+                >>= fun r ->
+                Lwt.return (r, true)
 
-             | Some (Wiki_services.EditPerms i) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Lwt.return wb)
-                   (self#display_edit_perm_form ~bi ~classes)
-                   (self#menu_edit_perm ~bi ?cssmenu wb)
-                 >>= fun r ->
-                 Lwt.return (r, true)
+            | Wiki.Nonauthorized ->
+                Lwt.return
+                  (error_box#display_error_box
+                     ~classes:(frozen_wb_class::classes)
+                     ~message:"You are not allowed to see this content."
+                     (),
+                   false)
 
-             | Some (Wiki_services.PreviewWikitext (i, (content, version))) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Lwt.return (Some content, version))
-                   (fun (content, version as cv) ->
-                      self#display_wikiboxcontent ~wiki:wiki_id  ~classes:[]
-                        ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                        (Wiki_sql.WikiCreole, content, version)
-                      >>= fun (_, pp) ->
-                      self#display_basic_box ~classes:[] pp
-                      >>= fun preview ->
-                      self#display_wikitext_edit_form_help ~classes:[]
-                        ~bi ?cols ?rows ~previewonly:false ~wb:wb cv
-                      >>= fun (_, form) ->
-                      Lwt.return
-                        (classes,
-                         {{ [ <p class={: box_title_class :}>"Preview"
-                              preview
-                              !form ] }})
-                   )
-                   (self#menu_edit_wikitext ~bi ?cssmenu wb)
-                 >>= fun r ->
-                 Lwt.return (r, true)
 
-             | Some (Wiki_services.History i) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Wiki_sql.get_history wb)
-                   (self#display_wikitext_history ~bi ~classes ~wb:wb)
-                   (self#menu_wikitext_history ~bi ?cssmenu wb)
-                 >>= fun r ->
-                 Lwt.return (r, true)
+  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
+    match override with
+      | EditWikitext wb ->
+          error_box#bind_or_display_error
+            (Wiki.wikibox_content' wb)
+            (self#display_wikitext_edit_form_help ~bi ?cols ?rows
+               ~previewonly:true ~wb ~classes)
+            (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
+          >>= fun r ->
+          Lwt.return (r, true)
 
-             | Some (Wiki_services.CssHistory (i, (wbcss, wikipage))) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Wiki_sql.get_history wbcss)
-                   (self#display_css_history ~bi ~classes ~wb:i ~wbcss ~wikipage)
-                   (self#menu_css_history ~bi ?cssmenu i wikipage)
-                 >>= fun r ->
-                 Lwt.return (r, true)
-
-             | Some (Wiki_services.Oldversion (i, version)) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Wiki.wikibox_content ~version wb)
-                   (self#display_wikiboxcontent ~classes
-                      ~wiki:wiki_id
-                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                   )
-                   (self#menu_old_wikitext ~bi ?cssmenu wb version)
-                 >>= fun r ->
-                 Lwt.return (r, true)
-
-             | Some (Wiki_services.CssOldversion (i, (icss, page), version)) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Wiki.wikibox_content ~version icss)
-                   (self#display_wikiboxcontent ~classes ~wiki:wiki_id
-                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                   )
-                   (self#menu_old_css ~bi ?cssmenu wb page)
-                 >>= fun r ->
-                 Lwt.return (r, true)
-
-             | Some (Wiki_services.Src (i, version)) when i = wb ->
-                 error_box#bind_or_display_error
-                   (Wiki.wikibox_content ~version wb)
-                   (self#display_raw_wikiboxcontent ~classes)
-                   (self#menu_src_wikitext ~bi ?cssmenu wb version)
-                 >>= fun r ->
-                 Lwt.return (r, true)
-
-             | Some (Wiki_services.Error (i, error)) when i = wb ->
-                 error_box#bind_or_display_error
-                   ~error:(self#create_error_message error)
-                   (Wiki.wikibox_content wb)
-                   (self#display_wikiboxcontent ~classes ~wiki:wiki_id
-                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
-                   (self#menu_view ~bi ?cssmenu wb)
-                 >>= fun r ->
-                 Lwt.return (r, true)
-
-             | _ ->
-                   (* No action, or the action does not concern this page.
-                      We simply display the wikipage itself *)
-                   error_box#bind_or_display_error
-                     (Wiki.wikibox_content wb)
-                     (self#display_wikiboxcontent ~classes ~wiki:wiki_id
-                        ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                     )
-                     (self#menu_view ~bi ?cssmenu wb)
-                   >>= fun r ->
-                   Lwt.return (r, true)
+      | EditCss ((wbcss, wikipage), css) ->
+          error_box#bind_or_display_error
+            (match css with
+               | None -> Wiki.wikibox_content' wbcss
+               | Some (content, version) ->
+                   Lwt.return (Some content, version)
             )
+            (self#display_css_edit_form ~bi ?cols ?rows
+               ~wb:wb_loc ~wbcss ~wikipage ~classes)
+            (self#menu_edit_css ~bi ?cssmenu wb_loc wikipage)
+          >>= fun r ->
+          Lwt.return (r, true)
 
-        | Wiki.Lurker ->
-            (match action with
-                 (* XXX update below with correct rights *)
-               | Some (Wiki_services.EditWikitext i)
-               | Some (Wiki_services.History i)
-               | Some (Wiki_services.Oldversion (i, _))
-               | Some (Wiki_services.Error (i, _)) when i = wb ->
-                   error_box#bind_or_display_error
-                     ~error:(self#create_error_message
-                               Wiki_services.Operation_not_allowed)
-                     (Wiki.wikibox_content wb)
-                     (self#display_wikiboxcontent ~classes ~wiki:wiki_id
-                        ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                     )
-                     (self#display_basic_box)
-                   (* Returning true would also be meaningful: the action
-                      is forbidden but the wikibox itself is shown *)
-                   >>= fun r ->
-                   Lwt.return (r, false)
+      | EditPerms wb ->
+          error_box#bind_or_display_error
+            (Lwt.return wb)
+            (self#display_edit_perm_form ~bi ~classes)
+            (self#menu_edit_perm ~bi ?cssmenu wb_loc)
+          >>= fun r ->
+          Lwt.return (r, true)
 
-               | _ ->
-                   (* As for Author/default *)
-                   error_box#bind_or_display_error
-                     (Wiki.wikibox_content wb)
-                     (self#display_wikiboxcontent ~classes ~wiki:wiki_id
-                        ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                     )
-                     (self#display_basic_box)
-                   >>= fun r ->
-                   Lwt.return (r, true)
+      | PreviewWikitext (wb, (content, version)) ->
+          error_box#bind_or_display_error
+            (Lwt.return (Some content, version))
+            (fun (content, version as cv) ->
+               self#display_wikiboxcontent ~wiki:(fst wb_loc)
+                 ~classes:[] ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
+                 (Wiki_sql.WikiCreole, content, version)
+               >>= fun (_, pp) ->
+               self#display_basic_box ~classes:[] pp
+               >>= fun preview ->
+               self#display_wikitext_edit_form_help ~classes:[]
+                 ~bi ?cols ?rows ~previewonly:false ~wb cv
+               >>= fun (_, form) ->
+                 Lwt.return
+                   (classes,
+                    {{ [ <p class={: box_title_class :}>"Preview"
+                         preview
+                         !form ] }})
             )
+            (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
+          >>= fun r ->
+          Lwt.return (r, true)
 
-        | Wiki.Nonauthorized ->
-            Lwt.return
-              (error_box#display_error_box
-                 ~classes:(frozen_wb_class::classes)
-                 ~message:"You are not allowed to see this content."
-                 (),
-               false)
+      | History wb ->
+          error_box#bind_or_display_error
+            (Wiki_sql.get_history wb)
+            (self#display_wikitext_history ~bi ~classes ~wb)
+            (self#menu_wikitext_history ~bi ?cssmenu wb_loc)
+          >>= fun r ->
+          Lwt.return (r, true)
+
+      | CssHistory (wbcss, wikipage) ->
+          error_box#bind_or_display_error
+            (Wiki_sql.get_history wbcss)
+            (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss ~wikipage)
+            (self#menu_css_history ~bi ?cssmenu wb_loc wikipage)
+          >>= fun r ->
+          Lwt.return (r, true)
+
+      | Oldversion (wb, version) ->
+          error_box#bind_or_display_error
+            (Wiki.wikibox_content ~version wb)
+            (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
+               ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
+            (self#menu_old_wikitext ~bi ?cssmenu wb_loc version)
+          >>= fun r ->
+          Lwt.return (r, true)
+
+      | CssOldversion ((wbcss, page), version) ->
+          error_box#bind_or_display_error
+            (Wiki.wikibox_content ~version wbcss)
+            (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
+               ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
+            (self#menu_old_css ~bi ?cssmenu wb_loc page)
+          >>= fun r ->
+          Lwt.return (r, true)
+
+      | Src (wb, version)->
+          error_box#bind_or_display_error
+            (Wiki.wikibox_content ~version wb)
+            (self#display_raw_wikiboxcontent ~classes)
+            (self#menu_src_wikitext ~bi ?cssmenu wb_loc version)
+          >>= fun r ->
+          Lwt.return (r, true)
+
+      | Error error ->
+          Lwt.return
+            (error_box#display_error_box ~classes ~exn:error (), false)
+
+(*
+        error_box#bind_or_display_error
+              ~error:(self#create_error_message
+                        Wiki_services.Operation_not_allowed)
+              (Wiki.wikibox_content wb)
+              (self#display_wikiboxcontent ~classes ~wiki:wiki_id
+                 ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
+              )
+              (self#display_basic_box)
+              (* Returning true would also be meaningful: the action
+                 is forbidden but the wikibox itself is shown *)
+            >>= fun r ->
+            Lwt.return (r, false)
+*)
+
 
    method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu wb =
      self#display_interactive_wikibox_aux ~bi ?rows ?cols ~classes ?cssmenu wb

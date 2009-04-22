@@ -25,67 +25,13 @@ These are all the services related to wikis
 
 *)
 
+open Wiki_widgets_interface
 open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
-
-
-type wiki_errors =
-  | Action_failed of exn
-  | Operation_not_allowed
-
+exception Operation_insufficient_permissions
 exception Not_css_editor
 exception Css_already_exists
-
-(* Inductive types used by services to govern the displaying of wikiboxes.
-   Each constructor modifies the display of its first wikibox argument;
-   see Wiki_widgets, method interactive_wikibox for details.
-
-   For CSS related wikiboxes, the second wikibox is the wikibox holding
-   the css. The string option contains the corresponding wikipage, or None
-   if the css is for a wiki *)
-type wiki_action_info =
-  (* Edition of a wikibox containing wikitext *)
-  | EditWikitext of wikibox
-
-  (* History of some wikitext *)
-  | History of wikibox
-
-  (* Old version of a wikitext. The second argument is the version number *)
-  | Oldversion of (wikibox * int32)
-
-  (* Src of a wikitext (same arguments as Oldversion) *)
-  | Src of (wikibox * int32)
-
-  (* Preview of a wikibox containing wikitext. The second uple is the
-     wikitext, and the version number of the wikibox *when the
-     edition started*.  This is used to display a warning in case
-     of concurrent edits*)
-  | PreviewWikitext of (wikibox * (string * int32))
-
-  (* Edition of a CSS. The first arguments are standard CSS arguments.
-     The (string * int32) is the CSS and the time at which the edition
-     started (as for PreviewWikitext), or None if we are about to
-     start the edition *)
-  | EditCss of ((wikibox * (wikibox  * string option)) *(string * int32) option)
-
-  (* History of a css *)
-  | CssHistory of (wikibox * (wikibox * string option))
-
-  (* Old version of a wikibox *)
-  | CssOldversion of wikibox * (wikibox * string option) * int32
-
-  (* Edition of the permissions of a wikibox *)
-  | EditPerms of wikibox
-
-  (* Error message *)
-  | Error of (wikibox * wiki_errors)
-
-
-exception Wiki_action_info of wiki_action_info
-
-
-
 
 
 (** Name of the administration wiki. This is the name that must
@@ -282,13 +228,9 @@ let save_wikibox_aux ~sp ~sd ~wikibox ~enough_rights ~content ~content_type =
        (* We do a redirection to prevent repost *)
        Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
     (fun e ->
-       let e = match e with
-         | Ocsimore_common.Permission_denied -> Operation_not_allowed
-         | _ -> Action_failed e
-       in
        Eliom_predefmod.Action.send ~sp
          [Ocsimore_common.Session_data sd;
-          Wiki_action_info (Error (wikibox, e))])
+          Override_wikibox (wikibox, Error e)])
 
 
 
@@ -296,60 +238,62 @@ let services () =
 
 let action_edit_css = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"css_edit"
-  ~get_params:((eliom_wikibox_args ** eliom_css_args) **
-                 (Eliom_parameters.opt (Eliom_parameters.string "css" **
-                                          Eliom_parameters.int32 "version")))
-  (fun _sp args () -> Lwt.return [Wiki_action_info (EditCss args)])
+  ~get_params:(eliom_wikibox_args **
+                 (eliom_css_args **
+                    (Eliom_parameters.opt (Eliom_parameters.string "css" **
+                                            Eliom_parameters.int32 "version"))))
+  (fun _sp (wb, args) () -> Lwt.return [Override_wikibox (wb, EditCss args)])
 
 and action_edit_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_edit" ~get_params:eliom_wikibox_args
-  (fun _sp wbox () ->
-     Lwt.return [Wiki_action_info (EditWikitext wbox)])
+  (fun _sp wb () ->
+     Lwt.return [Override_wikibox (wb, EditWikitext wb)])
 
 and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
-  (fun sp wikibox () ->
+  (fun sp wb () ->
      let sd = Ocsimore_common.get_sd sp in
      save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
-       ~sp ~sd ~wikibox ~content:None ~content_type:Wiki_sql.WikiCreole
+       ~sp ~sd ~wikibox:wb ~content:None ~content_type:Wiki_sql.WikiCreole
   )
 
 and action_edit_wikibox_permissions =
   Eliom_predefmod.Actions.register_new_coservice'
     ~name:"wiki_edit_perm" ~get_params:eliom_wikibox_args
-    (fun sp wbox () ->
+    (fun sp wb () ->
        let sd = Ocsimore_common.get_sd sp in
-       Wiki.get_role sp sd wbox
+       Wiki.get_role sp sd wb
        >>= fun role ->
          if role = Wiki.Admin then
            Lwt.return [Ocsimore_common.Session_data sd;
-                       Wiki_action_info (EditPerms wbox)]
+                       Override_wikibox (wb, EditPerms wb)]
          else Lwt.return [Ocsimore_common.Session_data sd])
 
 and action_wikibox_history = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wikibox_history" ~get_params:eliom_wikibox_args
-  (fun _sp g () -> Lwt.return [Wiki_action_info (History g)])
+  (fun _sp wb () -> Lwt.return [Override_wikibox (wb, History wb)])
 
 and action_css_history = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"css_history" ~get_params:(eliom_wikibox_args ** eliom_css_args)
-  (fun _sp args () -> Lwt.return [Wiki_action_info (CssHistory args)])
+  (fun _sp (wb, css) () -> Lwt.return [Override_wikibox (wb, CssHistory css)])
 
 and action_old_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_old_version"
   ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
-  (fun _sp g () -> Lwt.return [Wiki_action_info (Oldversion g)])
+  (fun _sp (wb, _ver as arg) () ->
+     Lwt.return [Override_wikibox (wb, Oldversion arg)])
 
 and action_old_wikiboxcss = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"css_old_version"
   ~get_params:(eliom_wikibox_args **
                  (eliom_css_args ** (Eliom_parameters.int32 "version")))
   (fun _sp (wb, (wbcss, version)) () ->
-     Lwt.return [Wiki_action_info (CssOldversion (wb, wbcss, version))])
+     Lwt.return [Override_wikibox (wb, CssOldversion (wbcss, version))])
 
 and action_src_wikibox = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wiki_src"
   ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
-  (fun _sp g () -> Lwt.return [Wiki_action_info (Src g)])
+  (fun _sp (wb, _ver as arg) () -> Lwt.return [Override_wikibox (wb, Src arg)])
 
 and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
   ~keep_get_na_params:false ~name:"wiki_save_wikitext"
@@ -357,29 +301,28 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
   (Eliom_parameters.string "actionname" **
      ((eliom_wikibox_args ** Eliom_parameters.int32 "boxversion") **
         Eliom_parameters.string "content"))
-  (fun sp () (actionname, (((wiki_id, box_id), boxversion), content)) ->
-     let wikibox = (wiki_id, box_id) in
+  (fun sp () (actionname, (((wid, wbid as wb), boxversion), content)) ->
      (* We always show a preview before saving. Moreover, we check that the
         wikibox that the wikibox has not been modified in parallel of our
         modifications. If this is the case, we also show a warning *)
-     Wiki.modified_wikibox wikibox boxversion
+     Wiki.modified_wikibox wb boxversion
      >>= fun modified ->
        if actionname = "save" then
          match modified with
            | None ->
                let sd = Ocsimore_common.get_sd sp in
-               Wiki_filter.preparse_extension (sp, sd, box_id) wiki_id content
+               Wiki_filter.preparse_extension (sp, sd, wbid) wid content
                >>= fun content ->
                save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
-                 ~sp ~sd ~wikibox
+                 ~sp ~sd ~wikibox:wb
                  ~content:(Some content) ~content_type:Wiki_sql.WikiCreole
            | Some _ ->
                Eliom_predefmod.Action.send ~sp
-                 [Wiki_action_info (PreviewWikitext
-                                      (wikibox, (content, boxversion)))]
+                 [Override_wikibox (wb,
+                                    PreviewWikitext (wb,(content, boxversion)))]
        else
          Eliom_predefmod.Action.send ~sp
-           [Wiki_action_info (PreviewWikitext (wikibox, (content, boxversion)))]
+           [Override_wikibox (wb, PreviewWikitext (wb, (content, boxversion)))]
       )
 
 and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
@@ -388,7 +331,7 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
   ((eliom_wikibox_args ** (eliom_css_args **
                              Eliom_parameters.int32 "boxversion")) **
      Eliom_parameters.string "content")
-  (fun sp () (((wiki_id, box_id), ((wbcss, page), boxversion)), content) ->
+  (fun sp () ((wb, ((wbcss, page), boxversion)), content) ->
      (* We always show a preview before saving. Moreover, we check that the
         wikibox that the wikibox has not been modified in parallel of our
         modifications. If this is the case, we also show a warning *)
@@ -402,8 +345,8 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
                ~content:(Some content) ~content_type:Wiki_sql.Css
          | Some _ ->
              Eliom_predefmod.Action.send ~sp
-               [Wiki_action_info (EditCss (((wiki_id, box_id), (wbcss, page)),
-                                           Some (content, boxversion)))]
+               [Override_wikibox (wb, EditCss ((wbcss, page),
+                                               Some (content, boxversion)))]
   )
 
 and action_send_wikibox_permissions =

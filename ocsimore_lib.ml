@@ -99,4 +99,7 @@ let rec lwt_filter f = function
 
 let rec find_opt f = function
   | [] -> None
-  | e :: l -> if f e then e else find_opt f l
+  | e :: l ->
+      match f e with
+        | None -> find_opt f l
+        | Some v -> Some v
