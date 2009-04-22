@@ -102,7 +102,7 @@ let set_sticky ~message_id ~sticky =
   PGSQL(db) "UPDATE forums_messages SET sticky = $sticky \
              WHERE id = $message_id")
 
-let get_forum ?forum_id ?title () =
+let get_forum ?(not_deleted_only = true) ?forum_id ?title () =
   Sql.full_transaction_block
     (fun db -> match (title, forum_id) with
      | (Some t, Some i) -> 
@@ -120,25 +120,50 @@ let get_forum ?forum_id ?title () =
      | (None, None) -> Lwt.fail (Invalid_argument "Forum_sql.find_forum"))
   >>= fun r -> 
   (match r with
-     | [a] -> Lwt.return a
-     | a::_ -> 
+     | [(_id, _title, _descr, _arborescent, deleted) as a] -> 
+         if not_deleted_only && deleted
+         then Lwt.fail Not_found
+         else Lwt.return a
+     | ((_id, _title, _descr, _arborescent, deleted) as a)::_ -> 
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
-         Lwt.return a
+         if not_deleted_only && deleted
+         then Lwt.fail Not_found
+         else Lwt.return a
      | _ -> Lwt.fail Not_found)
 
-let get_forums_list () =
+let get_forums_list ?(not_deleted_only = true) () =
   Sql.full_transaction_block 
     (fun db ->
-       PGSQL(db) 
-         "SELECT id, title, descr, arborescent, deleted \
-          FROM forums")
+       (if not_deleted_only
+        then
+          PGSQL(db) 
+           "SELECT id, title, descr, arborescent, deleted \
+            FROM forums \
+            WHERE deleted = false"
+        else
+          PGSQL(db) 
+            "SELECT id, title, descr, arborescent, deleted \
+             FROM forums"))
 
-let get_message ~message_id =
-  Lwt_pool.use Sql.pool (fun db ->
-  PGSQL(db) "SELECT id, subject, author_id, datetime, parent_id, 
-               root_id, forum_id, text, moderated, deleted, sticky \
-             FROM forums_messages \
-             WHERE forums_messages.id = $message_id" >>= fun y -> 
+let get_message ?(not_deleted_only = true) ~message_id () =
+  Lwt_pool.use Sql.pool 
+    (fun db ->
+       (if not_deleted_only
+        then
+          (* tree_min and tree_max are here only for the interface to be 
+             compatible with get_thread *)
+          PGSQL(db) "SELECT id, subject, author_id, datetime, parent_id, 
+                       root_id, forum_id, text, moderated, deleted, sticky,\
+                       tree_min, tree_max \
+                     FROM forums_messages \
+                     WHERE forums_messages.id = $message_id \
+                     AND deleted = false"
+        else
+          PGSQL(db) "SELECT id, subject, author_id, datetime, parent_id, 
+                       root_id, forum_id, text, moderated, deleted, sticky,\
+                       tree_min, tree_max \
+                     FROM forums_messages \
+                     WHERE forums_messages.id = $message_id") >>= fun y -> 
   (match y with
      | [] -> Lwt.fail Not_found
      | [x] -> return x 
@@ -147,23 +172,25 @@ let get_message ~message_id =
            (Failure 
               "Forum_sql.get_message: several messages have the same id")))
 
-let get_thread ~message_id =
+let get_thread ~message_id () =
   Sql.full_transaction_block
     (fun db -> 
-       PGSQL(db) "SELECT tree_min, tree_max \
-                  FROM forums_messages \
-                  WHERE forums_messages.id = $message_id" >>= fun y -> 
-       (match y with
-          | [] -> Lwt.fail Not_found
-          | [(min, max)] -> 
-              PGSQL(db) "SELECT id, subject, author_id, datetime, parent_id, \
-                           root_id, forum_id, text, moderated, deleted, sticky \
-                         FROM forums_messages \
-                         WHERE tree_min >= $min AND tree_max <= $max \
-                         ORDER BY tree_min"
-          | _ -> 
-              Lwt.fail 
-                (Failure 
-                   "Forum_sql.get_thread: several messages have the same id")))
+         PGSQL(db) "SELECT tree_min, tree_max \
+                    FROM forums_messages \
+                    WHERE forums_messages.id = $message_id" >>= fun y -> 
+         (match y with
+            | [] -> Lwt.fail Not_found
+            | [(min, max)] -> 
+                PGSQL(db)
+                     "SELECT id, subject, author_id, datetime, parent_id, \
+                           root_id, forum_id, text, moderated, deleted, sticky,\
+                           tree_min, tree_max \
+                      FROM forums_messages \
+                      WHERE tree_min >= $min AND tree_max <= $max \
+                      ORDER BY tree_min"
+            | _ -> 
+                Lwt.fail 
+                  (Failure 
+                     "Forum_sql.get_thread: several messages have the same id")))
 
 

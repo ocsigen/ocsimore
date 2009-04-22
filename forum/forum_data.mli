@@ -107,21 +107,22 @@ val get_message :
   sd:Ocsimore_common.session_data ->
   message_id:int32 -> 
  (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option * 
-    int32 * int32 * string * bool * bool * bool) Lwt.t
+    int32 * int32 * string * bool * bool * bool * int32 * int32) Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
     For each message, the information retrieved is:
     [(id, subject, author, datetime, parent_id, root_id, forum_id, text, 
-    moderated, deleted, sticky)]. 
-    If the user can read the first message but not comments, only
-    the first message is returned.
-    May fail with exception [Ocsimore_common.Permission_denied].
+    moderated, deleted, sticky, _, _)]. 
+    Only readable messages comments are returned.
+    Comments of unreadable messages are not returned.
+    May fail with exceptions [Ocsimore_common.Permission_denied]
+    or [Not_found].
 *)
 val get_thread : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   message_id:int32 -> 
  (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
-    int32 * int32 * string * bool * bool * bool) list Lwt.t
+    int32 * int32 * string * bool * bool * bool * int32 * int32) list Lwt.t
   

@@ -12,4 +12,5 @@
 <**/*_widgets.ml*> : ocamlduce, pkg_calendar
 <forum/ocsicreateforum.ml*> : ocamlduce
 <**/*_wikiext.ml*> : ocamlduce
+<forum/forum_site.ml*> : ocamlduce
 <**/*_client*> : obrowser

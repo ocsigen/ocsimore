@@ -72,91 +72,37 @@ val set_moderated :
     Information is: (forum id, title, description, arborescent, deleted)
 *)
 val get_forum: 
+  ?not_deleted_only:bool ->
   ?forum_id:forum -> 
   ?title:string -> 
   unit -> 
   (forum * string * string * bool * bool) Lwt.t
 
 (** returns the list of forums *)
-val get_forums_list : unit ->
+val get_forums_list : ?not_deleted_only:bool -> unit ->
   (forum * string * string * bool * bool) list Lwt.t
   
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message *)
 val get_message : 
+  ?not_deleted_only:bool ->
   message_id:int32 -> 
+  unit ->
  (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option * 
-    int32 * int32 * string * bool * bool * bool) Lwt.t
+    int32 * int32 * string * bool * bool * bool * int32 * int32) Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
     For each message, the information retrieved is:
     [(id, subject, author, datetime, parent_id, root_id, forum_id, text, 
-    moderated, deleted, sticky)]. *)
+    moderated, deleted, sticky, tree_min, tree_max)]. 
+    The list is not filtered and also contains deleted messages.
+    The result is ordered according to tree_min.
+*)
 val get_thread : 
   message_id:int32 -> 
+  unit ->
  (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
-    int32 * int32 * string * bool * bool * bool) list Lwt.t
+    int32 * int32 * string * bool * bool * bool * int32 * int32) list Lwt.t
   
 
-(*
-(** returns None|Some id of prev & next thread in the same forum *)
-val thread_get_neighbours :
-  frm_id:forum ->  
-  thr_id:int32 -> 
-  role:role -> 
-  (int32 option * int32 option) Lwt.t
-
-(** returns None|Some id of prev & next message in the same thread *)
-val message_get_neighbours :
-  frm_id:forum ->  
-  msg_id:int32 -> 
-  role:role -> 
-  (int32 option * int32 option) Lwt.t
-
-(** returns the threads list of a forum, ordered cronologycally
-    (latest first), with max [~limit] items and skipping first
-    [~offset] rows.  A list elt is (thr_id, subject, author, datetime,
-    hidden status). *)
-val forum_get_threads_list :
-  frm_id:forum -> 
-  ?offset:int64 -> 
-  ?limit:int64 -> 
-  role:role -> 
-  unit ->
-  (int32 * string * string * CalendarLib.Calendar.t * bool) list Lwt.t
-
-val thread_get_messages_with_text :
-  thr_id:int32 -> 
-  ?offset:int64 -> 
-  ?limit:int64 -> 
-  role:role ->
-  ?bottom:int32 -> 
-  unit ->
-  (forum * string * string * CalendarLib.Calendar.t * bool * bool) list Lwt.t
-(** as above, but in tree form *)
-
-val thread_get_messages_with_text_forest :
-  thr_id:int32 -> 
-  ?offset:int64 -> 
-  ?limit:int64 ->
-  ?top:int32 -> 
-  ?bottom:int32 -> 
-  role:role -> 
-  unit ->
-  (forum * 
-     string * 
-     string * 
-     CalendarLib.Calendar.t * 
-     bool * 
-     bool * 
-     int32 * 
-     int32) Ocsimore_lib.tree list Lwt.t
-
-val get_latest_messages:
-  frm_ids:forum list -> 
-  limit:int64 -> 
-  unit ->
-  (forum * string * string) list Lwt.t
-
-  *)
