@@ -131,13 +131,14 @@ object
     unit -> Xhtmltypes_duce.block Lwt.t
 
   method display_wikiboxcontent :
-    wiki:wiki -> bi:box_info ->
+    wiki:wiki -> bi:box_info -> classe:string list ->
     Wiki_sql.wikibox_content_type * string * int32 ->
-    Xhtmltypes_duce.flows Lwt.t
+    (string list * Xhtmltypes_duce.flows) Lwt.t
 
   method display_raw_wikiboxcontent :
+    classe:string list ->
     Wiki_sql.wikibox_content_type * string * int32 ->
-    Xhtmltypes_duce.flows Lwt.t
+    (string list * Xhtmltypes_duce.flows) Lwt.t
 
 end
 
@@ -163,24 +164,27 @@ class type virtual editable_wikibox =
       wikibox -> string * int32 -> Xhtmltypes_duce.form Lwt.t
 
     method display_full_edit_form :
+      classe:string list ->
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       previewonly:bool ->
       wikibox ->
       Wiki_sql.wikibox_content_type * string * int32 ->
-      Xhtmltypes_duce.flows Lwt.t
+      (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_edit_perm_form :
+      classe:string list ->
       bi:box_info ->
       wikibox ->
-      Xhtmltypes_duce.flows Lwt.t
+      (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_history :
+      classe:string list ->
       bi:box_info ->
       wikibox ->
       (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list ->
-      Xhtmltypes_duce.flows Lwt.t
+      (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_menu_box :
       classe:string list ->
@@ -210,12 +214,13 @@ class type virtual editable_wikibox =
       unit -> (Xhtmltypes_duce.block * bool) Lwt.t
 
     method display_edit_css_form :
+      classe:string list ->
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       data:wikipage ->
       Ocamlduce.Utf8.repr ->
-      Xhtmltypes_duce.flows Lwt.t
+      (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method edit_css_box :
       bi:box_info ->
@@ -226,11 +231,13 @@ class type virtual editable_wikibox =
       unit -> Xhtmltypes_duce.block Lwt.t
 
     method display_edit_wikicss_form :
+      classe:string list ->
       bi:box_info ->
       ?rows:int ->
       ?cols:int ->
       wiki:wiki ->
-      Ocamlduce.Utf8.repr -> Xhtmltypes_duce.flows Lwt.t
+      Ocamlduce.Utf8.repr -> 
+      (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method edit_wikicss_box :
       bi:box_info ->

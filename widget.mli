@@ -46,10 +46,9 @@ class widget_with_error_box :
     *)
     method bind_or_display_error :
       'a.
-      classe:string list -> 
       ?error: string ->
       'a Lwt.t -> 
-      ('a -> Xhtmltypes_duce.flows Lwt.t) -> 
+      ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) -> 
       (classe:string list -> 
         Xhtmltypes_duce.flows -> 
         Xhtmltypes_duce.block Lwt.t) -> 
