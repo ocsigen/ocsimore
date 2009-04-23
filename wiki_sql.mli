@@ -51,6 +51,23 @@ type wiki_info = {
                                 ocsimore will serve static pages if present,
                                 instead of wiki pages *);
 }
+
+type wikipage_info = {
+  wikipage_source_wiki: wiki;
+  wikipage_page: string;
+  wikipage_dest_wiki: wiki;
+  wikipage_wikibox: wikibox_id;
+  wikipage_title: string option;
+  wikipage_uid: int32;
+}
+
+type wikibox_info = {
+  wikibox_id : wikibox;
+  wikibox_uid: int32;
+  wikibox_comment: string option;
+  wikibox_special_rights: bool;
+}
+
 end
 open Types
 
@@ -109,16 +126,8 @@ val get_history : wikibox:wikibox ->
 
 (** Wikipages *)
 
-type wikipage = {
-  wikipage_source_wiki: wiki;
-  wikipage_page: string;
-  wikipage_dest_wiki: wiki;
-  wikipage_wikibox: wikibox_id;
-  wikipage_title: string option;
-}
-
-(** return the box corresponding to a wikipage *)
-val get_box_for_page : wiki:wiki -> page:string -> wikipage Lwt.t
+(** return the information for a wikipage *)
+val get_wikipage_info : wiki:wiki -> page:string -> wikipage_info Lwt.t
 
 (** sets the box corresponding to a wikipage. The previous entry is
     entirely overwritten. If [destwiki] is not supplied, it is set
@@ -211,3 +220,11 @@ val get_wikiboxes_creators : wikibox -> User_sql.userid list Lwt.t
 
 (** Iterator on all the wikis  *)
 val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t
+
+
+
+(** **)
+
+
+
+val get_wikibox_info : wikibox -> wikibox_info Lwt.t

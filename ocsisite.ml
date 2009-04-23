@@ -187,7 +187,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
   Lwt_unix.run(
     Lwt.catch
       (fun () ->
-         Wiki_sql.get_box_for_page ~wiki:wiki_admin_id ~page
+         Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page
          >>= fun _ -> Lwt.return ()
       )
       (function Not_found ->
@@ -199,8 +199,8 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
        | e -> Lwt.fail e)
   );
   (fun () ->
-     Wiki_sql.get_box_for_page ~wiki:wiki_admin_id ~page
-     >>= fun { Wiki_sql.wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
+     Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page
+     >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
      Wiki_sql.get_wikibox_data ~wikibox:(wiki', box) ()
      >>= function
      | Some (_, _, Some content, _, _, _) ->

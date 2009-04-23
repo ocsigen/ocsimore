@@ -322,9 +322,8 @@ object (self)
   method display_wikitext_edit_form_help ~bi ~classes ?rows ?cols ~previewonly ~wb data=
     Wiki_services.get_admin_wiki ()
     >>= fun { wiki_id = admin_wiki } ->
-    Wiki_sql.get_box_for_page ~wiki:admin_wiki ~page:"wikisyntax-help"
-    >>= fun { Wiki_sql.wikipage_dest_wiki = wid_help;
-              wikipage_wikibox = wbid_help } ->
+    Wiki_sql.get_wikipage_info ~wiki:admin_wiki ~page:"wikisyntax-help"
+    >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
       (Wiki.wikibox_content (wid_help, wbid_help))
       (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classes:["wikihelp"])
@@ -750,9 +749,9 @@ object (self)
      Lwt.catch
        (fun () ->
           (* We render the wikibox for the page *)
-          Wiki_sql.get_box_for_page wiki page
-          >>= fun { Wiki_sql.wikipage_dest_wiki = wiki';
-                    wikipage_wikibox = box; wikipage_title = title } ->
+          Wiki_sql.get_wikipage_info wiki page
+          >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box;
+                    wikipage_title = title } ->
           let bi = default_bi ~sd ~sp in
           self#display_interactive_wikibox_aux ~bi ~cssmenu:(CssWikipage page)
             (wiki', box)

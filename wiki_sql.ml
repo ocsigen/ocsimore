@@ -55,6 +55,22 @@ type wiki_info = {
   wiki_staticdir : string option;
 }
 
+type wikibox_info = {
+  wikibox_id : wikibox;
+  wikibox_uid: int32;
+  wikibox_comment: string option;
+  wikibox_special_rights: bool;
+}
+
+type wikipage_info = {
+  wikipage_source_wiki: wiki;
+  wikipage_page: string;
+  wikipage_dest_wiki: wiki;
+  wikipage_wikibox: int32;
+  wikipage_title: string option;
+  wikipage_uid : int32;
+}
+
 end
 open Types
 
@@ -449,13 +465,6 @@ let get_history ~wikibox:(wiki, wbid) =
                   AND id = $wbid \
                   ORDER BY version DESC")
 
-type wikipage = {
-  wikipage_source_wiki: wiki;
-  wikipage_page: string;
-  wikipage_dest_wiki: wiki;
-  wikipage_wikibox: int32;
-  wikipage_title: string option;
-}
 
 (** return the box corresponding to a wikipage *)
 let get_box_for_page_ ~wiki ~page =
@@ -468,7 +477,7 @@ let get_box_for_page_ ~wiki ~page =
                   WHERE sourcewiki = $wiki' \
                   AND pagename = $page") >>= function
       | [] -> Lwt.fail Not_found
-      | (_sourcewiki, wikibox, _page, destwiki, title) :: _ ->
+      | (_sourcewiki, wikibox, _page, destwiki, title, uid) :: _ ->
           (* (sourcewiki, pagename) is a primary key *)
           Lwt.return ({
             wikipage_source_wiki = wiki;
@@ -476,6 +485,7 @@ let get_box_for_page_ ~wiki ~page =
             wikipage_dest_wiki = (int32_t destwiki : wiki);
             wikipage_wikibox = wikibox;
             wikipage_title = title;
+            wikipage_uid = uid;
           })
 
 (** Sets the box corresponding to a wikipage *)
@@ -636,6 +646,22 @@ let iter_wikis f =
   Lwt_util.iter (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l
 
 
+let get_wikibox_info (wid, wbid as wb) =
+  let wiki = t_int32 (wid : wiki) in
+  Sql.full_transaction_block
+    (fun db -> PGSQL(db) "SELECT * FROM wikiboxindex
+                          WHERE wiki_id = $wiki AND id = $wbid"
+       >>= function
+         | [] -> Lwt.fail Not_found
+         | (_, _, comment, rights, uid) :: _ ->
+             Lwt.return {
+               wikibox_id = wb;
+               wikibox_uid = uid;
+               wikibox_comment = comment;
+               wikibox_special_rights = rights;
+             }
+    )
+
 
 (** Cached versions of the functions above *)
 
@@ -734,10 +760,10 @@ let get_wikibox_data,
    (fun ~wikibox -> C3.find cachewv wikibox)
   )
 
-let get_box_for_page, set_box_for_page =
+let get_wikipage_info, set_box_for_page =
   let module C = Cache.Make (struct 
-                               type key = (wiki * string)
-                               type value = wikipage
+                               type key = wikipage
+                               type value = wikipage_info
                              end) 
   in
   let cache = 

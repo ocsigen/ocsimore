@@ -199,7 +199,9 @@ let create_and_register_wiki ~title ~descr
     ~wikibox_widget
     () =
   Lwt.catch
-    (fun () -> Wiki_sql.get_wiki_info_by_name title)
+    (fun () ->
+       Wiki_sql.get_wiki_info_by_name title
+       >>= fun w -> Lwt.return w.wiki_id)
     (function
        | Not_found ->
            begin
@@ -208,14 +210,12 @@ let create_and_register_wiki ~title ~descr
                ~css_editors ~admins ~boxrights ?staticdir ?wiki_css
                ~container_page ()
              >>= fun wiki_id ->
-             Wiki_sql.get_wiki_info_by_id wiki_id
-             >>= fun w ->
              (match path with
                 | None -> ()
                 | Some path ->
-                    register_wiki ?sp ~path ~wikibox_widget ~wiki:w.wiki_id ()
+                    register_wiki ?sp ~path ~wikibox_widget ~wiki:wiki_id ()
              );
-             Lwt.return w
+             Lwt.return wiki_id
            end
        | e -> Lwt.fail e)
 
@@ -404,7 +404,7 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
        | true ->
            Lwt.catch
              (fun () ->
-                Wiki_sql.get_box_for_page wiki page
+                Wiki_sql.get_wikipage_info wiki page
                 >>= fun _ ->
                   (* The page already exists *)
                   Lwt.return [Ocsimore_common.Session_data sd]
