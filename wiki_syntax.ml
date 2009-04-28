@@ -27,18 +27,29 @@ let (>>=) = Lwt.bind
 
 module W = Wikicreole
 
+let string_of_extension name args content =
+  "<<"^name^
+    (List.fold_left
+       (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
+    (match content with
+       | None -> "" 
+       | Some content -> "|"^content)^">>"
 
-let block_extension_table = Hashtbl.create 8
-let a_content_extension_table = Hashtbl.create 8
-let link_extension_table = Hashtbl.create 8
+let extension_table = Wiki_filter.extension_table
 
+let find_extension = Wiki_filter.find_extension
 
-let add_block_extension k f = Hashtbl.add block_extension_table k f
-
-let add_a_content_extension k f = Hashtbl.add a_content_extension_table k f
-
-let add_link_extension k f = Hashtbl.add link_extension_table k f
-
+let add_extension ~name ?(wiki_content=true) f =
+  Hashtbl.add extension_table name (wiki_content, f);
+  if wiki_content
+  then
+    Wiki_filter.add_preparser_extension ~name
+      (fun w param args -> function
+         | None -> Lwt.return None
+         | Some c ->
+             Wiki_filter.preparse_extension param w c >>= fun c ->
+             Lwt.return (Some (string_of_extension name args (Some c)))
+      )
 
 
 
@@ -209,21 +220,19 @@ let builder wiki_id =
              Lwt_util.map_serial f2 rows >>= fun rows ->
              Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }});
     W.inline = (fun x -> x >>= fun x -> Lwt.return x);
-    W.block_plugin = 
-      (fun name -> Hashtbl.find block_extension_table name wiki_id);
-    W.link_plugin =
-      (fun name -> Hashtbl.find link_extension_table name wiki_id);
-    W.a_content_plugin =
-      (fun name param args content -> 
-         let f = 
-           try Hashtbl.find a_content_extension_table name
-           with Not_found -> 
-             (fun _ _ _ _ ->
-                Lwt.return
-                  {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
-                                  !{: name :} ] ] ] }})
+    W.plugin =
+      (fun name -> 
+         let (wiki_content, f) = 
+           try Hashtbl.find extension_table name
+           with Not_found ->
+             (false,
+                (fun _ _ _ _ ->
+                   Wikicreole.A_content 
+                     (Lwt.return
+                        {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
+                                        !{: name :} ] ] ] }})))
          in 
-         f wiki_id param args content);
+         (wiki_content, f wiki_id));
     W.plugin_action = (fun _ _ _ _ _ _ -> ());
     W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
@@ -256,258 +265,231 @@ let a_content_of_wiki wiki_id bi s =
 
 
 
-let string_of_extension name args content =
-  "<<"^name^
-    (List.fold_left
-       (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
-    (match content with
-       | None -> "" 
-       | Some content -> "|"^content)^">>"
 
 (*********************************************************************)
 
 let _ =
 
-  add_block_extension "div"
+  add_extension ~name:"div" ~wiki_content:true
     (fun wiki_id bi args c -> 
-       let content = match c with
-         | Some c -> c
-         | None -> ""
-       in
-       xml_of_wiki wiki_id bi content >>= fun content ->
-       let classe = 
-         try
-           let a = List.assoc "class" args in
-           {{ { class={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       let id = 
-         try
-           let a = List.assoc "id" args in
-           {{ { id={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       Lwt.return 
-         {{ [ <div (classe ++ id) >content ] }}
+       Wikicreole.Block 
+         (let content = match c with
+            | Some c -> c
+            | None -> ""
+          in
+          xml_of_wiki wiki_id bi content >>= fun content ->
+          let classe = 
+            try
+              let a = List.assoc "class" args in
+              {{ { class={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          let id = 
+            try
+              let a = List.assoc "id" args in
+              {{ { id={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          Lwt.return 
+            {{ [ <div (classe ++ id) >content ] }})
     );
 
-  Wiki_filter.add_preparser_extension "div"
-(*VVV may be done automatically for all extensions with wiki content
-  (with an optional parameter of add_*_extension?) *)
-    (fun w param args -> function
-       | None -> Lwt.return None
-       | Some c ->
-           Wiki_filter.preparse_extension param w c >>= fun c ->
-           Lwt.return (Some (string_of_extension "div" args (Some c)))
-    )
-  ;
 
-  add_a_content_extension "span"
+  add_extension ~name:"span" ~wiki_content:true
     (fun wiki_id bi args c -> 
-       let content = match c with
-         | Some c -> c
-         | None -> ""
-       in
-       inline_of_wiki wiki_id bi content >>= fun content ->
-       let classe = 
-         try
-           let a = List.assoc "class" args in
-           {{ { class={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       let id = 
-         try
-           let a = List.assoc "id" args in
-           {{ { id={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       Lwt.return 
-         {{ [ <span (classe ++ id) >content ] }}
+       Wikicreole.A_content
+         (let content = match c with
+            | Some c -> c
+            | None -> ""
+          in
+          inline_of_wiki wiki_id bi content >>= fun content ->
+          let classe = 
+            try
+              let a = List.assoc "class" args in
+              {{ { class={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          let id = 
+            try
+              let a = List.assoc "id" args in
+              {{ { id={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          Lwt.return 
+            {{ [ <span (classe ++ id) >content ] }}
+         )
     );
 
-  Wiki_filter.add_preparser_extension "span"
-(*VVV may be done automatically for all extensions with wiki content
-  (with an optional parameter of add_*_extension?) *)
-    (fun w param args -> function
-       | None -> Lwt.return None
-       | Some c ->
-           Wiki_filter.preparse_extension param w c >>= fun c ->
-           Lwt.return (Some (string_of_extension "span" args (Some c)))
-    )
-  ;
-
-  add_a_content_extension "wikiname"
+  add_extension ~name:"wikiname" ~wiki_content:true
     (fun wiki_id _ _ _ ->
-       Wiki_sql.get_wiki_info_by_id wiki_id
-       >>= fun wiki_info ->
-       Lwt.return {{ {: Ocamlduce.Utf8.make (wiki_info.wiki_descr) :} }});
+       Wikicreole.A_content
+         (Wiki_sql.get_wiki_info_by_id wiki_id
+          >>= fun wiki_info ->
+          Lwt.return {{ {: Ocamlduce.Utf8.make (wiki_info.wiki_descr) :} }})
+    );
 
 
-  add_a_content_extension "raw"
+  add_extension ~name:"raw" ~wiki_content:false
     (fun _ _ args content ->
-       let s = string_of_extension "raw" args content in
-       Lwt.return {{ [ <b>{: s :} ] }});
+       Wikicreole.A_content
+         (let s = string_of_extension "raw" args content in
+          Lwt.return {{ [ <b>{: s :} ] }}));
 
-  add_a_content_extension ""
+  add_extension ~name:"" ~wiki_content:false
     (fun _ _ _ _ ->
-       Lwt.return {{ [] }}
+       Wikicreole.A_content (Lwt.return {{ [] }})
     );
 
-  add_block_extension "content"
+  add_extension ~name:"content"
     (fun _ bi args _ -> 
-       let classe = 
-         try
-           let a = List.assoc "class" args in
-           {{ { class={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       let id = 
-         try
-           let a = List.assoc "id" args in
-           {{ { id={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       match bi.Wiki_widgets_interface.bi_subbox with
-         | None -> Lwt.return {{ [ <div (classe ++ id) >
-                                     [<strong>[<em>"<<content>>"]]] }}
-         | Some subbox -> Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
+       Wikicreole.Block
+         (let classe = 
+            try
+              let a = List.assoc "class" args in
+              {{ { class={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          let id = 
+            try
+              let a = List.assoc "id" args in
+              {{ { id={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          match bi.Wiki_widgets_interface.bi_subbox with
+            | None -> Lwt.return {{ [ <div (classe ++ id) >
+                                        [<strong>[<em>"<<content>>"]]] }}
+            | Some subbox -> Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
+         )
     );
 
-  add_block_extension "menu"
+  add_extension ~name:"menu"
     (fun wiki_id bi args _ -> 
-       let classe = 
-         let c =
-           "wikimenu"^
-             (try
-                " "^(List.assoc "class" args)
-              with Not_found -> "")
-         in {{ { class={: c :} } }} 
-       in
-       let id = 
-         try
-           let a = List.assoc "id" args in
-           {{ { id={: a :} } }} 
-         with Not_found -> {{ {} }} 
-       in
-       let f ?classe s =
-         let link, text = 
-           try 
-             Ocsigen_lib.sep '|' s 
-           with Not_found -> s, s
-         in
-         a_content_of_wiki wiki_id bi text >>= fun text2 ->
-         if Eliom_sessions.get_current_sub_path_string
-           bi.Wiki_widgets_interface.bi_sp = link
-         then 
-           let classe = match classe with
-             | None -> {{ { class="wikimenu_current" } }}
-             | Some c -> 
-                 let c = Ocamlduce.Utf8.make ("wikimenu_current "^c) in
-                 {{ { class=c } }}
-           in
-           Lwt.return {{ <li (classe)>text2}}
-         else
-           let href = 
-             if is_absolute_link link
-             then link
-             else 
-               match Wiki_services.find_servpage wiki_id with
-                 | Some servpage -> 
-                     let path =
-                       Ocsigen_lib.remove_slash_at_beginning
-                          (Neturl.split_path link)
-                     in
-                     Eliom_duce.Xhtml.make_uri
-                       ~service:servpage
-                       ~sp:bi.Wiki_widgets_interface.bi_sp
-                       path
-                 | _ -> link
-           in
-           let link2 = Ocamlduce.Utf8.make href in
-           let classe = match classe with
-             | None -> {{ {} }}
-             | Some c -> 
-                 let c = Ocamlduce.Utf8.make c in
-                 {{ { class=c } }}
-           in
-           Lwt.return {{ <li (classe)>[<a href=link2>text2]}}
-       in
-       let rec mapf = function
-           | [] -> Lwt.return []
-           | [a] -> f ~classe:"wikimenu_last" a >>= fun b -> Lwt.return [b]
-           | a::ll -> f a >>= fun b -> mapf ll >>= fun l -> Lwt.return (b::l)
-       in
-       match
-         List.rev
-           (List.fold_left
-              (fun beg (n, v) -> if n="item" then v::beg else beg)
-              [] args)
-       with
-         | [] -> Lwt.return {: [] :}
-         | [a] ->  
-             f ~classe:"wikimenu_first wikimenu_last" a >>= fun first ->
-             Lwt.return {{ [ <ul (classe ++ id) >[ {: first :} ] ] }}
-         | a::ll -> 
-             f ~classe:"wikimenu_first" a >>= fun first ->
-             mapf ll >>= fun poi ->
-             Lwt.return 
-               {{ [ <ul (classe ++ id) >[ first !{: poi :} ] ] }}
+       Wikicreole.Block
+         (let classe = 
+            let c =
+              "wikimenu"^
+                (try
+                   " "^(List.assoc "class" args)
+                 with Not_found -> "")
+            in {{ { class={: c :} } }} 
+          in
+          let id = 
+            try
+              let a = List.assoc "id" args in
+              {{ { id={: a :} } }} 
+            with Not_found -> {{ {} }} 
+          in
+          let f ?classe s =
+            let link, text = 
+              try 
+                Ocsigen_lib.sep '|' s 
+              with Not_found -> s, s
+            in
+            a_content_of_wiki wiki_id bi text >>= fun text2 ->
+            if Eliom_sessions.get_current_sub_path_string
+              bi.Wiki_widgets_interface.bi_sp = link
+            then 
+              let classe = match classe with
+                | None -> {{ { class="wikimenu_current" } }}
+                | Some c -> 
+                    let c = Ocamlduce.Utf8.make ("wikimenu_current "^c) in
+                    {{ { class=c } }}
+              in
+              Lwt.return {{ <li (classe)>text2}}
+            else
+              let href = 
+                if is_absolute_link link
+                then link
+                else 
+                  match Wiki_services.find_servpage wiki_id with
+                    | Some servpage -> 
+                        let path =
+                          Ocsigen_lib.remove_slash_at_beginning
+                            (Neturl.split_path link)
+                        in
+                        Eliom_duce.Xhtml.make_uri
+                          ~service:servpage
+                          ~sp:bi.Wiki_widgets_interface.bi_sp
+                          path
+                    | _ -> link
+              in
+              let link2 = Ocamlduce.Utf8.make href in
+              let classe = match classe with
+                | None -> {{ {} }}
+                | Some c -> 
+                    let c = Ocamlduce.Utf8.make c in
+                    {{ { class=c } }}
+              in
+              Lwt.return {{ <li (classe)>[<a href=link2>text2]}}
+          in
+          let rec mapf = function
+            | [] -> Lwt.return []
+            | [a] -> f ~classe:"wikimenu_last" a >>= fun b -> Lwt.return [b]
+              | a::ll -> f a >>= fun b -> mapf ll >>= fun l -> Lwt.return (b::l)
+          in
+          match
+            List.rev
+              (List.fold_left
+                 (fun beg (n, v) -> if n="item" then v::beg else beg)
+                 [] args)
+          with
+            | [] -> Lwt.return {: [] :}
+            | [a] ->  
+                f ~classe:"wikimenu_first wikimenu_last" a >>= fun first ->
+                  Lwt.return {{ [ <ul (classe ++ id) >[ {: first :} ] ] }}
+                | a::ll -> 
+                    f ~classe:"wikimenu_first" a >>= fun first ->
+                      mapf ll >>= fun poi ->
+                        Lwt.return 
+                          {{ [ <ul (classe ++ id) >[ first !{: poi :} ] ] }}
+         )
     );
 
 
-  add_block_extension "cond"
+  add_extension ~name:"cond" ~wiki_content:true
     (fun wiki_id bi args c -> 
-       let sp = bi.Wiki_widgets_interface.bi_sp in
-       let sd = bi.Wiki_widgets_interface.bi_sd in
-       let content = match c with
-         | Some c -> c
-         | None -> ""
-       in
-       (let rec eval_cond = function
-          | ("error", "autherror") ->
-              Lwt.return
-                (List.exists
-                   (fun e -> e = Users.BadPassword || e = Users.BadUser)
-                   (Eliom_sessions.get_exn sp))
-          | ("ingroup", g) ->
-              Lwt.catch
-                (fun () ->
-                   Users.get_user_id_by_name g >>= fun group ->
-                   Users.in_group ~sp ~sd ~group ())
-                (function _ -> Lwt.return false)
-          | ("http_code", "404") ->
-              Lwt.return (Wiki_widgets_interface.page_displayable sd =
-                  Wiki_widgets_interface.Page_404)
-          | ("http_code", "403") ->
-              Lwt.return (Wiki_widgets_interface.page_displayable sd =
-                  Wiki_widgets_interface.Page_403)
-          | ("http_code", "40?") ->
-              Lwt.return (Wiki_widgets_interface.page_displayable sd <>
-                            Wiki_widgets_interface.Page_displayable)
-         | (err, value) when String.length err >= 3 &&
-             String.sub err 0 3 = "not" ->
-             let cond' = (String.sub err 3 (String.length err - 3), value) in
-             eval_cond cond' >>=
-             fun b -> Lwt.return (not b)
-         | _ -> Lwt.return false
-        in
-        (match args with
-          | [c] -> eval_cond c
-          | _ -> Lwt.return false)
-        >>= function
-          | true -> xml_of_wiki wiki_id bi content
-          | false -> Lwt.return {{ [] }}
-       )
+       Wikicreole.Block
+         (let sp = bi.Wiki_widgets_interface.bi_sp in
+          let sd = bi.Wiki_widgets_interface.bi_sd in
+          let content = match c with
+            | Some c -> c
+            | None -> ""
+          in
+          (let rec eval_cond = function
+             | ("error", "autherror") ->
+                 Lwt.return
+                   (List.exists
+                      (fun e -> e = Users.BadPassword || e = Users.BadUser)
+                      (Eliom_sessions.get_exn sp))
+             | ("ingroup", g) ->
+                 Lwt.catch
+                   (fun () ->
+                      Users.get_user_id_by_name g >>= fun group ->
+                        Users.in_group ~sp ~sd ~group ())
+                   (function _ -> Lwt.return false)
+             | ("http_code", "404") ->
+                 Lwt.return (Wiki_widgets_interface.page_displayable sd =
+                     Wiki_widgets_interface.Page_404)
+             | ("http_code", "403") ->
+                 Lwt.return (Wiki_widgets_interface.page_displayable sd =
+                     Wiki_widgets_interface.Page_403)
+             | ("http_code", "40?") ->
+                 Lwt.return (Wiki_widgets_interface.page_displayable sd <>
+                               Wiki_widgets_interface.Page_displayable)
+             | (err, value) when String.length err >= 3 &&
+                 String.sub err 0 3 = "not" ->
+                 let cond' = (String.sub err 3 (String.length err - 3), value) in
+                 eval_cond cond' >>=
+                   fun b -> Lwt.return (not b)
+                   | _ -> Lwt.return false
+           in
+           (match args with
+              | [c] -> eval_cond c
+              | _ -> Lwt.return false)
+         >>= function
+           | true -> xml_of_wiki wiki_id bi content
+           | false -> Lwt.return {{ [] }}
+          )
+         )
     );
-
-  Wiki_filter.add_preparser_extension "cond"
-(*VVV may be done automatically for all extensions with wiki content 
-  (with an optional parameter of add_*_extension?) *)
-    (fun w param args -> function
-       | None -> Lwt.return None
-       | Some c ->
-           Wiki_filter.preparse_extension param w c >>= fun c ->
-           Lwt.return (Some (string_of_extension "cond" args (Some c)))
-    )
-  ;
 

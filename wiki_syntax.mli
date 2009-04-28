@@ -25,34 +25,30 @@ open Wiki_sql.Types
 
 
 (** Define new extensions to the wiki syntax. *)
-val add_block_extension : 
-  string ->
+val add_extension : 
+  name:string ->
+  ?wiki_content:bool ->
   (wiki ->
      Wiki_widgets_interface.box_info ->
      (string * string) list -> 
        string option -> 
-         Xhtmltypes_duce.flows Lwt.t) -> 
+         (Xhtmltypes_duce.flows Lwt.t, 
+          {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t,
+          string * Wikicreole.attribs * 
+            {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t)
+           Wikicreole.ext_kind) -> 
   unit
 
-val add_a_content_extension : 
-  string -> 
-  (wiki ->
-     Wiki_widgets_interface.box_info ->
-       (string * string) list -> 
-         string option -> 
-           {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> 
-  unit
-
-val add_link_extension : 
-  string -> 
-  (wiki -> 
-     Wiki_widgets_interface.box_info ->
-     (string * string) list -> 
-       string option -> 
-         string * Wikicreole.attribs * 
-           {{[ Xhtmltypes_duce.a_content* ]}} Lwt.t) -> 
-  unit
-
+val find_extension : name:string -> 
+  bool * (Wiki_services.Servpages.key ->
+            Wiki_widgets_interface.box_info ->
+            (string * Eliom_duce.Xhtml.uri) list ->
+              string option ->
+                (Xhtmltypes_duce.flows Lwt.t, 
+                 {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t,
+                 string * Wikicreole.attribs * 
+                   {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t)
+                  Wikicreole.ext_kind)
 
 (** Returns the XHTML corresponding to a wiki page.
     The int32 is the id of the wiki (a wikibox may contain another one,
@@ -92,3 +88,5 @@ val parse_common_attribs : (string * string) list -> Xhtmltypes_duce.coreattrs
 
 (** returns true if the string is an absolute URL (http://...) *)
 val is_absolute_link : string -> bool
+
+

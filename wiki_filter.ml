@@ -26,15 +26,25 @@ let (>>=) = Lwt.bind
 
 module W = Wikicreole
 
-module H = Hashtbl.Make(struct
-                          type t = string
-                          let equal = (=)
-                          let hash = Hashtbl.hash 
-                        end)
+(* Wiki_syntax : here because of circular dependencies *)
+let extension_table = Hashtbl.create 8
 
-let preparser_extension_table = H.create 8
+let find_extension ~name =
+  Hashtbl.find extension_table name
+(* end Wiki_syntax *)
 
-let add_preparser_extension k f = H.add preparser_extension_table k f
+module Wikifilter_table = Hashtbl.Make(struct
+                                         type t = string
+                                         let equal = (=)
+                                         let hash = Hashtbl.hash 
+                                       end)
+
+let preparser_extension_table = Wikifilter_table.create 8
+
+let add_preparser_extension ~name f = 
+  Wikifilter_table.add preparser_extension_table name f
+
+let wikifilter_find = Wikifilter_table.find preparser_extension_table
 
 type c = {
   sp : Eliom_sessions.server_params;
@@ -51,7 +61,7 @@ let make_plugin_action wiki =
       subst := (start, 
                 end_, 
                 (try
-                   H.find preparser_extension_table name
+                   wikifilter_find name
                      wiki params args content 
                  with Not_found -> Lwt.return None))::!subst)
    ,
@@ -81,9 +91,12 @@ let builder plugin_action =
     W.hr_elem = nothing1;
     W.table_elem = nothing;
     W.inline = nothing1;
-    W.block_plugin = (fun _ _ _ _ -> ());
-    W.a_content_plugin = (fun _ _ _ _ -> ());
-    W.link_plugin = (fun _ _ _ _ -> ("", [], ()));
+    W.plugin =
+      (fun name -> 
+         let wiki_content =
+           try fst (find_extension ~name)
+           with Not_found -> false
+         in (wiki_content, (fun _ _ _ -> Wikicreole.A_content ())));
     W.plugin_action = plugin_action;
     W.error = nothing1;
   }

@@ -858,45 +858,46 @@ and extract_https args =
 
 
 let register_wikibox_syntax_extensions (widget : Wiki_widgets_interface.interactive_wikibox) (error_box : Widget.widget_with_error_box) =
-Wiki_syntax.add_block_extension "wikibox"
+Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
   (fun wiki_id bi args c ->
-     try
-       let wiki = extract_wiki_id args wiki_id in
-       try
-         let box = Int32.of_string (List.assoc "box" args) in
-         if Ancestors.in_ancestors (wiki, box) bi.bi_ancestors then
-           Lwt.return {{ [ {: error_box#display_error_box
-                              ~message:"Wiki error: loop of wikiboxes" () :} ] }}
-         else
-           (match c with
-              | None -> Lwt.return None
-              | Some c ->
-                  Wiki_syntax.xml_of_wiki wiki_id bi c
-                  >>= fun r -> Lwt.return (Some r)
-           ) >>=fun subbox ->
-           widget#display_interactive_wikibox
-             ?rows:(Ocsimore_lib.int_of_string_opt
-                      (Ocsimore_lib.list_assoc_opt "rows" args))
-             ?cols:(Ocsimore_lib.int_of_string_opt
-                      (Ocsimore_lib.list_assoc_opt "cols" args))
-             ?classes:(try Some [List.assoc "class" args]
-                      with Not_found -> None)
-             ~bi:{bi with
-                    bi_ancestors =
-                      Ancestors.add_ancestor (wiki, box) bi.bi_ancestors;
-                    bi_subbox = subbox}
-             (wiki, box)
-           >>= fun b ->
-           Lwt.return {{ [ b ] }}
-       with Not_found ->
-         Lwt.return {{ [ <code>"<<wikibox>>" ] }}
-     with
-       | Failure _ ->
-           Lwt.return {{ [ {: error_box#display_error_box
-               ~message:"Wiki error: error in wikibox extension" () :} ] }}
-  );
+     Wikicreole.Block
+       (try
+         let wiki = extract_wiki_id args wiki_id in
+         try
+           let box = Int32.of_string (List.assoc "box" args) in
+           if Ancestors.in_ancestors (wiki, box) bi.bi_ancestors then
+             Lwt.return {{ [ {: error_box#display_error_box
+                                ~message:"Wiki error: loop of wikiboxes" () :} ] }}
+           else
+             (match c with
+                | None -> Lwt.return None
+                | Some c ->
+                    Wiki_syntax.xml_of_wiki wiki_id bi c
+                    >>= fun r -> Lwt.return (Some r)
+             ) >>=fun subbox ->
+             widget#display_interactive_wikibox
+               ?rows:(Ocsimore_lib.int_of_string_opt
+                        (Ocsimore_lib.list_assoc_opt "rows" args))
+               ?cols:(Ocsimore_lib.int_of_string_opt
+                        (Ocsimore_lib.list_assoc_opt "cols" args))
+               ?classes:(try Some [List.assoc "class" args]
+                         with Not_found -> None)
+               ~bi:{bi with
+                      bi_ancestors =
+                   Ancestors.add_ancestor (wiki, box) bi.bi_ancestors;
+                      bi_subbox = subbox}
+               (wiki, box)
+             >>= fun b ->
+               Lwt.return {{ [ b ] }}
+         with Not_found ->
+           Lwt.return {{ [ <code>"<<wikibox>>" ] }}
+       with
+         | Failure _ ->
+             Lwt.return {{ [ {: error_box#display_error_box
+                                ~message:"Wiki error: error in wikibox extension" () :} ] }}
+  ));
 
-Wiki_filter.add_preparser_extension "wikibox"
+Wiki_filter.add_preparser_extension ~name:"wikibox"
   (fun wid (sp, sd, father) args c ->
      (try
         let wid = extract_wiki_id args wid in
@@ -940,114 +941,125 @@ Wiki_filter.add_preparser_extension "wikibox"
    with Failure _ -> Lwt.return None)
   );
 
-Wiki_syntax.add_link_extension "link"
+Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
   (fun wiki_id bi args c ->
-     let sp = bi.bi_sp in
-     let href = Ocsimore_lib.list_assoc_default "page" args "" in
-     let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-     let https = extract_https args in
-     let wiki_id = extract_wiki_id args wiki_id in
-     let content =
-       match c with
-         | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
-         | None -> Lwt.return (Ocamlduce.Utf8.make href)
-     in
-     (* class and id attributes will be taken by Wiki_syntax.a_elem *)
-     ((if Wiki_syntax.is_absolute_link href then
-         href
-       else
-         match Wiki_services.find_servpage wiki_id with
-           | Some s ->
-               let href = Ocsigen_lib.remove_slash_at_beginning
-                 (Neturl.split_path href)
-               in Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s ~sp href
-           | None -> href
-      ),
-      args,
-      content)
-  );
-
-Wiki_syntax.add_link_extension "nonattachedlink"
-  (fun wiki_id bi args c ->
-     let sp = bi.bi_sp in
-     let href = Ocsimore_lib.list_assoc_default "page" args "" in
-     let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-     let https = extract_https args in
-     let wiki_id = extract_wiki_id args wiki_id in
-     let content =
-       match c with
-         | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
-         | None -> Lwt.return (Ocamlduce.Utf8.make href)
-     in
-     (Eliom_duce.Xhtml.make_uri ?https ?fragment
-        ~service:(Wiki_services.find_naservpage wiki_id) ~sp href,
-      args,
-      content)
-  );
-
-Wiki_syntax.add_link_extension "cancellink"
-  (fun wiki_id bi args c ->
-     let content =
-       match c with
-         | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
-         | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
-     in
-     (Eliom_duce.Xhtml.make_uri ~service:Eliom_services.void_coservice'
-        ~sp:bi.bi_sp (),
-      args,
-      content)
-  );
-
-
-Wiki_syntax.add_a_content_extension "object"
-  (fun wiki_id bi args _c ->
-     let type_ = Ocsimore_lib.list_assoc_default "type" args "" in
-     let href = Ocsimore_lib.list_assoc_default "data" args "" in
-     let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-     let wiki_id = extract_wiki_id args wiki_id in
-     let https = extract_https args in
-     let atts = Wiki_syntax.parse_common_attribs args in
-     let url =
-       if Wiki_syntax.is_absolute_link href then
-         href
-       else
-         match Wiki_services.find_servpage wiki_id with
-           | Some s ->
-               let href = Ocsigen_lib.remove_slash_at_beginning
-                 (Neturl.split_path href)
-               in
-               Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s
-                 ~sp:bi.bi_sp href
-           | None -> href
-     in
-     Lwt.return
-       {{ [<object
-              ({data = {: Ocamlduce.Utf8.make url :}
-                type = {: Ocamlduce.Utf8.make type_ :}}
-               ++ atts)>[] ] }});
-
-Wiki_syntax.add_a_content_extension "img"
-  (fun wiki_id bi args c ->
-     let href = Ocsimore_lib.list_assoc_default "name" args "" in
-     let https = extract_https args in
-     let wiki_id = extract_wiki_id args wiki_id in
-     let alt = match c with Some c -> c | None -> href in
-     let atts = Wiki_syntax.parse_common_attribs args in
-     let url =
-       if Wiki_syntax.is_absolute_link href then
-         href
-       else
-         match Wiki_services.find_servpage wiki_id with
-           | Some s ->
-               let href =
-                 Ocsigen_lib.remove_slash_at_beginning
+     Wikicreole.Link_plugin
+       (let sp = bi.bi_sp in
+        let href = Ocsimore_lib.list_assoc_default "page" args "" in
+        let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
+        let https = extract_https args in
+        let wiki_id = extract_wiki_id args wiki_id in
+        let content =
+          match c with
+            | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
+            | None -> Lwt.return (Ocamlduce.Utf8.make href)
+        in
+        (* class and id attributes will be taken by Wiki_syntax.a_elem *)
+        ((if Wiki_syntax.is_absolute_link href then
+            href
+          else
+            match Wiki_services.find_servpage wiki_id with
+              | Some s ->
+                  let href = Ocsigen_lib.remove_slash_at_beginning
                     (Neturl.split_path href)
-               in
-               Eliom_duce.Xhtml.make_uri ?https ~service:s
-                 ~sp:bi.bi_sp href
-           | _ -> href
-     in
-     Lwt.return
-       {{ [<img ({ src={: Ocamlduce.Utf8.make url :}
-                   alt={: Ocamlduce.Utf8.make alt :}}
-                   ++ atts )>[] ] }});
+                  in Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s ~sp href
+              | None -> href
+         ),
+         args,
+         content)
+       )
+  );
+
+Wiki_syntax.add_extension ~name:"nonattachedlink" ~wiki_content:true
+  (fun wiki_id bi args c ->
+     Wikicreole.Link_plugin
+       (let sp = bi.bi_sp in
+        let href = Ocsimore_lib.list_assoc_default "page" args "" in
+        let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
+        let https = extract_https args in
+        let wiki_id = extract_wiki_id args wiki_id in
+        let content =
+          match c with
+            | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
+            | None -> Lwt.return (Ocamlduce.Utf8.make href)
+        in
+        (Eliom_duce.Xhtml.make_uri ?https ?fragment
+           ~service:(Wiki_services.find_naservpage wiki_id) ~sp href,
+         args,
+         content)
+       )
+  );
+
+Wiki_syntax.add_extension ~name:"cancellink" ~wiki_content:true
+  (fun wiki_id bi args c ->
+     Wikicreole.Link_plugin
+       (let content =
+          match c with
+            | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
+            | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
+        in
+        (Eliom_duce.Xhtml.make_uri ~service:Eliom_services.void_coservice'
+           ~sp:bi.bi_sp (),
+         args,
+         content)
+       )
+  );
+
+
+Wiki_syntax.add_extension ~name:"object" ~wiki_content:true
+  (fun wiki_id bi args _c ->
+     Wikicreole.A_content
+       (let type_ = Ocsimore_lib.list_assoc_default "type" args "" in
+        let href = Ocsimore_lib.list_assoc_default "data" args "" in
+        let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
+        let wiki_id = extract_wiki_id args wiki_id in
+        let https = extract_https args in
+        let atts = Wiki_syntax.parse_common_attribs args in
+        let url =
+          if Wiki_syntax.is_absolute_link href then
+            href
+          else
+            match Wiki_services.find_servpage wiki_id with
+              | Some s ->
+                  let href = Ocsigen_lib.remove_slash_at_beginning
+                    (Neturl.split_path href)
+                  in
+                  Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s
+                    ~sp:bi.bi_sp href
+              | None -> href
+        in
+        Lwt.return
+          {{ [<object
+                 ({data = {: Ocamlduce.Utf8.make url :}
+                   type = {: Ocamlduce.Utf8.make type_ :}}
+                  ++ atts)>[] ] }})
+  );
+
+Wiki_syntax.add_extension ~name:"img" ~wiki_content:true
+  (fun wiki_id bi args c ->
+     Wikicreole.A_content
+       (let href = Ocsimore_lib.list_assoc_default "name" args "" in
+        let https = extract_https args in
+        let wiki_id = extract_wiki_id args wiki_id in
+        let alt = match c with Some c -> c | None -> href in
+        let atts = Wiki_syntax.parse_common_attribs args in
+        let url =
+          if Wiki_syntax.is_absolute_link href then
+            href
+          else
+            match Wiki_services.find_servpage wiki_id with
+              | Some s ->
+                  let href =
+                    Ocsigen_lib.remove_slash_at_beginning
+                      (Neturl.split_path href)
+                  in
+                  Eliom_duce.Xhtml.make_uri ?https ~service:s
+                    ~sp:bi.bi_sp href
+              | _ -> href
+        in
+        Lwt.return
+          {{ [<img ({ src={: Ocamlduce.Utf8.make url :}
+                        alt={: Ocamlduce.Utf8.make alt :}}
+                    ++ atts )>[] ] }})
+  );
+ 

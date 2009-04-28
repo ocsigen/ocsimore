@@ -22,11 +22,13 @@
    @author Vincent Balat
 *)
 
+(**/**)
 (** The filters registered with that function are called on
     the wikibox content before registering it in the database.
+    Done automatically by [Wiki_syntax.add_extension]
 *)
 val add_preparser_extension : 
-  string -> 
+  name:string -> 
   (Wiki_sql.Types.wiki ->
      (Eliom_sessions.server_params * 
         Ocsimore_common.session_data * int32) ->
@@ -34,6 +36,34 @@ val add_preparser_extension :
          string option -> 
            string option Lwt.t) -> unit
 
+val extension_table : 
+  (string, 
+   bool *
+    (Wiki_sql.Types.wiki ->
+       Wiki_widgets_interface.box_info ->
+         (string * string) list -> 
+           string option -> 
+             (Xhtmltypes_duce.flows Lwt.t, 
+              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t, 
+              (string * Wikicreole.attribs *
+                 {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t))
+               Wikicreole.ext_kind))
+      Hashtbl.t
+
+val find_extension : name:string -> 
+  bool * 
+    (Wiki_sql.Types.wiki ->
+       Wiki_widgets_interface.box_info ->
+         (string * string) list -> 
+           string option -> 
+             (Xhtmltypes_duce.flows Lwt.t, 
+              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t, 
+              (string * Wikicreole.attribs *
+                 {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t))
+               Wikicreole.ext_kind)
+
+
+(**/**)
 
 (** Filters the wiki syntax and replace extensions according to 
     preparsers recorded with [add_preparser_extension].
@@ -43,3 +73,4 @@ val preparse_extension :
      Ocsimore_common.session_data * int32) ->
   Wiki_sql.Types.wiki -> 
   string -> string Lwt.t
+

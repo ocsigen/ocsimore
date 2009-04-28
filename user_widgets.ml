@@ -118,18 +118,19 @@ object (self)
 
   initializer
 
-      Wiki_syntax.add_block_extension "loginbox"
+      Wiki_syntax.add_extension ~name:"loginbox" ~wiki_content:true
         (fun _ bi args _c -> 
-           let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
-           let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
-           let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
-           let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args in
-           self#display_login_widget
-             ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps
-             ~sp:bi.Wiki_widgets_interface.bi_sp
-             ~sd:bi.Wiki_widgets_interface.bi_sd ()
-           >>= fun b ->
-           Lwt.return {{ [ b ] }});
+           Wikicreole.Block
+             (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
+              let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
+              let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
+              let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args in
+              self#display_login_widget
+                ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps
+                ~sp:bi.Wiki_widgets_interface.bi_sp
+                ~sd:bi.Wiki_widgets_interface.bi_sd ()
+              >>= fun b ->
+              Lwt.return {{ [ b ] }}));
 
       ignore 
         (Eliom_duce.Xhtml.register_new_service ?sp
@@ -157,63 +158,55 @@ object (self)
         );
 
 
-      Wiki_syntax.add_a_content_extension "username"
+      Wiki_syntax.add_extension ~name:"username" ~wiki_content:true
         (fun _w bi _args _c -> 
            Users.get_user_data 
              ~sp:bi.Wiki_widgets_interface.bi_sp
              ~sd:bi.Wiki_widgets_interface.bi_sd
            >>= fun ud ->
-           Lwt.return (Ocamlduce.Utf8.make ud.user_fullname)
+           Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
         );
       
-      Wiki_syntax.add_block_extension "logoutbutton"
+      Wiki_syntax.add_extension ~name:"logoutbutton" ~wiki_content:true
         (fun w bi _args c -> 
-           let content = match c with
-             | Some c -> c
-             | None -> "logout"
-           in
-           Wiki_syntax.xml_of_wiki w bi content >>= fun c ->
-           Lwt.return
-             {{ [ {:
-                     Eliom_duce.Xhtml.post_form
-                     ~a:{{ { class="logoutbutton"} }} 
-                     ~service:sessman#act_logout
-                     ~sp:bi.Wiki_widgets_interface.bi_sp
-                     (fun () -> 
-                        {{ [<p>[ 
-                               {: Eliom_duce.Xhtml.button
-                                  ~button_type:{:"submit":}
-                                  {: [ <div class="ocsimore_button">c ] :}
-(*VVV How to avoid the <div> here??? *)
-                                    :}] ] }}) ()
-                     :} ] }}
-                );
+           Wikicreole.Block
+             (let content = match c with
+                | Some c -> c
+                | None -> "logout"
+              in
+              Wiki_syntax.xml_of_wiki w bi content >>= fun c ->
+              Lwt.return
+                {{ [ {:
+                        Eliom_duce.Xhtml.post_form
+                        ~a:{{ { class="logoutbutton"} }} 
+                        ~service:sessman#act_logout
+                        ~sp:bi.Wiki_widgets_interface.bi_sp
+                        (fun () -> 
+                           {{ [<p>[ 
+                                  {: Eliom_duce.Xhtml.button
+                                     ~button_type:{:"submit":}
+                                     {: [ <div class="ocsimore_button">c ] :}
+                                     (*VVV How to avoid the <div> here??? *)
+                                     :}] ] }}) ()
+                        :} ] }}
+             )
+        );
 
-      Wiki_filter.add_preparser_extension "logoutbutton"
-(*VVV may be done automatically for all extensions with wiki content 
-  (with an optional parameter of add_*_extension?) *)
-        (fun w param args -> function
-           | None -> Lwt.return None
-           | Some c ->
-               Wiki_filter.preparse_extension param w c >>= fun c ->
-                 Lwt.return (Some (Wiki_syntax.string_of_extension
-                                     "logoutbutton" args (Some c)))
-        )
-      ;
-
-      Wiki_syntax.add_link_extension "logoutlink"
+      Wiki_syntax.add_extension ~name:"logoutlink" ~wiki_content:true
         (fun w bi args c -> 
-           let content = match c with
-             | Some c -> Wiki_syntax.a_content_of_wiki w bi c
-             | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
-           in
-           ((Eliom_duce.Xhtml.make_uri
-               ~service:sessman#act_logout_get
-               ~sp:bi.Wiki_widgets_interface.bi_sp
-               ()
-            ),
-            args,
-            content)
+           Wikicreole.Link_plugin
+             (let content = match c with
+                | Some c -> Wiki_syntax.a_content_of_wiki w bi c
+                | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
+              in
+              ((Eliom_duce.Xhtml.make_uri
+                  ~service:sessman#act_logout_get
+                  ~sp:bi.Wiki_widgets_interface.bi_sp
+                  ()
+               ),
+               args,
+               content)
+             )
         )
 
 

@@ -25,56 +25,60 @@ let (>>=) = Lwt.bind
 
 let register_wikiext (message_widget, thread_widget) =
 
-  Wiki_syntax.add_block_extension "forum_message"
-    (fun _wiki_id bi args content -> 
-       let classes = 
-         try Some [List.assoc "class" args]
-         with Not_found -> None
-       in
-       let rows = 
-         try Some (int_of_string (List.assoc "rows" args))
-         with Not_found | Failure _ -> None
-       in
-       let cols = 
-         try Some (int_of_string (List.assoc "cols" args))
-         with Not_found | Failure _ -> None
-       in
-       try
-         let sp = bi.Wiki_widgets_interface.bi_sp in
-         let sd = bi.Wiki_widgets_interface.bi_sd in
-         let message_id = Int32.of_string (List.assoc "message" args) in
-         message_widget#display
-           ~sp ~sd ?rows ?cols ?classes
-           ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
-         Lwt.return {{ [ {: b :} ] }}
-       with Not_found | Failure _ -> 
-         let s = Wiki_syntax.string_of_extension "raw" args content in
-         Lwt.return {{ [ <b>{: s :} ] }}
+  Wiki_syntax.add_extension ~name:"forum_message" ~wiki_content:true
+    (fun _wiki_id bi args content ->
+       Wikicreole.Block
+         (let classes = 
+            try Some [List.assoc "class" args]
+            with Not_found -> None
+          in
+          let rows = 
+            try Some (int_of_string (List.assoc "rows" args))
+            with Not_found | Failure _ -> None
+          in
+          let cols = 
+            try Some (int_of_string (List.assoc "cols" args))
+            with Not_found | Failure _ -> None
+          in
+          try
+            let sp = bi.Wiki_widgets_interface.bi_sp in
+            let sd = bi.Wiki_widgets_interface.bi_sd in
+            let message_id = Int32.of_string (List.assoc "message" args) in
+            message_widget#display
+              ~sp ~sd ?rows ?cols ?classes
+              ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
+            Lwt.return {{ [ {: b :} ] }}
+          with Not_found | Failure _ -> 
+            let s = Wiki_syntax.string_of_extension "raw" args content in
+            Lwt.return {{ [ <b>{: s :} ] }}
+         )
     );
 
-  Wiki_syntax.add_block_extension "forum_thread"
+  Wiki_syntax.add_extension ~name:"forum_thread" ~wiki_content:true
     (fun _wiki_id bi args content ->
-       let classes = 
-         try Some [List.assoc "class" args]
-         with Not_found -> None
-       in
-       let rows = 
-         try Some (int_of_string (List.assoc "rows" args))
-         with Not_found | Failure _ -> None
-       in
-       let cols = 
-         try Some (int_of_string (List.assoc "cols" args))
-         with Not_found | Failure _ -> None
-       in
-       try
-         let sp = bi.Wiki_widgets_interface.bi_sp in
-         let sd = bi.Wiki_widgets_interface.bi_sd in
-         let message_id = Int32.of_string (List.assoc "message" args) in
-         thread_widget#display ?commentable:(Some true) ~sp ~sd
-           ?rows ?cols ?classes
-           ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
-         Lwt.return {{ [ {: b :} ] }}
-       with Not_found | Failure _ -> 
-         let s = Wiki_syntax.string_of_extension "raw" args content in
-         Lwt.return {{ [ <b>{: s :} ] }}
+       Wikicreole.Block
+         (let classes = 
+            try Some [List.assoc "class" args]
+            with Not_found -> None
+          in
+          let rows = 
+            try Some (int_of_string (List.assoc "rows" args))
+            with Not_found | Failure _ -> None
+          in
+          let cols = 
+            try Some (int_of_string (List.assoc "cols" args))
+            with Not_found | Failure _ -> None
+          in
+          try
+            let sp = bi.Wiki_widgets_interface.bi_sp in
+            let sd = bi.Wiki_widgets_interface.bi_sd in
+            let message_id = Int32.of_string (List.assoc "message" args) in
+            thread_widget#display ?commentable:(Some true) ~sp ~sd
+              ?rows ?cols ?classes
+              ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
+            Lwt.return {{ [ {: b :} ] }}
+          with Not_found | Failure _ -> 
+            let s = Wiki_syntax.string_of_extension "raw" args content in
+            Lwt.return {{ [ <b>{: s :} ] }}
+         )
     )

@@ -24,6 +24,11 @@
 
 type attribs = (string * string) list
 
+type ('a, 'b, 'c) ext_kind = 
+  | Block of 'a
+  | A_content of 'b
+  | Link_plugin of 'c
+
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
     strong_elem : attribs -> 'inline list -> 'a_content;
@@ -48,26 +53,14 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     table_elem : attribs -> 
       ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
     inline : 'a_content -> 'inline;
-    block_plugin : 
+    plugin : 
       string ->
-      'param -> (string * string) list -> string option -> 'flow;
+       (bool *
+          ('param -> (string * string) list -> string option ->
+             (('flow, 'a_content, (string * attribs * 'a_content)) ext_kind)));
 (** Syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
 [<<name arg1='value1' ... argn="valuen' |content>> ] *)
-    (** Must raise [Not_found] if the name does not exist.
-        In that case, will try [a_content_plugin].
-    *)
-    link_plugin : 
-      string ->
-      'param -> (string * string) list -> string option -> 
-                                    (string * attribs * 'a_content);
-    (** Must raise [Not_found] if the name does not exist.
-        In that case, will try [a_content_plugin].
-    *)
-    a_content_plugin : 
-      string ->
-      'param -> (string * string) list -> string option -> 'a_content;
-    (** Must display sthg (error message?) if the name does not exist.
-    *)
+(** Must display sthg (error message?) if the name does not exist. *)
     plugin_action : 
       string -> int -> int -> 
       'param -> (string * string) list -> string option -> unit;

@@ -28,10 +28,10 @@ exception Unrecognized_char
 
 type attribs = (string * string) list
 
-type ('b, 'a) ext_kind = 
-  | Block of 'b
-  | A_content of 'a 
-  | Link_plugin of (string * attribs * 'a)
+type ('a, 'b, 'c) ext_kind = 
+  | Block of 'a
+  | A_content of 'b
+  | Link_plugin of 'c
 
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
@@ -57,15 +57,11 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     table_elem : attribs -> 
       ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
     inline : 'a_content -> 'inline;
-    block_plugin : 
+    plugin : 
       string ->
-      'param -> (string * string) list -> string option -> 'flow;
-    link_plugin : 
-      string ->
-      'param -> (string * string) list -> string option -> (string * attribs * 'a_content);
-    a_content_plugin : 
-      string ->
-      'param -> (string * string) list -> string option -> 'a_content;
+       (bool *
+          ('param -> (string * string) list -> string option ->
+             (('flow, 'a_content, (string * attribs * 'a_content)) ext_kind)));
     plugin_action : 
       string -> int -> int -> 
       'param -> (string * string) list -> string option -> unit;
@@ -326,6 +322,12 @@ let start_table_row c heading (table_attribs, row_attribs, entry_attribs) =
                     entry_attribs, 
                     Row ([], row_attribs, c.stack))
 
+let build_extension lexbuf start name ext_info args c content =
+    let args = List.rev args in
+    c.build.plugin_action name start (Lexing.lexeme_end lexbuf)
+      c.param args content;
+    ext_info c.param args content
+
 }
 
 let line_break = '\n' | '\r' | "\r\n"
@@ -473,7 +475,11 @@ and parse_rem c =
       let l = String.length s in
       let name = String.sub s 2 (l - 2) in
       let start = Lexing.lexeme_start lexbuf in
-      match parse_extension start name [] c lexbuf with
+      let (wiki_content, ext_info) = c.build.plugin name in
+      let content, args = 
+        parse_extension start name wiki_content [] c lexbuf
+      in
+      match build_extension lexbuf start name ext_info args c content with
       | A_content i -> 
           push c i;
           parse_rem c lexbuf
@@ -614,99 +620,113 @@ and parse_nowiki c attribs =
       parse_nowiki c attribs lexbuf
     }
 
-and parse_extension start name args c =
+and parse_extension start name wiki_content args c =
     parse
     | '|' {
-        parse_extension_content start 0 name args "" c lexbuf
+        if wiki_content
+        then ((parse_extension_content_wiki start 0 false name "" c lexbuf),
+              args)
+        else ((parse_extension_content_nowiki start name "" c lexbuf), args)
       }
     | (">>" | eof) {
-        let args = List.rev args in
-        c.build.plugin_action name 
-          start
-          (Lexing.lexeme_end lexbuf)
-          c.param args None;
-        match
-          try
-            Some (c.build.block_plugin name)
-          with Not_found -> None
-        with
-          | Some f -> Block (f c.param args None)
-          | None -> 
-              match
-                try
-                  Some (c.build.link_plugin name)
-                with Not_found -> None
-              with
-                | Some f -> Link_plugin (f c.param args None)
-                | None -> 
-                    A_content (c.build.a_content_plugin name c.param args None)
+        (None, args)
       }
     |  ';'* | (white_space *) | (line_break *) {
-        parse_extension start name args c lexbuf
+        parse_extension start name wiki_content args c lexbuf
       }
-    | (not_line_break # white_space # '=') * '=' 
+    | (not_line_break # white_space # '=' # '>') * '=' 
         ((white_space | line_break) *) (('\'' | '"') as quote) {
         let s = Lexing.lexeme lexbuf in
         let i = String.index s '=' in
         let arg_name = String.sub s 0 i in
         let arg_value = parse_arg_value quote "" c lexbuf in
-        parse_extension start name ((arg_name, arg_value)::args) c lexbuf
+        parse_extension start name wiki_content
+          ((arg_name, arg_value)::args) c lexbuf
       }
     | _ {
-        ignore (parse_extension_content start 0 name args "" c lexbuf);
-        A_content (c.build.error ("Syntax error in extension "^name))
+        ignore (if wiki_content
+                then ((parse_extension_content_wiki 
+                         start 0 false name "" c lexbuf), args)
+                else ((parse_extension_content_nowiki
+                         start name "" c lexbuf), args));
+        (Some ("Syntax error in extension "^name), args)
       }
 
-and parse_extension_content start lev name args beg c =
+and parse_extension_content_wiki start lev nowiki name beg c =
     parse
-      '~' (('<' | '>' | '~') as ch) {
-        parse_extension_content start lev name args (beg^"~"^(String.make 1 ch)) c lexbuf
-      }
-    | "<<" {
-        parse_extension_content start (lev+1) name args (beg^"<<") c lexbuf
-      }
-    | (">>" | eof) {
-        if lev>0
-        then
-          parse_extension_content start (lev-1) name args (beg^">>") c lexbuf
-        else begin
-          let args = List.rev args in
-          c.build.plugin_action name 
-            start
-            (Lexing.lexeme_end lexbuf) 
-            c.param args (Some beg);
-          match
-            try
-              Some (c.build.block_plugin name)
-            with Not_found -> None
-          with
-            | Some f -> Block (f c.param (List.rev args) (Some beg))
-            | None -> 
-                match
-                  try
-                    Some (c.build.link_plugin name)
-                  with Not_found -> None
-                with
-                  | Some f -> Link_plugin (f c.param (List.rev args) (Some beg))
-                  | None -> 
-                      A_content (c.build.a_content_plugin name c.param 
-                                     (List.rev args) 
-                                     (Some beg))
-        end
-      }
-    | ([ '>' '<' ] ? [^ '~' '>' '<' ]+) {
-        let s = Lexing.lexeme lexbuf in
-        parse_extension_content start lev name args (beg^s) c lexbuf
-      }
-    | [ '>' '<' '~' ] {
-        let s = Lexing.lexeme lexbuf in
-        parse_extension_content start lev name args (beg^s) c lexbuf
-      }
-    | _ {
-        Ocsigen_messages.warning 
-          ("Wikicreole: Unrecognized char in extension "^(Lexing.lexeme lexbuf)^".");
-        raise Unrecognized_char
-      }
+        '~' (('<' | '>' | '~') as ch) {
+          parse_extension_content_wiki
+            start lev nowiki name (beg^"~"^(String.make 1 ch)) c lexbuf
+        }
+      | "<<" {
+          if nowiki
+          then
+            parse_extension_content_wiki
+              start lev nowiki name (beg^"<<") c lexbuf
+          else
+            parse_extension_content_wiki
+              start (lev+1) nowiki name (beg^"<<") c lexbuf
+        }
+      | "{{{" {
+          parse_extension_content_wiki
+            start lev true name (beg^"{{{") c lexbuf
+        }
+      | "}}}" {
+(*VVV Warning: not quotable! *)
+          parse_extension_content_wiki
+            start lev false name (beg^"}}}") c lexbuf
+        }
+      | (">>" | eof) {
+          if nowiki
+          then 
+            parse_extension_content_wiki
+              start lev nowiki name (beg^">>") c lexbuf
+          else
+            if lev>0
+            then
+              parse_extension_content_wiki
+                start (lev-1) nowiki name (beg^">>") c lexbuf
+            else Some beg
+        }
+      | [^ '~' '>' '<' '{' '}' ]+ {
+          let s = Lexing.lexeme lexbuf in
+          parse_extension_content_wiki start lev nowiki name (beg^s) c lexbuf
+        }
+      | [ '>' '<' '~' '{' '}' ] {
+          let s = Lexing.lexeme lexbuf in
+          parse_extension_content_wiki start lev nowiki name (beg^s) c lexbuf
+        }
+      | _ {
+          Ocsigen_messages.warning
+            ("Wikicreole: Unrecognized char in extension "^
+               (Lexing.lexeme lexbuf)^".");
+          raise Unrecognized_char
+        }
+
+and parse_extension_content_nowiki start name beg c =
+    parse
+      | ("~>>" | eof) {
+          parse_extension_content_nowiki
+            start name (beg^">>") c lexbuf
+        }
+      | (">>" | eof) {
+          Some beg
+        }
+      | [^ '~' '>' ]+ {
+          let s = Lexing.lexeme lexbuf in
+          parse_extension_content_nowiki start name (beg^s) c lexbuf
+        }
+      | [ '>' '~' ] {
+          let s = Lexing.lexeme lexbuf in
+          parse_extension_content_nowiki start name (beg^s) c lexbuf
+        }
+      | _ {
+          Ocsigen_messages.warning
+            ("Wikicreole: Unrecognized char in extension "^
+               (Lexing.lexeme lexbuf)^".");
+          raise Unrecognized_char
+        }
+
 
 and parse_arg_value quote beg c =
     parse
