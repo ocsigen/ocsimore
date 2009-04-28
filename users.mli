@@ -1,4 +1,3 @@
-
 (** Module Users.
     
     Users, authentication, protection. 
@@ -10,19 +9,14 @@
     [None].
 
 *)
+open User_sql.Types
 
 
+type 'a parametrized_user
+type users
+val apply_parametrized_user : 'a parametrized_user -> 'a Opaque.int32_t -> users
 
-(** user information *)
-type userdata = 
-    private
-      { id: User_sql.userid;
-        name: string;
-        mutable pwd: User_sql.pwd;
-        mutable fullname: string;
-        mutable email: string option;
-        dyn: bool;
-      }
+
 
 
 exception NotAllowed
@@ -46,12 +40,12 @@ val authenticated_users : userdata
 (** Information about a user. Return [nobody] if the user
     does not currently exists *)
 val get_user_by_name : name:string -> userdata Lwt.t
-val get_user_id_by_name : string -> int32 Lwt.t
+val get_user_id_by_name : string -> userid Lwt.t
 
 
-val get_user_name_by_id : int32 -> string Lwt.t
-val get_user_by_id : id:int32 -> userdata Lwt.t
-val get_user_fullname_by_id : int32 -> string Lwt.t
+val get_user_name_by_id : userid -> string Lwt.t
+val get_user_by_id : id:userid -> userdata Lwt.t
+val get_user_fullname_by_id : userid -> string Lwt.t
 
 
 (** Creates a new user with given parameters,
@@ -59,10 +53,10 @@ val get_user_fullname_by_id : int32 -> string Lwt.t
     if [name] is already present. *)
 val create_user: 
   name:string -> 
-  pwd:User_sql.pwd -> 
+  pwd:pwd -> 
   fullname:string -> 
   ?email:string -> 
-  groups: User_sql.userid list ->
+  groups: userid list ->
   ?test:(sp:Eliom_sessions.server_params ->
           sd:Ocsimore_common.session_data -> bool Lwt.t) ->
   unit ->
@@ -70,22 +64,22 @@ val create_user:
 
 val create_unique_user: 
   name:string -> 
-  pwd:User_sql.pwd -> 
+  pwd:pwd -> 
   fullname:string -> 
   ?email:string -> 
-  groups: User_sql.userid list ->
+  groups: userid list ->
   (userdata * string) Lwt.t
 
-val delete_user : userid:User_sql.userid -> unit Lwt.t
+val delete_user : userid:userid -> unit Lwt.t
 
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(* BY 2009-03-13: deactivated because update_data is deactivated. See this file *)
 (*
 val update_user_data: 
   user:userdata -> 
-  ?pwd:User_sql.pwd -> 
+  ?pwd:pwd -> 
   ?fullname:string -> 
   ?email:string option -> 
-  ?groups: User_sql.userid list ->
+  ?groups: userid list ->
   unit -> 
   unit Lwt.t
 *)
@@ -95,13 +89,13 @@ val authenticate : name:string -> pwd:string -> userdata Lwt.t
 val in_group : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  ?user:User_sql.userid -> 
-  group:User_sql.userid -> 
+  ?user:userid -> 
+  group:userid -> 
   unit -> bool Lwt.t
 
-val add_to_group : user:User_sql.userid -> group:User_sql.userid -> unit Lwt.t
+val add_to_group : user:userid -> group:userid -> unit Lwt.t
 
-val group_list_of_string : string -> User_sql.userid list Lwt.t
+val group_list_of_string : string -> userid list Lwt.t
 
 (****)
 val get_user_data : 
@@ -110,7 +104,7 @@ val get_user_data :
 
 val get_user_id : 
   sp:Eliom_sessions.server_params -> 
-  sd:Ocsimore_common.session_data -> int32 Lwt.t
+  sd:Ocsimore_common.session_data -> userid Lwt.t
 
 val get_user_name : 
   sp:Eliom_sessions.server_params -> 

@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open User_sql.Types
 open Sql.PGOCaml
 open Sql
 
@@ -43,7 +44,8 @@ let new_forum ~title ~descr ?(arborescent = true) () =
        serial4 db "forums_id_seq")
 
 let new_message ~forum_id ~author_id
-    ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text = 
+    ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
+  let author_id = sql_from_user author_id in
   Sql.full_transaction_block
     (fun db ->
        (match parent_id with
@@ -145,6 +147,11 @@ let get_forums_list ?(not_deleted_only = true) () =
             "SELECT id, title, descr, arborescent, deleted \
              FROM forums"))
 
+let wrap_message (id, sub, aut, date, par, root, forum, txt, moder, dele, stick, tma, tmi) =
+  (id, sub,
+   user_from_sql aut,
+   date, par, root, forum, txt, moder, dele, stick, tma, tmi)
+
 let get_message ?(not_deleted_only = true) ~message_id () =
   Lwt_pool.use Sql.pool 
     (fun db ->
@@ -166,11 +173,9 @@ let get_message ?(not_deleted_only = true) ~message_id () =
                      WHERE forums_messages.id = $message_id") >>= fun y -> 
   (match y with
      | [] -> Lwt.fail Not_found
-     | [x] -> return x 
-     | _ -> 
-         Lwt.fail 
-           (Failure 
-              "Forum_sql.get_message: several messages have the same id")))
+     | x :: _ ->
+         Lwt.return (wrap_message x)
+  ))
 
 let get_thread ~message_id () =
   Sql.full_transaction_block
@@ -180,7 +185,7 @@ let get_thread ~message_id () =
                     WHERE forums_messages.id = $message_id" >>= fun y -> 
          (match y with
             | [] -> Lwt.fail Not_found
-            | [(min, max)] -> 
+            | (min, max) :: _ -> 
                 PGSQL(db)
                      "SELECT id, subject, author_id, datetime, parent_id, \
                            root_id, forum_id, text, moderated, deleted, sticky,\
@@ -188,9 +193,8 @@ let get_thread ~message_id () =
                       FROM forums_messages \
                       WHERE tree_min >= $min AND tree_max <= $max \
                       ORDER BY tree_min"
-            | _ -> 
-                Lwt.fail 
-                  (Failure 
-                     "Forum_sql.get_thread: several messages have the same id")))
+                 >>= fun l ->
+                   Lwt.return (List.map wrap_message l)
+         ))
 
 

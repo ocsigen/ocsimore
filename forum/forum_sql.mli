@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open User_sql.Types
 
 type forum = int32
 
@@ -48,7 +49,7 @@ val new_forum :
     [?moderated] and [?sticky] are false by default. *)
 val new_message :
   forum_id:forum ->
-  author_id:int32 ->
+  author_id:userid ->
   ?subject:string ->
   ?parent_id:int32 ->
   ?moderated:bool ->
@@ -88,7 +89,7 @@ val get_message :
   ?not_deleted_only:bool ->
   message_id:int32 -> 
   unit ->
- (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option * 
+ (int32 * string option * userid * CalendarLib.Calendar.t * int32 option * 
     int32 * int32 * string * bool * bool * bool * int32 * int32) Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
@@ -102,7 +103,7 @@ val get_message :
 val get_thread : 
   message_id:int32 -> 
   unit ->
- (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
+ (int32 * string option * userid * CalendarLib.Calendar.t * int32 option *
     int32 * int32 * string * bool * bool * bool * int32 * int32) list Lwt.t
   
 

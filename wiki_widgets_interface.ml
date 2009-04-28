@@ -294,7 +294,7 @@ class type virtual interactive_wikibox =
       bi:box_info ->
       classes:string list ->
       wb:wikibox ->
-      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list->
+      (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
       (classes * Xhtmltypes_duce.flows) Lwt.t
 
     (** Display the history of the wikibox [wb], which is supposed to contain
@@ -306,7 +306,7 @@ class type virtual interactive_wikibox =
       wb:wikibox ->
       wbcss:wikibox ->
       wikipage:string option ->
-      (int32 * string * User_sql.userid * CalendarLib.Printer.Calendar.t) list->
+      (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
       (classes * Xhtmltypes_duce.flows) Lwt.t
 
 

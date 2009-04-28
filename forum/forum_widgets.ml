@@ -43,9 +43,9 @@ object (self)
     Lwt.return
       {{ <div class={: classes :}>content }}
 
-  method display_comment_line ~sp ~sd ~role ?(rows = 3) ?(cols = 50)
-    (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
-     content, moderated, deleted, sticky, _, _) =
+  method display_comment_line ~sp ~sd:_sd ~role:_role ?(rows = 3) ?(cols = 50)
+    (message_id, _subjecto, _authorid, _datetime, _parent_id, _root_id,
+     _forum_id, _content, _moderated, _deleted, _sticky, _, _) =
     let draw_form (actionnamename, ((parentname, _), (_, textname))) =
          {{ [<p>[
               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -82,9 +82,9 @@ object (self)
         {{ [ n1 n2 ] }}
 *)
 
-  method display_admin_line ~sp ~sd ~role 
-    (message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
-     content, moderated, deleted, sticky, _, _) =
+  method display_admin_line ~sp ~sd:_sd ~role 
+    (message_id, _subjecto, _authorid, _datetime, parent_id, _root_id, _forum_id,
+     _content, moderated, _deleted, _sticky, _, _) =
 
     let draw_moderate_form name =
          {{ [<p>[{: Eliom_duce.Xhtml.int32_button ~name:name
@@ -134,8 +134,8 @@ object (self)
   method pretty_print_message
     ~classes
     ~commentable ?(arborescent = true) ~sp ~sd ?rows ?cols
-    ((message_id, subjecto, authorid, datetime, parent_id, root_id, forum_id,
-      content, moderated, deleted, sticky, _, _) as msg) =
+    ((message_id, subjecto, authorid, datetime, _parent_id, root_id, forum_id,
+      content, moderated, _deleted, _sticky, _, _) as msg) =
     Users.get_user_fullname_by_id authorid >>= fun author ->
     Forum.get_role sp sd forum_id >>= fun role ->
     self#display_admin_line ~sp ~sd ~role msg >>= fun admin_line ->
@@ -196,8 +196,9 @@ object (self)
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
-         | ((id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-             content, moderated, deleted, sticky, _, _) as m)::l ->
+         | ((id, _subjecto, _authorid, _datetime, _parent_id, _root_id,
+             _forum_id, _content, _moderated, _deleted, _sticky, _, _)
+              as m)::l ->
              message_widget#pretty_print_message
                ~classes:[]
                ~commentable ~arborescent ~sp ~sd ?rows ?cols m
@@ -218,10 +219,10 @@ object (self)
     in
     match thread with
       | [] -> Lwt.return (classes, {{[]}})
-      | (id, subjecto, authorid, datetime, parent_id, root_id, forum_id, 
-         content, moderated, deleted, sticky, _, _)::l ->
+      | (_id, _subjecto, _authorid, _datetime, _parent_id, _root_id, forum_id, 
+         _content, _moderated, _deleted, _sticky, _, _)::_l ->
           Forum_sql.get_forum ~forum_id ()
-          >>= fun (_, _, _, arborescent, deleted) ->
+          >>= fun (_, _, _, arborescent, _deleted) ->
           print_one_message_and_children ~arborescent thread >>= fun (a, _) -> 
           Lwt.return (classes, {{[a]}})
 

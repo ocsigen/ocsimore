@@ -16,22 +16,42 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-(** The abstract type of user ids *)
-type userid = int32
+module Types : sig
 
-type pwd =
-  | Connect_forbidden
-  | Ocsimore_user_plain of string
-  | Ocsimore_user_crypt of string
-  | External_Auth
+  (** The abstract type of user ids *)
+  type userid = [`User ] Opaque.int32_t
+
+  val user_from_sql : int32 -> userid
+  val sql_from_user : userid -> int32
+
+  val userid_s: userid -> string
+  val s_userid: string -> userid
+
+  type pwd =
+    | Connect_forbidden
+    | Ocsimore_user_plain of string
+    | Ocsimore_user_crypt of string
+    | External_Auth
+
+  type userdata = {
+    user_id: userid;
+    user_login: string;
+    mutable user_pwd: pwd;
+    mutable user_fullname: string;
+    mutable user_email: string option;
+    user_dyn: bool;
+  }
+
+end
+open Types
 
 (** Creates a user. The password passed as argument must be unencrypted.
     Returns the user id and its password after an eventual encryption. *)
-val new_user: 
-  name:string -> 
-  password:pwd -> 
-  fullname:string -> 
-  email:string option -> 
+val new_user:
+  name:string ->
+  password:pwd ->
+  fullname:string ->
+  email:string option ->
   groups:userid list ->
   dyn:bool ->
   (userid * pwd) Lwt.t
@@ -44,21 +64,21 @@ val new_user:
 (** Returns the groups for one user (level 1) *)
 val get_groups_ : userid:userid -> userid list Lwt.t
 
-val find_user_: 
-  ?db:Sql.db_t ->
-  ?id:userid -> 
-  ?name:string -> 
-  unit -> 
-  ((userid * string * pwd * string * string option * bool) * 
-     userid list) Lwt.t
+val find_user_by_name_:
+  string ->
+  userdata Lwt.t
+
+val find_user_by_id_:
+  userid ->
+  userdata Lwt.t
 
 (* BY 2009-03-13: deactivated. See .ml *)
 (*
-val update_data_: 
-  userid:userid -> 
-  password:pwd -> 
-  fullname:string -> 
-  email:string option -> 
+val update_data_:
+  userid:userid ->
+  password:pwd ->
+  fullname:string ->
+  email:string option ->
   ?groups:userid list ->
   ?dyn:bool ->
   unit ->

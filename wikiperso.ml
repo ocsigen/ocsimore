@@ -21,6 +21,7 @@
 open Lwt
 open Ocsigen_extensions
 open Simplexmlparser
+open User_sql.Types
 open Wiki_sql.Types
 
 
@@ -97,10 +98,10 @@ let external_user user =
            | None -> return None
            | Some userdata ->
                Users.create_user ~name:user
-                 ~pwd:User_sql.External_Auth
+                 ~pwd:User_sql.Types.External_Auth
                  ~fullname:userdata.Unix.pw_gecos
                  ~email:(user ^ "@localhost")
-                 ~groups:[Users.authenticated_users.Users.id]
+                 ~groups:[Users.authenticated_users.user_id]
                  ()
                >>= fun userdata ->
                  return (Some userdata)
@@ -143,7 +144,7 @@ let template_wiki_css = Ocsisite.register_named_wikibox
 
 (** The function that creates the wikiperso when needed *)
 let create_wikiperso ~wiki_title ~userdata =
-  let gid = [userdata.Users.id] in
+  let gid = [userdata.user_id] in
   template_container ()
   >>= fun container ->
   template_wiki_css ()
@@ -152,7 +153,7 @@ let create_wikiperso ~wiki_title ~userdata =
      the relocation of the wiki easier *)
   Wiki.really_create_wiki ~title:wiki_title
     ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
-              userdata.Users.fullname)
+              userdata.user_fullname)
     (* ~boxrights:false *) ~writers:gid ~wikiboxes_creators:gid
     ~page_creators:gid ~css_editors:gid ~container_adm:gid
     ~wiki_css:css ~container_page:container
@@ -194,7 +195,7 @@ let gen sp =
                         >>= fun wiki ->
                         (* We then register the wiki at the correct url *)
                         Wiki_services.register_wiki ~sp
-                          ~path:(wiki_path userdata.Users.name)
+                          ~path:(wiki_path userdata.user_login)
                           ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ();
                         Lwt.return ()
                     | e -> Lwt.fail e)

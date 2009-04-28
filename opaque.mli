@@ -60,6 +60,9 @@ val t_int32 : 'a int32_t -> int32
 val any_int32 : 'a int32_t -> 'b int32_t
 (** [int_t], [t_int] and [any_int] are type conversion functions. *)
 
+val int32_t_list : int32 list -> 'a int32_t list
+val t_int32_list : 'a int32_t list -> int32 list
+
 
 val print_int32_t : 'a int32_t -> unit
 

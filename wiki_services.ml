@@ -25,6 +25,7 @@ These are all the services related to wikis
 
 *)
 
+open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_sql.Types
 let (>>=) = Lwt.bind
@@ -184,13 +185,13 @@ let register_wiki ?sp ~path ~(wikibox_widget:Wiki_widgets_interface.interactive_
 let create_and_register_wiki ~title ~descr
     ?sp
     ?path
-    ?(readers = [Users.anonymous.Users.id])
-    ?(writers = [Users.authenticated_users.Users.id])
+    ?(readers = [Users.anonymous.user_id])
+    ?(writers = [Users.authenticated_users.user_id])
     ?(rights_adm = [])
-    ?(wikiboxes_creators = [Users.authenticated_users.Users.id])
+    ?(wikiboxes_creators = [Users.authenticated_users.user_id])
     ?(container_adm = [])
-    ?(page_creators = [Users.authenticated_users.Users.id])
-    ?(css_editors = [Users.authenticated_users.Users.id])
+    ?(page_creators = [Users.authenticated_users.user_id])
+    ?(css_editors = [Users.authenticated_users.user_id])
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir

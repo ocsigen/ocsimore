@@ -95,7 +95,7 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
      PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
                 VALUES ($wiki_id, $container_wikibox, $comment)"
      >>= fun () ->
-     let admin = Users.admin.Users.id in
+     let admin = User_sql.Types.sql_from_user (Users.admin.User_sql.Types.user_id) in
      PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
                 VALUES ($container_wikibox, $wiki_id, $admin, $container_page)"
      >>= fun () ->
@@ -137,6 +137,7 @@ let populate_readers_ db (wiki, id) readers =
           (fun reader ->
              Lwt.catch
                (fun () ->
+                  let reader = User_sql.Types.sql_from_user reader in
                   PGSQL(db) "INSERT INTO wikiboxreaders \
                              VALUES ($wiki, $id, $reader)")
                (function
@@ -157,6 +158,7 @@ let populate_writers_ db (wiki, id) writers =
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
           (fun writer ->
+             let writer = User_sql.Types.sql_from_user writer in
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO wikiboxwriters \
@@ -181,6 +183,7 @@ let populate_rights_adm_ db (wiki, id) ra =
           (fun ra ->
              Lwt.catch
                (fun () ->
+                  let ra = User_sql.Types.sql_from_user ra in
                   PGSQL(db) "INSERT INTO wikiboxrightsgivers \
                              VALUES ($wiki, $id, $ra)")
                (function
@@ -203,6 +206,7 @@ let populate_wikiboxes_creators_ db (wiki, id) ra =
           (fun ra ->
              Lwt.catch
                (fun () ->
+                  let ra = User_sql.Types.sql_from_user ra in
                   PGSQL(db) "INSERT INTO wikiboxcreators \
                              VALUES ($wiki, $id, $ra)")
                (function
@@ -335,7 +339,9 @@ type wikibox_content =
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () = 
   let wiki' = t_int32 (wiki : wiki)
-  and content_type = string_of_wikibox_content_type content_type in
+  and content_type = string_of_wikibox_content_type content_type
+  and author = User_sql.Types.sql_from_user author
+  in
   Sql.full_transaction_block
     (fun db ->
        (PGSQL(db) "SELECT max(id) FROM wikiboxes WHERE wiki_id = $wiki'"
@@ -368,7 +374,9 @@ let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () =
     and return its version number. *)
 let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_type =
   let wiki = t_int32 (wiki : wiki)
-  and content_type = string_of_wikibox_content_type content_type in
+  and content_type = string_of_wikibox_content_type content_type
+  and author = User_sql.Types.sql_from_user author
+  in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "INSERT INTO wikiboxes \
@@ -432,9 +440,9 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
                         AND version = $version")
        >>= function
          | [] -> Lwt.return None
-         | [(c, a, v, d, t, ver)] ->
-             Lwt.return (Some (c, a, v, d, wikibox_content_type_of_string t, ver))
-         | _ ::_ -> assert false (* (wiki_id, wiki, version) is a primary key *)
+         | (c, a, v, d, t, ver) :: _ ->
+             Lwt.return (Some (c, User_sql.Types.user_from_sql a,
+                               v, d, wikibox_content_type_of_string t, ver))
     )
 
 let current_wikibox_version_ ~wikibox:(wiki, id) =
@@ -543,7 +551,7 @@ let find_wiki_by_name_ ~name =
        )
     )
 
-
+(*
 let get_writers_ (wiki, id) =
   let wiki = t_int32 (wiki : wiki) in
   Sql.full_transaction_block
@@ -604,7 +612,7 @@ let remove_rights_adm_ (wiki_id, id) wbadmins =
 let remove_wikiboxes_creators_ (wiki_id, id) wbadmins =
   Lwt_pool.use Sql.pool (fun db ->
   remove_wikiboxes_creators_ db (wiki_id, id) wbadmins)
-
+*)
 
 let get_css_wikibox_aux_ ~wiki ~page =
   let wiki = t_int32 (wiki : wiki) in
@@ -671,8 +679,9 @@ let print_cache s =
   if !debug_print_cache then print_endline s
 
 
-let get_wikibox_data, 
-  get_readers,
+let
+  get_wikibox_data,
+(*  get_readers,
   get_writers,
   get_rights_adm,
   get_wikiboxes_creators,
@@ -683,7 +692,7 @@ let get_wikibox_data,
   remove_readers,
   remove_writers,
   remove_rights_adm,
-  remove_wikiboxes_creators,
+  remove_wikiboxes_creators, *)
   new_wiki,
   new_wikibox,
   update_wikibox,
@@ -692,7 +701,7 @@ let get_wikibox_data,
   let module C = Cache.Make (struct 
                                type key = wikibox
                                type value = (string * 
-                                               User_sql.userid * 
+                                               User_sql.Types.userid * 
                                                string option *
                                                CalendarLib.Calendar.t *
                                                wikibox_content_type *
@@ -702,7 +711,7 @@ let get_wikibox_data,
   in
   let module C2 = Cache.Make (struct 
                                 type key = wikibox
-                                type value = User_sql.userid list
+                                type value = User_sql.Types.userid list
                              end) 
   in
   let module C3 = Cache.Make(struct
@@ -711,10 +720,10 @@ let get_wikibox_data,
                              end)
   in
   let cache = C.create (fun a -> get_wikibox_data_ a ()) 64 in
-  let cacher = C2.create get_readers_ 64 in
+(*   let cacher = C2.create get_readers_ 64 in
   let cachew = C2.create get_writers_ 64 in
   let cachera = C2.create get_rights_adm_ 64 in
-  let cachewc = C2.create get_wikiboxes_creators_ 64 in
+  let cachewc = C2.create get_wikiboxes_creators_ 64 in *)
   let cachewv = C3.create (fun b -> current_wikibox_version_ b) 64 in
   ((fun ?version ~wikibox () ->
     match version with
@@ -725,7 +734,7 @@ let get_wikibox_data,
           print_cache (Int32.to_string (snd wikibox) ^ " (with version) -> wikibox: db access");
           get_wikibox_data_ ?version ~wikibox ()
    ),
-   (fun a -> print_cache "cache readers "; C2.find cacher a),
+(*   (fun a -> print_cache "cache readers "; C2.find cacher a),
    (fun a -> print_cache "cache writers "; C2.find cachew a),
    (fun a -> print_cache "cache ra "; C2.find cachera a),
    (fun a -> print_cache "cache wc "; C2.find cachewc a),
@@ -736,7 +745,7 @@ let get_wikibox_data,
   (fun (a, b) r -> C2.remove cacher (a, b);  remove_readers_ (a, b) r),
   (fun (a, b) r -> C2.remove cachew (a, b);  remove_writers_ (a, b) r),
   (fun (a, b) r -> C2.remove cachera (a, b);  remove_rights_adm_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachewc (a, b);  remove_wikiboxes_creators_ (a, b) r),
+  (fun (a, b) r -> C2.remove cachewc (a, b);  remove_wikiboxes_creators_ (a, b) r),*)
   (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_page () ->
      new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page ()
      >>= function (wiki, wikibox) ->
@@ -751,10 +760,10 @@ let get_wikibox_data,
      Lwt.return wikibox),
   (fun ~wikibox ~author ~comment ~content ->
      C.remove cache wikibox;
-     C2.remove cacher wikibox;
+(*     C2.remove cacher wikibox;
      C2.remove cachew wikibox;
      C2.remove cachera wikibox;
-     C2.remove cachewc wikibox;
+     C2.remove cachewc wikibox; *)
      C3.remove cachewv wikibox;
      update_wikibox_ ~wikibox ~author ~comment ~content),
    (fun ~wikibox -> C3.find cachewv wikibox)

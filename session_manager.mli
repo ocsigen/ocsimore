@@ -25,37 +25,37 @@
 open Eliommod
 open Eliom_parameters
 open Eliom_services
-open Eliom_sessions 
+open Eliom_sessions
 open Eliom_duce.Xhtml
 
-type sessionmanager_in = 
+type sessionmanager_in =
 {
   url: string list;
-  login_actions: server_params -> Users.userdata -> unit Lwt.t;
+  login_actions: server_params -> User_sql.Types.userdata -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
-  administrator: Users.userdata;
+  administrator: User_sql.Types.userdata;
 }
 
 
-(** do you want https for login/password? 
+(** do you want https for login/password?
    (see option <notsecure/> in ocsisite) *)
 val set_secure : bool -> unit
 val get_secure : unit -> bool
-      
+
 class sessionmanager : ?sp:server_params -> sessionmanagerinfo: sessionmanager_in ->
 object
 
-  method act_login: 
-    (unit, 
-     string * string, 
-     [`Nonattached of [`Post] na_s], 
+  method act_login:
+    (unit,
+     string * string,
+     [`Nonattached of [`Post] na_s],
      [`WithoutSuffix],
      unit,
      [`One of string] param_name * [`One of string] param_name,
      [`Registrable]) service
 
-  method act_logout: 
-    (unit, 
+  method act_logout:
+    (unit,
      unit,
      [`Nonattached of [`Post] na_s],
      [`WithoutSuffix],
@@ -63,21 +63,21 @@ object
      unit,
      [`Registrable]) service
 
-  method act_logout_get: 
-    (unit, 
+  method act_logout_get:
+    (unit,
      unit,
      [`Nonattached of [`Get] na_s],
      [`WithoutSuffix],
      unit,
      unit,
      [`Registrable]) service
-(** Use GET service if you want to make a link 
+(** Use GET service if you want to make a link
     towards a POST service ... It uses a redirection instead of an action. *)
 
-  method add_login_actions: 
-      (server_params -> Users.userdata -> unit Lwt.t) -> unit
+  method add_login_actions:
+      (server_params -> User_sql.Types.userdata -> unit Lwt.t) -> unit
 
-  method add_logout_actions: 
+  method add_logout_actions:
       (server_params -> unit Lwt.t) -> unit
 
 end;;
@@ -86,29 +86,29 @@ end;;
 (*
 val connect:
   sessionmanager ->
-  ('get, 
+  ('get,
    'post,
    internal_service_kind,
-   [`WithoutSuffix], 
+   [`WithoutSuffix],
    'gn,
    'pn,
    [`Registrable]) service ->
-  (sp:server_params -> 
-    sd:Ocsimore_common.session_data -> 
-    contents: Xhtmltypes_duce.blocks -> 
+  (sp:server_params ->
+    sd:Ocsimore_common.session_data ->
+    contents: Xhtmltypes_duce.blocks ->
     Eliom_duce.Xhtml.page Lwt.t) ->
   ('get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list)
   -> unit
 *)
 
-class sessionmanager_pam : 
+class sessionmanager_pam :
   string option ->
-  ?sp:server_params -> 
+  ?sp:server_params ->
   sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
 
 class sessionmanager_nis :
-  ?sp:server_params -> 
+  ?sp:server_params ->
   sessionmanagerinfo: sessionmanager_in ->
   sessionmanager
 

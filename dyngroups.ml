@@ -32,7 +32,7 @@ let rec aux = function
       let test = Accesscontrol.parse_condition s in
       Users.create_user
         ~name
-        ~pwd:User_sql.Connect_forbidden
+        ~pwd:User_sql.Types.Connect_forbidden
         ~fullname:name
         ~groups:[]
         ~test:(fun ~sp ~sd:_ -> Lwt.return (test (Eliom_sessions.get_ri ~sp)))

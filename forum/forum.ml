@@ -23,6 +23,8 @@
    @author Boris Yakobowski
 *)
 
+open User_sql.Types
+
 let (>>=) = Lwt.bind
 
 type forum_info = {
@@ -36,7 +38,7 @@ type forum_info = {
 let create_group_ name fullname =
   Users.create_user 
     ~name
-    ~pwd:User_sql.Connect_forbidden
+    ~pwd:User_sql.Types.Connect_forbidden
     ~fullname
     ~groups:[]
     ()
@@ -45,7 +47,7 @@ let forum_creators =
   Lwt_unix.run
     (Users.create_user 
        ~name:"forum_creators"
-       ~pwd:User_sql.Connect_forbidden
+       ~pwd:User_sql.Types.Connect_forbidden
        ~fullname:"users who can create new forums"
        ~groups:[]
        ()
@@ -201,71 +203,71 @@ let really_create_forum ~title ~descr ~arborescent () =
 
 
    (* Relation between groups *)
-     add_to_group_ [forum_admin_data.Users.id] moderators_data.Users.id
+     add_to_group_ [forum_admin_data.user_id] moderators_data.user_id
    >>= fun () ->
-     add_to_group_ [forum_admin_data.Users.id] deletors_data.Users.id
+     add_to_group_ [forum_admin_data.user_id] deletors_data.user_id
    >>= fun () ->
-     add_to_group_ [forum_admin_data.Users.id] sticky_setters_data.Users.id
+     add_to_group_ [forum_admin_data.user_id] sticky_setters_data.user_id
    >>= fun () ->
-     add_to_group_ [forum_admin_data.Users.id] writers_notmod_data.Users.id
+     add_to_group_ [forum_admin_data.user_id] writers_notmod_data.user_id
    >>= fun () ->
 
-     add_to_group_ [moderators_data.Users.id] message_moderators_data.Users.id
+     add_to_group_ [moderators_data.user_id] message_moderators_data.user_id
    >>= fun () ->
-     add_to_group_ [moderators_data.Users.id] comment_moderators_data.Users.id
+     add_to_group_ [moderators_data.user_id] comment_moderators_data.user_id
    >>= fun () ->
-     add_to_group_ [deletors_data.Users.id] message_deletors_data.Users.id
+     add_to_group_ [deletors_data.user_id] message_deletors_data.user_id
    >>= fun () ->
-     add_to_group_ [deletors_data.Users.id] comment_deletors_data.Users.id
+     add_to_group_ [deletors_data.user_id] comment_deletors_data.user_id
    >>= fun () ->
-     add_to_group_ [deletors_data.Users.id] deletors_if_author_data.Users.id
+     add_to_group_ [deletors_data.user_id] deletors_if_author_data.user_id
    >>= fun () ->
-     add_to_group_ [deletors_if_author_data.Users.id] message_deletors_if_author_data.Users.id
+     add_to_group_ [deletors_if_author_data.user_id] message_deletors_if_author_data.user_id
    >>= fun () ->
-     add_to_group_ [deletors_if_author_data.Users.id] comment_deletors_if_author_data.Users.id
+     add_to_group_ [deletors_if_author_data.user_id] comment_deletors_if_author_data.user_id
    >>= fun () ->
-     add_to_group_ [message_deletors_data.Users.id] message_deletors_if_author_data.Users.id
+     add_to_group_ [message_deletors_data.user_id] message_deletors_if_author_data.user_id
    >>= fun () ->
-     add_to_group_ [comment_deletors_data.Users.id] comment_deletors_if_author_data.Users.id
+     add_to_group_ [comment_deletors_data.user_id] comment_deletors_if_author_data.user_id
    >>= fun () ->
-     add_to_group_ [sticky_setters_data.Users.id] message_sticky_setters_data.Users.id
+     add_to_group_ [sticky_setters_data.user_id] message_sticky_setters_data.user_id
    >>= fun () ->
-     add_to_group_ [sticky_setters_data.Users.id] comment_sticky_setters_data.Users.id
+     add_to_group_ [sticky_setters_data.user_id] comment_sticky_setters_data.user_id
    >>= fun () ->
-     add_to_group_ [writers_notmod_data.Users.id] message_writers_notmod_data.Users.id
+     add_to_group_ [writers_notmod_data.user_id] message_writers_notmod_data.user_id
    >>= fun () ->
-     add_to_group_ [writers_notmod_data.Users.id] comment_writers_notmod_data.Users.id
+     add_to_group_ [writers_notmod_data.user_id] comment_writers_notmod_data.user_id
 
    >>= fun () ->
-     add_to_group_ [writers_notmod_data.Users.id] writers_data.Users.id
+     add_to_group_ [writers_notmod_data.user_id] writers_data.user_id
    >>= fun () ->
-     add_to_group_ [writers_data.Users.id] readers_data.Users.id
+     add_to_group_ [writers_data.user_id] readers_data.user_id
 
    >>= fun () ->
-     add_to_group_ [message_deletors_data.Users.id;
-                    message_moderators_data.Users.id;
-                    message_sticky_setters_data.Users.id;
-                    message_writers_data.Users.id;
-                    readers_data.Users.id
-                   ] message_readers_data.Users.id
+     add_to_group_ [message_deletors_data.user_id;
+                    message_moderators_data.user_id;
+                    message_sticky_setters_data.user_id;
+                    message_writers_data.user_id;
+                    readers_data.user_id
+                   ] message_readers_data.user_id
    >>= fun () ->
-     add_to_group_ [comment_deletors_data.Users.id;
-                    comment_moderators_data.Users.id;
-                    comment_sticky_setters_data.Users.id;
-                    comment_writers_data.Users.id;
-                    readers_data.Users.id
-                   ] comment_readers_data.Users.id
+     add_to_group_ [comment_deletors_data.user_id;
+                    comment_moderators_data.user_id;
+                    comment_sticky_setters_data.user_id;
+                    comment_writers_data.user_id;
+                    readers_data.user_id
+                   ] comment_readers_data.user_id
    >>= fun () ->
-     add_to_group_ [message_writers_notmod_data.Users.id;
-                    writers_data.Users.id] message_writers_data.Users.id
+     add_to_group_ [message_writers_notmod_data.user_id;
+                    writers_data.user_id] message_writers_data.user_id
    >>= fun () ->
-     add_to_group_ [comment_writers_notmod_data.Users.id;
-                    writers_data.Users.id] comment_writers_data.Users.id
+     add_to_group_ [comment_writers_notmod_data.user_id;
+                    writers_data.user_id] comment_writers_data.user_id
 
    >>= fun () ->
-     add_to_group_ [message_readers_data.Users.id] forum_visible_data.Users.id
+     add_to_group_ [message_readers_data.user_id] forum_visible_data.user_id
    >>= fun () ->
-     add_to_group_ [comment_readers_data.Users.id] forum_visible_data.Users.id
+     add_to_group_ [comment_readers_data.user_id] forum_visible_data.user_id
 
    >>= fun () ->
    Lwt.return forum_id
@@ -335,7 +337,7 @@ type role =
 let get_role ~sp ~sd ~forum_id =
   let i = Forum_sql.forum_id_s forum_id in
   Users.get_user_data sp sd >>= fun u ->
-  let u = u.Users.id in
+  let u = u.user_id in
 
   Lwt.return
     {

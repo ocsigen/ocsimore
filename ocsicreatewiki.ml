@@ -2,6 +2,7 @@
    pages are written *)
 
 open Lwt
+open User_sql.Types
 open Eliom_duce.Xhtml
 
 
@@ -9,14 +10,14 @@ type wiki_data =
     {
       name:string;
       path:string list;
-      readers:User_sql.userid list option;
-      writers:User_sql.userid list option;
-      rights_adm:User_sql.userid list option;
-      wikiboxes_creators:User_sql.userid list option;
-      container_adm:User_sql.userid list option;
-      page_creators:User_sql.userid list option;
-      css_editors:User_sql.userid list option;
-      admins:User_sql.userid list option;
+      readers:userid list option;
+      writers:userid list option;
+      rights_adm:userid list option;
+      wikiboxes_creators:userid list option;
+      container_adm:userid list option;
+      page_creators:userid list option;
+      css_editors:userid list option;
+      admins:userid list option;
       boxrights:bool
     }
 

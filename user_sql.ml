@@ -29,13 +29,35 @@ open Ocsimore_lib
 open CalendarLib
 open Sql
 
-type userid = int32
+module Types = struct
 
-type pwd =
-  | Connect_forbidden
-  | Ocsimore_user_plain of string
-  | Ocsimore_user_crypt of string
-  | External_Auth
+  type userid = [`User ] Opaque.int32_t
+
+  let user_from_sql (u : int32) = (Opaque.int32_t u : userid)
+  let sql_from_user (u : userid) = Opaque.t_int32 u
+
+  let userid_s i = Int32.to_string (sql_from_user i)
+  let s_userid s = (Opaque.int32_t (Int32.of_string s) : userid)
+
+
+  type pwd =
+    | Connect_forbidden
+    | Ocsimore_user_plain of string
+    | Ocsimore_user_crypt of string
+    | External_Auth
+
+
+  type userdata = {
+    user_id: userid;
+    user_login: string;
+    mutable user_pwd: pwd;
+    mutable user_fullname: string;
+    mutable user_email: string option;
+    user_dyn: bool;
+  }
+end
+open Types
+
 
 (* Transforms an incoming value of type [pwd], in which
    [Ocsimore_user_crypt] is supposed to contain the unencrypted password,
@@ -59,12 +81,14 @@ let pass_authtype_from_pass pwd = match pwd with
 
 
 let populate_groups db id groups =
+  let id = sql_from_user id in
   match groups with
     | [] -> Lwt.return ()
     | _ ->
 (*VVV Can we do this more efficiently? *)
         Lwt_util.iter_serial
           (fun groupid ->
+             let groupid = sql_from_user groupid in
              Lwt.catch
                (fun () ->
                   PGSQL(db) "INSERT INTO userrights \
@@ -99,49 +123,43 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
                     VALUES ($name, $pwd, $fullname, $email, $dyn, $authtype)"
        ) >>= fun () -> 
     serial4 db "users_id_seq" >>= fun id ->
+    let id = user_from_sql id in
     populate_groups db id groups >>= fun () ->
     Lwt.return (id, pwd))
 
-let find_user_ ?db ?id ?name () =
-  (match db with
-    | None -> Lwt_pool.use Sql.pool
-    | Some db -> (fun f -> f db))
+let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
+  let password = match authtype, pwd with
+    | "p", _ -> External_Auth
+    | "c", Some p -> Ocsimore_user_crypt p
+    | "l", Some p -> Ocsimore_user_plain p
+    | _ -> Connect_forbidden
+  in
+  Lwt.return ({ user_id = user_from_sql id; user_login = login;
+                user_pwd = password; user_fullname = name;
+                user_email = email; user_dyn = dyn })
+
+
+let find_user_by_name_ name =
+  Lwt_pool.use Sql.pool
     (fun db ->
-       (match (name, id) with
-          | (Some n, Some i) -> 
-              PGSQL(db)
-                "SELECT id, login, password, fullname, email, dyn, authtype FROM users \
-                 WHERE id = $i AND login = $n"
-          | (None, Some i) -> 
-              PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
-                         FROM users WHERE id = $i"
-          | (Some n, None) -> 
-              PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
-                         FROM users WHERE login = $n"
-          | (None, None) -> 
-              Lwt.fail (Failure
-                          "User_sql.find_user: Neither name nor id specified")) 
-       >>= fun res -> 
-     (match res with
-        | [u] -> Lwt.return u
-        | u::_ -> 
-            Ocsigen_messages.warning
-              "Ocsimore: Two users have the same name or id"; 
-            Lwt.return u
-        | _ -> Lwt.fail Not_found) 
-     >>= fun (id, login, pwd, name, email, dyn, authtype) ->
-     PGSQL(db) "SELECT groupid FROM userrights WHERE id = $id" >>= fun perm ->
-     let password =
-       match authtype, pwd with
-         | "p", _ -> External_Auth
-         | "c", Some p -> Ocsimore_user_crypt p
-         | "l", Some p -> Ocsimore_user_plain p
-         | _ -> Connect_forbidden
-     in
-     Lwt.return ((id, login, password, name, email, dyn), perm)
-    )
+       PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
+                  FROM users WHERE login = $name"
+       >>= function
+         | [] -> Lwt.fail Not_found
+         | r :: _ -> wrap_userdata r)
+
+let find_user_by_id_ id =
+  let id = sql_from_user id in
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
+                  FROM users WHERE id = $id"
+       >>= function
+         | [] -> Lwt.fail Not_found
+         | r :: _ -> wrap_userdata r)
 
 let add_to_group_ ~userid ~groupid =
+  let userid = sql_from_user userid and groupid = sql_from_user groupid in
   Lwt_pool.use Sql.pool (fun db ->
   Lwt.catch
     (fun () -> PGSQL(db) "INSERT INTO userrights VALUES ($userid, $groupid)")
@@ -154,11 +172,14 @@ let add_to_group_ ~userid ~groupid =
     ))
 
 let remove_from_group_ ~userid ~groupid =
-  Lwt_pool.use Sql.pool (fun db ->
-  PGSQL(db)
-    "DELETE FROM userrights WHERE id = $userid AND groupid = $groupid")
+  let userid = sql_from_user userid and groupid = sql_from_user groupid in
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       PGSQL(db) "DELETE FROM userrights
+                  WHERE id = $userid AND groupid = $groupid")
 
 let delete_user_ ~userid =
+  let userid = sql_from_user userid in
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
@@ -197,8 +218,10 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
 *)
 
 let get_groups_ ~userid =
+  let userid = sql_from_user userid in
   Lwt_pool.use Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT groupid FROM userrights WHERE id = $userid"
+       PGSQL(db) "SELECT groupid FROM userrights WHERE id = $userid" >>=
+       fun r -> Lwt.return (Opaque.int32_t_list r)
     )
 

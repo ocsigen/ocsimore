@@ -27,6 +27,8 @@ This is the wiki component of Ocsimore.
 
 
 open Wiki_sql.Types
+open User_sql.Types
+
 let (>>=) = Lwt.bind
 
 
@@ -42,6 +44,7 @@ let get_sthg_ f ((w, _) as k) =
     f k >>= fun r -> Lwt.return (Some r)
   else Lwt.return None
 
+(*
 let get_readers =
   get_sthg_ Wiki_sql.get_readers
 
@@ -53,6 +56,7 @@ let get_rights_adm =
 
 let get_wikiboxes_creators =
   get_sthg_ Wiki_sql.get_wikiboxes_creators
+*)
 
 
 let readers_group_name i = "wiki"^wiki_id_s i^"_readers"
@@ -119,7 +123,7 @@ let new_wikibox ~wiki ~author ~comment ~content ~content_type ?readers ?writers 
 let create_group_ name fullname =
   Users.create_user 
     ~name
-    ~pwd:User_sql.Connect_forbidden
+    ~pwd:User_sql.Types.Connect_forbidden
     ~fullname
     ~groups:[]
     ()
@@ -134,7 +138,7 @@ let add_to_group_ l g =
     l
 
 let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
-  if userid == Users.admin.Users.id
+  if userid == Users.admin.user_id
   then Lwt.return true
   else
     rights_box (wiki.wiki_id, id) >>= function
@@ -150,16 +154,19 @@ let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
           rights_wiki wiki.wiki_id >>= fun g ->
           Users.in_group ~sp ~sd ~user:userid ~group:g ()
 
-
+(*
 let can_change_rights = can_sthg get_rights_adm rights_adm_group
 let can_read = can_sthg get_readers readers_group
 let can_write = can_sthg get_writers writers_group
 let can_create_wikibox = can_sthg get_wikiboxes_creators wikiboxes_creators_group
+*)
 
-let get_role_ ~sp ~sd ((wiki : wiki), id) =
-  Wiki_sql.get_wiki_info_by_id wiki >>= fun w ->
+let get_role_ ~sp ~sd ((wiki : wiki), _id) =
+  Wiki_sql.get_wiki_info_by_id wiki >>= fun _w ->
   Users.get_user_data sp sd >>= fun u ->
-  let u = u.Users.id in
+  let _u = u.user_id in
+  Lwt.return Admin
+(* XXX
   can_change_rights ~sp ~sd w id u >>= fun cana ->
   if cana
   then Lwt.return Admin
@@ -172,7 +179,7 @@ let get_role_ ~sp ~sd ((wiki : wiki), id) =
       if canr
       then Lwt.return Lurker
       else Lwt.return Nonauthorized
-
+*)
 
 module Roles = Map.Make(struct
                           type t = wikibox
@@ -231,13 +238,13 @@ exception Wiki_already_registered_at_path of (string * string) * string
 (* Create a wiki that is supposed not to exist already *)
 let really_create_wiki ~title ~descr
     ?path
-    ?(readers = [Users.anonymous.Users.id])
-    ?(writers = [Users.authenticated_users.Users.id])
+    ?(readers = [Users.anonymous.user_id])
+    ?(writers = [Users.authenticated_users.user_id])
     ?(rights_adm = [])
-    ?(wikiboxes_creators = [Users.authenticated_users.Users.id])
+    ?(wikiboxes_creators = [Users.authenticated_users.user_id])
     ?(container_adm = [])
-    ?(page_creators = [Users.authenticated_users.Users.id])
-    ?(css_editors = [Users.authenticated_users.Users.id])
+    ?(page_creators = [Users.authenticated_users.user_id])
+    ?(css_editors = [Users.authenticated_users.user_id])
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir
@@ -262,7 +269,7 @@ let really_create_wiki ~title ~descr
      the rights are added *)
   Wiki_sql.new_wiki ~title ~descr ~pages:path_string
      ~boxrights ?staticdir ~container_page ()
-   >>= fun (wiki_id, wikibox_container) ->
+   >>= fun (wiki_id, _wikibox_container) ->
 
    (* Creating groups *)
    create_group_ (readers_group_name wiki_id)
@@ -291,55 +298,57 @@ let really_create_wiki ~title ~descr
    >>= fun admin_data ->
 
    (* Putting users in groups *)
-     add_to_group_ [admin_data.Users.id] wikiboxes_creators_data.Users.id
+     add_to_group_ [admin_data.user_id] wikiboxes_creators_data.user_id
    >>= fun () ->
-     add_to_group_ [admin_data.Users.id] page_creators_data.Users.id
+     add_to_group_ [admin_data.user_id] page_creators_data.user_id
    >>= fun () ->
-     add_to_group_ [admin_data.Users.id] css_editors_data.Users.id
+     add_to_group_ [admin_data.user_id] css_editors_data.user_id
    >>= fun () ->
-     add_to_group_ [admin_data.Users.id] rights_adm_data.Users.id
+     add_to_group_ [admin_data.user_id] rights_adm_data.user_id
    >>= fun () ->
-     add_to_group_ [admin_data.Users.id] container_adm_data.Users.id
+     add_to_group_ [admin_data.user_id] container_adm_data.user_id
    >>= fun () ->
-     add_to_group_ [wikiboxes_creators_data.Users.id;
-                    page_creators_data.Users.id;
-                    css_editors_data.Users.id;
-                    rights_adm_data.Users.id;
-                    container_adm_data.Users.id]
-       writers_data.Users.id
+     add_to_group_ [wikiboxes_creators_data.user_id;
+                    page_creators_data.user_id;
+                    css_editors_data.user_id;
+                    rights_adm_data.user_id;
+                    container_adm_data.user_id]
+       writers_data.user_id
    >>= fun () ->
-     add_to_group_ [writers_data.Users.id] readers_data.Users.id
+     add_to_group_ [writers_data.user_id] readers_data.user_id
    >>= fun () ->
-     add_to_group_ readers readers_data.Users.id
+     add_to_group_ readers readers_data.user_id
    >>= fun () ->
-       add_to_group_ writers writers_data.Users.id
+       add_to_group_ writers writers_data.user_id
    >>= fun () ->
-     add_to_group_ rights_adm rights_adm_data.Users.id
+     add_to_group_ rights_adm rights_adm_data.user_id
    >>= fun () ->
-     add_to_group_ page_creators page_creators_data.Users.id
+     add_to_group_ page_creators page_creators_data.user_id
    >>= fun () ->
-     add_to_group_ css_editors css_editors_data.Users.id
+     add_to_group_ css_editors css_editors_data.user_id
    >>= fun () ->
-     add_to_group_ wikiboxes_creators wikiboxes_creators_data.Users.id
+     add_to_group_ wikiboxes_creators wikiboxes_creators_data.user_id
    >>= fun () ->
-     add_to_group_ admins admin_data.Users.id
+     add_to_group_ admins admin_data.user_id
    >>= fun () ->
-     add_to_group_ container_adm container_adm_data.Users.id
+     add_to_group_ container_adm container_adm_data.user_id
    >>= fun () ->
 
+(* XXX !
    Wiki_sql.populate_readers (wiki_id, wikibox_container)
-     [readers_data.Users.id] >>= fun () ->
+     [readers_data.user_id] >>= fun () ->
    Wiki_sql.populate_writers (wiki_id, wikibox_container)
-     [container_adm_data.Users.id] >>= fun () ->
+     [container_adm_data.user_id] >>= fun () ->
    Wiki_sql.populate_rights_adm (wiki_id, wikibox_container)
-     [rights_adm_data.Users.id] >>= fun () ->
+     [rights_adm_data.user_id] >>= fun () ->
    Wiki_sql.populate_wikiboxes_creators (wiki_id, wikibox_container)
-     [wikiboxes_creators_data.Users.id] >>= fun () ->
+     [wikiboxes_creators_data.user_id] >>= fun () ->
+*)
 
    (match wiki_css with
       | None -> Lwt.return ()
       | Some css -> Wiki_sql.set_css_for_wiki
-          ~wiki:wiki_id ~author:css_editors_data.Users.id (Some css)
+          ~wiki:wiki_id ~author:css_editors_data.user_id (Some css)
    ) >>= fun () ->
 
    Lwt.return wiki_id
@@ -384,14 +393,15 @@ let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =
         Users.get_user_data sp sd
         >>= fun user ->
         Wiki_sql.update_wikibox ~wikibox
-          ~author:user.Users.id ~comment:"" ~content ~content_type
+          ~author:user.user_id ~comment:"" ~content ~content_type
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikibox_permissions ~sp ~sd (wikibox, rights) =
+let save_wikibox_permissions ~sp ~sd (wikibox, _rights) =
   get_role sp sd wikibox >>= function
    | Admin ->
+(* XXX
        let (addr, (addw, (adda, (addc, (delr, (delw, (dela, delc))))))) = rights
         in
         Users.group_list_of_string addr >>= fun readers ->
@@ -410,4 +420,6 @@ let save_wikibox_permissions ~sp ~sd (wikibox, rights) =
         Wiki_sql.remove_rights_adm wikibox a >>= fun () ->
         Users.group_list_of_string delc >>= fun a ->
         Wiki_sql.remove_wikiboxes_creators wikibox a
+*)
+       Lwt.return ()
     | _ -> Lwt.return () (* XXX Notify an error *)

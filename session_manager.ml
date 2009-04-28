@@ -28,15 +28,16 @@ open Eliom_sessions
 open Eliom_predefmod
 open Eliom_duce.Xhtml
 open Lwt
+open User_sql.Types
 open Users
 
 
 type sessionmanager_in = 
 {
   url: string list;
-  login_actions: server_params -> Users.userdata -> unit Lwt.t;
+  login_actions: server_params -> userdata -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
-  administrator: Users.userdata;
+  administrator: userdata;
 }
 
 
@@ -202,11 +203,11 @@ object
                   !pam_auth ?service:pam_service ~name:usr ~pwd () >>= fun () ->
                   Users.create_user
                     ~name:usr
-                    ~pwd:User_sql.External_Auth
+                    ~pwd:User_sql.Types.External_Auth
                     ~fullname:usr
 (*VVV Can we get the full name from PAM? 
   If yes, do we need to actualize it every time the user connects? *)
-                    ~groups:[Users.authenticated_users.Users.id]
+                    ~groups:[Users.authenticated_users.user_id]
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 
@@ -244,11 +245,11 @@ object
                   Ocsimore_nis.nis_auth ~name:usr ~pwd () >>= fun () ->
                   Users.create_user
                     ~name:usr
-                    ~pwd:User_sql.External_Auth
+                    ~pwd:User_sql.Types.External_Auth
                     ~fullname:usr
 (*VVV Can we get the full name from NIS? 
   If yes, do we need to actualize it every time the user connects? *)
-                    ~groups:[Users.authenticated_users.Users.id]
+                    ~groups:[Users.authenticated_users.user_id]
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 

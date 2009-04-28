@@ -41,9 +41,9 @@ val create_forum :
   unit ->
   forum_info Lwt.t
 
-val forum_visible_group : int32 -> User_sql.userid Lwt.t
+val forum_visible_group : int32 -> User_sql.Types.userid Lwt.t
 
-val forum_creators : Users.userdata
+val forum_creators : User_sql.Types.userdata
 
 (** {2 Session data} *)
 

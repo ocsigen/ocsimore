@@ -1,4 +1,5 @@
 open Lwt
+open User_sql.Types
 open Wiki_sql.Types
 
 type user_creation =
@@ -54,7 +55,7 @@ let (auth, basicusercreation, admin_staticdir) =
         in
         (try
           Users.group_list_of_string (List.assoc "groups" atts)
-        with Not_found -> Lwt.return [Users.authenticated_users.Users.id])
+        with Not_found -> Lwt.return [Users.authenticated_users.user_id])
         >>= fun default_groups ->
         find_wikidata
           (auth,
@@ -192,7 +193,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
       )
       (function Not_found ->
          Wiki_sql.new_wikibox ~wiki:wiki_admin_id ~comment ~content ~content_type
-           ~author:Users.admin.Users.id ()
+           ~author:Users.admin.user_id ()
          >>= fun box ->
          Wiki_sql.set_box_for_page ~sourcewiki:wiki_admin_id ~wbid:box ~page ()
 

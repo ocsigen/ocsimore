@@ -23,6 +23,10 @@ let int32_t = identity
 let t_int32 = identity
 let any_int32 = identity
 
+let int32_t_list = identity
+let t_int32_list = identity
+
+
 let print_int32_t i = print_string (Int32.to_string i)
 
 

@@ -48,7 +48,7 @@ val new_message :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   forum_id:Forum_sql.forum ->
-  author_id:int32 ->
+  author_id:User_sql.Types.userid ->
   ?subject:string ->
   ?parent_id:int32 ->
   ?sticky:bool ->
@@ -106,7 +106,7 @@ val get_message :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   message_id:int32 -> 
- (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option * 
+ (int32 * string option * User_sql.Types.userid * CalendarLib.Calendar.t * int32 option * 
     int32 * int32 * string * bool * bool * bool * int32 * int32) Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
@@ -123,6 +123,6 @@ val get_thread :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   message_id:int32 -> 
- (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
+ (int32 * string option * User_sql.Types.userid * CalendarLib.Calendar.t * int32 option *
     int32 * int32 * string * bool * bool * bool * int32 * int32) list Lwt.t
   

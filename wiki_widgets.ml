@@ -385,7 +385,7 @@ object (self)
 
 
   (* Edition of the permissions of a wiki *)
-  method display_edit_perm_form ~bi ~classes ((wiki_id, message_id) as ids) =
+  method display_edit_perm_form ~bi ~classes ((wiki_id, message_id) as _ids) =
     let sp = bi.bi_sp in
     let aux u =
       Ocsimore_lib.lwt_bind_opt u
@@ -397,10 +397,11 @@ object (self)
               Lwt.return (s^" "^s2))
            (Lwt.return ""))
     in
-    Wiki.get_readers ids >>= fun readers ->
+    let readers, writers, rights_adm, creators = None, None, None, None in
+(*    Wiki.get_readers ids >>= fun readers ->
     Wiki.get_writers ids >>= fun writers ->
     Wiki.get_rights_adm ids >>= fun rights_adm ->
-    Wiki.get_wikiboxes_creators ids >>= fun creators ->
+    Wiki.get_wikiboxes_creators ids >>= fun creators -> *)
     aux readers >>= fun r ->
     aux writers >>= fun w ->
     aux rights_adm >>= fun a ->
@@ -498,7 +499,7 @@ object (self)
     let sp = bi.bi_sp in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
-         Users.get_user_fullname_by_id author
+         Users.get_user_fullname_by_id (User_sql.Types.user_from_sql author)
          >>= fun author ->
          Lwt.return
            {{ [ !{: Int32.to_string version :}'. '
@@ -523,7 +524,7 @@ object (self)
     in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
-         Users.get_user_fullname_by_id author
+         Users.get_user_fullname_by_id (User_sql.Types.user_from_sql author)
          >>= fun author ->
            Lwt.return
              {{ [ !{: Int32.to_string version :}'. '
@@ -904,16 +905,21 @@ Wiki_filter.add_preparser_extension "wikibox"
           Lwt.return None
         with Not_found ->
           Wiki_sql.get_wiki_info_by_id wid
-          >>= fun wiki ->
+          >>= fun _wiki ->
           Users.get_user_id ~sp ~sd
           >>= fun userid ->
-          let ids = (wid, father) in
+          let _ids = (wid, father) in
+          (* XXX
           Wiki.can_create_wikibox ~sp ~sd wiki father userid >>= function
+          *)
+          match true with
             | true ->
+(* XXX
                 Wiki.get_readers ids >>= fun readers ->
                 Wiki.get_writers ids >>= fun writers ->
                 Wiki.get_rights_adm ids >>= fun rights_adm ->
                 Wiki.get_wikiboxes_creators ids >>= fun wikiboxes_creators ->
+*)
                 Wiki.new_wikibox
                   ~wiki:wid
                   ~author:userid
@@ -921,10 +927,10 @@ Wiki_filter.add_preparser_extension "wikibox"
                               (wiki_id_s wid) father)
                   ~content:"**//new wikibox//**"
                   ~content_type:Wiki_sql.WikiCreole
-                  ?readers
+(*XXX                  ?readers
                   ?writers
                   ?rights_adm
-                  ?wikiboxes_creators
+                  ?wikiboxes_creators *)
                   ()
                   >>= fun box ->
                   Lwt.return

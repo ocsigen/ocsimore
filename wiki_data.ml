@@ -20,6 +20,7 @@
    @author Boris Yakobowski
 *)
 
+open User_sql.Types
 open Wiki_sql.Types
 
 
@@ -30,17 +31,17 @@ let create_static_group name fullname =
   (Lwt_unix.run (
      Users.create_user
        ~name:("#" ^ name)
-       ~pwd:User_sql.Connect_forbidden
+       ~pwd:Connect_forbidden
        ~fullname
        ~groups:[]
        ()
-   )).Users.id
+   )).user_id
 
 
 type admin_writer_reader = {
-  grp_admin: User_sql.userid;
-  grp_writer: User_sql.userid;
-  grp_reader: User_sql.userid;
+  grp_admin: userid;
+  grp_writer: userid;
+  grp_reader: userid;
 }
 
 let grp_admin grp = grp.grp_admin
@@ -129,7 +130,7 @@ let () = Lwt_unix.run (
 )
 
 
-let parametrized_group (group: User_sql.userid) (_param : int32) = group
+let parametrized_group (group: userid) (_param : int32) = group
 
 
 let wiki_to_32 (w : wiki) = Opaque.t_int32 w

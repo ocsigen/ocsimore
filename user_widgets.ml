@@ -23,6 +23,7 @@
 *)
 
 open Eliom_parameters
+open User_sql.Types
 
 let (>>=) = Lwt.bind
 
@@ -67,7 +68,7 @@ object (self)
       
   method private display_logout_box ~sp:_ u =
     {{ [<table>[
-           <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
+           <tr>[<td>{: Printf.sprintf "Hi %s!" u.user_fullname :}]
            <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
          ]] }}
@@ -162,7 +163,7 @@ object (self)
              ~sp:bi.Wiki_widgets_interface.bi_sp
              ~sd:bi.Wiki_widgets_interface.bi_sd
            >>= fun ud ->
-           Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
+           Lwt.return (Ocamlduce.Utf8.make ud.user_fullname)
         );
       
       Wiki_syntax.add_block_extension "logoutbutton"
@@ -247,14 +248,14 @@ let mail_password ~name ~password ~from_name ~from_addr ~subject =
        Users.get_user_by_name ~name >>= fun user -> 
        Lwt_preemptive.detach
          (fun () -> 
-            match user.Users.email with
+            match user.user_email with
               | Some email ->
                   ignore(Netaddress.parse email);
                   Netsendmail.sendmail
                     ~mailer:"/usr/sbin/sendmail"
                     (Netsendmail.compose
                        ~from_addr:(from_name, from_addr)
-                       ~to_addrs:[(user.Users.fullname, email)]
+                       ~to_addrs:[(user.user_fullname, email)]
                        ~subject
                        ("This is an auto-generated message. "
                         ^ "Please do not reply to it.\n"
@@ -282,7 +283,7 @@ type basic_user_creation = {
   mail_from: string;
   mail_addr: string;
   mail_subject: string;
-  new_user_groups: User_sql.userid list;
+  new_user_groups: User_sql.Types.userid list;
 }
 
 
@@ -365,7 +366,7 @@ object (self)
       
   method private display_logout_box ~sp:_sp u =
     {{ [<table>[
-           <tr>[<td>{: Printf.sprintf "Hi %s!" u.Users.fullname :}]
+           <tr>[<td>{: Printf.sprintf "Hi %s!" u.user_fullname :}]
            <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
 (* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
@@ -472,8 +473,9 @@ object (self)
     else 
       let pwd = generate_password () in
       Users.create_unique_user
-        ~name:usr ~pwd:(User_sql.Ocsimore_user_crypt pwd) ~fullname ~email
-        ~groups:basic_user_creation_options.new_user_groups >>= fun (user, n) ->
+        ~name:usr ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email
+        ~groups:basic_user_creation_options.new_user_groups
+      >>= fun (user, n) ->
       mail_password
         ~name:n ~password:pwd
         ~from_name:basic_user_creation_options.mail_from
@@ -495,7 +497,7 @@ object (self)
         
       end
       else 
-        Users.delete_user ~userid:user.Users.id >>= fun () ->
+        Users.delete_user ~userid:user.user_id >>= fun () ->
         self#container
           ~sp
           ~sd:Users.anonymous_sd
@@ -574,20 +576,20 @@ object (self)
                    {{ [<table>[
                           <tr>[
                             <td>"login name: "
-                            <td>[<strong>{: u.Users.name :}]
+                            <td>[<strong>{: u.user_name :}]
                           ]
                           <tr>[
                             <td>"real name: "
                             <td>[{: Eliom_duce.Xhtml.string_input
                                     ~input_type:{:"text":} 
-                                    ~value:u.Users.fullname
+                                    ~value:u.user_fullname
                                     ~name:desc () :}]
                           ]
                           <tr>[
                             <td>"e-mail address: "
                             <td>[{: Eliom_duce.Xhtml.string_input
                                     ~input_type:{:"text":} 
-                                    ~value:(match u.Users.email with
+                                    ~value:(match u.user_email with
                                               | None -> ""
                                               | Some e -> e)
                                     ~name:email () :}]
@@ -631,7 +633,7 @@ object (self)
                                    fullname);
         let email = Some email in
         try
-          let pwd = match user.Users.pwd with
+          let pwd = match user.user_pwd with
             | User_sql.Connect_forbidden (* Should never happen, the user cannot
                                             be logged *) -> None
 

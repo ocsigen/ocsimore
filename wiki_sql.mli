@@ -23,6 +23,7 @@
    @author Jaap Boender
    @author Vincent Balat
 *)
+open User_sql.Types
 
 module Types : sig
 
@@ -111,17 +112,17 @@ val new_wiki :
     wikibox. *)
 val new_wikibox :
   wiki:wiki ->
-  author:User_sql.userid ->
+  author:userid ->
   comment:string ->
   content:string ->
   content_type:wikibox_content_type ->
-  ?rights:User_sql.userid list * User_sql.userid list * User_sql.userid list * User_sql.userid list ->
+  ?rights:userid list * userid list * userid list * userid list ->
   unit ->
   wikibox_id Lwt.t
 
 (** return the history of a wikibox. *)
 val get_history : wikibox:wikibox ->
-  (int32 * string * User_sql.userid * CalendarLib.Calendar.t) list Lwt.t
+  (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
 
 
 (** Wikipages *)
@@ -144,13 +145,13 @@ val get_css_for_wikipage : wiki:wiki -> page:string -> string option Lwt.t
 
 (** Sets the css for a wikipage *)
 val set_css_for_wikipage :
-  wiki:wiki -> page:string -> author:User_sql.userid -> string option -> unit Lwt.t
+  wiki:wiki -> page:string -> author:userid -> string option -> unit Lwt.t
 
 
 (** returns the global css of a wiki, or [None] if the wiki has no such css *)
 val get_css_for_wiki : wiki:wiki -> string option Lwt.t
 
-val set_css_for_wiki : wiki:wiki -> author:User_sql.userid -> string option -> unit Lwt.t
+val set_css_for_wiki : wiki:wiki -> author:userid -> string option -> unit Lwt.t
 
 
 (** returns the wikibox for the css of a page or [None] if the page has no css *)
@@ -175,7 +176,7 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:wikibox ->
   unit ->
-  (string * User_sql.userid * string option * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
+  (string * userid * string option * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
 
 
 (** Current revision number of a wikibox *)
@@ -186,7 +187,7 @@ val current_wikibox_version : wikibox:wikibox -> Int32.t option Lwt.t
     and return its version number. *)
 val update_wikibox :
   wikibox:wikibox ->
-  author:User_sql.userid ->
+  author:userid ->
   comment:string ->
   content:string option ->
   content_type:wikibox_content_type ->
@@ -200,6 +201,7 @@ val update_wiki :
   ?pages:string option ->
   wiki -> unit Lwt.t
 
+(*
 
 val populate_readers : wikibox -> int32 list -> unit Lwt.t
 val populate_writers : wikibox -> int32 list -> unit Lwt.t
@@ -212,11 +214,11 @@ val remove_rights_adm : wikibox -> int32 list -> unit Lwt.t
 val remove_wikiboxes_creators : wikibox -> int32 list -> unit Lwt.t
 
 
-val get_readers : wikibox -> User_sql.userid list Lwt.t
-val get_writers : wikibox -> User_sql.userid list Lwt.t
-val get_rights_adm : wikibox -> User_sql.userid list Lwt.t
-val get_wikiboxes_creators : wikibox -> User_sql.userid list Lwt.t
-
+val get_readers : wikibox -> userid list Lwt.t
+val get_writers : wikibox -> userid list Lwt.t
+val get_rights_adm : wikibox -> userid list Lwt.t
+val get_wikiboxes_creators : wikibox -> userid list Lwt.t
+*)
 
 (** Iterator on all the wikis  *)
 val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t

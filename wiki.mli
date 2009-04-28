@@ -1,3 +1,4 @@
+open User_sql.Types
 open Wiki_sql.Types
 
 (**
@@ -45,14 +46,14 @@ val create_wiki :
   descr:string ->
   ?sp:Eliom_sessions.server_params ->
   ?path: string list ->
-  ?readers:User_sql.userid list -> 
-  ?writers:User_sql.userid list -> 
-  ?rights_adm:User_sql.userid list ->
-  ?wikiboxes_creators:User_sql.userid list ->
-  ?container_adm:User_sql.userid list ->
-  ?page_creators:User_sql.userid list ->
-  ?css_editors:User_sql.userid list ->
-  ?admins:User_sql.userid list ->
+  ?readers:userid list -> 
+  ?writers:userid list -> 
+  ?rights_adm:userid list ->
+  ?wikiboxes_creators:userid list ->
+  ?container_adm:userid list ->
+  ?page_creators:userid list ->
+  ?css_editors:userid list ->
+  ?admins:userid list ->
   ?boxrights:bool ->
   ?staticdir:string ->
   wikibox: Wiki_widgets.editable_wikibox ->
@@ -77,14 +78,14 @@ val really_create_wiki :
   title:string ->
   descr:string ->
   ?path: string list ->
-  ?readers:User_sql.userid list -> 
-  ?writers:User_sql.userid list -> 
-  ?rights_adm:User_sql.userid list ->
-  ?wikiboxes_creators:User_sql.userid list ->
-  ?container_adm:User_sql.userid list ->
-  ?page_creators:User_sql.userid list ->
-  ?css_editors:User_sql.userid list ->
-  ?admins:User_sql.userid list ->
+  ?readers:userid list -> 
+  ?writers:userid list -> 
+  ?rights_adm:userid list ->
+  ?wikiboxes_creators:userid list ->
+  ?container_adm:userid list ->
+  ?page_creators:userid list ->
+  ?css_editors:userid list ->
+  ?admins:userid list ->
   ?boxrights:bool ->
   ?staticdir:string ->
   ?wiki_css:string ->
@@ -111,37 +112,37 @@ val really_create_wiki :
 
 (** [readers_group i] returns the id of the group of users
     who can read wiki [i] by default. *)
-val readers_group : wiki -> int32 Lwt.t
+val readers_group : wiki -> userid Lwt.t
 
 (** [writers_group i] returns the id of the group of users
     who can write in wiki [i] by default. *)
-val writers_group : wiki -> int32 Lwt.t
+val writers_group : wiki -> userid Lwt.t
 
 (** [rights_adm_group i] returns the id of the group of users
     who can change permissions of boxes in wiki [i] by default 
     (if boxrights activated). *)
-val rights_adm_group : wiki -> int32 Lwt.t
+val rights_adm_group : wiki -> userid Lwt.t
 
 (** [wikiboxes_creators_group i] returns the id of the group of users
     who can create wikiboxes in wiki [i] by default. *)
-val wikiboxes_creators_group : wiki -> int32 Lwt.t
+val wikiboxes_creators_group : wiki -> userid Lwt.t
 
 (** [page_creators_group i] returns the id of the group of users
     who can create page in wiki [i] by default
     (if activated). *)
-val page_creators_group : wiki -> int32 Lwt.t
+val page_creators_group : wiki -> userid Lwt.t
 
 (** [css_editors_group i] returns the id of the group of users
     who can modify css of pages in wiki [i]. *)
-val css_editors_group : wiki -> int32 Lwt.t
+val css_editors_group : wiki -> userid Lwt.t
 
 (** [container_adm_group i] returns the id of the group of users
     who can change the layout (container) of wikipages in wiki [i]. *)
-val container_adm_group : wiki -> int32 Lwt.t
+val container_adm_group : wiki -> userid Lwt.t
 
 (** [admin_group i] returns the id of the group of users
     who have all rights on wiki [i]. *)
-val admin_group : wiki -> int32 Lwt.t
+val admin_group : wiki -> userid Lwt.t
 
 (** [readers_group_name i] returns the name of the group of users
     who can read wiki [i] by default. *)
@@ -181,14 +182,14 @@ val admin_group_name : wiki -> string
 
 val new_wikibox :
   wiki:wiki ->
-  author:User_sql.userid ->
+  author:userid ->
   comment:string ->
   content:string ->
   content_type:Wiki_sql.wikibox_content_type ->
-  ?readers:User_sql.userid list ->
-  ?writers:User_sql.userid list -> 
-  ?rights_adm: User_sql.userid list ->
-  ?wikiboxes_creators: User_sql.userid list ->
+  ?readers:userid list ->
+  ?writers:userid list -> 
+  ?rights_adm: userid list ->
+  ?wikiboxes_creators: userid list ->
   unit -> int32 Lwt.t
 
 
@@ -220,31 +221,36 @@ val get_role :
   wikibox ->
   role Lwt.t
 
+(* XXXX
 val get_readers :
   wikibox ->
-  User_sql.userid list option Lwt.t
+  userid list option Lwt.t
 
 val get_writers :
   wikibox ->
-  User_sql.userid list option Lwt.t
+  userid list option Lwt.t
 
 val get_rights_adm :
   wikibox ->
-  User_sql.userid list option Lwt.t
+  userid list option Lwt.t
 
 val get_wikiboxes_creators :
   wikibox ->
-  User_sql.userid list option Lwt.t
+  userid list option Lwt.t
+
+*)
 
 val user_can_save_wikibox :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   wikibox -> bool Lwt.t
 
+(*
 val can_create_wikibox : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  wiki_info -> int32 -> User_sql.userid -> bool Lwt.t
+  wiki_info -> int32 -> userid -> bool Lwt.t
+*)
 
 
 (** [modified_wikibox box version] returns [Some curversion] iff the current

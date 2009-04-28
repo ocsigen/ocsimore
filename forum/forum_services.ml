@@ -24,6 +24,8 @@
 let ( ** ) = Eliom_parameters.prod
 let ( >>= ) = Lwt.bind
 
+open User_sql.Types
+
 
 let register_services () =
   let add_message_service =
@@ -56,7 +58,7 @@ let register_services () =
             Lwt.return (forum_id, Some parent_id))
        >>= fun (forum_id, parent_id) ->
 
-       Forum.get_role sp sd forum_id >>= fun role ->
+       Forum.get_role sp sd forum_id >>= fun _role -> (* VVV : why is role not used here ? *)
 
        if actionname = "save" 
        then
@@ -64,7 +66,7 @@ let register_services () =
             (fun () ->
                Users.get_user_data sp sd >>= fun u ->
                Forum_data.new_message ~sp ~sd ~forum_id 
-                 ~author_id:u.Users.id ?subject ?parent_id ~text ()
+                 ~author_id:u.user_id ?subject ?parent_id ~text ()
                >>= fun _ ->
                Eliom_predefmod.Redirection.send ~sp 
                  Eliom_services.void_hidden_coservice'

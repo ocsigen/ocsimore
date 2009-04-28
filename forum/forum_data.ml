@@ -25,14 +25,15 @@
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+open User_sql.Types
 open Forum
 
 (** {2 Database access with verification of permissions} *)
 
 let new_forum ~sp ~sd ~title ~descr ?arborescent () =
   Users.get_user_data sp sd >>= fun u ->
-  Users.in_group ~sp ~sd ~user:u.Users.id
-    ~group:Forum.forum_creators.Users.id ()
+  Users.in_group ~sp ~sd ~user:u.user_id
+    ~group:Forum.forum_creators.user_id ()
   >>= fun b ->
   if b
   then Forum_sql.new_forum ~title ~descr ?arborescent ()
@@ -67,7 +68,7 @@ let new_message ~sp ~sd ~forum_id ~author_id
              then Lwt.return true
              else 
                Forum_sql.get_message ~message_id:parent_id ()
-               >>= fun (id, _, _, _, parparent_id, root_id, _, _, _, _, _, _, _) ->
+               >>= fun (_id, _, _, _, parparent_id, _root_id, _, _, _, _, _, _, _) ->
                Lwt.return (parparent_id = None)
       ) >>= fun ok ->
       if ok
@@ -83,7 +84,7 @@ let set_deleted ~sp ~sd ~message_id ~deleted =
   >>= fun (_, _, author_id, _, parent_id, _, forum_id, _, _, _, _, _, _) ->
   Forum.get_role sp sd forum_id >>= fun role ->
   Users.get_user_data sp sd >>= fun u ->
-  let uid = u.Users.id in
+  let uid = u.user_id in
   let first_msg = parent_id = None in
   !!(role.message_deletors) >>= fun message_deletors ->
   !!(role.message_deletors_if_author) >>= fun message_deletors_if_author ->
@@ -123,9 +124,9 @@ let set_sticky ~sp ~sd ~message_id ~sticky =
 
 let get_forum ~sp ~sd ?forum_id ?title () =
   Forum_sql.get_forum ?forum_id ?title () 
-  >>= fun ((i, _, _, _, deleted) as f) ->
+  >>= fun ((i, _, _, _, _deleted) as f) ->
   Users.get_user_data sp sd >>= fun u ->
-  let u = u.Users.id in
+  let u = u.user_id in
   Forum.forum_visible_group i >>= fun g ->
   Users.in_group ~sp ~sd ~user:u ~group:g () >>= fun b ->
   if b
@@ -134,7 +135,7 @@ let get_forum ~sp ~sd ?forum_id ?title () =
 
 let get_forums_list ~sp ~sd () =
   Users.get_user_data sp sd >>= fun u ->
-  let u = u.Users.id in
+  let u = u.user_id in
   Forum_sql.get_forums_list () >>= fun l ->
   Ocsimore_lib.lwt_filter
     (fun (i, _, _, _, _) ->
@@ -144,9 +145,9 @@ let get_forums_list ~sp ~sd () =
 
 let get_message ~sp ~sd ~message_id =
   Forum_sql.get_message ~message_id ()
-  >>= fun ((_, _, _, _, parent_id, _, forum_id, _, moderated, deleted, sticky, _, _)
+  >>= fun ((_, _, _, _, parent_id, _, forum_id, _, moderated, _deleted, _sticky, _, _)
              as msg) ->
-  Forum_sql.get_forum ~forum_id () >>= fun (_, _, _, _, deleted) ->
+  Forum_sql.get_forum ~forum_id () >>= fun (_, _, _, _, _deleted) ->
   Forum.get_role sp sd forum_id >>= fun role ->
   let first_msg = parent_id = None in
   !!(role.message_readers) >>= fun message_readers ->
@@ -180,7 +181,7 @@ let get_thread ~sp ~sd ~message_id =
   Forum_sql.get_thread ~message_id ()
   >>= function
     | [] -> Lwt.fail Not_found
-    | (((id, _, _, _, parent_id, _, forum_id, _, moderated, deleted, sticky, _, _)
+    | (((id, _, _, _, parent_id, _, forum_id, _, moderated, deleted, _sticky, _, _)
           as msg)::l) as th ->
         assert (message_id = id);
         if deleted
