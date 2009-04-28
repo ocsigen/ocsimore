@@ -160,11 +160,12 @@ object (self)
 
       Wiki_syntax.add_extension ~name:"username" ~wiki_content:true
         (fun _w bi _args _c -> 
-           Users.get_user_data 
-             ~sp:bi.Wiki_widgets_interface.bi_sp
-             ~sd:bi.Wiki_widgets_interface.bi_sd
-           >>= fun ud ->
-           Lwt.return (Ocamlduce.Utf8.make ud.Users.fullname)
+           Wikicreole.A_content
+             (Users.get_user_data 
+                ~sp:bi.Wiki_widgets_interface.bi_sp
+                ~sd:bi.Wiki_widgets_interface.bi_sd
+              >>= fun ud ->
+             Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
         );
       
       Wiki_syntax.add_extension ~name:"logoutbutton" ~wiki_content:true
