@@ -36,6 +36,11 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     br_elem : attribs -> 'a_content;
     img_elem : attribs -> string -> string -> 'a_content;
     tt_elem : attribs -> 'inline list -> 'a_content;
+    monospace_elem : attribs -> 'inline list -> 'a_content;
+    underlined_elem : attribs -> 'inline list -> 'a_content;
+    linethrough_elem : attribs -> 'inline list -> 'a_content;
+    subscripted_elem : attribs -> 'inline list -> 'a_content;
+    superscripted_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
     a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
     make_href : 'sp -> string -> string;

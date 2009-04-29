@@ -91,3 +91,10 @@ div.wikihelp {
   background-color: white;
 }
 
+span.underlined {
+  text-decoration: underline;
+}
+
+span.linethrough {
+  text-decoration: line-through;
+}

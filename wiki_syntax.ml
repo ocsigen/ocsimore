@@ -117,6 +117,28 @@ let builder wiki_id =
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<em (atts)>r] }});
+    W.monospace_elem = (fun attribs a -> 
+                          let atts = parse_common_attribs attribs in
+                          element a >>= fun r ->
+                            Lwt.return {{ [<tt (atts)>r] }});
+    W.underlined_elem = (fun attribs a -> 
+                           let atts = parse_common_attribs attribs in
+                           element a >>= fun r ->
+                           Lwt.return {{ [<span ({class="underlined"} ++
+                                             atts)>r] }});
+    W.linethrough_elem = (fun attribs a -> 
+                           let atts = parse_common_attribs attribs in
+                           element a >>= fun r ->
+                           Lwt.return {{ [<span ({class="linethrough"} ++
+                                             atts)>r] }});
+    W.subscripted_elem = (fun attribs a -> 
+                            let atts = parse_common_attribs attribs in
+                            element a >>= fun r ->
+                              Lwt.return {{ [<sub (atts)>r] }});
+    W.superscripted_elem = (fun attribs a -> 
+                              let atts = parse_common_attribs attribs in
+                              element a >>= fun r ->
+                                Lwt.return {{ [<sup (atts)>r] }});
     W.a_elem =
       (fun attribs _sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 

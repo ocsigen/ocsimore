@@ -40,6 +40,11 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     br_elem : attribs -> 'a_content;
     img_elem : attribs -> string -> string -> 'a_content;
     tt_elem : attribs -> 'inline list -> 'a_content;
+    monospace_elem : attribs -> 'inline list -> 'a_content;
+    underlined_elem : attribs -> 'inline list -> 'a_content;
+    linethrough_elem : attribs -> 'inline list -> 'a_content;
+    subscripted_elem : attribs -> 'inline list -> 'a_content;
+    superscripted_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
     a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
     make_href : 'sp -> string -> string;
@@ -68,7 +73,9 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     error : string -> 'a_content;
   }
 
-type style = Bold | Italic
+type style =
+    Bold | Italic | Underlined | Linethrough |
+        Monospace | Superscripted | Subscripted
 
 type list_kind = Unordered | Ordered
 
@@ -93,6 +100,11 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) ctx =
     sp : 'sp;
     mutable italic : bool;
     mutable bold : bool;
+    mutable monospace : bool;
+    mutable underlined : bool;
+    mutable linethrough : bool;
+    mutable subscripted : bool;
+    mutable superscripted : bool;
     mutable heading : bool;
     mutable link : bool;
     mutable list_level : int;
@@ -148,16 +160,35 @@ let read_table_attribs att parse_attribs c lexbuf =
   with Eof -> ([], [], []) (*VVV ??? *)
 
 let get_style c style =
-  match style with Bold -> c.bold | Italic -> c.italic
+  match style with 
+    | Bold -> c.bold
+    | Italic -> c.italic
+    | Monospace -> c.monospace
+    | Underlined -> c.underlined
+    | Linethrough -> c.linethrough
+    | Subscripted -> c.subscripted
+    | Superscripted -> c.superscripted
 
 let set_style c style v =
-  match style with Bold -> c.bold <- v | Italic -> c.italic <- v
+  match style with
+    | Bold -> c.bold <- v
+    | Italic -> c.italic <- v
+    | Monospace -> c.monospace <- v
+    | Underlined -> c.underlined <- v
+    | Linethrough -> c.linethrough <- v
+    | Subscripted -> c.subscripted <- v
+    | Superscripted -> c.superscripted <- v
 
 let pop_style c style inline attribs stack =
   let elt =
     match style with
-      Bold   -> c.build.strong_elem attribs
-    | Italic -> c.build.em_elem attribs
+      | Bold   -> c.build.strong_elem attribs
+      | Italic -> c.build.em_elem attribs
+      | Monospace -> c.build.monospace_elem attribs
+      | Underlined -> c.build.underlined_elem attribs
+      | Linethrough -> c.build.linethrough_elem attribs
+      | Subscripted -> c.build.subscripted_elem attribs
+      | Superscripted -> c.build.superscripted_elem attribs
   in
   let inline' = c.inline_mix in
   c.stack <- stack;
@@ -336,7 +367,7 @@ let white_space = [ ' ' '\t' ]
    spaces as well ? *)
 
 let not_line_break = [^ '\n' '\r']
-let reserved_chars = [ '*' '/' '\\' '=' '[' ']' '{' '~' '|' 'h' 'f' '<' ]
+let reserved_chars = [ '*' '/' '\\' '=' '[' ']' '{' '~' '|' 'h' 'f' '<' '-' '#' '_' '^' ',' ]
 let punctuation = [ ',' '.' '?' '!' ':' ';' '"' '\'' ]
 
 let first_char = (not_line_break # ['~' '|']) | ('=' +)
@@ -382,7 +413,22 @@ rule parse_bol c =
   | white_space * "#" + (("@@" ?) as att) {
       let lev = count '#' (Lexing.lexeme lexbuf) in
       if not (start_list_item c Ordered lev att parse_attribs lexbuf)
-      then push_chars c lexbuf;
+      then begin
+        let s = Lexing.lexeme lexbuf in
+        let l = String.index s '#' in
+        if l > 0 then push_string c (String.sub s 0 l);
+        for i = 1 to lev / 2 - 1 do
+          style_change c Monospace "" parse_attribs lexbuf
+        done;
+        if lev land 1 = 1 
+        then begin 
+          style_change c Monospace "" parse_attribs lexbuf;
+          push_string c "#";
+          push_string c att;
+        end
+        else
+          style_change c Bold att parse_attribs lexbuf
+      end;
       parse_rem c lexbuf
     }
   | white_space * "----" (("@@" ?) as att) white_space * (line_break | eof) {
@@ -434,6 +480,26 @@ and parse_rem c =
     }
   | "//" (("@@" ?) as att) {
       style_change c Italic att parse_attribs lexbuf;
+      parse_rem c lexbuf
+    }
+  | "##" (("@@" ?) as att) {
+      style_change c Monospace att parse_attribs lexbuf;
+      parse_rem c lexbuf
+    }
+  | "^^" (("@@" ?) as att) {
+      style_change c Superscripted att parse_attribs lexbuf;
+      parse_rem c lexbuf
+    }
+  | ",," (("@@" ?) as att) {
+      style_change c Subscripted att parse_attribs lexbuf;
+      parse_rem c lexbuf
+    }
+  | "__" (("@@" ?) as att) {
+      style_change c Underlined att parse_attribs lexbuf;
+      parse_rem c lexbuf
+    }
+  | "--" (("@@" ?) as att) {
+      style_change c Linethrough att parse_attribs lexbuf;
       parse_rem c lexbuf
     }
   | "=" + white_space * (line_break | eof) {
@@ -783,6 +849,11 @@ let context sp param b =
     sp = sp;
     italic = false; 
     bold = false;
+    monospace = false;
+    underlined = false;
+    linethrough = false;
+    subscripted = false;
+    superscripted = false;
     heading = false; 
     link = false; 
     list_level = 0;
