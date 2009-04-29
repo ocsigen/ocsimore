@@ -63,20 +63,195 @@ let element (c : Xhtmltypes_duce.inlines Lwt.t list) =
 let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) = 
   {{ (map {: c :} with i -> i) }}
 
+
+(* I don't know how to do a function for 
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc name attribs) in
+      {{ {...=c} }}
+    with Not_found -> atts
+that typechecks with ocamlduce ... ?
+*)
 let parse_common_attribs attribs =
-  let atts = 
+  let atts =
     try
       let c = Ocamlduce.Utf8.make (List.assoc "class" attribs) in
       {{ {class=c} }}
     with Not_found -> {{ {} }}
   in
-  let atts = 
+  let atts =
     try
-      let c = Ocamlduce.Utf8.make (List.assoc "id" attribs) in
+      let c = Ocamlduce.Utf8.make (List.assoc  "id" attribs) in
       {{ {id=c}++atts }}
     with Not_found -> atts
   in
   atts
+
+let parse_table_attribs attribs =
+  let atts = parse_common_attribs attribs in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "border" attribs) in
+      {{ {border=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "cellpadding" attribs) in
+      {{ {cellpadding=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "cellspacing" attribs) in
+      {{ {cellspacing=c}++atts }}
+    with Not_found -> atts
+  in
+(*  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "frame" attribs) in
+      {{ {frame=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "rules" attribs) in
+      {{ {rules=c}++atts }}
+    with Not_found -> atts
+  in*)
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "summary" attribs) in
+      {{ {summary=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "width" attribs) in
+      {{ {width=c}++atts }}
+    with Not_found -> atts
+  in
+  atts
+
+let parse_valign_attrib attribs : {{ { valign =? Xhtmltypes_duce.valign } }} =
+  try
+    let c = List.assoc "valign" attribs in
+    if c="top"
+    then {{ {valign="top"} }}
+    else
+    if c="middle"
+    then {{ {valign="middle"} }}
+    else
+    if c="bottom"
+    then {{ {valign="bottom"} }}
+    else
+    if c="baseline"
+    then {{ {valign="baseline"} }}
+    else {{ {} }}
+  with Not_found -> {{ {} }}
+
+let parse_align_attrib attribs : {{ { align =? Xhtmltypes_duce.align } }} =
+  try
+    let c = List.assoc "align" attribs in
+    if c="left"
+    then {{ {align="left"} }}
+    else
+    if c="center"
+    then {{ {align="center"} }}
+    else
+    if c="right"
+    then {{ {align="right"} }}
+    else
+    if c="justify"
+    then {{ {align="justify"} }}
+    else
+    if c="char"
+    then {{ {align="char"} }}
+    else {{ {} }}
+  with Not_found -> {{ {} }}
+
+let parse_scope_attrib attribs : {{ { scope =? Xhtmltypes_duce.scope } }} =
+  try
+    let c = List.assoc "scope" attribs in
+    if c="row"
+    then {{ {scope="row"} }}
+    else
+    if c="col"
+    then {{ {scope="col"} }}
+    else
+    if c="rowgroup"
+    then {{ {scope="rowgroup"} }}
+    else
+    if c="colgroup"
+    then {{ {scope="colgroup"} }}
+    else {{ {} }}
+  with Not_found -> {{ {} }}
+
+let parse_table_row_attribs attribs : Xhtmltypes_duce.align_attrs =
+  let atts = parse_common_attribs attribs in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "char" attribs) in
+      {{ {char=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "charoff" attribs) in
+      {{ {charoff=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts2 = parse_valign_attrib attribs in
+  let atts3 = parse_align_attrib attribs in
+  {{ atts2++atts3++atts }}
+
+let parse_table_cell_attribs attribs =
+  let atts = parse_common_attribs attribs in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "abbr" attribs) in
+      {{ {abbr=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "axis" attribs) in
+      {{ {axis=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "char" attribs) in
+      {{ {char=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "charoff" attribs) in
+      {{ {charoff=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "colspan" attribs) in
+      {{ {colspan=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "headers" attribs) in
+      {{ {headers=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "rowspan" attribs) in
+      {{ {rowspan=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts2 = parse_valign_attrib attribs in
+  let atts3 = parse_align_attrib attribs in
+  let atts4 = parse_scope_attrib attribs in
+  {{ atts++atts2++atts3++atts4 }}
 
 let list_builder = function
   | [] -> Lwt.return {{ [ <li>[] ] }} (*VVV ??? *)
@@ -236,12 +411,12 @@ let builder wiki_id =
                    Lwt.return {{ [<hr (atts)>[]] }});
     W.table_elem =
       (fun attribs l ->
-         let atts = parse_common_attribs attribs in
+         let atts = parse_table_attribs attribs in
          match l with
          | [] -> Lwt.return {{ [] }}
          | row::rows ->
              let f (h, attribs, c) =
-               let atts = parse_common_attribs attribs in
+               let atts = parse_table_cell_attribs attribs in
                element c >>= fun r ->
                Lwt.return
                  (if h 
@@ -251,7 +426,7 @@ let builder wiki_id =
              let f2 (row, attribs) = match row with
                | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
                | a::l -> 
-                   let atts = parse_common_attribs attribs in
+                   let atts = parse_table_row_attribs attribs in
                    f a >>= fun r ->
                    Lwt_util.map_serial f l >>= fun l ->
                    Lwt.return {{ <tr (atts)>[ r !{: l :} ] }}
