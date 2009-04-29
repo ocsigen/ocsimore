@@ -58,6 +58,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     h6_elem : attribs -> 'inline list -> 'flow;
     ul_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
     ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
+    dl_elem : attribs -> (bool * 'inline list * attribs) list -> 'flow;
     hr_elem : attribs -> 'flow;
     table_elem : attribs -> 
       ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
@@ -90,6 +91,9 @@ type ('inline, 'flow) stack =
   | List of
       list_kind * ('inline list * 'flow option * attribs) list
       * attribs * ('inline, 'flow) stack
+  | Descr_def of attribs * ('inline, 'flow) stack
+  | Descr_title of attribs * ('inline, 'flow) stack
+  | Descr of attribs * ('inline, 'flow) stack
   | Table of ((bool * attribs * 'inline list) list * attribs) list * attribs
   | Row of (bool * attribs * 'inline list) list * attribs * ('inline, 'flow) stack
   | Entry of bool * attribs * ('inline, 'flow) stack
@@ -112,6 +116,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) ctx =
     mutable link_content : 'a_content list;
     mutable pre_content : string list;
     mutable list : ('inline list * 'flow option * attribs) list;
+    mutable descr : (bool * 'inline list * attribs) list;
     mutable flow : 'flow list;
     mutable stack : ('inline, 'flow) stack }
 
@@ -243,6 +248,22 @@ let close_row c =
   | _ ->
       assert false
 
+let close_descr_entry c =
+  match c.stack with
+    | Descr_def (attribs, stack) ->
+        c.stack <- stack;
+        c.descr <- (false, List.rev c.inline_mix, attribs) :: c.descr;
+        c.inline_mix <- [];
+        true
+    | Descr_title (attribs, stack) ->
+        c.stack <- stack;
+        c.descr <- (true, List.rev c.inline_mix, attribs) :: c.descr;
+        c.inline_mix <- [];
+        true
+    | _ ->
+        false
+
+
 let rec end_paragraph c lev =
   match c.stack with
     Style (style, inline, attribs, stack) ->
@@ -296,6 +317,21 @@ let rec end_paragraph c lev =
         c.stack <- stack;
         end_paragraph c lev
       end
+  | Descr_def (attribs, stack) ->
+      c.descr <- (false, List.rev c.inline_mix, attribs) :: c.descr;
+      c.stack <- stack;
+      c.inline_mix <- [];
+      end_paragraph c lev
+  | Descr_title (attribs, stack) ->
+      c.descr <- (true, List.rev c.inline_mix, attribs) :: c.descr;
+      c.stack <- stack;
+      c.inline_mix <- [];
+      end_paragraph c lev
+  | Descr (attribs, stack) ->
+      let lst = c.build.dl_elem attribs (List.rev c.descr) in
+      c.flow <- lst :: c.flow;
+      c.stack <- stack;
+      end_paragraph c lev
   | Entry _ ->
       ignore (close_row c);
       end_paragraph c lev
@@ -314,7 +350,8 @@ let rec correct_kind_rec stack kind n =
       correct_kind_rec stack kind (n - 1)
   | Style (_, _, _, stack) ->
       correct_kind_rec stack kind n
-  | Link _ | Heading _ | Paragraph _ | Entry _ | Row _ | Table _ ->
+  | Link _ | Heading _ | Paragraph _ | Entry _ | Row _ | Table _
+  | Descr _ | Descr_title _ | Descr_def _ ->
       assert false
 
 let correct_kind c kind lev =
@@ -367,7 +404,7 @@ let white_space = [ ' ' '\t' ]
    spaces as well ? *)
 
 let not_line_break = [^ '\n' '\r']
-let reserved_chars = [ '*' '/' '\\' '=' '[' ']' '{' '~' '|' 'h' 'f' '<' '-' '#' '_' '^' ',' ]
+let reserved_chars = [ '*' '/' '\\' '=' '[' ']' '{' '~' '|' 'h' 'f' '<' '-' '#' '_' '^' ',' ';' ':' ]
 let punctuation = [ ',' '.' '?' '!' ':' ';' '"' '\'' ]
 
 let first_char = (not_line_break # ['~' '|']) | ('=' +)
@@ -428,6 +465,32 @@ rule parse_bol c =
         end
         else
           style_change c Bold att parse_attribs lexbuf
+      end;
+      parse_rem c lexbuf
+    }
+  | white_space * ";" (("@@" ?) as att) {
+      let (list_attribs, item_attribs) =
+        read_list_attribs att parse_attribs c lexbuf
+      in
+      if close_descr_entry c
+      then c.stack <- Descr_title (item_attribs, c.stack)
+      else begin
+        end_paragraph c 0;
+        c.stack <- Descr_title (item_attribs, Descr (list_attribs, c.stack));
+        c.descr <- []
+      end;      
+      parse_rem c lexbuf
+    }
+  | white_space * ":" (("@@" ?) as att) {
+      let (list_attribs, item_attribs) =
+        read_list_attribs att parse_attribs c lexbuf
+      in
+      if close_descr_entry c 
+      then c.stack <- Descr_def (item_attribs, c.stack)
+      else begin
+        end_paragraph c 0;
+        c.stack <- Descr_def (item_attribs, Descr (list_attribs, c.stack));
+        c.descr <- []
       end;
       parse_rem c lexbuf
     }
@@ -861,6 +924,7 @@ let context sp param b =
     link_content = []; 
     pre_content = []; 
     list = []; 
+    descr = []; 
     flow = [];
     stack = Paragraph [] }
 

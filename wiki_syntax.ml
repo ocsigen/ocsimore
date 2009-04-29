@@ -97,6 +97,20 @@ let list_builder = function
       Lwt_util.map_serial f l >>= fun l ->
       Lwt.return {{ [ r !{: l :} ] }}
 
+let descr_builder = function
+  | [] -> Lwt.return {{ [ <dt>[] ] }} (*VVV ??? *)
+  | a::l ->
+      let f (istitle, d, attribs) =
+        let atts = parse_common_attribs attribs in
+        element d >>= fun d ->
+        if istitle
+        then Lwt.return {{ <dt (atts)>[ !d ] }}
+        else Lwt.return {{ <dd (atts)>[ !d ] }}
+      in
+      f a >>= fun r ->
+      Lwt_util.map_serial f l >>= fun l ->
+      Lwt.return {{ [ r !{: l :} ] }}
+
 let inline (x : Xhtmltypes_duce.a_content)
     : Xhtmltypes_duce.inlines
     = {{ {: [ x ] :} }}
@@ -213,6 +227,10 @@ let builder wiki_id =
                    let atts = parse_common_attribs attribs in
                    list_builder a >>= fun r ->
                    Lwt.return {{ [<ol (atts)>r] }});
+    W.dl_elem = (fun attribs a ->
+                   let atts = parse_common_attribs attribs in
+                   descr_builder a >>= fun r ->
+                   Lwt.return {{ [<dl (atts)>r] }});
     W.hr_elem = (fun attribs -> 
                    let atts = parse_common_attribs attribs in
                    Lwt.return {{ [<hr (atts)>[]] }});

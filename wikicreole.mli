@@ -54,6 +54,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     h6_elem : attribs -> 'inline list -> 'flow;
     ul_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
     ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
+    dl_elem : attribs -> (bool * 'inline list * attribs) list -> 'flow;
     hr_elem : attribs -> 'flow;
     table_elem : attribs -> 
       ((bool * attribs * 'inline list) list * attribs) list -> 'flow;

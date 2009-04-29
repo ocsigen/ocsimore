@@ -93,6 +93,7 @@ let builder plugin_action =
     W.h6_elem = nothing;
     W.ul_elem = nothing;
     W.ol_elem = nothing;
+    W.dl_elem = nothing;
     W.hr_elem = nothing1;
     W.table_elem = nothing;
     W.inline = nothing1;
