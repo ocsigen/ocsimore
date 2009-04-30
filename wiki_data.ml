@@ -26,16 +26,17 @@ open Wiki_sql.Types
 
 let (>>=) = Lwt.bind
 
+(*
 
 let create_static_group name fullname =
-  (Lwt_unix.run (
-     Users.create_user
-       ~name:("#" ^ name)
-       ~pwd:Connect_forbidden
-       ~fullname
-       ~groups:[]
-       ()
-   )).user_id
+  Lwt_unix.run (
+    Users.create_user
+      ~name:("#" ^ name)
+      ~pwd:Connect_forbidden
+      ~fullname
+      ~groups:[]
+      ()
+  )
 
 
 type admin_writer_reader = {
@@ -70,8 +71,9 @@ let create_admin_writer_reader ~name ~descr =
     create_static_group namer descrr
   in
   Lwt_unix.run (
-    Users.add_to_group ~user:ga ~group:gw >>= fun () ->
-    Users.add_to_group ~user:gw ~group:gr
+    (* XXX generic edge ! *)
+    Users.add_to_group ~user:(basic_user ga) ~group:(basic_user gw) >>= fun() ->
+    Users.add_to_group ~user:(basic_user gw) ~group:(basic_user gr)
   );
   { grp_admin = ga; grp_writer = gw; grp_reader = gr }
 
@@ -187,3 +189,4 @@ let can_sthg_wikipagecss f ~sp ~sd ~wiki ~page=
 
 let can_admin_wikipagecss, can_write_wikipagecss, can_read_wikipagecss =
   can_sthg can_sthg_wikipagecss
+*)

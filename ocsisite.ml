@@ -54,8 +54,8 @@ let (auth, basicusercreation, admin_staticdir) =
             "Ocsimore registration"
         in
         (try
-          Users.group_list_of_string (List.assoc "groups" atts)
-        with Not_found -> Lwt.return [Users.authenticated_users.user_id])
+          Users.user_list_of_string (List.assoc "groups" atts)
+        with Not_found -> Lwt.return [basic_user Users.authenticated_users])
         >>= fun default_groups ->
         find_wikidata
           (auth,
@@ -193,7 +193,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
       )
       (function Not_found ->
          Wiki_sql.new_wikibox ~wiki:wiki_admin_id ~comment ~content ~content_type
-           ~author:Users.admin.user_id ()
+           ~author:Users.admin ()
          >>= fun box ->
          Wiki_sql.set_box_for_page ~sourcewiki:wiki_admin_id ~wbid:box ~page ()
 

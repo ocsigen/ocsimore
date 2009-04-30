@@ -19,13 +19,10 @@
 module Types : sig
 
   (** The abstract type of user ids *)
-  type userid = [`User ] Opaque.int32_t
+  type userid
 
   val user_from_sql : int32 -> userid
   val sql_from_user : userid -> int32
-
-  val userid_s: userid -> string
-  val s_userid: string -> userid
 
   type pwd =
     | Connect_forbidden
@@ -40,10 +37,23 @@ module Types : sig
     mutable user_fullname: string;
     mutable user_email: string option;
     user_dyn: bool;
+    user_parameterized_group: bool;
   }
+
+
+  type 'a parameterized_user
+
+  type user
+
+  val apply_parameterized_user:
+    'a parameterized_user ->'a Opaque.int32_t -> user
+  val basic_user : userid -> user
+
+(* val userid_from_user: user -> userid *)
 
 end
 open Types
+
 
 (** Creates a user. The password passed as argument must be unencrypted.
     Returns the user id and its password after an eventual encryption. *)
@@ -52,42 +62,53 @@ val new_user:
   password:pwd ->
   fullname:string ->
   email:string option ->
-  groups:userid list ->
+  groups:user list ->
   dyn:bool ->
   (userid * pwd) Lwt.t
 
 
-(**/**)
-(* DO NOT USE THE FOLLOWING BUT THOSE IN user_cache.ml *)
+val new_parametrized_group:
+  name:string ->
+  fullname:string ->
+  'a parameterized_user Lwt.t
+
+
+
+exception NotBasicUser of userdata
+
+(* Returns the id of the user whose login is passed as argument. Raises
+   [NotBasicUser] if the resulting user is not a basic user. *)
+val get_basicuser_by_login: string -> userid Lwt.t
+
+val get_basicuser_data : userid -> userdata Lwt.t
+val get_parameterized_user_data: 'a parameterized_user -> userdata Lwt.t
+val get_user_data : user -> userdata Lwt.t
 
 
 (** Returns the groups for one user (level 1) *)
-val get_groups_ : userid:userid -> userid list Lwt.t
+val get_groups : user:user -> user list Lwt.t
 
-val find_user_by_name_:
-  string ->
-  userdata Lwt.t
+val add_to_group: user:user -> group:user -> unit Lwt.t
+val remove_from_group: user:user -> group:user -> unit Lwt.t
 
-val find_user_by_id_:
-  userid ->
-  userdata Lwt.t
+val delete_user: userid:userid -> unit Lwt.t
 
-(* BY 2009-03-13: deactivated. See .ml *)
+
+
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated.
+   See ml *)
 (*
-val update_data_:
-  userid:userid ->
-  password:pwd ->
+val update_data:
+  userid:User_sql.userid ->
+  password:User_sql.pwd ->
   fullname:string ->
   email:string option ->
-  ?groups:userid list ->
-  ?dyn:bool ->
+  ?groups:User_sql.userid list ->
   unit ->
   unit Lwt.t
 *)
 
-val add_to_group_ : userid:userid -> groupid:userid -> unit Lwt.t
 
-val remove_from_group_ : userid:userid -> groupid:userid -> unit Lwt.t
 
-val delete_user_ : userid:userid -> unit Lwt.t
-
+val userid_to_string: userid -> string Lwt.t
+val user_to_string: user -> string Lwt.t

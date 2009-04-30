@@ -25,6 +25,7 @@
 
 open Language
 
+open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_sql.Types
 
@@ -396,9 +397,8 @@ object (self)
         (List.fold_left
            (fun s r ->
               s >>= fun s ->
-              Users.get_user_name_by_id r
-              >>= fun s2 ->
-              Lwt.return (s^" "^s2))
+              User_sql.user_to_string r
+              >>= fun s2 -> Lwt.return (s^" "^s2))
            (Lwt.return ""))
     in
     let readers, writers, rights_adm, creators = None, None, None, None in
@@ -503,8 +503,8 @@ object (self)
     let sp = bi.bi_sp in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
-         Users.get_user_fullname_by_id (User_sql.Types.user_from_sql author)
-         >>= fun author ->
+         User_sql.get_basicuser_data (User_sql.Types.user_from_sql author)
+         >>= fun { user_fullname = author } ->
          Lwt.return
            {{ [ !{: Int32.to_string version :}'. '
                 !{: CalendarLib.Printer.Calendar.to_string date :}' '
@@ -528,8 +528,8 @@ object (self)
     in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
-         Users.get_user_fullname_by_id (User_sql.Types.user_from_sql author)
-         >>= fun author ->
+         User_sql.get_basicuser_data (User_sql.Types.user_from_sql author)
+         >>= fun { user_fullname = author } ->
            Lwt.return
              {{ [ !{: Int32.to_string version :}'. '
                   !{: CalendarLib.Printer.Calendar.to_string date :}' '
@@ -770,8 +770,6 @@ object (self)
           | Not_found ->
               (* No page. We create a default page, which will be
                  inserted into the container *)
-              Users.get_user_id ~sp ~sd
-              >>= fun userid ->
               let draw_form (wikiidname, pagename) =
                 {{ [<p>[
                        {: Eliom_duce.Xhtml.user_type_input
@@ -785,7 +783,7 @@ object (self)
               in
               Wiki.page_creators_group wiki
               >>= fun creators ->
-              Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+              Users.in_group ~sp ~sd ~group:(basic_user creators) ()
               >>= fun c ->
               let form =
                 if c then

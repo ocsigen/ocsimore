@@ -68,19 +68,19 @@ let wikiboxes_creators_group_name i = "wiki"^wiki_id_s i^"_wikiboxes_creators"
 let container_adm_group_name i = "wiki"^wiki_id_s i^"_container_adm"
 let admin_group_name i = "wiki"^wiki_id_s i^"_admin"
 
-let readers_group i = Users.get_user_id_by_name (readers_group_name i)
-let writers_group i = Users.get_user_id_by_name (writers_group_name i)
-let rights_adm_group  i = Users.get_user_id_by_name (rights_adm_group_name  i)
+let readers_group i = Users.get_basicuser_by_login (readers_group_name i)
+let writers_group i = Users.get_basicuser_by_login (writers_group_name i)
+let rights_adm_group  i = Users.get_basicuser_by_login (rights_adm_group_name  i)
 let page_creators_group i = 
-                      Users.get_user_id_by_name (page_creators_group_name i)
+                      Users.get_basicuser_by_login (page_creators_group_name i)
 let css_editors_group i = 
-                      Users.get_user_id_by_name (css_editors_group_name i)
+                      Users.get_basicuser_by_login (css_editors_group_name i)
 let wikiboxes_creators_group i = 
-                      Users.get_user_id_by_name
+                      Users.get_basicuser_by_login
                         (wikiboxes_creators_group_name i)
 let container_adm_group i =
-                      Users.get_user_id_by_name (container_adm_group_name i)
-let admin_group i =   Users.get_user_id_by_name (admin_group_name i)
+                      Users.get_basicuser_by_login (container_adm_group_name i)
+let admin_group i =   Users.get_basicuser_by_login (admin_group_name i)
 
 
 exception Found of int32
@@ -133,12 +133,13 @@ let add_to_group_ l g =
   List.fold_left
     (fun beg u -> 
        beg >>= fun () ->
-       Users.add_to_group ~user:u ~group:g)
+       Users.add_to_group ~user:u ~group:(basic_user g))
     (Lwt.return ())
     l
 
+(*
 let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
-  if userid == Users.admin.user_id
+  if user = Users.admin
   then Lwt.return true
   else
     rights_box (wiki.wiki_id, id) >>= function
@@ -154,7 +155,7 @@ let can_sthg rights_box rights_wiki ~sp ~sd wiki id userid =
           rights_wiki wiki.wiki_id >>= fun g ->
           Users.in_group ~sp ~sd ~user:userid ~group:g ()
 
-(*
+
 let can_change_rights = can_sthg get_rights_adm rights_adm_group
 let can_read = can_sthg get_readers readers_group
 let can_write = can_sthg get_writers writers_group
@@ -238,13 +239,13 @@ exception Wiki_already_registered_at_path of (string * string) * string
 (* Create a wiki that is supposed not to exist already *)
 let really_create_wiki ~title ~descr
     ?path
-    ?(readers = [Users.anonymous.user_id])
-    ?(writers = [Users.authenticated_users.user_id])
+    ?(readers = [basic_user Users.anonymous])
+    ?(writers = [basic_user Users.authenticated_users])
     ?(rights_adm = [])
-    ?(wikiboxes_creators = [Users.authenticated_users.user_id])
+    ?(wikiboxes_creators = [basic_user Users.authenticated_users])
     ?(container_adm = [])
-    ?(page_creators = [Users.authenticated_users.user_id])
-    ?(css_editors = [Users.authenticated_users.user_id])
+    ?(page_creators = [basic_user Users.authenticated_users])
+    ?(css_editors = [basic_user Users.authenticated_users])
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir
@@ -298,57 +299,57 @@ let really_create_wiki ~title ~descr
    >>= fun admin_data ->
 
    (* Putting users in groups *)
-     add_to_group_ [admin_data.user_id] wikiboxes_creators_data.user_id
+     add_to_group_ [basic_user admin_data] wikiboxes_creators_data
    >>= fun () ->
-     add_to_group_ [admin_data.user_id] page_creators_data.user_id
+     add_to_group_ [basic_user admin_data] page_creators_data
    >>= fun () ->
-     add_to_group_ [admin_data.user_id] css_editors_data.user_id
+     add_to_group_ [basic_user admin_data] css_editors_data
    >>= fun () ->
-     add_to_group_ [admin_data.user_id] rights_adm_data.user_id
+     add_to_group_ [basic_user admin_data] rights_adm_data
    >>= fun () ->
-     add_to_group_ [admin_data.user_id] container_adm_data.user_id
+     add_to_group_ [basic_user admin_data] container_adm_data
    >>= fun () ->
-     add_to_group_ [wikiboxes_creators_data.user_id;
-                    page_creators_data.user_id;
-                    css_editors_data.user_id;
-                    rights_adm_data.user_id;
-                    container_adm_data.user_id]
-       writers_data.user_id
+     add_to_group_ [basic_user wikiboxes_creators_data;
+                    basic_user page_creators_data;
+                    basic_user css_editors_data;
+                    basic_user rights_adm_data;
+                    basic_user container_adm_data]
+       writers_data
    >>= fun () ->
-     add_to_group_ [writers_data.user_id] readers_data.user_id
+     add_to_group_ [basic_user writers_data] readers_data
    >>= fun () ->
-     add_to_group_ readers readers_data.user_id
+     add_to_group_ readers readers_data
    >>= fun () ->
-       add_to_group_ writers writers_data.user_id
+       add_to_group_ writers writers_data
    >>= fun () ->
-     add_to_group_ rights_adm rights_adm_data.user_id
+     add_to_group_ rights_adm rights_adm_data
    >>= fun () ->
-     add_to_group_ page_creators page_creators_data.user_id
+     add_to_group_ page_creators page_creators_data
    >>= fun () ->
-     add_to_group_ css_editors css_editors_data.user_id
+     add_to_group_ css_editors css_editors_data
    >>= fun () ->
-     add_to_group_ wikiboxes_creators wikiboxes_creators_data.user_id
+     add_to_group_ wikiboxes_creators wikiboxes_creators_data
    >>= fun () ->
-     add_to_group_ admins admin_data.user_id
+     add_to_group_ admins admin_data
    >>= fun () ->
-     add_to_group_ container_adm container_adm_data.user_id
+     add_to_group_ container_adm container_adm_data
    >>= fun () ->
 
 (* XXX !
    Wiki_sql.populate_readers (wiki_id, wikibox_container)
-     [readers_data.user_id] >>= fun () ->
+     [readers_data] >>= fun () ->
    Wiki_sql.populate_writers (wiki_id, wikibox_container)
-     [container_adm_data.user_id] >>= fun () ->
+     [container_adm_data] >>= fun () ->
    Wiki_sql.populate_rights_adm (wiki_id, wikibox_container)
-     [rights_adm_data.user_id] >>= fun () ->
+     [rights_adm_data] >>= fun () ->
    Wiki_sql.populate_wikiboxes_creators (wiki_id, wikibox_container)
-     [wikiboxes_creators_data.user_id] >>= fun () ->
+     [wikiboxes_creators_data] >>= fun () ->
 *)
 
    (match wiki_css with
       | None -> Lwt.return ()
       | Some css -> Wiki_sql.set_css_for_wiki
-          ~wiki:wiki_id ~author:css_editors_data.user_id (Some css)
+          ~wiki:wiki_id ~author:css_editors_data (Some css)
    ) >>= fun () ->
 
    Lwt.return wiki_id
@@ -390,10 +391,10 @@ let wikibox_content' ?version wikibox =
 let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =
   enough_rights ~sp ~sd wikibox >>= function
     | true ->
-        Users.get_user_data sp sd
+        Users.get_user_id sp sd
         >>= fun user ->
         Wiki_sql.update_wikibox ~wikibox
-          ~author:user.user_id ~comment:"" ~content ~content_type
+          ~author:user ~comment:"" ~content ~content_type
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 

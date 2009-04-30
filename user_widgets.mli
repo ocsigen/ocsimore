@@ -48,7 +48,7 @@ type basic_user_creation = {
   mail_from: string;
   mail_addr: string;
   mail_subject: string;
-  new_user_groups: User_sql.Types.userid list;
+  new_user_groups: User_sql.Types.user list;
 }
 
 

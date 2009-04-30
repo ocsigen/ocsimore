@@ -29,76 +29,46 @@ open User_sql.Types
 
 let (>>=) = Lwt.bind
 
-
-type 'a parametrized_user = userid
-
-type users =
-  | Ground of userid
-  | Applied of userid * int32
-
-let apply_parametrized_user g v = Applied (g, Opaque.t_int32 v)
-
-
 exception NotAllowed
 exception BadPassword
 exception BadUser
-exception UseAuth of userdata
+exception UseAuth of userid
 exception Users_error of string
 
 
-
-let create_anonymous () =
-  Lwt.catch
-    (fun () -> User_cache.get_user_by_name "anonymous")
-    (function
-       | Not_found ->
-           (User_sql.new_user
-              ~name:"anonymous"
-              ~password:User_sql.Types.Connect_forbidden
-              ~fullname:"Anonymous"
-              ~email:None
-              ~groups:[]
-              ~dyn:false
-            >>= fun (i, _) ->
-           Lwt.return { user_id = i;
-                        user_login = "anonymous";
-                        user_pwd = User_sql.Types.Connect_forbidden;
-                        user_fullname = "Anonymous";
-                        user_email = None;
-                        user_dyn = false;
-                      })
-       | e -> Lwt.fail e)
-
-let anonymous = Lwt_unix.run (create_anonymous ())
-
-let create_nobody () =
-  Lwt.catch
-    (fun () -> User_cache.get_user_by_name "nobody")
-    (function
-       | Not_found ->
-           (User_sql.new_user
-              ~name:"nobody"
-              ~password:User_sql.Types.Connect_forbidden
-              ~fullname:"Nobody"
-              ~email:None
-              ~groups:[]
-              ~dyn:false
-            >>= fun (i, _) ->
-           Lwt.return { user_id = i;
-                        user_login = "nobody";
-                        user_pwd = User_sql.Types.Connect_forbidden;
-                        user_fullname = "Nobody";
-                        user_email = None;
-                        user_dyn = false;
-                      })
-       | e -> Lwt.fail e)
-
-let nobody = Lwt_unix.run (create_nobody ())
+(* We might want to simply overwrite incorrect values by the correct ones *)
+let possibly_create ~login ~fullname ?email ?pwd () =
+  Lwt_unix.run (
+    Lwt.catch
+      (fun () -> User_sql.get_basicuser_by_login login)
+      (function
+         | Not_found ->
+             let email = match email with
+               | None -> None
+               | Some f -> f ()
+             and password = match pwd with
+               | None -> Connect_forbidden
+               | Some f -> f ()
+             in
+             (User_sql.new_user
+                ~name:login
+                ~password
+                ~fullname
+                ?email
+                ~groups:[]
+                ~dyn:false
+              >>= fun (i, _) -> Lwt.return i)
+         | e -> Lwt.fail e)
+  )
 
 
+let anonymous = possibly_create ~login:"anonymous" ~fullname:"Anonymous" ()
+let anonymous' = basic_user anonymous
+let nobody_login = "nobody"
+let nobody = possibly_create ~login:nobody_login ~fullname:"Nobody" ()
+let nobody' = basic_user nobody
 
-
-let create_admin () =
+let admin =
   let rec get_pwd message =
     print_string message;
     flush Pervasives.stdout;
@@ -125,7 +95,8 @@ let create_admin () =
     let pwd1 = get_pwd "Please enter a password for admin: "
     and pwd2 = get_pwd "\nPlease enter the same password again: " in
       if pwd1 = pwd2
-      then (print_endline "\nNew password registered."; pwd1)
+      then (print_endline "\nNew password registered.";
+            User_sql.Types.Ocsimore_user_crypt pwd1)
       else (print_endline "\nPasswords do not match, please try again."; ask_pwd ())
 
   and ask_email () =
@@ -133,87 +104,29 @@ let create_admin () =
     let email = input_line Pervasives.stdin in
       print_endline ("\n'" ^ email ^ "': Confirm this address? (Y/N)");
       match input_line Pervasives.stdin with
-        | "Y"|"y" -> print_endline "\n Thank you."; email
+        | "Y"|"y" -> print_endline "\n Thank you."; Some email
         | _ -> print_endline "\n"; ask_email()
   in
+  possibly_create ~login:"admin" ~fullname:"Admin"
+    ~pwd:ask_pwd ~email:ask_email ()
 
+let admin' = basic_user admin
+
+let get_basicuser_by_login login =
   Lwt.catch
-    (fun () -> User_cache.get_user_by_name "admin")
-    (function
-       | Not_found ->
-           let pwd = ask_pwd () in
-           let email = ask_email () in
-           (User_sql.new_user
-              ~name:"admin"
-              ~password:(User_sql.Types.Ocsimore_user_crypt pwd)
-              ~fullname:"Admin"
-              ~email:(Some email)
-              ~groups:[]
-              ~dyn:false
-            >>= fun (i, pwd) ->
-           Lwt.return { user_id = i;
-                        user_login = "admin";
-                        user_pwd = pwd;
-                        user_fullname = "Admin";
-                        user_email = Some email;
-                        user_dyn = false;
-                      })
-       | e -> Lwt.fail e)
-
-let admin = Lwt_unix.run (create_admin ())
-
-let get_user_by_name_from_db ~name =
-  Lwt.catch
-  (fun () -> User_cache.get_user_by_name name)
+  (fun () -> User_sql.get_basicuser_by_login login)
   (function
      | Not_found -> Lwt.return nobody
      | e -> Lwt.fail e)
 
-let get_user_by_id_from_db ~id =
-  Lwt.catch
-  (fun () -> User_cache.get_user_by_id id)
-  (function
-     | Not_found -> Lwt.return nobody
-     | e -> Lwt.fail e)
+let get_user_from_name ~name:_ (* XXX *) = assert false
 
 
-let get_user_id_by_name name =
-  get_user_by_name_from_db name >>= fun u -> Lwt.return u.user_id
-
-let get_user_name_by_id id =
-  get_user_by_id_from_db id >>= fun u -> Lwt.return u.user_login
-
-
-let get_user_fullname_by_id id =
-  get_user_by_id_from_db id >>= fun u -> Lwt.return u.user_fullname
-
-
-let get_user_by_name ~name =
-  if name = anonymous.user_login
-  then Lwt.return anonymous
-  else
-  if name = admin.user_login
-  then Lwt.return admin
-  else
-  if name = nobody.user_login
-  then Lwt.return nobody
-  else get_user_by_name_from_db ~name
-
-let get_user_by_id ~id =
-  if id = anonymous.user_id
-  then Lwt.return anonymous
-  else
-  if id = admin.user_id
-  then Lwt.return admin
-  else
-  if id = nobody.user_id
-  then Lwt.return nobody
-  else get_user_by_id_from_db ~id
 
 (* dynamic groups: *)
 module DynGroups = Hashtbl.Make(
   struct
-    type t = userid
+    type t = user
     let equal a a' = a = a'
     let hash = Hashtbl.hash
   end)
@@ -231,39 +144,32 @@ let add_dyn_group, in_dyn_group, fold_dyn_groups =
 
 
 let create_user ~name ~pwd ~fullname ?email ~groups ?test () =
-  get_user_by_name ~name >>= fun u ->
-  if (u = nobody) && (name != nobody.user_login)
-  then begin (* the user does not exist *)
-    let dyn = not (test = None) in
-    User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups ~dyn
-    >>= fun (i, pwd) ->
-    (match test with
-       | None -> ()
-       | Some f -> add_dyn_group i f);
-    Lwt.return
-      { user_id = i;
-        user_login = name;
-        user_pwd = pwd;
-        user_fullname = fullname;
-        user_email = email;
-        user_dyn = dyn;
-      }
-  end
-  else begin
-    (match test with
-       | None -> ()
-       | Some f -> add_dyn_group u.user_id f);
-    Lwt.return u
-  end
+  get_basicuser_by_login name
+  >>= fun u ->
+  (if (u = nobody) && (name != nobody_login)
+   then (* the user does not exist *)
+     let dyn = not (test = None) in
+     User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups ~dyn
+     >>= fun (u, _) -> Lwt.return u
+   else
+     Lwt.return u)
+   >>= fun u ->
+   (match test with
+     | None -> ()
+     | Some f -> add_dyn_group (basic_user u) f
+   );
+   Lwt.return u
 
 
 let create_unique_user =
+  (* Buggy if all users with 0-9 exist *)
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
   let lock = Lwt_mutex.create () in
   fun ~name ~pwd ~fullname ?email ~groups ->
     let rec suffix name =
-      get_user_by_name ~name >>= fun u ->
-      if (u = nobody) && (name != nobody.user_login)
+      get_basicuser_by_login name
+      >>= fun u ->
+      if (u = nobody) && (name != nobody_login)
       then begin (* the user does not exist *)
         create_user
           ~name ~pwd ~fullname ?email ~groups () >>= fun x ->
@@ -286,7 +192,7 @@ let update_user_data ~user
   user.fullname <- fullname;
   user.email <- email;
   (match pwd with None -> () | Some pwd -> user.pwd <- pwd);
-  User_cache.update_data
+  User_sql.update_data
     ~userid:user.user_id
     ~password:pwd
     ~fullname
@@ -297,25 +203,28 @@ let update_user_data ~user
 
 
 let authenticate ~name ~pwd =
-  get_user_by_name name >>= fun u ->
+  get_basicuser_by_login name >>= fun u ->
   if (u = nobody)
   then Lwt.fail BadUser
   else
-    match u.user_pwd with
-      | User_sql.Types.External_Auth -> Lwt.fail (UseAuth u)
-      | Ocsimore_user_plain p ->
-          if p = pwd then Lwt.return u else Lwt.fail BadPassword
-      | Ocsimore_user_crypt h ->
-          Nis_chkpwd.check_passwd ~passwd:pwd ~hash:h
-          >>= fun ok ->
-          if ok then Lwt.return u else Lwt.fail BadPassword
-      | Connect_forbidden ->
-          Lwt.fail BadPassword
+    User_sql.get_basicuser_data u
+    >>= fun u ->
+      match u.user_pwd with
+        | User_sql.Types.External_Auth -> Lwt.fail (UseAuth u.user_id)
+        | Ocsimore_user_plain p ->
+            if p = pwd then Lwt.return u else Lwt.fail BadPassword
+        | Ocsimore_user_crypt h ->
+            Nis_chkpwd.check_passwd ~passwd:pwd ~hash:h
+            >>= fun ok ->
+            if ok then Lwt.return u else Lwt.fail BadPassword
+        | Connect_forbidden ->
+            Lwt.fail BadPassword
 
 
 
 
 let in_group_ ?sp ?sd ~user ~group () =
+  let user = (user:user) in
   let rec aux2 g = function
     | [] -> Lwt.return false
     | g2::l ->
@@ -323,15 +232,15 @@ let in_group_ ?sp ?sd ~user ~group () =
           | true -> Lwt.return true
           | false -> aux2 g l
   and aux u g =
-    User_cache.get_groups u >>= fun gl ->
+    User_sql.get_groups u >>= fun gl ->
     if List.mem g gl
     then Lwt.return true
     else aux2 g gl
   in
-  if (user = nobody.user_id) || (group = nobody.user_id)
+  if (user = nobody') || (group = nobody')
   then Lwt.return false
   else
-    if (user = group) || (user = admin.user_id)
+    if (user = group) || (user = admin')
     then Lwt.return true
     else aux user group >>= function
       | true -> Lwt.return true
@@ -362,17 +271,18 @@ let in_group_ ?sp ?sd ~user ~group () =
 
 
 let add_to_group ~user ~group =
-  get_user_by_id group >>= fun { user_dyn = dy } ->
+  User_sql.get_user_data group >>= fun { user_dyn = dy } ->
   if dy
-  then begin
+  then
+    User_sql.user_to_string user >>= fun us ->
+    User_sql.user_to_string group >>= fun gs ->
     Ocsigen_messages.warning
-      ("Not possible to insert user "^userid_s user^
-         " in group "^userid_s group^
+      ("Not possible to insert user "^ us ^
+         " in group "^ gs ^
          ". This group is dynamic (risk of loops). (ignoring)");
     Lwt.return ()
-  end
   else
-    if (user = nobody.user_id) || (group = nobody.user_id)
+    if (user = nobody') || (group = nobody')
     then begin
       Ocsigen_messages.warning
         ("Not possible to insert user nobody into a group, or insert someone in group nobody. (ignoring)");
@@ -384,70 +294,70 @@ let add_to_group ~user ~group =
       then
         in_group_ group user () >>= fun b ->
         if b
-        then begin
+        then
+          User_sql.user_to_string user >>= fun us ->
+          User_sql.user_to_string group >>= fun gs ->
           Ocsigen_messages.warning
-            ("Circular group when inserting user "^userid_s user^
-               " in group "^userid_s group^
-               ". (ignoring)");
+            ("Circular group when inserting user "^ us ^
+               " in group "^ gs ^ ". (ignoring)");
           Lwt.return ()
-        end
-        else User_cache.add_to_group user group
+        else User_sql.add_to_group user group
       else Lwt.return ()
-
-let delete_user ~userid =
-  User_cache.delete_user userid
-
 
 
 (** {2 Session data} *)
 
-let user_table: userid option Eliom_sessions.persistent_table =
+let user_table: userid Eliom_sessions.persistent_table =
   Eliom_sessions.create_persistent_table "ocsimore_user_table_v1"
 
-type user_sd =
-    userdata Lwt.t (* Lazy.t not really useful to make it lazy here *)
+type user_sd = userid Lwt.t
 
 (** The polytable key for retrieving user data inside session data *)
 let user_key : user_sd Polytables.key = Polytables.make_key ()
 
-let get_user_data_ ~sp ~sd =
+let get_user_ ~sp ~sd =
   Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
   >>= function
-    | Eliom_sessions.Data (Some u) ->
+    | Eliom_sessions.Data u ->
         Lwt.catch
-          (fun () -> get_user_by_id_from_db u)
+          (fun () -> User_sql.get_basicuser_data u >>= fun _ud -> Lwt.return u)
           (function
              | Not_found ->
                  Eliom_sessions.close_session ~sp () >>= fun () ->
                  Ocsimore_common.clear_sd ~sd;
                  Lwt.return anonymous
              | e -> Lwt.fail e)
-    | Eliom_sessions.Data None -> Lwt.return admin
-    | _ -> Lwt.return anonymous
+    | Eliom_sessions.Data_session_expired | Eliom_sessions.No_data ->
+        Lwt.return anonymous
 
 let get_user_sd ~sp ~sd =
   try
     Polytables.get ~table:sd ~key:user_key
   with Not_found ->
-    let ud = get_user_data_ ~sp ~sd in
+    let ud = get_user_ ~sp ~sd in
     Polytables.set sd user_key ud;
     ud
 
-let get_user_data ~sp ~sd = get_user_sd sp sd
+let get_user_id ~sp ~sd = get_user_sd sp sd
 
-let get_user_id ~sp ~sd = get_user_sd sp sd >>= fun u -> Lwt.return u.user_id
+let get_user_data ~sp ~sd =
+  get_user_sd sp sd
+  >>= fun u ->
+  User_sql.get_basicuser_data u
 
-let get_user_name ~sp ~sd = get_user_sd sp sd >>= fun u -> Lwt.return u.user_login
+let get_user_name ~sp ~sd =
+  get_user_data sp sd
+  >>= fun u -> Lwt.return u.user_login
 
 let is_logged_on ~sp ~sd =
   get_user_sd sp sd >>= fun u ->
-  Lwt.return (not ((u == anonymous) || (u == nobody)))
+  Lwt.return (not ((u = anonymous) || (u = nobody)))
 
 let authenticated_users =
   Lwt_unix.run
     (create_user ~name:"users" ~pwd:User_sql.Types.Connect_forbidden
        ~fullname:"Authenticated users"
-       ~groups:[anonymous.user_id]
+       ~groups:[anonymous']
        ~test:is_logged_on
        ())
 
@@ -458,29 +368,25 @@ let anonymous_sd =
 
 let set_session_data ~sp ~sd user =
   Polytables.set sd user_key (Lwt.return user);
-  if user == admin
-  then
-    Eliom_sessions.set_persistent_session_data ~table:user_table ~sp None
-  else
-    Eliom_sessions.set_persistent_session_data ~table:user_table ~sp (Some user.user_id)
+  Eliom_sessions.set_persistent_session_data ~table:user_table ~sp user
 
 
 let in_group ~sp ~sd ?user ~group () =
   (match user with
-    | None -> get_user_id ~sp ~sd
+    | None -> get_user_id ~sp ~sd >>= fun u -> Lwt.return (basic_user u)
     | Some user -> Lwt.return user)
   >>= fun user ->
   in_group_ ~sp ~sd ?user ~group ()
 
 
-let group_list_of_string s =
+(* XXX signal errors more cleanly *)
+let user_list_of_string s =
   let f beg a =
     beg >>= fun beg ->
-    get_user_id_by_name a >>= fun v ->
-    if v = nobody.user_id
+    User_sql.get_basicuser_by_login a >>= fun v ->
+    if v = nobody
     then Lwt.return beg
-    else Lwt.return (v::beg)
+    else Lwt.return (basic_user v::beg)
   in
   let r = Ocsigen_lib.split ' ' s in
   List.fold_left f (Lwt.return []) r
-

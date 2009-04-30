@@ -101,7 +101,7 @@ let external_user user =
                  ~pwd:User_sql.Types.External_Auth
                  ~fullname:userdata.Unix.pw_gecos
                  ~email:(user ^ "@localhost")
-                 ~groups:[Users.authenticated_users.user_id]
+                 ~groups:[basic_user Users.authenticated_users]
                  ()
                >>= fun userdata ->
                  return (Some userdata)
@@ -144,7 +144,7 @@ let template_wiki_css = Ocsisite.register_named_wikibox
 
 (** The function that creates the wikiperso when needed *)
 let create_wikiperso ~wiki_title ~userdata =
-  let gid = [userdata.user_id] in
+  let gid = [basic_user userdata.user_id] in
   template_container ()
   >>= fun container ->
   template_wiki_css ()
@@ -163,7 +163,7 @@ let create_wikiperso ~wiki_title ~userdata =
 (* Given a user name, we find the id of the corresponding ocsimore
    user. If it does not exists, we try external authentification *)
 let find_user user =
-  Users.get_user_by_name user
+  Users.get_basicuser_by_login user
   >>= fun userdata ->
     if userdata <> Users.nobody then
       Lwt.return (Some userdata)
@@ -182,7 +182,7 @@ let gen sp =
         find_user user >>=
         (function
            | None -> Lwt.return ()
-           | Some userdata ->
+           | Some userid ->
                (* If the user for which we must create a wiki
                   exists, we create this wiki if it does not already exists. *)
                let wiki_title = "wikiperso for " ^ user in
@@ -191,6 +191,8 @@ let gen sp =
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
+                        User_sql.get_basicuser_data userid >>=
+                        fun userdata ->
                         create_wikiperso wiki_title userdata
                         >>= fun wiki ->
                         (* We then register the wiki at the correct url *)

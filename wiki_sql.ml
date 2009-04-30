@@ -95,7 +95,7 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
      PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
                 VALUES ($wiki_id, $container_wikibox, $comment)"
      >>= fun () ->
-     let admin = User_sql.Types.sql_from_user (Users.admin.User_sql.Types.user_id) in
+     let admin = User_sql.Types.sql_from_user Users.admin in
      PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
                 VALUES ($container_wikibox, $wiki_id, $admin, $container_page)"
      >>= fun () ->
@@ -127,6 +127,7 @@ let update_wiki_ ?container_id ?staticdir ?pages wiki =
        )
     )
 
+(*
 let populate_readers_ db (wiki, id) readers =
   let wiki = t_int32 (wiki : wiki) in
   match readers with
@@ -314,7 +315,7 @@ let remove_wikiboxes_creators_ db (wiki, id) ra =
                )
           )
           ra
-
+*)
 
 exception IncorrectWikiboxContentType of string
 
@@ -360,11 +361,14 @@ let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () =
         >>= fun () ->
         (match rights with
            | None -> Lwt.return ()
-           | Some (r, w, ra, wc) -> 
+           | Some (_r, _w, _ra, _wc) ->
+               (* XXX 
                populate_writers_ db (wiki, boxid) w >>= fun () ->
                populate_readers_ db (wiki, boxid) r >>= fun () ->
                populate_rights_adm_ db (wiki, boxid) ra >>= fun () ->
                populate_wikiboxes_creators_ db (wiki, boxid) wc
+               *)
+               Lwt.return ()
         ) >>= fun () ->
         Lwt.return boxid)
     )

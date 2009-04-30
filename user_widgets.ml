@@ -30,10 +30,10 @@ let (>>=) = Lwt.bind
 
 class login_widget ?sp ~(sessman: Session_manager.sessionmanager) =
 object (self)
-    
+
   val xhtml_class = "logbox"
 
-  method private display_login_box 
+  method private display_login_box
     ?(user_prompt= "login:")
     ?(pwd_prompt= "password:")
     ?(auth_error= "Wrong login or password")
@@ -48,7 +48,7 @@ object (self)
                   <tr>[<td>user_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                 ~input_type:{:"text":} ~name:usr () :}]]
-                  <tr>[<td>pwd_prompt 
+                  <tr>[<td>pwd_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                ~input_type:{:"password":} ~name:pwd () :}]]
                   <tr>[<td>[{: Eliom_duce.Xhtml.string_input
@@ -62,34 +62,34 @@ object (self)
     end
     else
       let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
-      {{ [ <p>[{: Eliom_duce.Xhtml.a 
+      {{ [ <p>[{: Eliom_duce.Xhtml.a
                     Eliom_services.https_void_coservice'
                     sp switchtohttps () :} ] ] }}
-      
+
   method private display_logout_box ~sp:_ u =
     {{ [<table>[
            <tr>[<td>{: Printf.sprintf "Hi %s!" u.user_fullname :}]
            <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
          ]] }}
-        
-  method display_login_widget 
+
+  method display_login_widget
     ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ~sp ~sd () =
     Users.get_user_data sp sd >>= fun u ->
     Users.is_logged_on sp sd >>= fun logged ->
-    Lwt.return 
+    Lwt.return
       {{ <div class={: xhtml_class :}>
            [{:
                if logged
                then
                  Eliom_duce.Xhtml.post_form
-                   ~a:{{ { class="logbox logged"} }} 
+                   ~a:{{ { class="logbox logged"} }}
                    ~service:sessman#act_logout
                    ~sp
                    (fun _ -> self#display_logout_box sp u) ()
                else
                  let exn = Eliom_sessions.get_exn sp in
-                 if List.exists 
+                 if List.exists
                    (fun e -> e = Users.BadPassword || e = Users.BadUser)
                    exn
                  then (* unsuccessful attempt *)
@@ -98,7 +98,7 @@ object (self)
                        ~service:sessman#act_login
                        ~sp
                        (fun (usr, pwd) ->
-                          (self#display_login_box 
+                          (self#display_login_box
                              ?user_prompt ?pwd_prompt ?auth_error
                              ?switchtohttps
                              ~sp true usr pwd)) ()
@@ -111,15 +111,15 @@ object (self)
                           (self#display_login_box
                              ?user_prompt ?pwd_prompt ?auth_error
                              ?switchtohttps
-                             ~sp false usr pwd)) () 
-                       :}] 
+                             ~sp false usr pwd)) ()
+                       :}]
        }}
 
 
   initializer
 
       Wiki_syntax.add_extension ~name:"loginbox" ~wiki_content:true
-        (fun _ bi args _c -> 
+        (fun _ bi args _c ->
            Wikicreole.Block
              (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
               let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
@@ -132,12 +132,12 @@ object (self)
               >>= fun b ->
               Lwt.return {{ [ b ] }}));
 
-      ignore 
+      ignore
         (Eliom_duce.Xhtml.register_new_service ?sp
            ~https:(Session_manager.get_secure ())
            ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
            ~get_params:Eliom_parameters.unit
-           (fun sp () () -> 
+           (fun sp () () ->
               let sd = Ocsimore_common.get_sd sp in
               self#display_login_widget ~sp ~sd () >>= fun lb ->
               Lwt.return
@@ -145,9 +145,9 @@ object (self)
                    <html xmlns="http://www.w3.org/1999/xhtml">[
                      <head>[
                        <title>"Ocsimore login"
-                         {: Eliom_duce.Xhtml.css_link 
+                         {: Eliom_duce.Xhtml.css_link
                             (Eliom_duce.Xhtml.make_uri
-                               (Eliom_services.static_dir sp) 
+                               (Eliom_services.static_dir sp)
                                sp ["example.css"]) () :}
 (*VVV css ??? *)
                      ]
@@ -159,17 +159,17 @@ object (self)
 
 
       Wiki_syntax.add_extension ~name:"username" ~wiki_content:true
-        (fun _w bi _args _c -> 
+        (fun _w bi _args _c ->
            Wikicreole.A_content
-             (Users.get_user_data 
+             (Users.get_user_data
                 ~sp:bi.Wiki_widgets_interface.bi_sp
                 ~sd:bi.Wiki_widgets_interface.bi_sd
               >>= fun ud ->
              Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
         );
-      
+
       Wiki_syntax.add_extension ~name:"logoutbutton" ~wiki_content:true
-        (fun w bi _args c -> 
+        (fun w bi _args c ->
            Wikicreole.Block
              (let content = match c with
                 | Some c -> c
@@ -179,11 +179,11 @@ object (self)
               Lwt.return
                 {{ [ {:
                         Eliom_duce.Xhtml.post_form
-                        ~a:{{ { class="logoutbutton"} }} 
+                        ~a:{{ { class="logoutbutton"} }}
                         ~service:sessman#act_logout
                         ~sp:bi.Wiki_widgets_interface.bi_sp
-                        (fun () -> 
-                           {{ [<p>[ 
+                        (fun () ->
+                           {{ [<p>[
                                   {: Eliom_duce.Xhtml.button
                                      ~button_type:{:"submit":}
                                      {: [ <div class="ocsimore_button">c ] :}
@@ -194,7 +194,7 @@ object (self)
         );
 
       Wiki_syntax.add_extension ~name:"logoutlink" ~wiki_content:true
-        (fun w bi args c -> 
+        (fun w bi args c ->
            Wikicreole.Link_plugin
              (let content = match c with
                 | Some c -> Wiki_syntax.a_content_of_wiki w bi c
@@ -226,11 +226,11 @@ end
 (* private: *)
 let valid_username usr =
   Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
-    
+
 let valid_emailaddr email =
-  Str.string_match 
+  Str.string_match
     (Str.regexp
-       ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$")) 
+       ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$"))
     email 0
 
 
@@ -238,10 +238,13 @@ let valid_emailaddr email =
 
 let mail_password ~name ~password ~from_name ~from_addr ~subject =
   Lwt.catch
-    (fun () -> 
-       Users.get_user_by_name ~name >>= fun user -> 
+    (fun () ->
+       Users.get_basicuser_by_login name
+       >>= fun u ->
+       User_sql.get_basicuser_data u
+       >>= fun user ->
        Lwt_preemptive.detach
-         (fun () -> 
+         (fun () ->
             match user.user_email with
               | Some email ->
                   ignore(Netaddress.parse email);
@@ -262,7 +265,7 @@ let mail_password ~name ~password ~from_name ~from_addr ~subject =
     (function _ -> Lwt.return false)
 
 
-let generate_password () = 
+let generate_password () =
   let chars = "0123456789"^
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"^
     "abcdefghijklmnopqrstuvwxyz" in
@@ -277,7 +280,7 @@ type basic_user_creation = {
   mail_from: string;
   mail_addr: string;
   mail_subject: string;
-  new_user_groups: User_sql.Types.userid list;
+  new_user_groups: User_sql.Types.user list;
 }
 
 
@@ -285,34 +288,34 @@ class login_widget_basic_user_creation ?sp
   ~(sessman: Session_manager.sessionmanager)
   ~basic_user_creation_options
 =
-  let internal_srv_register = 
+  let internal_srv_register =
     Eliom_services.new_service ?sp
-      ~path:([Ocsimore_lib.ocsimore_admin_dir; "register"]) 
+      ~path:([Ocsimore_lib.ocsimore_admin_dir; "register"])
 (*VVV URL??? Make it configurable (and all others!!) *)
       ~get_params:unit () in
-  let srv_register_done = 
+  let srv_register_done =
     Eliom_services.new_post_coservice
       ~fallback:internal_srv_register
       ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
-  and internal_srv_reminder = 
+  and internal_srv_reminder =
     Eliom_services.new_service ?sp
       ~path:[Ocsimore_lib.ocsimore_admin_dir; "reminder"]
       ~get_params:unit ()
-  and srv_reminder_done = 
+  and srv_reminder_done =
     Eliom_services.new_post_coservice
       ~fallback:internal_srv_register
       ~post_params:(string "usr") ()
 (* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
 (*
-  and internal_srv_edit = 
+  and internal_srv_edit =
     Eliom_services.new_coservice
       ~fallback:internal_srv_register
       ~get_params:unit ()
-  and srv_edit_done = 
+  and srv_edit_done =
     Eliom_services.new_post_coservice
       ~https:(Session_manager.get_secure ())
       ~fallback:internal_srv_register
-      ~post_params:(string "pwd" ** 
+      ~post_params:(string "pwd" **
                       (string "pwd2" ** (string "descr" ** string "email"))) ()
 *)
   in
@@ -336,7 +339,7 @@ object (self)
                   <tr>[<td>user_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                 ~input_type:{:"text":} ~name:usr () :}]]
-                  <tr>[<td>pwd_prompt 
+                  <tr>[<td>pwd_prompt
                        <td>[{: Eliom_duce.Xhtml.string_input
                                ~input_type:{:"password":} ~name:pwd () :}]]
                   <tr>[<td>[{: Eliom_duce.Xhtml.string_input
@@ -354,10 +357,10 @@ object (self)
     end
     else
       let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
-      {{ [ <p> [ {: Eliom_duce.Xhtml.a 
+      {{ [ <p> [ {: Eliom_duce.Xhtml.a
                       Eliom_services.https_void_coservice'
                       sp switchtohttps () :} ] ] }}
-      
+
   method private display_logout_box ~sp:_sp u =
     {{ [<table>[
            <tr>[<td>{: Printf.sprintf "Hi %s!" u.user_fullname :}]
@@ -369,42 +372,42 @@ object (self)
                         sp {{ "Manage your account" }} () :}]]
 *)
          ]] }}
-        
+
 
 
 (*VVV Il faut revoir tout ce qui suit!!!!!!!!! *)
 
 
-  method srv_register : 
-    (unit, 
-     unit, 
-     Eliom_services.get_service_kind, 
-     [`WithoutSuffix], 
-     unit, 
-     unit, 
+  method srv_register :
+    (unit,
+     unit,
+     Eliom_services.get_service_kind,
+     [`WithoutSuffix],
+     unit,
+     unit,
      [`Registrable]) Eliom_services.service
     = internal_srv_register
 
-  method srv_reminder : 
-    (unit, 
-     unit, 
-     Eliom_services.get_service_kind, 
-     [`WithoutSuffix], 
-     unit, 
-     unit, 
+  method srv_reminder :
+    (unit,
+     unit,
+     Eliom_services.get_service_kind,
+     [`WithoutSuffix],
+     unit,
+     unit,
      [`Registrable]) Eliom_services.service
     = internal_srv_reminder
 
 (* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
 (*
-  method srv_edit : 
-    (unit, 
-     unit, 
+  method srv_edit :
+    (unit,
+     unit,
      Eliom_services.get_service_kind,
-     [`WithoutSuffix], 
-     unit, 
-     unit, 
-     [`Registrable]) Eliom_services.service 
+     [`WithoutSuffix],
+     unit,
+     unit,
+     [`Registrable]) Eliom_services.service
     = internal_srv_edit
 *)
 
@@ -412,15 +415,15 @@ object (self)
     ~sp:(_ : Eliom_sessions.server_params)
     ~sd:(_ : Ocsimore_common.session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
-    Lwt.return {{ 
+    Lwt.return {{
               <html xmlns="http://www.w3.org/1999/xhtml">[
                 <head>[<title>"Ocsimore default login widget"]
                 <body>{: contents :}
               ]
             }}
-      
 
-  method private page_register err = fun sp () ()-> 
+
+  method private page_register err = fun sp () ()->
     self#container
       ~sp
       ~sd:Users.anonymous_sd
@@ -434,10 +437,10 @@ object (self)
                  <br>[]
                  'Be very careful to enter a valid e-mail address, \
                    as the password for logging in will be sent there.']
-           {: Eliom_duce.Xhtml.post_form 
+           {: Eliom_duce.Xhtml.post_form
               ~service:srv_register_done
               ~sp
-              (fun (usr,(desc,email)) -> 
+              (fun (usr,(desc,email)) ->
                  {{ [<table>[
                         <tr>[
                           <td>"login name: (letters & digits only)"
@@ -455,16 +458,16 @@ object (self)
                           <td>[{: Eliom_duce.Xhtml.string_input ~input_type:{:"submit":} ~value:"Register" () :}]
                         ]]] }})
               () :}
-           <p>[<strong>{: err :}]]}} 
-      
+           <p>[<strong>{: err :}]]}}
+
 
 
   method private page_register_done = fun sp () (usr, (fullname, email)) ->
-    if not (valid_username usr) then 
+    if not (valid_username usr) then
       self#page_register "ERROR: Bad character(s) in login name!" sp () ()
-    else if not (valid_emailaddr email) then 
+    else if not (valid_emailaddr email) then
       self#page_register "ERROR: Bad formed e-mail address!" sp () ()
-    else 
+    else
       let pwd = generate_password () in
       Users.create_unique_user
         ~name:usr ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email
@@ -474,33 +477,30 @@ object (self)
         ~name:n ~password:pwd
         ~from_name:basic_user_creation_options.mail_from
         ~from_addr:basic_user_creation_options.mail_addr
-        ~subject:basic_user_creation_options.mail_subject >>= fun b ->
-      if b
-      then begin
-        self#container
-          ~sp
-          ~sd:Users.anonymous_sd
-          ~contents:
-          {{ [<h1>"Registration ok."
-               <p>(['You\'ll soon receive an e-mail message at the \
-                      following address:'
-                    <br>[]] @
-                     {: email :} @
-                      [<br>[]
-                          'reporting your login name and password.'])] }}
-        
-      end
-      else 
-        Users.delete_user ~userid:user.user_id >>= fun () ->
-        self#container
-          ~sp
-          ~sd:Users.anonymous_sd
-          ~contents:{{ [<h1>"Registration failed."
-                         <p>"Please try later."] }}
+        ~subject:basic_user_creation_options.mail_subject
+      >>= function
+        | true ->
+            self#container
+              ~sp
+              ~sd:Users.anonymous_sd
+              ~contents:
+              {{ [<h1>"Registration ok."
+                  <p>(['You\'ll soon receive an e-mail message at the \
+                         following address:'
+                        <br>[]] @
+                        {: email :} @
+                         [<br>[]
+                             'reporting your login name and password.'])] }}
+
+        | false ->
+            User_sql.delete_user ~userid:user >>= fun () ->
+            self#container ~sp ~sd:Users.anonymous_sd
+              ~contents:{{ [<h1>"Registration failed."
+                            <p>"Please try later."] }}
 
 
-              
-  method private page_reminder err = fun sp () () -> 
+
+  method private page_reminder err = fun sp () () ->
     self#container
       ~sp
       ~sd:Users.anonymous_sd
@@ -512,9 +512,9 @@ object (self)
                'The message will be sent to the address you \
                  entered when you registered your account.']
            {: Eliom_duce.Xhtml.post_form
-              ~service:srv_reminder_done 
+              ~service:srv_reminder_done
               ~sp
-              (fun usr -> 
+              (fun usr ->
                  {{ [<table>[
                         <tr>[
                           <td>"Enter your login name:"
@@ -523,17 +523,17 @@ object (self)
                         ]]]
                   }}) ()        :}
            <p>[<strong>{: err :}]] }}
-      
+
   method private page_reminder_done = fun sp () _usr ->
     self#page_reminder "Users are being implemented (TODO)" sp () ()
       (* if not (valid_username usr) then
          self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
-         else 
-         mail_password 
-         ~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from 
+         else
+         mail_password
+         ~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from
          ~subject:sessionmanagerinfo.registration_mail_subject >>= (fun b ->
          if b
-         then 
+         then
          self#container
          ~sp
          ~sd:Users.anonymous_sd
@@ -541,7 +541,7 @@ object (self)
          <p>"You'll soon receive an e-mail message at \
          the address you entered when you \
          registered your account."] }}
-         else 
+         else
          self#container
          ~sp
          ~sd:Users.anonymous_sd
@@ -566,7 +566,7 @@ object (self)
              {: Eliom_duce.Xhtml.post_form
                 ~service:srv_edit_done
                 ~sp
-                (fun (pwd, (pwd2, (desc, email))) -> 
+                (fun (pwd, (pwd2, (desc, email))) ->
                    {{ [<table>[
                           <tr>[
                             <td>"login name: "
@@ -575,40 +575,40 @@ object (self)
                           <tr>[
                             <td>"real name: "
                             <td>[{: Eliom_duce.Xhtml.string_input
-                                    ~input_type:{:"text":} 
+                                    ~input_type:{:"text":}
                                     ~value:u.user_fullname
                                     ~name:desc () :}]
                           ]
                           <tr>[
                             <td>"e-mail address: "
                             <td>[{: Eliom_duce.Xhtml.string_input
-                                    ~input_type:{:"text":} 
+                                    ~input_type:{:"text":}
                                     ~value:(match u.user_email with
                                               | None -> ""
                                               | Some e -> e)
                                     ~name:email () :}]
                           ]
                           <tr>[
-                            <td colspan="2">"Enter a new password twice, or 
+                            <td colspan="2">"Enter a new password twice, or
                                                 leave blank for no changes:"
                           ]
                           <tr>[
                             <td>[{: Eliom_duce.Xhtml.string_input
-                                    ~input_type:{:"password":} 
-                                    ~value:"" 
+                                    ~input_type:{:"password":}
+                                    ~value:""
                                     ~name:pwd () :}]
                             <td>[{: Eliom_duce.Xhtml.string_input
-                                    ~input_type:{:"password":} 
-                                    ~value:"" 
+                                    ~input_type:{:"password":}
+                                    ~value:""
                                     ~name:pwd2 () :}]
                           ]
                           <tr>[
                             <td>[{: Eliom_duce.Xhtml.string_input
-                                    ~input_type:{: "submit" :} 
+                                    ~input_type:{: "submit" :}
                                     ~value:"Confirm" () :}]
                           ]
                         ]]
-                    }}) () :} 
+                    }}) () :}
              <p>[<strong>{: err :}]] }}
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
 
@@ -618,7 +618,7 @@ object (self)
     if logged
     then
       Users.get_user_data sp sd >>= fun user ->
-      if not (valid_emailaddr email) then  
+      if not (valid_emailaddr email) then
         self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
       else if pwd <> pwd2 then
         self#page_edit "ERROR: Passwords don't match!" sp () ()
@@ -658,7 +658,7 @@ object (self)
     begin
       Eliom_duce.Xhtml.register ?sp
         ~service:internal_srv_register (self#page_register "");
-(*VVV For all post services: 
+(*VVV For all post services:
   Use redirections instead of pages to prevent re-posting data? *)
       Eliom_duce.Xhtml.register ?sp
         ~service:srv_register_done self#page_register_done;

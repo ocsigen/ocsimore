@@ -31,9 +31,9 @@ open Eliom_duce.Xhtml
 type sessionmanager_in =
 {
   url: string list;
-  login_actions: server_params -> User_sql.Types.userdata -> unit Lwt.t;
+  login_actions: server_params -> User_sql.Types.userid -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
-  administrator: User_sql.Types.userdata;
+  administrator: User_sql.Types.userid;
 }
 
 
@@ -75,7 +75,7 @@ object
     towards a POST service ... It uses a redirection instead of an action. *)
 
   method add_login_actions:
-      (server_params -> User_sql.Types.userdata -> unit Lwt.t) -> unit
+      (server_params -> User_sql.Types.userid -> unit Lwt.t) -> unit
 
   method add_logout_actions:
       (server_params -> unit Lwt.t) -> unit

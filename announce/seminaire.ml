@@ -215,7 +215,7 @@ let create_event =
                title description comment status ->
              Event_sql.insert_persons persons >>= fun persons ->
              Event_sql.insert_event
-                Common.wiki_info Users.admin.user_id
+                Common.wiki_info Users.admin
                 cat.cat_id start finish room location
                 persons title description comment status >>= fun id ->
              Lwt.return
@@ -266,7 +266,7 @@ let edit_event =
               in
               Event_sql.insert_persons persons >>= fun persons ->
               Event_sql.update_event
-                Common.wiki_id Users.admin.user_id
+                Common.wiki_id Users.admin
                 ev' (Some desc) comment persons >>= fun () ->
               Lwt.return
                 {{<html xmlns="http://www.w3.org/1999/xhtml">

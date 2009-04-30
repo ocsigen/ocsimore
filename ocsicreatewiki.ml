@@ -10,14 +10,14 @@ type wiki_data =
     {
       name:string;
       path:string list;
-      readers:userid list option;
-      writers:userid list option;
-      rights_adm:userid list option;
-      wikiboxes_creators:userid list option;
-      container_adm:userid list option;
-      page_creators:userid list option;
-      css_editors:userid list option;
-      admins:userid list option;
+      readers:user list option;
+      writers:user list option;
+      rights_adm:user list option;
+      wikiboxes_creators:user list option;
+      container_adm:user list option;
+      page_creators:user list option;
+      css_editors:user list option;
+      admins:user list option;
       boxrights:bool
     }
 
@@ -52,49 +52,49 @@ let wiki_data =
           {data with path = path}
           l
     | (Simplexmlparser.Element ("readers", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with readers = Some a}
           l
     | (Simplexmlparser.Element ("writers", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with writers = Some a}
           l
     | (Simplexmlparser.Element ("rightsadm", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with rights_adm = Some a}
           l
     | (Simplexmlparser.Element ("wikiboxescreators", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with wikiboxes_creators = Some a}
           l
     | (Simplexmlparser.Element ("containeradm", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with container_adm = Some a}
           l
     | (Simplexmlparser.Element ("pagecreators", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with page_creators = Some a}
           l
     | (Simplexmlparser.Element ("csseditors", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with css_editors = Some a}
           l
     | (Simplexmlparser.Element ("admins", [], s))::l -> 
-        Users.group_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with admins = Some a}

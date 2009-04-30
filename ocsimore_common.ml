@@ -39,3 +39,10 @@ let get_sd ~sp =
 
 let clear_sd ~sd =
   Polytables.clear sd
+
+
+
+type 'a sd_sp =
+  sp:Eliom_sessions.server_params ->
+  sd:session_data ->
+  'a

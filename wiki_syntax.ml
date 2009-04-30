@@ -686,8 +686,8 @@ let _ =
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->
-                      Users.get_user_id_by_name g >>= fun group ->
-                        Users.in_group ~sp ~sd ~group ())
+                      Users.get_user_from_name g >>= fun group ->
+                      Users.in_group ~sp ~sd ~group ())
                    (function _ -> Lwt.return false)
              | ("http_code", "404") ->
                  Lwt.return (Wiki_widgets_interface.page_displayable sd =

@@ -17,30 +17,3 @@
  *)
 open User_sql.Types
 
-val get_user_by_id:   userid -> userdata Lwt.t
-val get_user_by_name: string -> userdata Lwt.t
-
-
-(** Returns the groups for one user (level 1) *)
-val get_groups : userid:userid -> userid list Lwt.t
-
-
-val add_to_group: userid:userid -> groupid:userid -> unit Lwt.t
-
-val remove_from_group: userid:userid -> groupid:userid -> unit Lwt.t
-
-val delete_user: userid:userid -> unit Lwt.t
-
-
-
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
-val update_data:
-  userid:User_sql.userid ->
-  password:User_sql.pwd ->
-  fullname:string ->
-  email:string option ->
-  ?groups:User_sql.userid list ->
-  unit ->
-  unit Lwt.t
-*)

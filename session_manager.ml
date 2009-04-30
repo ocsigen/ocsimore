@@ -35,9 +35,9 @@ open Users
 type sessionmanager_in = 
 {
   url: string list;
-  login_actions: server_params -> userdata -> unit Lwt.t;
+  login_actions: server_params -> userid -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
-  administrator: userdata;
+  administrator: userid;
 }
 
 
@@ -121,8 +121,8 @@ object (self)
       (fun () -> 
          authenticate ~name:usr ~pwd  >>= fun user -> 
          let sd = Ocsimore_common.create_empty_sd () in
-         Users.set_session_data sp sd user >>= fun () -> 
-         all_login_actions sp user >>= fun () ->
+         Users.set_session_data sp sd user.user_id >>= fun () -> 
+         all_login_actions sp user.user_id >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp 
            Eliom_services.void_hidden_coservice'
          (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
@@ -192,7 +192,8 @@ object
     Lwt.catch
       (fun () -> 
          Lwt.catch
-           (fun () -> Users.authenticate ~name:usr ~pwd)
+           (fun () -> Users.authenticate ~name:usr ~pwd
+                      >>= fun u -> Lwt.return u.user_id)
            (function
               | Users.UseAuth u -> 
                   (* check PAM pwd *)
@@ -207,7 +208,7 @@ object
                     ~fullname:usr
 (*VVV Can we get the full name from PAM? 
   If yes, do we need to actualize it every time the user connects? *)
-                    ~groups:[Users.authenticated_users.user_id]
+                    ~groups:[basic_user Users.authenticated_users]
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 
@@ -234,7 +235,8 @@ object
     Lwt.catch
       (fun () -> 
          Lwt.catch
-           (fun () -> Users.authenticate ~name:usr ~pwd)
+           (fun () -> Users.authenticate ~name:usr ~pwd
+                      >>= fun u -> Lwt.return u.user_id)
            (function
               | Users.UseAuth u -> 
                   (* check NIS pwd *)
@@ -249,7 +251,7 @@ object
                     ~fullname:usr
 (*VVV Can we get the full name from NIS? 
   If yes, do we need to actualize it every time the user connects? *)
-                    ~groups:[Users.authenticated_users.user_id]
+                    ~groups:[basic_user Users.authenticated_users]
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 

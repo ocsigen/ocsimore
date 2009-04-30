@@ -54,8 +54,7 @@ let default_container_page =
 
 let send_static_file sp sd wiki dir page =
   Wiki.readers_group wiki.wiki_id >>= fun g ->
-  Users.get_user_id ~sp ~sd >>= fun userid ->
-  Users.in_group ~sp ~sd ~user:userid ~group:g () >>= function
+  Users.in_group ~sp ~sd ~group:(basic_user g) () >>= function
     | true -> Eliom_predefmod.Files.send ~sp (dir^"/"^page)
     | false -> Lwt.fail Eliom_common.Eliom_404
 
@@ -185,13 +184,13 @@ let register_wiki ?sp ~path ~(wikibox_widget:Wiki_widgets_interface.interactive_
 let create_and_register_wiki ~title ~descr
     ?sp
     ?path
-    ?(readers = [Users.anonymous.user_id])
-    ?(writers = [Users.authenticated_users.user_id])
+    ?(readers = [basic_user Users.anonymous])
+    ?(writers = [basic_user Users.authenticated_users])
     ?(rights_adm = [])
-    ?(wikiboxes_creators = [Users.authenticated_users.user_id])
+    ?(wikiboxes_creators = [basic_user Users.authenticated_users])
     ?(container_adm = [])
-    ?(page_creators = [Users.authenticated_users.user_id])
-    ?(css_editors = [Users.authenticated_users.user_id])
+    ?(page_creators = [basic_user Users.authenticated_users])
+    ?(css_editors = [basic_user Users.authenticated_users])
     ?(admins = [])
     ?(boxrights = true)
     ?staticdir
@@ -397,10 +396,11 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
   (fun sp () (wiki, page) ->
      let sd = Ocsimore_common.get_sd sp in
      Users.get_user_id ~sp ~sd
-     >>= fun userid ->
+     >>= fun user ->
      Wiki.page_creators_group wiki
      >>= fun creators ->
-     Users.in_group ~sp ~sd ~user:userid ~group:creators ()
+     Users.in_group ~sp ~sd ~user:(basic_user user)
+       ~group:(basic_user creators) ()
      >>= function
        | true ->
            Lwt.catch
@@ -413,7 +413,7 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
              )
              (function
                 | Not_found ->
-                    Wiki.new_wikibox ~wiki ~author:userid
+                    Wiki.new_wikibox ~wiki ~author:user
                       ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                   page (wiki_id_s wiki))
                       ~content:("== Page "^page^"==")
@@ -433,14 +433,14 @@ and action_create_css = Eliom_predefmod.Actions.register_new_post_coservice'
   (fun sp () (wiki, page) ->
      let sd = Ocsimore_common.get_sd sp in
      Users.get_user_id ~sp ~sd
-     >>= fun userid ->
+     >>= fun user ->
      (* XXX rights *)
      let text = Some "" (* empty CSS by default *) in
      match page with
        | None -> (* Global CSS for the wiki *)
            (Wiki_sql.get_css_for_wiki wiki >>= function
               | None ->
-                  Wiki_sql.set_css_for_wiki ~wiki ~author:userid text
+                  Wiki_sql.set_css_for_wiki ~wiki ~author:user text
                   >>= fun () ->
                   Lwt.return [Ocsimore_common.Session_data sd]
               | Some _ -> Lwt.fail Css_already_exists
@@ -449,7 +449,7 @@ and action_create_css = Eliom_predefmod.Actions.register_new_post_coservice'
        | Some page -> (* Global CSS for the wiki *)
            Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
              | None ->
-                 Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:userid text
+                 Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:user text
                  >>= fun () ->
                  Lwt.return [Ocsimore_common.Session_data sd]
              | Some _ -> Lwt.fail Css_already_exists

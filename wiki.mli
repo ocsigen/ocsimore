@@ -78,14 +78,14 @@ val really_create_wiki :
   title:string ->
   descr:string ->
   ?path: string list ->
-  ?readers:userid list -> 
-  ?writers:userid list -> 
-  ?rights_adm:userid list ->
-  ?wikiboxes_creators:userid list ->
-  ?container_adm:userid list ->
-  ?page_creators:userid list ->
-  ?css_editors:userid list ->
-  ?admins:userid list ->
+  ?readers:user list -> 
+  ?writers:user list -> 
+  ?rights_adm:user list ->
+  ?wikiboxes_creators:user list ->
+  ?container_adm:user list ->
+  ?page_creators:user list ->
+  ?css_editors:user list ->
+  ?admins:user list ->
   ?boxrights:bool ->
   ?staticdir:string ->
   ?wiki_css:string ->

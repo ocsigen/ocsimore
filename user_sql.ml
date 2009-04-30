@@ -36,10 +36,6 @@ module Types = struct
   let user_from_sql (u : int32) = (Opaque.int32_t u : userid)
   let sql_from_user (u : userid) = Opaque.t_int32 u
 
-  let userid_s i = Int32.to_string (sql_from_user i)
-  let s_userid s = (Opaque.int32_t (Int32.of_string s) : userid)
-
-
   type pwd =
     | Connect_forbidden
     | Ocsimore_user_plain of string
@@ -54,9 +50,33 @@ module Types = struct
     mutable user_fullname: string;
     mutable user_email: string option;
     user_dyn: bool;
+    user_parameterized_group: bool;
   }
+
+
+  (* 'a is a phantome type, used to represent the type of the argument
+     of the user *)
+  type 'a parameterized_user = userid
+
+  type user =
+    | Ground of userid
+    | Applied of userid * int32
+
+
+  let apply_parameterized_user g v = Applied (g, Opaque.t_int32 v)
+  let basic_user v = Ground v
+
+  let userid_from_user = function
+    | Ground u -> u
+    | Applied (u, _) -> u
+
 end
 open Types
+
+
+let decompose_user = function
+  | Ground u -> (sql_from_user u, None)
+  | Applied (u, v) -> (sql_from_user u, Some v)
 
 
 (* Transforms an incoming value of type [pwd], in which
@@ -64,6 +84,8 @@ open Types
    into the outgoing value of type [pwd] ([Ocsimore_user_crypt] contains the
    encrypted password) and the database representation of this value,
    for the columns password and authtype respectively *)
+(* Notice that "g" is used in the database for parametrized groups. However
+   it is still translated as having authtype [Connect_forbidden] *)
 let pass_authtype_from_pass pwd = match pwd with
   | Connect_forbidden ->
       Lwt.return (pwd, (None, "l"))
@@ -80,28 +102,55 @@ let pass_authtype_from_pass pwd = match pwd with
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
 
 
-let populate_groups db id groups =
-  let id = sql_from_user id in
-  match groups with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun groupid ->
-             let groupid = sql_from_user groupid in
-             Lwt.catch
-               (fun () ->
-                  PGSQL(db) "INSERT INTO userrights \
-                   VALUES ($id, $groupid)")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while setting user groups: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          groups
+
+let add_to_group_aux db (u, vu) (g, vg) =
+  Lwt.catch
+    (fun () ->
+       PGSQL(db) "INSERT INTO userrights (id, groupid, idarg, groupidarg)\
+                  VALUES ($u, $g, $?vu, $?vg)")
+    (function
+       | Sql.PGOCaml.PostgreSQL_Error _ ->
+           Ocsigen_messages.warning "Ocsimore: duplicate group insertion";
+           Lwt.return ()
+       | e -> Lwt.fail e
+    )
+
+let populate_groups db user groups =
+  let (u, vu) = decompose_user user in
+  Lwt_util.iter_serial (fun g -> add_to_group_aux db (u, vu) (decompose_user g))
+    groups
+
+let add_to_group_ ~user ~group =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       add_to_group_aux db (decompose_user user) (decompose_user group))
+
+let remove_from_group_ ~user ~group =
+  let (u, vu) = decompose_user user
+  and (g, vg) = decompose_user group
+  in
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       match vu, vg with
+         | None, None ->
+             PGSQL(db) "DELETE FROM userrights
+                  WHERE id = $u AND groupid = $g
+                  AND   idarg IS NULL AND groupidarg IS NULL"
+         | Some vu, None ->
+             PGSQL(db) "DELETE FROM userrights
+                  WHERE id = $u AND groupid = $g
+                  AND   idarg = $vu AND groupidarg IS NULL"
+         | Some vu, Some vg ->
+             PGSQL(db) "DELETE FROM userrights
+                  WHERE id = $u AND groupid = $g
+                  AND   idarg = $vu AND groupidarg = $vg"
+         | None, Some vg ->
+             PGSQL(db) "DELETE FROM userrights
+                  WHERE id = $u AND groupid = $g
+                  AND   idarg IS NULL AND groupidarg = $vg"
+    )
+
+
 
 let new_user ~name ~password ~fullname ~email ~groups ~dyn =
   pass_authtype_from_pass password
@@ -109,23 +158,35 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
   Sql.full_transaction_block
     (fun db ->
        (match password, email with
-          | None, None -> 
+          | None, None ->
               PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
                     VALUES ($name, $fullname, $dyn, $authtype)"
-          | Some pwd, None -> 
+          | Some pwd, None ->
               PGSQL(db) "INSERT INTO users (login, password, fullname, dyn, authtype) \
                     VALUES ($name, $pwd, $fullname, $dyn, $authtype)"
-          | None, Some email -> 
+          | None, Some email ->
               PGSQL(db) "INSERT INTO users (login, fullname, email, dyn, authtype) \
                     VALUES ($name, $fullname, $email, $dyn, $authtype)"
-          | Some pwd, Some email -> 
+          | Some pwd, Some email ->
               PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn, authtype) \
                     VALUES ($name, $pwd, $fullname, $email, $dyn, $authtype)"
-       ) >>= fun () -> 
-    serial4 db "users_id_seq" >>= fun id ->
-    let id = user_from_sql id in
-    populate_groups db id groups >>= fun () ->
-    Lwt.return (id, pwd))
+       ) >>= fun () ->
+       serial4 db "users_id_seq"
+       >>= fun id ->
+       let id = user_from_sql id in
+       populate_groups db (basic_user id) groups >>= fun () ->
+       Lwt.return (id, pwd)
+    )
+
+let new_parametrized_group ~name ~fullname =
+  let authtype = "g" in
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
+                  VALUES ($name, $fullname, FALSE, $authtype)"
+       >>= fun () ->
+       serial4 db "users_id_seq"
+       >>= fun id -> Lwt.return (user_from_sql id))
 
 let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
   let password = match authtype, pwd with
@@ -136,7 +197,8 @@ let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
   in
   Lwt.return ({ user_id = user_from_sql id; user_login = login;
                 user_pwd = password; user_fullname = name;
-                user_email = email; user_dyn = dyn })
+                user_email = email; user_dyn = dyn;
+                user_parameterized_group = (authtype = "g") })
 
 
 let find_user_by_name_ name =
@@ -148,6 +210,15 @@ let find_user_by_name_ name =
          | [] -> Lwt.fail Not_found
          | r :: _ -> wrap_userdata r)
 
+let find_userid_by_name_ name =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT id FROM users WHERE login = $name"
+       >>= function
+         | [] -> Lwt.fail Not_found
+         | r :: _ -> Lwt.return (user_from_sql r))
+
+
 let find_user_by_id_ id =
   let id = sql_from_user id in
   Lwt_pool.use Sql.pool
@@ -158,25 +229,6 @@ let find_user_by_id_ id =
          | [] -> Lwt.fail Not_found
          | r :: _ -> wrap_userdata r)
 
-let add_to_group_ ~userid ~groupid =
-  let userid = sql_from_user userid and groupid = sql_from_user groupid in
-  Lwt_pool.use Sql.pool (fun db ->
-  Lwt.catch
-    (fun () -> PGSQL(db) "INSERT INTO userrights VALUES ($userid, $groupid)")
-    (function
-(*VVV How to insert only if it does not exists? *)
-       | Sql.PGOCaml.PostgreSQL_Error _ -> 
-           Ocsigen_messages.warning "Ocsimore: duplicate group insertion";
-           Lwt.return ()
-       | e -> Lwt.fail e
-    ))
-
-let remove_from_group_ ~userid ~groupid =
-  let userid = sql_from_user userid and groupid = sql_from_user groupid in
-  Lwt_pool.use Sql.pool
-    (fun db ->
-       PGSQL(db) "DELETE FROM userrights
-                  WHERE id = $userid AND groupid = $groupid")
 
 let delete_user_ ~userid =
   let userid = sql_from_user userid in
@@ -217,11 +269,126 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
     )
 *)
 
-let get_groups_ ~userid =
-  let userid = sql_from_user userid in
+let get_groups_ ~user =
+  let u, vu = decompose_user user in
   Lwt_pool.use Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT groupid FROM userrights WHERE id = $userid" >>=
-       fun r -> Lwt.return (Opaque.int32_t_list r)
+       (match vu with
+          | None ->
+              PGSQL(db) "SELECT groupid, groupidarg FROM userrights
+                         WHERE id = $u AND idarg IS NULL"
+          | Some vu ->
+              PGSQL(db) "SELECT groupid, groupidarg FROM userrights
+                         WHERE id = $u AND idarg = $vu"
+       ) >>= fun l ->
+         Lwt.return (List.map
+                       (function
+                          | (g, None) -> basic_user (user_from_sql g)
+                          | (g, Some v) -> Applied (user_from_sql g, v)
+                       ) l)
     )
 
+
+
+
+
+
+let debug_print_cache = ref false
+
+let print_cache s =
+  if !debug_print_cache then print_endline s
+
+
+module GroupCache = Cache.Make (struct
+                             type key = user
+                             type value = user list
+                           end)
+
+let group_cache = GroupCache.create (fun u -> get_groups_ u) 256
+
+let get_groups ~user =
+  print_cache "cache groups ";
+  GroupCache.find group_cache user
+
+
+exception NotBasicUser of userdata
+
+
+
+module IUserCache = Cache.Make (struct
+                          type key = userid
+                          type value = userdata
+                        end)
+
+
+module NUseridCache = Cache.Make (struct
+                          type key = string
+                          type value = userid
+                        end)
+
+let iusercache =
+  IUserCache.create (fun id -> find_user_by_id_ id) 64
+
+let nuseridcache =
+  NUseridCache.create
+    (fun name ->
+       find_user_by_name_ name
+       >>= fun u ->
+       if u.user_parameterized_group then
+         Lwt.fail (NotBasicUser u)
+       else (
+         Lwt.return u.user_id)
+    ) 64
+
+
+let get_basicuser_data i =
+  print_cache "cache iuser ";
+  IUserCache.find iusercache i
+
+let get_parameterized_user_data = get_basicuser_data
+
+let get_user_data = function
+  | Applied (i, _) | Ground i -> get_basicuser_data i
+
+
+let get_basicuser_by_login n =
+  print_cache "cache nuser ";
+  NUseridCache.find nuseridcache n
+
+
+let add_to_group ~user ~group =
+  GroupCache.remove group_cache user;
+  add_to_group_ ~user ~group
+
+let remove_from_group ~user ~group =
+  GroupCache.remove group_cache user;
+  remove_from_group_ ~user ~group
+
+let delete_user ~userid =
+  (* We clear all the caches, as we should delete iterate over all the
+     parameters if [userid] is a parametrized group *)
+  IUserCache.clear iusercache;
+  NUseridCache.clear nuseridcache;
+  GroupCache.clear group_cache;
+  delete_user_ ~userid
+
+(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(*
+let update_data ~userid ~password ~fullname ~email ?groups () =
+  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
+  IUserCache.remove iusercache userid;
+  NUserCache.remove nusercache n;
+  GroupCache.remove group_cache userid;
+  User_sql.update_data_ ~userid ~password ~fullname ~email ?groups ()
+*)
+
+
+let userid_to_string u =
+  get_basicuser_data u
+  >>= fun { user_login = r } -> Lwt.return r
+
+let user_to_string = function
+  | Ground u -> userid_to_string u
+  | Applied (u, v) ->
+      userid_to_string u >>= fun s ->
+      Lwt.return (Printf.sprintf "%s(%ld)" s v)
