@@ -13,5 +13,5 @@
 <forum/ocsicreateforum.ml*> : ocamlduce
 <**/*_wikiext.ml*> : ocamlduce
 <forum/forum_site.ml*> : ocamlduce
-<**/*_client*> : obrowser
+<**/*_client*> : pkg_obrowser, pkg_ocsigen
 "widget.ml" : warn_v

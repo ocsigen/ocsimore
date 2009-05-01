@@ -26,6 +26,10 @@
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+let fresh_id = 
+  let c = ref 0 in
+  fun () -> c := !c+1; "id"^string_of_int !c
+
 class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
   (add_message_service, moderate_message_service, delete_message_service) =
 object (self)
@@ -57,8 +61,8 @@ object (self)
             ]
           }}
     in
-    Lwt.return
-      {{ [
+(*    Lwt.return
+       {{ [
          <span class={: comment_class :}>
            {: Ocamlduce.Utf8.make "Comment" :}
          <div class={: comment_class :}>[
@@ -66,21 +70,33 @@ object (self)
               ~a:{{ { accept-charset="utf-8" } }}
               ~service:add_message_service
               ~sp draw_form () :}]
-         ] }}
-(*
-        let rec n1 = {{ <span class={: comment_class :}
-                          onclick=(fun () -> show n1 n2) >
-                          {: Ocamlduce.Utf8.make "Comment" :} }}
-(*               onclick="caml_run_from_table(main_vm, 132)" *)
-        and n2 =
-          {{ <div class={: comment_class :}>[
-               {: Eliom_duce.Xhtml.post_form
-                  ~a:{{ { accept-charset="utf-8" } }}
-                  ~service:add_message_service
-                  ~sp draw_form () :}] }}
-        in 
-        {{ [ n1 n2 ] }}
-*)
+         ] }} *)
+  let jsmarshal v =
+    let s = Marshal.to_string v [] in
+    let rec pp i =
+      if i < 0 then ""
+      else if i = 0 then Printf.sprintf "0x%02X" (Char.code s.[i])
+      else pp (pred i) ^ "," ^ Printf.sprintf "0x%02X" (Char.code s.[i])
+    in "[" ^ pp (String.length s - 1) ^ "]"
+  in
+  let n1_id = fresh_id () in
+  let n2_id = fresh_id () in
+  let rec n1 = {{ <span class={: comment_class :}
+                    id={: n1_id :}
+                    onclick={: "caml_run_from_table(main_vm,132,"
+                             ^ jsmarshal (n1_id, n2_id) ^ ")" :} >
+                    {: Ocamlduce.Utf8.make "Comment" :} }}
+  and n2 =
+    {{ <div id={: n2_id :}
+            class={: comment_class :}
+              >[
+         {: Eliom_duce.Xhtml.post_form
+            ~a:{{ { accept-charset="utf-8" } }}
+            ~service:add_message_service
+            ~sp draw_form () :}] }}
+  in 
+  Lwt.return {{ [ n1 n2 ] }}
+
 
   method display_admin_line ~sp ~sd:_sd ~role 
     (message_id, _subjecto, _authorid, _datetime, parent_id, _root_id, _forum_id,

@@ -93,9 +93,12 @@ let _ = dispatch begin function
        flag ["ocaml"; "link"; "with_nis_chkpwd"] (S[A "nis_chkpwd.cma"]);
 
        (* With obrowser's standard library *)
-       flag ["ocaml"; "compile"; "obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
-       flag ["ocaml"; "link"; "obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
-
+       flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"]);
+       flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"]);
+(*
+       flag ["ocaml"; "compile"; "pkg_obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
+       flag ["ocaml"; "link"; "pkg_obrowser"] & (S[A"-nostdlib"; A"-I" ; A"/home/balat/kroko/obrowser/trunk/rt/caml"]);
+*)
    | _ -> ()
 end
 

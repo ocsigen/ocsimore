@@ -25,8 +25,10 @@ include Makefile.config
 OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
+OBROWSERDIR := $(shell ocamlfind query obrowser)
+ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.ext.eliom_obrowser)
 
-all: ocsimore.mllib check_db nis_chkpwd_ ocamlbuild
+all: ocsimore.mllib check_db nis_chkpwd_ ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js
 
 nis_chkpwd_:
 	make -C nis_chkpwd
@@ -46,6 +48,17 @@ $(MYOCAMLFIND):
 ocsimore.mllib: ocsimore.mllib.IN
 	cp -f ocsimore.mllib.IN ocsimore.mllib
 	if [ $(PAM) = YES ]; then echo Ocsimore_pam >> ocsimore.mllib; fi
+
+static/ocsimore_client.uue:
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser.cmo _build/forum/forum_client.cmo
+	uuencode ocsimore_client stdout > static/ocsimore_client.uue
+
+static/vm.js: $(OBROWSERDIR)/vm.js
+	cp -f $(OBROWSERDIR)/vm.js static
+
+static/eliom_obrowser.js: $(ELIOMOBROWSERDIR)/eliom_obrowser.js
+	cp -f $(ELIOMOBROWSERDIR)/eliom_obrowser.js static
+
 
 clean:
 	rm -Rf _build

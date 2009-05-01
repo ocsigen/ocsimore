@@ -1,20 +1,19 @@
-(*
 open Js
 
+let show (i1, i2) =
+  Js.Node.set_attribute (Js.get_element_by_id i2) "style" "display:block";
+  Js.Node.set_attribute (Js.get_element_by_id i1) "style" "display:none"
+
 let _ =
-  register_closure
+  Eliom_obrowser.register_closure
     132
-    (fun () -> alert "test !")
-*)
+    show
+
 
 (*
 let i1 = Js.get_element_by_id "__23"
 let i2 = Js.get_element_by_id "__24"
 
-let show i1 i2 =
-  Js.alert "aaa";
-  Js.Node.set_attribute i2 "style" "display:block";
-  Js.Node.set_attribute i1 "style" "display:none"
 
 let _ = Js.Node.register_event i1 "onclick" (show i1) i2
 *)

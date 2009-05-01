@@ -71,6 +71,9 @@ object (self)
        <html xmlns="http://www.w3.org/1999/xhtml">[
          <head>[
            <title>title
+           <script type="text/javascript" src="vm.js">[]
+           <script type="text/javascript" src="eliom_obrowser.js">[]
+           <script type="text/javascript" src="forum.js">[]
              !css
          ]
          <body>content
