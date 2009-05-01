@@ -962,7 +962,8 @@ Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
               | Some s ->
                   let href = Ocsigen_lib.remove_slash_at_beginning
                     (Neturl.split_path href)
-                  in Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s ~sp href
+                  in Eliom_duce.Xhtml.make_uri
+                       ?https ?fragment ~service:s ~sp href
               | None -> href
          ),
          args,

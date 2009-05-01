@@ -600,9 +600,16 @@ let _ =
                 Ocsigen_lib.sep '|' s 
               with Not_found -> s, s
             in
+            Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
             a_content_of_wiki wiki_id bi text >>= fun text2 ->
-            if Eliom_sessions.get_current_sub_path_string
-              bi.Wiki_widgets_interface.bi_sp = link
+            let b = 
+              match wiki_info.Wiki_sql.Types.wiki_pages with
+                | Some dir ->
+                    Eliom_sessions.get_current_sub_path_string
+                      bi.Wiki_widgets_interface.bi_sp = dir^"/"^link
+                | None -> false
+            in
+            if b
             then 
               let classe = match classe with
                 | None -> {{ { class="wikimenu_current" } }}
