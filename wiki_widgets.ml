@@ -67,13 +67,14 @@ object (self)
 
   method display_container ?(css={{ [] }}) ?(title="Ocsimore wiki") content =
     let title = Ocamlduce.Utf8.make title in
+(*VVV à revoir : fichiers statiques *)
     {{
        <html xmlns="http://www.w3.org/1999/xhtml">[
          <head>[
            <title>title
            <script type="text/javascript" src="vm.js">[]
            <script type="text/javascript" src="eliom_obrowser.js">[]
-           <script type="text/javascript" src="forum.js">[]
+           <script type="text/javascript" src="ocsimore.js">[]
              !css
          ]
          <body>content

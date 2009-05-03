@@ -1,0 +1,43 @@
+description = "Ocsimore content management system"
+version = "_VERSION_"
+requires = "ocsigen, ocsigen.ext.eliom, pgocaml"
+archive(byte) = "ocsimore.cma"
+archive(native,-plugin) = "ocsimore.cmxa"
+archive(native,plugin) = "ocsimore.cmxs"
+
+package "ocsisite" (
+  requires = "ocsimore"
+  version = "[distributed with Ocsimore]"
+  description = "Eliom module to load for creating an Ocsimore site"
+  archive(byte) = "ocsisite.cmo"
+  archive(native,-plugin) = "ocsisite.cmx"
+  archive(native,plugin) = "ocsisite.cmxs"
+)
+
+package "wikiperso" (
+  requires = "ocsimore"
+  version = "[distributed with Ocsimore]"
+  description = "Eliom module to load for creating personal wikis for users"
+  archive(byte) = "wikiperso.cmo"
+  archive(native,-plugin) = "wikiperso.cmx"
+  archive(native,plugin) = "wikiperso.cmxs"
+)
+
+package "forum" (
+  requires = "ocsimore"
+  version = "[distributed with Ocsimore]"
+  description = "Forums, blogs or news for Ocsimore"
+  archive(byte) = "forum.cma"
+  archive(native,-plugin) = "forum.cmxa"
+  archive(native,plugin) = "forum.cmxs"
+
+  package "site" (
+    requires = "ocsimore.forum"
+    version = "[distributed with Ocsimore]"
+    description = "Eliom module for Ocsimore forums"
+    archive(byte) = "forum_site.cmo"
+    archive(native,-plugin) = "forum_site.cmx"
+    archive(native,plugin) = "forum_site.cmxs"
+  )
+)
+
