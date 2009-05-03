@@ -1,14 +1,14 @@
-= Development version =
+===== Development version =====
   * Forum
   * Now using Obrowser
 
-= 0.5
+===== 0.5
 
   * Eliom extension wikiperso, with per-user wikis (see wikiperso.ml)
   * Wikis are now aware of their url
   * Limited form of redirection for wikipages is now possible
 
-= 0.4
+===== 0.4
 
   * Implementation of a wiki
   * Wikicreole syntax, with extensions
@@ -23,14 +23,14 @@
   * Updating installation
   * Now using lwt branch of pgocaml
 
-= 0.3
+===== 0.3
 
   * New object model, forums
 
-= 0.2
+===== 0.2
 
   * Full reimplementation, forums, users, and basic wiki
 
-= 0.1
+===== 0.1
 
   * First experimental version
