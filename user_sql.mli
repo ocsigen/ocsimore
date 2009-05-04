@@ -41,15 +41,20 @@ module Types : sig
   }
 
 
-  type 'a parameterized_user
+  type 'a parameterized_group
 
   type user
 
-  val apply_parameterized_user:
-    'a parameterized_user ->'a Opaque.int32_t -> user
+  val apply_parameterized_group:
+    'a parameterized_group ->'a Opaque.int32_t -> user
   val basic_user : userid -> user
 
-(* val userid_from_user: user -> userid *)
+
+  type 'a admin_writer_reader = {
+    grp_admin: 'a parameterized_group;
+    grp_writer: 'a parameterized_group;
+    grp_reader: 'a parameterized_group;
+  }
 
 end
 open Types
@@ -70,7 +75,7 @@ val new_user:
 val new_parametrized_group:
   name:string ->
   fullname:string ->
-  'a parameterized_user Lwt.t
+  'a parameterized_group Lwt.t
 
 
 
@@ -81,7 +86,7 @@ exception NotBasicUser of userdata
 val get_basicuser_by_login: string -> userid Lwt.t
 
 val get_basicuser_data : userid -> userdata Lwt.t
-val get_parameterized_user_data: 'a parameterized_user -> userdata Lwt.t
+val get_parameterized_user_data: 'a parameterized_group -> userdata Lwt.t
 val get_user_data : user -> userdata Lwt.t
 
 
@@ -90,6 +95,9 @@ val get_groups : user:user -> user list Lwt.t
 
 val add_to_group: user:user -> group:user -> unit Lwt.t
 val remove_from_group: user:user -> group:user -> unit Lwt.t
+
+val add_generic_inclusion :
+  subset:'a parameterized_group -> superset:'a parameterized_group -> unit Lwt.t
 
 val delete_user: userid:userid -> unit Lwt.t
 
@@ -112,3 +120,19 @@ val update_data:
 
 val userid_to_string: userid -> string Lwt.t
 val user_to_string: user -> string Lwt.t
+
+
+module Rights : sig
+  (** Helper functions and definitions to define [admin_writer_reader]
+      objects *)
+
+  type admin_writer_reader_access =
+      { field : 'a. 'a admin_writer_reader -> 'a parameterized_group }
+
+  val grp_admin: admin_writer_reader_access
+  val grp_write: admin_writer_reader_access
+  val grp_read:  admin_writer_reader_access
+
+  val can_sthg: (admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
+
+end

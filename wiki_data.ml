@@ -26,33 +26,6 @@ open Wiki_sql.Types
 
 let (>>=) = Lwt.bind
 
-(*
-
-let create_static_group name fullname =
-  Lwt_unix.run (
-    Users.create_user
-      ~name:("#" ^ name)
-      ~pwd:Connect_forbidden
-      ~fullname
-      ~groups:[]
-      ()
-  )
-
-
-type admin_writer_reader = {
-  grp_admin: userid;
-  grp_writer: userid;
-  grp_reader: userid;
-}
-
-let grp_admin grp = grp.grp_admin
-let grp_write grp = grp.grp_writer
-let grp_read  grp = grp.grp_reader
-
-let can_sthg f =
-  f grp_admin,
-  f grp_write,
-  f grp_read
 
 
 let create_admin_writer_reader ~name ~descr =
@@ -65,64 +38,73 @@ let create_admin_writer_reader ~name ~descr =
      "Can write in " ^ descr,
      "Can read the " ^ descr)
   in
-  let ga, gw, gr =
-    create_static_group namea descra,
-    create_static_group namew descrw,
-    create_static_group namer descrr
-  in
   Lwt_unix.run (
-    (* XXX generic edge ! *)
-    Users.add_to_group ~user:(basic_user ga) ~group:(basic_user gw) >>= fun() ->
-    Users.add_to_group ~user:(basic_user gw) ~group:(basic_user gr)
-  );
-  { grp_admin = ga; grp_writer = gw; grp_reader = gr }
+    User_sql.new_parametrized_group namea descra >>= fun ga ->
+    User_sql.new_parametrized_group namew descrw >>= fun gw ->
+    User_sql.new_parametrized_group namer descrr >>= fun gr ->
+    User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
+    User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
+    Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr })
 
 
 (** All wiki-related groups *)
 
+(* XXX
 let wikis_creator = (* This group has no argument *)
   create_static_group "WikisCreators" "Users who can create new wikis"
+*)
+
+let aux_grp name descr =
+  Lwt_unix.run (User_sql.new_parametrized_group name descr)
 
 
-(** The following groups take a wiki id as argument *)
-let wiki_admins =
-  create_static_group "WikiAdmin" "All rights on the wiki"
+let wiki_admins : wiki_arg parameterized_group =
+  aux_grp "WikiAdmin" "All rights on the wiki"
 
 
-let wiki_wikiboxes_creators = create_static_group
+
+let wiki_wikiboxes_creators : wiki_arg parameterized_group = aux_grp
   "WikiWikiboxesCreator" "Can create wikiboxes in the wiki"
-let wiki_wikipages_creators = create_static_group
+let wiki_wikipages_creators : wiki_arg parameterized_group = aux_grp
   "WikiWikipagesCreator" "Can create wikipages in the wiki"
 
-let wiki_wikiboxes_grps = create_admin_writer_reader
-  ~name:"WikiWikiboxes"
-  ~descr:"the wikiboxes of the wiki"
+let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
+  create_admin_writer_reader
+    ~name:"WikiWikiboxes" ~descr:"the wikiboxes of the wiki"
 
-(*
+(* XXX
 let wiki_wikipages_admins, wiki_wikipages_writers, wiki_wikipages_readers =
   create_admin_writer_reader
     ~name:"WikiWikipages"
     ~descr:"the wikipages of the wiki"
 *)
 
-let wiki_wikicss_grps = create_admin_writer_reader
-  ~name:"WikiWikicss"
-  ~descr:"the css of the wiki"
+let wiki_wikicss_grps : wiki_arg admin_writer_reader =
+  create_admin_writer_reader
+    ~name:"WikiWikicss" ~descr:"the css of the wiki"
 
-let wiki_wikipagescss_grps = create_admin_writer_reader
-  ~name:"WikiWikipagescss"
-  ~descr:"the css of the wikipages of the wiki"
+let wiki_wikipagescss_grps : wiki_arg admin_writer_reader =
+  create_admin_writer_reader
+    ~name:"WikiWikipagescss" ~descr:"the css of the wikipages of the wiki"
 
 
 (** The following groups take a wikibox as argument. They are used to override
     generic wiki permissions. *)
-let wikibox_grps = create_admin_writer_reader
-  ~name:"Wikibox"
-  ~descr:"the wikibox"
+let wikibox_grps : wikibox_arg admin_writer_reader = create_admin_writer_reader
+  ~name:"Wikibox" ~descr:"the wikibox"
+
+
+(*
+(** These groups take a wikipage as argument *)
+let wikipagescss_grps : wikipage_arg admin_writer_reader =
+  create_admin_writer_reader
+    ~name:"WikiWikipagescss" ~descr:"the css of the wikipages"
+*)
+
 
 let () = Lwt_unix.run (
   let add_admin g =
-    Users.add_to_group ~group:g ~user:wiki_admins
+    User_sql.add_generic_inclusion ~superset:g ~subset:wiki_admins
   in
   add_admin wiki_wikiboxes_creators >>= fun () ->
   add_admin wiki_wikipages_creators >>= fun () ->
@@ -131,21 +113,21 @@ let () = Lwt_unix.run (
   add_admin wiki_wikipagescss_grps.grp_admin
 )
 
+let opaque_wikibox v = (Opaque.int32_t v : wikibox_arg Opaque.int32_t)
 
-let parametrized_group (group: userid) (_param : int32) = group
+open User_sql.Rights
 
-
-let wiki_to_32 (w : wiki) = Opaque.t_int32 w
 
 let can_sthg_wikitext f ~sp ~sd ~wb:(wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
   let g = if special_rights then
-    parametrized_group (f wikibox_grps) uid
+    apply_parameterized_group (f.field wikibox_grps) (opaque_wikibox uid)
   else
-    parametrized_group (f wiki_wikiboxes_grps) (wiki_to_32 wid)
+    apply_parameterized_group (f.field wiki_wikiboxes_grps) wid
   in
   Users.in_group ~sp ~sd ~group:g ()
+
 
 let can_admin_wikitext, can_write_wikitext, can_read_wikitext =
   can_sthg can_sthg_wikitext
@@ -153,40 +135,45 @@ let can_admin_wikitext, can_write_wikitext, can_read_wikitext =
 
 let can_sthg_wikicss f ~sp ~sd ~wiki =
   Wiki_sql.get_css_wikibox_for_wiki wiki
-  >>= function
-    | None -> Lwt.fail Not_found
+  >>= (function
+    | None ->
+        Lwt.return (apply_parameterized_group (f.field wiki_wikicss_grps) wiki)
     | Some wb ->
         Wiki_sql.get_wikibox_info (wiki, wb)
-        >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights}->
-        let g = if special_rights then
-          parametrized_group (f wikibox_grps) uid
-        else
-          parametrized_group (f wiki_wikicss_grps) (wiki_to_32 wiki)
-        in
-        Users.in_group ~sp ~sd ~group:g ()
-
+        >>= fun { wikibox_uid = uid ;
+                  wikibox_special_rights = special_rights } ->
+        Lwt.return (
+          if special_rights then
+            apply_parameterized_group (f.field wikibox_grps)(opaque_wikibox uid)
+          else
+            apply_parameterized_group (f.field wiki_wikicss_grps) wiki
+        )
+      )
+  >>= fun g ->
+  Users.in_group ~sp ~sd ~group:g ()
 
 let can_admin_wikicss, can_write_wikicss, can_read_wikicss =
   can_sthg can_sthg_wikicss
 
 
-(* Semantics wikipage vs. wiki ! *)
-let can_sthg_wikipagecss f ~sp ~sd ~wiki ~page=
+let can_sthg_wikipagecss f ~sp ~sd ~wiki ~page =
   Wiki_sql.get_css_wikibox_for_wikipage wiki page
-  >>= function
+  >>= (function
     | None -> Lwt.fail Not_found
     | Some wb ->
         Wiki_sql.get_wikibox_info (wiki, wb)
-        >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights}->
-        (if special_rights then
-           Lwt.return (parametrized_group (f wikibox_grps) uid)
-         else
-           Wiki_sql.get_wikipage_info wiki page >>=
-           fun { wikipage_uid = uid } ->
-           Lwt.return (parametrized_group (f wiki_wikipagescss_grps) uid)
-        ) >>= fun g ->
-        Users.in_group ~sp ~sd ~group:g ()
+        >>= fun { wikibox_uid = uid ;
+                  wikibox_special_rights = special_rights } ->
+        Lwt.return (
+          if special_rights then
+            apply_parameterized_group (f.field wikibox_grps)(opaque_wikibox uid)
+          else
+            apply_parameterized_group (f.field wiki_wikipagescss_grps) wiki
+        )
+      )
+  >>= fun g ->
+  Users.in_group ~sp ~sd ~group:g ()
 
 let can_admin_wikipagecss, can_write_wikipagecss, can_read_wikipagecss =
   can_sthg can_sthg_wikipagecss
-*)
+

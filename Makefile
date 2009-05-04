@@ -22,7 +22,12 @@
 
 include Makefile.config
 
+VERSION :=$(shell head -n 1 VERSION)
+DESTDIR :=$(shell ocamlfind printconf destdir)
+
+OCAMLFIND := ocamlfind
 OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
+
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)

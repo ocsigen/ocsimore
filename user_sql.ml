@@ -56,19 +56,26 @@ module Types = struct
 
   (* 'a is a phantome type, used to represent the type of the argument
      of the user *)
-  type 'a parameterized_user = userid
+  type 'a parameterized_group = userid
 
   type user =
     | Ground of userid
     | Applied of userid * int32
 
 
-  let apply_parameterized_user g v = Applied (g, Opaque.t_int32 v)
+  let apply_parameterized_group g v = Applied (g, Opaque.t_int32 v)
   let basic_user v = Ground v
 
   let userid_from_user = function
     | Ground u -> u
     | Applied (u, _) -> u
+
+
+  type 'a admin_writer_reader = {
+    grp_admin: 'a parameterized_group;
+    grp_writer: 'a parameterized_group;
+    grp_reader: 'a parameterized_group;
+  }
 
 end
 open Types
@@ -110,7 +117,7 @@ let add_to_group_aux db (u, vu) (g, vg) =
                   VALUES ($u, $g, $?vu, $?vg)")
     (function
        | Sql.PGOCaml.PostgreSQL_Error _ ->
-           Ocsigen_messages.warning "Ocsimore: duplicate group insertion";
+           (*Ocsigen_messages.warning "Ocsimore: duplicate group insertion";*)
            Lwt.return ()
        | e -> Lwt.fail e
     )
@@ -124,6 +131,22 @@ let add_to_group_ ~user ~group =
   Lwt_pool.use Sql.pool
     (fun db ->
        add_to_group_aux db (decompose_user user) (decompose_user group))
+
+(* Constant used in the database to detect parameterized edge. Must
+   of course be different from all other parameters. This must be
+   enforced in all the modules using parameterized groups, for example
+   by using serial types that statr at 0 *)
+let ct_parameterized_edge = -1l
+
+let add_generic_inclusion_ ~subset ~superset =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       let subset = sql_from_user subset
+       and superset = sql_from_user superset in
+       add_to_group_aux db (subset, Some ct_parameterized_edge)
+         (superset, Some ct_parameterized_edge)
+    )
+
 
 let remove_from_group_ ~user ~group =
   let (u, vu) = decompose_user user
@@ -178,15 +201,29 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
        Lwt.return (id, pwd)
     )
 
+let find_userid_by_name_aux_ db name =
+  PGSQL(db) "SELECT id FROM users WHERE login = $name"
+  >>= function
+    | [] -> Lwt.fail Not_found
+    | r :: _ -> Lwt.return (user_from_sql r)
+
+
 let new_parametrized_group ~name ~fullname =
+  let fullname = "#" ^ fullname in
   let authtype = "g" in
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
-                  VALUES ($name, $fullname, FALSE, $authtype)"
-       >>= fun () ->
-       serial4 db "users_id_seq"
-       >>= fun id -> Lwt.return (user_from_sql id))
+       Lwt.catch
+         (fun () -> find_userid_by_name_aux_ db name)
+         (function
+            | Not_found ->
+                PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
+                           VALUES ($name, $fullname, FALSE, $authtype)"
+                >>= fun () ->
+                serial4 db "users_id_seq"
+                >>= fun id -> Lwt.return (user_from_sql id)
+            | e -> Lwt.fail e
+         ))
 
 let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
   let password = match authtype, pwd with
@@ -211,12 +248,7 @@ let find_user_by_name_ name =
          | r :: _ -> wrap_userdata r)
 
 let find_userid_by_name_ name =
-  Lwt_pool.use Sql.pool
-    (fun db ->
-       PGSQL(db) "SELECT id FROM users WHERE login = $name"
-       >>= function
-         | [] -> Lwt.fail Not_found
-         | r :: _ -> Lwt.return (user_from_sql r))
+  Lwt_pool.use Sql.pool (fun db -> find_userid_by_name_aux_ db name)
 
 
 let find_user_by_id_ id =
@@ -271,27 +303,35 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
 
 let get_groups_ ~user =
   let u, vu = decompose_user user in
+  let convert_list = List.map (function
+                                 | (g, None) -> basic_user (user_from_sql g)
+                                 | (g, Some v) -> Applied (user_from_sql g, v)
+                              ) in
   Lwt_pool.use Sql.pool
     (fun db ->
        (match vu with
           | None ->
               PGSQL(db) "SELECT groupid, groupidarg FROM userrights
                          WHERE id = $u AND idarg IS NULL"
+              >>= fun l -> Lwt.return (convert_list l)
           | Some vu ->
+              (* Standard inclusions *)
               PGSQL(db) "SELECT groupid, groupidarg FROM userrights
                          WHERE id = $u AND idarg = $vu"
-       ) >>= fun l ->
-         Lwt.return (List.map
-                       (function
-                          | (g, None) -> basic_user (user_from_sql g)
-                          | (g, Some v) -> Applied (user_from_sql g, v)
-                       ) l)
+              >>= fun r1 ->
+              let l1 = convert_list r1 in
+              (* Generic edges. If the database is correct, groupidarg
+                 is always [ct_parameterized_edge] *)
+              PGSQL(db) "SELECT groupid FROM userrights
+                         WHERE id = $u AND idarg = $ct_parameterized_edge"
+              >>= fun r2 ->
+              let l2 = List.map (fun g -> Applied (user_from_sql g, vu)) r2 in
+              Lwt.return (l1 @ l2)
+       )
     )
 
 
-
-
-
+(** Cached version of the functions above *)
 
 let debug_print_cache = ref false
 
@@ -360,19 +400,24 @@ let add_to_group ~user ~group =
   GroupCache.remove group_cache user;
   add_to_group_ ~user ~group
 
+let add_generic_inclusion ~subset ~superset =
+  GroupCache.clear group_cache;
+  add_generic_inclusion_ ~subset ~superset
+
+
 let remove_from_group ~user ~group =
   GroupCache.remove group_cache user;
   remove_from_group_ ~user ~group
 
 let delete_user ~userid =
-  (* We clear all the caches, as we should delete iterate over all the
+  (* We clear all the caches, as we should iterate over all the
      parameters if [userid] is a parametrized group *)
   IUserCache.clear iusercache;
   NUseridCache.clear nuseridcache;
   GroupCache.clear group_cache;
   delete_user_ ~userid
 
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
+(* BY 2009-03-13: deactivated because update_data_ is deactivated. *)
 (*
 let update_data ~userid ~password ~fullname ~email ?groups () =
   IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
@@ -392,3 +437,24 @@ let user_to_string = function
   | Applied (u, v) ->
       userid_to_string u >>= fun s ->
       Lwt.return (Printf.sprintf "%s(%ld)" s v)
+
+
+
+module Rights = struct
+
+  (* We need second-order polymorphism for the accessors on
+     admin_writer_reader fields *)
+  type admin_writer_reader_access =
+      { field : 'a. 'a admin_writer_reader -> 'a parameterized_group }
+
+
+  let grp_admin = { field = fun grp -> grp.grp_admin }
+  let grp_write = { field = fun grp -> grp.grp_writer }
+  let grp_read  = { field = fun grp -> grp.grp_reader }
+
+  let can_sthg f =
+    f grp_admin,
+    f grp_write,
+    f grp_read
+
+end

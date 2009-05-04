@@ -32,6 +32,8 @@ open Sql
 
 
 module Types = struct
+type wiki_arg = [ `Wiki ]
+type wikibox_arg = [ `Wikibox ]
 type wiki = [`Wiki] int32_t
 let wiki_from_sql (i : int32) = (int32_t i : wiki)
 let sql_from_wiki (i : wiki) = t_int32 i
@@ -44,6 +46,9 @@ type wikibox_id = int32
 type wikibox = wiki * wikibox_id
 
 type wikipage = wiki * string
+
+type wikipage_arg = [ `Wikipage ]
+type wikipage_uid = wikipage_arg Opaque.int32_t
 
 type wiki_info = {
   wiki_id : wiki;
@@ -68,16 +73,19 @@ type wikipage_info = {
   wikipage_dest_wiki: wiki;
   wikipage_wikibox: int32;
   wikipage_title: string option;
-  wikipage_uid : int32;
+  wikipage_uid : wikipage_uid;
+(*  wikipage_css_special_rights; *)
 }
 
 end
 open Types
 
+let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
+
+
 let eliom_wiki = Eliom_parameters.user_type
   (fun s -> (int32_t (Int32.of_string s) : wiki))
   wiki_id_s
-
 
 
 let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
@@ -497,7 +505,7 @@ let get_box_for_page_ ~wiki ~page =
             wikipage_dest_wiki = (int32_t destwiki : wiki);
             wikipage_wikibox = wikibox;
             wikipage_title = title;
-            wikipage_uid = uid;
+            wikipage_uid = sql_to_wikipage uid;
           })
 
 (** Sets the box corresponding to a wikipage *)

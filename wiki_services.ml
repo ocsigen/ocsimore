@@ -53,8 +53,9 @@ let default_container_page =
 
 
 let send_static_file sp sd wiki dir page =
-  Wiki.readers_group wiki.wiki_id >>= fun g ->
-  Users.in_group ~sp ~sd ~group:(basic_user g) () >>= function
+  let g = apply_parameterized_group
+    Wiki_data.wiki_wikiboxes_grps.grp_reader wiki in
+  Users.in_group ~sp ~sd ~group:g () >>= function
     | true -> Eliom_predefmod.Files.send ~sp (dir^"/"^page)
     | false -> Lwt.fail Eliom_common.Eliom_404
 

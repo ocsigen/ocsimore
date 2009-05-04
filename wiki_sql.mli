@@ -28,16 +28,21 @@ open User_sql.Types
 module Types : sig
 
 (** Semi-abstract type for a wiki *)
-type wiki = [`Wiki] Opaque.int32_t
+type wiki_arg = [ `Wiki ]
+type wiki = wiki_arg Opaque.int32_t
 
 (** Conversions from a wiki index *)
 val wiki_id_s : wiki -> string
 val s_wiki_id : string -> wiki
 
-
+type wikibox_arg = [ `Wikibox ]
+(* One day, should be [wikibox_arg Opaque.int32_t] *)
 type wikibox_id = int32
 type wikibox = wiki * wikibox_id
 type wikipage = wiki * string
+
+type wikipage_arg = [ `Wikipage ]
+type wikipage_uid = wikipage_arg Opaque.int32_t
 
 
 (** Fields for a wiki *)
@@ -59,7 +64,7 @@ type wikipage_info = {
   wikipage_dest_wiki: wiki;
   wikipage_wikibox: wikibox_id;
   wikipage_title: string option;
-  wikipage_uid: int32;
+  wikipage_uid: wikipage_uid;
 }
 
 type wikibox_info = {

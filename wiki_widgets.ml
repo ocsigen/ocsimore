@@ -830,7 +830,8 @@ object (self)
      Lwt.catch
        (fun () ->
           match wiki_info.wiki_staticdir with
-            | Some d -> Wiki_services.send_static_file sp sd wiki_info d page
+            | Some d ->
+                Wiki_services.send_static_file sp sd wiki_info.wiki_id d page
             | None -> Lwt.fail Eliom_common.Eliom_404)
        (function
           | Eliom_common.Eliom_404 ->
