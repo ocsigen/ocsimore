@@ -121,18 +121,3 @@ val update_data:
 val userid_to_string: userid -> string Lwt.t
 val user_to_string: user -> string Lwt.t
 
-
-module Rights : sig
-  (** Helper functions and definitions to define [admin_writer_reader]
-      objects *)
-
-  type admin_writer_reader_access =
-      { field : 'a. 'a admin_writer_reader -> 'a parameterized_group }
-
-  val grp_admin: admin_writer_reader_access
-  val grp_write: admin_writer_reader_access
-  val grp_read:  admin_writer_reader_access
-
-  val can_sthg: (admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
-
-end

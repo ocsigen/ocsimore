@@ -440,21 +440,3 @@ let user_to_string = function
 
 
 
-module Rights = struct
-
-  (* We need second-order polymorphism for the accessors on
-     admin_writer_reader fields *)
-  type admin_writer_reader_access =
-      { field : 'a. 'a admin_writer_reader -> 'a parameterized_group }
-
-
-  let grp_admin = { field = fun grp -> grp.grp_admin }
-  let grp_write = { field = fun grp -> grp.grp_writer }
-  let grp_read  = { field = fun grp -> grp.grp_reader }
-
-  let can_sthg f =
-    f grp_admin,
-    f grp_write,
-    f grp_read
-
-end

@@ -27,26 +27,6 @@ open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
 
-
-let create_admin_writer_reader ~name ~descr =
-  let namea, namew, namer =
-    (name ^ "Admin",
-     name ^ "Writer",
-     name ^ "Reader")
-  and descra, descrw, descrr =
-    ("All rights on " ^ descr,
-     "Can write in " ^ descr,
-     "Can read the " ^ descr)
-  in
-  Lwt_unix.run (
-    User_sql.new_parametrized_group namea descra >>= fun ga ->
-    User_sql.new_parametrized_group namew descrw >>= fun gw ->
-    User_sql.new_parametrized_group namer descrr >>= fun gr ->
-    User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
-    User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
-    Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr })
-
-
 (** All wiki-related groups *)
 
 (* XXX
@@ -69,7 +49,7 @@ let wiki_wikipages_creators : wiki_arg parameterized_group = aux_grp
   "WikiWikipagesCreator" "Can create wikipages in the wiki"
 
 let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
-  create_admin_writer_reader
+  Users.GenericRights.create_admin_writer_reader
     ~name:"WikiWikiboxes" ~descr:"the wikiboxes of the wiki"
 
 (* XXX
@@ -80,17 +60,18 @@ let wiki_wikipages_admins, wiki_wikipages_writers, wiki_wikipages_readers =
 *)
 
 let wiki_wikicss_grps : wiki_arg admin_writer_reader =
-  create_admin_writer_reader
+  Users.GenericRights.create_admin_writer_reader
     ~name:"WikiWikicss" ~descr:"the css of the wiki"
 
 let wiki_wikipagescss_grps : wiki_arg admin_writer_reader =
-  create_admin_writer_reader
+  Users.GenericRights.create_admin_writer_reader
     ~name:"WikiWikipagescss" ~descr:"the css of the wikipages of the wiki"
 
 
 (** The following groups take a wikibox as argument. They are used to override
     generic wiki permissions. *)
-let wikibox_grps : wikibox_arg admin_writer_reader = create_admin_writer_reader
+let wikibox_grps : wikibox_arg admin_writer_reader =
+  Users.GenericRights.create_admin_writer_reader
   ~name:"Wikibox" ~descr:"the wikibox"
 
 
@@ -115,8 +96,9 @@ let () = Lwt_unix.run (
 
 let opaque_wikibox v = (Opaque.int32_t v : wikibox_arg Opaque.int32_t)
 
-open User_sql.Rights
 
+
+open Users.GenericRights
 
 let can_sthg_wikitext f ~sp ~sd ~wb:(wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb

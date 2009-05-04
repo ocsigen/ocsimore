@@ -390,3 +390,43 @@ let user_list_of_string s =
   in
   let r = Ocsigen_lib.split ' ' s in
   List.fold_left f (Lwt.return []) r
+
+
+
+
+module GenericRights = struct
+
+  (* We need second-order polymorphism for the accessors on
+     admin_writer_reader fields *)
+  type admin_writer_reader_access =
+      { field : 'a. 'a admin_writer_reader -> 'a parameterized_group }
+
+
+  let grp_admin = { field = fun grp -> grp.grp_admin }
+  let grp_write = { field = fun grp -> grp.grp_writer }
+  let grp_read  = { field = fun grp -> grp.grp_reader }
+
+  let can_sthg f =
+    f grp_admin,
+    f grp_write,
+    f grp_read
+
+  let create_admin_writer_reader ~name ~descr =
+    let namea, namew, namer =
+      (name ^ "Admin",
+       name ^ "Writer",
+       name ^ "Reader")
+    and descra, descrw, descrr =
+      ("All rights on " ^ descr,
+       "Can write in " ^ descr,
+       "Can read the " ^ descr)
+    in
+    Lwt_unix.run (
+      User_sql.new_parametrized_group namea descra >>= fun ga ->
+      User_sql.new_parametrized_group namew descrw >>= fun gw ->
+      User_sql.new_parametrized_group namer descrr >>= fun gr ->
+      User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
+      User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
+      Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr })
+
+end

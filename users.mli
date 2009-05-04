@@ -105,3 +105,23 @@ val set_session_data : (userid -> unit Lwt.t) Ocsimore_common.sd_sp
 
 
 val anonymous_sd : Ocsimore_common.session_data
+
+
+
+module GenericRights : sig
+  (** Helper functions and definitions to define [admin_writer_reader]
+      objects *)
+
+  type admin_writer_reader_access =
+      { field : 'a. 'a admin_writer_reader -> 'a parameterized_group }
+
+  val grp_admin: admin_writer_reader_access
+  val grp_write: admin_writer_reader_access
+  val grp_read:  admin_writer_reader_access
+
+  val can_sthg: (admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
+
+  val create_admin_writer_reader:
+    name:string -> descr:string -> 'a admin_writer_reader
+
+end
