@@ -339,6 +339,86 @@ let print_cache s =
   if !debug_print_cache then print_endline s
 
 
+(* Find user info by id *)
+
+module IUserCache = Cache.Make (struct
+                          type key = userid
+                          type value = userdata
+                        end)
+
+let iusercache = IUserCache.create
+  (fun id -> find_user_by_id_ id) 64
+
+let get_basicuser_data i =
+  print_cache "cache iuser ";
+  IUserCache.find iusercache i
+
+let get_parameterized_user_data = get_basicuser_data
+
+let get_user_data = function
+  | Applied (i, _) | Ground i -> get_basicuser_data i
+
+
+(* Find userid by login *)
+
+module NUseridCache = Cache.Make (struct
+                          type key = string
+                          type value = userid
+                        end)
+
+exception NotBasicUser of userdata
+
+let nuseridcache = NUseridCache.create
+  (fun name ->
+     find_user_by_name_ name
+     >>= fun u ->
+     if u.user_parameterized_group then
+       Lwt.fail (NotBasicUser u)
+     else (
+       Lwt.return u.user_id)
+  ) 64
+
+let get_basicuser_by_login n =
+  print_cache "cache nuserid ";
+  NUseridCache.find nuseridcache n
+
+
+(* Find user from string *)
+
+module NUserCache = Cache.Make (struct
+                          type key = string
+                          type value = user
+                        end)
+
+let nusercache = NUserCache.create
+  (fun s ->
+     if String.length s > 0 && s.[0] = '#' then
+       try
+         Scanf.scanf "%s(%ld)"
+           (fun g v ->
+              find_user_by_name_ g
+              >>= fun u ->
+                if u.user_parameterized_group then
+                  Lwt.return (Applied (u.user_id, v))
+                else
+                  Lwt.fail Not_found
+           )
+       with _ -> Lwt.fail Not_found
+     else
+       get_basicuser_by_login s >>= fun u ->
+         Lwt.return (basic_user u)
+  ) 64
+
+let get_user_by_name name =
+  print_cache "cache nuser ";
+  NUserCache.find nusercache name
+
+
+
+
+
+(* Groups-related functions *)
+
 module GroupCache = Cache.Make (struct
                              type key = user
                              type value = user list
@@ -351,51 +431,6 @@ let get_groups ~user =
   GroupCache.find group_cache user
 
 
-exception NotBasicUser of userdata
-
-
-
-module IUserCache = Cache.Make (struct
-                          type key = userid
-                          type value = userdata
-                        end)
-
-
-module NUseridCache = Cache.Make (struct
-                          type key = string
-                          type value = userid
-                        end)
-
-let iusercache =
-  IUserCache.create (fun id -> find_user_by_id_ id) 64
-
-let nuseridcache =
-  NUseridCache.create
-    (fun name ->
-       find_user_by_name_ name
-       >>= fun u ->
-       if u.user_parameterized_group then
-         Lwt.fail (NotBasicUser u)
-       else (
-         Lwt.return u.user_id)
-    ) 64
-
-
-let get_basicuser_data i =
-  print_cache "cache iuser ";
-  IUserCache.find iusercache i
-
-let get_parameterized_user_data = get_basicuser_data
-
-let get_user_data = function
-  | Applied (i, _) | Ground i -> get_basicuser_data i
-
-
-let get_basicuser_by_login n =
-  print_cache "cache nuser ";
-  NUseridCache.find nuseridcache n
-
-
 let add_to_group ~user ~group =
   GroupCache.remove group_cache user;
   add_to_group_ ~user ~group
@@ -404,29 +439,24 @@ let add_generic_inclusion ~subset ~superset =
   GroupCache.clear group_cache;
   add_generic_inclusion_ ~subset ~superset
 
-
 let remove_from_group ~user ~group =
   GroupCache.remove group_cache user;
   remove_from_group_ ~user ~group
+
+
+(* Deletion *)
 
 let delete_user ~userid =
   (* We clear all the caches, as we should iterate over all the
      parameters if [userid] is a parametrized group *)
   IUserCache.clear iusercache;
   NUseridCache.clear nuseridcache;
+  NUserCache.clear nusercache;
   GroupCache.clear group_cache;
   delete_user_ ~userid
 
-(* BY 2009-03-13: deactivated because update_data_ is deactivated. *)
-(*
-let update_data ~userid ~password ~fullname ~email ?groups () =
-  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
-  IUserCache.remove iusercache userid;
-  NUserCache.remove nusercache n;
-  GroupCache.remove group_cache userid;
-  User_sql.update_data_ ~userid ~password ~fullname ~email ?groups ()
-*)
 
+(* Conversion to string *)
 
 let userid_to_string u =
   get_basicuser_data u
@@ -440,3 +470,13 @@ let user_to_string = function
 
 
 
+
+(* BY 2009-03-13: deactivated because update_data_ is deactivated. *)
+(*
+let update_data ~userid ~password ~fullname ~email ?groups () =
+  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
+  IUserCache.remove iusercache userid;
+  NUserCache.remove nusercache n;
+  GroupCache.remove group_cache userid;
+  User_sql.update_data_ ~userid ~password ~fullname ~email ?groups ()
+*)

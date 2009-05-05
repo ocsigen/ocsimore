@@ -88,8 +88,9 @@ let eliom_wiki = Eliom_parameters.user_type
   wiki_id_s
 
 
-let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
-  let container_wikibox = 0l in
+let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author () =
+  let container_wikibox = 0l
+  and author = User_sql.Types.sql_from_user author in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db)
@@ -103,9 +104,8 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page () =
      PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
                 VALUES ($wiki_id, $container_wikibox, $comment)"
      >>= fun () ->
-     let admin = User_sql.Types.sql_from_user Users.admin in
      PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
-                VALUES ($container_wikibox, $wiki_id, $admin, $container_page)"
+                VALUES ($container_wikibox, $wiki_id, $author, $container_text)"
      >>= fun () ->
        return (wiki_from_sql wiki_id, container_wikibox)
     )
@@ -135,195 +135,6 @@ let update_wiki_ ?container_id ?staticdir ?pages wiki =
        )
     )
 
-(*
-let populate_readers_ db (wiki, id) readers =
-  let wiki = t_int32 (wiki : wiki) in
-  match readers with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun reader ->
-             Lwt.catch
-               (fun () ->
-                  let reader = User_sql.Types.sql_from_user reader in
-                  PGSQL(db) "INSERT INTO wikiboxreaders \
-                             VALUES ($wiki, $id, $reader)")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while setting wikibox readers: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          readers
-
-let populate_writers_ db (wiki, id) writers =
-  let wiki = t_int32 (wiki : wiki) in
-  match writers with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun writer ->
-             let writer = User_sql.Types.sql_from_user writer in
-             Lwt.catch
-               (fun () ->
-                  PGSQL(db) "INSERT INTO wikiboxwriters \
-                             VALUES ($wiki, $id, $writer)")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while setting wikibox writers: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          writers
-
-let populate_rights_adm_ db (wiki, id) ra =
-  let wiki = t_int32 (wiki : wiki) in
-  match ra with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun ra ->
-             Lwt.catch
-               (fun () ->
-                  let ra = User_sql.Types.sql_from_user ra in
-                  PGSQL(db) "INSERT INTO wikiboxrightsgivers \
-                             VALUES ($wiki, $id, $ra)")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while setting wikibox rights givers: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          ra
-
-let populate_wikiboxes_creators_ db (wiki, id) ra =
-  let wiki = t_int32 (wiki : wiki) in
-  match ra with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun ra ->
-             Lwt.catch
-               (fun () ->
-                  let ra = User_sql.Types.sql_from_user ra in
-                  PGSQL(db) "INSERT INTO wikiboxcreators \
-                             VALUES ($wiki, $id, $ra)")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while setting wikibox creators: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          ra
-
-let remove_readers_ db (wiki, id) readers =
-  let wiki = t_int32 (wiki : wiki) in
-  match readers with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun reader ->
-             Lwt.catch
-               (fun () ->
-                  PGSQL(db) "DELETE FROM wikiboxreaders \
-                             WHERE wiki_id = $wiki \
-                             AND id = $id \
-                             AND reader = $reader")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while removing wikibox readers: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          readers
-
-let remove_writers_ db (wiki, id) writers =
-  let wiki = t_int32 (wiki : wiki) in
-  match writers with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun writer ->
-             Lwt.catch
-               (fun () ->
-                  PGSQL(db) "DELETE FROM wikiboxwriters \
-                             WHERE wiki_id = $wiki \
-                             AND id = $id \
-                             AND writer = $writer")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while removing wikibox writers: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          writers
-
-let remove_rights_adm_ db (wiki, id) ra =
-  let wiki = t_int32 (wiki : wiki) in
-  match ra with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun ra ->
-             Lwt.catch
-               (fun () ->
-                  PGSQL(db) "DELETE FROM wikiboxrightsgivers \
-                             WHERE wiki_id = $wiki \
-                             AND id = $id \
-                             AND wbadmin = $ra")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while removing wikibox rights givers: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          ra
-
-let remove_wikiboxes_creators_ db (wiki, id) ra =
-  let wiki = t_int32 (wiki : wiki) in
-  match ra with
-    | [] -> Lwt.return ()
-    | _ ->
-(*VVV Can we do this more efficiently? *)
-        Lwt_util.iter_serial
-          (fun ra ->
-             Lwt.catch
-               (fun () ->
-                  PGSQL(db) "DELETE FROM wikiboxcreators \
-                             WHERE wiki_id = $wiki \
-                             AND id = $id \
-                             AND creator = $ra")
-               (function
-                  | Sql.PGOCaml.PostgreSQL_Error (s, _) ->
-                      Ocsigen_messages.warning 
-                        ("Ocsimore: while removing wikibox creators: "^s);
-                      Lwt.return ()
-                  | e -> Lwt.fail e
-               )
-          )
-          ra
-*)
 
 exception IncorrectWikiboxContentType of string
 
@@ -346,7 +157,7 @@ type wikibox_content =
 
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () = 
+let new_wikibox_ ~wiki ~author ~comment ~content ~content_type () =
   let wiki' = t_int32 (wiki : wiki)
   and content_type = string_of_wikibox_content_type content_type
   and author = User_sql.Types.sql_from_user author
@@ -367,17 +178,6 @@ let new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights () =
                   VALUES
                   ($boxid, $wiki', $author, $comment, $content, $content_type)"
         >>= fun () ->
-        (match rights with
-           | None -> Lwt.return ()
-           | Some (_r, _w, _ra, _wc) ->
-               (* XXX 
-               populate_writers_ db (wiki, boxid) w >>= fun () ->
-               populate_readers_ db (wiki, boxid) r >>= fun () ->
-               populate_rights_adm_ db (wiki, boxid) ra >>= fun () ->
-               populate_wikiboxes_creators_ db (wiki, boxid) wc
-               *)
-               Lwt.return ()
-        ) >>= fun () ->
         Lwt.return boxid)
     )
 
@@ -398,36 +198,9 @@ let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_typ
        serial4 db "wikiboxes_version_seq")
 
 
-(*
-       (match readers with
-         | None -> Lwt.return ()
-         | Some r -> 
-             PGSQL(db) "DELETE FROM wikiboxreaders \
-                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_readers_ db wiki wikibox r) >>= fun () ->
-       (match writers with
-         | None -> Lwt.return ()
-         | Some w -> 
-             PGSQL(db) "DELETE FROM wikiboxwriters \
-                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_writers_ db wiki wikibox w) >>= fun () ->
-       (match rights_adm with
-         | None -> Lwt.return ()
-         | Some a -> 
-             PGSQL(db) "DELETE FROM wikiboxrightsgivers \
-                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_rights_adm_ db wiki wikibox a) >>= fun () ->
-       (match wikiboxes_creators with
-         | None -> Lwt.return ()
-         | Some a -> 
-             PGSQL(db) "DELETE FROM wikiboxcreators \
-                        WHERE wiki_id = $wiki AND id = $wikibox" >>= fun () ->
-             populate_wikiboxes_creators_ db wiki wikibox a) >>= fun () ->
-*)
 
-
-(** returns subject, text, author, datetime of a wikibox; 
-    None if non-existant *)
+(** Returns the content of a wikibox, or [None] if the wikibox or version
+    does not exists *)
 let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
   let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use 
@@ -758,14 +531,14 @@ let
   (fun (a, b) r -> C2.remove cachew (a, b);  remove_writers_ (a, b) r),
   (fun (a, b) r -> C2.remove cachera (a, b);  remove_rights_adm_ (a, b) r),
   (fun (a, b) r -> C2.remove cachewc (a, b);  remove_wikiboxes_creators_ (a, b) r),*)
-  (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_page () ->
-     new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_page ()
+  (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~ author () ->
+     new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author ()
      >>= function (wiki, wikibox) ->
      C.remove cache (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);
      Lwt.return (wiki, wikibox)),
-  (fun ~wiki ~author ~comment ~content ~content_type ?rights () ->
-     new_wikibox_ ~wiki ~author ~comment ~content ~content_type ?rights ()
+  (fun ~wiki ~author ~comment ~content ~content_type () ->
+     new_wikibox_ ~wiki ~author ~comment ~content ~content_type ()
      >>= fun wikibox ->
      C.remove cache (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);

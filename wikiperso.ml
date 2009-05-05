@@ -154,9 +154,8 @@ let create_wikiperso ~wiki_title ~userdata =
   Wiki.really_create_wiki ~title:wiki_title
     ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
               userdata.user_fullname)
-    (* ~boxrights:false *) ~writers:gid ~wikiboxes_creators:gid
-    ~page_creators:gid ~css_editors:gid ~container_adm:gid
-    ~wiki_css:css ~container_page:container
+    ~admins:gid ~author:userdata.user_id
+    ~wiki_css:css ~container_text:container
     ()
 
 

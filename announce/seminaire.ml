@@ -215,7 +215,7 @@ let create_event =
                title description comment status ->
              Event_sql.insert_persons persons >>= fun persons ->
              Event_sql.insert_event
-                Common.wiki_info Users.admin
+                Common.wiki_info.Wiki_sql.Types.wiki_id Users.admin
                 cat.cat_id start finish room location
                 persons title description comment status >>= fun id ->
              Lwt.return

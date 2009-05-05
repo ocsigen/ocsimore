@@ -119,8 +119,30 @@ let get_basicuser_by_login login =
      | Not_found -> Lwt.return nobody
      | e -> Lwt.fail e)
 
-let get_user_from_name ~name:_ (* XXX *) = assert false
+let get_user_by_name name =
+  Lwt.catch
+    (fun () -> User_sql.get_user_by_name name)
+    (function
+       | Not_found -> Lwt.return nobody'
+       | e -> Lwt.fail e)
 
+
+let user_list_of_string s =
+  let f beg a =
+    beg >>= fun beg ->
+    Lwt.catch
+      (fun () ->
+         User_sql.get_user_by_name a >>= fun v ->
+         if v = nobody'
+         then Lwt.return beg
+         else Lwt.return (v::beg)
+      )
+      (function
+         | Not_found -> Lwt.fail (Failure a)
+         | e -> Lwt.fail e)
+  in
+  let r = Ocsigen_lib.split ' ' s in
+  List.fold_left f (Lwt.return []) r
 
 
 (* dynamic groups: *)
@@ -379,21 +401,6 @@ let in_group ~sp ~sd ?user ~group () =
   in_group_ ~sp ~sd ?user ~group ()
 
 
-(* XXX signal errors more cleanly *)
-let user_list_of_string s =
-  let f beg a =
-    beg >>= fun beg ->
-    User_sql.get_basicuser_by_login a >>= fun v ->
-    if v = nobody
-    then Lwt.return beg
-    else Lwt.return (basic_user v::beg)
-  in
-  let r = Ocsigen_lib.split ' ' s in
-  List.fold_left f (Lwt.return []) r
-
-
-
-
 module GenericRights = struct
 
   (* We need second-order polymorphism for the accessors on
@@ -428,5 +435,10 @@ module GenericRights = struct
       User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
       User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
       Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr })
+
+  let admin_writer_reader_groups grps =
+    (fun i -> apply_parameterized_group grps.grp_reader i),
+    (fun i -> apply_parameterized_group grps.grp_writer i),
+    (fun i -> apply_parameterized_group grps.grp_admin i)
 
 end

@@ -116,24 +116,24 @@ let wiki_data =
 let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 
 
+(* XXX fine-grained edition of rights *)
 let _ =
   Lwt_unix.run (
      Wiki_services.create_and_register_wiki
+       ~author:Users.admin
        ~title:wiki_data.name
        ~descr:""
        ~path:wiki_data.path
        ?readers:wiki_data.readers
-       ?writers:wiki_data.writers
+(*     ?writers:wiki_data.writers
        ?rights_adm:wiki_data.rights_adm
        ?wikiboxes_creators:wiki_data.wikiboxes_creators
        ?container_adm:wiki_data.container_adm
        ?page_creators:wiki_data.page_creators
-       ?css_editors:wiki_data.css_editors
+       ?css_editors:wiki_data.css_editors *)
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
-       ~container_page:Wiki_services.default_container_page
+       ~container_text:Wiki_services.default_container_page
        ~wikibox_widget:Ocsisite.wikibox_widget
        ()
     )
-
-

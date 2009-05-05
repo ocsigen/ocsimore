@@ -182,22 +182,11 @@ let register_wiki ?sp ~path ~(wikibox_widget:Wiki_widgets_interface.interactive_
 
 
 (* Creates and registers a wiki if it does not already exists  *)
-let create_and_register_wiki ~title ~descr
-    ?sp
-    ?path
-    ?(readers = [basic_user Users.anonymous])
-    ?(writers = [basic_user Users.authenticated_users])
-    ?(rights_adm = [])
-    ?(wikiboxes_creators = [basic_user Users.authenticated_users])
-    ?(container_adm = [])
-    ?(page_creators = [basic_user Users.authenticated_users])
-    ?(css_editors = [basic_user Users.authenticated_users])
-    ?(admins = [])
-    ?(boxrights = true)
-    ?staticdir
-    ?wiki_css
-    ~container_page
-    ~wikibox_widget
+let create_and_register_wiki ?sp ~wikibox_widget
+    ~title ~descr ?path ?staticdir ?(boxrights = true)
+    ~author
+    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
+    ?wiki_css ~container_text
     () =
   Lwt.catch
     (fun () ->
@@ -206,10 +195,8 @@ let create_and_register_wiki ~title ~descr
     (function
        | Not_found ->
            begin
-             Wiki.really_create_wiki ~title ~descr ?path ~readers ~writers
-               ~rights_adm ~wikiboxes_creators ~container_adm ~page_creators
-               ~css_editors ~admins ~boxrights ?staticdir ?wiki_css
-               ~container_page ()
+             Wiki.really_create_wiki ~title ~descr ?path ?staticdir ~boxrights
+               ~author ~admins ~readers ?wiki_css ~container_text ()
              >>= fun wiki_id ->
              (match path with
                 | None -> ()
@@ -254,21 +241,14 @@ and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
   (fun sp wb () ->
      let sd = Ocsimore_common.get_sd sp in
-     save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
+     save_wikibox_aux ~enough_rights:(assert false)
        ~sp ~sd ~wikibox:wb ~content:None ~content_type:Wiki_sql.WikiCreole
   )
 
 and action_edit_wikibox_permissions =
   Eliom_predefmod.Actions.register_new_coservice'
     ~name:"wiki_edit_perm" ~get_params:eliom_wikibox_args
-    (fun sp wb () ->
-       let sd = Ocsimore_common.get_sd sp in
-       Wiki.get_role sp sd wb
-       >>= fun role ->
-         if role = Wiki.Admin then
-           Lwt.return [Ocsimore_common.Session_data sd;
-                       Override_wikibox (wb, EditPerms wb)]
-         else Lwt.return [Ocsimore_common.Session_data sd])
+    (fun _sp wb () -> Lwt.return [Override_wikibox (wb, EditPerms wb)])
 
 and action_wikibox_history = Eliom_predefmod.Actions.register_new_coservice'
   ~name:"wikibox_history" ~get_params:eliom_wikibox_args
@@ -314,7 +294,7 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
                let sd = Ocsimore_common.get_sd sp in
                Wiki_filter.preparse_extension (sp, sd, wbid) wid content
                >>= fun content ->
-               save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
+               save_wikibox_aux ~enough_rights:(assert false)
                  ~sp ~sd ~wikibox:wb
                  ~content:(Some content) ~content_type:Wiki_sql.WikiCreole
            | Some _ ->
@@ -341,7 +321,7 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
        match modified with
          | None ->
              let sd = Ocsimore_common.get_sd sp in
-             save_wikibox_aux ~enough_rights:Wiki.user_can_save_wikibox
+             save_wikibox_aux ~enough_rights:(assert false)
                ~sp ~sd ~wikibox:wbcss
                ~content:(Some content) ~content_type:Wiki_sql.Css
          | Some _ ->
@@ -367,7 +347,7 @@ and action_send_wikibox_permissions =
                       )))))))
     (fun sp () p ->
        let sd = Ocsimore_common.get_sd sp in
-       Wiki.save_wikibox_permissions sp sd p >>= fun () ->
+       Wiki.save_wikitextbox_permissions sp sd p >>= fun () ->
        Eliom_predefmod.Redirection.send ~sp  Eliom_services.void_hidden_coservice'
     )
 
@@ -398,10 +378,8 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
      let sd = Ocsimore_common.get_sd sp in
      Users.get_user_id ~sp ~sd
      >>= fun user ->
-     Wiki.page_creators_group wiki
-     >>= fun creators ->
      Users.in_group ~sp ~sd ~user:(basic_user user)
-       ~group:(basic_user creators) ()
+       ~group:(Wiki.wikipages_creators_group wiki) ()
      >>= function
        | true ->
            Lwt.catch
@@ -410,15 +388,14 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
                 >>= fun _ ->
                   (* The page already exists *)
                   Lwt.return [Ocsimore_common.Session_data sd]
-                    (*VVV Put an error message *)
+                    (*XXX Put an error message *)
              )
              (function
                 | Not_found ->
-                    Wiki.new_wikibox ~wiki ~author:user
+                    Wiki.new_wikitextbox ~sp ~sd ~wiki ~author:user
                       ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                   page (wiki_id_s wiki))
-                      ~content:("== Page "^page^"==")
-                      ~content_type:Wiki_sql.WikiCreole ()
+                      ~content:("== Page "^page^"==") ()
                     >>= fun wbid ->
                     Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()
                     >>= fun () ->

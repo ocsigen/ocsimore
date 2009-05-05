@@ -117,7 +117,17 @@ val update_data:
 *)
 
 
-
+(** Converts an [userid] to a string, by giving the corresponding
+    login field. Raises [Not_found] if the user does not exists. *)
 val userid_to_string: userid -> string Lwt.t
+
+(** Converts an user to a string. Basic users are converted as
+    per [userid_to_string]. Groups are written  [#group(val)]
+    where [group] is the name used at the creation
+    of the group, and val is the [int32] parameter of the group *)
 val user_to_string: user -> string Lwt.t
 
+(** Returns the user that corresponds to a given string
+    (inverse of the function [user_to_string], or raises
+    [Not_found] if the user does not exists *)
+val get_user_by_name: string -> user Lwt.t

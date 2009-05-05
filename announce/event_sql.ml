@@ -159,8 +159,8 @@ let insert_persons l =
   Lwt_util.map_serial (fun (n, a) -> insert_person n a) l
 
 let insert_desc wiki author comment content =
-  Wiki.new_wikibox ~content_type:Wiki_sql.WikiCreole
-     ~wiki:wiki.Wiki_sql.Types.wiki_id ~author ~comment ~content ()
+  Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
+    ~content_type:Wiki_sql.WikiCreole ()
 
 let insert_event_person dbh event persons =
   Lwt_util.iter_serial

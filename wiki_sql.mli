@@ -102,14 +102,16 @@ val eliom_wiki :
 
 
 (** inserts a new wiki, creating on the fly the container wikibox
-    (which is returned along the index of the new wiki). *)
+    (which is returned along the index of the new wiki). The [author]
+    argument is used when creating the wikibox for the container. *)
 val new_wiki :
   title:string -> 
   descr:string -> 
   pages:string option ->
   boxrights:bool ->
   staticdir:string option ->
-  container_page:string ->
+  container_text:string ->
+  author:userid ->
   unit ->
   (wiki * wikibox_id) Lwt.t
 
@@ -121,7 +123,6 @@ val new_wikibox :
   comment:string ->
   content:string ->
   content_type:wikibox_content_type ->
-  ?rights:userid list * userid list * userid list * userid list ->
   unit ->
   wikibox_id Lwt.t
 

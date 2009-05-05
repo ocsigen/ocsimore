@@ -686,7 +686,7 @@ let _ =
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->
-                      Users.get_user_from_name g >>= fun group ->
+                      Users.get_user_by_name g >>= fun group ->
                       Users.in_group ~sp ~sd ~group ())
                    (function _ -> Lwt.return false)
              | ("http_code", "404") ->

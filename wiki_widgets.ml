@@ -118,22 +118,22 @@ object (self)
   val frozen_wb_class = "frozen_wikibox"
 
   method display_frozen_wikibox ~bi ?(classes=[]) ~wikibox =
-    Wiki.get_role ~sp:bi.bi_sp ~sd:bi.bi_sd wikibox
-    >>= function
-      | Wiki.Admin
-      | Wiki.Author
-      | Wiki.Lurker ->
-          error_box#bind_or_display_error
-            (Wiki.wikibox_content wikibox)
-            (self#display_wikiboxcontent ~wiki:(fst wikibox) ~bi
-               ~classes:(frozen_wb_class::classes))
-            (self#display_basic_box)
-      | Wiki.Nonauthorized ->
-          Lwt.return
-            (error_box#display_error_box
-               ~classes:(frozen_wb_class::classes)
-               ~message:"You are not allowed to see this content."
-               ())
+    Lwt.catch
+      (fun () ->
+         error_box#bind_or_display_error
+           (Wiki.wikibox_content wikibox (* XXX rights *) )
+           (self#display_wikiboxcontent ~wiki:(fst wikibox) ~bi
+              ~classes:(frozen_wb_class::classes))
+           (self#display_basic_box)
+      )
+      (function
+         | Ocsimore_common.Permission_denied ->
+              Lwt.return
+                (error_box#display_error_box
+                   ~classes:(frozen_wb_class::classes)
+                   ~message:"You are not allowed to see this content."
+                   ())
+         | e -> Lwt.fail e)
 end;;
 
 
@@ -179,8 +179,9 @@ object (self)
   val css_class = "editcss"
 
 
-  method private box_menu ~sp ?(perm = false) ?cssmenu ?service ?(title = "") ((wid, _) as wb) =
-    let preapply = Eliom_services.preapply in
+  method private box_menu ~bi ?cssmenu ?service ?(title = "") ((wid, _) as wb) =
+    let sp = bi.bi_sp and sd = bi.bi_sd
+    and preapply = Eliom_services.preapply in
     let history = preapply action_wikibox_history wb
     and edit = preapply action_edit_wikibox wb
     and delete = preapply action_delete_wikibox wb
@@ -239,11 +240,10 @@ object (self)
       (edit, {{ "edit" }});
       (view, {{ "view" }});
     ] in
-    let l =
-      if perm
-      then (edit_perm, {{ "edit permissions" }})::l
-      else l
-    in
+    (Wiki_data.can_admin_wikitext ~sp ~sd ~wb >>= function
+      | true  -> Lwt.return ((edit_perm, {{ "edit permissions" }})::l)
+      | false -> Lwt.return l
+    ) >>= fun l ->
     let l = match edit_css with
       | Some mi -> mi::l
       | None -> l
@@ -260,13 +260,8 @@ object (self)
          ]  }}
 
   method display_menu_box ~bi ~classes ?service ?cssmenu ?title ~wb content =
-    let sp = bi.bi_sp in
-    let sd = bi.bi_sd in
     let classes = Ocsimore_lib.build_class_attr classes in
-    Wiki.get_role ~sp ~sd wb
-    >>= fun role ->
-    let perm = role = Wiki.Admin in
-    self#box_menu ~sp ~perm ?cssmenu ?service ?title wb >>=
+    self#box_menu ~bi ?cssmenu ?service ?title wb >>=
     fun menu -> Lwt.return
       {{ <div class={: classes :}>[
            !menu
@@ -558,9 +553,8 @@ object (self)
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
             ?cssmenu ~wb_loc:wb ~override
       | _ ->
-          Wiki.get_role ~sp ~sd wb
-          >>= function
-            | Wiki.Admin | Wiki.Author ->
+          Wiki_data.can_write_wikitext ~sp ~sd ~wb >>= function
+            | true ->
                 error_box#bind_or_display_error
                   (Wiki.wikibox_content wb)
                   (self#display_wikiboxcontent ~classes ~wiki:wid
@@ -569,22 +563,24 @@ object (self)
                 >>= fun r ->
                 Lwt.return (r, true)
 
-            | Wiki.Lurker ->
-                error_box#bind_or_display_error
-                  (Wiki.wikibox_content wb)
-                  (self#display_wikiboxcontent ~classes ~wiki:wid
-                     ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
-                  (self#display_basic_box)
-                >>= fun r ->
-                Lwt.return (r, true)
+             | false ->
+                 Wiki_data.can_read_wikitext ~sp ~sd ~wb >>= function
+                   | true ->
+                       error_box#bind_or_display_error
+                         (Wiki.wikibox_content wb)
+                         (self#display_wikiboxcontent ~classes ~wiki:wid
+                            ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
+                         (self#display_basic_box)
+                       >>= fun r ->
+                       Lwt.return (r, true)
 
-            | Wiki.Nonauthorized ->
-                Lwt.return
-                  (error_box#display_error_box
-                     ~classes:(frozen_wb_class::classes)
-                     ~message:"You are not allowed to see this content."
-                     (),
-                   false)
+                   | false ->
+                       Lwt.return
+                       (error_box#display_error_box
+                          ~classes:(frozen_wb_class::classes)
+                          ~message:"You are not allowed to see this content."
+                          (),
+                        false)
 
 
   method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
@@ -781,9 +777,8 @@ object (self)
                           ~input_type:{: "submit" :} ~value:"Create it!" () :}
                      ]] }}
               in
-              Wiki.page_creators_group wiki
-              >>= fun creators ->
-              Users.in_group ~sp ~sd ~group:(basic_user creators) ()
+              Users.in_group ~sp ~sd ~group:(apply_parameterized_group
+                                      Wiki_data.wiki_wikipages_creators wiki) ()
               >>= fun c ->
               let form =
                 if c then
@@ -842,6 +837,8 @@ object (self)
 
 end
 
+(* XXX: what are those [Failure] errors caught at the end. Are they raised
+   sometimes? *)
 
 (* BY: Helper functions, which factorizes a bit of code in the functions
    below. Some of them  (eg. extract_wiki_id) are very mysterious:
@@ -904,38 +901,23 @@ Wiki_filter.add_preparser_extension ~name:"wikibox"
   (fun wid (sp, sd, father) args c ->
      (try
         let wid = extract_wiki_id args wid in
-        try
-          ignore (List.assoc "box" args);
-          Lwt.return None
+        try (* If a wikibox is already specified, there is nothing to do *)
+          ignore (List.assoc "box" args); Lwt.return None
         with Not_found ->
-          Wiki_sql.get_wiki_info_by_id wid
-          >>= fun _wiki ->
           Users.get_user_id ~sp ~sd
           >>= fun userid ->
-          let _ids = (wid, father) in
-          (* XXX
-          Wiki.can_create_wikibox ~sp ~sd wiki father userid >>= function
-          *)
-          match true with
+          let _englobing_wb = (wid, father) in
+          Users.in_group ~sp ~sd  ~group:(apply_parameterized_group
+                        Wiki_data.wiki_wikiboxes_creators wid) () >>= function
             | true ->
-(* XXX
-                Wiki.get_readers ids >>= fun readers ->
-                Wiki.get_writers ids >>= fun writers ->
-                Wiki.get_rights_adm ids >>= fun rights_adm ->
-                Wiki.get_wikiboxes_creators ids >>= fun wikiboxes_creators ->
-*)
-                Wiki.new_wikibox
+                Wiki.new_wikitextbox ~sp ~sd
                   ~wiki:wid
                   ~author:userid
                   ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"
                               (wiki_id_s wid) father)
-                  ~content:"**//new wikibox//**"
-                  ~content_type:Wiki_sql.WikiCreole
-(*XXX                  ?readers
-                  ?writers
-                  ?rights_adm
-                  ?wikiboxes_creators *)
-                  ()
+                  ~content:"**//new wikibox//**" ()
+                  (* XXX Must copy the permissions of englobing_wb to the
+                     new wikibox *)
                   >>= fun box ->
                   Lwt.return
                     (Some (Wiki_syntax.string_of_extension "wikibox"

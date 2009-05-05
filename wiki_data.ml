@@ -29,8 +29,7 @@ let (>>=) = Lwt.bind
 
 (** All wiki-related groups *)
 
-(* XXX
-let wikis_creator = (* This group has no argument *)
+(* XXX let wikis_creator =
   create_static_group "WikisCreators" "Users who can create new wikis"
 *)
 
@@ -52,8 +51,12 @@ let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
   Users.GenericRights.create_admin_writer_reader
     ~name:"WikiWikiboxes" ~descr:"the wikiboxes of the wiki"
 
-(* XXX
-let wiki_wikipages_admins, wiki_wikipages_writers, wiki_wikipages_readers =
+let wiki_files_grps : wiki_arg admin_writer_reader =
+  Users.GenericRights.create_admin_writer_reader
+    ~name:"WikiFiles" ~descr:"the files in the wiki"
+
+
+(* XXX let wiki_wikipages_admins, wiki_wikipages_writers, wiki_wikipages_readers =
   create_admin_writer_reader
     ~name:"WikiWikipages"
     ~descr:"the wikipages of the wiki"
@@ -90,6 +93,7 @@ let () = Lwt_unix.run (
   add_admin wiki_wikiboxes_creators >>= fun () ->
   add_admin wiki_wikipages_creators >>= fun () ->
   add_admin wiki_wikiboxes_grps.grp_admin   >>= fun () ->
+  add_admin wiki_files_grps.grp_admin   >>= fun () ->
   add_admin wiki_wikicss_grps.grp_admin     >>= fun () ->
   add_admin wiki_wikipagescss_grps.grp_admin
 )

@@ -633,7 +633,7 @@ object (self)
 
             | User_sql.External_Auth (* We cannot change this password,
                                         we should not leave the possibility
-                                        to the user XXX *) ->
+                                        to the user  *) ->
                 failwith "ERROR: Cannot change NIS or PAM passwords \
                     from Ocsimore!"
             | User_sql.Ocsimore_user_plain _ ->

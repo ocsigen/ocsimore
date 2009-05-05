@@ -161,7 +161,8 @@ let wiki_admin = Lwt_unix.run
               ~descr:"Administration boxes"
               ~path:[Ocsimore_lib.ocsimore_admin_dir]
               ~boxrights:true
-              ~container_page:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+              ~author:Users.admin
+              ~container_text:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
               ()
             >>= fun wid ->
             Wiki_sql.get_wiki_info_by_id wid
