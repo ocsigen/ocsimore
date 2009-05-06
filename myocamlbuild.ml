@@ -83,10 +83,10 @@ let _ = dispatch begin function
        flag ["ocaml"; "pkg_threads"; "link"] (S[A "-thread"]);
        flag ["ocaml"; "pkg_threads"; "infer_interface"] (S[A "-thread"]);
 
-       flag ["ocaml"; "ocamlduce"; "compile"] (S[A "-duce"]);
-       flag ["ocaml"; "ocamlduce"; "ocamldep"] (S[A "-duce"]);
-       flag ["ocaml"; "ocamlduce"; "doc"] (S[A "-duce"]);
-       flag ["ocaml"; "ocamlduce"; "link"] (S[A "-duce"]);
+       flag ["ocaml"; "notocamlduce"; "compile"] (S[A "-notduce"]);
+       flag ["ocaml"; "notocamlduce"; "ocamldep"] (S[A "-notduce"]);
+       flag ["ocaml"; "notocamlduce"; "doc"] (S[A "-notduce"]);
+       flag ["ocaml"; "notocamlduce"; "link"] (S[A "-notduce"]);
 
        (* internal libraries *)
 (*       ocaml_lib "nis_chkpwd/nis_chkpwd"; *)

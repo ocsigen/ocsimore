@@ -38,7 +38,7 @@ val new_forum :
   descr:string -> 
   ?arborescent:bool -> 
   unit ->
-  Forum_sql.forum Lwt.t
+  Forum_sql.Types.forum Lwt.t
 
 (** inserts a message in a forum. 
     [?moderated] and [?sticky] are false by default.
@@ -47,14 +47,14 @@ val new_forum :
 val new_message :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  forum_id:Forum_sql.forum ->
+  forum_id:Forum_sql.Types.forum ->
   author_id:User_sql.Types.userid ->
   ?subject:string ->
-  ?parent_id:int32 ->
+  ?parent_id:Forum_sql.Types.message ->
   ?sticky:bool ->
   text:string ->
   unit ->
-  int32 Lwt.t
+  Forum_sql.Types.message Lwt.t
 
 (** delete or undelete a message.
     May fail with exception [Ocsimore_common.Permission_denied].
@@ -62,7 +62,7 @@ val new_message :
 val set_deleted :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  message_id:int32 -> deleted:bool -> unit Lwt.t
+  message_id:Forum_sql.Types.message -> deleted:bool -> unit Lwt.t
   
 (** set ou unset sticky flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
@@ -70,7 +70,7 @@ val set_deleted :
 val set_sticky :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  message_id:int32 -> sticky:bool -> unit Lwt.t
+  message_id:Forum_sql.Types.message -> sticky:bool -> unit Lwt.t
   
 (** set or unset moderated flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
@@ -78,7 +78,7 @@ val set_sticky :
 val set_moderated :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  message_id:int32 -> moderated:bool -> unit Lwt.t
+  message_id:Forum_sql.Types.message -> moderated:bool -> unit Lwt.t
   
 (** Get forum information, given its id or title.
     May fail with exception [Ocsimore_common.Permission_denied].
@@ -86,17 +86,17 @@ val set_moderated :
 val get_forum: 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  ?forum_id:Forum_sql.forum -> 
+  ?forum_id:Forum_sql.Types.forum -> 
   ?title:string -> 
   unit -> 
-  (Forum_sql.forum * string * string * bool * bool) Lwt.t
+  Forum_sql.Types.forum_info Lwt.t
 
 (** returns the list of forums visible to the user. *)
 val get_forums_list : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
   unit ->
-  (Forum_sql.forum * string * string * bool * bool) list Lwt.t
+  Forum_sql.Types.forum_info list Lwt.t
   
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message.
@@ -105,9 +105,8 @@ val get_forums_list :
 val get_message : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  message_id:int32 -> 
- (int32 * string option * User_sql.Types.userid * CalendarLib.Calendar.t * int32 option * 
-    int32 * int32 * string * bool * bool * bool * int32 * int32) Lwt.t
+  message_id:Forum_sql.Types.message -> 
+  Forum_sql.Types.message_info Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
@@ -122,7 +121,6 @@ val get_message :
 val get_thread : 
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  message_id:int32 -> 
- (int32 * string option * User_sql.Types.userid * CalendarLib.Calendar.t * int32 option *
-    int32 * int32 * string * bool * bool * bool * int32 * int32) list Lwt.t
+  message_id:Forum_sql.Types.message -> 
+  Forum_sql.Types.message_info list Lwt.t
   

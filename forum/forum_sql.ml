@@ -29,11 +29,111 @@ open Sql
 
 let (>>=) = Lwt.bind
 
-type forum = int32
+module Types = struct
 
-let get_id x = x
-let of_id x = x
-let forum_id_s = Int32.to_string 
+  (** Semi-abstract type for a forum *)
+  type forum_arg = [ `Forum ]
+  type forum = forum_arg Opaque.int32_t
+
+  (** Semi-abstract type for a message or comment *)
+  type message_arg = [ `Message ]
+  type message = message_arg Opaque.int32_t
+
+  type forum_info = {
+    f_id: forum;
+    f_title: string;
+    f_descr: string;
+    f_arborescent: bool;
+    f_deleted: bool;
+  }
+
+  let forum_of_sql (u : int32) = (Opaque.int32_t u : forum)
+  let sql_of_forum (u : forum) = Opaque.t_int32 u
+  let message_of_sql (u : int32) = (Opaque.int32_t u : message)
+  let sql_of_message (u : message) = Opaque.t_int32 u
+
+  let forum_of_sql_option (u : int32 option) = 
+    (Opaque.int32_t_option u : forum option)
+  let sql_of_forum_option (u : forum option) = Opaque.t_int32_option u
+  let message_of_sql_option (u : int32 option) = 
+    (Opaque.int32_t_option u : message option)
+  let sql_of_message_option (u : message option) = Opaque.t_int32_option u
+
+  let string_of_forum i = Int32.to_string (sql_of_forum i)
+  let forum_of_string s = (Opaque.int32_t (Int32.of_string s) : forum)
+  let string_of_message i = Int32.to_string (sql_of_message i)
+  let message_of_string s = (Opaque.int32_t (Int32.of_string s) : message)
+
+  type raw_forum_info = (int32 * string * string * bool * bool)
+
+  let get_forum_info
+      (id,
+       title,
+       descr,
+       arborescent,
+       deleted)
+      = 
+      {
+        f_id = forum_of_sql id;
+        f_title = title;
+        f_descr = descr;
+        f_arborescent = arborescent;
+        f_deleted = deleted;
+      }
+
+  type message_info = {
+    m_id: message;
+    m_subject: string option;
+    m_author_id: User_sql.Types.userid;
+    m_datetime: CalendarLib.Calendar.t;
+    m_parent_id: message option;
+    m_root_id: message;
+    m_forum_id: forum;
+    m_text: string;
+    m_moderated: bool;
+    m_deleted: bool;
+    m_sticky: bool;
+    m_tree_min: int32;
+    m_tree_max: int32;
+  }
+
+  type raw_message_info =
+      (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
+         int32 * int32 * string * bool * bool * bool * int32 * int32)
+
+  let get_message_info
+      (id,
+       subject,
+       author_id,
+       datetime,
+       parent_id,
+       root_id,
+       forum_id,
+       text,
+       moderated,
+       deleted,
+       sticky,
+       tree_min,
+       tree_max) =
+    {
+      m_id = message_of_sql id;
+      m_subject = subject;
+      m_author_id = User_sql.Types.user_from_sql author_id;
+      m_datetime = datetime;
+      m_parent_id = message_of_sql_option parent_id;
+      m_root_id = message_of_sql root_id;
+      m_forum_id = forum_of_sql forum_id;
+      m_text = text;
+      m_moderated = moderated;
+      m_deleted = deleted;
+      m_sticky = sticky;
+      m_tree_min = tree_min;
+      m_tree_max = tree_max;
+    }
+
+
+end
+open Types
 
 let new_forum ~title ~descr ?(arborescent = true) () =
   Sql.full_transaction_block
@@ -41,11 +141,15 @@ let new_forum ~title ~descr ?(arborescent = true) () =
        PGSQL(db) 
          "INSERT INTO forums (title, descr, arborescent) \
           VALUES ($title, $descr, $arborescent)" >>= fun () -> 
-       serial4 db "forums_id_seq")
+       serial4 db "forums_id_seq" >>= fun s ->
+       Lwt.return (forum_of_sql s)
+    )
 
 let new_message ~forum_id ~author_id
     ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
   let author_id = sql_from_user author_id in
+  let parent_id = sql_of_message_option parent_id in
+  let forum_id = sql_of_forum forum_id in
   Sql.full_transaction_block
     (fun db ->
        (match parent_id with
@@ -86,25 +190,31 @@ let new_message ~forum_id ~author_id
                    (Failure
                       "Forum_sql.new_message: parent does not exist or is not unique")
        ) >>= fun () -> 
-      serial4 db "forums_messages_id_seq")
+      serial4 db "forums_messages_id_seq" >>= fun s ->
+      Lwt.return (message_of_sql s)
+    )
 
 
 let set_deleted ~message_id ~deleted =
+  let message_id = sql_of_message message_id in
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "UPDATE forums_messages SET deleted = $deleted \
              WHERE id = $message_id")
 
 let set_moderated ~message_id ~moderated =
+  let message_id = sql_of_message message_id in
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "UPDATE forums_messages SET moderated = $moderated \
              WHERE id = $message_id")
 
 let set_sticky ~message_id ~sticky =
+  let message_id = sql_of_message message_id in
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "UPDATE forums_messages SET sticky = $sticky \
              WHERE id = $message_id")
 
 let get_forum ?(not_deleted_only = true) ?forum_id ?title () =
+  let forum_id = sql_of_forum_option forum_id in
   Sql.full_transaction_block
     (fun db -> match (title, forum_id) with
      | (Some t, Some i) -> 
@@ -125,12 +235,12 @@ let get_forum ?(not_deleted_only = true) ?forum_id ?title () =
      | [(_id, _title, _descr, _arborescent, deleted) as a] -> 
          if not_deleted_only && deleted
          then Lwt.fail Not_found
-         else Lwt.return a
+         else Lwt.return (get_forum_info a)
      | ((_id, _title, _descr, _arborescent, deleted) as a)::_ -> 
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
          if not_deleted_only && deleted
          then Lwt.fail Not_found
-         else Lwt.return a
+         else Lwt.return (get_forum_info a)
      | _ -> Lwt.fail Not_found)
 
 let get_forums_list ?(not_deleted_only = true) () =
@@ -147,12 +257,8 @@ let get_forums_list ?(not_deleted_only = true) () =
             "SELECT id, title, descr, arborescent, deleted \
              FROM forums"))
 
-let wrap_message (id, sub, aut, date, par, root, forum, txt, moder, dele, stick, tma, tmi) =
-  (id, sub,
-   user_from_sql aut,
-   date, par, root, forum, txt, moder, dele, stick, tma, tmi)
-
 let get_message ?(not_deleted_only = true) ~message_id () =
+  let message_id = sql_of_message message_id in
   Lwt_pool.use Sql.pool 
     (fun db ->
        (if not_deleted_only
@@ -173,11 +279,11 @@ let get_message ?(not_deleted_only = true) ~message_id () =
                      WHERE forums_messages.id = $message_id") >>= fun y -> 
   (match y with
      | [] -> Lwt.fail Not_found
-     | x :: _ ->
-         Lwt.return (wrap_message x)
+     | x :: _ -> Lwt.return (get_message_info x)
   ))
 
 let get_thread ~message_id () =
+  let message_id = sql_of_message message_id in
   Sql.full_transaction_block
     (fun db -> 
          PGSQL(db) "SELECT tree_min, tree_max \
@@ -193,8 +299,6 @@ let get_thread ~message_id () =
                       FROM forums_messages \
                       WHERE tree_min >= $min AND tree_max <= $max \
                       ORDER BY tree_min"
-                 >>= fun l ->
-                   Lwt.return (List.map wrap_message l)
          ))
 
 

@@ -25,16 +25,57 @@
 
 open User_sql.Types
 
-type forum = int32
+module Types : sig
 
-(** returns forum id *)
-val get_id : forum -> int32
+  (** Semi-abstract type for a forum *)
+  type forum_arg = [ `Forum ]
+  type forum = forum_arg Opaque.int32_t
 
-(** returns forum from id *)
-val of_id : int32 -> forum
+  (** Semi-abstract type for a message or comment *)
+  type message_arg = [ `Message ]
+  type message = message_arg Opaque.int32_t
 
-(** returns forum id as a string *)
-val forum_id_s : forum -> string
+  val sql_of_message : message -> int32
+  val message_of_sql : int32 -> message
+  val sql_of_forum : forum -> int32
+  val forum_of_sql : int32 -> forum
+  val string_of_forum : forum -> string
+  val forum_of_string : string -> forum
+  val string_of_message : message -> string
+  val message_of_string : string -> message
+
+  type forum_info = {
+    f_id: forum;
+    f_title: string;
+    f_descr: string;
+    f_arborescent: bool;
+    f_deleted: bool;
+  }
+
+  type message_info = {
+    m_id: message;
+    m_subject: string option;
+    m_author_id: User_sql.Types.userid;
+    m_datetime: CalendarLib.Calendar.t;
+    m_parent_id: message option;
+    m_root_id: message;
+    m_forum_id: forum;
+    m_text: string;
+    m_moderated: bool;
+    m_deleted: bool;
+    m_sticky: bool;
+    m_tree_min: int32;
+    m_tree_max: int32;
+  }
+
+  type raw_forum_info
+  type raw_message_info
+
+  val get_forum_info : raw_forum_info -> forum_info
+  val get_message_info : raw_message_info -> message_info
+
+end
+open Types
 
 (** create a new forum. [?arborescent] is true by default. 
     Setting it to false will prevent to comment comments. *)
@@ -51,23 +92,23 @@ val new_message :
   forum_id:forum ->
   author_id:userid ->
   ?subject:string ->
-  ?parent_id:int32 ->
+  ?parent_id:message ->
   ?moderated:bool ->
   ?sticky:bool ->
   text:string ->
-  int32 Lwt.t
+  message Lwt.t
 
 (** delete or undelete a message *)
 val set_deleted :
-  message_id:int32 -> deleted:bool -> unit Lwt.t
+  message_id:message -> deleted:bool -> unit Lwt.t
   
 (** set ou unset sticky flag on a message *)
 val set_sticky :
-  message_id:int32 -> sticky:bool -> unit Lwt.t
+  message_id:message -> sticky:bool -> unit Lwt.t
   
 (** set or unset moderated flag on a message *)
 val set_moderated :
-  message_id:int32 -> moderated:bool -> unit Lwt.t
+  message_id:message -> moderated:bool -> unit Lwt.t
   
 (** Get forum information, given its id or title.
     Information is: (forum id, title, description, arborescent, deleted)
@@ -77,20 +118,19 @@ val get_forum:
   ?forum_id:forum -> 
   ?title:string -> 
   unit -> 
-  (forum * string * string * bool * bool) Lwt.t
+  forum_info Lwt.t
 
 (** returns the list of forums *)
 val get_forums_list : ?not_deleted_only:bool -> unit ->
-  (forum * string * string * bool * bool) list Lwt.t
+  raw_forum_info list Lwt.t
   
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message *)
 val get_message : 
   ?not_deleted_only:bool ->
-  message_id:int32 -> 
+  message_id:message -> 
   unit ->
- (int32 * string option * userid * CalendarLib.Calendar.t * int32 option * 
-    int32 * int32 * string * bool * bool * bool * int32 * int32) Lwt.t
+  message_info Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
@@ -101,9 +141,8 @@ val get_message :
     The result is ordered according to tree_min.
 *)
 val get_thread : 
-  message_id:int32 -> 
+  message_id:message -> 
   unit ->
- (int32 * string option * userid * CalendarLib.Calendar.t * int32 option *
-    int32 * int32 * string * bool * bool * bool * int32 * int32) list Lwt.t
+  raw_message_info list Lwt.t
   
 

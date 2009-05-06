@@ -3,8 +3,8 @@ ocsisite.cmo
 ocsicreatewiki.cmo
 wikiperso.cmo
 announce/announce.cma
-#forum/ocsicreateforum.cmo
-#forum/forum.cma
-#forum/forum_site.cmo
-#forum/forum_client.cmo
+forum/ocsicreateforum.cmo
+forum/forum.cma
+forum/forum_site.cmo
+forum/forum_client.cmo
 

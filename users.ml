@@ -363,13 +363,12 @@ let get_user_sd ~sp ~sd =
 let get_user_id ~sp ~sd = get_user_sd sp sd
 
 let get_user_data ~sp ~sd =
-  get_user_sd sp sd
-  >>= fun u ->
+  get_user_sd sp sd >>= fun u ->
   User_sql.get_basicuser_data u
 
 let get_user_name ~sp ~sd =
-  get_user_data sp sd
-  >>= fun u -> Lwt.return u.user_login
+  get_user_data sp sd >>= fun u -> 
+  Lwt.return u.user_login
 
 let is_logged_on ~sp ~sd =
   get_user_sd sp sd >>= fun u ->

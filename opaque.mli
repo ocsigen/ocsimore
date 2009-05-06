@@ -28,6 +28,8 @@ type 'a int_t
 
 val int_t : int -> 'a int_t
 val t_int : 'a int_t -> int
+val int_t_option : int option -> 'a int_t option
+val t_int_option : 'a int_t option -> int option
 val any_int : 'a int_t -> 'b int_t
 (** [int_t], [t_int] and [any_int] are type conversion functions. *)
 
@@ -57,6 +59,8 @@ type 'a int32_t
 
 val int32_t : int32 -> 'a int32_t
 val t_int32 : 'a int32_t -> int32
+val int32_t_option : int32 option -> 'a int32_t option
+val t_int32_option : 'a int32_t option -> int32 option
 val any_int32 : 'a int32_t -> 'b int32_t
 (** [int_t], [t_int] and [any_int] are type conversion functions. *)
 
@@ -75,6 +79,8 @@ type 'a string_t
 
 val string_t : string -> 'a string_t
 val t_string : 'a string_t -> string
+val string_t_option : string option -> 'a string_t option
+val t_string_option : 'a string_t option -> string option
 val any_string : 'a string_t -> 'b string_t
 (** [int_string], [t_string] and [any_string] are type conversion functions. *)
 

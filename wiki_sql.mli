@@ -32,8 +32,8 @@ type wiki_arg = [ `Wiki ]
 type wiki = wiki_arg Opaque.int32_t
 
 (** Conversions from a wiki index *)
-val wiki_id_s : wiki -> string
-val s_wiki_id : string -> wiki
+val string_of_wiki : wiki -> string
+val wiki_of_string : string -> wiki
 
 type wikibox_arg = [ `Wikibox ]
 (* One day, should be [wikibox_arg Opaque.int32_t] *)
@@ -96,7 +96,7 @@ type wikibox_content =
     wikibox_content_type * string option * int32
 
 
-(** Direct reading of wikis from eliom *)
+(** Eliom parameter type for wikis *)
 val eliom_wiki :
   string -> (wiki, [`WithoutSuffix], [`One of wiki] Eliom_parameters.param_name) Eliom_parameters.params_type
 

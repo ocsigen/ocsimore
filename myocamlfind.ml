@@ -24,13 +24,13 @@
 let rec argv_pick_duce res accu i =
   if i <= 0 then
     (res, accu)
-  else if Sys.argv.(i) = "-duce" then
+  else if Sys.argv.(i) = "-notduce" then
     argv_pick_duce true accu (i-1)
   else
     argv_pick_duce res (Sys.argv.(i)::accu) (i-1)
 
 let _ =
-  let (duce, argv) = argv_pick_duce false [] (Array.length Sys.argv-1) in
-  let command = if duce then "ocamlducefind" else "ocamlfind" in
+  let (notduce, argv) = argv_pick_duce false [] (Array.length Sys.argv-1) in
+  let command = if notduce then "ocamlfind" else "ocamlducefind" in
   let argv = Array.of_list (command::argv) in
   Unix.execvp command argv

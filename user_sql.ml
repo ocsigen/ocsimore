@@ -42,7 +42,6 @@ module Types = struct
     | Ocsimore_user_crypt of string
     | External_Auth
 
-
   type userdata = {
     user_id: userid;
     user_login: string;

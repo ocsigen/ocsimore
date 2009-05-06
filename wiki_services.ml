@@ -140,7 +140,7 @@ let eliom_css_args =
 let register_wiki ?sp ~path ~(wikibox_widget:Wiki_widgets_interface.interactive_wikibox) ~wiki () =
   Ocsigen_messages.debug
     (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
-       (wiki_id_s wiki) (String.concat "/"  path));
+       (string_of_wiki wiki) (String.concat "/"  path));
   (* Registering the service with suffix for wikipages *)
   (* Note that Eliom will look for the service corresponding to
      the longest prefix. Thus it is possible to register a wiki
@@ -160,7 +160,7 @@ let register_wiki ?sp ~path ~(wikibox_widget:Wiki_widgets_interface.interactive_
   (* the same, but non attached: *)
   let naservpage =
     Eliom_predefmod.Any.register_new_coservice' ?sp
-      ~name:("display"^wiki_id_s wiki)
+      ~name:("display"^string_of_wiki wiki)
       ~get_params:(Eliom_parameters.string "page")
       (fun sp page () ->
          let path = Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
@@ -394,7 +394,7 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
                 | Not_found ->
                     Wiki.new_wikitextbox ~sp ~sd ~wiki ~author:user
                       ~comment:(Printf.sprintf "wikipage %s in wiki %s"
-                                  page (wiki_id_s wiki))
+                                  page (string_of_wiki wiki))
                       ~content:("== Page "^page^"==") ()
                     >>= fun wbid ->
                     Wiki_sql.set_box_for_page ~sourcewiki:wiki ~wbid ~page ()

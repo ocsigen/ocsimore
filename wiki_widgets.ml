@@ -43,7 +43,7 @@ object
           error_box#display_error_box
             ?classes
             ~message:("The box "^Int32.to_string i^
-                        " does not exist in wiki "^ wiki_id_s w^".")
+                        " does not exist in wiki "^ string_of_wiki w^".")
             ?exn
             ()
       | Some Wiki_services.Not_css_editor ->
@@ -295,8 +295,9 @@ object (self)
     ) >>= fun (curversion, warning1, warning2)  ->
     let draw_form (actionname,(((widname, wbidname),versionname),contentname)) =
       {{ [ <p>[!warning1
-               {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-                  ~name:widname ~value:wid wiki_id_s :}
+               {: Eliom_duce.Xhtml.user_type_input string_of_wiki
+                  ~input_type:{: "hidden" :}
+                  ~name:widname ~value:wid () :}
                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                   ~name:wbidname ~value:wbid () :}
                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -355,12 +356,14 @@ object (self)
     ) >>= fun (curversion, warning)  ->
     let draw_form (((widname, wbidname), (((widcssname, wbidcssname), wikipagename), versionname)), contentname) =
       {{ [ <p>[!warning
-               {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-                  ~name:widname ~value:wid wiki_id_s :}
+               {: Eliom_duce.Xhtml.user_type_input
+                  string_of_wiki ~input_type:{: "hidden" :}
+                  ~name:widname ~value:wid () :}
                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                   ~name:wbidname ~value:wbid () :}
-               {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-                  ~name:widcssname ~value:widcss wiki_id_s :}
+               {: Eliom_duce.Xhtml.user_type_input
+                  string_of_wiki ~input_type:{: "hidden" :}
+                  ~name:widcssname ~value:widcss () :}
                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                   ~name:wbidcssname ~value:wbidcss () :}
                !{: match wikipage with
@@ -414,8 +417,9 @@ object (self)
       Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
     let draw_form ((wid, bid), (addrn, (addwn, (addan, (addc, (delrn, (delwn, (delan, delc)))))))) =
       {{ [<p>[
-            {: Eliom_duce.Xhtml.user_type_input ~input_type:{: "hidden" :}
-               ~name:wid ~value:wiki_id wiki_id_s :}
+            {: Eliom_duce.Xhtml.user_type_input
+               string_of_wiki ~input_type:{: "hidden" :}
+               ~name:wid ~value:wiki_id () :}
             {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                ~name:bid ~value:message_id () :}
             'Users who can read this wiki box: ' !{: r :}  <br>[]
@@ -448,21 +452,21 @@ object (self)
       content
 
   method private menu_edit_wikitext (w, b as wb) =
-    let title = Printf.sprintf "Edit - Wiki %s, box %ld" (wiki_id_s w) b in
+    let title = Printf.sprintf "Edit - Wiki %s, box %ld" (string_of_wiki w) b in
     self#menu_box_aux ~title ~service:Menu_Edit editform_class wb
 
   method private menu_edit_perm (w, b as wb) =
     let title = Printf.sprintf "Permissions - Wiki %s, box %ld"
-      (wiki_id_s w) b in
+      (string_of_wiki w) b in
     self#menu_box_aux ~title ~service:Menu_EditPerm editform_class wb
 
   method private menu_wikitext_history (w, b as wb) =
-    let title = Printf.sprintf "History - Wiki %s, box %ld" (wiki_id_s w) b in
+    let title = Printf.sprintf "History - Wiki %s, box %ld" (string_of_wiki w) b in
     self#menu_box_aux ~title ~service:Menu_History history_class wb
 
   method private menu_css_history ((w, _) as wb) page =
     let title = Printf.sprintf "CSS history, wiki %s, %s"
-      (wiki_id_s w) (self#css_wikibox_text page) in
+      (string_of_wiki w) (self#css_wikibox_text page) in
     self#menu_box_aux ~title ~service:Menu_HistoryCss css_history_class wb
 
   method private menu_view =
@@ -470,22 +474,22 @@ object (self)
 
   method private menu_old_wikitext (w, b as wb) version =
     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"
-      (wiki_id_s w) b version in
+      (string_of_wiki w) b version in
     self#menu_box_aux ~title oldwikibox_class wb
 
   method private menu_old_css ((w, _) as wb) page =
     let title = Printf.sprintf "Old css version, wiki %s, %s"
-      (wiki_id_s w) (self#css_wikibox_text page) in
+      (string_of_wiki w) (self#css_wikibox_text page) in
     self#menu_box_aux ~title oldwikibox_class wb
 
   method private menu_src_wikitext (w, b as wb) version =
     let title = Printf.sprintf "Source - Wiki %s, box %ld, version %ld"
-      (wiki_id_s w) b version in
+      (string_of_wiki w) b version in
     self#menu_box_aux ~title srcwikibox_class wb
 
   method private menu_edit_css ((w, _) as wb) page =
     let title = Printf.sprintf "CSS for wiki %s, %s"
-      (wiki_id_s w) (self#css_wikibox_text page) in
+      (string_of_wiki w) (self#css_wikibox_text page) in
     self#menu_box_aux ~title ~service:Menu_EditCss css_class wb
 
   method private css_wikibox_text = function
@@ -583,9 +587,32 @@ object (self)
                         false)
 
 
-  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
+  method display_overriden_interactive_wikibox
+    ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
     match override with
       | EditWikitext wb ->
+(*TRY:
+          error_box#bind_or_display_error
+            (Wiki.wikibox_content' wb)
+            (fun (content, version as cv) ->
+               self#display_wikiboxcontent ~wiki:(fst wb_loc)
+                 ~classes:[] ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
+                 (Wiki_sql.WikiCreole, content, version)
+               >>= fun (_, pp) ->
+               self#display_basic_box ~classes:[] pp
+               >>= fun preview ->
+               self#display_wikitext_edit_form_help ~classes:[]
+                 ~bi ?cols ?rows ~previewonly:true ~wb cv
+               >>= fun (_, form) ->
+                 Lwt.return
+                   (classes,
+                    {{ [ preview
+                         <div class="editwidget">form ] }})
+            )
+            (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
+          >>= fun r ->
+          Lwt.return (r, true)
+*)
           error_box#bind_or_display_error
             (Wiki.wikibox_content' wb)
             (self#display_wikitext_edit_form_help ~bi ?cols ?rows
@@ -769,8 +796,8 @@ object (self)
               let draw_form (wikiidname, pagename) =
                 {{ [<p>[
                        {: Eliom_duce.Xhtml.user_type_input
-                          ~input_type:{: "hidden" :}
-                          ~name:wikiidname ~value:wiki wiki_id_s :}
+                          string_of_wiki ~input_type:{: "hidden" :}
+                          ~name:wikiidname ~value:wiki () :}
                        {: Eliom_duce.Xhtml.string_input ~name:pagename
                           ~input_type:{: "hidden" :} ~value:page () :}
                        {: Eliom_duce.Xhtml.string_input
@@ -847,7 +874,7 @@ end
    - Why do we need to extract this value since we have a default ?
 *)
 let extract_wiki_id args default =
-  try s_wiki_id (List.assoc "wiki" args)
+  try wiki_of_string (List.assoc "wiki" args)
   with Failure _ | Not_found -> default
 and extract_https args =
   try match List.assoc "protocol" args with
@@ -914,7 +941,7 @@ Wiki_filter.add_preparser_extension ~name:"wikibox"
                   ~wiki:wid
                   ~author:userid
                   ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"
-                              (wiki_id_s wid) father)
+                              (string_of_wiki wid) father)
                   ~content:"**//new wikibox//**" ()
                   (* XXX Must copy the permissions of englobing_wb to the
                      new wikibox *)

@@ -24,6 +24,7 @@ include Makefile.config
 
 VERSION :=$(shell head -n 1 VERSION)
 DESTDIR :=$(shell ocamlfind printconf destdir)
+DISPLAYFLAG := -classic-display
 
 OCAMLFIND := ocamlfind
 OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
@@ -44,7 +45,7 @@ STATICFILES := static/vm.js static/eliom_obrowser.js static/ocsimore.js \
 	static/ocsimore_client.uue static/ocsiwikistyle.css \
 	static/creole_cheat_sheet.png
 
-all: ocsimore.mllib check_db nis_chkpwd_ ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
+all: $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
 	make -C nis_chkpwd
@@ -58,7 +59,7 @@ ocamlbuild: $(MYOCAMLFIND)
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(OCAMLBUILD) $(TARGETS)
 
-$(MYOCAMLFIND):
+$(MYOCAMLFIND): myocamlfind.ml
 	$(OCAMLBUILD) -no-plugin $(subst _build/,,$@)
 
 ocsimore.mllib: ocsimore.mllib.IN

@@ -47,7 +47,7 @@ val get_user_by_name: string -> user Lwt.t
 val user_list_of_string : string -> user list Lwt.t
 
 
-(** Creates a new user with given parameters,
+(** Creates a new user or group with given parameters,
     or returns the existing user without modification
     if [name] is already present. *)
 val create_user:

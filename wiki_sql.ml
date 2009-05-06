@@ -35,10 +35,10 @@ module Types = struct
 type wiki_arg = [ `Wiki ]
 type wikibox_arg = [ `Wikibox ]
 type wiki = [`Wiki] int32_t
-let wiki_from_sql (i : int32) = (int32_t i : wiki)
-let sql_from_wiki (i : wiki) = t_int32 i
-let wiki_id_s i = Int32.to_string (sql_from_wiki i)
-let s_wiki_id s = (Opaque.int32_t (Int32.of_string s) : wiki)
+let wiki_of_sql (i : int32) = (int32_t i : wiki)
+let sql_of_wiki (i : wiki) = t_int32 i
+let string_of_wiki i = Int32.to_string (sql_of_wiki i)
+let wiki_of_string s = (Opaque.int32_t (Int32.of_string s) : wiki)
 
 
 (* For now. Someday the second int32 will be a properly opacified type *)
@@ -83,9 +83,7 @@ open Types
 let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
 
 
-let eliom_wiki = Eliom_parameters.user_type
-  (fun s -> (int32_t (Int32.of_string s) : wiki))
-  wiki_id_s
+let eliom_wiki = Eliom_parameters.user_type wiki_of_string string_of_wiki
 
 
 let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author () =
@@ -107,7 +105,7 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author
      PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
                 VALUES ($container_wikibox, $wiki_id, $author, $container_text)"
      >>= fun () ->
-       return (wiki_from_sql wiki_id, container_wikibox)
+       return (wiki_of_sql wiki_id, container_wikibox)
     )
 
 
@@ -295,7 +293,7 @@ let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () =
 
 
 let reencapsulate_wiki (w, t, d, p, br, ci, s) =
-  { wiki_id = wiki_from_sql w;
+  { wiki_id = wiki_of_sql w;
     wiki_title = t;
     wiki_descr = d;
     wiki_boxrights = br;

@@ -35,8 +35,8 @@ let register_services () =
       ~post_params:
       (Eliom_parameters.string "actionname" **
          ((Eliom_parameters.sum
-             (Eliom_parameters.int32 "parent")
-             (Eliom_parameters.int32 "forum")) **
+             (Forum.eliom_message "parent")
+             (Forum.eliom_forum "forum")) **
             (Eliom_parameters.opt (Eliom_parameters.string "subject") **
                Eliom_parameters.string "content")))
       ()
@@ -53,9 +53,8 @@ let register_services () =
         | Eliom_parameters.Inj1 parent_id -> (* comment *)
             (* We do not require the user to be allowed to read the message ... 
                (Forum_sql.get_message and not Forum_data.get_message) *)
-            Forum_sql.get_message ~message_id:parent_id ()
-            >>= fun (_, _, _, _, _, _, forum_id, _, _, _, _, _, _) ->
-            Lwt.return (forum_id, Some parent_id))
+            Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
+            Lwt.return (m.Forum_sql.Types.m_forum_id, Some parent_id))
        >>= fun (forum_id, parent_id) ->
 
        Forum.get_role sp sd forum_id >>= fun _role -> (* VVV : why is role not used here ? *)
@@ -93,7 +92,7 @@ let register_services () =
     Eliom_services.new_post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_moderate"
-      ~post_params:(Eliom_parameters.int32 "msg")
+      ~post_params:(Forum.eliom_message "msg")
       ()
   in
 
@@ -112,7 +111,7 @@ let register_services () =
     Eliom_services.new_post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_delete_message"
-      ~post_params:(Eliom_parameters.int32 "msg")
+      ~post_params:(Forum.eliom_message "msg")
       ()
   in
 

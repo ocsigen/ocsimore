@@ -43,7 +43,9 @@ let register_wikiext (message_widget, thread_widget) =
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let sd = bi.Wiki_widgets_interface.bi_sd in
-            let message_id = Int32.of_string (List.assoc "message" args) in
+            let message_id =
+              Forum_sql.Types.message_of_string (List.assoc "message" args) 
+            in
             message_widget#display
               ~sp ~sd ?rows ?cols ?classes
               ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
@@ -72,7 +74,9 @@ let register_wikiext (message_widget, thread_widget) =
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let sd = bi.Wiki_widgets_interface.bi_sd in
-            let message_id = Int32.of_string (List.assoc "message" args) in
+            let message_id =
+              Forum_sql.Types.message_of_string (List.assoc "message" args) 
+            in
             thread_widget#display ?commentable:(Some true) ~sp ~sd
               ?rows ?cols ?classes
               ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->

@@ -24,254 +24,196 @@
 *)
 
 open User_sql.Types
+open Forum_sql.Types
 
 let (>>=) = Lwt.bind
+let ($) = User_sql.Types.apply_parameterized_group
 
-type forum_info = {
-  id: Forum_sql.forum;
-  title: string;
-  descr: string;
-  arborescent: bool;
-  deleted: bool;
-}
 
-let create_group_ name fullname =
-  Users.create_user 
-    ~name
-    ~pwd:User_sql.Types.Connect_forbidden
-    ~fullname
-    ~groups:[]
-    ()
+(** {2 Forum related groups} *)
+
+let aux_grp name descr =
+  Lwt_unix.run (User_sql.new_parametrized_group name descr)
+
+let message_writers : forum_arg parameterized_group =
+  aux_grp "messagewriters" "Can write new messages in the forum"
+
+let message_writers_notmod : forum_arg parameterized_group =
+  aux_grp 
+    "messagewritersnotmoderated"
+    "Can write new messages in the forum without moderation"
+
+let message_moderators : forum_arg parameterized_group =
+  aux_grp "messagemoderators" "Can moderate messages in the forum"
+
+let message_deletors : forum_arg parameterized_group =
+  aux_grp "messagedeletors" "Can delete messages in the forum"
+
+let message_deletors_if_author : forum_arg parameterized_group =
+  aux_grp "messagedeletorsifauthor" 
+    "Can delete messages in the forum if author"
+
+let message_sticky_makers : forum_arg parameterized_group =
+  aux_grp "messagestickymakers" "Can make messages sticky in the forum"
+
+let message_readers  : forum_arg parameterized_group =
+  aux_grp "messagereaders" "Can read messages in the forum"
+
+let comment_writers : forum_arg parameterized_group =
+  aux_grp "commentwriters" "Can write new comments in the forum"
+
+let comment_writers_notmod : forum_arg parameterized_group =
+  aux_grp 
+    "commentwritersnotmoderated"
+    "Can write new comments in the forum without moderation"
+
+let comment_moderators : forum_arg parameterized_group =
+  aux_grp "commentmoderators" "Can moderate comments in the forum"
+
+let comment_deletors : forum_arg parameterized_group =
+  aux_grp "commentdeletors" "Can delete comments in the forum"
+
+let comment_deletors_if_author : forum_arg parameterized_group =
+  aux_grp "commentdeletorsifauthor" 
+    "Can delete comments in the forum if author"
+
+let comment_sticky_makers : forum_arg parameterized_group =
+  aux_grp "commentstickymakers" "Can make comments sticky in the forum"
+
+let comment_readers  : forum_arg parameterized_group =
+  aux_grp "commentreaders" "Can read comments in the forum"
+
+let writers : forum_arg parameterized_group =
+  aux_grp "writers" "Can write new comments in the forum"
+
+let writers_notmod : forum_arg parameterized_group =
+  aux_grp 
+    "writersnotmoderated"
+    "Can write new messages or comments in the forum without moderation"
+
+let moderators : forum_arg parameterized_group =
+  aux_grp "moderators" "Can moderate messages or comments in the forum"
+
+let deletors : forum_arg parameterized_group =
+  aux_grp "deletors" "Can delete messages or comments in the forum"
+
+let deletors_if_author : forum_arg parameterized_group =
+  aux_grp "deletorsifauthor" 
+    "Can delete messages or comments in the forum if author"
+
+let sticky_makers : forum_arg parameterized_group =
+  aux_grp "stickymakers" "Can make messages or comments sticky in the forum"
+
+let readers  : forum_arg parameterized_group =
+  aux_grp "readers" "Can read messages or comments in the forum"
+
+
+let forum_admin : forum_arg parameterized_group =
+  aux_grp "admin" "All rights on the forum"
+
+let forum_visible : forum_arg parameterized_group =
+  aux_grp "visible" "Can see the forum"
 
 let forum_creators =
-  Lwt_unix.run
-    (Users.create_user 
-       ~name:"forum_creators"
-       ~pwd:User_sql.Types.Connect_forbidden
-       ~fullname:"users who can create new forums"
-       ~groups:[]
-       ()
-    )
+  User_sql.Types.basic_user
+    (Lwt_unix.run
+       (Users.create_user 
+          ~name:"forum_creators"
+          ~pwd:User_sql.Types.Connect_forbidden
+          ~fullname:"Can create new forums"
+          ~groups:[]
+          ()
+       ))
 
-let message_writers_group_name i = "forum"^i^"_message_writers"
-let message_writers_notmod_group_name i = "forum"^i^"_message_writers_notmod"
-let message_moderators_group_name i = "forum"^i^"_message_moderators"
-let message_deletors_group_name i = "forum"^i^"_message_deletors"
-let message_deletors_if_author_group_name i = "forum"^i^"_message_deletors_if_author"
-let message_sticky_setters_group_name i = "forum"^i^"_message_sticky_setters"
-let message_readers_group_name i = "forum"^i^"_message_readers"
+(* Generic relations between groups *)
+let () = Lwt_unix.run (
+  User_sql.add_generic_inclusion
+    ~subset:forum_admin ~superset:moderators >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:forum_admin ~superset:deletors >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:forum_admin ~superset:sticky_makers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:forum_admin ~superset:writers >>= fun () ->
 
-let comment_writers_group_name i = "forum"^i^"_comment_writers"
-let comment_writers_notmod_group_name i = "forum"^i^"_comment_writers_notmod"
-let comment_moderators_group_name i = "forum"^i^"_comment_moderators"
-let comment_deletors_group_name i = "forum"^i^"_comment_deletors"
-let comment_deletors_if_author_group_name i = "forum"^i^"_comment_deletors_if_author"
-let comment_sticky_setters_group_name i = "forum"^i^"_comment_sticky_setters"
-let comment_readers_group_name i = "forum"^i^"_comment_readers"
+  User_sql.add_generic_inclusion
+    ~subset:moderators ~superset:message_moderators >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:moderators ~superset:comment_moderators >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:deletors ~superset:message_deletors >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:deletors ~superset:comment_deletors >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:deletors ~superset:deletors_if_author >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:deletors_if_author ~superset:message_deletors_if_author >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:deletors_if_author ~superset:comment_deletors_if_author >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:message_deletors ~superset:message_deletors_if_author >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:comment_deletors ~superset:comment_deletors_if_author >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:sticky_makers ~superset:message_sticky_makers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:sticky_makers ~superset:comment_sticky_makers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:writers_notmod ~superset:message_writers_notmod >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:writers_notmod ~superset:comment_writers_notmod >>= fun () ->
 
-let writers_group_name i = "forum"^i^"_writers"
-let writers_notmod_group_name i = "forum"^i^"_writers_notmod"
-let moderators_group_name i = "forum"^i^"_moderators"
-let deletors_group_name i = "forum"^i^"_deletors"
-let deletors_if_author_group_name i = "forum"^i^"_deletors_if_author"
-let sticky_setters_group_name i = "forum"^i^"_sticky_setters"
-let readers_group_name i = "forum"^i^"_readers"
+  User_sql.add_generic_inclusion
+    ~subset:writers_notmod ~superset:writers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:writers ~superset:readers >>= fun () ->
 
-let forum_admin_group_name i = "forum"^i^"_admin"
-let forum_visible_group_name i = "forum"^i^"_visible"
+  User_sql.add_generic_inclusion
+    ~subset:message_deletors ~superset:message_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:message_moderators ~superset:message_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:message_sticky_makers ~superset:message_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:message_writers ~superset:message_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:readers ~superset:message_readers >>= fun () ->
 
-let message_writers_group i = Users.get_user_id_by_name (message_writers_group_name i)
-let message_writers_notmod_group i = Users.get_user_id_by_name (message_writers_notmod_group_name i)
-let message_moderators_group i = Users.get_user_id_by_name (message_moderators_group_name i)
-let message_deletors_group i = Users.get_user_id_by_name (message_deletors_group_name i)
-let message_deletors_if_author_group i = Users.get_user_id_by_name (message_deletors_if_author_group_name i)
-let message_sticky_setters_group i = Users.get_user_id_by_name (message_sticky_setters_group_name i)
-let message_readers_group i = Users.get_user_id_by_name (message_readers_group_name i)
+  User_sql.add_generic_inclusion
+    ~subset:comment_deletors ~superset:comment_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:comment_moderators ~superset:comment_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:comment_sticky_makers ~superset:comment_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:comment_writers ~superset:comment_readers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:readers ~superset:comment_readers >>= fun () ->
 
-let comment_writers_group i = Users.get_user_id_by_name (comment_writers_group_name i)
-let comment_writers_notmod_group i = Users.get_user_id_by_name (comment_writers_notmod_group_name i)
-let comment_moderators_group i = Users.get_user_id_by_name (comment_moderators_group_name i)
-let comment_deletors_group i = Users.get_user_id_by_name (comment_deletors_group_name i)
-let comment_deletors_if_author_group i = Users.get_user_id_by_name (comment_deletors_if_author_group_name i)
-let comment_sticky_setters_group i = Users.get_user_id_by_name (comment_sticky_setters_group_name i)
-let comment_readers_group i = Users.get_user_id_by_name (comment_readers_group_name i)
+  User_sql.add_generic_inclusion
+    ~subset:message_writers_notmod ~superset:message_writers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:writers ~superset:message_writers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:comment_writers_notmod ~superset:comment_writers >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:writers ~superset:comment_writers >>= fun () ->
 
-let writers_group i = Users.get_user_id_by_name (writers_group_name i)
-let writers_notmod_group i = Users.get_user_id_by_name (writers_notmod_group_name i)
-let moderators_group i = Users.get_user_id_by_name (moderators_group_name i)
-let deletors_group i = Users.get_user_id_by_name (deletors_group_name i)
-let deletors_if_author_group i = Users.get_user_id_by_name (deletors_if_author_group_name i)
-let sticky_setters_group i = Users.get_user_id_by_name (sticky_setters_group_name i)
-let readers_group i = Users.get_user_id_by_name (readers_group_name i)
-
-let forum_admin_group i = Users.get_user_id_by_name (forum_admin_group_name i)
-
-let forum_visible_group i = 
-  Users.get_user_id_by_name 
-    (forum_visible_group_name (Int32.to_string i))
-
-let add_to_group_ l g =
-  List.fold_left
-    (fun beg u -> 
-       beg >>= fun () ->
-       Users.add_to_group ~user:u ~group:g)
-    (Lwt.return ())
-    l
+  User_sql.add_generic_inclusion
+    ~subset:message_readers ~superset:forum_visible >>= fun () ->
+  User_sql.add_generic_inclusion
+    ~subset:comment_readers ~superset:forum_visible
+)
 
 
+
+
+
+
+(** {2 } *)
 
 let really_create_forum ~title ~descr ~arborescent () =
-  Forum_sql.new_forum ~title ~descr ~arborescent () >>= fun forum_id ->
-
-  let forum_id_s = Forum_sql.forum_id_s forum_id in
-   (* Creating groups *)
-   create_group_ (message_readers_group_name forum_id_s)
-     ("Users who can read messages in forum "^forum_id_s)
-   >>= fun message_readers_data ->
-   create_group_ (message_writers_group_name forum_id_s)
-     ("Users who can create new messages in forum "^forum_id_s)
-   >>= fun message_writers_data ->
-   create_group_ (message_writers_notmod_group_name forum_id_s)
-       ("Users who can create new messages in forum "^forum_id_s^
-          " without beeing moderated")
-   >>= fun message_writers_notmod_data ->
-   create_group_ (message_moderators_group_name forum_id_s)
-       ("Users who can moderate messages in "^forum_id_s)
-   >>= fun message_moderators_data ->
-   create_group_ (message_deletors_group_name forum_id_s)
-       ("Users who can delete messages in "^forum_id_s)
-   >>= fun message_deletors_data ->
-   create_group_ (message_deletors_if_author_group_name forum_id_s)
-       ("Users who can delete their own messages in "^forum_id_s)
-   >>= fun message_deletors_if_author_data ->
-   create_group_ (message_sticky_setters_group_name forum_id_s)
-       ("Users who can set messages sticky in "^forum_id_s)
-   >>= fun message_sticky_setters_data ->
-
-   create_group_ (comment_readers_group_name forum_id_s)
-     ("Users who can read comments in forum "^forum_id_s)
-   >>= fun comment_readers_data ->
-   create_group_ (comment_writers_group_name forum_id_s)
-     ("Users who can create comments in forum "^forum_id_s)
-   >>= fun comment_writers_data ->
-     create_group_ (comment_writers_notmod_group_name forum_id_s)
-       ("Users who can create comments in forum "^forum_id_s^
-          " without beeing moderated")
-   >>= fun comment_writers_notmod_data ->
-     create_group_ (comment_moderators_group_name forum_id_s)
-       ("Users who can moderate new comments in "^forum_id_s)
-   >>= fun comment_moderators_data ->
-     create_group_ (comment_deletors_group_name forum_id_s)
-       ("Users who can delete comments in "^forum_id_s)
-   >>= fun comment_deletors_data ->
-     create_group_ (comment_deletors_if_author_group_name forum_id_s)
-       ("Users who can delete their own comments in "^forum_id_s)
-   >>= fun comment_deletors_if_author_data ->
-     create_group_ (comment_sticky_setters_group_name forum_id_s)
-       ("Users who can set comments sticky in "^forum_id_s)
-   >>= fun comment_sticky_setters_data ->
-
-     create_group_ (readers_group_name forum_id_s)
-     ("Users who can read messages and comments in forum "^forum_id_s)
-   >>= fun readers_data ->
-     create_group_ (writers_group_name forum_id_s)
-     ("Users who can create messages or comments in forum "^forum_id_s)
-   >>= fun writers_data ->
-     create_group_ (writers_notmod_group_name forum_id_s)
-       ("Users who can create messages or comments in forum "^forum_id_s^
-          " without beeing moderated")
-   >>= fun writers_notmod_data ->
-     create_group_ (moderators_group_name forum_id_s)
-       ("Users who can moderate messages and comments in "^forum_id_s)
-   >>= fun moderators_data ->
-     create_group_ (deletors_group_name forum_id_s)
-       ("Users who can delete messages and comments in "^forum_id_s)
-   >>= fun deletors_data ->
-     create_group_ (deletors_if_author_group_name forum_id_s)
-       ("Users who can delete their own messages and comments in "^forum_id_s)
-   >>= fun deletors_if_author_data ->
-     create_group_ (sticky_setters_group_name forum_id_s)
-       ("Users who can set messages or comments sticky in "^forum_id_s)
-   >>= fun sticky_setters_data ->
-
-     create_group_ (forum_admin_group_name forum_id_s)
-       ("Users who have all rights for "^forum_id_s)
-   >>= fun forum_admin_data ->
-     create_group_ (forum_visible_group_name forum_id_s)
-       ("Users who can see that forum "^forum_id_s^" exists")
-   >>= fun forum_visible_data ->
-
-
-   (* Relation between groups *)
-     add_to_group_ [forum_admin_data.user_id] moderators_data.user_id
-   >>= fun () ->
-     add_to_group_ [forum_admin_data.user_id] deletors_data.user_id
-   >>= fun () ->
-     add_to_group_ [forum_admin_data.user_id] sticky_setters_data.user_id
-   >>= fun () ->
-     add_to_group_ [forum_admin_data.user_id] writers_notmod_data.user_id
-   >>= fun () ->
-
-     add_to_group_ [moderators_data.user_id] message_moderators_data.user_id
-   >>= fun () ->
-     add_to_group_ [moderators_data.user_id] comment_moderators_data.user_id
-   >>= fun () ->
-     add_to_group_ [deletors_data.user_id] message_deletors_data.user_id
-   >>= fun () ->
-     add_to_group_ [deletors_data.user_id] comment_deletors_data.user_id
-   >>= fun () ->
-     add_to_group_ [deletors_data.user_id] deletors_if_author_data.user_id
-   >>= fun () ->
-     add_to_group_ [deletors_if_author_data.user_id] message_deletors_if_author_data.user_id
-   >>= fun () ->
-     add_to_group_ [deletors_if_author_data.user_id] comment_deletors_if_author_data.user_id
-   >>= fun () ->
-     add_to_group_ [message_deletors_data.user_id] message_deletors_if_author_data.user_id
-   >>= fun () ->
-     add_to_group_ [comment_deletors_data.user_id] comment_deletors_if_author_data.user_id
-   >>= fun () ->
-     add_to_group_ [sticky_setters_data.user_id] message_sticky_setters_data.user_id
-   >>= fun () ->
-     add_to_group_ [sticky_setters_data.user_id] comment_sticky_setters_data.user_id
-   >>= fun () ->
-     add_to_group_ [writers_notmod_data.user_id] message_writers_notmod_data.user_id
-   >>= fun () ->
-     add_to_group_ [writers_notmod_data.user_id] comment_writers_notmod_data.user_id
-
-   >>= fun () ->
-     add_to_group_ [writers_notmod_data.user_id] writers_data.user_id
-   >>= fun () ->
-     add_to_group_ [writers_data.user_id] readers_data.user_id
-
-   >>= fun () ->
-     add_to_group_ [message_deletors_data.user_id;
-                    message_moderators_data.user_id;
-                    message_sticky_setters_data.user_id;
-                    message_writers_data.user_id;
-                    readers_data.user_id
-                   ] message_readers_data.user_id
-   >>= fun () ->
-     add_to_group_ [comment_deletors_data.user_id;
-                    comment_moderators_data.user_id;
-                    comment_sticky_setters_data.user_id;
-                    comment_writers_data.user_id;
-                    readers_data.user_id
-                   ] comment_readers_data.user_id
-   >>= fun () ->
-     add_to_group_ [message_writers_notmod_data.user_id;
-                    writers_data.user_id] message_writers_data.user_id
-   >>= fun () ->
-     add_to_group_ [comment_writers_notmod_data.user_id;
-                    writers_data.user_id] comment_writers_data.user_id
-
-   >>= fun () ->
-     add_to_group_ [message_readers_data.user_id] forum_visible_data.user_id
-   >>= fun () ->
-     add_to_group_ [comment_readers_data.user_id] forum_visible_data.user_id
-
-   >>= fun () ->
-   Lwt.return forum_id
-
+  Forum_sql.new_forum ~title ~descr ~arborescent ()
 
 let create_forum
     ~title
@@ -279,25 +221,15 @@ let create_forum
     ?(arborescent=true)
     () =
   Lwt.catch
-    (fun () -> 
-       Forum_sql.get_forum ~title ()
-       >>= fun (id, title, descr, arborescent, deleted) ->
-       Lwt.return { id = id; 
-                    title = title; 
-                    descr = descr;
-                    arborescent = arborescent;
-                    deleted = deleted
-                  }
-    )
+    (fun () -> Forum_sql.get_forum ~title ())
     (function
        | Not_found ->
-           really_create_forum ~title ~descr ~arborescent ()
-             >>= fun id -> 
-           Lwt.return { id = id; 
-                        title = title; 
-                        descr = descr;
-                        arborescent = arborescent;
-                        deleted = false
+           really_create_forum ~title ~descr ~arborescent () >>= fun id -> 
+           Lwt.return { f_id = id; 
+                        f_title = title; 
+                        f_descr = descr;
+                        f_arborescent = arborescent;
+                        f_deleted = false
                       }
        | e -> Lwt.fail e)
 
@@ -312,7 +244,7 @@ type role =
       message_moderators : bool Lwt.t Lazy.t;
       message_deletors : bool Lwt.t Lazy.t;
       message_deletors_if_author : bool Lwt.t Lazy.t;
-      message_sticky_setters : bool Lwt.t Lazy.t;
+      message_sticky_makers : bool Lwt.t Lazy.t;
       message_readers : bool Lwt.t Lazy.t;
 
       comment_writers : bool Lwt.t Lazy.t;
@@ -320,7 +252,7 @@ type role =
       comment_moderators : bool Lwt.t Lazy.t;
       comment_deletors : bool Lwt.t Lazy.t;
       comment_deletors_if_author : bool Lwt.t Lazy.t;
-      comment_sticky_setters : bool Lwt.t Lazy.t;
+      comment_sticky_makers : bool Lwt.t Lazy.t;
       comment_readers : bool Lwt.t Lazy.t;
 
       writers : bool Lwt.t Lazy.t;
@@ -328,118 +260,53 @@ type role =
       moderators : bool Lwt.t Lazy.t;
       deletors : bool Lwt.t Lazy.t;
       deletors_if_author : bool Lwt.t Lazy.t;
-      sticky_setters : bool Lwt.t Lazy.t;
+      sticky_makers : bool Lwt.t Lazy.t;
       readers : bool Lwt.t Lazy.t;
 
       forum_admin : bool Lwt.t Lazy.t;
     }
 
 let get_role ~sp ~sd ~forum_id =
-  let i = Forum_sql.forum_id_s forum_id in
-  Users.get_user_data sp sd >>= fun u ->
-  let u = u.user_id in
+  Users.get_user_id sp sd >>= fun u ->
+  let aux g = Users.in_group ~sp ~sd
+    ~user:(User_sql.Types.basic_user u) ~group:(g $ forum_id) () 
+  in
 
   Lwt.return
     {
-      message_writers = 
-        lazy 
-          (message_writers_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      message_writers_notmod = 
-        lazy 
-          (message_writers_notmod_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      message_moderators = 
-        lazy 
-          (message_moderators_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      message_deletors = 
-        lazy 
-          (message_deletors_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      message_deletors_if_author = 
-        lazy 
-          (message_deletors_if_author_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      message_sticky_setters = 
-        lazy 
-          (message_sticky_setters_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      message_readers = 
-        lazy 
-          (message_readers_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
+      message_writers = lazy (aux message_writers);
+      message_writers_notmod = lazy (aux message_writers_notmod);
+      message_moderators = lazy (aux message_moderators);
+      message_deletors = lazy (aux message_deletors);
+      message_deletors_if_author = lazy (aux message_deletors_if_author);
+      message_sticky_makers = lazy (aux message_sticky_makers);
+      message_readers = lazy (aux message_readers);
       
-      comment_writers = 
-        lazy 
-          (comment_writers_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      comment_writers_notmod = 
-        lazy 
-          (comment_writers_notmod_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      comment_moderators = 
-        lazy 
-          (comment_moderators_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      comment_deletors = 
-        lazy 
-          (comment_deletors_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      comment_deletors_if_author = 
-        lazy 
-          (comment_deletors_if_author_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      comment_sticky_setters = 
-        lazy 
-          (comment_sticky_setters_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      comment_readers = 
-        lazy 
-          (comment_readers_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
+      comment_writers = lazy (aux comment_writers);
+      comment_writers_notmod = lazy (aux comment_writers_notmod);
+      comment_moderators = lazy (aux comment_moderators);
+      comment_deletors = lazy (aux comment_deletors);
+      comment_deletors_if_author = lazy (aux comment_deletors_if_author);
+      comment_sticky_makers = lazy (aux comment_sticky_makers);
+      comment_readers = lazy (aux comment_readers);
       
-      writers = 
-        lazy 
-          (writers_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      writers_notmod = 
-        lazy 
-          (writers_notmod_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      moderators = 
-        lazy 
-          (moderators_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      deletors = 
-        lazy 
-          (deletors_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      deletors_if_author = 
-        lazy 
-          (deletors_if_author_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      sticky_setters = 
-        lazy 
-          (sticky_setters_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
-      readers = 
-        lazy 
-          (readers_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
+      writers = lazy (aux writers);
+      writers_notmod = lazy (aux writers_notmod);
+      moderators = lazy (aux moderators);
+      deletors = lazy (aux deletors);
+      deletors_if_author = lazy (aux deletors_if_author);
+      sticky_makers = lazy (aux sticky_makers);
+      readers = lazy (aux readers);
       
-      forum_admin = 
-        lazy 
-          (forum_admin_group i >>= fun group ->
-           Users.in_group ~sp ~sd ~user:u ~group ());
+      forum_admin = lazy (aux forum_admin);
     }
 
 module Roles = Map.Make(struct
-                          type t = Forum_sql.forum
+                          type t = Forum_sql.Types.forum
                           let compare = compare
                         end)
 
-type forum_sd = Forum_sql.forum -> role Lwt.t
+type forum_sd = Forum_sql.Types.forum -> role Lwt.t
 
 let default_forum_sd ~sp ~sd =
   let cache = ref Roles.empty in
@@ -471,8 +338,18 @@ let get_role ~sp ~sd k =
 
 (** {2 } *)
 type forum_action_info =
-  | Preview of ((Forum_sql.forum * int32 option (* parent *)) * string)
-  | Msg_creation_not_allowed of (Forum_sql.forum * int32 option (* parent *))
+  | Preview of ((Forum_sql.Types.forum * 
+                   Forum_sql.Types.message option (* parent *)) * string)
+  | Msg_creation_not_allowed of (Forum_sql.Types.forum * 
+                                   Forum_sql.Types.message option (* parent *))
 
 exception Forum_action_info of forum_action_info
 
+(** {2 Eliom related values} *)
+
+let eliom_forum = Eliom_parameters.user_type forum_of_string string_of_forum 
+let eliom_message = Eliom_parameters.user_type message_of_string string_of_message 
+let eliom_message_input ?a ~input_type ?name ?value () = 
+  Eliom_duce.Xhtml.user_type_input string_of_message ?a ~input_type ?name ?value ()
+let eliom_message_button ?a ~name ~value v =
+  Eliom_duce.Xhtml.user_type_button string_of_message ?a ~name ~value v
