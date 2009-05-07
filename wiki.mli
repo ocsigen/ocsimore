@@ -117,6 +117,7 @@ val writers_group : wiki -> user
 val rights_adm_group : wiki -> user
 *)
 
+(*
 (** [wikiboxes_creators_group i] returns the id of the group of users
     who can create wikiboxes in wiki [i] by default. *)
 val wikiboxes_creators_group : wiki -> user
@@ -125,7 +126,7 @@ val wikiboxes_creators_group : wiki -> user
     who can create page in wiki [i] by default
     (if activated). *)
 val wikipages_creators_group : wiki -> user
-
+*)
 
 (*
 (** [css_editors_group i] returns the id of the group of users
@@ -186,7 +187,7 @@ val new_wikitextbox :
   unit -> int32 Lwt.t
 
 
-(* Saves a wikibox and returns the new version id of this wikibox. *)
+(** Saves a wikibox and returns the new version id of this wikibox. *)
 val save_wikibox :
   enough_rights:(sp:Eliom_sessions.server_params -> sd:Ocsimore_common.session_data -> wikibox -> bool Lwt.t) ->
   sp:Eliom_sessions.server_params ->
@@ -207,33 +208,6 @@ val save_wikitextbox_permissions :
   unit Lwt.t
 
 
-(* XXXX
-val get_role :
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
-  wikibox ->
-  role Lwt.t
-
-
-val get_readers :
-  wikibox ->
-  userid list option Lwt.t
-
-val get_writers :
-  wikibox ->
-  userid list option Lwt.t
-
-val get_rights_adm :
-  wikibox ->
-  userid list option Lwt.t
-
-val get_wikiboxes_creators :
-  wikibox ->
-  userid list option Lwt.t
-
-*)
-
-
 
 (** [modified_wikibox box version] returns [Some curversion] iff the current
     version [curversion] of [box] is greater than [version], [None]
@@ -242,14 +216,15 @@ val modified_wikibox:
   wikibox:wikibox -> boxversion:Int32.t -> Int32.t option Lwt.t
 
 
-
-
 val wikibox_content:
-  ?version:int32 -> wikibox ->
-  Wiki_sql.wikibox_content Lwt.t
+  (?version:int32 -> wikibox ->
+    Wiki_sql.wikibox_content Lwt.t) Ocsimore_common.sp_sd
 
 val wikibox_content':
-  ?version:int32 -> wikibox ->
-  (string option * int32) Lwt.t
+  (?version:int32 -> wikibox ->
+    (string option * int32) Lwt.t) Ocsimore_common.sp_sd
 
-exception Unknown_box of wikibox
+
+(** Raised in case of a non-existing wikibox. The optional [int32]
+   argument is the version number *)
+exception Unknown_box of wikibox * int32 option

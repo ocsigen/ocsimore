@@ -47,6 +47,7 @@ module Types : sig
 
   val apply_parameterized_group:
     'a parameterized_group ->'a Opaque.int32_t -> user
+  val ($) : 'a parameterized_group ->'a Opaque.int32_t -> user
   val basic_user : userid -> user
 
 

@@ -280,7 +280,9 @@ class type virtual interactive_wikibox =
       (** content *) string option * (** version *) int32 ->
       (classes * Xhtmltypes_duce.flows) Lwt.t
 
-    (* XXX *)
+
+    (** Display a form permitting to edit the permissions of the given
+       wikibox *)
     method display_edit_perm_form :
       bi:box_info ->
       classes:string list ->

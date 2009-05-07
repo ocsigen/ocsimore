@@ -63,6 +63,7 @@ module Types = struct
 
 
   let apply_parameterized_group g v = Applied (g, Opaque.t_int32 v)
+  let ($) = apply_parameterized_group
   let basic_user v = Ground v
 
   let userid_from_user = function

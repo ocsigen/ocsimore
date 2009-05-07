@@ -53,7 +53,7 @@ val clear_sd : sd:session_data -> unit
 
 
 (** The type of the functions taking sd ans sp as arguments *)
-type 'a sd_sp =
+type 'a sp_sd =
   sp:Eliom_sessions.server_params ->
   sd:session_data ->
   'a

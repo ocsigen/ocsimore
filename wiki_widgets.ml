@@ -39,23 +39,24 @@ object
 
   method display_error_box ?classes ?message ?exn () =
     match exn with
-      | Some (Wiki.Unknown_box (w, i)) ->
+      | Some (Wiki.Unknown_box ((w, i), ver)) ->
           error_box#display_error_box
             ?classes
             ~message:("The box "^Int32.to_string i^
-                        " does not exist in wiki "^ string_of_wiki w^".")
+                        " does not exist in wiki "^ wiki_id_s w^".")
             ?exn
             ()
-      | Some Wiki_services.Not_css_editor ->
+      | Some Wiki_services.Page_already_exists ->
           error_box#display_error_box
             ?classes
-            ~message:("You are not allowed to modify the stylesheet for that page.")
+            ~message:("This page has already been created \
+                       (reload the page to see it).")
             ?exn
             ()
       | Some Wiki_services.Operation_insufficient_permissions ->
           error_box#display_error_box
             ?classes
-            ~message:("Operation denied: insufficient permissions")
+            ~message:("Unable to perform the operation: insufficient permissions")
             ?exn
             ()
       | _ -> error_box#display_error_box ?classes ?message ?exn ()
@@ -121,7 +122,7 @@ object (self)
     Lwt.catch
       (fun () ->
          error_box#bind_or_display_error
-           (Wiki.wikibox_content wikibox (* XXX rights *) )
+           (Wiki.wikibox_content bi.bi_sp bi.bi_sd wikibox)
            (self#display_wikiboxcontent ~wiki:(fst wikibox) ~bi
               ~classes:(frozen_wb_class::classes))
            (self#display_basic_box)
@@ -326,7 +327,7 @@ object (self)
     Wiki_sql.get_wikipage_info ~wiki:admin_wiki ~page:"wikisyntax-help"
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
-      (Wiki.wikibox_content (wid_help, wbid_help))
+      (Wiki.wikibox_content bi.bi_sp bi.bi_sd (wid_help, wbid_help))
       (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classes:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
@@ -560,7 +561,7 @@ object (self)
           Wiki_data.can_write_wikitext ~sp ~sd ~wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki.wikibox_content wb)
+                  (Wiki.wikibox_content sp sd wb)
                   (self#display_wikiboxcontent ~classes ~wiki:wid
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                   (self#menu_view ~bi ?cssmenu wb)
@@ -571,7 +572,7 @@ object (self)
                  Wiki_data.can_read_wikitext ~sp ~sd ~wb >>= function
                    | true ->
                        error_box#bind_or_display_error
-                         (Wiki.wikibox_content wb)
+                         (Wiki.wikibox_content sp sd wb)
                          (self#display_wikiboxcontent ~classes ~wiki:wid
                             ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                          (self#display_basic_box)
@@ -587,8 +588,7 @@ object (self)
                         false)
 
 
-  method display_overriden_interactive_wikibox
-    ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
+  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
     match override with
       | EditWikitext wb ->
 (*TRY:
@@ -614,7 +614,7 @@ object (self)
           Lwt.return (r, true)
 *)
           error_box#bind_or_display_error
-            (Wiki.wikibox_content' wb)
+            (Wiki.wikibox_content' bi.bi_sp bi.bi_sd wb)
             (self#display_wikitext_edit_form_help ~bi ?cols ?rows
                ~previewonly:true ~wb ~classes)
             (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
@@ -624,7 +624,7 @@ object (self)
       | EditCss ((wbcss, wikipage), css) ->
           error_box#bind_or_display_error
             (match css with
-               | None -> Wiki.wikibox_content' wbcss
+               | None -> Wiki.wikibox_content' sp sd wbcss
                | Some (content, version) ->
                    Lwt.return (Some content, version)
             )
@@ -683,7 +683,7 @@ object (self)
 
       | Oldversion (wb, version) ->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~version wb)
+            (Wiki.wikibox_content ~sp ~sd ~version wb)
             (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
             (self#menu_old_wikitext ~bi ?cssmenu wb_loc version)
@@ -692,7 +692,7 @@ object (self)
 
       | CssOldversion ((wbcss, page), version) ->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~version wbcss)
+            (Wiki.wikibox_content ~sp ~sd ~version wbcss)
             (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
             (self#menu_old_css ~bi ?cssmenu wb_loc page)
@@ -701,7 +701,7 @@ object (self)
 
       | Src (wb, version)->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~version wb)
+            (Wiki.wikibox_content ~sp ~sd ~version wb)
             (self#display_raw_wikiboxcontent ~classes)
             (self#menu_src_wikitext ~bi ?cssmenu wb_loc version)
           >>= fun r ->
@@ -710,21 +710,6 @@ object (self)
       | Error error ->
           Lwt.return
             (error_box#display_error_box ~classes ~exn:error (), false)
-
-(*
-        error_box#bind_or_display_error
-              ~error:(self#create_error_message
-                        Wiki_services.Operation_not_allowed)
-              (Wiki.wikibox_content wb)
-              (self#display_wikiboxcontent ~classes ~wiki:wiki_id
-                 ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-              )
-              (self#display_basic_box)
-              (* Returning true would also be meaningful: the action
-                 is forbidden but the wikibox itself is shown *)
-            >>= fun r ->
-            Lwt.return (r, false)
-*)
 
 
    method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu wb =
@@ -864,9 +849,6 @@ object (self)
 
 end
 
-(* XXX: what are those [Failure] errors caught at the end. Are they raised
-   sometimes? *)
-
 (* BY: Helper functions, which factorizes a bit of code in the functions
    below. Some of them  (eg. extract_wiki_id) are very mysterious:
    - I believe there is always a field "wiki" present, so the
@@ -934,8 +916,7 @@ Wiki_filter.add_preparser_extension ~name:"wikibox"
           Users.get_user_id ~sp ~sd
           >>= fun userid ->
           let _englobing_wb = (wid, father) in
-          Users.in_group ~sp ~sd  ~group:(apply_parameterized_group
-                        Wiki_data.wiki_wikiboxes_creators wid) () >>= function
+          Wiki_data.can_create_wikiboxes ~sp ~sd wid >>= function
             | true ->
                 Wiki.new_wikitextbox ~sp ~sd
                   ~wiki:wid

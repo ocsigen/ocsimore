@@ -42,7 +42,7 @@ let clear_sd ~sd =
 
 
 
-type 'a sd_sp =
+type 'a sp_sd =
   sp:Eliom_sessions.server_params ->
   sd:session_data ->
   'a

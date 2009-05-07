@@ -31,8 +31,8 @@ open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
 exception Operation_insufficient_permissions
-exception Not_css_editor
 exception Css_already_exists
+exception Page_already_exists
 
 
 (** Name of the administration wiki. This is the name that must
@@ -376,22 +376,25 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
   ~name:"wiki_page_create" ~post_params:eliom_wikipage_args
   (fun sp () (wiki, page) ->
      let sd = Ocsimore_common.get_sd sp in
-     Users.get_user_id ~sp ~sd
-     >>= fun user ->
-     Users.in_group ~sp ~sd ~user:(basic_user user)
-       ~group:(Wiki.wikipages_creators_group wiki) ()
+     Wiki_data.can_create_wikipages ~sp ~sd wiki
      >>= function
        | true ->
            Lwt.catch
              (fun () ->
                 Wiki_sql.get_wikipage_info wiki page
-                >>= fun _ ->
-                  (* The page already exists *)
-                  Lwt.return [Ocsimore_common.Session_data sd]
-                    (*XXX Put an error message *)
+                >>= fun { wikipage_dest_wiki = wid; wikipage_wikibox = wbid } ->
+                  (* The page already exists. We display an error message
+                     in the wikibox that should have contained the button
+                     leading to the creation of the page. *)
+                  let wb = (wid, wbid) in
+                  (* XXX Check that this error message works *)
+                  Lwt.return [Ocsimore_common.Session_data sd;
+                              Override_wikibox (wb, Error Page_already_exists)]
              )
              (function
                 | Not_found ->
+                    Users.get_user_id ~sp ~sd
+                    >>= fun user ->
                     Wiki.new_wikitextbox ~sp ~sd ~wiki ~author:user
                       ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                   page (string_of_wiki wiki))
@@ -412,25 +415,32 @@ and action_create_css = Eliom_predefmod.Actions.register_new_post_coservice'
      let sd = Ocsimore_common.get_sd sp in
      Users.get_user_id ~sp ~sd
      >>= fun user ->
-     (* XXX rights *)
-     let text = Some "" (* empty CSS by default *) in
-     match page with
-       | None -> (* Global CSS for the wiki *)
-           (Wiki_sql.get_css_for_wiki wiki >>= function
-              | None ->
-                  Wiki_sql.set_css_for_wiki ~wiki ~author:user text
-                  >>= fun () ->
-                  Lwt.return [Ocsimore_common.Session_data sd]
-              | Some _ -> Lwt.fail Css_already_exists
-           )
+     (match page with
+       | None -> Wiki_data.can_create_wikicss sp sd wiki
+       | Some page -> Wiki_data.can_create_wikipagecss sp sd (wiki, page)
+     ) >>= function
+       | false -> Lwt.fail Ocsimore_common.Permission_denied
+       | true ->
+           let text = Some "" (* empty CSS by default *) in
+           match page with
+             | None -> (* Global CSS for the wiki *)
+                 (Wiki_sql.get_css_for_wiki wiki >>= function
+                    | None ->
+                        Wiki_sql.set_css_for_wiki ~wiki ~author:user text
+                        >>= fun () ->
+                        Lwt.return [Ocsimore_common.Session_data sd]
+                    | Some _ -> Lwt.fail Css_already_exists
+                 )
 
-       | Some page -> (* Global CSS for the wiki *)
-           Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
-             | None ->
-                 Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:user text
-                 >>= fun () ->
-                 Lwt.return [Ocsimore_common.Session_data sd]
-             | Some _ -> Lwt.fail Css_already_exists
+             | Some page -> (* Css for a specific wikipage *)
+                 (Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
+                    | None ->
+                        Wiki_sql.set_css_for_wikipage ~wiki ~page
+                          ~author:user text
+                        >>= fun () ->
+                        Lwt.return [Ocsimore_common.Session_data sd]
+                    | Some _ -> Lwt.fail Css_already_exists
+                 )
   )
 
 

@@ -91,17 +91,17 @@ val add_to_group : user:user -> group:user -> unit Lwt.t
 
 
 val in_group :
-  (?user:user -> group:user -> unit -> bool Lwt.t) Ocsimore_common.sd_sp
+  (?user:user -> group:user -> unit -> bool Lwt.t) Ocsimore_common.sp_sd
 
 (** Informations on the loggued user *)
 
-val get_user_data : userdata Lwt.t Ocsimore_common.sd_sp
-val get_user_id : userid Lwt.t Ocsimore_common.sd_sp
-val get_user_name : string Lwt.t Ocsimore_common.sd_sp
+val get_user_data : userdata Lwt.t Ocsimore_common.sp_sd
+val get_user_id : userid Lwt.t Ocsimore_common.sp_sd
+val get_user_name : string Lwt.t Ocsimore_common.sp_sd
 
-val is_logged_on : bool Lwt.t Ocsimore_common.sd_sp
+val is_logged_on : bool Lwt.t Ocsimore_common.sp_sd
 
-val set_session_data : (userid -> unit Lwt.t) Ocsimore_common.sd_sp
+val set_session_data : (userid -> unit Lwt.t) Ocsimore_common.sp_sd
 
 
 val anonymous_sd : Ocsimore_common.session_data

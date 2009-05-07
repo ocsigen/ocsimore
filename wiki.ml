@@ -33,37 +33,12 @@ open User_sql.Types
 let (>>=) = Lwt.bind
 
 
-
-(*
-let readers_group, writers_group, rights_adm_group =
-  Users.GenericRights.admin_writer_reader_groups Wiki_data.wiki_wikiboxes_grps
-*)
-
-let wikipages_creators_group = apply_parameterized_group
-  Wiki_data.wiki_wikipages_creators
-let wikiboxes_creators_group = apply_parameterized_group
-  Wiki_data.wiki_wikiboxes_creators
-
-
-let wikicss_editors_group = apply_parameterized_group
-  Wiki_data.wiki_wikicss_grps.grp_writer
-
-(*
-let container_adm_grp i =
-  Users.get_basicuser_by_login (container_adm_group_name i)
-*)
-
-
 let new_wikitextbox ~sp ~sd ~wiki ~author ~comment ~content () =
-  Users.in_group ~sp ~sd ~group:(wikiboxes_creators_group wiki) ()
+  Wiki_data.can_create_wikiboxes ~sp ~sd wiki
   >>= function
-    | true ->
-        Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
-          ~content_type:Wiki_sql.WikiCreole ()
-    | false ->
-        Lwt.fail Ocsimore_common.Permission_denied
-
-
+    | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
+        ~content_type:Wiki_sql.WikiCreole ()
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 let add_list_to_group ~l ~group =
   List.fold_left
@@ -113,13 +88,11 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
                            Wiki_data.wiki_admins wiki_id) >>= fun () ->
    (* Readers *)
    add_list_to_group ~l:readers ~group:(apply_parameterized_group
-              Wiki_data.wiki_wikiboxes_grps.grp_reader wiki_id) >>= fun () ->
+                Wiki_data.wiki_wikiboxes_grps.grp_reader wiki_id) >>= fun () ->
    add_list_to_group ~l:readers ~group:(apply_parameterized_group
-              Wiki_data.wiki_files_grps.grp_reader wiki_id) >>= fun () ->
+                Wiki_data.wiki_files_grps.grp_reader wiki_id) >>= fun () ->
    add_list_to_group ~l:readers ~group:(apply_parameterized_group
-              Wiki_data.wiki_wikicss_grps.grp_reader wiki_id) >>= fun () ->
-   add_list_to_group ~l:readers ~group:(apply_parameterized_group
-              Wiki_data.wiki_wikipagescss_grps.grp_reader wiki_id) >>= fun () ->
+                Wiki_data.wiki_css_grps.grp_reader wiki_id) >>= fun () ->
 
    (match wiki_css with
       | None -> Lwt.return ()
@@ -128,7 +101,6 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    ) >>= fun () ->
 
    Lwt.return wiki_id
-
 
 
 
@@ -148,18 +120,24 @@ let modified_wikibox ~wikibox ~boxversion =
 
 
 
-exception Unknown_box of wikibox
+exception Unknown_box of wikibox * int32 option
 
 
-let wikibox_content ?version wikibox =
-  Wiki_sql.get_wikibox_data ?version ~wikibox ()
+let wikibox_content ~sp ~sd ?version (wid, _ as wb) =
+  Wiki_sql.get_wikibox_data ?version ~wikibox:wb ()
   >>= fun result ->
   match result with
-    | None -> Lwt.fail Not_found
-    | Some (_com, _a, cont, _d, ct, ver) -> Lwt.return (ct, cont, ver)
+    | None -> Lwt.fail (Unknown_box (wb, version))
+    | Some (_com, _a, cont, _d, ct, ver) ->
+        (match ct with
+           | Wiki_sql.WikiCreole -> Wiki_data.can_read_wikitext ~sp ~sd ~wb
+           | Wiki_sql.Css -> Wiki_data.can_read_css ~sp ~sd ~wiki:wid
+        ) >>= function
+          | true -> Lwt.return (ct, cont, ver)
+          | false -> Lwt.fail Ocsimore_common.Permission_denied
 
-let wikibox_content' ?version wikibox =
-  wikibox_content ?version wikibox >>= fun (_, cont, ver) ->
+let wikibox_content' ~sp ~sd ?version wikibox =
+  wikibox_content ~sp ~sd ?version wikibox >>= fun (_, cont, ver) ->
   Lwt.return (cont, ver)
 
 
@@ -177,7 +155,7 @@ let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =
 let save_wikitextbox_permissions ~sp ~sd (wikibox, _rights) =
   Wiki_data.can_admin_wikitext ~sp ~sd ~wb:wikibox >>= function
     | true ->
-        (*
+        (* XXX save permissions to write
        let (addr, (addw, (adda, (addc, (delr, (delw, (dela, delc))))))) = rights
         in
         Users.group_list_of_string addr >>= fun readers ->
