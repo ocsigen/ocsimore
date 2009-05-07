@@ -11,12 +11,6 @@ type wiki_data =
       name:string;
       path:string list;
       readers:user list option;
-      writers:user list option;
-      rights_adm:user list option;
-      wikiboxes_creators:user list option;
-      container_adm:user list option;
-      page_creators:user list option;
-      css_editors:user list option;
       admins:user list option;
       boxrights:bool
     }
@@ -26,12 +20,6 @@ let default_wiki_data =
     name = "Wiki";
     path = [];
     readers = None;
-    writers = None;
-    rights_adm = None;
-    wikiboxes_creators = None;
-    container_adm = None;
-    page_creators = None;
-    css_editors = None;
     admins = None;
     boxrights = false
   }
@@ -57,42 +45,6 @@ let wiki_data =
         find_wikidata 
           {data with readers = Some a}
           l
-    | (Simplexmlparser.Element ("writers", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
-        >>= fun a ->
-        find_wikidata 
-          {data with writers = Some a}
-          l
-    | (Simplexmlparser.Element ("rightsadm", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
-        >>= fun a ->
-        find_wikidata 
-          {data with rights_adm = Some a}
-          l
-    | (Simplexmlparser.Element ("wikiboxescreators", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
-        >>= fun a ->
-        find_wikidata 
-          {data with wikiboxes_creators = Some a}
-          l
-    | (Simplexmlparser.Element ("containeradm", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
-        >>= fun a ->
-        find_wikidata 
-          {data with container_adm = Some a}
-          l
-    | (Simplexmlparser.Element ("pagecreators", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
-        >>= fun a ->
-        find_wikidata 
-          {data with page_creators = Some a}
-          l
-    | (Simplexmlparser.Element ("csseditors", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
-        >>= fun a ->
-        find_wikidata 
-          {data with css_editors = Some a}
-          l
     | (Simplexmlparser.Element ("admins", [], s))::l -> 
         Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
@@ -116,7 +68,6 @@ let wiki_data =
 let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 
 
-(* XXX fine-grained edition of rights *)
 let _ =
   Lwt_unix.run (
      Wiki_services.create_and_register_wiki
@@ -125,12 +76,6 @@ let _ =
        ~descr:""
        ~path:wiki_data.path
        ?readers:wiki_data.readers
-(*     ?writers:wiki_data.writers
-       ?rights_adm:wiki_data.rights_adm
-       ?wikiboxes_creators:wiki_data.wikiboxes_creators
-       ?container_adm:wiki_data.container_adm
-       ?page_creators:wiki_data.page_creators
-       ?css_editors:wiki_data.css_editors *)
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
        ~container_text:Wiki_services.default_container_page
