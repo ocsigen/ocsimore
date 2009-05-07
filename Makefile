@@ -32,7 +32,7 @@ OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
-ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.ext.eliom_obrowser)
+ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 
 TOINSTALL := files/META \
              _build/ocsimore.cma _build/ocsisite.cmo \

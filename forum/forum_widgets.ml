@@ -28,10 +28,6 @@ open Forum_sql.Types
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
-let fresh_id = 
-  let c = ref 0 in
-  fun () -> c := !c+1; "id"^string_of_int !c
-
 class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
   (add_message_service, moderate_message_service, delete_message_service) =
 object (self)
@@ -72,20 +68,12 @@ object (self)
               ~service:add_message_service
               ~sp draw_form () :}]
          ] }} *)
-  let jsmarshal v =
-    let s = Marshal.to_string v [] in
-    let rec pp i =
-      if i < 0 then ""
-      else if i = 0 then Printf.sprintf "0x%02X" (Char.code s.[i])
-      else pp (pred i) ^ "," ^ Printf.sprintf "0x%02X" (Char.code s.[i])
-    in "[" ^ pp (String.length s - 1) ^ "]"
-  in
-  let n1_id = fresh_id () in
-  let n2_id = fresh_id () in
+  let n1_id = Eliom_obrowser.fresh_id () in
+  let n2_id = Eliom_obrowser.fresh_id () in
   let rec n1 = {{ <span class={: comment_class :}
                     id={: n1_id :}
-                    onclick={: "caml_run_from_table(main_vm,132,"
-                             ^ jsmarshal (n1_id, n2_id) ^ ")" :} >
+                    onclick={: "caml_run_from_table(main_vm, 1, "
+                             ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
                     {: Ocamlduce.Utf8.make "Comment" :} }}
   and n2 =
     {{ <div id={: n2_id :}

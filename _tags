@@ -9,5 +9,5 @@
 <ocsimore.cma> : with_nis_chkpwd
 <**/*_data.ml*> : pkg_calendar
 <**/*_widgets.ml*> : pkg_calendar
-<**/*_client*> : pkg_obrowser, pkg_ocsigen
+<**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, -pkg_ocsigen
 "widget.ml" : warn_v
