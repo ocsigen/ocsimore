@@ -42,8 +42,12 @@ object
       | Some (Wiki.Unknown_box ((w, i), ver)) ->
           error_box#display_error_box
             ?classes
-            ~message:("The box "^Int32.to_string i^
-                        " does not exist in wiki "^ wiki_id_s w^".")
+            ~message:(Printf.sprintf
+                        "The box %ld does not exist in wiki %s%s."
+                        i (string_of_wiki w)
+                        (match ver with
+                           | None -> ""
+                           | Some v -> Printf.sprintf " with version %ld" v))
             ?exn
             ()
       | Some Wiki_services.Page_already_exists ->
@@ -401,7 +405,7 @@ object (self)
            (Lwt.return ""))
     in
     let readers, writers, rights_adm, creators = None, None, None, None in
-(*    Wiki.get_readers ids >>= fun readers ->
+(*  XXX  Wiki.get_readers ids >>= fun readers ->
     Wiki.get_writers ids >>= fun writers ->
     Wiki.get_rights_adm ids >>= fun rights_adm ->
     Wiki.get_wikiboxes_creators ids >>= fun creators -> *)
@@ -589,6 +593,7 @@ object (self)
 
 
   method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
+    let sp = bi.bi_sp and sd = bi.bi_sd in
     match override with
       | EditWikitext wb ->
 (*TRY:
