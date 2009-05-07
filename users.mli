@@ -122,7 +122,7 @@ module GenericRights : sig
   val can_sthg: (admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
 
   val create_admin_writer_reader:
-    name:string -> descr:string -> 'a admin_writer_reader
+    prefix:string -> name:string -> descr:string -> 'a admin_writer_reader
 
   val admin_writer_reader_groups:
     'a admin_writer_reader ->

@@ -417,7 +417,7 @@ module GenericRights = struct
     f grp_write,
     f grp_read
 
-  let create_admin_writer_reader ~name ~descr =
+  let create_admin_writer_reader ~prefix ~name ~descr =
     let namea, namew, namer =
       (name ^ "Admin",
        name ^ "Writer",
@@ -428,9 +428,9 @@ module GenericRights = struct
        "Can read the " ^ descr)
     in
     Lwt_unix.run (
-      User_sql.new_parametrized_group namea descra >>= fun ga ->
-      User_sql.new_parametrized_group namew descrw >>= fun gw ->
-      User_sql.new_parametrized_group namer descrr >>= fun gr ->
+      User_sql.new_parametrized_group prefix namea descra >>= fun ga ->
+      User_sql.new_parametrized_group prefix namew descrw >>= fun gw ->
+      User_sql.new_parametrized_group prefix namer descrr >>= fun gr ->
       User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
       User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
       Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr })

@@ -33,7 +33,7 @@ let ($) = User_sql.Types.apply_parameterized_group
 (** {2 Forum related groups} *)
 
 let aux_grp name descr =
-  Lwt_unix.run (User_sql.new_parametrized_group name descr)
+  Lwt_unix.run (User_sql.new_parametrized_group "forum" name descr)
 
 let message_writers : forum_arg parameterized_group =
   aux_grp "messagewriters" "Can write new messages in the forum"

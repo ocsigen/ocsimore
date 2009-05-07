@@ -74,6 +74,7 @@ val new_user:
 
 
 val new_parametrized_group:
+  prefix:string ->
   name:string ->
   fullname:string ->
   'a parameterized_group Lwt.t

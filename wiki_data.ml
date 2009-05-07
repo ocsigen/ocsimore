@@ -27,11 +27,15 @@ open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
 
-(** All wiki-related groups *)
-
 let aux_grp name descr =
-  Lwt_unix.run (User_sql.new_parametrized_group name descr)
+  Lwt_unix.run (User_sql.new_parametrized_group ~prefix:"wiki" ~name
+                  ~fullname:descr)
 
+let admin_writer_reader_aux ~name ~descr =
+  Users.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr
+
+
+(** All wiki-related groups *)
 
 (* Small hack : we want a special group, but without parameter *)
 let wikis_creator =
@@ -51,23 +55,19 @@ let wiki_wikipages_creators : wiki_arg parameterized_group = aux_grp
 let wiki_css_creators : wiki_arg parameterized_group = aux_grp
   "WikiCssCreator" "Can create css for the wiki"
 
-let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
-  Users.GenericRights.create_admin_writer_reader
-    ~name:"WikiWikiboxes" ~descr:"the wikiboxes of the wiki"
+let wiki_wikiboxes_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
+  ~name:"WikiWikiboxes" ~descr:"the wikiboxes of the wiki"
 
-let wiki_files_grps : wiki_arg admin_writer_reader =
-  Users.GenericRights.create_admin_writer_reader
-    ~name:"WikiFiles" ~descr:"the files in the wiki"
+let wiki_files_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
+  ~name:"WikiFiles" ~descr:"the files in the wiki"
 
-let wiki_css_grps : wiki_arg admin_writer_reader =
-  Users.GenericRights.create_admin_writer_reader
-    ~name:"WikiWikicss" ~descr:"the css in the wiki"
+let wiki_css_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
+  ~name:"WikiWikicss" ~descr:"the css in the wiki"
 
 
 (** The following groups take a wikibox as argument. They are used to override
     generic wiki permissions. *)
-let wikibox_grps : wikibox_arg admin_writer_reader =
-  Users.GenericRights.create_admin_writer_reader
+let wikibox_grps : wikibox_arg admin_writer_reader = admin_writer_reader_aux
   ~name:"Wikibox" ~descr:"the wikibox"
 
 

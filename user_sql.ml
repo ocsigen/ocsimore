@@ -208,8 +208,8 @@ let find_userid_by_name_aux_ db name =
     | r :: _ -> Lwt.return (user_from_sql r)
 
 
-let new_parametrized_group ~name ~fullname =
-  let fullname = "#" ^ fullname in
+let new_parametrized_group ~prefix ~name ~fullname =
+  let fullname = "#" ^ prefix ^ "." ^ fullname in
   let authtype = "g" in
   Sql.full_transaction_block
     (fun db ->
