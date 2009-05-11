@@ -209,7 +209,7 @@ let find_userid_by_name_aux_ db name =
 
 
 let new_parametrized_group ~prefix ~name ~fullname =
-  let fullname = "#" ^ prefix ^ "." ^ fullname in
+  let name = "#" ^ prefix ^ "." ^ name in
   let authtype = "g" in
   Sql.full_transaction_block
     (fun db ->
