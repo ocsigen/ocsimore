@@ -86,6 +86,7 @@ val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
 
 val add_to_group : user:user -> group:user -> unit Lwt.t
+val add_list_to_group : l:user list -> group:user -> unit Lwt.t
 
 (****)
 

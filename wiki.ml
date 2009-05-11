@@ -33,23 +33,6 @@ open User_sql.Types
 let (>>=) = Lwt.bind
 
 
-let new_wikitextbox ~sp ~sd ~wiki ~author ~comment ~content () =
-  Wiki_data.can_create_wikiboxes ~sp ~sd wiki
-  >>= function
-    | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
-        ~content_type:Wiki_sql.WikiCreole ()
-    | false -> Lwt.fail Ocsimore_common.Permission_denied
-
-let add_list_to_group ~l ~group =
-  List.fold_left
-    (fun beg u ->
-       beg >>= fun () ->
-       Users.add_to_group ~user:u ~group)
-    (Lwt.return ())
-    l
-
-
-
 (* An exception raised when we register two wikis at the same path.
    The first two strings are the description of the conflicting wikis,
    the third string is the path *)
@@ -84,14 +67,14 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
 
    (* Putting users in groups *)
    (* Admins *)
-   add_list_to_group ~l:admins ~group:(apply_parameterized_group
+   Users.add_list_to_group ~l:admins ~group:(apply_parameterized_group
                            Wiki_data.wiki_admins wiki_id) >>= fun () ->
    (* Readers *)
-   add_list_to_group ~l:readers ~group:(apply_parameterized_group
+   Users.add_list_to_group ~l:readers ~group:(apply_parameterized_group
                 Wiki_data.wiki_wikiboxes_grps.grp_reader wiki_id) >>= fun () ->
-   add_list_to_group ~l:readers ~group:(apply_parameterized_group
+   Users.add_list_to_group ~l:readers ~group:(apply_parameterized_group
                 Wiki_data.wiki_files_grps.grp_reader wiki_id) >>= fun () ->
-   add_list_to_group ~l:readers ~group:(apply_parameterized_group
+   Users.add_list_to_group ~l:readers ~group:(apply_parameterized_group
                 Wiki_data.wiki_css_grps.grp_reader wiki_id) >>= fun () ->
 
    (match wiki_css with
@@ -103,7 +86,12 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    Lwt.return wiki_id
 
 
-
+let new_wikitextbox ~sp ~sd ~wiki ~author ~comment ~content () =
+  Wiki_data.can_create_wikiboxes ~sp ~sd wiki
+  >>= function
+    | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
+        ~content_type:Wiki_sql.WikiCreole ()
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
 (* Checks that [boxversion] is the current version of the wikibox *)
@@ -118,10 +106,8 @@ let modified_wikibox ~wikibox ~boxversion =
           Lwt.return None
 
 
-
-
+(** Exception raised when the content of a wikibox cannot be found *)
 exception Unknown_box of wikibox * int32 option
-
 
 let wikibox_content ~sp ~sd ?version (wid, _ as wb) =
   Wiki_sql.get_wikibox_data ?version ~wikibox:wb ()
@@ -131,7 +117,7 @@ let wikibox_content ~sp ~sd ?version (wid, _ as wb) =
     | Some (_com, _a, cont, _d, ct, ver) ->
         (match ct with
            | Wiki_sql.WikiCreole -> Wiki_data.can_read_wikitext ~sp ~sd ~wb
-           | Wiki_sql.Css -> Wiki_data.can_read_css ~sp ~sd ~wiki:wid
+           | Wiki_sql.Css -> Wiki_data.can_read_generic_css ~sp ~sd wid
         ) >>= function
           | true -> Lwt.return (ct, cont, ver)
           | false -> Lwt.fail Ocsimore_common.Permission_denied
@@ -141,15 +127,34 @@ let wikibox_content' ~sp ~sd ?version wikibox =
   Lwt.return (cont, ver)
 
 
-let save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type =
-  enough_rights ~sp ~sd wikibox >>= function
+let save_wikibox ~enough_rights ~sp ~sd ~wb ~content ~content_type =
+  enough_rights >>= function
     | true ->
         Users.get_user_id sp sd
         >>= fun user ->
-        Wiki_sql.update_wikibox ~wikibox
-          ~author:user ~comment:"" ~content ~content_type
+        Wiki_sql.update_wikibox ~wikibox:wb ~author:user ~comment:""
+          ~content ~content_type
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied
+
+
+(* XXX we should not allow overwriting a box containing a css *)
+let save_wikitextbox ~sp ~sd ~wb ~content = save_wikibox ~sp ~sd ~wb
+  ~enough_rights:(Wiki_data.can_write_wikitext ~sp ~sd ~wb)
+  ~content_type:Wiki_sql.WikiCreole ~content
+
+(* Saving the css of a wiki or of a wikipage. Notice that we do not
+   currently check that the box passed as argument is indeed the css
+   for the wiki or the wikipage. *)
+let save_wikicssbox ~sp ~sd ~wb ~wiki ~content = save_wikibox ~sp ~sd ~wb
+  ~enough_rights:(Wiki_data.can_write_wikicss ~sp ~sd ~wiki)
+  ~content_type:Wiki_sql.Css ~content
+
+let save_wikipagecssbox ~sp ~sd ~wb ~wiki ~page ~content =
+  save_wikibox ~sp ~sd ~wb
+    ~enough_rights:(Wiki_data.can_write_wikipagecss ~sp ~sd ~wiki ~page)
+    ~content_type:Wiki_sql.Css ~content
+
 
 
 let save_wikitextbox_permissions ~sp ~sd (wikibox, _rights) =

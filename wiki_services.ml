@@ -208,18 +208,17 @@ let create_and_register_wiki ?sp ~wikibox_widget
        | e -> Lwt.fail e)
 
 
-let save_wikibox_aux ~sp ~sd ~wikibox ~enough_rights ~content ~content_type =
+let save_then_redirect override_wikibox ~sp ~sd f =
   Lwt.catch
     (fun () ->
-       Wiki.save_wikibox ~enough_rights ~sp ~sd ~wikibox ~content ~content_type
-       >>= fun _version ->
+       f ();
        (* We do a redirection to prevent repost *)
-       Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
+       Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
+    )
     (fun e ->
        Eliom_predefmod.Action.send ~sp
          [Ocsimore_common.Session_data sd;
-          Override_wikibox (wikibox, Error e)])
-
+          Override_wikibox (override_wikibox, Error e)])
 
 
 let services () =
@@ -241,8 +240,8 @@ and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
   (fun sp wb () ->
      let sd = Ocsimore_common.get_sd sp in
-     save_wikibox_aux ~enough_rights:(assert false)
-       ~sp ~sd ~wikibox:wb ~content:None ~content_type:Wiki_sql.WikiCreole
+     save_then_redirect wb ~sp ~sd
+       (fun () -> Wiki.save_wikitextbox ~sp ~sd ~wb ~content:None)
   )
 
 and action_edit_wikibox_permissions =
@@ -294,9 +293,9 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
                let sd = Ocsimore_common.get_sd sp in
                Wiki_filter.preparse_extension (sp, sd, wbid) wid content
                >>= fun content ->
-               save_wikibox_aux ~enough_rights:(assert false)
-                 ~sp ~sd ~wikibox:wb
-                 ~content:(Some content) ~content_type:Wiki_sql.WikiCreole
+               save_then_redirect wb ~sp ~sd
+                 (fun () -> Wiki.save_wikitextbox ~sp ~sd ~wb
+                    ~content:(Some content))
            | Some _ ->
                Eliom_predefmod.Action.send ~sp
                  [Override_wikibox (wb,
@@ -321,9 +320,13 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
        match modified with
          | None ->
              let sd = Ocsimore_common.get_sd sp in
-             save_wikibox_aux ~enough_rights:(assert false)
-               ~sp ~sd ~wikibox:wbcss
-               ~content:(Some content) ~content_type:Wiki_sql.Css
+             save_then_redirect wb ~sp ~sd
+               (fun () -> match page with
+                  | None -> Wiki.save_wikicssbox ~sp ~sd ~wb:wbcss
+                      ~wiki:(fst wbcss) ~content:(Some content)
+                  | Some page -> Wiki.save_wikipagecssbox ~sp ~sd ~wb:wbcss
+                      ~wiki:(fst wbcss) ~page ~content:(Some content)
+               )
          | Some _ ->
              Eliom_predefmod.Action.send ~sp
                [Override_wikibox (wb, EditCss ((wbcss, page),
@@ -387,7 +390,6 @@ and action_create_page = Eliom_predefmod.Actions.register_new_post_coservice'
                      in the wikibox that should have contained the button
                      leading to the creation of the page. *)
                   let wb = (wid, wbid) in
-                  (* XXX Check that this error message works *)
                   Lwt.return [Ocsimore_common.Session_data sd;
                               Override_wikibox (wb, Error Page_already_exists)]
              )

@@ -188,14 +188,30 @@ val new_wikitextbox :
 
 
 (** Saves a wikibox and returns the new version id of this wikibox. *)
-val save_wikibox :
-  enough_rights:(sp:Eliom_sessions.server_params -> sd:Ocsimore_common.session_data -> wikibox -> bool Lwt.t) ->
+val save_wikitextbox :
   sp:Eliom_sessions.server_params ->
   sd:Ocsimore_common.session_data ->
-  wikibox:wikibox ->
+  wb:wikibox ->
   content:string option ->
-  content_type:Wiki_sql.wikibox_content_type ->
   int32 Lwt.t
+
+val save_wikicssbox :
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  wb:wikibox ->
+  wiki:wiki ->
+  content:string option ->
+  int32 Lwt.t
+
+val save_wikipagecssbox :
+  sp:Eliom_sessions.server_params ->
+  sd:Ocsimore_common.session_data ->
+  wb:wikibox ->
+  wiki:wiki ->
+  page:string ->
+  content:string option ->
+  int32 Lwt.t
+
 
 val save_wikitextbox_permissions :
   sp:Eliom_sessions.server_params ->

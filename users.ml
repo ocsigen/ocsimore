@@ -327,6 +327,15 @@ let add_to_group ~user ~group =
       else Lwt.return ()
 
 
+let add_list_to_group ~l ~group =
+  List.fold_left
+    (fun beg u ->
+       beg >>= fun () ->
+       add_to_group ~user:u ~group)
+    (Lwt.return ())
+    l
+
+
 (** {2 Session data} *)
 
 let user_table: userid Eliom_sessions.persistent_table =

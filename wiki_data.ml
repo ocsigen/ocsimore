@@ -40,7 +40,7 @@ let admin_writer_reader_aux ~name ~descr =
 (* Small hack : we want a special group, but without parameter *)
 let wikis_creator =
   let grp = aux_grp "WikisCreators" "Users who can create new wikis" in
-  apply_parameterized_group grp (Opaque.int32_t 1l)
+  grp $ (Opaque.int32_t 1l)
 
 
 (** Groups taking a wiki as argument *)
@@ -98,9 +98,9 @@ let can_sthg_wikitext f ~sp ~sd ~wb:(wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
   let g = if special_rights then
-    apply_parameterized_group (f.field wikibox_grps) (opaque_wikibox uid)
+    (f.field wikibox_grps) $ (opaque_wikibox uid)
   else
-    apply_parameterized_group (f.field wiki_wikiboxes_grps) wid
+    (f.field wiki_wikiboxes_grps) $ wid
   in
   Users.in_group ~sp ~sd ~group:g ()
 
@@ -112,17 +112,16 @@ let can_admin_wikitext, can_write_wikitext, can_read_wikitext =
 (** Edition of css *)
 let aux_can_sthg_css box f ~sp ~sd ~wiki =
   box >>= (function
-    | None ->
-        Lwt.return (apply_parameterized_group (f.field wiki_css_grps) wiki)
+    | None -> Lwt.return ((f.field wiki_css_grps) $ wiki)
     | Some wb ->
         Wiki_sql.get_wikibox_info (wiki, wb)
         >>= fun { wikibox_uid = uid ;
                   wikibox_special_rights = special_rights } ->
         Lwt.return (
           if special_rights then
-            apply_parameterized_group (f.field wikibox_grps)(opaque_wikibox uid)
+            (f.field wikibox_grps) $ (opaque_wikibox uid)
           else
-            apply_parameterized_group (f.field wiki_css_grps) wiki
+            (f.field wiki_css_grps) $ wiki
         )
       )
   >>= fun g ->
@@ -132,7 +131,7 @@ let aux_can_sthg_css box f ~sp ~sd ~wiki =
 let can_sthg_wikicss f ~sp ~sd ~wiki =
   aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wiki wiki) f ~sp ~sd ~wiki
 
-let can_admin_css, can_write_css, can_read_css =
+let can_admin_wikicss, can_write_wikicss, can_read_wikicss =
   can_sthg can_sthg_wikicss
 
 let can_sthg_wikipagecss f ~sp ~sd ~wiki ~page =
@@ -142,7 +141,11 @@ let can_sthg_wikipagecss f ~sp ~sd ~wiki ~page =
 let can_admin_wikipagecss, can_write_wikipagecss, can_read_wikipagecss =
   can_sthg can_sthg_wikipagecss
 
+let can_shtg_generic_css f ~sp ~sd wiki =
+  Users.in_group ~sp ~sd ~group:(f.field wiki_css_grps $ wiki) ()
 
+let can_admin_generic_css, can_write_generic_css, can_read_generic_css =
+  can_sthg can_shtg_generic_css
 
 
 let aux_group grp ~sp ~sd data =
