@@ -25,11 +25,10 @@ open Wiki_sql.Types
 
 
 let (>>=) = Lwt.bind
+let ( ** ) = Eliom_parameters.prod
 
 
-let aux_grp name descr =
-  Lwt_unix.run (User_sql.new_parametrized_group ~prefix:"wiki" ~name
-                  ~fullname:descr)
+let aux_grp name descr = Users.GenericRights.aux_grp ~prefix:"wiki" ~name ~descr
 
 let admin_writer_reader_aux ~name ~descr =
   Users.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr

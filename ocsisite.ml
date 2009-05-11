@@ -129,7 +129,7 @@ let () =
 
 let service_edit_wikibox = Eliom_services.new_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
-  ~get_params:Wiki_services.eliom_wikibox_args ()
+  ~get_params:Wiki_widgets_interface.eliom_wikibox_args ()
 
 let () =
   Eliom_duce.Xhtml.register service_edit_wikibox

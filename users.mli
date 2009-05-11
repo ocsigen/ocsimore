@@ -131,4 +131,6 @@ module GenericRights : sig
     ('a Opaque.int32_t -> user) *
     ('a Opaque.int32_t -> user)
 
+
+  val aux_grp: prefix: string -> name:string -> descr:string -> 'a parameterized_group
 end

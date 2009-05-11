@@ -150,6 +150,17 @@ let wikisyntax_help_name = "wikisyntax-help"
 
 (*********************************************************************)
 
+let ( ** ) = Eliom_parameters.prod
+
+let eliom_wiki_args = Wiki_sql.eliom_wiki "wid"
+let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "wbid")
+let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
+let eliom_css_args =
+  (Wiki_sql.eliom_wiki "widcss" ** (Eliom_parameters.int32 "wbidcss"))
+  ** (Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
+
+(*********************************************************************)
+
 
 type classes = string list
 

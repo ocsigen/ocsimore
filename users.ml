@@ -449,4 +449,71 @@ module GenericRights = struct
     (fun i -> apply_parameterized_group grps.grp_writer i),
     (fun i -> apply_parameterized_group grps.grp_admin i)
 
+
+  let opaque_int32_to_string v = Int32.to_string (Opaque.t_int32 v)
+  let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
+
+
+  let update_perms (_add : string) (_rem : string) grp arg =
+    let _grp = grp $ arg in
+    (* XXX *)
+    Lwt.return ()
+
+
+  let aux_grp' prefix name descr =
+    let grp = Lwt_unix.run (User_sql.new_parametrized_group ~prefix ~name
+                              ~fullname:descr)
+    in
+    let add = "add" ^ name and rem = "rem" ^ name in
+    let params = Eliom_parameters.prod
+      (Eliom_parameters.string add) (Eliom_parameters.string rem)
+
+    and param_arg = Eliom_parameters.user_type
+      string_to_opaque_int32 opaque_int32_to_string "arg"
+
+    and form_arg value arg_name =
+      {{ [  {: Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
+               ~input_type:{: "hidden" :} ~name:arg_name ~value () :}
+         ] }}
+
+    and form (text : string) =
+      (List.fold_left
+         (fun s r ->
+            s >>= fun s ->
+            User_sql.user_to_string r
+            >>= fun s2 -> Lwt.return (s^" "^s2))
+         (Lwt.return "")
+         [] (* XXX *)
+      )
+      >>= fun members ->
+      let string_input arg =
+        Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+      Lwt.return (fun (iadd, irem) ->
+                    let textadd = "Add users: "
+                    and textrem = "Remove users: " in
+                    {{ [
+                         !{: text :}    !{: members :}          <br>[]
+                         !{: textadd :} {: string_input iadd :} <br>[]
+                         !{: textrem :} {: string_input irem :} <br>[]
+                       ] }}
+                 )
+
+    and update_perms can_admin sp (arg, (add, rem)) =
+      can_admin sp arg >>= function
+        | true -> update_perms add rem grp arg
+        | false -> Lwt.fail Ocsimore_common.Permission_denied
+    in
+    (*
+      let s = Eliom_predefmod.Any.register_new_post_coservice'
+      ~name:"bla" (*XXX*)
+      ~post_params:(param_arg ** params)
+      (fun sp () args -> update_perms sp args >>= fun () ->
+      Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
+      in
+    *)
+    grp, (params, param_arg, form, form_arg, update_perms)
+
+
+  let aux_grp ~prefix ~name ~descr = fst (aux_grp' prefix name descr)
+
 end
