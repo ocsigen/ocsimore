@@ -176,6 +176,18 @@ let wiki_admin = Lwt_unix.run
             ~staticdir:(Some path) ~pages:(Some Ocsimore_lib.ocsimore_admin_dir)
             id.wiki_id
    ) >>=fun () ->
+   ((** And give reading rights to the wiki itself. (As usual, this can be
+        overridden on a per-page basis) *)
+     let groups = [
+       Wiki_data.wiki_wikiboxes_grps.grp_reader;
+       Wiki_data.wiki_files_grps.grp_reader;
+       Wiki_data.wiki_css_grps.grp_reader;
+     ] in
+     Lwt_util.iter
+       (fun g -> User_sql.add_to_group ~user:(basic_user Users.anonymous)
+          ~group:(g $ id.wiki_id))
+       groups
+   ) >>= fun () ->
    Lwt.return id
   )
 
