@@ -92,8 +92,12 @@ val get_parameterized_user_data: 'a parameterized_group -> userdata Lwt.t
 val get_user_data : user -> userdata Lwt.t
 
 
-(** Returns the groups for one user (level 1) *)
-val get_groups : user:user -> user list Lwt.t
+(** Returns the groups in which a user is directly included *)
+val groups_of_user : user:user -> user list Lwt.t
+
+(** Returns the users or groups inside a group *)
+val users_in_group : group:user -> user list Lwt.t
+
 
 val add_to_group: user:user -> group:user -> unit Lwt.t
 val remove_from_group: user:user -> group:user -> unit Lwt.t

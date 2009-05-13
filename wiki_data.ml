@@ -28,7 +28,9 @@ let (>>=) = Lwt.bind
 let ( ** ) = Eliom_parameters.prod
 
 
-let aux_grp name descr = Users.GenericRights.aux_grp ~prefix:"wiki" ~name ~descr
+let aux_grp name descr =
+  Lwt_unix.run (User_sql.new_parametrized_group ~prefix:"wiki" ~name
+                  ~fullname:descr)
 
 let admin_writer_reader_aux ~name ~descr =
   Users.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr
@@ -87,9 +89,6 @@ let () = Lwt_unix.run (
   Lwt.return ()
 )
 
-let opaque_wikibox v = (Opaque.int32_t v : wikibox_arg Opaque.int32_t)
-
-
 
 open Users.GenericRights
 
@@ -97,7 +96,7 @@ let can_sthg_wikitext f ~sp ~sd ~wb:(wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
   let g = if special_rights then
-    (f.field wikibox_grps) $ (opaque_wikibox uid)
+    (f.field wikibox_grps) $ uid
   else
     (f.field wiki_wikiboxes_grps) $ wid
   in
@@ -118,7 +117,7 @@ let aux_can_sthg_css box f ~sp ~sd ~wiki =
                   wikibox_special_rights = special_rights } ->
         Lwt.return (
           if special_rights then
-            (f.field wikibox_grps) $ (opaque_wikibox uid)
+            (f.field wikibox_grps) $ uid
           else
             (f.field wiki_css_grps) $ wiki
         )

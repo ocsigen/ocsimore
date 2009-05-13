@@ -36,9 +36,11 @@ val string_of_wiki : wiki -> string
 val wiki_of_string : string -> wiki
 
 type wikibox_arg = [ `Wikibox ]
-(* One day, should be [wikibox_arg Opaque.int32_t] *)
 type wikibox_id = int32
 type wikibox = wiki * wikibox_id
+type wikibox_uid = wikibox_arg Opaque.int32_t
+
+
 type wikipage = wiki * string
 
 type wikipage_arg = [ `Wikipage ]
@@ -69,7 +71,7 @@ type wikipage_info = {
 
 type wikibox_info = {
   wikibox_id : wikibox;
-  wikibox_uid: int32;
+  wikibox_uid: wikibox_uid;
   wikibox_comment: string option;
   wikibox_special_rights: bool;
 }

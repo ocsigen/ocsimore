@@ -44,6 +44,7 @@ let wiki_of_string s = (Opaque.int32_t (Int32.of_string s) : wiki)
 (* For now. Someday the second int32 will be a properly opacified type *)
 type wikibox_id = int32
 type wikibox = wiki * wikibox_id
+type wikibox_uid = wikibox_arg Opaque.int32_t
 
 type wikipage = wiki * string
 
@@ -62,7 +63,7 @@ type wiki_info = {
 
 type wikibox_info = {
   wikibox_id : wikibox;
-  wikibox_uid: int32;
+  wikibox_uid: wikibox_uid;
   wikibox_comment: string option;
   wikibox_special_rights: bool;
 }
@@ -447,7 +448,7 @@ let get_wikibox_info (wid, wbid as wb) =
          | (_, _, comment, rights, uid) :: _ ->
              Lwt.return {
                wikibox_id = wb;
-               wikibox_uid = uid;
+               wikibox_uid = Opaque.int32_t uid;
                wikibox_comment = comment;
                wikibox_special_rights = rights;
              }

@@ -393,63 +393,16 @@ object (self)
 
 
   (* Edition of the permissions of a wiki *)
-  method display_edit_perm_form ~bi ~classes ((wiki_id, message_id) as _ids) =
-    let sp = bi.bi_sp in
-    let aux u =
-      Ocsimore_lib.lwt_bind_opt u
-        (List.fold_left
-           (fun s r ->
-              s >>= fun s ->
-              User_sql.user_to_string r
-              >>= fun s2 -> Lwt.return (s^" "^s2))
-           (Lwt.return ""))
+  method display_edit_perm_form ~bi ~classes wb =
+    Wiki_sql.get_wikibox_info wb >>= fun { wikibox_uid = uid } ->
+    snd (Users.GenericRights.helpers_admin_writer_reader
+       ~prefix:"wiki" ~name:"edit-wikibox" Wiki_data.wikibox_grps) uid
+    >>= fun form ->
+    let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+      ~service:action_send_wikibox_permissions ~sp:bi.bi_sp form
+      ()
     in
-    let readers, writers, rights_adm, creators = None, None, None, None in
-(*  XXX  Wiki.get_readers ids >>= fun readers ->
-    Wiki.get_writers ids >>= fun writers ->
-    Wiki.get_rights_adm ids >>= fun rights_adm ->
-    Wiki.get_wikiboxes_creators ids >>= fun creators -> *)
-    aux readers >>= fun r ->
-    aux writers >>= fun w ->
-    aux rights_adm >>= fun a ->
-    aux creators >>= fun c ->
-    let r = Ocsimore_lib.string_of_string_opt r in
-    let w = Ocsimore_lib.string_of_string_opt w in
-    let a = Ocsimore_lib.string_of_string_opt a in
-    let c = Ocsimore_lib.string_of_string_opt c in
-
-    let string_input arg =
-      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
-    let draw_form ((wid, bid), (addrn, (addwn, (addan, (addc, (delrn, (delwn, (delan, delc)))))))) =
-      {{ [<p>[
-            {: Eliom_duce.Xhtml.user_type_input
-               string_of_wiki ~input_type:{: "hidden" :}
-               ~name:wid ~value:wiki_id () :}
-            {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
-               ~name:bid ~value:message_id () :}
-            'Users who can read this wiki box: ' !{: r :}  <br>[]
-            'Add readers: '    {: string_input addrn :} <br>[]
-            'Remove readers: ' {: string_input delrn :} <br>[]
-            'Users who can modify this wiki box: ' !{: w :} <br>[]
-            'Add writers: '    {: string_input addwn :} <br>[]
-            'Remove writers: ' {: string_input delwn :} <br>[]
-            'Users who can change rights of this wiki box: ' !{: a :} <br>[]
-            'Add: '            {: string_input addan :} <br>[]
-            'Remove: '         {: string_input delan :} <br>[]
-            'Users who can create wikiboxes inside this wiki box: ' !{: c:} <br>[]
-            'Add: '            {: string_input addc :}  <br>[]
-            'Remove: '         {: string_input delc :}  <br>[]
-            {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :} {{ "Save" }} :}
-            ]
-          ]
-        }}
-    in
-    Lwt.return
-      (classes,
-       {{[ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-              ~service:action_send_wikibox_permissions
-              ~sp draw_form () :}] }}
-      )
+    Lwt.return (classes, {{ [ form ] }})
 
   (* Auxiliary method to factorize some code *)
   method private menu_box_aux ?title ?service cl wb ~bi ~classes ?cssmenu content=

@@ -14,6 +14,7 @@ open User_sql.Types
 exception NotAllowed
 exception BadPassword
 exception BadUser
+exception UnknownUser of string
 exception UseAuth of userid
 
 (** Non authenticated users *)
@@ -42,7 +43,7 @@ val get_user_by_name: string -> user Lwt.t
 
 (** Convert a list of string representation of users into the
     corresponding users, according to [get_user_by_name]. Nobody
-    is never returned. Fails with [Failure u] if the user
+    is never returned. Fails with [UnknownUser u] if the user
     [u] is not recognized *)
 val user_list_of_string : string -> user list Lwt.t
 
@@ -88,6 +89,8 @@ val authenticate : name:string -> pwd:string -> userdata Lwt.t
 val add_to_group : user:user -> group:user -> unit Lwt.t
 val add_list_to_group : l:user list -> group:user -> unit Lwt.t
 
+val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
+
 (****)
 
 
@@ -123,7 +126,8 @@ module GenericRights : sig
   val can_sthg: (admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
 
   val create_admin_writer_reader:
-    prefix:string -> name:string -> descr:string -> 'a admin_writer_reader
+    prefix:string -> name:string -> descr:string ->
+    'a admin_writer_reader
 
   val admin_writer_reader_groups:
     'a admin_writer_reader ->
@@ -131,6 +135,30 @@ module GenericRights : sig
     ('a Opaque.int32_t -> user) *
     ('a Opaque.int32_t -> user)
 
+  type 'a params_save_permissions =
+      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name *
+        ((input_string * input_string) *
+           ((input_string * input_string) * (input_string * input_string)))
+  and input_string = [ `One of string ] Eliom_parameters.param_name
 
-  val aux_grp: prefix: string -> name:string -> descr:string -> 'a parameterized_group
+  val helpers_admin_writer_reader :
+    prefix:string -> name:string -> 'a User_sql.Types.admin_writer_reader ->
+    (** Service to register to update the permissions *)
+    (unit ->
+       (unit,
+        'a Opaque.int32_t * ((string * string) * ((string * string) * (string * string))),
+        [> `Nonattached of [> `Post ] Eliom_services.na_s ],
+        [ `WithoutSuffix ],
+        unit,
+        'a params_save_permissions,
+        [> `Registrable ])
+         Eliom_services.service) *
+      (** Function creating the form to update the permissions *)
+      ('a Opaque.int32_t -> (
+         'a params_save_permissions ->
+         Eliom_duce.Xhtml.form_content_elt_list
+       ) Lwt.t)
+
+
+
 end

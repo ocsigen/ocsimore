@@ -109,18 +109,33 @@ let pass_authtype_from_pass pwd = match pwd with
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
 
 
+let remove_from_group_aux db (u, vu) (g, vg) =
+  match vu, vg with
+    | None, None ->
+        PGSQL(db) "DELETE FROM userrights
+                   WHERE id = $u AND groupid = $g
+                   AND   idarg IS NULL AND groupidarg IS NULL"
+    | Some vu, None ->
+        PGSQL(db) "DELETE FROM userrights
+                   WHERE id = $u AND groupid = $g
+                   AND   idarg = $vu AND groupidarg IS NULL"
+    | Some vu, Some vg ->
+        PGSQL(db) "DELETE FROM userrights
+                   WHERE id = $u AND groupid = $g
+                   AND   idarg = $vu AND groupidarg = $vg"
+    | None, Some vg ->
+        PGSQL(db) "DELETE FROM userrights
+                   WHERE id = $u AND groupid = $g
+                   AND   idarg IS NULL AND groupidarg = $vg"
+
+let remove_from_group_ ~user ~group =
+  Lwt_pool.use Sql.pool (fun db -> remove_from_group_aux db
+                           (decompose_user user) (decompose_user group))
 
 let add_to_group_aux db (u, vu) (g, vg) =
-  Lwt.catch
-    (fun () ->
-       PGSQL(db) "INSERT INTO userrights (id, groupid, idarg, groupidarg)\
-                  VALUES ($u, $g, $?vu, $?vg)")
-    (function
-       | Sql.PGOCaml.PostgreSQL_Error _ ->
-           (*Ocsigen_messages.warning "Ocsimore: duplicate group insertion";*)
-           Lwt.return ()
-       | e -> Lwt.fail e
-    )
+  remove_from_group_aux db (u, vu) (g, vg) >>= fun () ->
+  PGSQL(db) "INSERT INTO userrights (id, groupid, idarg, groupidarg)
+             VALUES ($u, $g, $?vu, $?vg)"
 
 let populate_groups db user groups =
   let (u, vu) = decompose_user user in
@@ -146,33 +161,6 @@ let add_generic_inclusion_ ~subset ~superset =
        add_to_group_aux db (subset, Some ct_parameterized_edge)
          (superset, Some ct_parameterized_edge)
     )
-
-
-let remove_from_group_ ~user ~group =
-  let (u, vu) = decompose_user user
-  and (g, vg) = decompose_user group
-  in
-  Lwt_pool.use Sql.pool
-    (fun db ->
-       match vu, vg with
-         | None, None ->
-             PGSQL(db) "DELETE FROM userrights
-                  WHERE id = $u AND groupid = $g
-                  AND   idarg IS NULL AND groupidarg IS NULL"
-         | Some vu, None ->
-             PGSQL(db) "DELETE FROM userrights
-                  WHERE id = $u AND groupid = $g
-                  AND   idarg = $vu AND groupidarg IS NULL"
-         | Some vu, Some vg ->
-             PGSQL(db) "DELETE FROM userrights
-                  WHERE id = $u AND groupid = $g
-                  AND   idarg = $vu AND groupidarg = $vg"
-         | None, Some vg ->
-             PGSQL(db) "DELETE FROM userrights
-                  WHERE id = $u AND groupid = $g
-                  AND   idarg IS NULL AND groupidarg = $vg"
-    )
-
 
 
 let new_user ~name ~password ~fullname ~email ~groups ~dyn =
@@ -301,32 +289,59 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
     )
 *)
 
-let get_groups_ ~user =
+let convert_group_list =
+  List.map (function
+              | (g, None) -> basic_user (user_from_sql g)
+              | (g, Some v) -> Applied (user_from_sql g, v)
+           )
+
+let convert_generic_lists r1 r2 v =
+  let l1 = convert_group_list r1
+  and l2 = List.map (fun g -> Applied (user_from_sql g, v)) r2 in
+  l1 @ l2
+
+
+let groups_of_user_ ~user =
   let u, vu = decompose_user user in
-  let convert_list = List.map (function
-                                 | (g, None) -> basic_user (user_from_sql g)
-                                 | (g, Some v) -> Applied (user_from_sql g, v)
-                              ) in
   Lwt_pool.use Sql.pool
     (fun db ->
        (match vu with
           | None ->
               PGSQL(db) "SELECT groupid, groupidarg FROM userrights
                          WHERE id = $u AND idarg IS NULL"
-              >>= fun l -> Lwt.return (convert_list l)
+              >>= fun l -> Lwt.return (convert_group_list l)
           | Some vu ->
               (* Standard inclusions *)
               PGSQL(db) "SELECT groupid, groupidarg FROM userrights
                          WHERE id = $u AND idarg = $vu"
               >>= fun r1 ->
-              let l1 = convert_list r1 in
               (* Generic edges. If the database is correct, groupidarg
                  is always [ct_parameterized_edge] *)
               PGSQL(db) "SELECT groupid FROM userrights
                          WHERE id = $u AND idarg = $ct_parameterized_edge"
               >>= fun r2 ->
-              let l2 = List.map (fun g -> Applied (user_from_sql g, vu)) r2 in
-              Lwt.return (l1 @ l2)
+              Lwt.return (convert_generic_lists r1 r2 vu)
+       )
+    )
+
+(* as above *)
+let users_in_group_ ~group =
+  let g, vg = decompose_user group in
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       (match vg with
+          | None ->
+              PGSQL(db) "SELECT id, idarg FROM userrights
+                         WHERE groupid = $g AND groupidarg IS NULL"
+              >>= fun l -> Lwt.return (convert_group_list l)
+          | Some vg ->
+              PGSQL(db) "SELECT id, idarg FROM userrights
+                         WHERE groupid = $g AND groupidarg = $vg"
+              >>= fun r1 ->
+              PGSQL(db) "SELECT id FROM userrights
+                         WHERE groupid = $g AND groupidarg = $ct_parameterized_edge"
+              >>= fun r2 ->
+              Lwt.return (convert_generic_lists r1 r2 vg)
        )
     )
 
@@ -394,7 +409,7 @@ let nusercache = NUserCache.create
   (fun s ->
      if String.length s > 0 && s.[0] = '#' then
        try
-         Scanf.scanf "%s(%ld)"
+         Scanf.sscanf s "%s@(%ld)"
            (fun g v ->
               find_user_by_name_ g
               >>= fun u ->
@@ -424,23 +439,30 @@ module GroupCache = Cache.Make (struct
                              type value = user list
                            end)
 
-let group_cache = GroupCache.create (fun u -> get_groups_ u) 256
+let group_of_users_cache = GroupCache.create (fun u -> groups_of_user_ u) 256
+let users_in_group_cache = GroupCache.create (fun g -> users_in_group_ g) 256
 
-let get_groups ~user =
-  print_cache "cache groups ";
-  GroupCache.find group_cache user
+let groups_of_user ~user =
+  print_cache "cache groups_of_user ";
+  GroupCache.find group_of_users_cache user
 
+let users_in_group ~group =
+  print_cache "cache users_in_group ";
+  GroupCache.find users_in_group_cache group
 
 let add_to_group ~user ~group =
-  GroupCache.remove group_cache user;
+  GroupCache.remove group_of_users_cache user;
+  GroupCache.clear users_in_group_cache;
   add_to_group_ ~user ~group
 
 let add_generic_inclusion ~subset ~superset =
-  GroupCache.clear group_cache;
+  GroupCache.clear group_of_users_cache;
+
   add_generic_inclusion_ ~subset ~superset
 
 let remove_from_group ~user ~group =
-  GroupCache.remove group_cache user;
+  GroupCache.remove group_of_users_cache user;
+  GroupCache.clear users_in_group_cache;
   remove_from_group_ ~user ~group
 
 
@@ -452,7 +474,8 @@ let delete_user ~userid =
   IUserCache.clear iusercache;
   NUseridCache.clear nuseridcache;
   NUserCache.clear nusercache;
-  GroupCache.clear group_cache;
+  GroupCache.clear group_of_users_cache;
+  GroupCache.clear users_in_group_cache;
   delete_user_ ~userid
 
 

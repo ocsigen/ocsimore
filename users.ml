@@ -32,6 +32,7 @@ let (>>=) = Lwt.bind
 exception NotAllowed
 exception BadPassword
 exception BadUser
+exception UnknownUser of string
 exception UseAuth of userid
 exception Users_error of string
 
@@ -138,7 +139,7 @@ let user_list_of_string s =
          else Lwt.return (v::beg)
       )
       (function
-         | Not_found -> Lwt.fail (Failure a)
+         | Not_found -> Lwt.fail (UnknownUser a)
          | e -> Lwt.fail e)
   in
   let r = Ocsigen_lib.split ' ' s in
@@ -246,7 +247,6 @@ let authenticate ~name ~pwd =
 
 
 let in_group_ ?sp ?sd ~user ~group () =
-  let user = (user:user) in
   let rec aux2 g = function
     | [] -> Lwt.return false
     | g2::l ->
@@ -254,7 +254,7 @@ let in_group_ ?sp ?sd ~user ~group () =
           | true -> Lwt.return true
           | false -> aux2 g l
   and aux u g =
-    User_sql.get_groups u >>= fun gl ->
+    User_sql.groups_of_user u >>= fun gl ->
     if List.mem g gl
     then Lwt.return true
     else aux2 g gl
@@ -292,7 +292,7 @@ let in_group_ ?sp ?sd ~user ~group () =
 
 
 
-let add_to_group ~user ~group =
+let add_to_group ~(user:user) ~(group:user) =
   User_sql.get_user_data group >>= fun { user_dyn = dy } ->
   if dy
   then
@@ -311,29 +311,27 @@ let add_to_group ~user ~group =
       Lwt.return ()
     end
     else
-      in_group_ user group () >>= fun b ->
-      if not b
-      then
-        in_group_ group user () >>= fun b ->
-        if b
-        then
-          User_sql.user_to_string user >>= fun us ->
-          User_sql.user_to_string group >>= fun gs ->
-          Ocsigen_messages.warning
-            ("Circular group when inserting user "^ us ^
-               " in group "^ gs ^ ". (ignoring)");
-          Lwt.return ()
-        else User_sql.add_to_group user group
-      else Lwt.return ()
+      in_group_ group user () >>= function
+        | true ->
+            User_sql.user_to_string user >>= fun us ->
+            User_sql.user_to_string group >>= fun gs ->
+            Ocsigen_messages.warning
+              ("Circular group when inserting user "^ us ^ " in group "^ gs ^
+                 ". (ignoring)");
+            Lwt.return ()
+        | false -> User_sql.add_to_group user group
 
 
-let add_list_to_group ~l ~group =
+let iter_list_group f ~l ~group =
   List.fold_left
     (fun beg u ->
        beg >>= fun () ->
-       add_to_group ~user:u ~group)
+       f ~user:u ~group)
     (Lwt.return ())
     l
+
+let add_list_to_group = iter_list_group add_to_group
+let remove_list_from_group = iter_list_group User_sql.remove_from_group
 
 
 (** {2 Session data} *)
@@ -426,6 +424,99 @@ module GenericRights = struct
     f grp_write,
     f grp_read
 
+  let admin_writer_reader_groups grps =
+    (fun i -> apply_parameterized_group grps.grp_reader i),
+    (fun i -> apply_parameterized_group grps.grp_writer i),
+    (fun i -> apply_parameterized_group grps.grp_admin i)
+
+
+  let opaque_int32_to_string v = Int32.to_string (Opaque.t_int32 v)
+  let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
+
+
+  let update_perms (add : string) (rem : string) grp arg =
+    let group = grp $ arg in
+    user_list_of_string add >>= fun addl ->
+    user_list_of_string rem >>= fun reml ->
+    add_list_to_group ~l:addl ~group >>= fun () ->
+    remove_list_from_group ~l:reml ~group
+
+
+  let ( ** ) = Eliom_parameters.prod
+
+  type 'a grp_helper = {
+    grp_eliom_params : (string * string, [ `WithoutSuffix ],
+                        [ `One of string ] Eliom_parameters.param_name *
+                        [ `One of string ] Eliom_parameters.param_name)
+      Eliom_parameters.params_type;
+
+    grp_eliom_arg_param:
+      ('a Opaque.int32_t, [ `WithoutSuffix ],
+       [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name)
+      Eliom_parameters.params_type;
+
+    grp_form:
+      'a Opaque.int32_t -> text:string ->
+        ([ `One of string ] Eliom_parameters.param_name *
+         [ `One of string ] Eliom_parameters.param_name ->
+          {{ Xhtmltypes_duce.inlines }})
+          Lwt.t;
+
+    grp_form_arg:
+      'a Opaque.int32_t ->
+      [`One of 'a Opaque.int32_t ] Eliom_parameters.param_name ->
+      Xhtmltypes_duce.inline_forms;
+
+    grp_save:
+      'a Opaque.int32_t * (string * string) -> unit Lwt.t
+  }
+
+
+  let helpers_group ~prefix ~name ~grp =
+    let name = prefix ^ "#" ^ name in
+    let add = "add#" ^ name and rem = "rem#" ^ name in
+    let params = (Eliom_parameters.string add) ** (Eliom_parameters.string rem)
+
+    and param_arg = Eliom_parameters.user_type
+      string_to_opaque_int32 opaque_int32_to_string "arg"
+
+    and form_arg value arg_name =
+      Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
+               ~input_type:{: "hidden" :} ~name:arg_name ~value ()
+
+    and form arg ~(text : string) =
+      User_sql.users_in_group ~group:(grp $ arg) >>= fun users ->
+      (List.fold_left
+         (fun s r ->
+            s >>= fun s ->
+            User_sql.user_to_string r
+            >>= fun s2 -> Lwt.return (s^" "^s2))
+         (Lwt.return "")
+         users
+      )
+      >>= fun members ->
+      let string_input arg =
+        Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+      Lwt.return (fun (iadd, irem) ->
+                    let textadd = "Add users: "
+                    and textrem = "Remove users: " in
+                    {{ [
+                         !{: text :}    !{: members :}          <br>[]
+                         !{: textadd :} {: string_input iadd :} <br>[]
+                         !{: textrem :} {: string_input irem :} <br>[]
+                       ] }}
+                 )
+
+    and update_perms (arg, (add, rem)) = update_perms add rem grp arg
+    in
+    {grp_eliom_params = params;
+     grp_eliom_arg_param = param_arg;
+     grp_form = form;
+     grp_form_arg = form_arg;
+     grp_save = update_perms}
+
+
+
   let create_admin_writer_reader ~prefix ~name ~descr =
     let namea, namew, namer =
       (name ^ "Admin",
@@ -442,78 +533,58 @@ module GenericRights = struct
       User_sql.new_parametrized_group prefix namer descrr >>= fun gr ->
       User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
       User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
-      Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr })
 
-  let admin_writer_reader_groups grps =
-    (fun i -> apply_parameterized_group grps.grp_reader i),
-    (fun i -> apply_parameterized_group grps.grp_writer i),
-    (fun i -> apply_parameterized_group grps.grp_admin i)
+      Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr }
+    )
 
+  let helpers_admin_writer_reader ~prefix ~name groups =
+    let h = helpers_group ~name in
+    let helpa = h ~prefix:("adm#" ^ prefix)  ~grp:groups.grp_admin
+    and helpw = h ~prefix:("wri#" ^ prefix)  ~grp:groups.grp_writer
+    and helpr = h ~prefix:("read#" ^ prefix) ~grp:groups.grp_reader in
 
-  let opaque_int32_to_string v = Int32.to_string (Opaque.t_int32 v)
-  let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
+    let params = helpa.grp_eliom_params **
+      (helpw.grp_eliom_params ** helpr.grp_eliom_params)
 
-
-  let update_perms (_add : string) (_rem : string) grp arg =
-    let _grp = grp $ arg in
-    (* XXX *)
-    Lwt.return ()
-
-
-  let aux_grp' prefix name descr =
-    let grp = Lwt_unix.run (User_sql.new_parametrized_group ~prefix ~name
-                              ~fullname:descr)
-    in
-    let add = "add" ^ name and rem = "rem" ^ name in
-    let params = Eliom_parameters.prod
-      (Eliom_parameters.string add) (Eliom_parameters.string rem)
-
-    and param_arg = Eliom_parameters.user_type
-      string_to_opaque_int32 opaque_int32_to_string "arg"
-
-    and form_arg value arg_name =
-      {{ [  {: Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
-               ~input_type:{: "hidden" :} ~name:arg_name ~value () :}
-         ] }}
-
-    and form (text : string) =
-      (List.fold_left
-         (fun s r ->
-            s >>= fun s ->
-            User_sql.user_to_string r
-            >>= fun s2 -> Lwt.return (s^" "^s2))
-         (Lwt.return "")
-         [] (* XXX *)
-      )
-      >>= fun members ->
-      let string_input arg =
-        Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
-      Lwt.return (fun (iadd, irem) ->
-                    let textadd = "Add users: "
-                    and textrem = "Remove users: " in
-                    {{ [
-                         !{: text :}    !{: members :}          <br>[]
-                         !{: textadd :} {: string_input iadd :} <br>[]
-                         !{: textrem :} {: string_input irem :} <br>[]
-                       ] }}
-                 )
-
-    and update_perms can_admin sp (arg, (add, rem)) =
-      can_admin sp arg >>= function
-        | true -> update_perms add rem grp arg
+    and save ~sp ~sd (arg, ((adda, rema), ((addw, remw), (addr, remr)))) =
+      in_group ~sp ~sd ~group:(groups.grp_admin $ arg) () >>= function
+        | true ->
+            helpa.grp_save (arg, (adda, rema)) >>= fun () ->
+            helpw.grp_save (arg, (addw, remw)) >>= fun () ->
+            helpr.grp_save (arg, (addr, remr))
         | false -> Lwt.fail Ocsimore_common.Permission_denied
     in
-    (*
-      let s = Eliom_predefmod.Any.register_new_post_coservice'
-      ~name:"bla" (*XXX*)
-      ~post_params:(param_arg ** params)
-      (fun sp () args -> update_perms sp args >>= fun () ->
-      Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
-      in
-    *)
-    grp, (params, param_arg, form, form_arg, update_perms)
+    let service () = Eliom_predefmod.Any.register_new_post_coservice'
+      ~name:(prefix ^ "." ^ name ^ ".permissions")
+      ~post_params:(helpa.grp_eliom_arg_param ** params)
+      (fun sp () args ->
+         let sd = Ocsimore_common.get_sd sp in
+         save ~sp ~sd args >>= fun () ->
+         Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
+    in
+    (service,
+
+     (fun v ->
+     helpa.grp_form v "Current administrators: " >>= fun forma ->
+     helpw.grp_form v "Current writers: "        >>= fun formw ->
+     helpr.grp_form v "Current readers: "        >>= fun formr ->
+     let form (arg, (arga, (argw, argr))) =
+       {{ [ <p>[ {: helpa.grp_form_arg v arg :}
+                 !{: formr argr :}
+                 !{: formw argw :}
+                 !{: forma arga :}
+                 {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                    {{ "Save" }} :}
+              ] ] }}
+     in
+     Lwt.return form))
 
 
-  let aux_grp ~prefix ~name ~descr = fst (aux_grp' prefix name descr)
+  type 'a params_save_permissions =
+      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name *
+        ((input_string * input_string) *
+           ((input_string * input_string) * (input_string * input_string)))
+  and input_string = [ `One of string ] Eliom_parameters.param_name
+
 
 end

@@ -324,25 +324,9 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
   )
 
 and action_send_wikibox_permissions =
-  Eliom_predefmod.Any.register_new_post_coservice'
-    ~keep_get_na_params:true
-    ~name:"wiki_send_permissions"
-    ~post_params:
-    (eliom_wikibox_args **
-       (Eliom_parameters.string "addreaders" **
-          (Eliom_parameters.string "addwriters" **
-             (Eliom_parameters.string "addrightadm" **
-                (Eliom_parameters.string "addwbcr" **
-                   (Eliom_parameters.string "delreaders" **
-                      (Eliom_parameters.string "delwriters" **
-                         (Eliom_parameters.string "delrightadm" **
-                            Eliom_parameters.string "delwbcr")
-                      )))))))
-    (fun sp () p ->
-       let sd = Ocsimore_common.get_sd sp in
-       Wiki.save_wikitextbox_permissions sp sd p >>= fun () ->
-       Eliom_predefmod.Redirection.send ~sp  Eliom_services.void_hidden_coservice'
-    )
+  fst (Users.GenericRights.helpers_admin_writer_reader
+         ~prefix:"wiki" ~name:"edit-wikibox-permissions" Wiki_data.wikibox_grps
+      ) ()
 
 (* Below are the services for the css of wikis and wikipages.  The css
    at the level of wikis are registered in Wiki.ml *)

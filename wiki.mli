@@ -213,17 +213,6 @@ val save_wikipagecssbox :
   int32 Lwt.t
 
 
-val save_wikitextbox_permissions :
-  sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
-  wikibox *
-     (string *
-        (string *
-           (string *
-              (string * (string * (string * (string * string))))))) ->
-  unit Lwt.t
-
-
 
 (** [modified_wikibox box version] returns [Some curversion] iff the current
     version [curversion] of [box] is greater than [version], [None]

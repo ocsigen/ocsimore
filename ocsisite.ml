@@ -89,6 +89,8 @@ let error_box = new Wiki_widgets.wikibox_error_box
 (** We are at eliom registration time, we can create the services *)
 let services = Wiki_services.services ()
 
+
+
 (** We create the widget that will be used to display the wikiboxes *)
 let wikibox_widget =
   Lwt_unix.run
@@ -241,6 +243,10 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_pages = path } ->
+        (* XXX remove once stabilized *)
+        Users.add_to_group ~user:(basic_user Users.anonymous)
+          ~group:(Wiki_data.wiki_wikiboxes_grps.grp_reader $ wiki)
+        >>= fun () ->
         (match path with
            | None -> ()
            | Some path ->

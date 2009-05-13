@@ -154,31 +154,3 @@ let save_wikipagecssbox ~sp ~sd ~wb ~wiki ~page ~content =
   save_wikibox ~sp ~sd ~wb
     ~enough_rights:(Wiki_data.can_write_wikipagecss ~sp ~sd ~wiki ~page)
     ~content_type:Wiki_sql.Css ~content
-
-
-
-let save_wikitextbox_permissions ~sp ~sd (wikibox, _rights) =
-  Wiki_data.can_admin_wikitext ~sp ~sd ~wb:wikibox >>= function
-    | true ->
-        (* XXX save permissions to write
-       let (addr, (addw, (adda, (addc, (delr, (delw, (dela, delc))))))) = rights
-        in
-        Users.group_list_of_string addr >>= fun readers ->
-        Wiki_sql.populate_readers wikibox readers >>= fun () ->
-        Users.group_list_of_string addw >>= fun w ->
-        Wiki_sql.populate_writers wikibox w >>= fun () ->
-        Users.group_list_of_string adda >>= fun a ->
-        Wiki_sql.populate_rights_adm wikibox a >>= fun () ->
-        Users.group_list_of_string addc >>= fun a ->
-        Wiki_sql.populate_wikiboxes_creators wikibox a >>= fun () ->
-        Users.group_list_of_string delr >>= fun readers ->
-        Wiki_sql.remove_readers wikibox readers >>= fun () ->
-        Users.group_list_of_string delw >>= fun w ->
-        Wiki_sql.remove_writers wikibox w >>= fun () ->
-        Users.group_list_of_string dela >>= fun a ->
-        Wiki_sql.remove_rights_adm wikibox a >>= fun () ->
-        Users.group_list_of_string delc >>= fun a ->
-        Wiki_sql.remove_wikiboxes_creators wikibox a
-*)
-        Lwt.return ()
-    | false -> Lwt.fail Ocsimore_common.Permission_denied
