@@ -243,10 +243,6 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_pages = path } ->
-        (* XXX remove once stabilized *)
-        Users.add_to_group ~user:(basic_user Users.anonymous)
-          ~group:(Wiki_data.wiki_wikiboxes_grps.grp_reader $ wiki)
-        >>= fun () ->
         (match path with
            | None -> ()
            | Some path ->
@@ -256,3 +252,22 @@ let _ = Lwt_unix.run
         Lwt.return ()
      )
   )
+
+(*
+(* Default permissions for the migration to the new system *)
+let _ = Lwt_unix.run
+  (Wiki_sql.iter_wikis
+     (fun { wiki_id = wiki; wiki_title = name} ->
+        Users.add_to_group ~user:(basic_user Users.anonymous)
+          ~group:(Wiki_data.wiki_wikiboxes_grps.grp_reader $ wiki)
+        >>= fun () ->
+        try Scanf.sscanf name "wikiperso for %s"
+          (fun user ->
+             Users.get_user_by_name user
+             >>= fun user ->
+             Users.add_to_group ~user ~group:(Wiki_data.wiki_admins $ wiki)
+          )
+        with Scanf.Scan_failure _ -> Lwt.return ()
+
+     ))
+*)

@@ -121,7 +121,6 @@ let forum_creators =
           ~name:"forum_creators"
           ~pwd:User_sql.Types.Connect_forbidden
           ~fullname:"Can create new forums"
-          ~groups:[]
           ()
        ))
 

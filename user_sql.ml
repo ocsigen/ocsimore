@@ -163,7 +163,7 @@ let add_generic_inclusion_ ~subset ~superset =
     )
 
 
-let new_user ~name ~password ~fullname ~email ~groups ~dyn =
+let new_user ~name ~password ~fullname ~email ~dyn =
   pass_authtype_from_pass password
   >>= fun (pwd, (password, authtype)) ->
   Sql.full_transaction_block
@@ -185,7 +185,6 @@ let new_user ~name ~password ~fullname ~email ~groups ~dyn =
        serial4 db "users_id_seq"
        >>= fun id ->
        let id = user_from_sql id in
-       populate_groups db (basic_user id) groups >>= fun () ->
        Lwt.return (id, pwd)
     )
 

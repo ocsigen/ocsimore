@@ -101,7 +101,6 @@ let external_user user =
                  ~pwd:User_sql.Types.External_Auth
                  ~fullname:userdata.Unix.pw_gecos
                  ~email:(user ^ "@localhost")
-                 ~groups:[basic_user Users.authenticated_users]
                  ()
                >>= fun userdata ->
                  return (Some userdata)

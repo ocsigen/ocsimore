@@ -68,7 +68,6 @@ val new_user:
   password:pwd ->
   fullname:string ->
   email:string option ->
-  groups:user list ->
   dyn:bool ->
   (userid * pwd) Lwt.t
 

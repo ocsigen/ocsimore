@@ -56,7 +56,6 @@ let possibly_create ~login ~fullname ?email ?pwd () =
                 ~password
                 ~fullname
                 ?email
-                ~groups:[]
                 ~dyn:false
               >>= fun (i, _) -> Lwt.return i)
          | e -> Lwt.fail e)
@@ -166,13 +165,13 @@ let add_dyn_group, in_dyn_group, fold_dyn_groups =
 
 
 
-let create_user ~name ~pwd ~fullname ?email ~groups ?test () =
+let create_user ~name ~pwd ~fullname ?email ?test () =
   get_basicuser_by_login name
   >>= fun u ->
   (if (u = nobody) && (name != nobody_login)
    then (* the user does not exist *)
      let dyn = not (test = None) in
-     User_sql.new_user ~name ~password:pwd ~fullname ~email ~groups ~dyn
+     User_sql.new_user ~name ~password:pwd ~fullname ~email ~dyn
      >>= fun (u, _) -> Lwt.return u
    else
      Lwt.return u)
@@ -188,14 +187,14 @@ let create_unique_user =
   (* Buggy if all users with 0-9 exist *)
   let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
   let lock = Lwt_mutex.create () in
-  fun ~name ~pwd ~fullname ?email ~groups ->
+  fun ~name ~pwd ~fullname ?email () ->
     let rec suffix name =
       get_basicuser_by_login name
       >>= fun u ->
       if (u = nobody) && (name != nobody_login)
       then begin (* the user does not exist *)
         create_user
-          ~name ~pwd ~fullname ?email ~groups () >>= fun x ->
+          ~name ~pwd ~fullname ?email () >>= fun x ->
         Lwt.return (x, name)
       end
       else suffix (name ^ (digit "X"))
@@ -245,50 +244,79 @@ let authenticate ~name ~pwd =
 
 
 
+type groups_sd = (user * user, bool) Hashtbl.t
+
+let groups_key : groups_sd Polytables.key = Polytables.make_key ()
+
 
 let in_group_ ?sp ?sd ~user ~group () =
-  let rec aux2 g = function
+  let get_in_cache, update_cache =
+    match sd with
+      | None ->
+          (fun _ug -> raise Not_found),
+          (fun _ug _v -> ())
+      | Some sd ->
+          let table =
+            try Polytables.get ~table:sd ~key:groups_key
+            with Not_found ->
+              let table = Hashtbl.create 37 in
+              Polytables.set sd groups_key table;
+              table
+          in
+          ((fun v -> let r = Hashtbl.find table v in
+                       Ocsigen_messages.errlog " cached"; r
+          ), Hashtbl.add table)
+  in
+  let return u g v =
+    update_cache (u, g) v; Lwt.return v
+  in
+  Ocsigen_messages.errlog "Perms";
+  let rec aux2 i g = function
     | [] -> Lwt.return false
     | g2::l ->
-        aux g2 g >>= function
-          | true -> Lwt.return true
-          | false -> aux2 g l
-  and aux u g =
-    User_sql.groups_of_user u >>= fun gl ->
-    if List.mem g gl
-    then Lwt.return true
-    else aux2 g gl
+        aux i g2 g >>= function
+          | true -> return g2 g true
+          | false -> aux2 i g l
+  and aux i u g =
+    try Lwt.return (get_in_cache (u, g))
+    with Not_found ->
+      User_sql.user_to_string u >>= fun su ->
+      User_sql.user_to_string g >>= fun sg ->
+      Ocsigen_messages.errlog (Printf.sprintf "Is %s in %s" su sg);
+      User_sql.groups_of_user u >>= fun gl ->
+      if List.mem g gl
+      then return u g true
+      else aux2 (i+1) g gl
   in
   if (user = nobody') || (group = nobody')
   then Lwt.return false
   else
     if (user = group) || (user = admin')
     then Lwt.return true
-    else aux user group >>= function
+    else aux 0 user group >>= function
       | true -> Lwt.return true
       | false ->
           match sp, sd with
             | Some sp, Some sd ->
                 (in_dyn_group group ~sp ~sd >>= function
-                  | true -> Lwt.return true
+                  | true -> return user group true
                   | false ->
                       fold_dyn_groups
                         (fun k f b ->
                            b >>= fun b ->
-                           if b
-                           then Lwt.return true
-                           else if k <> group
-                           then (f ~sp ~sd >>= function
-                                   | false -> Lwt.return false
-(*                                 | true when k = group -> Lwt.return true *)
-                                   | true -> aux k group
-                                )
-                           else Lwt.return false
-                        )
-                        (Lwt.return false)
+                           if b then
+                             Lwt.return true
+                           else
+                             if k <> group
+                             then (f ~sp ~sd >>= function
+                                     | false -> Lwt.return false
+                                     | true -> aux 0 k group
+                                  )
+                             else Lwt.return false
+                        ) (Lwt.return false) >>= function r ->
+                        return user group r
                 )
-            | _ -> Lwt.return false
-
+            | _ -> return user group false
 
 
 
@@ -320,6 +348,10 @@ let add_to_group ~(user:user) ~(group:user) =
                  ". (ignoring)");
             Lwt.return ()
         | false -> User_sql.add_to_group user group
+
+
+let add_to_groups ~user ~groups =
+  Lwt_util.iter_serial (fun group -> add_to_group ~user ~group) groups
 
 
 let iter_list_group f ~l ~group =
@@ -384,10 +416,11 @@ let is_logged_on ~sp ~sd =
 let authenticated_users =
   Lwt_unix.run
     (create_user ~name:"users" ~pwd:User_sql.Types.Connect_forbidden
-       ~fullname:"Authenticated users"
-       ~groups:[anonymous']
-       ~test:is_logged_on
-       ())
+       ~fullname:"Authenticated users" ~test:is_logged_on ()
+     >>= fun users ->
+     add_to_group ~user:(basic_user users) ~group:anonymous' >>= fun () ->
+     Lwt.return users
+)
 
 let anonymous_sd =
   let sd = Polytables.create () in

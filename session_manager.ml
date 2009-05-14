@@ -208,7 +208,7 @@ object
                     ~fullname:usr
 (*VVV Can we get the full name from PAM? 
   If yes, do we need to actualize it every time the user connects? *)
-                    ~groups:[basic_user Users.authenticated_users]
+(* XXX useful ??   ~groups:[basic_user Users.authenticated_users] *)
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 
@@ -251,7 +251,7 @@ object
                     ~fullname:usr
 (*VVV Can we get the full name from NIS? 
   If yes, do we need to actualize it every time the user connects? *)
-                    ~groups:[basic_user Users.authenticated_users]
+(*                    ~groups:[basic_user Users.authenticated_users] *)
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 

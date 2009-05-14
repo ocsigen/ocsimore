@@ -469,10 +469,11 @@ object (self)
       self#page_register "ERROR: Bad formed e-mail address!" sp () ()
     else
       let pwd = generate_password () in
-      Users.create_unique_user
-        ~name:usr ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email
-        ~groups:basic_user_creation_options.new_user_groups
+      Users.create_unique_user ~name:usr
+        ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
       >>= fun (user, n) ->
+      Users.add_to_groups (basic_user user)
+        basic_user_creation_options.new_user_groups >>= fun () ->
       mail_password
         ~name:n ~password:pwd
         ~from_name:basic_user_creation_options.mail_from

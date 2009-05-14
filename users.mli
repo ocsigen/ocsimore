@@ -56,7 +56,6 @@ val create_user:
   pwd:pwd ->
   fullname:string ->
   ?email:string ->
-  groups:user list ->
   ?test:(sp:Eliom_sessions.server_params ->
           sd:Ocsimore_common.session_data -> bool Lwt.t) ->
   unit ->
@@ -68,7 +67,7 @@ val create_unique_user: (* XXX Buggy, will fail if all name-related logins are u
   pwd:pwd ->
   fullname:string ->
   ?email:string ->
-  groups:user list ->
+  unit ->
   (userid * string) Lwt.t
 
 
@@ -87,6 +86,8 @@ val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
 
 val add_to_group : user:user -> group:user -> unit Lwt.t
+val add_to_groups : user:user -> groups:user list -> unit Lwt.t
+
 val add_list_to_group : l:user list -> group:user -> unit Lwt.t
 
 val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
