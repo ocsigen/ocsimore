@@ -123,7 +123,7 @@ let talk_editor path service arg sp
          (Calendar.Period.to_time (Calendar.sub finish start)) +. 0.5)
   in
   let page sp _arg error form =
-   Common.wiki_page path sp {{ [] }} (fun _sp _sd ->
+   Common.wiki_page path sp {{ [] }} (fun _sp ->
     let txt =
       if error then "Erreur" else (cat.cat_name ^ ": nouvel événement") in
     Lwt.return
@@ -305,8 +305,8 @@ let events =
           {{ [] }}
        in
        Common.wiki_page path sp l
-         (fun sp sd ->
-            Event.format_description sp sd abstract
+         (fun sp ->
+            Event.format_description sp abstract
                >>= fun abstract ->
             Lwt.return
               (str (speaker_title ^ title),
@@ -320,11 +320,11 @@ let events =
 
 (****)
 
-let format_entry abs sp sd em ev =
+let format_entry abs sp em ev =
   Event_sql.find_speakers ev.id >>= fun speakers ->
   let strong x = if em then {{[<strong>(x)]}}  else x in
   begin if em then
-    Event.format_description sp sd ev.description >>= fun abstract ->
+    Event.format_description sp ev.description >>= fun abstract ->
     Lwt.return {{ [ abstract ] }}
   else
     Lwt.return {{ [] }}
@@ -358,7 +358,7 @@ let archives =
     (fun sp (year, category) () ->
        feed_links sp category >>= fun l ->
        Common.wiki_page path sp l
-         (fun sp sd ->
+         (fun sp ->
             let dates = Format.sprintf "%d-%d" year (year + 1) in
             let start = Date.lmake ~year ~month:8 () in
             let finish = Date.next start `Year in
@@ -368,7 +368,7 @@ let archives =
             Seminaire_sql.find_in_interval
               (site_filter show_all) category start finish
               >>= fun rows ->
-            Common.lwt_map (format_entry events sp sd false) rows
+            Common.lwt_map (format_entry events sp false) rows
                 >>= fun l1 ->
             Event_sql.find_category_by_path category >>= fun cat ->
             Lwt.return
@@ -406,26 +406,26 @@ let archive_list sp category =
 let rec previous_day wd d =
   if Date.day_of_week d = wd then d else previous_day wd (Date.prev d `Day)
 
-let summary_contents category sp sd =
+let summary_contents category sp =
   let today = Date.today () in
   let start = previous_day Date.Sat today in
   let finish = Date.next start `Week in
   let start = Calendar.create start Common.midnight in
   let finish = Calendar.create finish Common.midnight in
   Event_sql.find_category_by_path category >>= fun cat ->
-  let bi = Wiki_widgets_interface.default_bi ~sd ~sp in
+  let bi = Wiki_widgets_interface.default_bi ~sp in
   Ocsisite.wikibox_widget#display_interactive_wikibox
     ~bi (Common.wiki_id, cat.cat_desc)
   >>= fun desc ->
   let show_all = true in (*XXXX*)
   Seminaire_sql.find_in_interval (site_filter show_all) category start finish
       >>= fun rows ->
-  Common.lwt_map (format_entry events sp sd true) rows >>= fun l1 ->
+  Common.lwt_map (format_entry events sp true) rows >>= fun l1 ->
   Seminaire_sql.find_after (site_filter show_all) category finish
       >>= fun rows ->
-  Common.lwt_map (format_entry events sp sd false) rows >>= fun l2 ->
+  Common.lwt_map (format_entry events sp false) rows >>= fun l2 ->
   Seminaire_sql.find_before category start 10L show_all >>= fun rows ->
-  Common.lwt_map (format_entry events sp sd false) rows >>= fun l3 ->
+  Common.lwt_map (format_entry events sp false) rows >>= fun l3 ->
   archive_list sp category >>= fun archives ->
   let edit =
     if cat.cat_editable then
@@ -468,7 +468,7 @@ let groupes =
     ~path ~get_params:P.unit
     (fun sp () () ->
        Common.wiki_page path sp {{ [] }}
-         (fun sp _sd ->
+         (fun sp ->
             Seminaire_sql.find_categories () >>= fun cat ->
             let l =
               List.map
@@ -655,7 +655,6 @@ let feed_filter p = p.status <> Hidden && p.status <> Tentative
 let _ =
   Eliom_atom.register feed
     (fun sp category () ->
-       let sd = Ocsimore_common.get_sd sp in
        let today = Date.today () in
        let date = Date.prev today `Month in
        let date = Calendar.create date Common.midnight in
@@ -674,7 +673,7 @@ let _ =
                   ("ANNULÉ — " ^ title,
                    str "Cet événement est annulé")
             | Confirmed ->
-                Event.format_description sp sd ev.description
+                Event.format_description sp ev.description
                    >>= fun abstract ->
                 Lwt.return (title, {{ [ abstract ] }})
             | Hidden | Tentative ->
@@ -714,9 +713,6 @@ let ical_filter p = p.status <> Hidden
 let _ =
   Eliom_icalendar.register ical
     (fun sp category () ->
-(*
-       let sd = Ocsimore_common.get_sd sp in
-*)
        let today = Date.today () in
        let date = Date.prev today `Month in
        let date = Calendar.create date Common.midnight in
@@ -734,8 +730,8 @@ let _ =
             Event_sql.find_category_by_id ev.category >>= fun cat ->
             Event_sql.find_speakers ev.id >>= fun speakers ->
 (*
-            Event.format_description sp sd ev.description >>= fun desc ->
-            Event.format_description sp sd ev.comment >>= fun comment ->
+            Event.format_description sp ev.description >>= fun desc ->
+            Event.format_description sp ev.comment >>= fun comment ->
 *)
             let p =
               M.make_full_string_uri events sp (Int32.to_string ev.id) in

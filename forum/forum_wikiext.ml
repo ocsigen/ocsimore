@@ -42,12 +42,11 @@ let register_wikiext (message_widget, thread_widget) =
           in
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
-            let sd = bi.Wiki_widgets_interface.bi_sd in
             let message_id =
               Forum_sql.Types.message_of_string (List.assoc "message" args) 
             in
             message_widget#display
-              ~sp ~sd ?rows ?cols ?classes
+              ~sp ?rows ?cols ?classes
               ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
             Lwt.return {{ [ {: b :} ] }}
           with Not_found | Failure _ -> 
@@ -73,11 +72,10 @@ let register_wikiext (message_widget, thread_widget) =
           in
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
-            let sd = bi.Wiki_widgets_interface.bi_sd in
             let message_id =
               Forum_sql.Types.message_of_string (List.assoc "message" args) 
             in
-            thread_widget#display ?commentable:(Some true) ~sp ~sd
+            thread_widget#display ?commentable:(Some true) ~sp
               ?rows ?cols ?classes
               ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
             Lwt.return {{ [ {: b :} ] }}

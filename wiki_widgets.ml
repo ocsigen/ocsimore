@@ -126,7 +126,7 @@ object (self)
     Lwt.catch
       (fun () ->
          error_box#bind_or_display_error
-           (Wiki.wikibox_content bi.bi_sp bi.bi_sd wikibox)
+           (Wiki.wikibox_content bi.bi_sp wikibox)
            (self#display_wikiboxcontent ~wiki:(fst wikibox) ~bi
               ~classes:(frozen_wb_class::classes))
            (self#display_basic_box)
@@ -185,7 +185,7 @@ object (self)
 
 
   method private box_menu ~bi ?cssmenu ?service ?(title = "") ((wid, _) as wb) =
-    let sp = bi.bi_sp and sd = bi.bi_sd
+    let sp = bi.bi_sp
     and preapply = Eliom_services.preapply in
     let history = preapply action_wikibox_history wb
     and edit = preapply action_edit_wikibox wb
@@ -245,7 +245,7 @@ object (self)
       (edit, {{ "edit" }});
       (view, {{ "view" }});
     ] in
-    (Wiki_data.can_admin_wikitext ~sp ~sd ~wb >>= function
+    (Wiki_data.can_admin_wikitext ~sp ~wb >>= function
       | true  -> Lwt.return ((edit_perm, {{ "edit permissions" }})::l)
       | false -> Lwt.return l
     ) >>= fun l ->
@@ -331,7 +331,7 @@ object (self)
     Wiki_sql.get_wikipage_info ~wiki:admin_wiki ~page:"wikisyntax-help"
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
-      (Wiki.wikibox_content bi.bi_sp bi.bi_sd (wid_help, wbid_help))
+      (Wiki.wikibox_content bi.bi_sp (wid_help, wbid_help))
       (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classes:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
@@ -503,22 +503,16 @@ object (self)
 
   method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?cssmenu (wid, _ as wb) =
     let sp = bi.bi_sp in
-    let sd = bi.bi_sd in
-    let override = Ocsimore_lib.find_opt
-      (function
-         | Wiki_widgets_interface.Override_wikibox (wb', o) -> Some (wb', o)
-         | _ -> None)
-      (Eliom_sessions.get_exn sp)
-    in
+    let override = Wiki_widgets_interface.get_override_wikibox ~sp in
     match override with
       | Some (wb', override) when wb = wb' ->
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
             ?cssmenu ~wb_loc:wb ~override
       | _ ->
-          Wiki_data.can_write_wikitext ~sp ~sd ~wb >>= function
+          Wiki_data.can_write_wikitext ~sp ~wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki.wikibox_content sp sd wb)
+                  (Wiki.wikibox_content sp wb)
                   (self#display_wikiboxcontent ~classes ~wiki:wid
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                   (self#menu_view ~bi ?cssmenu wb)
@@ -526,10 +520,10 @@ object (self)
                 Lwt.return (r, true)
 
              | false ->
-                 Wiki_data.can_read_wikitext ~sp ~sd ~wb >>= function
+                 Wiki_data.can_read_wikitext ~sp ~wb >>= function
                    | true ->
                        error_box#bind_or_display_error
-                         (Wiki.wikibox_content sp sd wb)
+                         (Wiki.wikibox_content sp wb)
                          (self#display_wikiboxcontent ~classes ~wiki:wid
                             ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                          (self#display_basic_box)
@@ -546,7 +540,7 @@ object (self)
 
 
   method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
-    let sp = bi.bi_sp and sd = bi.bi_sd in
+    let sp = bi.bi_sp in
     match override with
       | EditWikitext wb ->
 (*TRY:
@@ -572,7 +566,7 @@ object (self)
           Lwt.return (r, true)
 *)
           error_box#bind_or_display_error
-            (Wiki.wikibox_content' bi.bi_sp bi.bi_sd wb)
+            (Wiki.wikibox_content' bi.bi_sp wb)
             (self#display_wikitext_edit_form_help ~bi ?cols ?rows
                ~previewonly:true ~wb ~classes)
             (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
@@ -582,7 +576,7 @@ object (self)
       | EditCss ((wbcss, wikipage), css) ->
           error_box#bind_or_display_error
             (match css with
-               | None -> Wiki.wikibox_content' sp sd wbcss
+               | None -> Wiki.wikibox_content' sp wbcss
                | Some (content, version) ->
                    Lwt.return (Some content, version)
             )
@@ -641,7 +635,7 @@ object (self)
 
       | Oldversion (wb, version) ->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~sp ~sd ~version wb)
+            (Wiki.wikibox_content ~sp ~version wb)
             (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
             (self#menu_old_wikitext ~bi ?cssmenu wb_loc version)
@@ -650,7 +644,7 @@ object (self)
 
       | CssOldversion ((wbcss, page), version) ->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~sp ~sd ~version wbcss)
+            (Wiki.wikibox_content ~sp ~version wbcss)
             (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
             (self#menu_old_css ~bi ?cssmenu wb_loc page)
@@ -659,7 +653,7 @@ object (self)
 
       | Src (wb, version)->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~sp ~sd ~version wb)
+            (Wiki.wikibox_content ~sp ~version wb)
             (self#display_raw_wikiboxcontent ~classes)
             (self#menu_src_wikitext ~bi ?cssmenu wb_loc version)
           >>= fun r ->
@@ -713,8 +707,7 @@ object (self)
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
    method display_wikipage ~bi ~wiki ~page =
-     let sp = bi.bi_sp
-     and sd = bi.bi_sd in
+     let sp = bi.bi_sp in
      Wiki_sql.get_wiki_info_by_id wiki
      >>= fun wiki_info ->
      Lwt.catch
@@ -723,7 +716,7 @@ object (self)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box;
                     wikipage_title = title } ->
-          let bi = default_bi ~sd ~sp in
+          let bi = default_bi ~sp in
           self#display_interactive_wikibox_aux ~bi ~cssmenu:(CssWikipage page)
             (wiki', box)
           >>= fun (subbox, allowed) ->
@@ -747,8 +740,9 @@ object (self)
                           ~input_type:{: "submit" :} ~value:"Create it!" () :}
                      ]] }}
               in
-              Users.in_group ~sp ~sd ~group:(apply_parameterized_group
-                                      Wiki_data.wiki_wikipages_creators wiki) ()
+              Users.in_group ~sp 
+                ~group:(apply_parameterized_group
+                          Wiki_data.wiki_wikipages_creators wiki) ()
               >>= fun c ->
               let form =
                 if c then
@@ -764,10 +758,10 @@ object (self)
           | e -> Lwt.fail e
        )
        >>= fun (subbox, err_code, title) ->
-       Wiki_widgets_interface.set_page_displayable sd err_code;
+       Wiki_widgets_interface.set_page_displayable sp err_code;
 
        (* We render the container *)
-       let bi = { (default_bi ~sd ~sp) with bi_subbox = Some subbox } in
+       let bi = { (default_bi ~sp) with bi_subbox = Some subbox } in
        self#display_interactive_wikibox ~bi ~cssmenu:CssWiki
          (wiki, wiki_info.wiki_container)
 
@@ -787,8 +781,7 @@ object (self)
                    code)
 
    method send_wikipage ~bi ~wiki ~page =
-     let sp = bi.bi_sp
-     and sd = bi.bi_sd in
+     let sp = bi.bi_sp in
      Wiki_sql.get_wiki_info_by_id wiki
      >>= fun wiki_info ->
      (* if there is a static page, and should we send it ? *)
@@ -796,7 +789,7 @@ object (self)
        (fun () ->
           match wiki_info.wiki_staticdir with
             | Some d ->
-                Wiki_services.send_static_file sp sd wiki_info.wiki_id d page
+                Wiki_services.send_static_file sp wiki_info.wiki_id d page
             | None -> Lwt.fail Eliom_common.Eliom_404)
        (function
           | Eliom_common.Eliom_404 ->
@@ -865,18 +858,18 @@ Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
   ));
 
 Wiki_filter.add_preparser_extension ~name:"wikibox"
-  (fun wid (sp, sd, father) args c ->
+  (fun wid (sp, father) args c ->
      (try
         let wid = extract_wiki_id args wid in
         try (* If a wikibox is already specified, there is nothing to do *)
           ignore (List.assoc "box" args); Lwt.return None
         with Not_found ->
-          Users.get_user_id ~sp ~sd
+          Users.get_user_id ~sp
           >>= fun userid ->
           let _englobing_wb = (wid, father) in
-          Wiki_data.can_create_wikiboxes ~sp ~sd wid >>= function
+          Wiki_data.can_create_wikiboxes ~sp wid >>= function
             | true ->
-                Wiki.new_wikitextbox ~sp ~sd
+                Wiki.new_wikitextbox ~sp
                   ~wiki:wid
                   ~author:userid
                   ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"

@@ -30,8 +30,7 @@
 val add_preparser_extension : 
   name:string -> 
   (Wiki_sql.Types.wiki ->
-     (Eliom_sessions.server_params * 
-        Ocsimore_common.session_data * int32) ->
+     (Eliom_sessions.server_params * int32) ->
        (string * string) list -> 
          string option -> 
            string option Lwt.t) -> unit
@@ -69,8 +68,7 @@ val find_extension : name:string ->
     preparsers recorded with [add_preparser_extension].
 *)
 val preparse_extension :
-  (Eliom_sessions.server_params * 
-     Ocsimore_common.session_data * int32) ->
+  (Eliom_sessions.server_params * int32) ->
   Wiki_sql.Types.wiki -> 
   string -> string Lwt.t
 

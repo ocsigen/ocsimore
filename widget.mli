@@ -76,12 +76,10 @@ object
   *)
   method virtual private retrieve_data :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     'param_type -> 'data_type Lwt.t
     
   method virtual apply : 
     sp:server_params -> 
-    sd:Ocsimore_common.session_data ->
     data:'param_type -> 'result_type
 end
 
@@ -90,11 +88,9 @@ object
   inherit widget
   method private retrieve_data :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     'param_type -> 'data_type Lwt.t
   method apply: 
     sp:server_params ->
-    sd:Ocsimore_common.session_data ->
     data:'param_type -> 'result_type
 end
 
@@ -112,7 +108,6 @@ object
   inherit ['param_type, unit, 'result_type] parametrized_widget
   method private retrieve_data :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     'a -> unit Lwt.t
 end
 
@@ -125,7 +120,6 @@ object
   inherit ['param_type, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
   method private retrieve_data :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     'a -> unit Lwt.t
 end
 

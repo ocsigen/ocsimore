@@ -33,7 +33,6 @@
  *)
 val new_forum : 
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
@@ -46,7 +45,6 @@ val new_forum :
  *)
 val new_message :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   forum_id:Forum_sql.Types.forum ->
   author_id:User_sql.Types.userid ->
   ?subject:string ->
@@ -61,7 +59,6 @@ val new_message :
  *)
 val set_deleted :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   message_id:Forum_sql.Types.message -> deleted:bool -> unit Lwt.t
   
 (** set ou unset sticky flag on a message.
@@ -69,7 +66,6 @@ val set_deleted :
  *)
 val set_sticky :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   message_id:Forum_sql.Types.message -> sticky:bool -> unit Lwt.t
   
 (** set or unset moderated flag on a message.
@@ -77,7 +73,6 @@ val set_sticky :
  *)
 val set_moderated :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   message_id:Forum_sql.Types.message -> moderated:bool -> unit Lwt.t
   
 (** Get forum information, given its id or title.
@@ -85,7 +80,6 @@ val set_moderated :
  *)
 val get_forum: 
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   ?forum_id:Forum_sql.Types.forum -> 
   ?title:string -> 
   unit -> 
@@ -94,7 +88,6 @@ val get_forum:
 (** returns the list of forums visible to the user. *)
 val get_forums_list : 
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   unit ->
   Forum_sql.Types.forum_info list Lwt.t
   
@@ -104,7 +97,6 @@ val get_forums_list :
  *)
 val get_message : 
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   message_id:Forum_sql.Types.message -> 
   Forum_sql.Types.message_info Lwt.t
   
@@ -120,7 +112,6 @@ val get_message :
 *)
 val get_thread : 
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   message_id:Forum_sql.Types.message -> 
   Forum_sql.Types.message_info list Lwt.t
   

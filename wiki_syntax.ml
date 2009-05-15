@@ -672,7 +672,6 @@ let _ =
     (fun wiki_id bi args c -> 
        Wikicreole.Block
          (let sp = bi.Wiki_widgets_interface.bi_sp in
-          let sd = bi.Wiki_widgets_interface.bi_sd in
           let content = match c with
             | Some c -> c
             | None -> ""
@@ -682,21 +681,21 @@ let _ =
                  Lwt.return
                    (List.exists
                       (fun e -> e = Users.BadPassword || e = Users.BadUser)
-                      (Eliom_sessions.get_exn sp))
+                      (Ocsimore_common.get_exn ~sp))
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->
                       Users.get_user_by_name g >>= fun group ->
-                      Users.in_group ~sp ~sd ~group ())
+                      Users.in_group ~sp ~group ())
                    (function _ -> Lwt.return false)
              | ("http_code", "404") ->
-                 Lwt.return (Wiki_widgets_interface.page_displayable sd =
+                 Lwt.return (Wiki_widgets_interface.page_displayable sp =
                      Wiki_widgets_interface.Page_404)
              | ("http_code", "403") ->
-                 Lwt.return (Wiki_widgets_interface.page_displayable sd =
+                 Lwt.return (Wiki_widgets_interface.page_displayable sp =
                      Wiki_widgets_interface.Page_403)
              | ("http_code", "40?") ->
-                 Lwt.return (Wiki_widgets_interface.page_displayable sd <>
+                 Lwt.return (Wiki_widgets_interface.page_displayable sp <>
                                Wiki_widgets_interface.Page_displayable)
              | (err, value) when String.length err >= 3 &&
                  String.sub err 0 3 = "not" ->

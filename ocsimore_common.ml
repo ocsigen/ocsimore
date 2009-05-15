@@ -20,29 +20,14 @@
    @author Vincent Balat
 *)
 
-type session_data = Polytables.t
-
 exception Permission_denied
-exception Session_data of session_data
 
-let create_empty_sd = Polytables.create
+let tmp : exn list Polytables.key = Polytables.make_key ()
 
-let get_sd ~sp =
-  let rec f = function
-    | [] -> None
-    | (Session_data sd)::_ -> Some sd
-    | _::l -> f l
-  in
-  match f (Eliom_sessions.get_exn sp) with
-    | None -> create_empty_sd ()
-    | Some sd -> sd
+let get_exn ~sp =
+  try
+    Polytables.get 
+      ~table:(Eliom_sessions.get_request_cache sp)
+      ~key:tmp
+  with Not_found -> []
 
-let clear_sd ~sd =
-  Polytables.clear sd
-
-
-
-type 'a sp_sd =
-  sp:Eliom_sessions.server_params ->
-  sd:session_data ->
-  'a

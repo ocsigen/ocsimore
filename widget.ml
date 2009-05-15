@@ -89,12 +89,10 @@ object
 
   method virtual private retrieve_data :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     'param -> 'data Lwt.t
 
   method virtual apply :
     sp:server_params ->
-    sd:Ocsimore_common.session_data ->
     data:'param -> 'result
 
 end
@@ -104,11 +102,9 @@ object
   inherit widget
   method private retrieve_data :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     'param -> 'data Lwt.t
   method apply :
     sp:Eliom_sessions.server_params ->
-    sd:Ocsimore_common.session_data ->
     data:'param -> 'result
 end
 
@@ -129,7 +125,7 @@ object
 
   val xhtml_class = "parametrized_unit_widget"
 
-  method private retrieve_data ~sp:_ ~sd:_ _ = Lwt.return ()
+  method private retrieve_data ~sp:_ _ = Lwt.return ()
 
 end
 
@@ -143,7 +139,7 @@ object
 
   val xhtml_class = "parametrized_unit_div_widget"
 
-  method private retrieve_data ~sp:_ ~sd:_ _ = Lwt.return ()
+  method private retrieve_data ~sp:_ _ = Lwt.return ()
 
 end
 

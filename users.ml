@@ -156,9 +156,9 @@ module DynGroups = Hashtbl.Make(
 let add_dyn_group, in_dyn_group, fold_dyn_groups =
   let table = DynGroups.create 5 in
   (DynGroups.add table,
-   (fun k ~sp ~sd ->
+   (fun k ~sp ->
       try
-        DynGroups.find table k ~sp ~sd
+        DynGroups.find table k ~sp
       with Not_found -> Lwt.return false),
    fun f -> DynGroups.fold f table
   )
@@ -249,18 +249,19 @@ type groups_sd = (user * user, bool) Hashtbl.t
 let groups_key : groups_sd Polytables.key = Polytables.make_key ()
 
 
-let in_group_ ?sp ?sd ~user ~group () =
+let in_group_ ?sp ~user ~group () =
   let get_in_cache, update_cache =
-    match sd with
+    match sp with
       | None ->
           (fun _ug -> raise Not_found),
           (fun _ug _v -> ())
-      | Some sd ->
+      | Some sp ->
+          let rc = Eliom_sessions.get_request_cache sp in
           let table =
-            try Polytables.get ~table:sd ~key:groups_key
+            try Polytables.get ~table:rc ~key:groups_key
             with Not_found ->
               let table = Hashtbl.create 37 in
-              Polytables.set sd groups_key table;
+              Polytables.set rc groups_key table;
               table
           in
           ((fun v -> let r = Hashtbl.find table v in
@@ -296,9 +297,9 @@ let in_group_ ?sp ?sd ~user ~group () =
     else aux 0 user group >>= function
       | true -> Lwt.return true
       | false ->
-          match sp, sd with
-            | Some sp, Some sd ->
-                (in_dyn_group group ~sp ~sd >>= function
+          match sp with
+            | Some sp ->
+                (in_dyn_group group ~sp >>= function
                   | true -> return user group true
                   | false ->
                       fold_dyn_groups
@@ -308,7 +309,7 @@ let in_group_ ?sp ?sd ~user ~group () =
                              Lwt.return true
                            else
                              if k <> group
-                             then (f ~sp ~sd >>= function
+                             then (f ~sp >>= function
                                      | false -> Lwt.return false
                                      | true -> aux 0 k group
                                   )
@@ -376,7 +377,7 @@ type user_sd = userid Lwt.t
 (** The polytable key for retrieving user data inside session data *)
 let user_key : user_sd Polytables.key = Polytables.make_key ()
 
-let get_user_ ~sp ~sd =
+let get_user_ ~sp =
   Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
   >>= function
     | Eliom_sessions.Data u ->
@@ -385,32 +386,33 @@ let get_user_ ~sp ~sd =
           (function
              | Not_found ->
                  Eliom_sessions.close_session ~sp () >>= fun () ->
-                 Ocsimore_common.clear_sd ~sd;
+                 Polytables.clear (Eliom_sessions.get_request_cache sp);
                  Lwt.return anonymous
              | e -> Lwt.fail e)
     | Eliom_sessions.Data_session_expired | Eliom_sessions.No_data ->
         Lwt.return anonymous
 
-let get_user_sd ~sp ~sd =
+let get_user_sd ~sp =
+  let rc = Eliom_sessions.get_request_cache sp in
   try
-    Polytables.get ~table:sd ~key:user_key
+    Polytables.get ~table:rc ~key:user_key
   with Not_found ->
-    let ud = get_user_ ~sp ~sd in
-    Polytables.set sd user_key ud;
+    let ud = get_user_ ~sp in
+    Polytables.set rc user_key ud;
     ud
 
-let get_user_id ~sp ~sd = get_user_sd sp sd
+let get_user_id ~sp = get_user_sd sp
 
-let get_user_data ~sp ~sd =
-  get_user_sd sp sd >>= fun u ->
+let get_user_data ~sp =
+  get_user_sd sp >>= fun u ->
   User_sql.get_basicuser_data u
 
-let get_user_name ~sp ~sd =
-  get_user_data sp sd >>= fun u -> 
+let get_user_name ~sp =
+  get_user_data sp >>= fun u -> 
   Lwt.return u.user_login
 
-let is_logged_on ~sp ~sd =
-  get_user_sd sp sd >>= fun u ->
+let is_logged_on ~sp =
+  get_user_sd sp >>= fun u ->
   Lwt.return (not ((u = anonymous) || (u = nobody)))
 
 let authenticated_users =
@@ -422,22 +424,19 @@ let authenticated_users =
      Lwt.return users
 )
 
-let anonymous_sd =
-  let sd = Polytables.create () in
-  Polytables.set sd user_key (Lwt.return anonymous);
-  sd
 
-let set_session_data ~sp ~sd user =
-  Polytables.set sd user_key (Lwt.return user);
+let set_session_data ~sp user =
+  Polytables.set 
+    (Eliom_sessions.get_request_cache sp) user_key (Lwt.return user);
   Eliom_sessions.set_persistent_session_data ~table:user_table ~sp user
 
 
-let in_group ~sp ~sd ?user ~group () =
+let in_group ~sp ?user ~group () =
   (match user with
-    | None -> get_user_id ~sp ~sd >>= fun u -> Lwt.return (basic_user u)
+    | None -> get_user_id ~sp >>= fun u -> Lwt.return (basic_user u)
     | Some user -> Lwt.return user)
   >>= fun user ->
-  in_group_ ~sp ~sd ?user ~group ()
+  in_group_ ~sp ?user ~group ()
 
 
 module GenericRights = struct
@@ -579,8 +578,8 @@ module GenericRights = struct
     let params = helpa.grp_eliom_params **
       (helpw.grp_eliom_params ** helpr.grp_eliom_params)
 
-    and save ~sp ~sd (arg, ((adda, rema), ((addw, remw), (addr, remr)))) =
-      in_group ~sp ~sd ~group:(groups.grp_admin $ arg) () >>= function
+    and save ~sp (arg, ((adda, rema), ((addw, remw), (addr, remr)))) =
+      in_group ~sp ~group:(groups.grp_admin $ arg) () >>= function
         | true ->
             helpa.grp_save (arg, (adda, rema)) >>= fun () ->
             helpw.grp_save (arg, (addw, remw)) >>= fun () ->
@@ -591,8 +590,7 @@ module GenericRights = struct
       ~name:(prefix ^ "." ^ name ^ ".permissions")
       ~post_params:(helpa.grp_eliom_arg_param ** params)
       (fun sp () args ->
-         let sd = Ocsimore_common.get_sd sp in
-         save ~sp ~sd args >>= fun () ->
+         save ~sp args >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
     in
     (service,

@@ -98,7 +98,6 @@ type role =
 
 val get_role : 
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data -> 
   Forum_sql.Types.forum -> role Lwt.t
 
 

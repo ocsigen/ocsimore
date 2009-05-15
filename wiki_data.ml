@@ -92,7 +92,7 @@ let () = Lwt_unix.run (
 
 open Users.GenericRights
 
-let can_sthg_wikitext f ~sp ~sd ~wb:(wid, _ as wb) =
+let can_sthg_wikitext f ~sp ~wb:(wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
   let g = if special_rights then
@@ -100,7 +100,7 @@ let can_sthg_wikitext f ~sp ~sd ~wb:(wid, _ as wb) =
   else
     (f.field wiki_wikiboxes_grps) $ wid
   in
-  Users.in_group ~sp ~sd ~group:g ()
+  Users.in_group ~sp ~group:g ()
 
 
 let can_admin_wikitext, can_write_wikitext, can_read_wikitext =
@@ -108,7 +108,7 @@ let can_admin_wikitext, can_write_wikitext, can_read_wikitext =
 
 
 (** Edition of css *)
-let aux_can_sthg_css box f ~sp ~sd ~wiki =
+let aux_can_sthg_css box f ~sp ~wiki =
   box >>= (function
     | None -> Lwt.return ((f.field wiki_css_grps) $ wiki)
     | Some wb ->
@@ -123,31 +123,31 @@ let aux_can_sthg_css box f ~sp ~sd ~wiki =
         )
       )
   >>= fun g ->
-  Users.in_group ~sp ~sd ~group:g ()
+  Users.in_group ~sp ~group:g ()
 
 
-let can_sthg_wikicss f ~sp ~sd ~wiki =
-  aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wiki wiki) f ~sp ~sd ~wiki
+let can_sthg_wikicss f ~sp ~wiki =
+  aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wiki wiki) f ~sp ~wiki
 
 let can_admin_wikicss, can_write_wikicss, can_read_wikicss =
   can_sthg can_sthg_wikicss
 
-let can_sthg_wikipagecss f ~sp ~sd ~wiki ~page =
+let can_sthg_wikipagecss f ~sp ~wiki ~page =
   aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wikipage wiki page)
-    f ~sp ~sd ~wiki
+    f ~sp ~wiki
 
 let can_admin_wikipagecss, can_write_wikipagecss, can_read_wikipagecss =
   can_sthg can_sthg_wikipagecss
 
-let can_shtg_generic_css f ~sp ~sd wiki =
-  Users.in_group ~sp ~sd ~group:(f.field wiki_css_grps $ wiki) ()
+let can_shtg_generic_css f ~sp wiki =
+  Users.in_group ~sp ~group:(f.field wiki_css_grps $ wiki) ()
 
 let can_admin_generic_css, can_write_generic_css, can_read_generic_css =
   can_sthg can_shtg_generic_css
 
 
-let aux_group grp ~sp ~sd data =
-  Users.in_group ~sp ~sd ~group:(grp $ data) ()
+let aux_group grp ~sp data =
+  Users.in_group ~sp ~group:(grp $ data) ()
 
 let can_create_wikipages = aux_group wiki_wikipages_creators
 
@@ -155,6 +155,6 @@ let can_create_wikiboxes = aux_group wiki_wikiboxes_creators
 
 let can_create_wikicss = aux_group wiki_css_creators
 
-let can_create_wikipagecss ~sp ~sd (wiki, _page : wikipage) =
+let can_create_wikipagecss ~sp (wiki, _page : wikipage) =
   (* XXX add a field to override by wikipage and use wikipage_css_creators *)
-  Users.in_group ~sp ~sd ~group:(wiki_css_creators $ wiki) ()
+  Users.in_group ~sp ~group:(wiki_css_creators $ wiki) ()

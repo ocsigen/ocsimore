@@ -179,7 +179,6 @@ val admin_group_name : wiki -> string
 
 val new_wikitextbox :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   wiki:wiki ->
   author:userid ->
   comment:string ->
@@ -190,14 +189,12 @@ val new_wikitextbox :
 (** Saves a wikibox and returns the new version id of this wikibox. *)
 val save_wikitextbox :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   wb:wikibox ->
   content:string option ->
   int32 Lwt.t
 
 val save_wikicssbox :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   wb:wikibox ->
   wiki:wiki ->
   content:string option ->
@@ -205,7 +202,6 @@ val save_wikicssbox :
 
 val save_wikipagecssbox :
   sp:Eliom_sessions.server_params ->
-  sd:Ocsimore_common.session_data ->
   wb:wikibox ->
   wiki:wiki ->
   page:string ->
@@ -222,12 +218,16 @@ val modified_wikibox:
 
 
 val wikibox_content:
-  (?version:int32 -> wikibox ->
-    Wiki_sql.wikibox_content Lwt.t) Ocsimore_common.sp_sd
+  sp:Eliom_sessions.server_params ->
+  ?version:int32 -> 
+  wikibox ->
+  Wiki_sql.wikibox_content Lwt.t
 
 val wikibox_content':
-  (?version:int32 -> wikibox ->
-    (string option * int32) Lwt.t) Ocsimore_common.sp_sd
+  sp:Eliom_sessions.server_params ->
+  ?version:int32 -> 
+  wikibox ->
+  (string option * int32) Lwt.t
 
 
 (** Raised in case of a non-existing wikibox. The optional [int32]

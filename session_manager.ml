@@ -120,13 +120,18 @@ object (self)
     Lwt.catch
       (fun () -> 
          authenticate ~name:usr ~pwd  >>= fun user -> 
-         let sd = Ocsimore_common.create_empty_sd () in
-         Users.set_session_data sp sd user.user_id >>= fun () -> 
+         Eliom_sessions.clean_request_cache ~sp;
+         Users.set_session_data sp user.user_id >>= fun () -> 
          all_login_actions sp user.user_id >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp 
            Eliom_services.void_hidden_coservice'
          (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
-      (fun e -> Eliom_predefmod.Action.send ~sp [e])
+      (fun e -> 
+       Polytables.set
+         (Eliom_sessions.get_request_cache sp)
+         Ocsimore_common.tmp 
+         [e];
+         Eliom_predefmod.Action.send ~sp ())
         
   method add_login_actions f =
     let old_la = all_login_actions in
@@ -136,6 +141,7 @@ object (self)
   method private mk_act_logout sp () () = 
     all_logout_actions sp >>= fun () ->
     close_session ~sp () >>= fun () -> 
+    Eliom_sessions.clean_request_cache ~sp;
     Eliom_predefmod.Redirection.send ~sp Eliom_services.void_hidden_coservice'
 (* was:    return [] (* do not send sd here! *) *)
       
@@ -212,13 +218,18 @@ object
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 
-         let sd = Ocsimore_common.create_empty_sd () in
-         Users.set_session_data sp sd user >>= fun () -> 
+         Eliom_sessions.clean_request_cache ~sp;
+         Users.set_session_data sp user >>= fun () -> 
          all_login_actions sp user >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp 
            Eliom_services.void_hidden_coservice'
-         (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
-      (fun e -> Eliom_predefmod.Action.send ~sp [e])
+      ) 
+      (fun e -> 
+         Polytables.set
+           (Eliom_sessions.get_request_cache sp)
+           Ocsimore_common.tmp 
+           [e];
+         Eliom_predefmod.Action.send ~sp ())
 
 end
 
@@ -255,13 +266,18 @@ object
                     ()
               | e -> Lwt.fail e)
          >>= fun user -> 
-         let sd = Ocsimore_common.create_empty_sd () in
-         Users.set_session_data sp sd user >>= fun () -> 
+         Eliom_sessions.clean_request_cache ~sp;
+         Users.set_session_data sp user >>= fun () -> 
          all_login_actions sp user >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp 
            Eliom_services.void_hidden_coservice'
          (* was: Lwt.return [Ocsimore_common.Session_data sd] *)) 
-      (fun e -> Eliom_predefmod.Action.send ~sp [e])
+      (fun e -> 
+         Polytables.set
+           (Eliom_sessions.get_request_cache sp)
+           Ocsimore_common.tmp 
+           [e];
+         Eliom_predefmod.Action.send ~sp ())
 
 end
 

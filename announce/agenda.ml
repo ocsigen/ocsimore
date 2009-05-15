@@ -61,7 +61,7 @@ let dl def l =
   Common.opt def
     (fun x r ->{{ [<dl>[!x !(map {:r:} with s -> s)]] }}) l
 
-let format_events sp _sd events =
+let format_events sp events =
   Common.lwt_map
     (fun (start, finish, id, name, room, location) ->
        let loc =
@@ -94,7 +94,7 @@ let table l =
   Common.opt {{[]}}
     (fun x r ->{{ [<table>[x !{:r:}]] }}) l
 
-let generate_calendar sp sd calendar (year, month) () =
+let generate_calendar sp calendar (year, month) () =
   let start = Date.make year month 1 in
   let finish = Date.next start `Month in
   let days = Date.days_in_month start in
@@ -136,7 +136,7 @@ let generate_calendar sp sd calendar (year, month) () =
            ["L";"M";"M";"J";"V";"S";"D"])
   in
   let lines = List.flatten (days :: lines) in
-  format_events sp sd events >>= fun events ->
+  format_events sp events >>= fun events ->
   Lwt.return
     (str "Agenda",
      {{ [<h2>[{:M.a calendar sp (str "<<") (year - 1, month):}
@@ -167,15 +167,15 @@ let _ =
   M.register calendar
     (fun sp (year, month) () ->
        Common.wiki_page calendar_path sp {{ [] }}
-         (fun sp sd -> generate_calendar sp sd calendar (year, month) ()))
+         (fun sp -> generate_calendar sp calendar (year, month) ()))
 
 let main =
   M.register_new_service
     ~path:calendar_path ~get_params:P.unit
     (fun sp () () ->
        Common.wiki_page calendar_path sp {{ [] }}
-         (fun sp sd ->
+         (fun sp ->
             let today = Date.today () in
             let year = Date.year today in
             let month = Date.int_of_month (Date.month today) in
-            generate_calendar sp sd calendar (year, month) ()))
+            generate_calendar sp calendar (year, month) ()))

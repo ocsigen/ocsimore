@@ -75,10 +75,9 @@ let _ =
 
 let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   let page = Ocsigen_lib.string_of_url_path ~encode:false path in
-  let sd = Ocsimore_common.get_sd sp in
-  contents sp sd
+  contents sp
   >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
-  let bi = { (Wiki_widgets_interface.default_bi ~sp ~sd)
+  let bi = { (Wiki_widgets_interface.default_bi ~sp)
              with Wiki_widgets_interface.bi_subbox = Some subbox } in
   Ocsisite.wikibox_widget#display_interactive_wikibox ~bi ?cssmenu:None wiki_box
   >>= fun box ->

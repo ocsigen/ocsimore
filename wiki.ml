@@ -86,8 +86,8 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    Lwt.return wiki_id
 
 
-let new_wikitextbox ~sp ~sd ~wiki ~author ~comment ~content () =
-  Wiki_data.can_create_wikiboxes ~sp ~sd wiki
+let new_wikitextbox ~sp ~wiki ~author ~comment ~content () =
+  Wiki_data.can_create_wikiboxes ~sp wiki
   >>= function
     | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
         ~content_type:Wiki_sql.WikiCreole ()
@@ -109,28 +109,28 @@ let modified_wikibox ~wikibox ~boxversion =
 (** Exception raised when the content of a wikibox cannot be found *)
 exception Unknown_box of wikibox * int32 option
 
-let wikibox_content ~sp ~sd ?version (wid, _ as wb) =
+let wikibox_content ~sp ?version (wid, _ as wb) =
   Wiki_sql.get_wikibox_data ?version ~wikibox:wb ()
   >>= fun result ->
   match result with
     | None -> Lwt.fail (Unknown_box (wb, version))
     | Some (_com, _a, cont, _d, ct, ver) ->
         (match ct with
-           | Wiki_sql.WikiCreole -> Wiki_data.can_read_wikitext ~sp ~sd ~wb
-           | Wiki_sql.Css -> Wiki_data.can_read_generic_css ~sp ~sd wid
+           | Wiki_sql.WikiCreole -> Wiki_data.can_read_wikitext ~sp ~wb
+           | Wiki_sql.Css -> Wiki_data.can_read_generic_css ~sp wid
         ) >>= function
           | true -> Lwt.return (ct, cont, ver)
           | false -> Lwt.fail Ocsimore_common.Permission_denied
 
-let wikibox_content' ~sp ~sd ?version wikibox =
-  wikibox_content ~sp ~sd ?version wikibox >>= fun (_, cont, ver) ->
+let wikibox_content' ~sp ?version wikibox =
+  wikibox_content ~sp ?version wikibox >>= fun (_, cont, ver) ->
   Lwt.return (cont, ver)
 
 
-let save_wikibox ~enough_rights ~sp ~sd ~wb ~content ~content_type =
+let save_wikibox ~enough_rights ~sp ~wb ~content ~content_type =
   enough_rights >>= function
     | true ->
-        Users.get_user_id sp sd
+        Users.get_user_id sp
         >>= fun user ->
         Wiki_sql.update_wikibox ~wikibox:wb ~author:user ~comment:""
           ~content ~content_type
@@ -139,18 +139,18 @@ let save_wikibox ~enough_rights ~sp ~sd ~wb ~content ~content_type =
 
 
 (* XXX we should not allow overwriting a box containing a css *)
-let save_wikitextbox ~sp ~sd ~wb ~content = save_wikibox ~sp ~sd ~wb
-  ~enough_rights:(Wiki_data.can_write_wikitext ~sp ~sd ~wb)
+let save_wikitextbox ~sp ~wb ~content = save_wikibox ~sp ~wb
+  ~enough_rights:(Wiki_data.can_write_wikitext ~sp ~wb)
   ~content_type:Wiki_sql.WikiCreole ~content
 
 (* Saving the css of a wiki or of a wikipage. Notice that we do not
    currently check that the box passed as argument is indeed the css
    for the wiki or the wikipage. *)
-let save_wikicssbox ~sp ~sd ~wb ~wiki ~content = save_wikibox ~sp ~sd ~wb
-  ~enough_rights:(Wiki_data.can_write_wikicss ~sp ~sd ~wiki)
+let save_wikicssbox ~sp ~wb ~wiki ~content = save_wikibox ~sp ~wb
+  ~enough_rights:(Wiki_data.can_write_wikicss ~sp ~wiki)
   ~content_type:Wiki_sql.Css ~content
 
-let save_wikipagecssbox ~sp ~sd ~wb ~wiki ~page ~content =
-  save_wikibox ~sp ~sd ~wb
-    ~enough_rights:(Wiki_data.can_write_wikipagecss ~sp ~sd ~wiki ~page)
+let save_wikipagecssbox ~sp ~wb ~wiki ~page ~content =
+  save_wikibox ~sp ~wb
+    ~enough_rights:(Wiki_data.can_write_wikipagecss ~sp ~wiki ~page)
     ~content_type:Wiki_sql.Css ~content

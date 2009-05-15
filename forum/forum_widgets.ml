@@ -37,8 +37,8 @@ object (self)
   val comment_class = "ocsiforum_comment_form"
   val not_moderated_class = "ocsiforum_not_moderated"
 
-  method get_message ~sp ~sd ~message_id =
-    Forum_data.get_message ~sp ~sd ~message_id
+  method get_message ~sp ~message_id =
+    Forum_data.get_message ~sp ~message_id
     
   method display_message ~classes content =
     let classes = Ocsimore_lib.build_class_attr (msg_class::classes) in
@@ -46,7 +46,7 @@ object (self)
       {{ <div class={: classes :}>content }}
 
   method display_comment_line
-    ~sp ~sd:_sd ~role:_role ?(rows = 3) ?(cols = 50) m =
+    ~sp ~role:_role ?(rows = 3) ?(cols = 50) m =
     let draw_form (actionnamename, ((parentname, _), (_, textname))) =
          {{ [<p>[
               {: Forum.eliom_message_input ~input_type:{: "hidden" :}
@@ -87,7 +87,7 @@ object (self)
   Lwt.return {{ [ n1 n2 ] }}
 
 
-  method display_admin_line ~sp ~sd:_sd ~role m =
+  method display_admin_line ~sp ~role m =
 
     let draw_moderate_form name =
          {{ [<p>[{: Forum.eliom_message_button ~name:name
@@ -136,18 +136,18 @@ object (self)
 
   method pretty_print_message
     ~classes
-    ~commentable ?(arborescent = true) ~sp ~sd ?rows ?cols m =
+    ~commentable ?(arborescent = true) ~sp ?rows ?cols m =
     User_sql.get_basicuser_data m.m_author_id >>= fun ud ->
     let author = ud.User_sql.Types.user_fullname in
-    Forum.get_role sp sd m.m_forum_id >>= fun role ->
-    self#display_admin_line ~sp ~sd ~role m >>= fun admin_line ->
+    Forum.get_role sp m.m_forum_id >>= fun role ->
+    self#display_admin_line ~sp ~role m >>= fun admin_line ->
     !!(role.Forum.comment_writers) >>= fun commentator ->
     let draw_comment_form =
       (commentable && 
          commentator && (arborescent || (m.m_id = m.m_root_id))) 
     in
     (if draw_comment_form
-     then self#display_comment_line ~sp ~sd ~role ?rows ?cols m
+     then self#display_comment_line ~sp ~role ?rows ?cols m
      else Lwt.return {{[]}}) >>= fun comment_line ->
     let classes = 
       if m.m_moderated then classes else not_moderated_class::classes 
@@ -169,10 +169,10 @@ object (self)
           !comment_line
          ] }})
 
-  method display ~sp ~sd ?rows ?cols ?(classes=[]) ~data:message_id () =
+  method display ~sp ?rows ?cols ?(classes=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
-      (self#get_message ~sp ~sd ~message_id)
-      (self#pretty_print_message ~classes ~commentable:false ~sp ~sd ?rows ?cols)
+      (self#get_message ~sp ~message_id)
+      (self#pretty_print_message ~classes ~commentable:false ~sp ?rows ?cols)
       (self#display_message)
 
 end
@@ -186,15 +186,15 @@ object (self)
   val thr_class = "ocsiforum_thread"
   val thr_msg_class = "ocsiforum_thread_msg"
 
-  method get_thread ~sp ~sd ~message_id =
-    Forum_data.get_thread ~sp ~sd ~message_id
+  method get_thread ~sp ~message_id =
+    Forum_data.get_thread ~sp ~message_id
     
   method display_thread ~classes content =
     let classes = Ocsimore_lib.build_class_attr (thr_class::classes) in
     Lwt.return
       {{ <div class={: classes :}>content }}
 
-  method pretty_print_thread ~classes ~commentable ~sp ~sd ?rows ?cols thread =
+  method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread =
     let rec print_one_message_and_children ~arborescent thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
@@ -202,7 +202,7 @@ object (self)
          | m::l ->
              message_widget#pretty_print_message
                ~classes:[]
-               ~commentable ~arborescent ~sp ~sd ?rows ?cols m
+               ~commentable ~arborescent ~sp ?rows ?cols m
              >>= fun (classes, msg_info) ->
              message_widget#display_message ~classes msg_info >>= fun first ->
              print_children ~arborescent m.m_id l >>= fun (s, l) ->
@@ -226,11 +226,11 @@ object (self)
           >>= fun (a, _) -> 
           Lwt.return (classes, {{[a]}})
 
-  method display ?(commentable = true) ~sp ~sd ?rows ?cols
+  method display ?(commentable = true) ~sp ?rows ?cols
     ?(classes=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
-      (self#get_thread ~sp ~sd ~message_id)
-      (self#pretty_print_thread ~classes ~commentable ~sp ~sd ?rows ?cols)
+      (self#get_thread ~sp ~message_id)
+      (self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols)
       (self#display_thread)
 
 end

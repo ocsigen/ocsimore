@@ -25,35 +25,7 @@
 *)
 exception Permission_denied
 
-(** The type of session data. It is a polytable, so that any module
-    (like Forum or Wiki) can save its own data.
-*)
-type session_data = Polytables.t
 
-(** Put this exception in the return value of your actions to transmit
-    the session data to the subsequent service.
-*)
-exception Session_data of session_data
+val tmp : exn list Polytables.key
 
-(** Call this function at the beginning of your services to get the
-    session data sent by the previous action, or create a new (empty) 
-    one otherwise.
-*)
-val get_sd : sp:Eliom_sessions.server_params -> session_data
-
-(** Call this function only if you do not want to use the session data sent
-    by previous action. (For example login action).
-*)
-val create_empty_sd : unit -> session_data
-
-(** Call this function just after closing the session
-*)
-val clear_sd : sd:session_data -> unit
-
-
-
-(** The type of the functions taking sd ans sp as arguments *)
-type 'a sp_sd =
-  sp:Eliom_sessions.server_params ->
-  sd:session_data ->
-  'a
+val get_exn : sp:Eliom_sessions.server_params -> exn list

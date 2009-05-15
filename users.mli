@@ -56,8 +56,7 @@ val create_user:
   pwd:pwd ->
   fullname:string ->
   ?email:string ->
-  ?test:(sp:Eliom_sessions.server_params ->
-          sd:Ocsimore_common.session_data -> bool Lwt.t) ->
+  ?test:(sp:Eliom_sessions.server_params -> bool Lwt.t) ->
   unit ->
   userid Lwt.t
 
@@ -96,20 +95,20 @@ val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
 
 
 val in_group :
-  (?user:user -> group:user -> unit -> bool Lwt.t) Ocsimore_common.sp_sd
+  sp:Eliom_sessions.server_params ->
+  ?user:user -> group:user -> unit -> bool Lwt.t
 
 (** Informations on the loggued user *)
 
-val get_user_data : userdata Lwt.t Ocsimore_common.sp_sd
-val get_user_id : userid Lwt.t Ocsimore_common.sp_sd
-val get_user_name : string Lwt.t Ocsimore_common.sp_sd
+val get_user_data : sp:Eliom_sessions.server_params -> userdata Lwt.t
+val get_user_id : sp:Eliom_sessions.server_params -> userid Lwt.t
+val get_user_name : sp:Eliom_sessions.server_params -> string Lwt.t
 
-val is_logged_on : bool Lwt.t Ocsimore_common.sp_sd
+val is_logged_on : sp:Eliom_sessions.server_params -> bool Lwt.t
 
-val set_session_data : (userid -> unit Lwt.t) Ocsimore_common.sp_sd
+val set_session_data : sp:Eliom_sessions.server_params -> userid -> unit Lwt.t
 
 
-val anonymous_sd : Ocsimore_common.session_data
 
 
 

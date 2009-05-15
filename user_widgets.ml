@@ -74,9 +74,9 @@ object (self)
          ]] }}
 
   method display_login_widget
-    ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ~sp ~sd () =
-    Users.get_user_data sp sd >>= fun u ->
-    Users.is_logged_on sp sd >>= fun logged ->
+    ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ~sp () =
+    Users.get_user_data sp >>= fun u ->
+    Users.is_logged_on sp >>= fun logged ->
     Lwt.return
       {{ <div class={: xhtml_class :}>
            [{:
@@ -88,7 +88,7 @@ object (self)
                    ~sp
                    (fun _ -> self#display_logout_box sp u) ()
                else
-                 let exn = Eliom_sessions.get_exn sp in
+                 let exn = Ocsimore_common.get_exn ~sp in
                  if List.exists
                    (fun e -> e = Users.BadPassword || e = Users.BadUser)
                    exn
@@ -128,7 +128,7 @@ object (self)
               self#display_login_widget
                 ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps
                 ~sp:bi.Wiki_widgets_interface.bi_sp
-                ~sd:bi.Wiki_widgets_interface.bi_sd ()
+                ()
               >>= fun b ->
               Lwt.return {{ [ b ] }}));
 
@@ -138,8 +138,7 @@ object (self)
            ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
            ~get_params:Eliom_parameters.unit
            (fun sp () () ->
-              let sd = Ocsimore_common.get_sd sp in
-              self#display_login_widget ~sp ~sd () >>= fun lb ->
+              self#display_login_widget ~sp () >>= fun lb ->
               Lwt.return
                 {{
                    <html xmlns="http://www.w3.org/1999/xhtml">[
@@ -163,7 +162,6 @@ object (self)
            Wikicreole.A_content
              (Users.get_user_data
                 ~sp:bi.Wiki_widgets_interface.bi_sp
-                ~sd:bi.Wiki_widgets_interface.bi_sd
               >>= fun ud ->
              Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
         );
@@ -413,7 +411,6 @@ object (self)
 
   method container
     ~sp:(_ : Eliom_sessions.server_params)
-    ~sd:(_ : Ocsimore_common.session_data)
     ~(contents:Xhtmltypes_duce.blocks) : Xhtmltypes_duce.html Lwt.t =
     Lwt.return {{
               <html xmlns="http://www.w3.org/1999/xhtml">[
@@ -426,7 +423,6 @@ object (self)
   method private page_register err = fun sp () ()->
     self#container
       ~sp
-      ~sd:Users.anonymous_sd
       ~contents:
       {{ [<h1>"Registration form"
            <p>['Please fill in the following fields.'
@@ -483,7 +479,6 @@ object (self)
         | true ->
             self#container
               ~sp
-              ~sd:Users.anonymous_sd
               ~contents:
               {{ [<h1>"Registration ok."
                   <p>(['You\'ll soon receive an e-mail message at the \
@@ -495,7 +490,7 @@ object (self)
 
         | false ->
             User_sql.delete_user ~userid:user >>= fun () ->
-            self#container ~sp ~sd:Users.anonymous_sd
+            self#container ~sp
               ~contents:{{ [<h1>"Registration failed."
                             <p>"Please try later."] }}
 
@@ -504,7 +499,6 @@ object (self)
   method private page_reminder err = fun sp () () ->
     self#container
       ~sp
-      ~sd:Users.anonymous_sd
       ~contents:
       {{ [<h1>"Password reminder"
            <p>['This service allows you to get an e-mail message \
@@ -537,7 +531,6 @@ object (self)
          then
          self#container
          ~sp
-         ~sd:Users.anonymous_sd
          ~contents:{{ [<h1>"Password sent"
          <p>"You'll soon receive an e-mail message at \
          the address you entered when you \
@@ -545,7 +538,6 @@ object (self)
          else
          self#container
          ~sp
-         ~sd:Users.anonymous_sd
          ~contents:{{ [<h1>"Failure"
          <p>"The username you entered doesn't exist, or \
          the service is unavailable at the moment."] }}) *)
@@ -553,14 +545,12 @@ object (self)
 (* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
 (*
   method private page_edit err = fun sp () () ->
-    let sd = Ocsimore_common.get_sd sp in
-    Users.is_logged_on sp sd >>= fun logged ->
+    Users.is_logged_on sp >>= fun logged ->
     if logged
     then
-      Users.get_user_data sp sd >>= fun u ->
+      Users.get_user_data sp >>= fun u ->
       self#container
         ~sp
-        ~sd:Users.anonymous_sd
         ~contents:
         {{ [<h1>"Your account"
              <p>"Change your persional information:"
@@ -614,11 +604,10 @@ object (self)
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
 
   method private page_edit_done = fun sp () (pwd,(pwd2,(fullname,email)))->
-    let sd = Ocsimore_common.get_sd sp in
-    Users.is_logged_on sp sd >>= fun logged ->
+    Users.is_logged_on sp >>= fun logged ->
     if logged
     then
-      Users.get_user_data sp sd >>= fun user ->
+      Users.get_user_data sp >>= fun user ->
       if not (valid_emailaddr email) then
         self#page_edit "ERROR: Bad formed e-mail address!" sp () ()
       else if pwd <> pwd2 then
@@ -643,10 +632,9 @@ object (self)
                 if pwd = "" then None else Some (User_sql.Ocsimore_user_crypt pwd)
           in
           ignore (Users.update_user_data ~user ~fullname ~email ?pwd ());
-          Users.set_session_data sp sd user >>= fun () ->
+          Users.set_session_data sp user >>= fun () ->
             self#container
               ~sp
-              ~sd (*VVV was: Users.anonymous_sd, but why? *)
               ~contents:{{ [<h1>"Personal information updated"] }}
 
         with Failure s -> self#page_edit s sp () ()

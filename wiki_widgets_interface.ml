@@ -73,10 +73,24 @@ type wikibox_override =
   | Error of exn
 
 
+(*VVV why in this module? *)
+let override_wikibox_key : (wikibox * wikibox_override) Polytables.key = 
+  Polytables.make_key ()
+
 (** How to change the display of a wikibox: which wikibox is concerned,
    and what should be displayed instead *)
-exception Override_wikibox of wikibox * wikibox_override
+let get_override_wikibox ~sp =
+  try
+    Some (Polytables.get
+            ~table:(Eliom_sessions.get_request_cache ~sp)
+            ~key:override_wikibox_key)
+  with Not_found -> None
 
+let set_override_wikibox ~sp v =
+  Polytables.set
+    ~table:(Eliom_sessions.get_request_cache ~sp)
+    ~key:override_wikibox_key
+    ~value:v
 
 (*********************************************************************)
 
@@ -104,19 +118,14 @@ type box_info =
   {bi_subbox: Xhtmltypes_duce.flows option;
    bi_ancestors: Ancestors.ancestors;
    bi_sp: Eliom_sessions.server_params;
-   bi_sd: Ocsimore_common.session_data;
 }
 
 let add_ancestor_bi x bi =
   { bi with bi_ancestors = Ancestors.add_ancestor x bi.bi_ancestors }
 
-let default_bi ?sd ~sp =
-  let sd = match sd with
-    | None -> Ocsimore_common.get_sd sp
-    | Some sd -> sd
-  in {
+let default_bi ~sp =
+  {
     bi_sp = sp;
-    bi_sd = sd;
     bi_ancestors = Ancestors.no_ancestors;
     bi_subbox = None;
   }
@@ -134,12 +143,18 @@ type page_displayable =
 let page_displayable_key : page_displayable Polytables.key =
   Polytables.make_key ()
 
-let page_displayable sd =
-  try Polytables.get ~table:sd ~key:page_displayable_key
+let page_displayable sp =
+  try
+    Polytables.get
+      ~table:(Eliom_sessions.get_request_cache sp)
+      ~key:page_displayable_key
   with Not_found -> Page_displayable
 
-let set_page_displayable sd pd =
-  Polytables.set ~table:sd ~key:page_displayable_key ~value:pd
+let set_page_displayable sp pd =
+  Polytables.set
+    ~table:(Eliom_sessions.get_request_cache sp)
+    ~key:page_displayable_key
+    ~value:pd
 
 
 (*********************************************************************)
@@ -402,6 +417,6 @@ class type virtual interactive_wikibox =
       bi:box_info ->
       wiki:wiki ->
       page:string ->
-      Eliom_services.result_to_send Lwt.t
+      Ocsigen_http_frame.result Lwt.t
 
   end

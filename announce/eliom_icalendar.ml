@@ -30,27 +30,26 @@ module Reg_ = struct
       ?code ?content_type ?headers ~sp content =
     let r = result_of_content content in
     Lwt.return
-      (Eliom_services.EliomResult
-         {r with
-            res_cookies=
-             Eliom_services.cookie_table_of_eliom_cookies ~sp cookies;
-            res_code= (match code with
-                         | None -> 200
-                         | Some c -> c);
-            res_charset= (match charset with
-                            | None ->
-                                Some (Eliom_sessions.get_config_default_charset sp)
-                            | _ -> charset);
-            res_content_type= (match content_type with
-                                 | None -> r.res_content_type
-                                 | _ -> content_type
-                              );
-            res_headers= (match headers with
-                            | None -> r.res_headers
-                            | Some headers -> 
-                                Http_headers.with_defaults headers r.res_headers
-                         );
-         })
+      {r with
+         res_cookies=
+          Eliom_services.cookie_table_of_eliom_cookies ~sp cookies;
+         res_code= (match code with
+                      | None -> 200
+                      | Some c -> c);
+         res_charset= (match charset with
+                         | None ->
+                             Some (Eliom_sessions.get_config_default_charset sp)
+                         | _ -> charset);
+         res_content_type= (match content_type with
+                              | None -> r.res_content_type
+                              | _ -> content_type
+                           );
+         res_headers= (match headers with
+                         | None -> r.res_headers
+                         | Some headers -> 
+                             Http_headers.with_defaults headers r.res_headers
+                      );
+      }
 end
 
 include Eliom_mkreg.MakeRegister (Reg_)

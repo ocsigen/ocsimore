@@ -265,9 +265,9 @@ type role =
       forum_admin : bool Lwt.t Lazy.t;
     }
 
-let get_role ~sp ~sd ~forum_id =
-  Users.get_user_id sp sd >>= fun u ->
-  let aux g = Users.in_group ~sp ~sd
+let get_role ~sp ~forum_id =
+  Users.get_user_id sp >>= fun u ->
+  let aux g = Users.in_group ~sp
     ~user:(User_sql.Types.basic_user u) ~group:(g $ forum_id) () 
   in
 
@@ -307,30 +307,31 @@ module Roles = Map.Make(struct
 
 type forum_sd = Forum_sql.Types.forum -> role Lwt.t
 
-let default_forum_sd ~sp ~sd =
+let default_forum_sd ~sp =
   let cache = ref Roles.empty in
   (* We cache the values to retrieve them only once *)
   fun k -> 
     try 
       Lwt.return (Roles.find k !cache)
     with Not_found -> 
-      get_role ~sp ~sd ~forum_id:k >>= fun v ->
+      get_role ~sp ~forum_id:k >>= fun v ->
       cache := Roles.add k v !cache;
       Lwt.return v
 
 (** The polytable key for retrieving forum data inside session data *)
 let forum_key : forum_sd Polytables.key = Polytables.make_key ()
 
-let get_forum_sd ~sp ~sd =
+let get_forum_sd ~sp =
+  let rc = Eliom_sessions.get_request_cache sp in
   try
-    Polytables.get ~table:sd ~key:forum_key
+    Polytables.get ~table:rc ~key:forum_key
   with Not_found -> 
-    let fsd = default_forum_sd ~sp ~sd in
-    Polytables.set sd forum_key fsd;
+    let fsd = default_forum_sd ~sp in
+    Polytables.set rc forum_key fsd;
     fsd
 
-let get_role ~sp ~sd k =
-  let forum_sd = get_forum_sd ~sp ~sd in
+let get_role ~sp k =
+  let forum_sd = get_forum_sd ~sp in
   forum_sd k
 
 

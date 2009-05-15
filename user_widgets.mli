@@ -34,7 +34,6 @@ object
     ?auth_error:Ocamlduce.Utf8.repr ->
     ?switchtohttps:Ocamlduce.Utf8.repr ->
     sp:Eliom_sessions.server_params -> 
-    sd:Ocsimore_common.session_data -> 
     unit ->
     Xhtmltypes_duce._div Lwt.t
 
@@ -91,7 +90,6 @@ object
 
   method container: 
     sp:Eliom_sessions.server_params -> 
-    sd:Ocsimore_common.session_data ->
     contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
 
 end
