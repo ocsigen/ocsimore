@@ -438,8 +438,8 @@ module GroupCache = Cache.Make (struct
                              type value = user list
                            end)
 
-let group_of_users_cache = GroupCache.create (fun u -> groups_of_user_ u) 256
-let users_in_group_cache = GroupCache.create (fun g -> users_in_group_ g) 256
+let group_of_users_cache = GroupCache.create (fun u -> groups_of_user_ u) 8777
+let users_in_group_cache = GroupCache.create (fun g -> users_in_group_ g) 8777
 
 let groups_of_user ~user =
   print_cache "cache groups_of_user ";
@@ -456,7 +456,6 @@ let add_to_group ~user ~group =
 
 let add_generic_inclusion ~subset ~superset =
   GroupCache.clear group_of_users_cache;
-
   add_generic_inclusion_ ~subset ~superset
 
 let remove_from_group ~user ~group =

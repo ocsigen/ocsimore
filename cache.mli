@@ -30,12 +30,12 @@ module Make :
       type t
       val create : (A.key -> A.value Lwt.t) -> int -> t
 
-      (* Find the cached value associated to the key, or binds this
+      (** Find the cached value associated to the key, or binds this
          value in the cache using the function passed as argument
          to [create], and returns this value *)
       val find : t -> A.key -> A.value Lwt.t
 
-      (* Find the cached value associated to the key. Raises [Not_found]
+      (** Find the cached value associated to the key. Raises [Not_found]
          if the key is not present in the cache *)
       val find_in_cache : t -> A.key -> A.value
 

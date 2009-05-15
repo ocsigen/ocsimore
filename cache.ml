@@ -32,83 +32,90 @@ module Dlist = (struct
         mutable succ : 'a node option;
         mutable prev : 'a node option}
 
-  type 'a t = 
-      {list : 'a node option (* None = empty *);
-       first : 'a node option;
-       size : int;
+  (* Doubly-linked list with maximum size. The field [list] is
+     the beginning of the list. The field [first] is the first
+     element that must be removed if the list becomes too long *)
+  type 'a t =
+      {mutable list : 'a node option (* None = empty *);
+       mutable first : 'a node option;
+       mutable size : int;
        maxsize : int}
 
-  let create_one a = let rec v = { value = a; succ = None; prev = None} in v ;;
+  let length c =
+    let rec aux i = function
+      | Some {prev=p} -> aux (i + 1) p
+      | None -> i
+    in aux 0 c.list
 
-  let create size = {list = None; first = None; size = 0; maxsize = size};;
+  let correct_node n =
+    (match n.succ with
+       | None -> true
+       | Some n' -> n'.prev == Some n) &&
+     (match n.prev with
+        | None -> true
+        | Some n' -> n'.succ == Some n)
 
-  let add x r =
+
+  (* Check that a list is correct. To be completed
+     1) by adding a check on nodes,
+     2) by verifying that last can be reached from first and respectively *)
+  let correct_list l =
+    (l.size <= l.maxsize) &&
+    (length l = l.size) &&
+    (match l.first with
+       | None -> true
+       | Some n -> n.prev = None) &&
+    (match l.list with
+       | None -> true
+       | Some n -> n.succ = None)
+
+
+  let create_one a = { value = a; succ = None; prev = None}
+
+  let create size = {list = None; first = None; size = 0; maxsize = size}
+
+  (* Add a node to the list. The fields [succ] and [prev] are overridden.
+     The function returns the value that is being removed from the list
+     if it is too long *)
+  let add_node node r =
     match r.list with
-      | None -> 
-          let n = create_one x in
-          {list = Some n; 
-           first = Some n;
-           size = 1;
-           maxsize = r.maxsize}
-      | Some rl ->
-          let n = { value = x ; prev = r.list; succ = None } in
-          rl.succ <- Some n;
-          if r.size >= r.maxsize
-          then
-            (match r.first with
-               | None -> assert false
-               | Some a -> 
-                   (match a.succ with
-                     | None -> assert false
-                     | Some b -> b.prev <- None);
-                   {list = Some n;
-                    first = a.succ;
-                    size = r.size;
-                    maxsize = r.maxsize})
-          else
-            {list = Some n;
-             first = r.first;
-             size = r.size + 1;
-             maxsize = r.maxsize}
-
-  let add_ node r =
-    match r.list with
-      | None -> 
+      | None ->
           node.succ <- None;
           node.prev <- None;
-          {list = Some node; 
-           first = Some node;
-           size = 1;
-           maxsize = r.maxsize}
+          r.list <- Some node;
+          r.first <- r.list;
+          r.size <- 1;
+          None
       | Some rl ->
           node.succ <- None;
           node.prev <- r.list;
           rl.succ <- Some node;
+          r.list <- Some node;
           if r.size >= r.maxsize
-          then
-            (match r.first with
-               | None -> assert false
-               | Some a -> 
-                   (match a.succ with
+          then (
+            match r.first with
+              | None -> assert false
+              | Some a ->
+                  (match a.succ with
                      | None -> assert false
                      | Some b -> b.prev <- None);
-                   {list = Some node;
-                    first = a.succ;
-                    size = r.size;
-                    maxsize = r.maxsize})
-          else
-            {list = Some node;
-             first = r.first;
-             size = r.size + 1;
-             maxsize = r.maxsize}
+                  r.first <- a.succ;
+                  Some a.value)
+          else (
+            r.size <- r.size + 1;
+            None
+          )
 
+  let add x = add_node (create_one x)
+
+  (* Remove an element that is supposed to be in the list *)
   let remove l node =
-    let first = 
+    let first =
       match l.first with
         | Some n when node == n -> node.succ
         | _ -> l.first
     in
-    let last = 
+    let last =
       match l.list with
         | Some n when node == n -> node.prev
         | _ -> l.list
@@ -119,49 +126,45 @@ module Dlist = (struct
     (match node.prev with
        | None -> ()
        | Some s -> s.succ <- node.succ);
-    {list = last;
-     first = first;
-     size = l.size - 1;
-     maxsize = l.maxsize}
+    l.first <- first;
+    l.list <- last;
+    l.size <- l.size - 1
 
   let last a = a.list
 
   let first a = a.first
 
-  let maxsize c = c.size
+  let size c = c.size
 
-  let length c =
-    let rec aux i = function
-      | Some {succ=p} -> aux (i + 1) p
-      | None -> i
-    in aux 0 c.first
+  let maxsize c = c.maxsize
 
   let value n = n.value
 
   let up l node =
     match l.list with
-      | Some n when node == n -> l
-      | _ -> 
-          let l2 = remove l node in
-          add_ node l2
-          (* we must not change the physical address => use add_ *)
+      | Some n when node == n -> ()
+      | _ ->
+          remove l node;
+          ignore (add_node node l)
+          (* we must not change the physical address => use add_node *)
 
 end : sig
   type 'a t
   type 'a node
   val create : int -> 'a t
-  val add : 'a -> 'a t -> 'a t
+  val add : 'a -> 'a t -> 'a option
   val last : 'a t -> 'a node option
   val first : 'a t -> 'a node option
-  val remove : 'a t -> 'a node -> 'a t
-  val up : 'a t -> 'a node -> 'a t
+  val remove : 'a t -> 'a node -> unit
+  val up : 'a t -> 'a node -> unit
+  val size : 'a t -> int
   val maxsize : 'a t -> int
   val length : 'a t -> int
   val value : 'a node -> 'a
 end)
 
 
-module Make = 
+module Make =
   functor (A: sig
              type key
              type value
@@ -195,7 +198,7 @@ struct
     cache.table <- H.create size
 
   let poke r node =
-    r.pointers <- Dlist.up r.pointers node
+    Dlist.up r.pointers node
 
   let find_in_cache cache k =
     let (v, node) = H.find cache.table k in
@@ -206,22 +209,21 @@ struct
     try
       let (_v, node) = H.find cache.table k in
       H.remove cache.table k;
-      cache.pointers <- Dlist.remove cache.pointers node
+      Dlist.remove cache.pointers node
     with Not_found -> ()
 
-  let add cache k v =
-    remove cache k;
-    let first = Dlist.first cache.pointers in
-    let l = Dlist.add k cache.pointers in
-    cache.pointers <- l;
-    let first' = Dlist.first cache.pointers in
-    if first != first'
-    then (match first with
-            | None -> ()
-            | Some v -> H.remove cache.table (Dlist.value v));
+  let add_no_remove cache k v =
+    (match Dlist.add k cache.pointers with
+      | None -> ()
+      | Some v -> H.remove cache.table v
+    );
     match Dlist.last cache.pointers with
       | None -> assert false
       | Some n -> H.add cache.table k (v, n)
+
+  let add cache k v =
+    remove cache k;
+    add_no_remove cache k v
 
   let size c =
     Dlist.length c.pointers
@@ -230,9 +232,8 @@ struct
     (try
        Lwt.return (find_in_cache cache k)
      with Not_found ->
-       (* DEBUG print_endline "               cache: db access"; *)
        cache.finder k >>= fun r ->
-       add cache k r;
+       add_no_remove cache k r;
        Lwt.return r)
 
 end

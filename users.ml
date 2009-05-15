@@ -264,14 +264,11 @@ let in_group_ ?sp ~user ~group () =
               Polytables.set rc groups_key table;
               table
           in
-          ((fun v -> let r = Hashtbl.find table v in
-                       Ocsigen_messages.errlog " cached"; r
-          ), Hashtbl.add table)
+          ((Hashtbl.find table), Hashtbl.add table)
   in
   let return u g v =
     update_cache (u, g) v; Lwt.return v
   in
-  Ocsigen_messages.errlog "Perms";
   let rec aux2 i g = function
     | [] -> Lwt.return false
     | g2::l ->
@@ -281,9 +278,6 @@ let in_group_ ?sp ~user ~group () =
   and aux i u g =
     try Lwt.return (get_in_cache (u, g))
     with Not_found ->
-      User_sql.user_to_string u >>= fun su ->
-      User_sql.user_to_string g >>= fun sg ->
-      Ocsigen_messages.errlog (Printf.sprintf "Is %s in %s" su sg);
       User_sql.groups_of_user u >>= fun gl ->
       if List.mem g gl
       then return u g true
@@ -295,7 +289,7 @@ let in_group_ ?sp ~user ~group () =
     if (user = group) || (user = admin')
     then Lwt.return true
     else aux 0 user group >>= function
-      | true -> Lwt.return true
+      | true -> return user group true
       | false ->
           match sp with
             | Some sp ->
@@ -318,7 +312,6 @@ let in_group_ ?sp ~user ~group () =
                         return user group r
                 )
             | _ -> return user group false
-
 
 
 let add_to_group ~(user:user) ~(group:user) =
