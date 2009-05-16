@@ -197,8 +197,8 @@ object (self)
        | Some (CssWikipage page) -> (* Edition of the css for page [page] *)
            (Wiki_sql.get_css_wikibox_for_wikipage wid page >>= function
               | None -> Lwt.return (None, None)
-              | Some wbidcss ->
-                  let wbcss = ((wid, wbidcss), Some page) in
+              | Some wbcss ->
+                  let wbcss = (wbcss, Some page) in
                   let edit = preapply action_edit_css (wb, (wbcss, None))
                   and history = preapply action_css_history (wb, wbcss)
                   in
@@ -210,8 +210,8 @@ object (self)
        | Some CssWiki -> (* Edition of the global css for [wiki] *)
            (Wiki_sql.get_css_wikibox_for_wiki wid >>= function
               | None -> Lwt.return (None, None)
-              | Some wbidcss ->
-                  let wbcss = ((wid, wbidcss), None) in
+              | Some wbcss ->
+                  let wbcss = (wbcss, None) in
                   let edit = preapply action_edit_css (wb, (wbcss, None))
                   and history = preapply action_css_history (wb, wbcss)
                   in
@@ -245,7 +245,7 @@ object (self)
       (edit, {{ "edit" }});
       (view, {{ "view" }});
     ] in
-    (Wiki_data.can_admin_wikitext ~sp ~wb >>= function
+    (Wiki_data.can_admin_wikibox ~sp ~wb >>= function
       | true  -> Lwt.return ((edit_perm, {{ "edit permissions" }})::l)
       | false -> Lwt.return l
     ) >>= fun l ->
@@ -509,7 +509,7 @@ object (self)
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
             ?cssmenu ~wb_loc:wb ~override
       | _ ->
-          Wiki_data.can_write_wikitext ~sp ~wb >>= function
+          Wiki_data.can_write_wikibox ~sp ~wb >>= function
             | true ->
                 error_box#bind_or_display_error
                   (Wiki.wikibox_content sp wb)
@@ -520,7 +520,7 @@ object (self)
                 Lwt.return (r, true)
 
              | false ->
-                 Wiki_data.can_read_wikitext ~sp ~wb >>= function
+                 Wiki_data.can_read_wikibox ~sp ~wb >>= function
                    | true ->
                        error_box#bind_or_display_error
                          (Wiki.wikibox_content sp wb)

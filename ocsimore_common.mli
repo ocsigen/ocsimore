@@ -25,6 +25,10 @@
 *)
 exception Permission_denied
 
+(** Exception raised when a service is called with incorrect or
+    incoherent arguments *)
+exception Incorrect_argument
+
 
 val tmp : exn list Polytables.key
 

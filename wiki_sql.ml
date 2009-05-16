@@ -348,7 +348,7 @@ let get_css_wikibox_aux_ ~wiki ~page =
                         WHERE wiki = $wiki AND page = $page"
        ) >>= function
          | [] -> Lwt.return None
-         | x::_ -> Lwt.return (Some x)
+         | x::_ -> Lwt.return (Some (wiki_of_sql wiki, x))
     )
 
 let get_css_wikibox_for_wikipage_ ~wiki ~page =
@@ -524,7 +524,7 @@ let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
 let get_css_wikibox, set_css_wikibox_in_cache =
   let module C = Cache.Make (struct 
                                type key = (wiki * string option)
-                               type value = int32 option
+                               type value = wikibox option
                              end) 
   in
   let cache = 
@@ -534,7 +534,7 @@ let get_css_wikibox, set_css_wikibox_in_cache =
       print_cache "cache css";
       C.find cache (wiki, page)),
    (fun ~wiki ~page box ->
-      C.add cache (wiki, page) (Some box);
+      C.add cache (wiki, page) (Some (wiki, box));
       set_css_wikibox_aux_ wiki page box
    )
   )
@@ -551,7 +551,7 @@ let get_css_aux ~wiki ~page =
   >>= function
     | None -> Lwt.return None
     | Some wikibox ->
-        get_wikibox_data (wiki, wikibox) ()
+        get_wikibox_data wikibox ()
         >>= function
           | Some (_, _, Some content, _, _, _) -> Lwt.return (Some content)
           | Some (_, _, None, _, _, _) | None -> Lwt.return None
@@ -579,7 +579,7 @@ let set_css_aux ~wiki ~page ~author content =
                set_css_wikibox_in_cache ~wiki ~page wikibox
         )
     | Some wbid ->
-        update_wikibox ~wikibox:(wiki, wbid) ~author ~comment:""
+        update_wikibox ~wikibox:wbid ~author ~comment:""
           ~content ~content_type:Css
         >>= fun _ -> Lwt.return ()
 

@@ -183,7 +183,6 @@ let wiki_admin = Lwt_unix.run
      let groups = [
        Wiki_data.wiki_wikiboxes_grps.grp_reader;
        Wiki_data.wiki_files_grps.grp_reader;
-       Wiki_data.wiki_css_grps.grp_reader;
      ] in
      Lwt_util.iter
        (fun g -> User_sql.add_to_group ~user:(basic_user Users.anonymous)

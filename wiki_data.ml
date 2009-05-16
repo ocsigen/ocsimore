@@ -62,9 +62,6 @@ let wiki_wikiboxes_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
 let wiki_files_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
   ~name:"WikiFiles" ~descr:"the files in the wiki"
 
-let wiki_css_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
-  ~name:"WikiWikicss" ~descr:"the css in the wiki"
-
 
 (** The following groups take a wikibox as argument. They are used to override
     generic wiki permissions. *)
@@ -85,14 +82,13 @@ let () = Lwt_unix.run (
   add_admin wiki_wikipages_creators       >>= fun () ->
   add_admin wiki_wikiboxes_grps.grp_admin >>= fun () ->
   add_admin wiki_files_grps.grp_admin     >>= fun () ->
-  add_admin wiki_css_grps.grp_admin       >>= fun () ->
   Lwt.return ()
 )
 
 
 open Users.GenericRights
 
-let can_sthg_wikitext f ~sp ~wb:(wid, _ as wb) =
+let can_sthg_wikibox f ~sp ~wb:(wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
   let g = if special_rights then
@@ -102,29 +98,16 @@ let can_sthg_wikitext f ~sp ~wb:(wid, _ as wb) =
   in
   Users.in_group ~sp ~group:g ()
 
+let can_admin_wikibox, can_write_wikibox, can_read_wikibox =
+  can_sthg can_sthg_wikibox
 
-let can_admin_wikitext, can_write_wikitext, can_read_wikitext =
-  can_sthg can_sthg_wikitext
-
-
+(*
 (** Edition of css *)
 let aux_can_sthg_css box f ~sp ~wiki =
   box >>= (function
-    | None -> Lwt.return ((f.field wiki_css_grps) $ wiki)
-    | Some wb ->
-        Wiki_sql.get_wikibox_info (wiki, wb)
-        >>= fun { wikibox_uid = uid ;
-                  wikibox_special_rights = special_rights } ->
-        Lwt.return (
-          if special_rights then
-            (f.field wikibox_grps) $ uid
-          else
-            (f.field wiki_css_grps) $ wiki
-        )
-      )
-  >>= fun g ->
-  Users.in_group ~sp ~group:g ()
-
+    | None -> Users.in_group ~sp ~group:(f.field wiki_wikiboxes_grps $ wiki) ()
+    | Some wb -> can_sthg_wikibox f ~sp ~wb
+  )
 
 let can_sthg_wikicss f ~sp ~wiki =
   aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wiki wiki) f ~sp ~wiki
@@ -133,17 +116,11 @@ let can_admin_wikicss, can_write_wikicss, can_read_wikicss =
   can_sthg can_sthg_wikicss
 
 let can_sthg_wikipagecss f ~sp ~wiki ~page =
-  aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wikipage wiki page)
-    f ~sp ~wiki
+  aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wikipage wiki page) f ~sp ~wiki
 
 let can_admin_wikipagecss, can_write_wikipagecss, can_read_wikipagecss =
   can_sthg can_sthg_wikipagecss
-
-let can_shtg_generic_css f ~sp wiki =
-  Users.in_group ~sp ~group:(f.field wiki_css_grps $ wiki) ()
-
-let can_admin_generic_css, can_write_generic_css, can_read_generic_css =
-  can_sthg can_shtg_generic_css
+*)
 
 
 let aux_group grp ~sp data =

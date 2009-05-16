@@ -344,9 +344,9 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
          | None ->
              save_then_redirect wb ~sp
                (fun () -> match page with
-                  | None -> Wiki.save_wikicssbox ~sp ~wb:wbcss
+                  | None -> Wiki.save_wikicssbox ~sp
                       ~wiki:(fst wbcss) ~content:(Some content)
-                  | Some page -> Wiki.save_wikipagecssbox ~sp ~wb:wbcss
+                  | Some page -> Wiki.save_wikipagecssbox ~sp
                       ~wiki:(fst wbcss) ~page ~content:(Some content)
                )
          | Some _ ->

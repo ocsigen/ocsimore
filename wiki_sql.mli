@@ -164,11 +164,11 @@ val set_css_for_wiki : wiki:wiki -> author:userid -> string option -> unit Lwt.t
 
 (** returns the wikibox for the css of a page or [None] if the page has no css *)
 val get_css_wikibox_for_wikipage :
-  wiki:wiki -> page:string -> wikibox_id option Lwt.t
+  wiki:wiki -> page:string -> wikibox option Lwt.t
 
 (** returns the wikibox for the global css of a wiki, or [None] if the wiki
     has no such css *)
-val get_css_wikibox_for_wiki : wiki:wiki -> wikibox_id option Lwt.t
+val get_css_wikibox_for_wiki : wiki:wiki -> wikibox option Lwt.t
 
 
 

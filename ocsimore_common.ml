@@ -21,6 +21,8 @@
 *)
 
 exception Permission_denied
+exception Incorrect_argument
+
 
 let tmp : exn list Polytables.key = Polytables.make_key ()
 

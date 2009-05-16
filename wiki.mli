@@ -10,15 +10,13 @@ This is the wiki component of Ocsimore.
 *)
 
 
-(*
-(** Creates a new wiki or returns its id without modification if a wiki of the
-    same name already exists.
+(** Creates a wiki that is not supposed to exists.
 
     If the optional argument [path] is present, the wiki will be bound to the
-    URL represented by [path].
+    URL represented by [path] when it is registered.
 
-    The argument [container_page] is the code for the container wikibox
-    of the wiki. A suitable default page is given below.
+    The argument [container_text] is the wikicreole code for the container
+    wikibox of the wiki. A suitable default page is given below.
 
     If [boxrights] is true (default), it is possible to set the rights on
     each box individually.
@@ -59,14 +57,12 @@ val save_wikitextbox :
 
 val save_wikicssbox :
   sp:Eliom_sessions.server_params ->
-  wb:wikibox ->
   wiki:wiki ->
   content:string option ->
   int32 Lwt.t
 
 val save_wikipagecssbox :
   sp:Eliom_sessions.server_params ->
-  wb:wikibox ->
   wiki:wiki ->
   page:string ->
   content:string option ->

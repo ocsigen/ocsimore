@@ -70,12 +70,10 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    Users.add_list_to_group ~l:admins ~group:(apply_parameterized_group
                            Wiki_data.wiki_admins wiki_id) >>= fun () ->
    (* Readers *)
-   Users.add_list_to_group ~l:readers ~group:(apply_parameterized_group
-                Wiki_data.wiki_wikiboxes_grps.grp_reader wiki_id) >>= fun () ->
-   Users.add_list_to_group ~l:readers ~group:(apply_parameterized_group
-                Wiki_data.wiki_files_grps.grp_reader wiki_id) >>= fun () ->
-   Users.add_list_to_group ~l:readers ~group:(apply_parameterized_group
-                Wiki_data.wiki_css_grps.grp_reader wiki_id) >>= fun () ->
+   Users.add_list_to_group ~l:readers
+     ~group:(Wiki_data.wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
+   Users.add_list_to_group ~l:readers
+     ~group:(Wiki_data.wiki_files_grps.grp_reader $ wiki_id) >>= fun () ->
 
    (match wiki_css with
       | None -> Lwt.return ()
@@ -109,26 +107,22 @@ let modified_wikibox ~wikibox ~boxversion =
 (** Exception raised when the content of a wikibox cannot be found *)
 exception Unknown_box of wikibox * int32 option
 
-let wikibox_content ~sp ?version (wid, _ as wb) =
-  Wiki_sql.get_wikibox_data ?version ~wikibox:wb ()
-  >>= fun result ->
-  match result with
-    | None -> Lwt.fail (Unknown_box (wb, version))
-    | Some (_com, _a, cont, _d, ct, ver) ->
-        (match ct with
-           | Wiki_sql.WikiCreole -> Wiki_data.can_read_wikitext ~sp ~wb
-           | Wiki_sql.Css -> Wiki_data.can_read_generic_css ~sp wid
-        ) >>= function
-          | true -> Lwt.return (ct, cont, ver)
-          | false -> Lwt.fail Ocsimore_common.Permission_denied
+let wikibox_content ~sp ?version wb =
+  Wiki_data.can_read_wikibox ~sp ~wb >>= function
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
+    | true ->
+        Wiki_sql.get_wikibox_data ?version ~wikibox:wb () >>= function
+          | None -> Lwt.fail (Unknown_box (wb, version))
+          | Some (_com, _a, cont, _d, ct, ver) ->
+              Lwt.return (ct, cont, ver)
 
 let wikibox_content' ~sp ?version wikibox =
   wikibox_content ~sp ?version wikibox >>= fun (_, cont, ver) ->
   Lwt.return (cont, ver)
 
 
-let save_wikibox ~enough_rights ~sp ~wb ~content ~content_type =
-  enough_rights >>= function
+let save_wikibox_aux ~sp ~wb ~content ~content_type =
+  Wiki_data.can_write_wikibox ~sp ~wb >>= function
     | true ->
         Users.get_user_id sp
         >>= fun user ->
@@ -138,19 +132,16 @@ let save_wikibox ~enough_rights ~sp ~wb ~content ~content_type =
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-(* XXX we should not allow overwriting a box containing a css *)
-let save_wikitextbox ~sp ~wb ~content = save_wikibox ~sp ~wb
-  ~enough_rights:(Wiki_data.can_write_wikitext ~sp ~wb)
-  ~content_type:Wiki_sql.WikiCreole ~content
+let save_wikitextbox ~sp ~wb ~content =
+  save_wikibox_aux ~sp ~wb ~content_type:Wiki_sql.WikiCreole ~content
 
-(* Saving the css of a wiki or of a wikipage. Notice that we do not
-   currently check that the box passed as argument is indeed the css
-   for the wiki or the wikipage. *)
-let save_wikicssbox ~sp ~wb ~wiki ~content = save_wikibox ~sp ~wb
-  ~enough_rights:(Wiki_data.can_write_wikicss ~sp ~wiki)
-  ~content_type:Wiki_sql.Css ~content
+let save_wikicssbox ~sp ~wiki ~content =
+  Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
+    | Some wb -> save_wikibox_aux ~sp ~wb ~content_type:Wiki_sql.Css ~content
+    | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
-let save_wikipagecssbox ~sp ~wb ~wiki ~page ~content =
-  save_wikibox ~sp ~wb
-    ~enough_rights:(Wiki_data.can_write_wikipagecss ~sp ~wiki ~page)
-    ~content_type:Wiki_sql.Css ~content
+let save_wikipagecssbox ~sp ~wiki ~page ~content =
+  Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
+    | Some wb -> save_wikibox_aux ~sp ~wb ~content_type:Wiki_sql.Css ~content
+    | None -> Lwt.fail Ocsimore_common.Incorrect_argument
+
