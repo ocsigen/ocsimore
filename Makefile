@@ -87,7 +87,7 @@ files/META: files/META.in VERSION
 etc/ocsigen/ocsimorepassword:
 	echo $(PASSWORD) > etc/ocsigen/ocsimorepassword
 
-install: all
+install:
 	mkdir -p $(STATICDIR)
 	mkdir -p /var/log/ocsimore
 	mkdir -p /var/lib/ocsimore
