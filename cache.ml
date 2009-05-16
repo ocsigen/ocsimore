@@ -76,7 +76,7 @@ module Dlist = (struct
 
   (* Add a node to the list. The fields [succ] and [prev] are overridden.
      The function returns the value that is being removed from the list
-     if it is too long *)
+     if it is too long. The node added becomes the element [list] of the list *)
   let add_node node r =
     match r.list with
       | None ->
@@ -131,11 +131,8 @@ module Dlist = (struct
     l.size <- l.size - 1
 
   let last a = a.list
-
   let first a = a.first
-
   let size c = c.size
-
   let maxsize c = c.maxsize
 
   let value n = n.value
@@ -212,6 +209,8 @@ struct
       Dlist.remove cache.pointers node
     with Not_found -> ()
 
+  (* Add in a cache, under the hypothesis that the value is
+     not already in the cache *)
   let add_no_remove cache k v =
     (match Dlist.add k cache.pointers with
       | None -> ()

@@ -55,8 +55,8 @@ type wiki_info = {
   wiki_id : wiki;
   wiki_title : string;
   wiki_descr : string;
-  wiki_boxrights : bool;
   wiki_pages : string option;
+  wiki_boxrights : bool;
   wiki_container : wikibox_id;
   wiki_staticdir : string option;
 }
@@ -297,8 +297,8 @@ let reencapsulate_wiki (w, t, d, p, br, ci, s) =
   { wiki_id = wiki_of_sql w;
     wiki_title = t;
     wiki_descr = d;
-    wiki_boxrights = br;
     wiki_pages = p;
+    wiki_boxrights = br; 
     wiki_container = ci;
     wiki_staticdir = s;
   }
@@ -308,8 +308,7 @@ let find_wiki_ ~id =
   let id = t_int32 (id : wiki) in
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "SELECT * \
-                  FROM wikis \
+       PGSQL(db) "SELECT * FROM wikis
                   WHERE id = $id"
        >>= fun r -> 
        (match r with
@@ -323,8 +322,7 @@ let find_wiki_ ~id =
 let find_wiki_by_name_ ~name =
   Lwt_pool.use Sql.pool 
     (fun db ->
-       PGSQL(db) "SELECT * \
-                  FROM wikis \
+       PGSQL(db) "SELECT * FROM wikis
                   WHERE title = $name"
        >>= fun r -> 
        (match r with
@@ -335,68 +333,6 @@ let find_wiki_by_name_ ~name =
        )
     )
 
-(*
-let get_writers_ (wiki, id) =
-  let wiki = t_int32 (wiki : wiki) in
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db) "SELECT writer FROM wikiboxwriters \
-             WHERE id = $id AND wiki_id = $wiki")
-
-let get_readers_ (wiki, id) =
-  let wiki = t_int32 (wiki : wiki) in
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db) "SELECT reader FROM wikiboxreaders \
-             WHERE id = $id AND wiki_id = $wiki")
-
-let get_rights_adm_ (wiki, id) =
-  let wiki = t_int32 (wiki : wiki) in
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db) "SELECT wbadmin FROM wikiboxrightsgivers \
-             WHERE id = $id AND wiki_id = $wiki")
-
-let get_wikiboxes_creators_ (wiki, id) =
-  let wiki = t_int32 (wiki : wiki) in
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db) "SELECT creator FROM wikiboxcreators \
-             WHERE id = $id AND wiki_id = $wiki")
-
-(****)
-let populate_readers_ (wiki_id, id) readers =
-  Lwt_pool.use Sql.pool (fun db ->
-  populate_readers_ db (wiki_id, id) readers)
-
-let populate_writers_ (wiki_id, id) writers =
-  Lwt_pool.use Sql.pool (fun db ->
-  populate_writers_ db (wiki_id, id) writers)
-
-let populate_rights_adm_ (wiki_id, id) wbadmins =
-  Lwt_pool.use Sql.pool (fun db ->
-  populate_rights_adm_ db (wiki_id, id) wbadmins)
-
-let populate_wikiboxes_creators_ (wiki_id, id) wbadmins =
-  Lwt_pool.use Sql.pool (fun db ->
-  populate_wikiboxes_creators_ db (wiki_id, id) wbadmins)
-
-let remove_readers_ (wiki_id, id) readers =
-  Lwt_pool.use Sql.pool (fun db ->
-  remove_readers_ db (wiki_id, id) readers)
-
-let remove_writers_ (wiki_id, id) writers =
-  Lwt_pool.use Sql.pool (fun db ->
-  remove_writers_ db (wiki_id, id) writers)
-
-let remove_rights_adm_ (wiki_id, id) wbadmins =
-  Lwt_pool.use Sql.pool (fun db ->
-  remove_rights_adm_ db (wiki_id, id) wbadmins)
-
-let remove_wikiboxes_creators_ (wiki_id, id) wbadmins =
-  Lwt_pool.use Sql.pool (fun db ->
-  remove_wikiboxes_creators_ db (wiki_id, id) wbadmins)
-*)
 
 let get_css_wikibox_aux_ ~wiki ~page =
   let wiki = t_int32 (wiki : wiki) in
@@ -465,18 +401,6 @@ let print_cache s =
 
 let
   get_wikibox_data,
-(*  get_readers,
-  get_writers,
-  get_rights_adm,
-  get_wikiboxes_creators,
-  populate_readers,
-  populate_writers,
-  populate_rights_adm,
-  populate_wikiboxes_creators,
-  remove_readers,
-  remove_writers,
-  remove_rights_adm,
-  remove_wikiboxes_creators, *)
   new_wiki,
   new_wikibox,
   update_wikibox,
@@ -504,10 +428,6 @@ let
                              end)
   in
   let cache = C.create (fun a -> get_wikibox_data_ a ()) 64 in
-(*   let cacher = C2.create get_readers_ 64 in
-  let cachew = C2.create get_writers_ 64 in
-  let cachera = C2.create get_rights_adm_ 64 in
-  let cachewc = C2.create get_wikiboxes_creators_ 64 in *)
   let cachewv = C3.create (fun b -> current_wikibox_version_ b) 64 in
   ((fun ?version ~wikibox () ->
     match version with
@@ -518,18 +438,6 @@ let
           print_cache (Int32.to_string (snd wikibox) ^ " (with version) -> wikibox: db access");
           get_wikibox_data_ ?version ~wikibox ()
    ),
-(*   (fun a -> print_cache "cache readers "; C2.find cacher a),
-   (fun a -> print_cache "cache writers "; C2.find cachew a),
-   (fun a -> print_cache "cache ra "; C2.find cachera a),
-   (fun a -> print_cache "cache wc "; C2.find cachewc a),
-  (fun (a, b) r -> C2.remove cacher (a, b);  populate_readers_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachew (a, b);  populate_writers_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachera (a, b);  populate_rights_adm_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachewc (a, b);  populate_wikiboxes_creators_ (a, b) r),
-  (fun (a, b) r -> C2.remove cacher (a, b);  remove_readers_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachew (a, b);  remove_writers_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachera (a, b);  remove_rights_adm_ (a, b) r),
-  (fun (a, b) r -> C2.remove cachewc (a, b);  remove_wikiboxes_creators_ (a, b) r),*)
   (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~ author () ->
      new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author ()
      >>= function (wiki, wikibox) ->
@@ -544,10 +452,6 @@ let
      Lwt.return wikibox),
   (fun ~wikibox ~author ~comment ~content ->
      C.remove cache wikibox;
-(*     C2.remove cacher wikibox;
-     C2.remove cachew wikibox;
-     C2.remove cachera wikibox;
-     C2.remove cachewc wikibox; *)
      C3.remove cachewv wikibox;
      update_wikibox_ ~wikibox ~author ~comment ~content),
    (fun ~wikibox -> C3.find cachewv wikibox)
