@@ -84,8 +84,8 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    Lwt.return wiki_id
 
 
-let new_wikitextbox ~sp ~wiki ~author ~comment ~content () =
-  Wiki_data.can_create_wikiboxes ~sp wiki
+let new_wikitextbox rights ~sp ~wiki ~author ~comment ~content () =
+  rights#can_create_wikiboxes ~sp wiki
   >>= function
     | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
         ~content_type:Wiki_sql.WikiCreole ()
@@ -107,8 +107,8 @@ let modified_wikibox ~wikibox ~boxversion =
 (** Exception raised when the content of a wikibox cannot be found *)
 exception Unknown_box of wikibox * int32 option
 
-let wikibox_content ~sp ?version wb =
-  Wiki_data.can_read_wikibox ~sp ~wb >>= function
+let wikibox_content rights ~sp ?version wb =
+  rights#can_read_wikibox ~sp ~wb >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
         Wiki_sql.get_wikibox_data ?version ~wikibox:wb () >>= function
@@ -116,13 +116,13 @@ let wikibox_content ~sp ?version wb =
           | Some (_com, _a, cont, _d, ct, ver) ->
               Lwt.return (ct, cont, ver)
 
-let wikibox_content' ~sp ?version wikibox =
-  wikibox_content ~sp ?version wikibox >>= fun (_, cont, ver) ->
+let wikibox_content' rights ~sp ?version wikibox =
+  wikibox_content rights ~sp ?version wikibox >>= fun (_, cont, ver) ->
   Lwt.return (cont, ver)
 
 
-let save_wikibox_aux ~sp ~wb ~content ~content_type =
-  Wiki_data.can_write_wikibox ~sp ~wb >>= function
+let save_wikibox_aux rights ~sp ~wb ~content ~content_type =
+  rights#can_write_wikibox ~sp ~wb >>= function
     | true ->
         Users.get_user_id sp
         >>= fun user ->
@@ -132,16 +132,21 @@ let save_wikibox_aux ~sp ~wb ~content ~content_type =
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikitextbox ~sp ~wb ~content =
-  save_wikibox_aux ~sp ~wb ~content_type:Wiki_sql.WikiCreole ~content
+let save_wikitextbox rights ~sp ~wb ~content =
+  save_wikibox_aux rights ~sp ~wb ~content_type:Wiki_sql.WikiCreole ~content
 
-let save_wikicssbox ~sp ~wiki ~content =
+let save_wikicssbox rights ~sp ~wiki ~content =
   Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
-    | Some wb -> save_wikibox_aux ~sp ~wb ~content_type:Wiki_sql.Css ~content
+    | Some wb ->
+        save_wikibox_aux rights ~sp ~wb ~content_type:Wiki_sql.Css ~content
     | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
-let save_wikipagecssbox ~sp ~wiki ~page ~content =
+let save_wikipagecssbox rights ~sp ~wiki ~page ~content =
   Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
-    | Some wb -> save_wikibox_aux ~sp ~wb ~content_type:Wiki_sql.Css ~content
+    | Some wb ->
+        save_wikibox_aux rights ~sp ~wb ~content_type:Wiki_sql.Css ~content
     | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
+
+(* XXX add rights *)
+let wikibox_history = Wiki_sql.get_history

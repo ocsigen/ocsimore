@@ -114,7 +114,7 @@ object (self)
 end
 
 
-class frozen_wikibox (error_box : Widget.widget_with_error_box)
+class frozen_wikibox (rights: Wiki_data.wiki_rights) (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.frozen_wikibox =
 object (self)
 
@@ -126,7 +126,7 @@ object (self)
     Lwt.catch
       (fun () ->
          error_box#bind_or_display_error
-           (Wiki.wikibox_content bi.bi_sp wikibox)
+           (Wiki.wikibox_content rights bi.bi_sp wikibox)
            (self#display_wikiboxcontent ~wiki:(fst wikibox) ~bi
               ~classes:(frozen_wb_class::classes))
            (self#display_basic_box)
@@ -146,7 +146,7 @@ end;;
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
     or navigate through viewing options *)
-class dynamic_wikibox (error_box : Widget.widget_with_error_box)
+class dynamic_wikibox (rights : Wiki_data.wiki_rights) (error_box : Widget.widget_with_error_box)
 (* (* Debugging code, to obtain useful error messages *)
    : Wiki_widgets_interface.interactive_wikibox =
    let *)
@@ -170,7 +170,7 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
 (* = Wiki_services.services () in *)
 object (self)
 
-  inherit frozen_wikibox error_box
+  inherit frozen_wikibox rights error_box
 
   val editform_class = "wikibox editform"
   val history_class = "wikibox history"
@@ -197,7 +197,7 @@ object (self)
        | Some (CssWikipage page) -> (* Edition of the css for page [page] *)
            (Wiki_sql.get_css_wikibox_for_wikipage wid page >>= function
               | None ->
-                  (Wiki_data.can_create_wikipagecss ~sp (wid, page) >>= function
+                  (rights#can_create_wikipagecss ~sp (wid, page) >>= function
                      | false -> Lwt.return (None, None, None)
                      | true ->
                          let create = preapply action_create_css
@@ -220,7 +220,7 @@ object (self)
        | Some CssWiki -> (* Edition of the global css for [wiki] *)
            (Wiki_sql.get_css_wikibox_for_wiki wid >>= function
               | None ->
-                  (Wiki_data.can_create_wikicss ~sp wid >>= function
+                  (rights#can_create_wikicss ~sp wid >>= function
                      | false -> Lwt.return (None, None, None)
                      | true ->
                          let create = preapply action_create_css (wid, None) in
@@ -264,7 +264,7 @@ object (self)
       (edit, {{ "edit" }});
       (view, {{ "view" }});
     ] in
-    (Wiki_data.can_admin_wikibox ~sp ~wb >>= function
+    (rights#can_admin_wikibox ~sp ~wb >>= function
       | true  -> Lwt.return ((edit_perm, {{ "edit permissions" }})::l)
       | false -> Lwt.return l
     ) >>= fun l ->
@@ -344,7 +344,7 @@ object (self)
     Wiki_sql.get_wikipage_info ~wiki:admin_wiki ~page:"wikisyntax-help"
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
-      (Wiki.wikibox_content bi.bi_sp (wid_help, wbid_help))
+      (Wiki.wikibox_content rights bi.bi_sp (wid_help, wbid_help))
       (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classes:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
@@ -533,10 +533,10 @@ object (self)
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
             ?cssmenu ~wb_loc:wb ~override
       | _ ->
-          Wiki_data.can_write_wikibox ~sp ~wb >>= function
+          rights#can_write_wikibox ~sp ~wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki.wikibox_content sp wb)
+                  (Wiki.wikibox_content rights sp wb)
                   (self#display_wikiboxcontent ~classes ~wiki:wid
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                   (self#menu_view ~bi ?cssmenu wb)
@@ -544,10 +544,10 @@ object (self)
                 Lwt.return (r, true)
 
              | false ->
-                 Wiki_data.can_read_wikibox ~sp ~wb >>= function
+                 rights#can_read_wikibox ~sp ~wb >>= function
                    | true ->
                        error_box#bind_or_display_error
-                         (Wiki.wikibox_content sp wb)
+                         (Wiki.wikibox_content rights sp wb)
                          (self#display_wikiboxcontent ~classes ~wiki:wid
                             ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                          (self#display_basic_box)
@@ -590,7 +590,7 @@ object (self)
           Lwt.return (r, true)
 *)
           error_box#bind_or_display_error
-            (Wiki.wikibox_content' bi.bi_sp wb)
+            (Wiki.wikibox_content' rights bi.bi_sp wb)
             (self#display_wikitext_edit_form_help ~bi ?cols ?rows
                ~previewonly:true ~wb ~classes)
             (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
@@ -600,7 +600,7 @@ object (self)
       | EditCss ((wbcss, wikipage), css) ->
           error_box#bind_or_display_error
             (match css with
-               | None -> Wiki.wikibox_content' sp wbcss
+               | None -> Wiki.wikibox_content' rights sp wbcss
                | Some (content, version) ->
                    Lwt.return (Some content, version)
             )
@@ -643,7 +643,7 @@ object (self)
 
       | History wb ->
           error_box#bind_or_display_error
-            (Wiki_sql.get_history wb)
+            (Wiki.wikibox_history wb)
             (self#display_wikitext_history ~bi ~classes ~wb)
             (self#menu_wikitext_history ~bi ?cssmenu wb_loc)
           >>= fun r ->
@@ -651,7 +651,7 @@ object (self)
 
       | CssHistory (wbcss, wikipage) ->
           error_box#bind_or_display_error
-            (Wiki_sql.get_history wbcss)
+            (Wiki.wikibox_history wbcss)
             (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss ~wikipage)
             (self#menu_css_history ~bi ?cssmenu wb_loc wikipage)
           >>= fun r ->
@@ -659,7 +659,7 @@ object (self)
 
       | Oldversion (wb, version) ->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~sp ~version wb)
+            (Wiki.wikibox_content ~sp ~version rights wb)
             (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
             (self#menu_old_wikitext ~bi ?cssmenu wb_loc version)
@@ -668,7 +668,7 @@ object (self)
 
       | CssOldversion ((wbcss, page), version) ->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~sp ~version wbcss)
+            (Wiki.wikibox_content ~sp ~version rights wbcss)
             (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
             (self#menu_old_css ~bi ?cssmenu wb_loc page)
@@ -677,7 +677,7 @@ object (self)
 
       | Src (wb, version)->
           error_box#bind_or_display_error
-            (Wiki.wikibox_content ~sp ~version wb)
+            (Wiki.wikibox_content ~sp ~version rights wb)
             (self#display_raw_wikiboxcontent ~classes)
             (self#menu_src_wikitext ~bi ?cssmenu wb_loc version)
           >>= fun r ->
@@ -841,7 +841,7 @@ and extract_https args =
   with Not_found -> None
 
 
-let register_wikibox_syntax_extensions (widget : Wiki_widgets_interface.interactive_wikibox) (error_box : Widget.widget_with_error_box) =
+let register_wikibox_syntax_extensions (widget : Wiki_widgets_interface.interactive_wikibox) (error_box : Widget.widget_with_error_box) (rights : Wiki_data.wiki_rights) =
 Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
   (fun wiki_id bi args c ->
      Wikicreole.Block
@@ -891,9 +891,9 @@ Wiki_filter.add_preparser_extension ~name:"wikibox"
           Users.get_user_id ~sp
           >>= fun userid ->
           let _englobing_wb = (wid, father) in
-          Wiki_data.can_create_wikiboxes ~sp wid >>= function
+          rights#can_create_wikiboxes ~sp wid >>= function
             | true ->
-                Wiki.new_wikitextbox ~sp
+                Wiki.new_wikitextbox rights ~sp
                   ~wiki:wid
                   ~author:userid
                   ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"

@@ -40,6 +40,7 @@ val really_create_wiki :
 
 
 val new_wikitextbox :
+  Wiki_data.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   wiki:wiki ->
   author:userid ->
@@ -50,18 +51,21 @@ val new_wikitextbox :
 
 (** Saves a wikibox and returns the new version id of this wikibox. *)
 val save_wikitextbox :
+  Wiki_data.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   wb:wikibox ->
   content:string option ->
   int32 Lwt.t
 
 val save_wikicssbox :
+  Wiki_data.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   wiki:wiki ->
   content:string option ->
   int32 Lwt.t
 
 val save_wikipagecssbox :
+  Wiki_data.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   wiki:wiki ->
   page:string ->
@@ -78,16 +82,22 @@ val modified_wikibox:
 
 
 val wikibox_content:
+  Wiki_data.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   ?version:int32 -> 
   wikibox ->
   Wiki_sql.wikibox_content Lwt.t
 
 val wikibox_content':
+  Wiki_data.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   ?version:int32 -> 
   wikibox ->
   (string option * int32) Lwt.t
+
+
+val wikibox_history : wikibox:wikibox ->
+  (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
 
 
 (** Raised in case of a non-existing wikibox. The optional [int32]

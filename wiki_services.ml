@@ -60,6 +60,7 @@ let send_static_file sp wiki dir page =
     | false -> Lwt.fail Eliom_common.Eliom_404
 
 
+(* XXX add permission checks here *)
 let wikicss_service_handler wiki () =
   Wiki_sql.get_css_for_wiki wiki >>= function
     | None -> Lwt.fail Eliom_common.Eliom_404
@@ -213,7 +214,7 @@ let save_then_redirect override_wikibox ~sp f =
          (override_wikibox, Error e);
        Eliom_predefmod.Action.send ~sp ())
 
-let services () =
+let services rights =
 
 let action_edit_css = Eliom_predefmod.Action.register_new_coservice'
   ~name:"css_edit"
@@ -361,7 +362,7 @@ and action_send_wikibox_permissions =
   let params, f, _ = Wiki_data.helpers_wikibox_permissions in
   let f sp () (special, (wbuid, _ as args)) =
     Wiki_sql.wikibox_from_uid wbuid >>= fun wb ->
-    Wiki_data.can_admin_wikibox ~sp ~wb >>= function
+    rights#can_admin_wikibox ~sp ~wb >>= function
       | true ->
           f sp () args >>= fun r ->
           Wiki_sql.set_wikibox_special_rights wb special >>= fun () ->
@@ -397,7 +398,7 @@ and  _ = Eliom_predefmod.CssText.register_new_service
 and action_create_page = Eliom_predefmod.Action.register_new_post_coservice'
   ~name:"wiki_page_create" ~post_params:eliom_wikipage_args
   (fun sp () (wiki, page) ->
-     Wiki_data.can_create_wikipages ~sp wiki
+     rights#can_create_wikipages ~sp wiki
      >>= function
        | true ->
            Lwt.catch
@@ -417,7 +418,7 @@ and action_create_page = Eliom_predefmod.Action.register_new_post_coservice'
                 | Not_found ->
                     Users.get_user_id ~sp
                     >>= fun user ->
-                    Wiki.new_wikitextbox ~sp ~wiki ~author:user
+                    Wiki.new_wikitextbox rights ~sp ~wiki ~author:user
                       ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                   page (string_of_wiki wiki))
                       ~content:("== Page "^page^"==") ()
@@ -437,8 +438,8 @@ and action_create_css = Eliom_predefmod.Action.register_new_coservice'
      Users.get_user_id ~sp
      >>= fun user ->
      (match page with
-       | None -> Wiki_data.can_create_wikicss sp wiki
-       | Some page -> Wiki_data.can_create_wikipagecss sp (wiki, page)
+       | None -> rights#can_create_wikicss sp wiki
+       | Some page -> rights#can_create_wikipagecss sp (wiki, page)
      ) >>= function
        | false -> Lwt.fail Ocsimore_common.Permission_denied
        | true ->

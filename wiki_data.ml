@@ -74,6 +74,29 @@ let wikipage_css_creators : wikipage_arg parameterized_group = aux_grp
   "WikipageCssCreator" "Can create css for the wikipage"
 
 
+(* Hierarchy of wiki groups :
+ w : parameterized by wikis
+ wb : parameterized by wikiboxes
+ wp : parameterized by wikipages (unused right now)
+
+       -------- WikiAdmin(w)---------------------------------------------
+      /                 |                 \             \                \
+WikiboxesAdmins(w)   FilesAdmins(w)    Wikiboxes     Wikipages    CssCreators(w)
+     |                  |             Creators(w)    Creators(w)
+WikiboxesWriters(w)  FilesWriters(w)
+     |                  |
+WikiboxesReaders(w)  FilesReaders(w)
+
+
+WikiboxAdmin(wb)
+   |
+WikiboxWriter(wb)
+   |
+WikiboxReader(wb)
+
+*)
+
+
 let () = Lwt_unix.run (
   let add_admin g =
     User_sql.add_generic_inclusion ~superset:g ~subset:wiki_admins
@@ -99,43 +122,31 @@ let can_sthg_wikibox f ~sp ~wb:(wid, _ as wb) =
   in
   Users.in_group ~sp ~group:g ()
 
-let can_admin_wikibox, can_write_wikibox, can_read_wikibox =
-  can_sthg can_sthg_wikibox
-
-(*
-(** Edition of css *)
-let aux_can_sthg_css box f ~sp ~wiki =
-  box >>= (function
-    | None -> Users.in_group ~sp ~group:(f.field wiki_wikiboxes_grps $ wiki) ()
-    | Some wb -> can_sthg_wikibox f ~sp ~wb
-  )
-
-let can_sthg_wikicss f ~sp ~wiki =
-  aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wiki wiki) f ~sp ~wiki
-
-let can_admin_wikicss, can_write_wikicss, can_read_wikicss =
-  can_sthg can_sthg_wikicss
-
-let can_sthg_wikipagecss f ~sp ~wiki ~page =
-  aux_can_sthg_css (Wiki_sql.get_css_wikibox_for_wikipage wiki page) f ~sp ~wiki
-
-let can_admin_wikipagecss, can_write_wikipagecss, can_read_wikipagecss =
-  can_sthg can_sthg_wikipagecss
-*)
-
-
 let aux_group grp ~sp data =
   Users.in_group ~sp ~group:(grp $ data) ()
 
-let can_create_wikipages = aux_group wiki_wikipages_creators
 
-let can_create_wikiboxes = aux_group wiki_wikiboxes_creators
+class wiki_rights =
+  let can_adm_wb, can_wr_wb, can_re_wb = can_sthg can_sthg_wikibox in
+object
+  method can_admin_wikibox = can_adm_wb
+  method can_write_wikibox = can_wr_wb
+  method can_read_wikibox = can_re_wb
 
-let can_create_wikicss = aux_group wiki_css_creators
+  method can_create_wikipages = aux_group wiki_wikipages_creators
 
-let can_create_wikipagecss ~sp (wiki, _page : wikipage) =
+  method can_create_wikiboxes = aux_group wiki_wikiboxes_creators
+
+  method can_create_wikicss = aux_group wiki_css_creators
+  method can_create_wikipagecss ~sp (wiki, _page : wikipage) =
   (* XXX add a field to override by wikipage and use wikipage_css_creators *)
   Users.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
+
+end
+
+
+
+
 
 
 
