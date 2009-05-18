@@ -244,8 +244,7 @@ let current_wikibox_version_ ~wikibox:(wiki, id) =
     | [v] -> Lwt.return v
     | _ -> assert false (* (wiki_id, wiki, version) is a primary key *)
 
-(** returns subject, text, author, datetime of a wikibox; 
-    None if non-existant *)
+
 let get_history ~wikibox:(wiki, wbid) =
   let wiki = t_int32 (wiki : wiki) in
   Lwt_pool.use
@@ -390,6 +389,23 @@ let get_wikibox_info (wid, wbid as wb) =
              }
     )
 
+let set_wikibox_special_rights_ (wid, wbid) v =
+  let wiki = t_int32 (wid : wiki) in
+  Sql.full_transaction_block
+    (fun db -> PGSQL(db) "UPDATE wikiboxindex SET specialrights = $v
+                          WHERE wiki_id = $wiki AND id = $wbid"
+    )
+
+(* XXX : cache this *)
+let wikibox_from_uid wbuid =
+  let uid = t_int32 (wbuid: wikibox_uid) in
+  Sql.full_transaction_block
+    (fun db -> PGSQL(db) "SELECT wiki_id, id FROM wikiboxindex
+                          WHERE uid = $uid"
+       >>= function
+         | (wiki, wbid) :: _ -> Lwt.return (wiki_of_sql wiki, wbid)
+         | [] -> Lwt.fail Not_found
+    )
 
 (** Cached versions of the functions above *)
 
@@ -404,7 +420,8 @@ let
   new_wiki,
   new_wikibox,
   update_wikibox,
-  current_wikibox_version
+  current_wikibox_version,
+  set_wikibox_special_rights
   =
   let module C = Cache.Make (struct 
                                type key = wikibox
@@ -415,11 +432,6 @@ let
                                                wikibox_content_type *
                                                int32
                                             ) option
-                             end) 
-  in
-  let module C2 = Cache.Make (struct 
-                                type key = wikibox
-                                type value = User_sql.Types.userid list
                              end) 
   in
   let module C3 = Cache.Make(struct
@@ -454,7 +466,10 @@ let
      C.remove cache wikibox;
      C3.remove cachewv wikibox;
      update_wikibox_ ~wikibox ~author ~comment ~content),
-   (fun ~wikibox -> C3.find cachewv wikibox)
+  (fun ~wikibox -> C3.find cachewv wikibox),
+  (fun wb v ->
+     C.remove cache wb;
+     set_wikibox_special_rights_ wb v)
   )
 
 let get_wikipage_info, set_box_for_page =

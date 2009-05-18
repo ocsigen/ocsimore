@@ -136,3 +136,11 @@ let can_create_wikicss = aux_group wiki_css_creators
 let can_create_wikipagecss ~sp (wiki, _page : wikipage) =
   (* XXX add a field to override by wikipage and use wikipage_css_creators *)
   Users.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
+
+
+
+(** Auxiliary functions and structures to edit rights *)
+
+let helpers_wikibox_permissions =
+  Users.GenericRights.helpers_admin_writer_reader
+    "edit_wikibox_permissions" wikibox_grps

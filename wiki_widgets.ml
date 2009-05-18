@@ -407,10 +407,21 @@ object (self)
 
   (* Edition of the permissions of a wiki *)
   method display_edit_perm_form ~bi ~classes wb =
-    Wiki_sql.get_wikibox_info wb >>= fun { wikibox_uid = uid } ->
-    snd (Users.GenericRights.helpers_admin_writer_reader
-       ~prefix:"wiki" ~name:"edit-wikibox" Wiki_data.wikibox_grps) uid
-    >>= fun form ->
+    Wiki_sql.get_wikibox_info wb
+    >>= fun { wikibox_uid = uid; wikibox_special_rights = sr } ->
+    let (_, _, form) = Wiki_data.helpers_wikibox_permissions in
+    let msg1 = Ocamlduce.Utf8.make
+      "Check this box if you want permissions specific to the wikibox. \
+       Otherwise, permissions are inherited from the wiki"
+    and msg2 = Ocamlduce.Utf8.make "Below are the current permissions for the
+      wikibox. Check the box above and add users in the fields to change them"
+    in
+    form uid >>= fun form ->
+    let form (nsr, args) = {{ [
+              <p>[ !msg1
+                   {: Eliom_duce.Xhtml.bool_checkbox ~checked:sr ~name:nsr ():}]
+              <p>[ !msg2 ]
+              !{: form args :} ] }} in
     let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
       ~service:action_send_wikibox_permissions ~sp:bi.bi_sp form
       ()

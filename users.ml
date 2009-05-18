@@ -500,9 +500,8 @@ module GenericRights = struct
   }
 
 
-  let helpers_group ~prefix ~name ~grp =
-    let name = prefix ^ "#" ^ name in
-    let add = "add#" ^ name and rem = "rem#" ^ name in
+  let helpers_group ~prefix ~grp =
+    let add = "add#" ^ prefix and rem = "rem#" ^ prefix in
     let params = (Eliom_parameters.string add) ** (Eliom_parameters.string rem)
 
     and param_arg = Eliom_parameters.user_type
@@ -565,31 +564,25 @@ module GenericRights = struct
       Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr }
     )
 
-  let helpers_admin_writer_reader ~prefix ~name groups =
-    let h = helpers_group ~name in
-    let helpa = h ~prefix:("adm#" ^ prefix)  ~grp:groups.grp_admin
-    and helpw = h ~prefix:("wri#" ^ prefix)  ~grp:groups.grp_writer
-    and helpr = h ~prefix:("read#" ^ prefix) ~grp:groups.grp_reader in
+  let helpers_admin_writer_reader ~prefix groups =
+    let h s = helpers_group ~prefix:(s ^ "#" ^ prefix) in
+    let helpa = h "adm"  ~grp:groups.grp_admin
+    and helpw = h "wri"  ~grp:groups.grp_writer
+    and helpr = h "read" ~grp:groups.grp_reader in
 
-    let params = helpa.grp_eliom_params **
-      (helpw.grp_eliom_params ** helpr.grp_eliom_params)
+    let params = helpa.grp_eliom_arg_param ** (helpa.grp_eliom_params **
+      (helpw.grp_eliom_params ** helpr.grp_eliom_params))
 
-    and save ~sp (arg, ((adda, rema), ((addw, remw), (addr, remr)))) =
-      in_group ~sp ~group:(groups.grp_admin $ arg) () >>= function
-        | true ->
-            helpa.grp_save (arg, (adda, rema)) >>= fun () ->
-            helpw.grp_save (arg, (addw, remw)) >>= fun () ->
-            helpr.grp_save (arg, (addr, remr))
-        | false -> Lwt.fail Ocsimore_common.Permission_denied
+    and save (arg, ((adda, rema), ((addw, remw), (addr, remr)))) =
+      helpa.grp_save (arg, (adda, rema)) >>= fun () ->
+      helpw.grp_save (arg, (addw, remw)) >>= fun () ->
+      helpr.grp_save (arg, (addr, remr))
     in
-    let service () = Eliom_predefmod.Any.register_new_post_coservice'
-      ~name:(prefix ^ "." ^ name ^ ".permissions")
-      ~post_params:(helpa.grp_eliom_arg_param ** params)
-      (fun sp () args ->
-         save ~sp args >>= fun () ->
-         Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice')
-    in
-    (service,
+    (params,
+
+     (fun sp () args ->
+        save args >>= fun () ->
+        Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'),
 
      (fun v ->
      helpa.grp_form v "Current administrators: " >>= fun forma ->
@@ -608,6 +601,9 @@ module GenericRights = struct
 
 
   type 'a params_save_permissions =
+      'a Opaque.int32_t *
+       ((string * string) * ((string * string) * (string * string)))
+  type 'a params_save_permissions_eliom =
       [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name *
         ((input_string * input_string) *
            ((input_string * input_string) * (input_string * input_string)))

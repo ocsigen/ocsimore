@@ -136,28 +136,31 @@ module GenericRights : sig
     ('a Opaque.int32_t -> user)
 
   type 'a params_save_permissions =
+      'a Opaque.int32_t *
+       ((string * string) * ((string * string) * (string * string)))
+  type 'a params_save_permissions_eliom =
       [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name *
         ((input_string * input_string) *
            ((input_string * input_string) * (input_string * input_string)))
   and input_string = [ `One of string ] Eliom_parameters.param_name
 
   val helpers_admin_writer_reader :
-    prefix:string -> name:string -> 'a User_sql.Types.admin_writer_reader ->
-    (** Service to register to update the permissions *)
-    (unit ->
-       (unit,
-        'a Opaque.int32_t * ((string * string) * ((string * string) * (string * string))),
-        [> `Nonattached of [> `Post ] Eliom_services.na_s ],
-        [ `WithoutSuffix ],
-        unit,
-        'a params_save_permissions,
-        [> `Registrable ])
-         Eliom_services.service) *
-      (** Function creating the form to update the permissions *)
-      ('a Opaque.int32_t -> (
-         'a params_save_permissions ->
-         Eliom_duce.Xhtml.form_content_elt_list
-       ) Lwt.t)
+    prefix:string -> 'a User_sql.Types.admin_writer_reader ->
+    (** Arguments for the service to register to update the permissions *)
+     ('a params_save_permissions,
+      [`WithoutSuffix],
+       'a params_save_permissions_eliom
+     ) Eliom_parameters.params_type *
+    (** Function for the service *)
+    (Eliom_sessions.server_params -> unit ->
+    'a params_save_permissions ->
+     Eliom_predefmod.Any.page Lwt.t)
+    *
+   (** Function creating the form to update the permissions *)
+   ('a Opaque.int32_t -> (
+      'a params_save_permissions_eliom ->
+        Eliom_duce.Xhtml.form_content_elt_list
+    ) Lwt.t)
 
 
 

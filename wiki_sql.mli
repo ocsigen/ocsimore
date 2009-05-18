@@ -186,6 +186,10 @@ val get_wikibox_data :
   unit ->
   (string * userid * string option * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
 
+val set_wikibox_special_rights:
+  wikibox -> bool -> unit Lwt.t
+
+val wikibox_from_uid: wikibox_uid -> wikibox Lwt.t
 
 (** Current revision number of a wikibox *)
 val current_wikibox_version : wikibox:wikibox -> Int32.t option Lwt.t
@@ -209,24 +213,6 @@ val update_wiki :
   ?pages:string option ->
   wiki -> unit Lwt.t
 
-(*
-
-val populate_readers : wikibox -> int32 list -> unit Lwt.t
-val populate_writers : wikibox -> int32 list -> unit Lwt.t
-val populate_rights_adm : wikibox -> int32 list -> unit Lwt.t
-val populate_wikiboxes_creators : wikibox -> int32 list -> unit Lwt.t
-
-val remove_readers : wikibox -> int32 list -> unit Lwt.t
-val remove_writers : wikibox -> int32 list -> unit Lwt.t
-val remove_rights_adm : wikibox -> int32 list -> unit Lwt.t
-val remove_wikiboxes_creators : wikibox -> int32 list -> unit Lwt.t
-
-
-val get_readers : wikibox -> userid list Lwt.t
-val get_writers : wikibox -> userid list Lwt.t
-val get_rights_adm : wikibox -> userid list Lwt.t
-val get_wikiboxes_creators : wikibox -> userid list Lwt.t
-*)
 
 (** Iterator on all the wikis  *)
 val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t

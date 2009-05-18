@@ -358,9 +358,20 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
   )
 
 and action_send_wikibox_permissions =
-  fst (Users.GenericRights.helpers_admin_writer_reader
-         ~prefix:"wiki" ~name:"edit-wikibox-permissions" Wiki_data.wikibox_grps
-      ) ()
+  let params, f, _ = Wiki_data.helpers_wikibox_permissions in
+  let f sp () (special, (wbuid, _ as args)) =
+    Wiki_sql.wikibox_from_uid wbuid >>= fun wb ->
+    Wiki_data.can_admin_wikibox ~sp ~wb >>= function
+      | true ->
+          f sp () args >>= fun r ->
+          Wiki_sql.set_wikibox_special_rights wb special >>= fun () ->
+          Lwt.return r
+      | false -> Lwt.fail Ocsimore_common.Permission_denied
+  in
+  Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"wiki_save_wikibox_permissions"
+    ~post_params:(Eliom_parameters.bool "special" ** params)
+    f
 
 (* Below are the services for the css of wikis and wikipages.  The css
    at the level of wikis are registered in Wiki.ml *)
