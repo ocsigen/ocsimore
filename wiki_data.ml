@@ -80,6 +80,7 @@ let () = Lwt_unix.run (
   in
   add_admin wiki_wikiboxes_creators       >>= fun () ->
   add_admin wiki_wikipages_creators       >>= fun () ->
+  add_admin wiki_css_creators             >>= fun () ->
   add_admin wiki_wikiboxes_grps.grp_admin >>= fun () ->
   add_admin wiki_files_grps.grp_admin     >>= fun () ->
   Lwt.return ()

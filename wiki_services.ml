@@ -418,11 +418,11 @@ and action_create_page = Eliom_predefmod.Action.register_new_post_coservice'
        | false ->  Lwt.fail Ocsimore_common.Permission_denied
   )
 
-and action_create_css = Eliom_predefmod.Action.register_new_post_coservice'
+and action_create_css = Eliom_predefmod.Action.register_new_coservice'
   ~name:"wiki_create_css"
-  ~post_params:(eliom_wiki_args **
+  ~get_params:(eliom_wiki_args **
                   (Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
-  (fun sp () (wiki, page) ->
+  (fun sp (wiki, page) () ->
      Users.get_user_id ~sp
      >>= fun user ->
      (match page with

@@ -103,3 +103,8 @@ let rec find_opt f = function
       match f e with
         | None -> find_opt f l
         | Some v -> Some v
+
+let rec concat_list_opt lo l = match lo with
+  | [] -> l
+  | None :: q -> concat_list_opt q l
+  | Some e :: q -> e :: concat_list_opt q l

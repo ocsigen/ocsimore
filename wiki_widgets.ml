@@ -196,7 +196,15 @@ object (self)
     (match cssmenu with
        | Some (CssWikipage page) -> (* Edition of the css for page [page] *)
            (Wiki_sql.get_css_wikibox_for_wikipage wid page >>= function
-              | None -> Lwt.return (None, None)
+              | None ->
+                  (Wiki_data.can_create_wikipagecss ~sp (wid, page) >>= function
+                     | false -> Lwt.return (None, None, None)
+                     | true ->
+                         let create = preapply action_create_css
+                           (wid, Some page) in
+                         Lwt.return (None, None,
+                                     Some (create, {{ "create wikipage css" }}))
+                  )
               | Some wbcss ->
                   let wbcss = (wbcss, Some page) in
                   let edit = preapply action_edit_css (wb, (wbcss, None))
@@ -204,12 +212,21 @@ object (self)
                   in
                   Lwt.return
                     (Some (history, {{ "page css history" }}),
-                     Some (edit, {{ "edit page css" }}))
+                     Some (edit, {{ "edit page css" }}),
+                     None
+                    )
            )
 
        | Some CssWiki -> (* Edition of the global css for [wiki] *)
            (Wiki_sql.get_css_wikibox_for_wiki wid >>= function
-              | None -> Lwt.return (None, None)
+              | None ->
+                  (Wiki_data.can_create_wikicss ~sp wid >>= function
+                     | false -> Lwt.return (None, None, None)
+                     | true ->
+                         let create = preapply action_create_css (wid, None) in
+                         Lwt.return (None, None,
+                                     Some (create, {{ "create wiki css" }}))
+                  )
               | Some wbcss ->
                   let wbcss = (wbcss, None) in
                   let edit = preapply action_edit_css (wb, (wbcss, None))
@@ -217,12 +234,14 @@ object (self)
                   in
                   Lwt.return
                     (Some (history, {{ "wiki css history" }}),
-                     Some (edit, {{ "edit wiki css" }}))
+                     Some (edit, {{ "edit wiki css" }}),
+                     None
+                    )
            )
 
 
-       | None -> Lwt.return (None, None)
-    ) >>= fun (history_css, edit_css) ->
+       | None -> Lwt.return (None, None, None)
+    ) >>= fun (history_css, edit_css, create_css) ->
     let service = match service with
       | None -> None
       | Some Menu_View -> Some view
@@ -249,14 +268,8 @@ object (self)
       | true  -> Lwt.return ((edit_perm, {{ "edit permissions" }})::l)
       | false -> Lwt.return l
     ) >>= fun l ->
-    let l = match edit_css with
-      | Some mi -> mi::l
-      | None -> l
-    in
-    let l = match history_css with
-      | Some mi -> mi :: l
-      | None -> l
-    in
+    let l = Ocsimore_lib.concat_list_opt
+      [edit_css; history_css; create_css] l in
     let title = Ocamlduce.Utf8.make title in
     Lwt.return
       {{ [ {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
