@@ -269,26 +269,29 @@ let in_group_ ?sp ~user ~group () =
   let return u g v =
     update_cache (u, g) v; Lwt.return v
   in
-  let rec aux2 i g = function
+  let rec aux2 g = function
     | [] -> Lwt.return false
     | g2::l ->
-        aux i g2 g >>= function
+        aux g2 g >>= function
           | true -> return g2 g true
-          | false -> aux2 i g l
-  and aux i u g =
+          | false -> aux2 g l
+  and aux u g =
+(*    User_sql.user_to_string u >>= fun su ->
+    User_sql.user_to_string g >>= fun sg ->
+    Ocsigen_messages.errlog (Printf.sprintf "Is %s in %s?" su sg); *)
     try Lwt.return (get_in_cache (u, g))
     with Not_found ->
       User_sql.groups_of_user u >>= fun gl ->
       if List.mem g gl
       then return u g true
-      else aux2 (i+1) g gl
+      else aux2 g gl
   in
   if (user = nobody') || (group = nobody')
   then Lwt.return false
   else
     if (user = group) || (user = admin')
     then Lwt.return true
-    else aux 0 user group >>= function
+    else aux user group >>= function
       | true -> return user group true
       | false ->
           match sp with
@@ -305,7 +308,7 @@ let in_group_ ?sp ~user ~group () =
                              if k <> group
                              then (f ~sp >>= function
                                      | false -> Lwt.return false
-                                     | true -> aux 0 k group
+                                     | true -> aux k group
                                   )
                              else Lwt.return false
                         ) (Lwt.return false) >>= function r ->
