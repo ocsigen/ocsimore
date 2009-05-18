@@ -238,7 +238,7 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 {{creole_cheat_sheet.png|Wikicreole's syntax}}"
 
 
-(** Finally, we registering the existing wikis of the database *)
+(** Finally, we register the existing wikis of the database *)
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_pages = path } ->
