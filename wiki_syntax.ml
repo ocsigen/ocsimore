@@ -26,7 +26,7 @@ open Wiki_sql.Types
 open Wiki_widgets_interface
 let (>>=) = Lwt.bind
 
-module W = Wikicreole
+
 
 let string_of_extension name args content =
   "<<"^name^
@@ -39,19 +39,6 @@ let string_of_extension name args content =
 let extension_table = Wiki_filter.extension_table
 
 let find_extension = Wiki_filter.find_extension
-
-let add_extension ~name ?(wiki_content=true) f =
-  Hashtbl.add extension_table name (wiki_content, f);
-  if wiki_content
-  then
-    Wiki_filter.add_preparser_extension ~name
-      (fun (sp, wb) args -> function
-         | None -> Lwt.return None
-         | Some c ->
-             Wiki_filter.preparse_extension (sp, wb) c >>= fun c ->
-             Lwt.return (Some (string_of_extension name args (Some c)))
-      )
-
 
 
 (***)
@@ -297,45 +284,45 @@ let is_absolute_link addr =
   (Netstring_pcre.string_match absolute_link_regexp addr 0) <> None
 
 let builder =
-  { W.chars = make_string;
-    W.strong_elem = (fun attribs a -> 
+  { Wikicreole.chars = make_string;
+    strong_elem = (fun attribs a -> 
                        let atts = parse_common_attribs attribs in
                        element a >>= fun r ->
                        Lwt.return {{ [<strong (atts)>r ] }});
-    W.em_elem = (fun attribs a -> 
+    em_elem = (fun attribs a -> 
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<em (atts)>r] }});
-    W.monospace_elem = (fun attribs a -> 
+    monospace_elem = (fun attribs a -> 
                           let atts = parse_common_attribs attribs in
                           element a >>= fun r ->
                             Lwt.return {{ [<tt (atts)>r] }});
-    W.underlined_elem = (fun attribs a -> 
+    underlined_elem = (fun attribs a -> 
                            let atts = parse_common_attribs attribs in
                            element a >>= fun r ->
                            Lwt.return {{ [<span ({class="underlined"} ++
                                              atts)>r] }});
-    W.linethrough_elem = (fun attribs a -> 
+    linethrough_elem = (fun attribs a -> 
                            let atts = parse_common_attribs attribs in
                            element a >>= fun r ->
                            Lwt.return {{ [<span ({class="linethrough"} ++
                                              atts)>r] }});
-    W.subscripted_elem = (fun attribs a -> 
+    subscripted_elem = (fun attribs a -> 
                             let atts = parse_common_attribs attribs in
                             element a >>= fun r ->
                               Lwt.return {{ [<sub (atts)>r] }});
-    W.superscripted_elem = (fun attribs a -> 
+    superscripted_elem = (fun attribs a -> 
                               let atts = parse_common_attribs attribs in
                               element a >>= fun r ->
                                 Lwt.return {{ [<sup (atts)>r] }});
-    W.a_elem =
+    a_elem =
       (fun attribs _sp addr 
          (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
            let atts = parse_common_attribs attribs in
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
            Lwt.return
              {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
-    W.make_href =
+    make_href =
       (fun sp bi addr ->
          let wiki_id = bi.Wiki_widgets_interface.bi_root_wiki in
          let servpage = Wiki_services.find_servpage wiki_id in
@@ -346,10 +333,10 @@ let builder =
                in
                Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
            | _ -> addr);
-    W.br_elem = (fun attribs -> 
+    br_elem = (fun attribs -> 
                    let atts = parse_common_attribs attribs in
                    Lwt.return {{ [<br (atts)>[]] }});
-    W.img_elem =
+    img_elem =
       (fun attribs addr alt -> 
          let atts = parse_common_attribs attribs in
          Lwt.return 
@@ -359,59 +346,59 @@ let builder =
                    ++
                     atts)
                   >[] ] }});
-    W.tt_elem = (fun attribs a ->
+    tt_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<tt (atts)>r ] }});
-    W.nbsp = Lwt.return {{" "}};
-    W.p_elem = (fun attribs a -> 
+    nbsp = Lwt.return {{" "}};
+    p_elem = (fun attribs a -> 
                   let atts = parse_common_attribs attribs in
                   element a >>= fun r ->
                   Lwt.return {{ [<p (atts)>r] }});
-    W.pre_elem = (fun attribs a ->
+    pre_elem = (fun attribs a ->
        let atts = parse_common_attribs attribs in
        Lwt.return
          {{ [<pre (atts)>{:Ocamlduce.Utf8.make (String.concat "" a):}] }});
-    W.h1_elem = (fun attribs a ->
+    h1_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h1 (atts)>r] }});
-    W.h2_elem = (fun attribs a ->
+    h2_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h2 (atts)>r] }});
-    W.h3_elem = (fun attribs a ->
+    h3_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h3 (atts)>r] }});
-    W.h4_elem = (fun attribs a ->
+    h4_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h4 (atts)>r] }});
-    W.h5_elem = (fun attribs a ->
+    h5_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h5 (atts)>r] }});
-    W.h6_elem = (fun attribs a ->
+    h6_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    element a >>= fun r ->
                    Lwt.return {{ [<h6 (atts)>r] }});
-    W.ul_elem = (fun attribs a ->
+    ul_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    list_builder a >>= fun r ->
                    Lwt.return {{ [<ul (atts)>r] }});
-    W.ol_elem = (fun attribs a ->
+    ol_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    list_builder a >>= fun r ->
                    Lwt.return {{ [<ol (atts)>r] }});
-    W.dl_elem = (fun attribs a ->
+    dl_elem = (fun attribs a ->
                    let atts = parse_common_attribs attribs in
                    descr_builder a >>= fun r ->
                    Lwt.return {{ [<dl (atts)>r] }});
-    W.hr_elem = (fun attribs -> 
+    hr_elem = (fun attribs -> 
                    let atts = parse_common_attribs attribs in
                    Lwt.return {{ [<hr (atts)>[]] }});
-    W.table_elem =
+    table_elem =
       (fun attribs l ->
          let atts = parse_table_attribs attribs in
          match l with
@@ -436,22 +423,20 @@ let builder =
              f2 row >>= fun row ->
              Lwt_util.map_serial f2 rows >>= fun rows ->
              Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }});
-    W.inline = (fun x -> x >>= fun x -> Lwt.return x);
-    W.plugin =
-      (fun name -> 
-         let (wiki_content, f) = 
-           try Hashtbl.find extension_table name
-           with Not_found ->
-             (false,
-                (fun _ _ _ ->
-                   Wikicreole.A_content 
-                     (Lwt.return
-                        {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
-                                        !{: name :} ] ] ] }})))
-         in 
-         (wiki_content, f));
-    W.plugin_action = (fun _ _ _ _ _ _ -> ());
-    W.error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
+    inline = (fun x -> x >>= fun x -> Lwt.return x);
+    plugin =
+      (fun name ->
+         try Hashtbl.find extension_table name
+         with Not_found ->
+           (false,
+            (fun _ _ _ ->
+               Wikicreole.A_content 
+                 (Lwt.return
+                    {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
+                                    !{: name :} ] ] ] }})))
+      );
+    plugin_action = (fun _ _ _ _ _ _ -> ());
+    error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
 let xml_of_wiki bi s = 
@@ -481,6 +466,19 @@ let a_content_of_wiki bi s =
 
 
 (*********************************************************************)
+
+let add_extension ~name ?(wiki_content=true) f =
+  Hashtbl.add extension_table name (wiki_content, f);
+  if wiki_content
+  then
+    Wiki_filter.add_preparser_extension ~name
+      (fun (sp, wb) args -> function
+         | None -> Lwt.return None
+         | Some c ->
+             Wiki_filter.preparse_extension (sp, wb) c >>= fun c ->
+             Lwt.return (Some (string_of_extension name args (Some c)))
+      )
+
 
 let _ =
 

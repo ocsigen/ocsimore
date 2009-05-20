@@ -29,10 +29,9 @@
 *)
 val add_preparser_extension :
   name:string ->
-  ((Eliom_sessions.server_params * Wiki_sql.Types.wikibox) ->
-       (string * string) list ->
-         string option ->
-           string option Lwt.t) -> unit
+  ( Eliom_sessions.server_params * Wiki_sql.Types.wikibox,
+    string option Lwt.t)
+  Wikicreole.plugin_args -> unit
 
 (** Filters the wiki syntax and replace extensions according to
     preparsers recorded with [add_preparser_extension].
@@ -42,32 +41,16 @@ val preparse_extension :
   string -> string Lwt.t
 
 
+type syntax_extension =
+    (Wiki_widgets_interface.box_info,
+     Xhtmltypes_duce.flows Lwt.t,
+     Eliom_duce.Blocks.a_content_elt_list Lwt.t)
+   Wikicreole.plugin
 
-val extension_table :
-  (string,
-   bool *
-    (
-       Wiki_widgets_interface.box_info ->
-         (string * string) list ->
-           string option ->
-             (Xhtmltypes_duce.flows Lwt.t,
-              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
-              (string * Wikicreole.attribs *
-                 {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t))
-               Wikicreole.ext_kind))
-      Hashtbl.t
 
-val find_extension : name:string ->
-  bool *
-    (
-       Wiki_widgets_interface.box_info ->
-         (string * string) list ->
-           string option ->
-             (Xhtmltypes_duce.flows Lwt.t,
-              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
-              (string * Wikicreole.attribs *
-                 {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t))
-               Wikicreole.ext_kind)
+val extension_table : (string, bool * syntax_extension) Hashtbl.t
+
+val find_extension : name:string -> bool * syntax_extension
 
 
 (**/**)

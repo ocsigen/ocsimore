@@ -33,6 +33,20 @@ type ('a, 'b, 'c) ext_kind =
   | A_content of 'b
   | Link_plugin of 'c
 
+
+(** Arguments for the extension mechanisme, after '<<' *)
+type ('param, 'a) plugin_args = 
+    'param ->
+    attribs -> (** Xml-like attributes for the extension (eg val='foo') *)
+    string option -> (** content for the extension, after the '|' *)
+    'a
+
+type ('param, 'flow, 'a_content) plugin =
+    ('param,
+     ('flow, 'a_content, (string * attribs * 'a_content)) ext_kind
+    ) plugin_args
+
+
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
     strong_elem : attribs -> 'inline list -> 'a_content;
@@ -60,17 +74,11 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
     dl_elem : attribs -> (bool * 'inline list * attribs) list -> 'flow;
     hr_elem : attribs -> 'flow;
-    table_elem : attribs -> 
+    table_elem : attribs ->
       ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
     inline : 'a_content -> 'inline;
-    plugin : 
-      string ->
-       (bool *
-          ('param -> (string * string) list -> string option ->
-             (('flow, 'a_content, (string * attribs * 'a_content)) ext_kind)));
-    plugin_action : 
-      string -> int -> int -> 
-      'param -> (string * string) list -> string option -> unit;
+    plugin : string -> bool * ('param, 'flow, 'a_content) plugin;
+    plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
     error : string -> 'a_content;
   }
 
@@ -390,12 +398,6 @@ let start_table_row c heading (table_attribs, row_attribs, entry_attribs) =
                     entry_attribs, 
                     Row ([], row_attribs, c.stack))
 
-let build_extension lexbuf start name ext_info args c content =
-    let args = List.rev args in
-    c.build.plugin_action name start (Lexing.lexeme_end lexbuf)
-      c.param args content;
-    ext_info c.param args content
-
 }
 
 let line_break = '\n' | '\r' | "\r\n"
@@ -605,10 +607,11 @@ and parse_rem c =
       let name = String.sub s 2 (l - 2) in
       let start = Lexing.lexeme_start lexbuf in
       let (wiki_content, ext_info) = c.build.plugin name in
-      let content, args = 
-        parse_extension start name wiki_content [] c lexbuf
-      in
-      match build_extension lexbuf start name ext_info args c content with
+      let content, args =
+        parse_extension start name wiki_content [] c lexbuf in
+      c.build.plugin_action name start (Lexing.lexeme_end lexbuf)
+        c.param (List.rev args) content;
+      match ext_info c.param args content with
       | A_content i -> 
           push c i;
           parse_rem c lexbuf

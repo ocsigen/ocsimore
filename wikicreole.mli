@@ -29,6 +29,20 @@ type ('a, 'b, 'c) ext_kind =
   | A_content of 'b
   | Link_plugin of 'c
 
+
+(** Arguments for the extension mechanisme, after '<<' *)
+type ('param, 'a) plugin_args = 
+    'param ->
+    attribs -> (** Xml-like attributes for the extension (eg val='foo') *)
+    string option -> (** content for the extension, after the '|' *)
+    'a
+
+type ('param, 'flow, 'a_content) plugin =
+    ('param,
+     ('flow, 'a_content, (string * attribs * 'a_content)) ext_kind
+    ) plugin_args
+
+
 type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   { chars : string -> 'a_content;
     strong_elem : attribs -> 'inline list -> 'a_content;
@@ -56,22 +70,16 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
     dl_elem : attribs -> (bool * 'inline list * attribs) list -> 'flow;
     hr_elem : attribs -> 'flow;
-    table_elem : attribs -> 
+    table_elem : attribs ->
       ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
     inline : 'a_content -> 'inline;
-    plugin : 
-      string ->
-       (bool *
-          ('param -> (string * string) list -> string option ->
-             (('flow, 'a_content, (string * attribs * 'a_content)) ext_kind)));
-(** Syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
+(** The syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
 [<<name arg1='value1' ... argn="valuen' |content>> ] *)
 (** Must display sthg (error message?) if the name does not exist. *)
-    plugin_action : 
-      string -> int -> int -> 
-      'param -> (string * string) list -> string option -> unit;
+    plugin : string -> bool * ('param, 'flow, 'a_content) plugin;
+    plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
     error : string -> 'a_content;
- }
+  }
 
 val from_channel :
   'sp ->

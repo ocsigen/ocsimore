@@ -24,6 +24,14 @@
 
 let (>>=) = Lwt.bind
 
+
+type syntax_extension =
+    (Wiki_widgets_interface.box_info,
+     Xhtmltypes_duce.flows Lwt.t,
+     Eliom_duce.Blocks.a_content_elt_list Lwt.t)
+   Wikicreole.plugin
+
+
 (* Wiki_syntax : here because of circular dependencies *)
 let extension_table = Hashtbl.create 8
 
@@ -49,15 +57,11 @@ let add_preparser_extension ~name f =
 
 let wikifilter_find = Wikifilter_table.find preparser_extension_table
 
-type c = {
-  sp : Eliom_sessions.server_params;
-  buf : Buffer.t;
-}
 
 let nothing _ _ = ()
 let nothing1 _ = ()
 
-let make_plugin_action (* wiki *) =
+let make_plugin_action =
   let subst = ref [] in
   ((fun name start end_ params args content ->
       subst := (start, 

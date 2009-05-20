@@ -24,33 +24,19 @@
 open Wiki_sql.Types
 
 
-(** Define new extensions to the wiki syntax. *)
-val add_extension : 
+
+val add_extension :
   name:string ->
   ?wiki_content:bool ->
-  ( Wiki_widgets_interface.box_info ->
-     (string * string) list -> 
-       string option -> 
-         (Xhtmltypes_duce.flows Lwt.t, 
-          {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t,
-          string * Wikicreole.attribs * 
-            {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t)
-           Wikicreole.ext_kind) -> 
+  Wiki_filter.syntax_extension ->
   unit
 
-val find_extension : name:string -> 
-  bool * ( Wiki_widgets_interface.box_info ->
-            (string * Eliom_duce.Xhtml.uri) list ->
-              string option ->
-                (Xhtmltypes_duce.flows Lwt.t, 
-                 {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t,
-                 string * Wikicreole.attribs * 
-                   {{Eliom_duce.Blocks.a_content_elt_list}} Lwt.t)
-                  Wikicreole.ext_kind)
+val find_extension :
+  name:string ->
+  bool * Wiki_filter.syntax_extension
 
-(** Returns the XHTML corresponding to a wiki page.
-    The int32 is the id of the wiki (a wikibox may contain another one,
-    and the default wiki id is the same as the one of the surrounding box).
+
+(** Returns the XHTML corresponding to a wiki page
 *)
 val xml_of_wiki :
   Wiki_widgets_interface.box_info ->
