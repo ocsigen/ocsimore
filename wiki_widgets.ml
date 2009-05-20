@@ -339,7 +339,8 @@ object (self)
   method display_wikitext_edit_form_help ~bi ~classes ?rows ?cols ~previewonly ~wb data=
     Wiki_services.get_admin_wiki ()
     >>= fun { wiki_id = admin_wiki } ->
-    Wiki_sql.get_wikipage_info ~wiki:admin_wiki ~page:"wikisyntax-help"
+    Wiki_sql.get_wikipage_info ~wiki:admin_wiki
+      ~page:Wiki_widgets_interface.wikisyntax_help_name
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
       (Wiki.wikibox_content rights bi.bi_sp (wid_help, wbid_help))
