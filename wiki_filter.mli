@@ -27,48 +27,48 @@
     the wikibox content before registering it in the database.
     Done automatically by [Wiki_syntax.add_extension]
 *)
-val add_preparser_extension : 
-  name:string -> 
-  (Wiki_sql.Types.wiki ->
-     (Eliom_sessions.server_params * int32) ->
-       (string * string) list -> 
-         string option -> 
+val add_preparser_extension :
+  name:string ->
+  ((Eliom_sessions.server_params * Wiki_sql.Types.wikibox) ->
+       (string * string) list ->
+         string option ->
            string option Lwt.t) -> unit
 
-val extension_table : 
-  (string, 
+(** Filters the wiki syntax and replace extensions according to
+    preparsers recorded with [add_preparser_extension].
+*)
+val preparse_extension :
+  (Eliom_sessions.server_params * Wiki_sql.Types.wikibox) ->
+  string -> string Lwt.t
+
+
+
+val extension_table :
+  (string,
    bool *
-    (Wiki_sql.Types.wiki ->
+    (
        Wiki_widgets_interface.box_info ->
-         (string * string) list -> 
-           string option -> 
-             (Xhtmltypes_duce.flows Lwt.t, 
-              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t, 
+         (string * string) list ->
+           string option ->
+             (Xhtmltypes_duce.flows Lwt.t,
+              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
               (string * Wikicreole.attribs *
                  {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t))
                Wikicreole.ext_kind))
       Hashtbl.t
 
-val find_extension : name:string -> 
-  bool * 
-    (Wiki_sql.Types.wiki ->
+val find_extension : name:string ->
+  bool *
+    (
        Wiki_widgets_interface.box_info ->
-         (string * string) list -> 
-           string option -> 
-             (Xhtmltypes_duce.flows Lwt.t, 
-              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t, 
+         (string * string) list ->
+           string option ->
+             (Xhtmltypes_duce.flows Lwt.t,
+              {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
               (string * Wikicreole.attribs *
                  {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t))
                Wikicreole.ext_kind)
 
 
 (**/**)
-
-(** Filters the wiki syntax and replace extensions according to 
-    preparsers recorded with [add_preparser_extension].
-*)
-val preparse_extension :
-  (Eliom_sessions.server_params * int32) ->
-  Wiki_sql.Types.wiki -> 
-  string -> string Lwt.t
 

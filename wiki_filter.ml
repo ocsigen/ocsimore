@@ -24,8 +24,6 @@
 
 let (>>=) = Lwt.bind
 
-module W = Wikicreole
-
 (* Wiki_syntax : here because of circular dependencies *)
 let extension_table = Hashtbl.create 8
 
@@ -39,7 +37,12 @@ module Wikifilter_table = Hashtbl.Make(struct
                                          let hash = Hashtbl.hash 
                                        end)
 
-let preparser_extension_table = Wikifilter_table.create 8
+let preparser_extension_table :
+    ((Eliom_sessions.server_params * Wiki_sql.Types.wikibox) ->
+     (string * string) list ->
+      string option ->
+      string option Lwt.t) Wikifilter_table.t
+= Wikifilter_table.create 8
 
 let add_preparser_extension ~name f = 
   Wikifilter_table.add preparser_extension_table name f
@@ -54,62 +57,62 @@ type c = {
 let nothing _ _ = ()
 let nothing1 _ = ()
 
-let make_plugin_action wiki =
+let make_plugin_action (* wiki *) =
   let subst = ref [] in
   ((fun name start end_ params args content ->
       subst := (start, 
                 end_, 
                 (try
                    wikifilter_find name
-                     wiki params args content 
+                     params args content 
                  with Not_found -> Lwt.return None))::!subst)
    ,
    fun () -> !subst
   )
 
 let builder plugin_action =
-  { W.chars = nothing1;
-    W.strong_elem = nothing;
-    W.em_elem = nothing;
-    W.a_elem = (fun _ _ _ _ -> ());
-    W.make_href = (fun _ a -> a);
-    W.br_elem = nothing1;
-    W.img_elem = (fun _ _ _ -> ());
-    W.tt_elem = nothing;
-    W.monospace_elem = nothing;
-    W.underlined_elem = nothing;
-    W.linethrough_elem = nothing;
-    W.subscripted_elem = nothing;
-    W.superscripted_elem = nothing;
-    W.nbsp = ();
-    W.p_elem = nothing;
-    W.pre_elem = nothing;
-    W.h1_elem = nothing;
-    W.h2_elem = nothing;
-    W.h3_elem = nothing;
-    W.h4_elem = nothing;
-    W.h5_elem = nothing;
-    W.h6_elem = nothing;
-    W.ul_elem = nothing;
-    W.ol_elem = nothing;
-    W.dl_elem = nothing;
-    W.hr_elem = nothing1;
-    W.table_elem = nothing;
-    W.inline = nothing1;
-    W.plugin =
+  { Wikicreole.chars = nothing1;
+    strong_elem = nothing;
+    em_elem = nothing;
+    a_elem = (fun _ _ _ _ -> ());
+    make_href = (fun _ _ a -> a);
+    br_elem = nothing1;
+    img_elem = (fun _ _ _ -> ());
+    tt_elem = nothing;
+    monospace_elem = nothing;
+    underlined_elem = nothing;
+    linethrough_elem = nothing;
+    subscripted_elem = nothing;
+    superscripted_elem = nothing;
+    nbsp = ();
+    p_elem = nothing;
+    pre_elem = nothing;
+    h1_elem = nothing;
+    h2_elem = nothing;
+    h3_elem = nothing;
+    h4_elem = nothing;
+    h5_elem = nothing;
+    h6_elem = nothing;
+    ul_elem = nothing;
+    ol_elem = nothing;
+    dl_elem = nothing;
+    hr_elem = nothing1;
+    table_elem = nothing;
+    inline = nothing1;
+    plugin =
       (fun name -> 
          let wiki_content =
            try fst (find_extension ~name)
            with Not_found -> false
          in (wiki_content, (fun _ _ _ -> Wikicreole.A_content ())));
-    W.plugin_action = plugin_action;
-    W.error = nothing1;
+    plugin_action = plugin_action;
+    error = nothing1;
   }
 
-let preparse_extension ((sp, _) as param) wiki content =
-  let (plugin_action, get_subst) = make_plugin_action wiki in
+let preparse_extension (sp, wb : Eliom_sessions.server_params * Wiki_sql.Types.wikibox) content =
+  let (plugin_action, get_subst) = make_plugin_action in
   let builder = builder plugin_action in
-  ignore (Wikicreole.from_string sp param builder content);
+  ignore (Wikicreole.from_string sp (sp, wb) builder content);
   let buf = Buffer.create 1024 in
   Lwt_util.fold_left
     (fun pos (start, end_, replacement) -> 

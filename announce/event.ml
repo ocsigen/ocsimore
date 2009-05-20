@@ -39,8 +39,10 @@ let format_date_and_speakers d speakers =
   if speakers = [] then "" else (" — " ^ format_speakers speakers)
 
 let format_description sp desc =
-  let bi = Wiki_widgets_interface.default_bi ~sp in
-  Ocsisite.wikibox_widget#display_frozen_wikibox bi (Common.wiki_id, desc)
+  let wikibox = (Common.wiki_id, desc) in
+  let bi = Wiki_widgets_interface.default_bi ~sp ~root_wiki:Common.wiki_id
+    ~wikibox in
+  Ocsisite.wikibox_widget#display_frozen_wikibox bi wikibox
 
 let format_location location room =
   match room, location with

@@ -143,8 +143,7 @@ let register_wiki
     Eliom_predefmod.Any.register_new_service ~path ?sp
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
-         let bi = Wiki_widgets_interface.default_bi sp in
-         wikibox_widget#send_wikipage ~bi ~wiki
+         wikibox_widget#send_wikipage ~sp ~wiki
            ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
       )
   in
@@ -156,11 +155,10 @@ let register_wiki
       ~name:("display"^string_of_wiki wiki)
       ~get_params:(Eliom_parameters.string "page")
       (fun sp page () ->
-         let path = Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
-         in
+         let path =
+           Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page) in
          let page = Ocsigen_lib.string_of_url_path ~encode:true path in
-         let bi = Wiki_widgets_interface.default_bi sp in
-         wikibox_widget#send_wikipage ~bi ~wiki ~page
+         wikibox_widget#send_wikipage ~sp ~wiki ~page
       )
   in
   add_naservpage wiki naservpage;
@@ -302,7 +300,7 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
   (Eliom_parameters.string "actionname" **
      ((eliom_wikibox_args ** Eliom_parameters.int32 "boxversion") **
         Eliom_parameters.string "content"))
-  (fun sp () (actionname, (((wid, wbid as wb), boxversion), content)) ->
+  (fun sp () (actionname, ((wb, boxversion), content)) ->
      (* We always show a preview before saving. Moreover, we check that the
         wikibox that the wikibox has not been modified in parallel of our
         modifications. If this is the case, we also show a warning *)
@@ -311,7 +309,7 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
        if actionname = "save" then
          match modified with
            | None ->
-               Wiki_filter.preparse_extension (sp, wbid) wid content
+               Wiki_filter.preparse_extension (sp, wb) content
                >>= fun content ->
                save_then_redirect wb ~sp
                  (fun () -> Wiki.save_wikitextbox rights ~sp ~wb

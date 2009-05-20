@@ -118,16 +118,21 @@ type box_info =
   {bi_subbox: Xhtmltypes_duce.flows option;
    bi_ancestors: Ancestors.ancestors;
    bi_sp: Eliom_sessions.server_params;
+   bi_box : wikibox (* Wikibox which is being displayed *);
+   bi_root_wiki: wiki (* Id of the wiki that responds to the url,
+                         used to generate links *) ;
 }
 
 let add_ancestor_bi x bi =
   { bi with bi_ancestors = Ancestors.add_ancestor x bi.bi_ancestors }
 
-let default_bi ~sp =
+let default_bi ~sp ~root_wiki ~wikibox =
   {
     bi_sp = sp;
     bi_ancestors = Ancestors.no_ancestors;
     bi_subbox = None;
+    bi_root_wiki = root_wiki;
+    bi_box = wikibox
   }
 
 
@@ -200,7 +205,6 @@ object
   (** Pretty-print the content of a wikibox *)
   method display_wikiboxcontent :
     bi:box_info ->
-    wiki:wiki ->
     classes:classes ->
     Wiki_sql.wikibox_content ->
     (classes * Xhtmltypes_duce.flows) Lwt.t
@@ -404,7 +408,7 @@ class type virtual interactive_wikibox =
 
     (** Displaying of the content of an entire wikipage *)
     method display_wikipage :
-      bi:box_info ->
+      sp:Eliom_sessions.server_params ->
       wiki:wiki ->
       page:string ->
       (Xhtmltypes_duce.html * int) Lwt.t
@@ -414,7 +418,7 @@ class type virtual interactive_wikibox =
         corresponding local file, or the content of the wikipage
         after pretty-printing *)
     method send_wikipage :
-      bi:box_info ->
+      sp:Eliom_sessions.server_params ->
       wiki:wiki ->
       page:string ->
       Ocsigen_http_frame.result Lwt.t

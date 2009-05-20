@@ -138,7 +138,7 @@ let service_edit_wikibox = Eliom_services.new_service
 let () =
   Eliom_duce.Xhtml.register service_edit_wikibox
     (fun sp ((w, _b) as wb) () ->
-       let bi = Wiki_widgets_interface.default_bi sp in
+       let bi = Wiki_widgets_interface.default_bi ~sp ~root_wiki:w ~wikibox:wb in
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
        >>= fun subbox ->
        Wiki_services.get_admin_wiki () >>= fun admin_wiki ->

@@ -88,10 +88,9 @@ object (self)
      }}
 
 
-  method display_wikiboxcontent ~bi ~wiki ~classes (content_type, content, _ver as wb) =
+  method display_wikiboxcontent ~bi ~classes (content_type, content, _ver as wb) =
     match content_type, content with
-      | Wiki_sql.WikiCreole, Some content ->
-          Wiki_syntax.xml_of_wiki wiki bi content
+      | Wiki_sql.WikiCreole, Some content ->  Wiki_syntax.xml_of_wiki bi content
           >>= fun x -> Lwt.return (classes, x)
       | _ -> self#display_raw_wikiboxcontent ~classes wb
 
@@ -127,8 +126,7 @@ object (self)
       (fun () ->
          error_box#bind_or_display_error
            (Wiki.wikibox_content rights bi.bi_sp wikibox)
-           (self#display_wikiboxcontent ~wiki:(fst wikibox) ~bi
-              ~classes:(frozen_wb_class::classes))
+           (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
            (self#display_basic_box)
       )
       (function
@@ -345,7 +343,7 @@ object (self)
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
       (Wiki.wikibox_content rights bi.bi_sp (wid_help, wbid_help))
-      (self#display_wikiboxcontent ~wiki:admin_wiki ~bi ~classes:["wikihelp"])
+      (self#display_wikiboxcontent ~bi ~classes:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
     self#display_wikitext_edit_form ~bi ~classes:[] ?rows ?cols
@@ -525,7 +523,7 @@ object (self)
     Lwt.return (classes, {{ map {: l :} with i -> i }})
 
 
-  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?cssmenu (wid, _ as wb) =
+  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?cssmenu wb =
     let sp = bi.bi_sp in
     let override = Wiki_widgets_interface.get_override_wikibox ~sp in
     match override with
@@ -537,7 +535,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   (Wiki.wikibox_content rights sp wb)
-                  (self#display_wikiboxcontent ~classes ~wiki:wid
+                  (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                   (self#menu_view ~bi ?cssmenu wb)
                 >>= fun r ->
@@ -548,7 +546,7 @@ object (self)
                    | true ->
                        error_box#bind_or_display_error
                          (Wiki.wikibox_content rights sp wb)
-                         (self#display_wikiboxcontent ~classes ~wiki:wid
+                         (self#display_wikiboxcontent ~classes
                             ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                          (self#display_basic_box)
                        >>= fun r ->
@@ -622,7 +620,7 @@ object (self)
           error_box#bind_or_display_error
             (Lwt.return (Some content, version))
             (fun (content, version as cv) ->
-               self#display_wikiboxcontent ~wiki:(fst wb_loc)
+               self#display_wikiboxcontent
                  ~classes:[] ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
                  (Wiki_sql.WikiCreole, content, version)
                >>= fun (_, pp) ->
@@ -660,7 +658,7 @@ object (self)
       | Oldversion (wb, version) ->
           error_box#bind_or_display_error
             (Wiki.wikibox_content ~sp ~version rights wb)
-            (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
+            (self#display_wikiboxcontent ~classes
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
             (self#menu_old_wikitext ~bi ?cssmenu wb_loc version)
           >>= fun r ->
@@ -669,7 +667,7 @@ object (self)
       | CssOldversion ((wbcss, page), version) ->
           error_box#bind_or_display_error
             (Wiki.wikibox_content ~sp ~version rights wbcss)
-            (self#display_wikiboxcontent ~classes ~wiki:(fst wb_loc)
+            (self#display_wikiboxcontent ~classes
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
             (self#menu_old_css ~bi ?cssmenu wb_loc page)
           >>= fun r ->
@@ -730,8 +728,7 @@ object (self)
 
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
-   method display_wikipage ~bi ~wiki ~page =
-     let sp = bi.bi_sp in
+   method display_wikipage ~sp ~wiki ~page =
      Wiki_sql.get_wiki_info_by_id wiki
      >>= fun wiki_info ->
      Lwt.catch
@@ -740,7 +737,7 @@ object (self)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box;
                     wikipage_title = title } ->
-          let bi = default_bi ~sp in
+          let bi = default_bi ~sp ~root_wiki:wiki ~wikibox:(wiki', box) in
           self#display_interactive_wikibox_aux ~bi ~cssmenu:(CssWikipage page)
             (wiki', box)
           >>= fun (subbox, allowed) ->
@@ -785,9 +782,11 @@ object (self)
        Wiki_widgets_interface.set_page_displayable sp err_code;
 
        (* We render the container *)
-       let bi = { (default_bi ~sp) with bi_subbox = Some subbox } in
+       let wb_container = (wiki, wiki_info.wiki_container) in
+       let bi = { (default_bi ~sp ~root_wiki:wiki
+                     ~wikibox:wb_container) with bi_subbox = Some subbox } in
        self#display_interactive_wikibox ~bi ~cssmenu:CssWiki
-         (wiki, wiki_info.wiki_container)
+         wb_container
 
        >>= fun pagecontent ->
        self#css_header ~bi ~admin:false ~page wiki
@@ -804,8 +803,7 @@ object (self)
        Lwt.return (self#display_container ~css ~title {{ [pagecontent] }},
                    code)
 
-   method send_wikipage ~bi ~wiki ~page =
-     let sp = bi.bi_sp in
+   method send_wikipage ~sp ~wiki ~page =
      Wiki_sql.get_wiki_info_by_id wiki
      >>= fun wiki_info ->
      (* if there is a static page, and should we send it ? *)
@@ -817,19 +815,14 @@ object (self)
             | None -> Lwt.fail Eliom_common.Eliom_404)
        (function
           | Eliom_common.Eliom_404 ->
-              self#display_wikipage ~bi ~wiki ~page
+              self#display_wikipage ~sp ~wiki ~page
               >>= fun (html, code) ->
               Eliom_duce.Xhtml.send ~sp ~code html
           | e -> Lwt.fail e)
 
 end
 
-(* BY: Helper functions, which factorizes a bit of code in the functions
-   below. Some of them  (eg. extract_wiki_id) are very mysterious:
-   - I believe there is always a field "wiki" present, so the
-   exception handler is useless
-   - Why do we need to extract this value since we have a default ?
-*)
+(* Helper functions for the syntax extensions below *)
 let extract_wiki_id args default =
   try wiki_of_string (List.assoc "wiki" args)
   with Failure _ | Not_found -> default
@@ -843,10 +836,10 @@ and extract_https args =
 
 let register_wikibox_syntax_extensions (widget : Wiki_widgets_interface.interactive_wikibox) (error_box : Widget.widget_with_error_box) (rights : Wiki_data.wiki_rights) =
 Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
-  (fun wiki_id bi args c ->
+  (fun bi args c ->
      Wikicreole.Block
        (try
-         let wiki = extract_wiki_id args wiki_id in
+         let wiki = extract_wiki_id args (fst bi.bi_box) in
          try
            let box = Int32.of_string (List.assoc "box" args) in
            if Ancestors.in_ancestors (wiki, box) bi.bi_ancestors then
@@ -856,7 +849,7 @@ Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
              (match c with
                 | None -> Lwt.return None
                 | Some c ->
-                    Wiki_syntax.xml_of_wiki wiki_id bi c
+                    Wiki_syntax.xml_of_wiki bi c
                     >>= fun r -> Lwt.return (Some r)
              ) >>=fun subbox ->
              widget#display_interactive_wikibox
@@ -882,25 +875,23 @@ Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
   ));
 
 Wiki_filter.add_preparser_extension ~name:"wikibox"
-  (fun wid (sp, father) args c ->
+  (fun (sp, wb) args c ->
      (try
-        let wid = extract_wiki_id args wid in
+        let wid = extract_wiki_id args (fst wb) in
         try (* If a wikibox is already specified, there is nothing to do *)
           ignore (List.assoc "box" args); Lwt.return None
         with Not_found ->
           Users.get_user_id ~sp
           >>= fun userid ->
-          let _englobing_wb = (wid, father) in
           rights#can_create_wikiboxes ~sp wid >>= function
             | true ->
                 Wiki.new_wikitextbox rights ~sp
                   ~wiki:wid
                   ~author:userid
                   ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"
-                              (string_of_wiki wid) father)
+                              (string_of_wiki (fst wb)) (snd wb))
                   ~content:"**//new wikibox//**" ()
-                  (* XXX Must copy the permissions of englobing_wb to the
-                     new wikibox *)
+                  (* XXX Must create some permissions *)
                   >>= fun box ->
                   Lwt.return
                     (Some (Wiki_syntax.string_of_extension "wikibox"
@@ -910,22 +901,22 @@ Wiki_filter.add_preparser_extension ~name:"wikibox"
   );
 
 Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
-  (fun wiki_id bi args c ->
+  (fun bi args c ->
      Wikicreole.Link_plugin
        (let sp = bi.bi_sp in
         let href = Ocsimore_lib.list_assoc_default "page" args "" in
         let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
         let https = extract_https args in
-        let wiki_id = extract_wiki_id args wiki_id in
         let content =
           match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make href)
         in
         (* class and id attributes will be taken by Wiki_syntax.a_elem *)
         ((if Wiki_syntax.is_absolute_link href then
             href
           else
+            let wiki_id = extract_wiki_id args (fst bi.bi_box) in
             match Wiki_services.find_servpage wiki_id with
               | Some s ->
                   let href = Ocsigen_lib.remove_slash_at_beginning
@@ -940,18 +931,18 @@ Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
   );
 
 Wiki_syntax.add_extension ~name:"nonattachedlink" ~wiki_content:true
-  (fun wiki_id bi args c ->
+  (fun bi args c ->
      Wikicreole.Link_plugin
        (let sp = bi.bi_sp in
-        let href = Ocsimore_lib.list_assoc_default "page" args "" in
-        let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-        let https = extract_https args in
-        let wiki_id = extract_wiki_id args wiki_id in
+        let href = Ocsimore_lib.list_assoc_default "page" args ""
+        and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
+        and https = extract_https args in
         let content =
           match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make href)
         in
+        let wiki_id = extract_wiki_id args (fst bi.bi_box) in
         (Eliom_duce.Xhtml.make_uri ?https ?fragment
            ~service:(Wiki_services.find_naservpage wiki_id) ~sp href,
          args,
@@ -960,11 +951,11 @@ Wiki_syntax.add_extension ~name:"nonattachedlink" ~wiki_content:true
   );
 
 Wiki_syntax.add_extension ~name:"cancellink" ~wiki_content:true
-  (fun wiki_id bi args c ->
+  (fun bi args c ->
      Wikicreole.Link_plugin
        (let content =
           match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki wiki_id bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
         in
         (Eliom_duce.Xhtml.make_uri ~service:Eliom_services.void_coservice'
@@ -976,14 +967,14 @@ Wiki_syntax.add_extension ~name:"cancellink" ~wiki_content:true
 
 
 Wiki_syntax.add_extension ~name:"object" ~wiki_content:true
-  (fun wiki_id bi args _c ->
+  (fun bi args _c ->
      Wikicreole.A_content
-       (let type_ = Ocsimore_lib.list_assoc_default "type" args "" in
-        let href = Ocsimore_lib.list_assoc_default "data" args "" in
-        let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-        let wiki_id = extract_wiki_id args wiki_id in
-        let https = extract_https args in
-        let atts = Wiki_syntax.parse_common_attribs args in
+       (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
+        and href = Ocsimore_lib.list_assoc_default "data" args ""
+        and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
+        and wiki_id = extract_wiki_id args (fst bi.bi_box)
+        and https = extract_https args
+        and atts = Wiki_syntax.parse_common_attribs args in
         let url =
           if Wiki_syntax.is_absolute_link href then
             href
@@ -1005,11 +996,11 @@ Wiki_syntax.add_extension ~name:"object" ~wiki_content:true
   );
 
 Wiki_syntax.add_extension ~name:"img" ~wiki_content:true
-  (fun wiki_id bi args c ->
+  (fun bi args c ->
      Wikicreole.A_content
-       (let href = Ocsimore_lib.list_assoc_default "name" args "" in
-        let https = extract_https args in
-        let wiki_id = extract_wiki_id args wiki_id in
+       (let href = Ocsimore_lib.list_assoc_default "name" args ""
+        and https = extract_https args
+        and wiki_id = extract_wiki_id args (fst bi.bi_box) in
         let alt = match c with Some c -> c | None -> href in
         let atts = Wiki_syntax.parse_common_attribs args in
         let url =

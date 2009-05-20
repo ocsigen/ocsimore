@@ -169,13 +169,13 @@ let new_wikibox_ ~wiki ~author ~comment ~content ~content_type () =
           | [] | None::_ -> 1l
           | (Some last)::_ -> Int32.add last 1l
         in
-        PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id)
-                   VALUES ($wiki', $boxid)"
+        PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
+                   VALUES ($wiki', $boxid, $comment)"
         >>= fun () ->
         PGSQL(db) "INSERT INTO wikiboxes
                   (id, wiki_id, author, comment, content, content_type)
                   VALUES
-                  ($boxid, $wiki', $author, $comment, $content, $content_type)"
+                  ($boxid, $wiki', $author, '', $content, $content_type)"
         >>= fun () ->
         Lwt.return boxid)
     )

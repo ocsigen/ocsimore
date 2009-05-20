@@ -28,8 +28,7 @@ open Wiki_sql.Types
 val add_extension : 
   name:string ->
   ?wiki_content:bool ->
-  (wiki ->
-     Wiki_widgets_interface.box_info ->
+  ( Wiki_widgets_interface.box_info ->
      (string * string) list -> 
        string option -> 
          (Xhtmltypes_duce.flows Lwt.t, 
@@ -40,8 +39,7 @@ val add_extension :
   unit
 
 val find_extension : name:string -> 
-  bool * (Wiki_services.Servpages.key ->
-            Wiki_widgets_interface.box_info ->
+  bool * ( Wiki_widgets_interface.box_info ->
             (string * Eliom_duce.Xhtml.uri) list ->
               string option ->
                 (Xhtmltypes_duce.flows Lwt.t, 
@@ -55,7 +53,6 @@ val find_extension : name:string ->
     and the default wiki id is the same as the one of the surrounding box).
 *)
 val xml_of_wiki :
-  wiki -> 
   Wiki_widgets_interface.box_info ->
   string -> 
   Xhtmltypes_duce.flows Lwt.t
@@ -63,7 +60,6 @@ val xml_of_wiki :
 (** returns only the content of the first paragraph of a wiki text.
 *)
 val inline_of_wiki :
-  wiki -> 
   Wiki_widgets_interface.box_info ->
   string -> 
   Xhtmltypes_duce.inlines Lwt.t
@@ -72,7 +68,6 @@ val inline_of_wiki :
     after having removed links.
 *)
 val a_content_of_wiki :
-  wiki -> 
   Wiki_widgets_interface.box_info ->
   string -> 
   {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t

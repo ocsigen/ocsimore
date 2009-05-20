@@ -26,7 +26,7 @@ let (>>=) = Lwt.bind
 let register_wikiext (message_widget, thread_widget) =
 
   Wiki_syntax.add_extension ~name:"forum_message" ~wiki_content:true
-    (fun _wiki_id bi args content ->
+    (fun bi args content ->
        Wikicreole.Block
          (let classes = 
             try Some [List.assoc "class" args]
@@ -56,7 +56,7 @@ let register_wikiext (message_widget, thread_widget) =
     );
 
   Wiki_syntax.add_extension ~name:"forum_thread" ~wiki_content:true
-    (fun _wiki_id bi args content ->
+    (fun bi args content ->
        Wikicreole.Block
          (let classes = 
             try Some [List.assoc "class" args]

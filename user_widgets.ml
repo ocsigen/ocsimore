@@ -119,7 +119,7 @@ object (self)
   initializer
 
       Wiki_syntax.add_extension ~name:"loginbox" ~wiki_content:true
-        (fun _ bi args _c ->
+        (fun bi args _c ->
            Wikicreole.Block
              (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
               let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
@@ -158,7 +158,7 @@ object (self)
 
 
       Wiki_syntax.add_extension ~name:"username" ~wiki_content:true
-        (fun _w bi _args _c ->
+        (fun bi _args _c ->
            Wikicreole.A_content
              (Users.get_user_data
                 ~sp:bi.Wiki_widgets_interface.bi_sp
@@ -167,13 +167,13 @@ object (self)
         );
 
       Wiki_syntax.add_extension ~name:"logoutbutton" ~wiki_content:true
-        (fun w bi _args c ->
+        (fun bi _args c ->
            Wikicreole.Block
              (let content = match c with
                 | Some c -> c
                 | None -> "logout"
               in
-              Wiki_syntax.xml_of_wiki w bi content >>= fun c ->
+              Wiki_syntax.xml_of_wiki bi content >>= fun c ->
               Lwt.return
                 {{ [ {:
                         Eliom_duce.Xhtml.post_form
@@ -192,10 +192,10 @@ object (self)
         );
 
       Wiki_syntax.add_extension ~name:"logoutlink" ~wiki_content:true
-        (fun w bi args c ->
+        (fun bi args c ->
            Wikicreole.Link_plugin
              (let content = match c with
-                | Some c -> Wiki_syntax.a_content_of_wiki w bi c
+                | Some c -> Wiki_syntax.a_content_of_wiki bi c
                 | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
               in
               ((Eliom_duce.Xhtml.make_uri

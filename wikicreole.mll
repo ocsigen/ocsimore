@@ -47,7 +47,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     superscripted_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
     a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
-    make_href : 'sp -> string -> string;
+    make_href : 'sp -> 'param -> string -> string;
     p_elem : attribs -> 'inline list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
     h1_elem : attribs -> 'inline list -> 'flow;
@@ -679,7 +679,7 @@ and parse_link c attribs =
       else
         let s = Lexing.lexeme lexbuf in
         let addr = 
-          c.build.make_href c.sp (String.sub s 0 (String.length s - 2)) 
+          c.build.make_href c.sp c.param (String.sub s 0 (String.length s - 2))
         in
         c.inline_mix <-
          c.build.a_elem attribs c.sp addr [c.build.chars addr] :: c.inline_mix;
@@ -692,7 +692,8 @@ and parse_link c attribs =
       end
       else begin
         let s = Lexing.lexeme lexbuf in
-        let addr = c.build.make_href c.sp (String.sub s 0 (String.length s - 1)) in
+        let addr = c.build.make_href c.sp c.param
+          (String.sub s 0 (String.length s - 1)) in
         c.stack <- Link (addr, attribs, c.stack);
         c.link <- true
       end;
@@ -709,7 +710,7 @@ and parse_image c attribs =
          ('}' ? (not_line_break # '}')) * "}}" {
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
-      let url = c.build.make_href c.sp (String.sub s 0 i) in
+      let url = c.build.make_href c.sp c.param (String.sub s 0 i) in
       let alt = String.sub s (i + 1) (String.length s - i - 3) in
       push c (c.build.img_elem attribs url alt);
       parse_rem c lexbuf
