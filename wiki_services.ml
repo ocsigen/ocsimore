@@ -204,7 +204,7 @@ let create_and_register_wiki ?sp ~wikibox_widget
 let save_then_redirect override_wikibox ~sp f =
   Lwt.catch
     (fun () ->
-       f ();
+       f () >>= fun _ ->
        (* We do a redirection to prevent repost *)
        Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
     )
@@ -240,7 +240,7 @@ and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
   (fun sp wb () ->
      save_then_redirect wb ~sp
-       (fun () -> Wiki.save_wikitextbox ~sp ~wb ~content:None)
+       (fun () -> Wiki.save_wikitextbox rights ~sp ~wb ~content:None)
   )
 
 and action_edit_wikibox_permissions =
@@ -314,7 +314,7 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
                Wiki_filter.preparse_extension (sp, wbid) wid content
                >>= fun content ->
                save_then_redirect wb ~sp
-                 (fun () -> Wiki.save_wikitextbox ~sp ~wb
+                 (fun () -> Wiki.save_wikitextbox rights ~sp ~wb
                     ~content:(Some content))
            | Some _ ->
                Wiki_widgets_interface.set_override_wikibox
@@ -345,9 +345,9 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
          | None ->
              save_then_redirect wb ~sp
                (fun () -> match page with
-                  | None -> Wiki.save_wikicssbox ~sp
+                  | None -> Wiki.save_wikicssbox rights ~sp
                       ~wiki:(fst wbcss) ~content:(Some content)
-                  | Some page -> Wiki.save_wikipagecssbox ~sp
+                  | Some page -> Wiki.save_wikipagecssbox rights ~sp
                       ~wiki:(fst wbcss) ~page ~content:(Some content)
                )
          | Some _ ->
