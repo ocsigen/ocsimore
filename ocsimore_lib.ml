@@ -108,3 +108,38 @@ let rec concat_list_opt lo l = match lo with
   | [] -> l
   | None :: q -> concat_list_opt q l
   | Some e :: q -> e :: concat_list_opt q l
+
+
+
+(** Association maps with default values (which thus never raise [Not_found] *)
+module type DefaultMap = sig
+  type key
+  type 'a t
+
+  val empty : (key -> 'a) -> 'a t
+  val find : key -> 'a t -> 'a
+  val add : key -> 'a -> 'a t -> 'a t
+end
+
+module DefaultMap (X : Map.OrderedType) : DefaultMap with type key = X.t
+= struct
+  type key = X.t
+  module XMap = Map.Make(X)
+
+  type 'a t = {
+    default: X.t -> 'a;
+    map: 'a XMap.t
+  }
+  let empty default = {
+    default = default;
+    map = XMap.empty
+  }
+
+  let find k map =
+    try XMap.find k map.map
+    with Not_found -> map.default k
+
+  let add k v map =
+    { map with map = XMap.add k v map.map }
+end
+
