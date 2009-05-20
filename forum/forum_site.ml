@@ -30,4 +30,5 @@ let _ =
   let thread_widget = 
     new Forum_widgets.thread_widget widget_err message_widget services
   in
-  Forum_wikiext.register_wikiext (message_widget, thread_widget)
+  Forum_wikiext.register_wikiext
+    Wiki_syntax.default_parser (message_widget, thread_widget)

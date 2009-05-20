@@ -88,7 +88,7 @@ let error_box = new Wiki_widgets.wikibox_error_box
 let wiki_rights = new Wiki_data.wiki_rights
 
 (** We are at eliom registration time, we can create the services *)
-let services = Wiki_services.services wiki_rights
+let services = Wiki_services.services Wiki_syntax.default_parser wiki_rights
 
 
 
@@ -121,19 +121,19 @@ let wikibox_widget =
             ignore (new User_widgets.login_widget sm)
      );
 
-     Lwt.return (new Wiki_widgets.dynamic_wikibox
+     Lwt.return (new Wiki_widgets.dynamic_wikibox Wiki_syntax.default_parser
                    wiki_rights error_box services)
     )
 
 let () = Wiki_widgets.register_wikibox_syntax_extensions
-  wikibox_widget error_box wiki_rights
+  Wiki_syntax.default_parser wikibox_widget error_box wiki_rights
 
 
 (** We register auxiliary services for administration boxes *)
 
 let service_edit_wikibox = Eliom_services.new_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
-  ~get_params:Wiki_widgets_interface.eliom_wikibox_args ()
+  ~get_params:Wiki_services.eliom_wikibox_args ()
 
 let () =
   Eliom_duce.Xhtml.register service_edit_wikibox

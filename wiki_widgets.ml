@@ -67,7 +67,7 @@ object
 
 end
 
-class wikibox_aux (error_box : Widget.widget_with_error_box)
+class wikibox_aux wp (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.wikibox_aux =
 object (self)
 
@@ -90,7 +90,8 @@ object (self)
 
   method display_wikiboxcontent ~bi ~classes (content_type, content, _ver as wb) =
     match content_type, content with
-      | Wiki_sql.WikiCreole, Some content ->  Wiki_syntax.xml_of_wiki bi content
+      | Wiki_sql.WikiCreole, Some content ->
+          Wiki_syntax.xml_of_wiki wp bi content
           >>= fun x -> Lwt.return (classes, x)
       | _ -> self#display_raw_wikiboxcontent ~classes wb
 
@@ -113,11 +114,11 @@ object (self)
 end
 
 
-class frozen_wikibox (rights: Wiki_data.wiki_rights) (error_box : Widget.widget_with_error_box)
+class frozen_wikibox wp (rights: Wiki_data.wiki_rights) (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.frozen_wikibox =
 object (self)
 
-  inherit wikibox_aux error_box
+  inherit wikibox_aux wp error_box
 
   val frozen_wb_class = "frozen_wikibox"
 
@@ -144,7 +145,7 @@ end;;
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
     or navigate through viewing options *)
-class dynamic_wikibox (rights : Wiki_data.wiki_rights) (error_box : Widget.widget_with_error_box)
+class dynamic_wikibox wp (rights : Wiki_data.wiki_rights) (error_box : Widget.widget_with_error_box)
 (* (* Debugging code, to obtain useful error messages *)
    : Wiki_widgets_interface.interactive_wikibox =
    let *)
@@ -168,7 +169,7 @@ class dynamic_wikibox (rights : Wiki_data.wiki_rights) (error_box : Widget.widge
 (* = Wiki_services.services () in *)
 object (self)
 
-  inherit frozen_wikibox rights error_box
+  inherit frozen_wikibox wp rights error_box
 
   val editform_class = "wikibox editform"
   val history_class = "wikibox history"
@@ -705,7 +706,7 @@ object (self)
             ] }}
      else
        let css= css_url [Ocsimore_lib.ocsimore_admin_dir;"ocsiwikistyle.css"] in
-       (match Wiki_services.find_servwikicss wiki with
+       (match Wiki_widgets_interface.find_servwikicss wiki with
           | None -> Lwt.return {{ [ css ] }}
           | Some wikicss_service ->
               Wiki_sql.get_css_for_wiki wiki
@@ -835,8 +836,9 @@ and extract_https args =
   with Not_found -> None
 
 
-let register_wikibox_syntax_extensions (widget : Wiki_widgets_interface.interactive_wikibox) (error_box : Widget.widget_with_error_box) (rights : Wiki_data.wiki_rights) =
-Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
+let register_wikibox_syntax_extensions wp (widget : Wiki_widgets_interface.interactive_wikibox) (error_box : Widget.widget_with_error_box) (rights : Wiki_data.wiki_rights) =
+let add_extension = Wiki_syntax.add_extension ~wp in
+add_extension ~name:"wikibox" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Block
        (try
@@ -850,7 +852,7 @@ Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
              (match c with
                 | None -> Lwt.return None
                 | Some c ->
-                    Wiki_syntax.xml_of_wiki bi c
+                    Wiki_syntax.xml_of_wiki wp bi c
                     >>= fun r -> Lwt.return (Some r)
              ) >>=fun subbox ->
              widget#display_interactive_wikibox
@@ -875,7 +877,7 @@ Wiki_syntax.add_extension ~name:"wikibox" ~wiki_content:true
                                 ~message:"Wiki error: error in wikibox extension" () :} ] }}
   ));
 
-Wiki_filter.add_preparser_extension ~name:"wikibox"
+Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
   (fun (sp, wb) args c ->
      (try
         let wid = extract_wiki_id args (fst wb) in
@@ -901,7 +903,7 @@ Wiki_filter.add_preparser_extension ~name:"wikibox"
    with Failure _ -> Lwt.return None)
   );
 
-Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
+add_extension ~name:"link" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Link_plugin
        (let sp = bi.bi_sp in
@@ -910,7 +912,7 @@ Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
         let https = extract_https args in
         let content =
           match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make href)
         in
         (* class and id attributes will be taken by Wiki_syntax.a_elem *)
@@ -918,7 +920,7 @@ Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
             href
           else
             let wiki_id = extract_wiki_id args (fst bi.bi_box) in
-            match Wiki_services.find_servpage wiki_id with
+            match Wiki_widgets_interface.find_servpage wiki_id with
               | Some s ->
                   let href = Ocsigen_lib.remove_slash_at_beginning
                     (Neturl.split_path href)
@@ -931,7 +933,7 @@ Wiki_syntax.add_extension ~name:"link" ~wiki_content:true
        )
   );
 
-Wiki_syntax.add_extension ~name:"nonattachedlink" ~wiki_content:true
+add_extension ~name:"nonattachedlink" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Link_plugin
        (let sp = bi.bi_sp in
@@ -940,23 +942,23 @@ Wiki_syntax.add_extension ~name:"nonattachedlink" ~wiki_content:true
         and https = extract_https args in
         let content =
           match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make href)
         in
         let wiki_id = extract_wiki_id args (fst bi.bi_box) in
         (Eliom_duce.Xhtml.make_uri ?https ?fragment
-           ~service:(Wiki_services.find_naservpage wiki_id) ~sp href,
+           ~service:(Wiki_widgets_interface.find_naservpage wiki_id) ~sp href,
          args,
          content)
        )
   );
 
-Wiki_syntax.add_extension ~name:"cancellink" ~wiki_content:true
+add_extension ~name:"cancellink" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Link_plugin
        (let content =
           match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make "Cancel")
         in
         (Eliom_duce.Xhtml.make_uri ~service:Eliom_services.void_coservice'
@@ -967,7 +969,7 @@ Wiki_syntax.add_extension ~name:"cancellink" ~wiki_content:true
   );
 
 
-Wiki_syntax.add_extension ~name:"object" ~wiki_content:true
+add_extension ~name:"object" ~wiki_content:true
   (fun bi args _c ->
      Wikicreole.A_content
        (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
@@ -980,7 +982,7 @@ Wiki_syntax.add_extension ~name:"object" ~wiki_content:true
           if Wiki_syntax.is_absolute_link href then
             href
           else
-            match Wiki_services.find_servpage wiki_id with
+            match Wiki_widgets_interface.find_servpage wiki_id with
               | Some s ->
                   let href = Ocsigen_lib.remove_slash_at_beginning
                     (Neturl.split_path href)
@@ -996,7 +998,7 @@ Wiki_syntax.add_extension ~name:"object" ~wiki_content:true
                   ++ atts)>[] ] }})
   );
 
-Wiki_syntax.add_extension ~name:"img" ~wiki_content:true
+add_extension ~name:"img" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.A_content
        (let href = Ocsimore_lib.list_assoc_default "name" args ""
@@ -1008,7 +1010,7 @@ Wiki_syntax.add_extension ~name:"img" ~wiki_content:true
           if Wiki_syntax.is_absolute_link href then
             href
           else
-            match Wiki_services.find_servpage wiki_id with
+            match Wiki_widgets_interface.find_servpage wiki_id with
               | Some s ->
                   let href =
                     Ocsigen_lib.remove_slash_at_beginning
@@ -1023,4 +1025,4 @@ Wiki_syntax.add_extension ~name:"img" ~wiki_content:true
                         alt={: Ocamlduce.Utf8.make alt :}}
                     ++ atts )>[] ] }})
   );
- 
+

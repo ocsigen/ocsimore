@@ -36,9 +36,6 @@ let string_of_extension name args content =
        | None -> "" 
        | Some content -> "|"^content)^">>"
 
-let extension_table = Wiki_filter.extension_table
-
-let find_extension = Wiki_filter.find_extension
 
 
 (***)
@@ -283,7 +280,141 @@ let absolute_link_regexp = Netstring_pcre.regexp "[a-z|A-Z|0-9]+:"
 let is_absolute_link addr = 
   (Netstring_pcre.string_match absolute_link_regexp addr 0) <> None
 
-let builder =
+
+
+
+type syntax_extension =
+    (Wiki_widgets_interface.box_info,
+     Xhtmltypes_duce.flows Lwt.t,
+     Eliom_duce.Blocks.a_content_elt_list Lwt.t)
+   Wikicreole.plugin
+
+
+type 'a plugin_hash = (string, 'a) Hashtbl.t
+
+type wiki_parser = {
+  builder: (Xhtmltypes_duce.flows Lwt.t,
+            Xhtmltypes_duce.inlines Lwt.t,
+            {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
+            box_info,
+            Eliom_sessions.server_params)
+    Wikicreole.builder;
+
+  plugin_assoc: (bool * syntax_extension) plugin_hash;
+
+  plugin_action_assoc:
+     ((Eliom_sessions.server_params * Wiki_sql.Types.wikibox,
+       string option Lwt.t)
+        Wikicreole.plugin_args)
+    plugin_hash;
+}
+
+let copy_parser wp = {
+  wp with
+    plugin_assoc = Hashtbl.copy wp.plugin_assoc;
+    plugin_action_assoc = Hashtbl.copy wp.plugin_action_assoc;
+}
+
+let builder_from_builder_ext bext =
+  { bext.builder with
+      Wikicreole.plugin =
+      (fun name ->
+         try Hashtbl.find bext.plugin_assoc name
+         with Not_found ->
+           (false,
+            (fun _ _ _ ->
+               Wikicreole.A_content
+                 (Lwt.return
+                    {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
+                                    !{: name :} ] ] ] }})))
+      );
+  }
+
+
+
+
+
+let add_preparser_extension ~wp ~name f =
+  Hashtbl.add wp.plugin_action_assoc name f
+
+let nothing _ _ = ()
+let nothing1 _ = ()
+
+let make_plugin_action wp =
+  let subst = ref [] in
+  ((fun name start end_ params args content ->
+      subst := (start,
+                end_,
+                (try
+                   Hashtbl.find wp.plugin_action_assoc name params args content
+                 with Not_found -> Lwt.return None))::!subst)
+   ,
+   fun () -> !subst
+  )
+
+let builder wp plugin_action =
+  { Wikicreole.chars = nothing1;
+    strong_elem = nothing;
+    em_elem = nothing;
+    a_elem = (fun _ _ _ _ -> ());
+    make_href = (fun _ _ a -> a);
+    br_elem = nothing1;
+    img_elem = (fun _ _ _ -> ());
+    tt_elem = nothing;
+    monospace_elem = nothing;
+    underlined_elem = nothing;
+    linethrough_elem = nothing;
+    subscripted_elem = nothing;
+    superscripted_elem = nothing;
+    nbsp = ();
+    p_elem = nothing;
+    pre_elem = nothing;
+    h1_elem = nothing;
+    h2_elem = nothing;
+    h3_elem = nothing;
+    h4_elem = nothing;
+    h5_elem = nothing;
+    h6_elem = nothing;
+    ul_elem = nothing;
+    ol_elem = nothing;
+    dl_elem = nothing;
+    hr_elem = nothing1;
+    table_elem = nothing;
+    inline = nothing1;
+    plugin =
+      (fun name -> 
+         let wiki_content =
+           try fst (Hashtbl.find wp.plugin_assoc name)
+           with Not_found -> false
+         in (wiki_content, (fun _ _ _ -> Wikicreole.A_content ())));
+    plugin_action = plugin_action;
+    error = nothing1;
+  }
+
+let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_sql.Types.wikibox) content =
+  let (plugin_action, get_subst) = make_plugin_action wp in
+  let builder = builder wp plugin_action in
+  ignore (Wikicreole.from_string sp (sp, wb) builder content);
+  let buf = Buffer.create 1024 in
+  Lwt_util.fold_left
+    (fun pos (start, end_, replacement) -> 
+       replacement >>= function
+         | None -> Lwt.return pos;
+         | Some replacement ->
+             Buffer.add_substring buf content pos (start - pos);
+             Buffer.add_string buf replacement;
+             Lwt.return end_
+    )
+    0
+    (List.rev (get_subst ()))
+  >>= fun pos ->
+  let l = String.length content in
+  if pos < l 
+  then Buffer.add_substring buf content pos (l - pos);
+  Lwt.return (Buffer.contents buf)
+
+
+let default_builder =
   { Wikicreole.chars = make_string;
     strong_elem = (fun attribs a -> 
                        let atts = parse_common_attribs attribs in
@@ -325,7 +456,7 @@ let builder =
     make_href =
       (fun sp bi addr ->
          let wiki_id = bi.Wiki_widgets_interface.bi_root_wiki in
-         let servpage = Wiki_services.find_servpage wiki_id in
+         let servpage = Wiki_widgets_interface.find_servpage wiki_id in
          match servpage, is_absolute_link addr with
            | (Some servpage, false) ->
                let addr =
@@ -424,30 +555,35 @@ let builder =
              Lwt_util.map_serial f2 rows >>= fun rows ->
              Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }});
     inline = (fun x -> x >>= fun x -> Lwt.return x);
-    plugin =
-      (fun name ->
-         try Hashtbl.find extension_table name
-         with Not_found ->
-           (false,
-            (fun _ _ _ ->
-               Wikicreole.A_content 
-                 (Lwt.return
-                    {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
-                                    !{: name :} ] ] ] }})))
+    plugin = (fun name ->
+                (false,
+                 (fun _ _ _ ->
+                    Wikicreole.A_content 
+                      (Lwt.return
+                         {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
+                                         !{: name :} ] ] ] }})))
       );
     plugin_action = (fun _ _ _ _ _ _ -> ());
     error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let xml_of_wiki bi s = 
+let default_parser = {
+  builder = default_builder;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+}
+
+let xml_of_wiki wp bi s = 
   Lwt_util.map_serial
     (fun x -> x)
-    (Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi builder s)
+    (Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+       (builder_from_builder_ext wp) s)
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
-let inline_of_wiki bi s : Xhtmltypes_duce.inlines Lwt.t =
-  match Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi builder s
+let inline_of_wiki builder bi s : Xhtmltypes_duce.inlines Lwt.t =
+  match Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+    (builder_from_builder_ext builder) s
   with
     | [] -> Lwt.return {{ [] }}
     | a::_ -> a >>= (function
@@ -455,8 +591,8 @@ let inline_of_wiki bi s : Xhtmltypes_duce.inlines Lwt.t =
 (*VVV What can I do with trailing data? *)
                        | {{ _ }} -> Lwt.return {{ [ <b>"error" ] }})
 
-let a_content_of_wiki bi s =
-  inline_of_wiki bi s >>= fun r ->
+let a_content_of_wiki builder bi s =
+  inline_of_wiki builder bi s >>= fun r ->
   Lwt.return
     {{ map r with
          |  <a (Xhtmltypes_duce.a_attrs)>l -> l
@@ -467,29 +603,29 @@ let a_content_of_wiki bi s =
 
 (*********************************************************************)
 
-let add_extension ~name ?(wiki_content=true) f =
-  Hashtbl.add extension_table name (wiki_content, f);
-  if wiki_content
-  then
-    Wiki_filter.add_preparser_extension ~name
+let add_extension ~wp ~name ?(wiki_content=true) f =
+  Hashtbl.add wp.plugin_assoc name (wiki_content, f);
+  if wiki_content then
+    Hashtbl.add wp.plugin_action_assoc name
       (fun (sp, wb) args -> function
          | None -> Lwt.return None
          | Some c ->
-             Wiki_filter.preparse_extension (sp, wb) c >>= fun c ->
+             preparse_extension wp (sp, wb) c >>= fun c ->
              Lwt.return (Some (string_of_extension name args (Some c)))
       )
 
 
-let _ =
+let () =
+  let add_extension_aux = add_extension ~wp:default_parser in
 
-  add_extension ~name:"div" ~wiki_content:true
+  add_extension_aux ~name:"div" ~wiki_content:true
     (fun bi args c -> 
        Wikicreole.Block 
          (let content = match c with
             | Some c -> c
             | None -> ""
           in
-          xml_of_wiki bi content >>= fun content ->
+          xml_of_wiki default_parser bi content >>= fun content ->
           let classe = 
             try
               let a = List.assoc "class" args in
@@ -507,14 +643,14 @@ let _ =
     );
 
 
-  add_extension ~name:"span" ~wiki_content:true
+  add_extension_aux ~name:"span" ~wiki_content:true
     (fun bi args c -> 
        Wikicreole.A_content
          (let content = match c with
             | Some c -> c
             | None -> ""
           in
-          inline_of_wiki bi content >>= fun content ->
+          inline_of_wiki default_parser bi content >>= fun content ->
           let classe = 
             try
               let a = List.assoc "class" args in
@@ -532,7 +668,7 @@ let _ =
          )
     );
 
-  add_extension ~name:"wikiname" ~wiki_content:true
+  add_extension_aux ~name:"wikiname" ~wiki_content:true
     (fun bi _ _ ->
        Wikicreole.A_content
          (let wid = fst bi.Wiki_widgets_interface.bi_box in
@@ -542,18 +678,18 @@ let _ =
     );
 
 
-  add_extension ~name:"raw" ~wiki_content:false
+  add_extension_aux ~name:"raw" ~wiki_content:false
     (fun _ args content ->
        Wikicreole.A_content
          (let s = string_of_extension "raw" args content in
           Lwt.return {{ [ <b>{: s :} ] }}));
 
-  add_extension ~name:"" ~wiki_content:false
+  add_extension_aux ~name:"" ~wiki_content:false
     (fun _ _ _ ->
        Wikicreole.A_content (Lwt.return {{ [] }})
     );
 
-  add_extension ~name:"content"
+  add_extension_aux ~name:"content"
     (fun bi args _ -> 
        Wikicreole.Block
          (let classe = 
@@ -575,7 +711,7 @@ let _ =
          )
     );
 
-  add_extension ~name:"menu"
+  add_extension_aux ~name:"menu"
     (fun bi args _ ->
        let wiki_id = fst bi.Wiki_widgets_interface.bi_box in
        Wikicreole.Block
@@ -600,7 +736,7 @@ let _ =
               with Not_found -> s, s
             in
             Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
-            a_content_of_wiki bi text >>= fun text2 ->
+            a_content_of_wiki default_parser bi text >>= fun text2 ->
             let b = 
               match wiki_info.Wiki_sql.Types.wiki_pages with
                 | Some dir ->
@@ -622,7 +758,8 @@ let _ =
                 if is_absolute_link link
                 then link
                 else 
-                  match Wiki_services.find_servpage bi.bi_root_wiki with
+                  match Wiki_widgets_interface.find_servpage
+                    bi.bi_root_wiki with
                     | Some servpage -> 
                         let path =
                           Ocsigen_lib.remove_slash_at_beginning
@@ -667,7 +804,7 @@ let _ =
     );
 
 
-  add_extension ~name:"cond" ~wiki_content:true
+  add_extension_aux ~name:"cond" ~wiki_content:true
     (fun bi args c -> 
        Wikicreole.Block
          (let sp = bi.Wiki_widgets_interface.bi_sp in
@@ -707,7 +844,7 @@ let _ =
               | [c] -> eval_cond c
               | _ -> Lwt.return false)
          >>= function
-           | true -> xml_of_wiki bi content
+           | true -> xml_of_wiki default_parser bi content
            | false -> Lwt.return {{ [] }}
           )
          )

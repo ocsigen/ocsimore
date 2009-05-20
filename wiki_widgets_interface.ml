@@ -170,18 +170,6 @@ let wikisyntax_help_name = "wikisyntax-help"
 
 (*********************************************************************)
 
-let ( ** ) = Eliom_parameters.prod
-
-let eliom_wiki_args = Wiki_sql.eliom_wiki "wid"
-let eliom_wikibox_args = eliom_wiki_args ** (Eliom_parameters.int32 "wbid")
-let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
-let eliom_css_args =
-  (Wiki_sql.eliom_wiki "widcss" ** (Eliom_parameters.int32 "wbidcss"))
-  ** (Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
-
-(*********************************************************************)
-
-
 type classes = string list
 
 
@@ -424,3 +412,56 @@ class type virtual interactive_wikibox =
       Ocsigen_http_frame.result Lwt.t
 
   end
+
+
+(** XXX This must be moved somewhere else. Unfortunately it cannot go into Wiki_services, as it is referenced from Wiki_syntax, itself reference from Wiki_services *)
+
+(* a table containing the Eliom services generating pages
+   for each wiki associated to an URL *)
+module Servpages =
+  Hashtbl.Make(struct
+                 type t = wiki
+                 let equal = (=)
+                 let hash = Hashtbl.hash
+               end)
+
+let naservpages :
+    (string,
+     unit,
+     [ `Nonattached of [ `Get ] Eliom_services.na_s ],
+     [ `WithoutSuffix ],
+     [ `One of string ] Eliom_parameters.param_name,
+     unit,
+     [`Registrable ]
+    ) Eliom_services.service Servpages.t = Servpages.create 5
+let servpages :
+    (string list,
+     unit,
+     Eliom_services.get_service_kind,
+     [ `WithSuffix ],
+     [ `One of string list ] Eliom_parameters.param_name,
+     unit,
+     [ `Registrable ]
+    ) Eliom_services.service Servpages.t = Servpages.create 5
+let servwikicss :
+    (unit,
+     unit,
+     [ `Attached of
+         [ `Internal of [ `Service | `Coservice ] * [ `Get ]
+         | `External ] Eliom_services.a_s ],
+     [ `WithoutSuffix ],
+     unit,
+     unit,
+     [ `Registrable ]
+    ) Eliom_services.service Servpages.t = Servpages.create 5
+
+let add_naservpage = Servpages.add naservpages
+let add_servpage = Servpages.add servpages
+let add_servwikicss = Servpages.add servwikicss
+let find_naservpage = Servpages.find naservpages
+let find_servpage k =
+  try Some (Servpages.find servpages k)
+  with Not_found -> None
+let find_servwikicss k =
+  try Some (Servpages.find servwikicss k)
+  with Not_found -> None

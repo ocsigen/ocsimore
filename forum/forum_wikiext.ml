@@ -23,9 +23,9 @@
 
 let (>>=) = Lwt.bind
 
-let register_wikiext (message_widget, thread_widget) =
-
-  Wiki_syntax.add_extension ~name:"forum_message" ~wiki_content:true
+let register_wikiext wp (message_widget, thread_widget) =
+  let add_extension = Wiki_syntax.add_extension ~wp in
+  add_extension ~name:"forum_message" ~wiki_content:true
     (fun bi args content ->
        Wikicreole.Block
          (let classes = 
@@ -55,7 +55,7 @@ let register_wikiext (message_widget, thread_widget) =
          )
     );
 
-  Wiki_syntax.add_extension ~name:"forum_thread" ~wiki_content:true
+  add_extension ~name:"forum_thread" ~wiki_content:true
     (fun bi args content ->
        Wikicreole.Block
          (let classes = 

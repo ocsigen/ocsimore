@@ -118,7 +118,8 @@ object (self)
 
   initializer
 
-      Wiki_syntax.add_extension ~name:"loginbox" ~wiki_content:true
+      Wiki_syntax.add_extension ~wp:Wiki_syntax.default_parser
+        ~name:"loginbox" ~wiki_content:true
         (fun bi args _c ->
            Wikicreole.Block
              (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
@@ -156,8 +157,9 @@ object (self)
            )
         );
 
-
-      Wiki_syntax.add_extension ~name:"username" ~wiki_content:true
+      let add_extension = Wiki_syntax.add_extension
+        ~wp:Wiki_syntax.default_parser in
+      add_extension ~name:"username" ~wiki_content:true
         (fun bi _args _c ->
            Wikicreole.A_content
              (Users.get_user_data
@@ -166,14 +168,15 @@ object (self)
              Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
         );
 
-      Wiki_syntax.add_extension ~name:"logoutbutton" ~wiki_content:true
+      add_extension ~name:"logoutbutton" ~wiki_content:true
         (fun bi _args c ->
            Wikicreole.Block
              (let content = match c with
                 | Some c -> c
                 | None -> "logout"
               in
-              Wiki_syntax.xml_of_wiki bi content >>= fun c ->
+              Wiki_syntax.xml_of_wiki Wiki_syntax.default_parser
+                bi content >>= fun c ->
               Lwt.return
                 {{ [ {:
                         Eliom_duce.Xhtml.post_form
@@ -191,11 +194,12 @@ object (self)
              )
         );
 
-      Wiki_syntax.add_extension ~name:"logoutlink" ~wiki_content:true
+      add_extension ~name:"logoutlink" ~wiki_content:true
         (fun bi args c ->
            Wikicreole.Link_plugin
              (let content = match c with
-                | Some c -> Wiki_syntax.a_content_of_wiki bi c
+                | Some c -> Wiki_syntax.a_content_of_wiki
+                    Wiki_syntax.default_parser bi c
                 | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
               in
               ((Eliom_duce.Xhtml.make_uri
