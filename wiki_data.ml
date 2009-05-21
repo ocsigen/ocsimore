@@ -55,6 +55,8 @@ let wiki_wikipages_creators : wiki_arg parameterized_group = aux_grp
   "WikiWikipagesCreator" "Can create wikipages in the wiki"
 let wiki_css_creators : wiki_arg parameterized_group = aux_grp
   "WikiCssCreator" "Can create css for the wiki"
+let wiki_wikiboxes_deletors : wiki_arg parameterized_group = aux_grp
+  "WikiWikiboxesDeletor" "Can delete wikiboxes in the wiki"
 
 let wiki_wikiboxes_grps : wiki_arg admin_writer_reader = admin_writer_reader_aux
   ~name:"WikiWikiboxes" ~descr:"the wikiboxes of the wiki"
@@ -79,13 +81,19 @@ let wikipage_css_creators : wikipage_arg parameterized_group = aux_grp
  wb : parameterized by wikiboxes
  wp : parameterized by wikipages (unused right now)
 
-       -------- WikiAdmin(w)---------------------------------------------
+       -------- WikiAdmin(w)---------------------------------------------------
       /                 |                 \             \                \
 WikiboxesAdmins(w)   FilesAdmins(w)    Wikiboxes     Wikipages    CssCreators(w)
      |                  |             Creators(w)    Creators(w)
 WikiboxesWriters(w)  FilesWriters(w)
      |                  |
 WikiboxesReaders(w)  FilesReaders(w)
+
+
+----
+    \
+Wikiboxes
+Deletors(w)
 
 
 WikiboxAdmin(wb)
@@ -102,6 +110,7 @@ let () = Lwt_unix.run (
     User_sql.add_generic_inclusion ~superset:g ~subset:wiki_admins
   in
   add_admin wiki_wikiboxes_creators       >>= fun () ->
+  add_admin wiki_wikiboxes_deletors       >>= fun () ->
   add_admin wiki_wikipages_creators       >>= fun () ->
   add_admin wiki_css_creators             >>= fun () ->
   add_admin wiki_wikiboxes_grps.grp_admin >>= fun () ->
@@ -136,6 +145,7 @@ object
   method can_create_wikipages = aux_group wiki_wikipages_creators
 
   method can_create_wikiboxes = aux_group wiki_wikiboxes_creators
+  method can_delete_wikiboxes = aux_group wiki_wikiboxes_deletors
 
   method can_create_wikicss = aux_group wiki_css_creators
   method can_create_wikipagecss ~sp (wiki, _page : wikipage) =

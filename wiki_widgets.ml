@@ -787,13 +787,11 @@ object (self)
        let wb_container = (wiki, wiki_info.wiki_container) in
        let bi = { (default_bi ~sp ~root_wiki:wiki
                      ~wikibox:wb_container) with bi_subbox = Some subbox } in
-       self#display_interactive_wikibox ~bi ~cssmenu:CssWiki
-         wb_container
-
+       self#display_interactive_wikibox ~bi ~cssmenu:CssWiki wb_container
        >>= fun pagecontent ->
-       self#css_header ~bi ~admin:false ~page wiki
 
-       >>= fun css ->
+       self#css_header ~bi ~admin:false ~page wiki >>= fun css ->
+
        let title = (match title with
                       | Some title -> title
                       | None -> wiki_info.wiki_descr)
@@ -817,8 +815,7 @@ object (self)
             | None -> Lwt.fail Eliom_common.Eliom_404)
        (function
           | Eliom_common.Eliom_404 ->
-              self#display_wikipage ~sp ~wiki ~page
-              >>= fun (html, code) ->
+              self#display_wikipage ~sp ~wiki ~page >>= fun (html, code) ->
               Eliom_duce.Xhtml.send ~sp ~code html
           | e -> Lwt.fail e)
 
@@ -884,8 +881,7 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
         try (* If a wikibox is already specified, there is nothing to do *)
           ignore (List.assoc "box" args); Lwt.return None
         with Not_found ->
-          Users.get_user_id ~sp
-          >>= fun userid ->
+          Users.get_user_id ~sp >>= fun userid ->
           rights#can_create_wikiboxes ~sp wid >>= function
             | true ->
                 Wiki.new_wikitextbox rights ~sp
