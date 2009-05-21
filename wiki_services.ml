@@ -144,7 +144,7 @@ let create_and_register_wiki ?sp ~wikibox_widget
        | e -> Lwt.fail e)
 
 
-let save_then_redirect override_wikibox ~sp f =
+let save_then_redirect overriden_wikibox ~sp f =
   Lwt.catch
     (fun () ->
        f () >>= fun _ ->
@@ -154,7 +154,7 @@ let save_then_redirect override_wikibox ~sp f =
     (fun e ->
        Wiki_widgets_interface.set_override_wikibox
          ~sp
-         (override_wikibox, Error e);
+         (overriden_wikibox, Error e);
        Eliom_predefmod.Action.send ~sp ())
 
 
