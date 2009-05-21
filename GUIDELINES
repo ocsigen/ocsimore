@@ -5,9 +5,11 @@ If you want to contribute to Ocsimore and/or write your own
 extensions, we recommend to follow these guidelines. Have a look at
 the forum code for an example.
 
-* Please try to make things as generic and configurable as possible.
+==== Generic advices: ====
 
-* The use of classes allows to extend widgets or modify their behaviours.
+* Try to make things as generic and configurable as possible.
+
+* The use of classes allows to extend widgets or modify their behaviour.
 Decompose each of them into several methods, one for each subtask to perform
 (retrieve data, display ...) and for each widget kind.
 
@@ -17,108 +19,90 @@ can be rewritten by programmers who want to redefine some methods.
 * The creation and registration of services is also done in this
   separate module that can be loaded several times inside the
   {{{<host>}}} section of the configuration file. 
+**??**
 
   Usually, widgets depend on services, and service handlers depend on
   widgets. This means that there is an instance of classes for each
   site. For example, create services, then give them as parameters to
   the class constructor to create the object, then register services.
 
+* Use as much as possible the same naming scheme for methods.
+For example:
+ ** {{{private retrieve_data}}} or {{{retrieve_}}}...
+ ** {{{private display}}} or {{{display_...}}}
+ for displaying the widget from retrieved data
+
+* Use as much as possible the same names for labels.
+
+==== More specific instructions ====
 
 * Decompose your extension in 8 parts:\\
 {{{_createdb.sql}}} SQL creation of databases\\
 {{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool\\
-{{{_cache.ml}}} cache on database requests, using the Cache module\\
-{{{.ml}}} higher level functions needed by the module. Creation of groups
-    and services ...
-    This module also defines session data ({{{sd}}}) for this extension,
-    (and the permission system).\\
+{{{_cache.ml}}} cache on database requests, using the Cache module.
+    For all cached SQL-related functions,, we use a name ending with {{{_}}} in
+    {{{*_sql.ml}}} and without the {{{_}}} in {{{*cache.ml}}}, to remember that
+    we must not call the functions from {{{_sql.ml}}} directly.
+{{{.ml}}} higher level functions needed by the module. Also, creation of the
+    groups specific to the extension, using the module Users, and of the
+    inclusions between those groups.\\
 {{{_data.ml}}} database access with cache and verification of permissions
     Almost the same interface as {{{_sql.ml}}} and {{{_cache.ml}}}, 
-    but every function takes {{{~sp}}} and {{{~sd}}} as parameters,
+    but every function takes {{{~sp}}} as parameters,
     calls the cached function if authorized,
-    then filters the result (if needed) to remove forbidden content.
+    then filters the result  to remove forbidden content (if needed).
     They may fail with exception {{{Ocsimore_common.Permission_denied}}}.\\
-{{{_widgets.ml}}} widgets defined by the extension\\
+{{{_services.ml}}} definition of the services needed by the extension\\
+{{{_widgets.ml}}} widgets defined by the extension, which usually call the
+    services of the previous module \\
 {{{_wikiext.ml}}} the wiki syntax extensions you define for your module\\
 {{{_site.ml}}} a separate module to be loaded dynamically from config file
     inside the {{{<host>}}} section. Will register services, but also
     instanciates widget classes and create wiki extensions.\\
-**ARG wiki extension sont crées plusieurs fois si l'on a plusieurs sites !!! **
 
-For all cached requests, I use a name ending with {{{_}}} in {{{*_sql.ml}}}
-to and without
-the {{{_}}} in {{{*cache.ml}}}
-to remember that we must not call the functions from
-{{{_sql.ml}}} directly.
 
-* Use as much as possible the same naming scheme for methods.
-For example:
- * {{{private retrieve_data}}} or {{{retrieve_}}}...
- * {{{private display}}} or {{{display_...}}}
- for displaying the widget from retrieved data
- * public methods for each widget you want to be able to put in your pages
-(possibly in wikipages), that will:
-  # check permissions
-  # call {{{retrieve_...}}}
-  # call {{{display_...}}}
-For example: public method {{{oldversion_wikibox}}} will call {{{retrieve_old_wikibox}}}
-and {{{display_old_wikibox}}}
 
-* Use as much as possible the same names for labels.
+
+
+
 
 * Each widget takes an optional {{{?classe}}} label of type string list
 for the {{{class}}} xhtml attribute. Each widget has its own attribute names
 
 * Session data:
-most widgets take {{{~sp}}} as parameter (Eliom's server parameters) and also
-a {{{~sd}}} parameter (session data).
-This {{{~sd}}} parameter is a cache of session data, to avoid retrieving
-them from the db for each box, if several boxes need them.
-It has type {{{Ocsimore_common.session_data = Polytables.t}}}
-(polymorphic table).
-This allows each module (forum, wiki...) to save its own data inside.
+most widgets take {{{~sp}}} as parameter (Eliom's server parameters). Those
+parameters contain in particular a cache {{{rc}}}, which can
+be used to retrieve expressions that are computed more than once per
+request.
+The cach type {{{Polytables.t}}} (polymorphic table).
+This allows each module (forum, wiki...) to save its own data inside the cache.
 To do that, each module must create its own polytable key.
 This data is usually a record with lazy values or tables inside 
 to prevent data to be retrieved if not necessary of if it has already been done.
-You must create a new {{{~sd}}} for each request using
-{{{Ocsimore_common.create_sd (it is destroyed at the end).
-See for example {{{wiki.ml}}}.
-
-Is it really useful? Actually I use it only for few things. For most cases,
-we use a cache of sql requests.
 
 Warning: Polytables is not thread-safe. 
-Do not use function that access {{{~sd}}} inside {{{Lwt_preemptive.detach!}}}
+Do not use function that access this cache inside {{{Lwt_preemptive.detach!}}}
 
-When doing an action, DO NOT FORGET to send the session data to the
-subsequent service by returning the exception Ocsimore_common.Session_data.
-At the beginning of a service handler, call Ocsimore_common.get_sd
-that will get the previous sd if it exists, or create a new one otherwise.
 
 * Catching exceptions:
 To be sure that all exceptions occurring during a db request are catched
 and result in an error message in the box, I use the method
 {{{Widget.widget_with_error_box#bind_or_display_error}}}
 
-* Creating new wiki extensions:
+* Creating new wikisyntax extensions:
 If you create a new box, you probably want to have a syntax to place it
-inside a wikibox. To so that, use the functions Wiki_syntax.add_block_extension
-and Wiki_syntax.add_inline_extension. 
+inside a wikibox. To so that, use the function
+{{{Wiki_syntax.add_extension}}}.
 If you want a preparsing (i.e. do some action before saving the wikibox in
 the database, like creating a new wikibox for {{{~<<wikibox box='new'>>}}}),
-use the function {{{Wiki_filter.add_preparser_extension}}}.
-If your box can contain wiki syntax,
-(for example {{{~<<div|content>>}}}) do not forget to call
-Wiki_filter.add_preparser_extension as in Wiki_syntax.ml (div)
-to preparse the content recursively.
-(!!!Very dangerous: should be done automatically!!!)
+use the function {{{Wiki_syntax.add_preparser_extension}}}.
 See examples in {{{wiki_syntax.ml}}} and {{{wiki_widgets.ml}}}
 
 * Groups
 Groups and users are the same notion. The only difference is that users have
 a password. A user can belong to a group that belongs to another group, etc.
 It is recommanded to create groups for each task you want. For example:
-readers of wiki 1, writers of wiki 1, and then put users inside.
+readers of wiki, writers of wiki, and then put users inside.
 Predefined users/groups:
  - admin: a special user who belongs to all groups
  - anonymous: non authenticated user
@@ -126,23 +110,15 @@ Predefined users/groups:
  - nobody: a special user with no right at all 
  (for ex when the user does not exist)
 
-When creating a new extension, create a group for each possible action
-(for example "write in the forum number 4", "edit page css for wiki 3"...).
-Then set the relations between these groups.
+You can also create generic groups, that are parematerized by a an
+abstracted integer, using {{{User_sql.new_parametrized_group}}}.  For
+example, there exists the group of the administrators of the wiki 3.  Then
+you can add generic inclusions between generic groups, using
+{{{User_sql.add_generic_inclusion}}}. As an example the administrators of a
+given wiki are also readers of this wiki.
 
-You probably want to compute the permission for one user at the
-beginning of the request. To do that, create a record with boolean
-fields for each possible action (for one forum, one box in a wiki, one
-wiki, etc). The function that will compute this can be memoised in sd
-to avoid to compute several times the same thing. See forum.ml for an
-example.
-
-
-* Wiki
-Warning: if the wiki is associated to a path, we register an Eliom service
-with suffix at this URL. The table wikipages associate a pair (path, wiki_id)
-to a wikibox number in this wiki. It is not possible for now to associate a
-box from another wiki. But you can create a sub-box that belongs to another 
-wiki.
-
-
+You probably want to compute the permission for one user at the beginning of
+the request.  To do that, create a record with boolean fields for each
+possible action (for one forum, one box in a wiki, one wiki, etc).  The
+function that will compute this can be memoised in the session cache to
+avoid to compute several times the same thing.  See forum.ml for an example.
