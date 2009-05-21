@@ -83,19 +83,13 @@ let wikipage_css_creators : wikipage_arg parameterized_group = aux_grp
  wb : parameterized by wikiboxes
  wp : parameterized by wikipages (unused right now)
 
-       -------- WikiAdmin(w)---------------------------------------------------
-      /                 |                 \             \                \
-WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)
-     |                  |             Creators(w)    Creators(w)
+       -------- WikiAdmin(w)-------------------------------------------------------
+      /                 |                 \             \                \         \
+WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)  Wikiboxes
+     |                  |             Creators(w)    Creators(w)                 Deletors(w)
 WikiboxesWriters(w)  FilesWriters(w)          \       /
      |                  |                   GenWikiboxes
 WikiboxesReaders(w)  FilesReaders(w)         Creators(w)
-
-
-----
-    \
-Wikiboxes
-Deletors(w)
 
 
 WikiboxAdmin(wb)
