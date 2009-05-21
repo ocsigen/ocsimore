@@ -85,7 +85,7 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
 
 
 let new_wikitextbox rights ~sp ~wiki ~author ~comment ~content () =
-  rights#can_create_wikiboxes ~sp wiki
+  rights#can_create_genwikiboxes ~sp wiki
   >>= function
     | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
         ~content_type:Wiki_sql.WikiCreole ()

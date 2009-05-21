@@ -882,7 +882,7 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
           ignore (List.assoc "box" args); Lwt.return None
         with Not_found ->
           Users.get_user_id ~sp >>= fun userid ->
-          rights#can_create_wikiboxes ~sp wid >>= function
+          rights#can_create_subwikiboxes ~sp wid >>= function
             | true ->
                 Wiki.new_wikitextbox rights ~sp
                   ~wiki:wid
