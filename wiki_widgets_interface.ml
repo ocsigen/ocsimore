@@ -67,7 +67,10 @@ type wikibox_override =
   | CssOldversion of (wikibox * string option) * int32
 
   (** Edition of the permissions of a wikibox *)
-  | EditPerms of wikibox
+  | EditWikiboxPerms of wikibox
+
+  (** Edition of the permissions of a wiki *)
+  | EditWikiPerms of wiki
 
   (** Error message *)
   | Error of exn
@@ -228,17 +231,23 @@ end
 (** The various tabs on top of an interactive wikibox *)
 type menu_item =
   | Menu_Edit
-  | Menu_EditPerm
+  | Menu_EditWikiboxPerms
+  | Menu_EditWikiPerms
   | Menu_History
   | Menu_View
   | Menu_HistoryCss
   | Menu_EditCss
 
-(** Argument passed when building the interactive menu. We can edit the CSS
-    for the current wiki, or the CSS for a wikipage *)
-type css_menu =
-  | CssWiki
-  | CssWikipage of string
+(** Argument passed to the function building the interactive menu on top
+    of a wikibox. Regular boxes receive no additional treatment. WikiContainer
+    boxes are for boxes that are the container of a wiki, and receive buttons
+    to edit the permissions or the css of the wiki. WikiPage boxes are
+    for boxes that are wikipages main content, and receive button to edit
+    the css or the permissions of the wikipages *)
+type special_box =
+  | RegularBox
+  | WikiContainerBox of wiki
+  | WikiPageBox of wikipage
 
 (** A wikibox with which the user can interact *)
 class type virtual interactive_wikibox =
@@ -299,9 +308,18 @@ class type virtual interactive_wikibox =
       (classes * Xhtmltypes_duce.flows) Lwt.t
 
 
-    (** Display a form permitting to edit the permissions of the given
-       wikibox *)
-    method display_edit_perm_form :
+    (** Display a form permitting to edit the permissions of the given wiki.
+        The wikibox argument is the wikibox which is overridden if an error
+        occurs *)
+    method display_edit_wiki_perm_form :
+      bi:box_info ->
+      classes:string list ->
+      wb:wikibox ->
+      wiki ->
+      (classes * Xhtmltypes_duce.flows) Lwt.t
+
+    (** Display a form to edit the permissions of the given wikibox*)
+    method display_edit_wikibox_perm_form :
       bi:box_info ->
       classes:string list ->
       wikibox ->
@@ -331,16 +349,17 @@ class type virtual interactive_wikibox =
 
 
     (** Adds an interactive menu and a title on top of [content]. The result
-       of displaying [wb] is supposed to be the argument [content]. The
-       argument [service] is used to know which tab to highlight in the menu.
-       The argument [cssmenu] is used to specify whether we should add buttons
-       to edit a css. The [classe] argument must contain a list of
-       css classes that will be added to the outermost xhtml element. *)
+      of displaying [wb] is supposed to be the argument [content]. The argument
+      [active_item] is used to know which tab to highlight in the menu.
+      The argument [special_box] is used to specify whether we should add
+      special button (see the documentation for [special_box].
+      The [classes] argument must contain a list of css classes that will be
+      added to the outermost xhtml element. *)
     method display_menu_box :
       bi:box_info ->
       classes:string list ->
-      ?service:menu_item ->
-      ?cssmenu:css_menu ->
+      ?active_item:menu_item ->
+      ?special_box:special_box ->
       ?title:string ->
       wb:wikibox ->
       (** content:*)Xhtmltypes_duce.flows ->
@@ -355,18 +374,18 @@ class type virtual interactive_wikibox =
       ?classes:string list ->
       ?rows:int ->
       ?cols:int ->
-      ?cssmenu:css_menu ->
+      ?special_box:special_box ->
       (** wb:*)wikibox ->
       (Xhtmltypes_duce.block * bool) Lwt.t
 
     (** Same as [interactive_wikibox_aux], except that the http error
-        code is not returned.. *)
+        code is not returned. *)
     method display_interactive_wikibox :
       bi:box_info ->
       ?classes:string list ->
       ?rows:int ->
       ?cols:int ->
-      ?cssmenu:css_menu ->
+      ?special_box:special_box ->
       (** wb:*)wikibox ->
       Xhtmltypes_duce.block Lwt.t
 
@@ -378,7 +397,7 @@ class type virtual interactive_wikibox =
       ?classes:string list ->
       ?rows:int ->
       ?cols:int ->
-      ?cssmenu:css_menu ->
+      ?special_box:special_box ->
       wb_loc:wikibox ->
       override:wikibox_override ->
       (Xhtmltypes_duce.block * bool) Lwt.t

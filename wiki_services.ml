@@ -30,7 +30,6 @@ open Wiki_widgets_interface
 open Wiki_sql.Types
 let (>>=) = Lwt.bind
 
-exception Operation_insufficient_permissions
 exception Css_already_exists
 exception Page_already_exists
 
@@ -202,11 +201,19 @@ and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
 
 and action_edit_wikibox_permissions =
   Eliom_predefmod.Action.register_new_coservice'
-    ~name:"wiki_edit_perm" ~get_params:eliom_wikibox_args
+    ~name:"wikibox_edit_perm" ~get_params:eliom_wikibox_args
     (fun sp wb () -> 
        Wiki_widgets_interface.set_override_wikibox
          ~sp
-         (wb, EditPerms wb);
+         (wb, EditWikiboxPerms wb);
+       Lwt.return ())
+
+and action_edit_wiki_permissions =
+  Eliom_predefmod.Action.register_new_coservice'
+    ~name:"wiki_edit_perm" ~get_params:(eliom_wikibox_args ** eliom_wiki_args)
+    (fun sp (wb, wiki) () ->
+       Wiki_widgets_interface.set_override_wikibox ~sp
+         (wb, EditWikiPerms wiki);
        Lwt.return ())
 
 and action_wikibox_history = Eliom_predefmod.Action.register_new_coservice'
@@ -316,21 +323,30 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
   )
 
 and action_send_wikibox_permissions =
-  let params, f, _ = Wiki_data.helpers_wikibox_permissions in
+  let { Users.GroupsForms.awr_eliom_params = params; awr_save = f;
+        awr_eliom_arg_param = arg} =
+    Wiki_data.helpers_wikibox_permissions in
   Eliom_predefmod.Any.register_new_post_coservice'
     ~name:"wiki_save_wikibox_permissions"
-    ~post_params:(Eliom_parameters.bool "special" ** params)
-    (fun sp () (special, (wbuid, _ as args))->
+    ~post_params:(Eliom_parameters.bool "special" ** (arg ** params))
+    (fun sp () (special, (wbuid, args))->
        Wiki_sql.wikibox_from_uid wbuid >>= fun wb ->
-       rights#can_admin_wikibox ~sp ~wb >>= function
+       rights#can_set_wikibox_specific_permissions sp wb >>= function
          | true ->
              save_then_redirect wb ~sp
                (fun () ->
-                  f sp () args >>= fun r ->
-                  Wiki_sql.set_wikibox_special_rights wb special >>= fun () ->
-                  Lwt.return r)
+                  f wbuid args >>= fun () ->
+                  Wiki_sql.set_wikibox_special_rights wb special)
          | false -> Lwt.fail Ocsimore_common.Permission_denied
     )
+
+and action_send_wiki_permissions =
+  let params, f, _ = Wiki_data.helpers_wiki_permissions in
+  Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"wiki_save_wiki_permissions"
+    ~post_params:(eliom_wikibox_args ** params)
+    (fun sp () (wb, args) ->
+       save_then_redirect wb ~sp (fun () -> f rights sp args))
 
 (* Below are the services for the css of wikis and wikipages.  The css
    at the level of wikis are registered in Wiki.ml *)
@@ -425,6 +441,7 @@ in (
   action_edit_wikibox,
   action_delete_wikibox,
   action_edit_wikibox_permissions,
+  action_edit_wiki_permissions,
   action_wikibox_history,
   action_css_history,
   action_old_wikibox,
@@ -432,6 +449,7 @@ in (
   action_src_wikibox,
   action_send_wikiboxtext,
   action_send_css,
+  action_send_wiki_permissions,
   action_send_wikibox_permissions,
   pagecss_service,
   action_create_page,

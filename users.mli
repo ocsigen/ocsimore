@@ -135,33 +135,83 @@ module GenericRights : sig
     ('a Opaque.int32_t -> user) *
     ('a Opaque.int32_t -> user)
 
-  type 'a params_save_permissions =
-      'a Opaque.int32_t *
-       ((string * string) * ((string * string) * (string * string)))
-  type 'a params_save_permissions_eliom =
-      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name *
-        ((input_string * input_string) *
-           ((input_string * input_string) * (input_string * input_string)))
-  and input_string = [ `One of string ] Eliom_parameters.param_name
+
+end
+
+
+module GroupsForms : sig
+
+  type input_string = [ `One of string ] Eliom_parameters.param_name
+  type two_input_strings = input_string * input_string
+
+  type 'a opaque_int32_eliom_param =
+      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name
+
+  (** Auxiliary records containing all the needed information
+      to define forms and services to edit the permissions of a parameterized
+      group *)
+  type 'a grp_helper = {
+    (** The eliom arguments for the two string corresponding to the
+        groups to add and remove into the parameterized group *)
+    grp_eliom_params : (string * string, [ `WithoutSuffix ], two_input_strings)
+      Eliom_parameters.params_type;
+
+    (** The eliom argument for the 'a parameter *)
+    grp_eliom_arg_param:
+      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
+      Eliom_parameters.params_type;
+
+    (** A function creating the controls that permit changing the
+        permissions of the group^*)
+    grp_form_fun:
+      'a Opaque.int32_t ->
+       string ->
+       (two_input_strings -> Xhtmltypes_duce.inlines) Lwt.t;
+
+    (** The hidden argument to use inside forms to specify which parameter
+        is meant *)
+    grp_form_arg:
+      'a Opaque.int32_t ->
+      'a opaque_int32_eliom_param ->
+      Xhtmltypes_duce.inline_forms;
+
+    (** The function saving the new permissions in the database *)
+    grp_save: 'a Opaque.int32_t -> string * string -> unit Lwt.t
+  }
+
+  val helpers_group : string -> 'a parameterized_group -> 'a grp_helper
+
+
+  type six_strings =(string * string) * ((string * string) * (string * string))
+  type six_input_strings =
+      two_input_strings * (two_input_strings * two_input_strings)
+
+  (** Same thing with an admin_writer_reader structure *)
+  type 'a awr_helper = {
+    awr_eliom_arg_param:
+      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
+      Eliom_parameters.params_type;
+
+    awr_eliom_params: (six_strings, [`WithoutSuffix], six_input_strings)
+      Eliom_parameters.params_type;
+
+    awr_save: 'a Opaque.int32_t -> six_strings -> unit Lwt.t;
+
+   (** Function creating the form to update the permissions *)
+    awr_form_fun:
+      'a Opaque.int32_t ->
+       (six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t;
+
+    awr_form_arg:
+      'a Opaque.int32_t ->
+      'a opaque_int32_eliom_param ->
+      Xhtmltypes_duce.inline_forms;
+  }
+
 
   val helpers_admin_writer_reader :
-    prefix:string -> 'a User_sql.Types.admin_writer_reader ->
-    (** Arguments for the service to register to update the permissions *)
-     ('a params_save_permissions,
-      [`WithoutSuffix],
-       'a params_save_permissions_eliom
-     ) Eliom_parameters.params_type *
-    (** Function for the service *)
-    (Eliom_sessions.server_params -> unit ->
-    'a params_save_permissions ->
-     Eliom_predefmod.Any.page Lwt.t)
-    *
-   (** Function creating the form to update the permissions *)
-   ('a Opaque.int32_t -> (
-      'a params_save_permissions_eliom ->
-        Eliom_duce.Xhtml.form_content_elt_list
-    ) Lwt.t)
-
+    string -> 'a User_sql.Types.admin_writer_reader -> 'a awr_helper
 
 
 end
+

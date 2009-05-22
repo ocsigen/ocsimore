@@ -458,89 +458,6 @@ module GenericRights = struct
     (fun i -> apply_parameterized_group grps.grp_admin i)
 
 
-  let opaque_int32_to_string v = Int32.to_string (Opaque.t_int32 v)
-  let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
-
-
-  let update_perms (add : string) (rem : string) grp arg =
-    let group = grp $ arg in
-    user_list_of_string add >>= fun addl ->
-    user_list_of_string rem >>= fun reml ->
-    add_list_to_group ~l:addl ~group >>= fun () ->
-    remove_list_from_group ~l:reml ~group
-
-
-  let ( ** ) = Eliom_parameters.prod
-
-  type 'a grp_helper = {
-    grp_eliom_params : (string * string, [ `WithoutSuffix ],
-                        [ `One of string ] Eliom_parameters.param_name *
-                        [ `One of string ] Eliom_parameters.param_name)
-      Eliom_parameters.params_type;
-
-    grp_eliom_arg_param:
-      ('a Opaque.int32_t, [ `WithoutSuffix ],
-       [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name)
-      Eliom_parameters.params_type;
-
-    grp_form:
-      'a Opaque.int32_t -> text:string ->
-        ([ `One of string ] Eliom_parameters.param_name *
-         [ `One of string ] Eliom_parameters.param_name ->
-          {{ Xhtmltypes_duce.inlines }})
-          Lwt.t;
-
-    grp_form_arg:
-      'a Opaque.int32_t ->
-      [`One of 'a Opaque.int32_t ] Eliom_parameters.param_name ->
-      Xhtmltypes_duce.inline_forms;
-
-    grp_save:
-      'a Opaque.int32_t * (string * string) -> unit Lwt.t
-  }
-
-
-  let helpers_group ~prefix ~grp =
-    let add = "add#" ^ prefix and rem = "rem#" ^ prefix in
-    let params = (Eliom_parameters.string add) ** (Eliom_parameters.string rem)
-
-    and param_arg = Eliom_parameters.user_type
-      string_to_opaque_int32 opaque_int32_to_string "arg"
-
-    and form_arg value arg_name =
-      Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
-               ~input_type:{: "hidden" :} ~name:arg_name ~value ()
-
-    and form arg ~(text : string) =
-      User_sql.users_in_group ~group:(grp $ arg) >>= fun users ->
-      (List.fold_left
-         (fun s r ->
-            s >>= fun s ->
-            User_sql.user_to_string r
-            >>= fun s2 -> Lwt.return (s^" "^s2))
-         (Lwt.return "")
-         users
-      )
-      >>= fun members ->
-      let string_input arg =
-        Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
-      Lwt.return (fun (iadd, irem) ->
-                    let textadd = "Add users: "
-                    and textrem = "Remove users: " in
-                    {{ [
-                         !{: text :}    !{: members :}          <br>[]
-                         !{: textadd :} {: string_input iadd :} <br>[]
-                         !{: textrem :} {: string_input irem :} <br>[]
-                       ] }}
-                 )
-
-    and update_perms (arg, (add, rem)) = update_perms add rem grp arg
-    in
-    {grp_eliom_params = params;
-     grp_eliom_arg_param = param_arg;
-     grp_form = form;
-     grp_form_arg = form_arg;
-     grp_save = update_perms}
 
 
 
@@ -564,50 +481,158 @@ module GenericRights = struct
       Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr }
     )
 
-  let helpers_admin_writer_reader ~prefix groups =
-    let h s = helpers_group ~prefix:(s ^ "#" ^ prefix) in
-    let helpa = h "adm"  ~grp:groups.grp_admin
-    and helpw = h "wri"  ~grp:groups.grp_writer
-    and helpr = h "read" ~grp:groups.grp_reader in
+end
 
-    let params = helpa.grp_eliom_arg_param ** (helpa.grp_eliom_params **
-      (helpw.grp_eliom_params ** helpr.grp_eliom_params))
 
-    and save (arg, ((adda, rema), ((addw, remw), (addr, remr)))) =
-      helpa.grp_save (arg, (adda, rema)) >>= fun () ->
-      helpw.grp_save (arg, (addw, remw)) >>= fun () ->
-      helpr.grp_save (arg, (addr, remr))
+module GroupsForms = struct
+
+  type input_string = [ `One of string ] Eliom_parameters.param_name
+  type two_input_strings = input_string * input_string
+
+  type 'a opaque_int32_eliom_param =
+      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name
+
+
+  let opaque_int32_to_string v = Int32.to_string (Opaque.t_int32 v)
+  let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
+
+
+  let update_perms (add : string) (rem : string) grp arg =
+    let group = grp $ arg in
+    user_list_of_string add >>= fun addl ->
+    user_list_of_string rem >>= fun reml ->
+    add_list_to_group ~l:addl ~group >>= fun () ->
+    remove_list_from_group ~l:reml ~group
+
+
+  let ( ** ) = Eliom_parameters.prod
+
+  type 'a grp_helper = {
+    grp_eliom_params : (string * string, [ `WithoutSuffix ], two_input_strings)
+      Eliom_parameters.params_type;
+
+    grp_eliom_arg_param:
+      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
+      Eliom_parameters.params_type;
+
+    grp_form_fun:
+      'a Opaque.int32_t ->
+       string ->
+       (two_input_strings -> {{ Xhtmltypes_duce.inlines }}) Lwt.t;
+
+    grp_form_arg:
+      'a Opaque.int32_t ->
+      'a opaque_int32_eliom_param ->
+      Xhtmltypes_duce.inline_forms;
+
+    grp_save:
+      'a Opaque.int32_t -> string * string -> unit Lwt.t
+  }
+
+
+  let helpers_group prefix grp =
+    let add = "add#" ^ prefix and rem = "rem#" ^ prefix in
+    let params = (Eliom_parameters.string add) ** (Eliom_parameters.string rem)
+
+    and param_arg = Eliom_parameters.user_type
+      string_to_opaque_int32 opaque_int32_to_string "arg"
+
+    and form_arg value arg_name =
+      Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
+               ~input_type:{: "hidden" :} ~name:arg_name ~value ()
+
+    and form arg (text : string) =
+      User_sql.users_in_group ~group:(grp $ arg) >>= fun users ->
+      (List.fold_left
+         (fun s r ->
+            s >>= fun s ->
+            User_sql.user_to_string r
+            >>= fun s2 -> Lwt.return (s^" "^s2))
+         (Lwt.return "")
+         users
+      )
+      >>= fun members ->
+      let string_input arg =
+        Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+      Lwt.return (fun (iadd, irem) ->
+                    let textadd = "Add users: "
+                    and textrem = "Remove users: "
+                    and textcur = "Current users in this group:" in
+                    {{ [
+                         <b>{: text :} <br>[]
+                         !{: textcur :} !{: members :} <br>[]
+                         !{: textadd :} {: string_input iadd :} <br>[]
+                         !{: textrem :} {: string_input irem :} <br>[]
+                       ] }}
+                 )
+
+    and update_perms arg (add, rem) = update_perms add rem grp arg
     in
-    (params,
+    {grp_eliom_params = params;
+     grp_eliom_arg_param = param_arg;
+     grp_form_fun = form;
+     grp_form_arg = form_arg;
+     grp_save = update_perms}
 
-     (fun sp () args ->
-        save args >>= fun () ->
-        Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'),
+  type six_strings =(string * string) * ((string * string) * (string * string))
+  type six_input_strings =
+      two_input_strings * (two_input_strings * two_input_strings)
 
-     (fun v ->
-     helpa.grp_form v "Current administrators: " >>= fun forma ->
-     helpw.grp_form v "Current writers: "        >>= fun formw ->
-     helpr.grp_form v "Current readers: "        >>= fun formr ->
-     let form (arg, (arga, (argw, argr))) =
-       {{ [ <p>[ {: helpa.grp_form_arg v arg :}
-                 !{: formr argr :}
-                 !{: formw argw :}
-                 !{: forma arga :}
-                 {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                    {{ "Save" }} :}
-              ] ] }}
-     in
-     Lwt.return form))
+  (** Same thing with an admin_writer_reader structure *)
+  type 'a awr_helper = {
+    awr_eliom_arg_param:
+      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
+      Eliom_parameters.params_type;
 
+    (** Arguments for the service to register to update the permissions *)
+    awr_eliom_params: (six_strings, [`WithoutSuffix], six_input_strings)
+      Eliom_parameters.params_type;
 
-  type 'a params_save_permissions =
-      'a Opaque.int32_t *
-       ((string * string) * ((string * string) * (string * string)))
-  type 'a params_save_permissions_eliom =
-      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name *
-        ((input_string * input_string) *
-           ((input_string * input_string) * (input_string * input_string)))
-  and input_string = [ `One of string ] Eliom_parameters.param_name
+    (** Function saving the permissions *)
+    awr_save: 'a Opaque.int32_t -> six_strings -> unit Lwt.t;
 
+   (** Function creating the form to update the permissions *)
+    awr_form_fun:
+      'a Opaque.int32_t ->
+       (six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t;
+
+    awr_form_arg:
+      'a Opaque.int32_t ->
+      'a opaque_int32_eliom_param ->
+      Xhtmltypes_duce.inline_forms;
+  }
+
+  let helpers_admin_writer_reader prefix groups =
+    let h s = helpers_group (s ^ "#" ^ prefix) in
+    let helpa = h "adm"  groups.grp_admin
+    and helpw = h "wri"  groups.grp_writer
+    and helpr = h "read" groups.grp_reader in
+
+    let params = helpa.grp_eliom_params **
+      (helpw.grp_eliom_params ** helpr.grp_eliom_params)
+
+    and save arg ((adda, rema), ((addw, remw), (addr, remr))) =
+      helpa.grp_save arg (adda, rema) >>= fun () ->
+      helpw.grp_save arg (addw, remw) >>= fun () ->
+      helpr.grp_save arg (addr, remr)
+
+    and form_fun v =
+      helpa.grp_form_fun v "Current administrators: " >>= fun forma ->
+      helpw.grp_form_fun v "Current writers: "        >>= fun formw ->
+      helpr.grp_form_fun v "Current readers: "        >>= fun formr ->
+      let form (arga, (argw, argr)) =
+        {{ [ !{: formr argr :} !{: formw argw :} !{: forma arga :} ] }}
+      in
+      Lwt.return form
+    in
+    { awr_eliom_params = params;
+      awr_save = save;
+      awr_form_fun = form_fun;
+
+      awr_eliom_arg_param = helpa.grp_eliom_arg_param;
+      awr_form_arg = helpa.grp_form_arg
+    }
+
+(* Button : Eliom_duce.Xhtml.button ~button_type:{: "submit" :}{{"Save"}} *)
 
 end

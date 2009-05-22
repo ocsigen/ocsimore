@@ -40,29 +40,20 @@ object
   method display_error_box ?classes ?message ?exn () =
     match exn with
       | Some (Wiki.Unknown_box ((w, i), ver)) ->
-          error_box#display_error_box
-            ?classes
+          error_box#display_error_box ?classes ?exn
             ~message:(Printf.sprintf
                         "The box %ld does not exist in wiki %s%s."
                         i (string_of_wiki w)
                         (match ver with
                            | None -> ""
                            | Some v -> Printf.sprintf " with version %ld" v))
-            ?exn
             ()
+
       | Some Wiki_services.Page_already_exists ->
-          error_box#display_error_box
-            ?classes
+          error_box#display_error_box ?classes ?exn
             ~message:("This page has already been created \
-                       (reload the page to see it).")
-            ?exn
-            ()
-      | Some Wiki_services.Operation_insufficient_permissions ->
-          error_box#display_error_box
-            ?classes
-            ~message:("Unable to perform the operation: insufficient permissions")
-            ?exn
-            ()
+                       (reload the page to see it).") ()
+
       | _ -> error_box#display_error_box ?classes ?message ?exn ()
 
 end
@@ -154,6 +145,7 @@ class dynamic_wikibox wp (rights : Wiki_data.wiki_rights) (error_box : Widget.wi
   action_edit_wikibox,
   action_delete_wikibox,
   action_edit_wikibox_permissions,
+  action_edit_wiki_permissions,
   action_wikibox_history,
   action_css_history,
   action_old_wikibox,
@@ -161,6 +153,7 @@ class dynamic_wikibox wp (rights : Wiki_data.wiki_rights) (error_box : Widget.wi
   action_src_wikibox,
   action_send_wikiboxtext,
   action_send_css,
+  action_send_wiki_permissions,
   action_send_wikibox_permissions,
   pagecss_service,
   action_create_page,
@@ -183,26 +176,24 @@ object (self)
   val css_class = "editcss"
 
 
-  method private box_menu ~bi ?cssmenu ?service ?(title = "") ((wid, _) as wb) =
+  method private box_menu ~bi ?(special_box=RegularBox) ?active_item ?(title = "") wb =
     let sp = bi.bi_sp
     and preapply = Eliom_services.preapply in
     let history = preapply action_wikibox_history wb
     and edit = preapply action_edit_wikibox wb
     and delete = preapply action_delete_wikibox wb
-    and edit_perm = preapply action_edit_wikibox_permissions wb
-    in
-    let view = Eliom_services.void_coservice' in
-    (match cssmenu with
-       | Some (CssWikipage page) -> (* Edition of the css for page [page] *)
-           (Wiki_sql.get_css_wikibox_for_wikipage wid page >>= function
+    and edit_wikibox_perm = preapply action_edit_wikibox_permissions wb
+    and view = Eliom_services.void_coservice' in
+    (match special_box with
+       | WikiPageBox (w, page) -> (* Edition of the css for page [page] *)
+           (Wiki_sql.get_css_wikibox_for_wikipage w page >>= function
               | None ->
-                  (rights#can_create_wikipagecss ~sp (wid, page) >>= function
+                  (rights#can_create_wikipagecss ~sp (w, page) >>= function
                      | false -> Lwt.return (None, None, None)
                      | true ->
-                         let create = preapply action_create_css
-                           (wid, Some page) in
+                         let create=preapply action_create_css (w,Some page) in
                          Lwt.return (None, None,
-                                     Some (create, {{ "create wikipage css" }}))
+                                    Some (create, {{ "create wikipage css" }}))
                   )
               | Some wbcss ->
                   let wbcss = (wbcss, Some page) in
@@ -216,13 +207,13 @@ object (self)
                     )
            )
 
-       | Some CssWiki -> (* Edition of the global css for [wiki] *)
-           (Wiki_sql.get_css_wikibox_for_wiki wid >>= function
+       | WikiContainerBox w -> (* Edition of the global css for [wiki] *)
+           (Wiki_sql.get_css_wikibox_for_wiki w >>= function
               | None ->
-                  (rights#can_create_wikicss ~sp wid >>= function
+                  (rights#can_create_wikicss ~sp w >>= function
                      | false -> Lwt.return (None, None, None)
                      | true ->
-                         let create = preapply action_create_css (wid, None) in
+                         let create = preapply action_create_css (w, None) in
                          Lwt.return (None, None,
                                      Some (create, {{ "create wiki css" }}))
                   )
@@ -239,36 +230,49 @@ object (self)
            )
 
 
-       | None -> Lwt.return (None, None, None)
+       | RegularBox -> Lwt.return (None, None, None)
     ) >>= fun (history_css, edit_css, create_css) ->
-    let service = match service with
+    (match special_box with
+       | RegularBox | WikiPageBox _ -> Lwt.return None
+       | WikiContainerBox w ->
+           rights#can_admin_wiki sp w >>= function
+             | true ->
+                 let edit_p =preapply action_edit_wiki_permissions (wb, w) in
+                 Lwt.return (Some (edit_p, {{ "edit wiki permissions" }}))
+             | false -> Lwt.return None
+    ) >>= fun edit_wiki_perms ->
+    (* We choose the button to highlight, which is indicated by the
+       [active_item] argument *)
+    let service = match active_item with
       | None -> None
       | Some Menu_View -> Some view
       | Some Menu_Edit -> Some edit
-      | Some Menu_EditPerm -> Some edit_perm
+      | Some Menu_EditWikiboxPerms -> Some edit_wikibox_perm
+      | Some Menu_EditWikiPerms ->
+          (match edit_wiki_perms with
+             | Some (edit_wiki_perms, _) -> Some edit_wiki_perms
+             | None -> None)
       | Some Menu_History -> Some history
       | Some Menu_EditCss ->
           (match edit_css with
              | Some (edit_css, _) -> Some edit_css
-             | None -> None
-          )
+             | None -> None)
       | Some Menu_HistoryCss ->
           (match history_css with
              | Some (history_css, _) -> Some history_css
-             | None -> None
-          )
+             | None -> None)
     in
     let l = [
       (delete, {{ "delete" }});
       (edit, {{ "edit" }});
       (view, {{ "view" }});
     ] in
-    (rights#can_admin_wikibox ~sp ~wb >>= function
-      | true  -> Lwt.return ((edit_perm, {{ "edit permissions" }})::l)
+    (rights#can_set_wikibox_specific_permissions sp wb >>= function
+      | true  -> Lwt.return ((edit_wikibox_perm, {{ "edit permissions" }})::l)
       | false -> Lwt.return l
     ) >>= fun l ->
     let l = Ocsimore_lib.concat_list_opt
-      [edit_css; history_css; create_css] l in
+      [edit_wiki_perms; edit_css; history_css; create_css] l in
     let title = Ocamlduce.Utf8.make title in
     Lwt.return
       {{ [ {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
@@ -276,9 +280,9 @@ object (self)
            <p class={: box_title_class :}>title
          ]  }}
 
-  method display_menu_box ~bi ~classes ?service ?cssmenu ?title ~wb content =
+  method display_menu_box ~bi ~classes ?active_item ?special_box ?title ~wb content =
     let classes = Ocsimore_lib.build_class_attr classes in
-    self#box_menu ~bi ?cssmenu ?service ?title wb >>=
+    self#box_menu ~bi ?special_box ?active_item ?title wb >>=
     fun menu -> Lwt.return
       {{ <div class={: classes :}>[
            !menu
@@ -405,54 +409,88 @@ object (self)
                ~service:action_send_css ~sp draw_form () :} ] }})
 
 
-  (* Edition of the permissions of a wiki *)
-  method display_edit_perm_form ~bi ~classes wb =
+  (** Edition of the permissions of a wikibox *)
+  (** As usual, the function supposes that the user has enough rights
+      to change the permissions, as this will be checked by the service
+      (and the user should not have access to the page otherwise). We
+      also suppose that boxrights is set to true for the wiki *)
+  method display_edit_wikibox_perm_form ~bi ~classes wb =
     Wiki_sql.get_wikibox_info wb
     >>= fun { wikibox_uid = uid; wikibox_special_rights = sr } ->
-    let (_, _, form) = Wiki_data.helpers_wikibox_permissions in
+    let { Users.GroupsForms.awr_form_fun = form; awr_form_arg = arg} =
+    Wiki_data.helpers_wikibox_permissions in
     let msg1 = Ocamlduce.Utf8.make
       "Check this box if you want permissions specific to the wikibox. \
        Otherwise, permissions are inherited from the wiki"
     and msg2 = Ocamlduce.Utf8.make "Below are the current permissions for the
       wikibox. Check the box above and add users in the fields to change them"
     in
+    (* XXX we probably need to add sane defaults *)
     form uid >>= fun form ->
-    let form (nsr, args) = {{ [
+    let form (nsr, (narg, args)) = {{ [
               <p>[ !msg1
-                   {: Eliom_duce.Xhtml.bool_checkbox ~checked:sr ~name:nsr ():}]
+                   {: Eliom_duce.Xhtml.bool_checkbox ~checked:sr ~name:nsr():}]
               <p>[ !msg2 ]
-              !{: form args :} ] }} in
+              <p>[ {: arg uid narg :}
+                   !{: form args :} ]
+              <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                      {{"Save"}} :} ]
+    ] }} in
     let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
       ~service:action_send_wikibox_permissions ~sp:bi.bi_sp form
       ()
     in
     Lwt.return (classes, {{ [ form ] }})
 
+  (** Form for the permissions of a wiki; The [wb] argument is the wikibox
+      which will be overridden with an error message if the save fails *)
+  method display_edit_wiki_perm_form ~bi ~classes ~wb:(wid, wbid) wiki =
+    let _, _, form = Wiki_data.helpers_wiki_permissions in
+    form wiki >>= fun form ->
+    let form ((widname, wbidname), nargs) =
+      {{ [ <p>[ {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                   ~name:wbidname ~value:wbid () :}
+                {: Eliom_duce.Xhtml.user_type_input string_of_wiki
+                   ~input_type:{: "hidden" :} ~name:widname ~value:wid () :}
+              ]
+            !{: form nargs :}
+         ]}}
+    in
+    let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+      ~service:action_send_wiki_permissions ~sp:bi.bi_sp form
+      ()
+    in
+    Lwt.return (classes, {{ [ form ] }})
+
   (* Auxiliary method to factorize some code *)
-  method private menu_box_aux ?title ?service cl wb ~bi ~classes ?cssmenu content=
-    self#display_menu_box ~classes:(cl::classes) ?service ?title ~bi ?cssmenu ~wb
-      content
+  method private menu_box_aux ?title ?active_item cl wb ~bi ~classes ?special_box content=
+    self#display_menu_box ~classes:(cl::classes) ?active_item ?title ~bi
+      ?special_box ~wb content
 
   method private menu_edit_wikitext (w, b as wb) =
     let title = Printf.sprintf "Edit - Wiki %s, box %ld" (string_of_wiki w) b in
-    self#menu_box_aux ~title ~service:Menu_Edit editform_class wb
+    self#menu_box_aux ~title ~active_item:Menu_Edit editform_class wb
 
-  method private menu_edit_perm (w, b as wb) =
+  method private menu_edit_wikibox_perms (w, b as wb) =
     let title = Printf.sprintf "Permissions - Wiki %s, box %ld"
       (string_of_wiki w) b in
-    self#menu_box_aux ~title ~service:Menu_EditPerm editform_class wb
+    self#menu_box_aux ~title ~active_item:Menu_EditWikiboxPerms editform_class wb
+
+  method private menu_edit_wiki_perms wb wiki =
+    let title = Printf.sprintf "Permissions - Wiki %s" (string_of_wiki wiki) in
+    self#menu_box_aux ~title ~active_item:Menu_EditWikiPerms editform_class wb
 
   method private menu_wikitext_history (w, b as wb) =
     let title = Printf.sprintf "History - Wiki %s, box %ld" (string_of_wiki w) b in
-    self#menu_box_aux ~title ~service:Menu_History history_class wb
+    self#menu_box_aux ~title ~active_item:Menu_History history_class wb
 
-  method private menu_css_history ((w, _) as wb) page =
+  method private menu_css_history wb (wiki, page) =
     let title = Printf.sprintf "CSS history, wiki %s, %s"
-      (string_of_wiki w) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~service:Menu_HistoryCss css_history_class wb
+      (string_of_wiki wiki) (self#css_wikibox_text page) in
+    self#menu_box_aux ~title ~active_item:Menu_HistoryCss css_history_class wb
 
   method private menu_view =
-    self#menu_box_aux ~service:Menu_View interactive_class
+    self#menu_box_aux ~active_item:Menu_View interactive_class
 
   method private menu_old_wikitext (w, b as wb) version =
     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"
@@ -469,10 +507,10 @@ object (self)
       (string_of_wiki w) b version in
     self#menu_box_aux ~title srcwikibox_class wb
 
-  method private menu_edit_css ((w, _) as wb) page =
+  method private menu_edit_css wb (wiki, page) =
     let title = Printf.sprintf "CSS for wiki %s, %s"
-      (string_of_wiki w) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~service:Menu_EditCss css_class wb
+      (string_of_wiki wiki) (self#css_wikibox_text page) in
+    self#menu_box_aux ~title ~active_item:Menu_EditCss css_class wb
 
   method private css_wikibox_text = function
     | None -> "global stylesheet"
@@ -525,13 +563,13 @@ object (self)
     Lwt.return (classes, {{ map {: l :} with i -> i }})
 
 
-  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?cssmenu wb =
+  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
     let sp = bi.bi_sp in
     let override = Wiki_widgets_interface.get_override_wikibox ~sp in
     match override with
       | Some (wb', override) when wb = wb' ->
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
-            ?cssmenu ~wb_loc:wb ~override
+            ?special_box ~wb_loc:wb ~override
       | _ ->
           rights#can_write_wikibox ~sp ~wb >>= function
             | true ->
@@ -539,7 +577,7 @@ object (self)
                   (Wiki.wikibox_content rights sp wb)
                   (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
-                  (self#menu_view ~bi ?cssmenu wb)
+                  (self#menu_view ~bi ?special_box wb)
                 >>= fun r ->
                 Lwt.return (r, true)
 
@@ -563,37 +601,15 @@ object (self)
                         false)
 
 
-  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu ~wb_loc ~override =
+  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override =
     let sp = bi.bi_sp in
     match override with
       | EditWikitext wb ->
-(*TRY:
-          error_box#bind_or_display_error
-            (Wiki.wikibox_content' wb)
-            (fun (content, version as cv) ->
-               self#display_wikiboxcontent ~wiki:(fst wb_loc)
-                 ~classes:[] ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
-                 (Wiki_sql.WikiCreole, content, version)
-               >>= fun (_, pp) ->
-               self#display_basic_box ~classes:[] pp
-               >>= fun preview ->
-               self#display_wikitext_edit_form_help ~classes:[]
-                 ~bi ?cols ?rows ~previewonly:true ~wb cv
-               >>= fun (_, form) ->
-                 Lwt.return
-                   (classes,
-                    {{ [ preview
-                         <div class="editwidget">form ] }})
-            )
-            (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
-          >>= fun r ->
-          Lwt.return (r, true)
-*)
           error_box#bind_or_display_error
             (Wiki.wikibox_content' rights bi.bi_sp wb)
             (self#display_wikitext_edit_form_help ~bi ?cols ?rows
                ~previewonly:true ~wb ~classes)
-            (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
+            (self#menu_edit_wikitext ~bi ?special_box wb_loc)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -606,15 +622,23 @@ object (self)
             )
             (self#display_css_edit_form ~bi ?cols ?rows
                ~wb:wb_loc ~wbcss ~wikipage ~classes)
-            (self#menu_edit_css ~bi ?cssmenu wb_loc wikipage)
+            (self#menu_edit_css ~bi ?special_box wb_loc ((* XXX Not general enough *) (fst wbcss), wikipage))
           >>= fun r ->
           Lwt.return (r, true)
 
-      | EditPerms wb ->
+      | EditWikiboxPerms wb ->
           error_box#bind_or_display_error
             (Lwt.return wb)
-            (self#display_edit_perm_form ~bi ~classes)
-            (self#menu_edit_perm ~bi ?cssmenu wb_loc)
+            (self#display_edit_wikibox_perm_form ~bi ~classes)
+            (self#menu_edit_wikibox_perms ~bi ?special_box wb_loc)
+          >>= fun r ->
+          Lwt.return (r, true)
+
+      | EditWikiPerms wiki ->
+          error_box#bind_or_display_error
+            (Lwt.return wiki)
+            (self#display_edit_wiki_perm_form ~bi ~classes ~wb:wb_loc)
+            (self#menu_edit_wiki_perms ~bi ?special_box wb_loc wiki)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -637,7 +661,7 @@ object (self)
                          preview
                          !form ] }})
             )
-            (self#menu_edit_wikitext ~bi ?cssmenu wb_loc)
+            (self#menu_edit_wikitext ~bi ?special_box wb_loc)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -645,7 +669,7 @@ object (self)
           error_box#bind_or_display_error
             (Wiki.wikibox_history wb)
             (self#display_wikitext_history ~bi ~classes ~wb)
-            (self#menu_wikitext_history ~bi ?cssmenu wb_loc)
+            (self#menu_wikitext_history ~bi ?special_box wb_loc)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -653,7 +677,7 @@ object (self)
           error_box#bind_or_display_error
             (Wiki.wikibox_history wbcss)
             (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss ~wikipage)
-            (self#menu_css_history ~bi ?cssmenu wb_loc wikipage)
+            (self#menu_css_history ~bi ?special_box wb_loc (fst wbcss (* XXX Not general enough *), wikipage))
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -662,7 +686,7 @@ object (self)
             (Wiki.wikibox_content ~sp ~version rights wb)
             (self#display_wikiboxcontent ~classes
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
-            (self#menu_old_wikitext ~bi ?cssmenu wb_loc version)
+            (self#menu_old_wikitext ~bi ?special_box wb_loc version)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -671,7 +695,7 @@ object (self)
             (Wiki.wikibox_content ~sp ~version rights wbcss)
             (self#display_wikiboxcontent ~classes
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
-            (self#menu_old_css ~bi ?cssmenu wb_loc page)
+            (self#menu_old_css ~bi ?special_box wb_loc page)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -679,7 +703,7 @@ object (self)
           error_box#bind_or_display_error
             (Wiki.wikibox_content ~sp ~version rights wb)
             (self#display_raw_wikiboxcontent ~classes)
-            (self#menu_src_wikitext ~bi ?cssmenu wb_loc version)
+            (self#menu_src_wikitext ~bi ?special_box wb_loc version)
           >>= fun r ->
           Lwt.return (r, true)
 
@@ -688,8 +712,8 @@ object (self)
             (error_box#display_error_box ~classes ~exn:error (), false)
 
 
-   method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?cssmenu wb =
-     self#display_interactive_wikibox_aux ~bi ?rows ?cols ~classes ?cssmenu wb
+   method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+     self#display_interactive_wikibox_aux ~bi ?rows ?cols ~classes ?special_box wb
      >>= fun (r, _allowed) -> Lwt.return r
 
 
@@ -740,8 +764,8 @@ object (self)
           >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box;
                     wikipage_title = title } ->
           let bi = default_bi ~sp ~root_wiki:wiki ~wikibox:(wiki', box) in
-          self#display_interactive_wikibox_aux ~bi ~cssmenu:(CssWikipage page)
-            (wiki', box)
+          self#display_interactive_wikibox_aux ~bi
+            ~special_box:(WikiPageBox (wiki, page)) (wiki', box)
           >>= fun (subbox, allowed) ->
           Lwt.return ({{ [ subbox ] }},
                       (if allowed then Wiki_widgets_interface.Page_displayable
@@ -787,7 +811,8 @@ object (self)
        let wb_container = (wiki, wiki_info.wiki_container) in
        let bi = { (default_bi ~sp ~root_wiki:wiki
                      ~wikibox:wb_container) with bi_subbox = Some subbox } in
-       self#display_interactive_wikibox ~bi ~cssmenu:CssWiki wb_container
+       self#display_interactive_wikibox ~bi
+         ~special_box:(WikiContainerBox wiki) wb_container
        >>= fun pagecontent ->
 
        self#css_header ~bi ~admin:false ~page wiki >>= fun css ->

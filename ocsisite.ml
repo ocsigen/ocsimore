@@ -144,7 +144,7 @@ let () =
        Wiki_services.get_admin_wiki () >>= fun admin_wiki ->
        let bi = { bi with Wiki_widgets_interface.bi_subbox =
            Some {{ [ subbox ] }} } in
-       wikibox_widget#display_interactive_wikibox ~bi ?cssmenu:None
+       wikibox_widget#display_interactive_wikibox ~bi
          (admin_wiki.wiki_id, admin_wiki.wiki_container)
        >>= fun page ->
        wikibox_widget#css_header ~admin:true ~bi ?page:None w
@@ -184,7 +184,7 @@ let wiki_admin = Lwt_unix.run
         overridden on a per-page basis) *)
      let groups = [
        Wiki_data.wiki_wikiboxes_grps.grp_reader;
-       Wiki_data.wiki_files_grps.grp_reader;
+       Wiki_data.wiki_files_readers;
      ] in
      Lwt_util.iter
        (fun g -> User_sql.add_to_group ~user:(basic_user Users.anonymous)

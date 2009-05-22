@@ -73,7 +73,7 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    Users.add_list_to_group ~l:readers
      ~group:(Wiki_data.wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
    Users.add_list_to_group ~l:readers
-     ~group:(Wiki_data.wiki_files_grps.grp_reader $ wiki_id) >>= fun () ->
+     ~group:(Wiki_data.wiki_files_readers $ wiki_id) >>= fun () ->
 
    (match wiki_css with
       | None -> Lwt.return ()
