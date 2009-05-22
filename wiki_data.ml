@@ -86,10 +86,10 @@ let wikipage_css_creators : wikipage_arg parameterized_group = aux_grp
        -------- WikiAdmin(w)-------------------------------------------------------
       /                 |                 \             \                \         \
 WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)  Wikiboxes
-     |                  |             Creators(w)    Creators(w)                 Deletors(w)
-WikiboxesWriters(w)  FilesWriters(w)          \       /
-     |                  |                   GenWikiboxes
-WikiboxesReaders(w)  FilesReaders(w)         Creators(w)
+     |                  |             Creators(w)    Creators(w)  /               Deletors(w)
+WikiboxesWriters(w)  FilesWriters(w)             \       |       /
+     |                  |                           GenWikiboxes
+WikiboxesReaders(w)  FilesReaders(w)                 Creators(w)
 
 
 WikiboxAdmin(wb)
@@ -116,6 +116,9 @@ let () = Lwt_unix.run (
   >>= fun () ->
   User_sql.add_generic_inclusion 
     ~superset:wiki_genwikiboxes_creators ~subset:wiki_wikipages_creators
+  >>= fun () ->
+  User_sql.add_generic_inclusion 
+    ~superset:wiki_genwikiboxes_creators ~subset:wiki_css_creators
 )
 
 

@@ -106,7 +106,7 @@ let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author
      PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
                 VALUES ($container_wikibox, $wiki_id, $author, $container_text)"
      >>= fun () ->
-       return (wiki_of_sql wiki_id, container_wikibox)
+     return (wiki_of_sql wiki_id, container_wikibox)
     )
 
 
