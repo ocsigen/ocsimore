@@ -726,33 +726,40 @@ object (self)
        (Eliom_duce.Xhtml.make_uri service sp args) () in
      let css_url path = css_url_service (Eliom_services.static_dir sp) path in
 
+     let css =
+(*VVV HACK: forum css should not be here.
+  Find a way to add css for all extensions.
+*)
+       {{ [ {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikistyle.css"]:}
+            {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiforumstyle.css"]:}
+          ] }}
+     in
      if admin then
        Lwt.return
-         {{ [ {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikistyle.css"]:}
+         {{ [ !css
               {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikiadmin.css"]:}
             ] }}
      else
-       let css= css_url [Ocsimore_lib.ocsimore_admin_dir;"ocsiwikistyle.css"] in
        (match Wiki_widgets_interface.find_servwikicss wiki with
-          | None -> Lwt.return {{ [ css ] }}
+          | None -> Lwt.return {{ css }}
           | Some wikicss_service ->
               Wiki_sql.get_css_for_wiki wiki
               >>= function
                 | Some _ -> Lwt.return (* encoding? *)
-                    {{ [ css  {: css_url_service wikicss_service ():} ]}}
-                | None -> Lwt.return {{ [ css ] }}
+                    {{ [ !css  {: css_url_service wikicss_service ():} ]}}
+                | None -> Lwt.return {{ css }}
        )
-       >>= fun css ->
-       match page with
-         | None -> Lwt.return css
-         | Some page ->
-             Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
-               | None -> Lwt.return css
-               | Some _ -> Lwt.return
-                   {{ [ !css
+     >>= fun css ->
+     match page with
+       | None -> Lwt.return css
+       | Some page ->
+           Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
+             | None -> Lwt.return css
+             | Some _ -> Lwt.return
+                 {{ [ !css
                         {: css_url_service pagecss_service (wiki, page)
                            (* encoding? *) :}
-                      ]}}
+                    ]}}
 
 
 (* Displaying of an entire page. We essentially render the page,

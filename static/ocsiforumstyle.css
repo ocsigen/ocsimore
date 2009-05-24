@@ -1,0 +1,28 @@
+div.ocsiforum_comment_form {
+  display: none;
+}
+
+div.ocsiforum_msg h1 {
+  font-size: 120%;
+  color: #336699;
+  margin: 0px;
+  padding: 0px;
+}
+
+div.ocsiforum_msg {
+  border: 1px solid #336699;
+  margin: 0px;
+  padding: 5px;
+}
+
+div.ocsiforum_thread {
+  border: 1px solid #996633;
+  margin: 0px;
+  padding: 5px;
+}
+
+div.ocsiforum_thread_msg {
+  border: 1px solid #339933;
+  margin: 0px;
+  padding: 0px 0px 0px 25px;
+}
