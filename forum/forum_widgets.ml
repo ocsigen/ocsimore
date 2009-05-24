@@ -49,11 +49,14 @@ object (self)
           | _ -> failwith "Forum_widgets.add_message_widget"
       in
       let title = 
-        {{ [ 'Title:'
-               {: Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
-                  ~name:subjectname () :}
-             <br>[]
-           ] }}
+        if title
+        then
+          {{ [ 'Title:'
+                 {: Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
+                    ~name:subjectname () :}
+               <br>[]
+             ] }}
+        else {{ [] }}
       in
       {{ [<p>[ num
              !title
