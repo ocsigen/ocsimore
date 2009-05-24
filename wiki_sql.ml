@@ -17,8 +17,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   @author Piero Furiesi
-   @author Jaap Boender
    @author Vincent Balat
    @author Boris Yakobowski
 *)
@@ -31,55 +29,7 @@ open CalendarLib
 open Sql
 
 
-module Types = struct
-type wiki_arg = [ `Wiki ]
-type wikibox_arg = [ `Wikibox ]
-type wiki = [`Wiki] int32_t
-let wiki_of_sql (i : int32) = (int32_t i : wiki)
-let sql_of_wiki (i : wiki) = t_int32 i
-let string_of_wiki i = Int32.to_string (sql_of_wiki i)
-let wiki_of_string s = (Opaque.int32_t (Int32.of_string s) : wiki)
-
-
-(* For now. Someday the second int32 will be a properly opacified type *)
-type wikibox_id = int32
-type wikibox = wiki * wikibox_id
-type wikibox_uid = wikibox_arg Opaque.int32_t
-
-type wikipage = wiki * string
-
-type wikipage_arg = [ `Wikipage ]
-type wikipage_uid = wikipage_arg Opaque.int32_t
-
-type wiki_info = {
-  wiki_id : wiki;
-  wiki_title : string;
-  wiki_descr : string;
-  wiki_pages : string option;
-  wiki_boxrights : bool;
-  wiki_container : wikibox_id;
-  wiki_staticdir : string option;
-}
-
-type wikibox_info = {
-  wikibox_id : wikibox;
-  wikibox_uid: wikibox_uid;
-  wikibox_comment: string option;
-  wikibox_special_rights: bool;
-}
-
-type wikipage_info = {
-  wikipage_source_wiki: wiki;
-  wikipage_page: string;
-  wikipage_dest_wiki: wiki;
-  wikipage_wikibox: int32;
-  wikipage_title: string option;
-  wikipage_uid : wikipage_uid;
-(*  wikipage_css_special_rights; *)
-}
-
-end
-open Types
+open Wiki_types
 
 let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
 
@@ -87,18 +37,18 @@ let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
 let eliom_wiki = Eliom_parameters.user_type wiki_of_string string_of_wiki
 
 
-let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author () =
+let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author ~model () =
   let container_wikibox = 0l
-  and author = User_sql.Types.sql_from_user author in
+  and author = User_sql.Types.sql_from_user author
+  and model = Wiki_types.string_of_wiki_model model in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db)
-         "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir)
-          VALUES ($title, $descr, $?pages, $boxrights, $container_wikibox, $?staticdir);
+         "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir, model)
+          VALUES ($title, $descr, $?pages, $boxrights, $container_wikibox, $?staticdir, $model);
                   "
      >>= fun () ->
-     serial4 db "wikis_id_seq"
-     >>= fun wiki_id ->
+     serial4 db "wikis_id_seq" >>= fun wiki_id ->
      let comment = Printf.sprintf "Container box for wiki %ld" wiki_id in
      PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
                 VALUES ($wiki_id, $container_wikibox, $comment)"
@@ -135,57 +85,41 @@ let update_wiki_ ?container_id ?staticdir ?pages wiki =
     )
 
 
-exception IncorrectWikiboxContentType of string
-
-type wikibox_content_type =
-  | Css
-  | WikiCreole
-
-let wikibox_content_type_of_string = function
-  | "wiki" -> WikiCreole
-  | "css" -> Css
-  | s -> raise (IncorrectWikiboxContentType s)
-
-let string_of_wikibox_content_type = function
-  | WikiCreole -> "wiki"
-  | Css -> "css"
-
-
-type wikibox_content =
-    wikibox_content_type * string option * int32
 
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox_ ~wiki ~author ~comment ~content ~content_type () =
+let new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type () =
   let wiki' = t_int32 (wiki : wiki)
-  and content_type = string_of_wikibox_content_type content_type
+  and content_type = string_of_content_type content_type
   and author = User_sql.Types.sql_from_user author
   in
-  Sql.full_transaction_block
-    (fun db ->
-       (PGSQL(db) "SELECT max(id) FROM wikiboxes WHERE wiki_id = $wiki'"
-        >>= fun last ->
-        let boxid = match last with
-          | [] | None::_ -> 1l
-          | (Some last)::_ -> Int32.add last 1l
-        in
-        PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
+  let f db =
+    (PGSQL(db) "SELECT max(id) FROM wikiboxes WHERE wiki_id = $wiki'"
+     >>= fun last ->
+     let boxid = match last with
+       | [] | None::_ -> 1l
+       | (Some last)::_ -> Int32.add last 1l
+     in
+     PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
                    VALUES ($wiki', $boxid, $comment)"
-        >>= fun () ->
-        PGSQL(db) "INSERT INTO wikiboxes
-                  (id, wiki_id, author, comment, content, content_type)
-                  VALUES
-                  ($boxid, $wiki', $author, '', $content, $content_type)"
-        >>= fun () ->
-        Lwt.return boxid)
-    )
+     >>= fun () ->
+     PGSQL(db) "INSERT INTO wikiboxes
+                (id, wiki_id, author, comment, content, content_type)
+                VALUES
+                ($boxid, $wiki', $author, '', $content, $content_type)"
+     >>= fun () ->
+     Lwt.return boxid)
+  in
+  match db with
+    | None -> Sql.full_transaction_block f
+    | Some db -> f db
 
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_type =
   let wiki = t_int32 (wiki : wiki)
-  and content_type = string_of_wikibox_content_type content_type
+  and content_type = string_of_content_type content_type
   and author = User_sql.Types.sql_from_user author
   in
   Sql.full_transaction_block
@@ -226,7 +160,7 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
          | [] -> Lwt.return None
          | (c, a, v, d, t, ver) :: _ ->
              Lwt.return (Some (c, User_sql.Types.user_from_sql a,
-                               v, d, wikibox_content_type_of_string t, ver))
+                               v, d, content_type_of_string t, ver))
     )
 
 let current_wikibox_version_ ~wikibox:(wiki, id) =
@@ -292,7 +226,7 @@ let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () =
     )
 
 
-let reencapsulate_wiki (w, t, d, p, br, ci, s) =
+let reencapsulate_wiki (w, t, d, p, br, ci, s, m) =
   { wiki_id = wiki_of_sql w;
     wiki_title = t;
     wiki_descr = d;
@@ -300,6 +234,7 @@ let reencapsulate_wiki (w, t, d, p, br, ci, s) =
     wiki_boxrights = br; 
     wiki_container = ci;
     wiki_staticdir = s;
+    wiki_model = Wiki_types.wiki_model_of_string m;
   }
 
 
@@ -429,7 +364,7 @@ let
                                                User_sql.Types.userid * 
                                                string option *
                                                CalendarLib.Calendar.t *
-                                               wikibox_content_type *
+                                               content_type *
                                                int32
                                             ) option
                              end) 
@@ -450,14 +385,16 @@ let
           print_cache (Int32.to_string (snd wikibox) ^ " (with version) -> wikibox: db access");
           get_wikibox_data_ ?version ~wikibox ()
    ),
-  (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~ author () ->
-     new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author ()
+  (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_text 
+     ~author ~model () ->
+     new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir
+       ~container_text ~author ~model ()
      >>= function (wiki, wikibox) ->
      C.remove cache (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);
      Lwt.return (wiki, wikibox)),
-  (fun ~wiki ~author ~comment ~content ~content_type () ->
-     new_wikibox_ ~wiki ~author ~comment ~content ~content_type ()
+  (fun ?db ~wiki ~author ~comment ~content ~content_type () ->
+     new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type ()
      >>= fun wikibox ->
      C.remove cache (wiki, wikibox);
      C3.remove cachewv (wiki, wikibox);
@@ -589,13 +526,14 @@ let set_css_aux ~wiki ~page ~author content =
         (match content with
            | None -> Lwt.return ()
            | Some content ->
-               new_wikibox ~wiki ~comment:"" ~author ~content ~content_type:Css ()
+               new_wikibox ~wiki ~comment:"" ~author ~content
+                 ~content_type:Wiki_models.css_content_type ()
                >>= fun wikibox ->
                set_css_wikibox_in_cache ~wiki ~page wikibox
         )
     | Some wbid ->
         update_wikibox ~wikibox:wbid ~author ~comment:""
-          ~content ~content_type:Css
+          ~content ~content_type:Wiki_models.css_content_type
         >>= fun _ -> Lwt.return ()
 
 let set_css_for_wikipage ~wiki ~page ~author content =

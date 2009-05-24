@@ -1,3 +1,4 @@
+# Warning: Generated from ocsimore.mllib.IN
 Opaque
 Cache
 Language
@@ -13,6 +14,8 @@ Ocsimore_nis
 Session_manager
 Widget
 Wikicreole
+Wiki_types
+Wiki_models
 Wiki_widgets_interface
 Wiki_syntax
 User_widgets

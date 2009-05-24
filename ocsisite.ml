@@ -1,6 +1,30 @@
+(* Ocsimore
+ * http://www.ocsigen.org
+ * Copyright (C) 2008-2009
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, with linking exception;
+ * either version 2.1 of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ *)
+
+(**
+   @author Vincent Balat
+   @author Boris Yakobowski
+*)
+
 open Lwt
 open User_sql.Types
-open Wiki_sql.Types
+open Wiki_types
 
 type user_creation =
   | NoUserCreation
@@ -88,45 +112,48 @@ let error_box = new Wiki_widgets.wikibox_error_box
 let wiki_rights = new Wiki_data.wiki_rights
 
 (** We are at eliom registration time, we can create the services *)
-let services = Wiki_services.services Wiki_syntax.default_parser wiki_rights
+let wiki_services = Wiki_services.make_services ()
 
+let wikibox_widget = new Wiki_widgets.dynamic_wikibox error_box wiki_services
 
+(** We create the default wiki model, called "wikicreole" *)
+let wikicreole_model = 
+  Wiki_models.register_wiki_model 
+    ~name:"wikicreole" 
+    ~content_type:Wiki_syntax.wikicreole_content_type
+    ~rights:wiki_rights
+    ~widgets:wikibox_widget
 
-(** We create the widget that will be used to display the wikiboxes *)
-let wikibox_widget =
-  Lwt_unix.run
-    (let sminfo = {
-       Session_manager.url = ["users"];
-       administrator = Users.admin;
-       login_actions = (fun _sp _sess -> return ());
-       logout_actions = (fun _sp -> return ());
-     }
-     in
-     let sm =
-       match auth with
-         | Pam pam_service ->
-             new Session_manager.sessionmanager_pam pam_service sminfo
-         | Nis ->
-             new Session_manager.sessionmanager_nis sminfo
-         | NoExternalAuth ->
-             new Session_manager.sessionmanager sminfo
-     in
-
-     (* Creation of the login box. This register some extensions at the level
-        of the wiki (in the initializer of User_widgets.login_widget)  *)
-     (match basicusercreation with
-        | BasicUserCreation buc ->
-            ignore (new User_widgets.login_widget_basic_user_creation sm buc)
-        | NoUserCreation ->
-            ignore (new User_widgets.login_widget sm)
-     );
-
-     Lwt.return (new Wiki_widgets.dynamic_wikibox Wiki_syntax.default_parser
-                   wiki_rights error_box services)
-    )
-
-let () = Wiki_widgets.register_wikibox_syntax_extensions
-  Wiki_syntax.default_parser wikibox_widget error_box wiki_rights
+let _ =
+  let sminfo = {
+    Session_manager.url = ["users"];
+    administrator = Users.admin;
+    login_actions = (fun _sp _sess -> return ());
+    logout_actions = (fun _sp -> return ());
+  }
+  in
+  let sm =
+    match auth with
+      | Pam pam_service ->
+          new Session_manager.sessionmanager_pam pam_service sminfo
+      | Nis ->
+          new Session_manager.sessionmanager_nis sminfo
+      | NoExternalAuth ->
+          new Session_manager.sessionmanager sminfo
+  in
+  
+  (* Creation of the login box. This register some extensions at the level
+     of the wiki (in the initializer of User_widgets.login_widget)  *)
+  (match basicusercreation with
+     | BasicUserCreation buc ->
+         ignore (new User_widgets.login_widget_basic_user_creation sm buc)
+     | NoUserCreation ->
+         ignore (new User_widgets.login_widget sm)
+  )
+  
+let () = 
+  Wiki_widgets.register_wikibox_syntax_extensions 
+    Wiki_syntax.wikicreole_parser error_box
 
 
 (** We register auxiliary services for administration boxes *)
@@ -138,7 +165,12 @@ let service_edit_wikibox = Eliom_services.new_service
 let () =
   Eliom_duce.Xhtml.register service_edit_wikibox
     (fun sp ((w, _b) as wb) () ->
-       let bi = Wiki_widgets_interface.default_bi ~sp ~root_wiki:w ~wikibox:wb in
+       Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
+       let rights = Wiki_models.get_rights wiki_info.wiki_model in
+       let wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
+       let bi = Wiki_widgets_interface.default_bi
+         ~sp ~root_wiki:w ~wikibox:wb ~rights
+       in
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
        >>= fun subbox ->
        Wiki_services.get_admin_wiki () >>= fun admin_wiki ->
@@ -167,6 +199,7 @@ let wiki_admin = Lwt_unix.run
               ~boxrights:true
               ~author:Users.admin
               ~container_text:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+              ~model:wikicreole_model
               ()
             >>= fun wid ->
             Wiki_sql.get_wiki_info_by_id wid
@@ -208,7 +241,8 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
          >>= fun _ -> Lwt.return ()
       )
       (function Not_found ->
-         Wiki_sql.new_wikibox ~wiki:wiki_admin_id ~comment ~content ~content_type
+         Wiki_sql.new_wikibox
+           ~wiki:wiki_admin_id ~comment ~content ~content_type
            ~author:Users.admin ()
          >>= fun box ->
          Wiki_sql.set_box_for_page ~sourcewiki:wiki_admin_id ~wbid:box ~page ()
@@ -231,7 +265,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
 (** We create the page for the help on the syntax of the wiki *)
 let _ = register_named_wikibox
   ~page:Wiki_widgets_interface.wikisyntax_help_name
-  ~content_type:Wiki_sql.WikiCreole
+  ~content_type:Wiki_syntax.wikicreole_content_type
   ~comment:"Wikisyntax help"
   ~content:"===Wiki syntax===
 
@@ -248,7 +282,7 @@ let _ = Lwt_unix.run
            | None -> ()
            | Some path ->
                let path = Ocsigen_lib.split '/' path in
-               Wiki_services.register_wiki ~path ~wikibox_widget ~wiki ()
+               Wiki_services.register_wiki ~path ~wiki ()
         );
         Lwt.return ()
      )

@@ -26,7 +26,7 @@ This is the wiki component of Ocsimore.
 *)
 
 
-open Wiki_sql.Types
+open Wiki_types
 open User_sql.Types
 
 
@@ -44,6 +44,7 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~author
     ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
     ?wiki_css ~container_text
+    ~model
     () =
   let path_string = Ocsimore_lib.bind_opt
     path (Ocsigen_lib.string_of_url_path ~encode:true)
@@ -62,7 +63,7 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
      container has changed between the creation of the wiki and the moments
      the rights are added *)
   Wiki_sql.new_wiki ~title ~descr ~pages:path_string
-     ~boxrights ?staticdir ~container_text ~author ()
+     ~boxrights ?staticdir ~container_text ~author ~model ()
    >>= fun (wiki_id, _wikibox_container) ->
 
    (* Putting users in groups *)
@@ -84,11 +85,12 @@ let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
    Lwt.return wiki_id
 
 
-let new_wikitextbox rights ~sp ~wiki ~author ~comment ~content () =
+let new_wikitextbox ?db
+    ~rights ~content_type ~sp ~wiki ~author ~comment ~content () =
   rights#can_create_genwikiboxes ~sp wiki
   >>= function
-    | true -> Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
-        ~content_type:Wiki_sql.WikiCreole ()
+    | true -> Wiki_sql.new_wikibox ?db ~wiki ~author ~comment ~content
+        ~content_type ()
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
@@ -107,7 +109,7 @@ let modified_wikibox ~wikibox ~boxversion =
 (** Exception raised when the content of a wikibox cannot be found *)
 exception Unknown_box of wikibox * int32 option
 
-let wikibox_content rights ~sp ?version wb =
+let wikibox_content ~rights ~sp ?version wb =
   rights#can_read_wikibox ~sp ~wb >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
@@ -116,12 +118,12 @@ let wikibox_content rights ~sp ?version wb =
           | Some (_com, _a, cont, _d, ct, ver) ->
               Lwt.return (ct, cont, ver)
 
-let wikibox_content' rights ~sp ?version wikibox =
-  wikibox_content rights ~sp ?version wikibox >>= fun (_, cont, ver) ->
+let wikibox_content' ~rights ~sp ?version wikibox =
+  wikibox_content ~rights ~sp ?version wikibox >>= fun (_, cont, ver) ->
   Lwt.return (cont, ver)
 
 
-let save_wikibox_aux rights ~sp ~wb ~content ~content_type =
+let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
   (if content = None 
    then rights#can_delete_wikiboxes ~sp (fst wb)
    else rights#can_write_wikibox ~sp ~wb) >>= function
@@ -133,21 +135,25 @@ let save_wikibox_aux rights ~sp ~wb ~content ~content_type =
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikitextbox rights ~sp ~wb ~content =
-  save_wikibox_aux rights ~sp ~wb ~content_type:Wiki_sql.WikiCreole ~content
+let save_wikitextbox ~rights ~content_type ~sp ~wb ~content =
+  save_wikibox_aux ~rights ~sp ~wb ~content_type ~content
 
-let save_wikicssbox rights ~sp ~wiki ~content =
+let save_wikicssbox ~rights ~sp ~wiki ~content =
   Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
     | Some wb ->
-        save_wikibox_aux rights ~sp ~wb ~content_type:Wiki_sql.Css ~content
+        save_wikibox_aux ~rights ~sp ~wb
+          ~content_type:Wiki_models.css_content_type ~content
     | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
-let save_wikipagecssbox rights ~sp ~wiki ~page ~content =
+let save_wikipagecssbox ~rights ~sp ~wiki ~page ~content =
   Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
     | Some wb ->
-        save_wikibox_aux rights ~sp ~wb ~content_type:Wiki_sql.Css ~content
+        save_wikibox_aux ~rights ~sp ~wb
+          ~content_type:Wiki_models.css_content_type ~content
     | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
 
 (* XXX add rights *)
 let wikibox_history = Wiki_sql.get_history
+
+

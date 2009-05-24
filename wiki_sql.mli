@@ -1,7 +1,5 @@
-
 (* Ocsimore
- * Copyright (C) 2008
- * Laboratoire PPS - Université Paris Diderot - CNRS
+ * Copyright (C) 2009
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,84 +16,13 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-
-   @author Piero Furiesi
-   @author Jaap Boender
+   @author Boris Yakobowski
    @author Vincent Balat
 *)
+
 open User_sql.Types
+open Wiki_types
 
-module Types : sig
-
-(** Semi-abstract type for a wiki *)
-type wiki_arg = [ `Wiki ]
-type wiki = wiki_arg Opaque.int32_t
-
-(** Conversions from a wiki index *)
-val string_of_wiki : wiki -> string
-val wiki_of_string : string -> wiki
-
-type wikibox_arg = [ `Wikibox ]
-type wikibox_id = int32
-type wikibox = wiki * wikibox_id
-type wikibox_uid = wikibox_arg Opaque.int32_t
-
-
-type wikipage = wiki * string
-
-type wikipage_arg = [ `Wikipage ]
-type wikipage_uid = wikipage_arg Opaque.int32_t
-
-
-(** Fields for a wiki *)
-type wiki_info = {
-  wiki_id : wiki;
-  wiki_title : string;
-  wiki_descr : string;
-  wiki_pages : string option;
-  wiki_boxrights : bool;
-  wiki_container : wikibox_id;
-  wiki_staticdir : string option (** if static dir is given,
-                                ocsimore will serve static pages if present,
-                                instead of wiki pages *);
-}
-
-type wikipage_info = {
-  wikipage_source_wiki: wiki;
-  wikipage_page: string;
-  wikipage_dest_wiki: wiki;
-  wikipage_wikibox: wikibox_id;
-  wikipage_title: string option;
-  wikipage_uid: wikipage_uid;
-}
-
-type wikibox_info = {
-  wikibox_id : wikibox;
-  wikibox_uid: wikibox_uid;
-  wikibox_comment: string option;
-  wikibox_special_rights: bool;
-}
-
-end
-open Types
-
-
-(** Type of the data stored in a wikibox *)
-type wikibox_content_type =
-  | Css
-  | WikiCreole
-
-exception IncorrectWikiboxContentType of string
-
-val wikibox_content_type_of_string : string -> wikibox_content_type
-
-val string_of_wikibox_content_type : wikibox_content_type -> string
-
-
-(** Content of a wikibox. The second field is the actual content. It is [None]
-    if the wikibox has been deleted. The third field is the version id *)
-type wikibox_content =
-    wikibox_content_type * string option * int32
 
 
 (** Eliom parameter type for wikis *)
@@ -114,17 +41,19 @@ val new_wiki :
   staticdir:string option ->
   container_text:string ->
   author:userid ->
+  model:Wiki_types.wiki_model ->
   unit ->
   (wiki * wikibox_id) Lwt.t
 
 (** Inserts a new wikibox in an existing wiki and return the id of the 
     wikibox. *)
 val new_wikibox :
+  ?db: Sql.db_t ->
   wiki:wiki ->
   author:userid ->
   comment:string ->
   content:string ->
-  content_type:wikibox_content_type ->
+  content_type:Wiki_types.content_type ->
   unit ->
   wikibox_id Lwt.t
 
@@ -184,7 +113,7 @@ val get_wikibox_data :
   ?version:int32 ->
   wikibox:wikibox ->
   unit ->
-  (string * userid * string option * CalendarLib.Calendar.t * wikibox_content_type * int32) option Lwt.t
+  (string * userid * string option * CalendarLib.Calendar.t * Wiki_types.content_type * int32) option Lwt.t
 
 val set_wikibox_special_rights:
   wikibox -> bool -> unit Lwt.t
@@ -202,7 +131,7 @@ val update_wikibox :
   author:userid ->
   comment:string ->
   content:string option ->
-  content_type:wikibox_content_type ->
+  content_type:Wiki_types.content_type ->
   int32 Lwt.t
 
 (** Update the information of a wiki. All arguments not passed are left

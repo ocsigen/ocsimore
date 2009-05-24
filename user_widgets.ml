@@ -118,7 +118,7 @@ object (self)
 
   initializer
 
-      Wiki_syntax.add_extension ~wp:Wiki_syntax.default_parser
+      Wiki_syntax.add_extension ~wp:Wiki_syntax.wikicreole_parser
         ~name:"loginbox" ~wiki_content:true
         (fun bi args _c ->
            Wikicreole.Block
@@ -158,7 +158,7 @@ object (self)
         );
 
       let add_extension = Wiki_syntax.add_extension
-        ~wp:Wiki_syntax.default_parser in
+        ~wp:Wiki_syntax.wikicreole_parser in
       add_extension ~name:"username" ~wiki_content:true
         (fun bi _args _c ->
            Wikicreole.A_content
@@ -175,7 +175,7 @@ object (self)
                 | Some c -> c
                 | None -> "logout"
               in
-              Wiki_syntax.xml_of_wiki Wiki_syntax.default_parser
+              Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser
                 bi content >>= fun c ->
               Lwt.return
                 {{ [ {:
@@ -199,7 +199,7 @@ object (self)
            Wikicreole.Link_plugin
              (let content = match c with
                 | Some c -> Wiki_syntax.a_content_of_wiki
-                    Wiki_syntax.default_parser bi c
+                    Wiki_syntax.wikicreole_parser bi c
                 | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
               in
               ((Eliom_duce.Xhtml.make_uri

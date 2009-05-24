@@ -1,5 +1,5 @@
 open User_sql.Types
-open Wiki_sql.Types
+open Wiki_types
 
 (**
 This is the wiki component of Ocsimore.
@@ -34,13 +34,16 @@ val really_create_wiki :
   ?readers:user list ->
   ?wiki_css:string ->
   container_text:string ->
+  model:Wiki_types.wiki_model ->
   unit ->
   wiki Lwt.t
 
 
 
 val new_wikitextbox :
-  Wiki_data.wiki_rights ->
+  ?db:Sql.db_t ->
+  rights:Wiki_types.wiki_rights ->
+  content_type:Wiki_types.content_type ->
   sp:Eliom_sessions.server_params ->
   wiki:wiki ->
   author:userid ->
@@ -51,21 +54,22 @@ val new_wikitextbox :
 
 (** Saves a wikibox and returns the new version id of this wikibox. *)
 val save_wikitextbox :
-  Wiki_data.wiki_rights ->
+  rights:Wiki_types.wiki_rights ->
+  content_type:Wiki_types.content_type ->
   sp:Eliom_sessions.server_params ->
   wb:wikibox ->
   content:string option ->
   int32 Lwt.t
 
 val save_wikicssbox :
-  Wiki_data.wiki_rights ->
+  rights:Wiki_types.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   wiki:wiki ->
   content:string option ->
   int32 Lwt.t
 
 val save_wikipagecssbox :
-  Wiki_data.wiki_rights ->
+  rights:Wiki_types.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   wiki:wiki ->
   page:string ->
@@ -82,14 +86,14 @@ val modified_wikibox:
 
 
 val wikibox_content:
-  Wiki_data.wiki_rights ->
+  rights:Wiki_types.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   ?version:int32 -> 
   wikibox ->
-  Wiki_sql.wikibox_content Lwt.t
+  Wiki_types.wikibox_content Lwt.t
 
 val wikibox_content':
-  Wiki_data.wiki_rights ->
+  rights:Wiki_types.wiki_rights ->
   sp:Eliom_sessions.server_params ->
   ?version:int32 -> 
   wikibox ->
@@ -103,3 +107,6 @@ val wikibox_history : wikibox:wikibox ->
 (** Raised in case of a non-existing wikibox. The optional [int32]
    argument is the version number *)
 exception Unknown_box of wikibox * int32 option
+
+
+

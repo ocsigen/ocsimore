@@ -71,6 +71,7 @@ let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 let _ =
   Lwt_unix.run (
      Wiki_services.create_and_register_wiki
+       ~model:Ocsisite.wikicreole_model
        ~author:Users.admin
        ~title:wiki_data.name
        ~descr:""
@@ -79,6 +80,5 @@ let _ =
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
        ~container_text:Wiki_services.default_container_page
-       ~wikibox_widget:Ocsisite.wikibox_widget
        ()
     )

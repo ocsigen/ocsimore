@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Wiki_sql.Types
+open Wiki_types
 
 
 (** This module declares the interface for the widget that is used
@@ -124,18 +124,20 @@ type box_info =
    bi_box : wikibox (* Wikibox which is being displayed *);
    bi_root_wiki: wiki (* Id of the wiki that responds to the url,
                          used to generate links *) ;
+   bi_rights: Wiki_types.wiki_rights;
 }
 
 let add_ancestor_bi x bi =
   { bi with bi_ancestors = Ancestors.add_ancestor x bi.bi_ancestors }
 
-let default_bi ~sp ~root_wiki ~wikibox =
+let default_bi ~sp ~root_wiki ~wikibox ~rights =
   {
     bi_sp = sp;
     bi_ancestors = Ancestors.no_ancestors;
     bi_subbox = None;
     bi_root_wiki = root_wiki;
-    bi_box = wikibox
+    bi_box = wikibox;
+    bi_rights = rights;
   }
 
 
@@ -197,13 +199,13 @@ object
   method display_wikiboxcontent :
     bi:box_info ->
     classes:classes ->
-    Wiki_sql.wikibox_content ->
+    Wiki_types.wikibox_content ->
     (classes * Xhtmltypes_duce.flows) Lwt.t
 
   (** Display a wikibox without pretty-printing *)
   method display_raw_wikiboxcontent :
     classes:classes ->
-    Wiki_sql.wikibox_content ->
+    Wiki_types.wikibox_content ->
     (classes * Xhtmltypes_duce.flows) Lwt.t
 
 end
@@ -419,16 +421,6 @@ class type virtual interactive_wikibox =
       wiki:wiki ->
       page:string ->
       (Xhtmltypes_duce.html * int) Lwt.t
-
-    (** Response to an url matching a wikipage. Depending on the field
-        staticdir of the corresponding wiki, we either send the
-        corresponding local file, or the content of the wikipage
-        after pretty-printing *)
-    method send_wikipage :
-      sp:Eliom_sessions.server_params ->
-      wiki:wiki ->
-      page:string ->
-      Ocsigen_http_frame.result Lwt.t
 
   end
 

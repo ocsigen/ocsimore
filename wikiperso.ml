@@ -1,7 +1,6 @@
 (* Ocsimore
  * http://www.ocsigen.org
  * Copyright (C) 2008-2009
- * Boris Yakobowski - CNRS - Université Paris Diderot Paris 7
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -17,12 +16,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
+(**
+   @author Vincent Balat
+   @author Boris Yakobowski
+*)
 
 open Lwt
 open Ocsigen_extensions
 open Simplexmlparser
 open User_sql.Types
-open Wiki_sql.Types
+open Wiki_types
 
 
 (** Wikiperso is an eliom extension that can be used to provide
@@ -133,24 +136,25 @@ let template_css_pagename = "wikiperso_css-template"
 
 let template_container = Ocsisite.register_named_wikibox
   ~page:template_container_pagename ~content:default_welcome_page
-  ~content_type:Wiki_sql.WikiCreole
+  ~content_type:Wiki_syntax.wikicreole_content_type
   ~comment:"Template for wikipersos container pages"
 
 let template_wiki_css = Ocsisite.register_named_wikibox
   ~page:template_css_pagename ~content:default_wikicss
-  ~content_type:Wiki_sql.Css ~comment:"Template for wikipersos css"
+  ~content_type:Wiki_models.css_content_type
+  ~comment:"Template for wikipersos css"
 
 
 (** The function that creates the wikiperso when needed *)
-let create_wikiperso ~wiki_title ~userdata =
+let create_wikiperso ~model ~wiki_title ~userdata =
   let gid = [basic_user userdata.user_id] in
-  template_container ()
-  >>= fun container ->
-  template_wiki_css ()
-  >>= fun css ->
+  template_container () >>= fun container ->
+  template_wiki_css () >>= fun css ->
   (* We create the wiki, without supplying the [path] field. This will make
      the relocation of the wiki easier *)
-  Wiki.really_create_wiki ~title:wiki_title
+  Wiki.really_create_wiki 
+    ~model
+    ~title:wiki_title
     ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
               userdata.user_fullname)
     ~admins:gid ~author:userdata.user_id
@@ -189,14 +193,19 @@ let gen sp =
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
-                        User_sql.get_basicuser_data userid >>=
-                        fun userdata ->
-                        create_wikiperso wiki_title userdata
+(*VVV This is a hack! 
+  I don't know how to have the model here because it is not created yet.
+*)
+                        let model = 
+                          Wiki_types.wiki_model_of_string "wikicreole" in
+(* end hack *)
+                        User_sql.get_basicuser_data userid >>= fun userdata ->
+                        create_wikiperso ~model ~wiki_title ~userdata
                         >>= fun wiki ->
                         (* We then register the wiki at the correct url *)
                         Wiki_services.register_wiki ~sp
                           ~path:(wiki_path userdata.user_login)
-                          ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ();
+                          ~wiki:wiki ();
                         Lwt.return ()
                     | e -> Lwt.fail e)
         )
@@ -220,7 +229,7 @@ let () =
            | Some result ->
                let user = Netstring_pcre.matched_group result 1 title in
                Wiki_services.register_wiki ~path:(wiki_path user)
-                 ~wikibox_widget:Ocsisite.wikibox_widget ~wiki:wiki ()
+                 ~wiki:wiki ()
            | None -> ()
         );
         Lwt.return ()

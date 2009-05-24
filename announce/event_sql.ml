@@ -159,8 +159,11 @@ let insert_persons l =
   Lwt_util.map_serial (fun (n, a) -> insert_person n a) l
 
 let insert_desc wiki author comment content =
-  Wiki_sql.new_wikibox ~wiki ~author ~comment ~content
-    ~content_type:Wiki_sql.WikiCreole ()
+  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+  let content_type = 
+    Wiki_models.get_default_content_type wiki_info.Wiki_types.wiki_model 
+  in
+  Wiki_sql.new_wikibox ~wiki ~author ~comment ~content ~content_type ()
 
 let insert_event_person dbh event persons =
   Lwt_util.iter_serial
@@ -189,10 +192,9 @@ let insert_event
   insert_event_person dbh event persons >>= fun () ->
   Lwt.return event)
 
-let update_desc wiki author wikibox comment content =
+let update_desc wiki author wikibox content_type comment content =
   Wiki_sql.update_wikibox
-    ~wikibox:(wiki, wikibox) ~author ~comment ~content
-    ~content_type:Wiki_sql.WikiCreole
+    ~wikibox:(wiki, wikibox) ~author ~comment ~content ~content_type
 
 let check_no_concurrent_update dbh ev =
   let id = ev.id in
@@ -205,11 +207,11 @@ let check_no_concurrent_update dbh ev =
      | _      -> false);
   Lwt.return ()
 
-let update_event wiki author ev desc comment persons =
+let update_event wiki author ev desc content_type comment persons =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   check_no_concurrent_update dbh ev) >>= fun () ->
   (*XXX Not atomic! *)
-  update_desc wiki author ev.description comment desc >>= fun _ ->
+  update_desc wiki author ev.description content_type comment desc >>= fun _ ->
   transaction Common_sql.dbpool (fun dbh ->
   let id = ev.id in
   let minor_version = ev.minor_version in

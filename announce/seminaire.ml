@@ -215,7 +215,7 @@ let create_event =
                title description comment status ->
              Event_sql.insert_persons persons >>= fun persons ->
              Event_sql.insert_event
-                Common.wiki_info.Wiki_sql.Types.wiki_id Users.admin
+                Common.wiki_info.Wiki_types.wiki_id Users.admin
                 cat.cat_id start finish room location
                 persons title description comment status >>= fun id ->
              Lwt.return
@@ -265,9 +265,15 @@ let edit_event =
                  title = title; status = status}
               in
               Event_sql.insert_persons persons >>= fun persons ->
+              Wiki_sql.get_wiki_info_by_id Common.wiki_id >>= fun wiki_info ->
+              let rights = 
+                Wiki_models.get_rights wiki_info.Wiki_types.wiki_model 
+              in
+              Wiki.wikibox_content ~sp ~rights (Common.wiki_id, ev'.description)
+              >>= fun (content_type, _, _) ->
               Event_sql.update_event
                 Common.wiki_id Users.admin
-                ev' (Some desc) comment persons >>= fun () ->
+                ev' (Some desc) content_type comment persons >>= fun () ->
               Lwt.return
                 {{<html xmlns="http://www.w3.org/1999/xhtml">
                      [{:Common.head sp "":}
@@ -414,8 +420,11 @@ let summary_contents category sp =
   let finish = Calendar.create finish Common.midnight in
   Event_sql.find_category_by_path category >>= fun cat ->
   let wikibox = (Common.wiki_id, cat.cat_desc) in
+  Wiki_sql.get_wiki_info_by_id Common.wiki_id >>= fun wiki_info ->
+  let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
   let bi = Wiki_widgets_interface.default_bi ~sp ~root_wiki:Common.wiki_id
-    ~wikibox in
+    ~wikibox ~rights 
+  in
   Ocsisite.wikibox_widget#display_interactive_wikibox wikibox ~bi
   >>= fun desc ->
   let show_all = true in (*XXXX*)

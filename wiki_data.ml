@@ -21,7 +21,7 @@
 *)
 
 open User_sql.Types
-open Wiki_sql.Types
+open Wiki_types
 
 
 let (>>=) = Lwt.bind
@@ -97,7 +97,6 @@ let (wikipage_css_creators, _ : wikipage_arg parameterized_group * _)= aux_grp
  wb : parameterized by wikiboxes
  wp : parameterized by wikipages (unused right now)
 
-v v v v v v v
        -------- WikiAdmin(w)-------------------------------------------------
       /                 |                 |           |             |       |
 WikiboxesAdmins(w)   SubWikiboxes    Wikipages   CssCreators(w) Wikiboxes   |
@@ -153,7 +152,7 @@ let aux_group grp ~sp data =
   Users.in_group ~sp ~group:(grp $ data) ()
 
 
-class wiki_rights =
+class wiki_rights : Wiki_types.wiki_rights =
   let can_adm_wb, can_wr_wb, can_re_wb = can_sthg can_sthg_wikibox in
 object (self)
   method can_admin_wiki = aux_group wiki_admins
@@ -224,7 +223,8 @@ let helpers_wiki_permissions =
                         (h_wiki_wikiboxes_grps.awr_eliom_params **
                          h_wiki_files_readers.grp_eliom_params)))))))
 
-  and f_save (rights : wiki_rights) sp (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, wfr)))))))) =
+  and f_save (rights : Wiki_types.wiki_rights) sp
+      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, wfr)))))))) =
     rights#can_admin_wiki sp wiki >>= function
       | true ->
           h_wiki_admins.grp_save wiki adm >>= fun () ->

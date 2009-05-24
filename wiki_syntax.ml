@@ -22,7 +22,7 @@
    @author Boris Yakobowski
 *)
 
-open Wiki_sql.Types
+open Wiki_types
 open Wiki_widgets_interface
 let (>>=) = Lwt.bind
 
@@ -292,7 +292,7 @@ type syntax_extension =
 
 type 'a plugin_hash = (string, 'a) Hashtbl.t
 
-type wiki_parser = {
+type wikicreole_parser = {
   builder: (Xhtmltypes_duce.flows Lwt.t,
             Xhtmltypes_duce.inlines Lwt.t,
             {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
@@ -303,7 +303,7 @@ type wiki_parser = {
   plugin_assoc: (bool * syntax_extension) plugin_hash;
 
   plugin_action_assoc:
-     ((Eliom_sessions.server_params * Wiki_sql.Types.wikibox,
+     ((Eliom_sessions.server_params * Wiki_types.wikibox,
        string option Lwt.t)
         Wikicreole.plugin_args)
     plugin_hash;
@@ -391,7 +391,9 @@ let builder wp plugin_action =
     error = nothing1;
   }
 
-let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_sql.Types.wikibox) content =
+let preparse_extension
+    wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wikibox)
+    content =
   let (plugin_action, get_subst) = make_plugin_action wp in
   let builder = builder wp plugin_action in
   ignore (Wikicreole.from_string sp (sp, wb) builder content);
@@ -567,7 +569,7 @@ let default_builder =
     error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
   }
 
-let default_parser = {
+let wikicreole_parser = {
   builder = default_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
@@ -580,6 +582,11 @@ let xml_of_wiki wp bi s =
        (builder_from_builder_ext wp) s)
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
+
+let wikicreole_content_type = 
+  Wiki_models.register_wiki_parser "wikicreole" 
+    (preparse_extension wikicreole_parser)
+    (xml_of_wiki wikicreole_parser)
 
 let inline_of_wiki builder bi s : Xhtmltypes_duce.inlines Lwt.t =
   match Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
@@ -616,7 +623,7 @@ let add_extension ~wp ~name ?(wiki_content=true) f =
 
 
 let () =
-  let add_extension_aux = add_extension ~wp:default_parser in
+  let add_extension_aux = add_extension ~wp:wikicreole_parser in
 
   add_extension_aux ~name:"div" ~wiki_content:true
     (fun bi args c -> 
@@ -625,7 +632,7 @@ let () =
             | Some c -> c
             | None -> ""
           in
-          xml_of_wiki default_parser bi content >>= fun content ->
+          xml_of_wiki wikicreole_parser bi content >>= fun content ->
           let classe = 
             try
               let a = List.assoc "class" args in
@@ -650,7 +657,7 @@ let () =
             | Some c -> c
             | None -> ""
           in
-          inline_of_wiki default_parser bi content >>= fun content ->
+          inline_of_wiki wikicreole_parser bi content >>= fun content ->
           let classe = 
             try
               let a = List.assoc "class" args in
@@ -736,9 +743,9 @@ let () =
               with Not_found -> s, s
             in
             Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
-            a_content_of_wiki default_parser bi text >>= fun text2 ->
+            a_content_of_wiki wikicreole_parser bi text >>= fun text2 ->
             let b = 
-              match wiki_info.Wiki_sql.Types.wiki_pages with
+              match wiki_info.Wiki_types.wiki_pages with
                 | Some dir ->
                     Eliom_sessions.get_current_sub_path_string
                       bi.Wiki_widgets_interface.bi_sp = dir^"/"^link
@@ -844,7 +851,7 @@ let () =
               | [c] -> eval_cond c
               | _ -> Lwt.return false)
          >>= function
-           | true -> xml_of_wiki default_parser bi content
+           | true -> xml_of_wiki wikicreole_parser bi content
            | false -> Lwt.return {{ [] }}
           )
          )
