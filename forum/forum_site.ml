@@ -31,10 +31,11 @@ let _ =
   let add_message_widget = new Forum_widgets.add_message_widget services in 
   let message_widget = 
     new Forum_widgets.message_widget 
-      widget_err wiki_widgets add_message_widget services 
+      widget_err wiki_widgets services 
   in 
   let thread_widget = 
-    new Forum_widgets.thread_widget widget_err message_widget services
+    new Forum_widgets.thread_widget
+      widget_err message_widget add_message_widget services
   in
   let message_list_widget = 
     new Forum_widgets.message_list_widget

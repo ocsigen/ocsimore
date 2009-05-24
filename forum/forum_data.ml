@@ -180,10 +180,6 @@ let get_thread ~sp ~message_id =
     | (m::l) as th ->
         let m = get_message_info m in
         assert (message_id = m.m_id);
-(*AEFF        if m.m_deleted
-        then Lwt.fail Not_found
-        else *)
-
         Forum_sql.get_forum ~forum:m.m_forum () >>= fun _ ->
         (* get_forum only to verify that the forum is not deleted *)
         Forum.get_role sp m.m_forum >>= fun role ->

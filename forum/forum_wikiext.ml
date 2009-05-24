@@ -32,21 +32,13 @@ let register_wikiext wp (message_widget, thread_widget, message_list_widget) =
             try Some [List.assoc "class" args]
             with Not_found -> None
           in
-          let rows = 
-            try Some (int_of_string (List.assoc "rows" args))
-            with Not_found | Failure _ -> None
-          in
-          let cols = 
-            try Some (int_of_string (List.assoc "cols" args))
-            with Not_found | Failure _ -> None
-          in
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let message_id =
               Forum_sql.Types.message_of_string (List.assoc "message" args) 
             in
             message_widget#display
-              ~sp ?rows ?cols ?classes
+              ~sp ?classes
               ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
             Lwt.return {{ [ {: b :} ] }}
           with Not_found | Failure _ -> 

@@ -77,13 +77,11 @@ end
 class message_widget
   (widget_with_error_box : Widget.widget_with_error_box) 
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
-  (add_message_widget : add_message_widget)
   (add_message_service, moderate_message_service) =
 object (self)
 
   val msg_class = "ocsiforum_msg"
   val info_class = "ocsiforum_msg_info"
-  val comment_class = "ocsiforum_comment_form"
   val not_moderated_class = "ocsiforum_not_moderated"
 
   method get_message ~sp ~message_id =
@@ -93,32 +91,6 @@ object (self)
     let classes = Ocsimore_lib.build_class_attr (msg_class::classes) in
     Lwt.return
       {{ <div class={: classes :}>content }}
-
-  method display_comment_line ~sp ~role:_role ?rows ?cols m =
-(*    Lwt.return
-       {{ [
-         <span class={: comment_class :}>
-           {: Ocamlduce.Utf8.make "Comment" :}
-         <div class={: comment_class :}>[
-           {: Eliom_duce.Xhtml.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:add_message_service
-              ~sp draw_form () :}]
-         ] }} *)
-  let n1_id = Eliom_obrowser.fresh_id () in
-  let n2_id = Eliom_obrowser.fresh_id () in
-  let form = 
-    add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
-  in
-  let rec n1 = {{ <span class={: comment_class :}
-                    id={: n1_id :}
-                    onclick={: "caml_run_from_table(main_vm, 1, "
-                             ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
-                    {: Ocamlduce.Utf8.make "Comment" :} }}
-  and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
-  in 
-  Lwt.return {{ [ n1 n2 ] }}
-
 
   method display_admin_line ~sp ~role m =
 
@@ -152,19 +124,11 @@ object (self)
 
   method pretty_print_message
     ~classes
-    ~commentable ?(arborescent = true) ~sp ?rows ?cols m =
+    ?(arborescent = true) ~sp m =
     User_sql.get_basicuser_data m.m_creator_id >>= fun ud ->
     let author = ud.User_sql.Types.user_fullname in
     Forum.get_role sp m.m_forum >>= fun role ->
     self#display_admin_line ~sp ~role m >>= fun admin_line ->
-    !!(role.Forum.comment_creators) >>= fun commentator ->
-    let draw_comment_form =
-      (commentable && 
-         commentator && (arborescent || (m.m_id = m.m_root_id))) 
-    in
-    (if draw_comment_form
-     then self#display_comment_line ~sp ~role ?rows ?cols m
-     else Lwt.return {{[]}}) >>= fun comment_line ->
     let classes = 
       if m.m_moderated then classes else not_moderated_class::classes 
     in
@@ -189,13 +153,12 @@ object (self)
                  (Format.sprintf "posted by %s %s" 
                     author (Ocsimore_lib.sod m.m_datetime)) :}
           wikibox
-          !comment_line
          ] }})
 
-  method display ~sp ?rows ?cols ?(classes=[]) ~data:message_id () =
+  method display ~sp ?(classes=[]) ~data:message_id () =
     widget_with_error_box#bind_or_display_error
       (self#get_message ~sp ~message_id)
-      (self#pretty_print_message ~classes ~commentable:false ~sp ?rows ?cols)
+      (self#pretty_print_message ~classes ~sp)
       (self#display_message)
 
 end
@@ -203,11 +166,13 @@ end
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget) 
+  (add_message_widget : add_message_widget)
   (add_message_service, moderate_message_service) =
 object (self)
 
   val thr_class = "ocsiforum_thread"
   val thr_msg_class = "ocsiforum_thread_msg"
+  val comment_class = "ocsiforum_comment_form"
 
   method get_thread ~sp ~message_id =
     Forum_data.get_thread ~sp ~message_id
@@ -217,35 +182,75 @@ object (self)
     Lwt.return
       {{ <div class={: classes :}>content }}
 
+  method display_comment_line ~sp ~role:_role ?rows ?cols m =
+(*    Lwt.return
+       {{ [
+         <span class={: comment_class :}>
+           {: Ocamlduce.Utf8.make "Comment" :}
+         <div class={: comment_class :}>[
+           {: Eliom_duce.Xhtml.post_form
+              ~a:{{ { accept-charset="utf-8" } }}
+              ~service:add_message_service
+              ~sp draw_form () :}]
+         ] }} *)
+  let n1_id = Eliom_obrowser.fresh_id () in
+  let n2_id = Eliom_obrowser.fresh_id () in
+  let form = 
+    add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
+  in
+  let rec n1 = {{ <span class={: comment_class :}
+                    id={: n1_id :}
+                    onclick={: "caml_run_from_table(main_vm, 1, "
+                             ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
+                    {: Ocamlduce.Utf8.make "Comment" :} }}
+  and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
+  in 
+  Lwt.return {{ [ n1 n2 ] }}
+
   method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread =
-    let rec print_one_message_and_children ~arborescent thread : 
+    let rec print_one_message_and_children
+        ~role ~arborescent ~commentable thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
       (match thread with
          | [] -> Lwt.return ({{[]}}, [])
          | m::l ->
              message_widget#pretty_print_message
                ~classes:[]
-               ~commentable ~arborescent ~sp ?rows ?cols m
+               ~arborescent ~sp m
              >>= fun (classes, msg_info) ->
+             let draw_comment_form =
+               (commentable && (arborescent || (m.m_id = m.m_root_id)))
+             in
+             (if draw_comment_form
+              then self#display_comment_line ~sp ~role ?rows ?cols m
+              else Lwt.return {{[]}}) >>= fun comment_line ->
              message_widget#display_message ~classes msg_info >>= fun first ->
-             print_children ~arborescent m.m_id l >>= fun (s, l) ->
-             Lwt.return ({{ [first !s] }}, l))
+             print_children ~role ~arborescent ~commentable m.m_id l
+             >>= fun (s, l) ->
+             Lwt.return ({{ [first !comment_line !s] }}, l))
       >>= fun (s, l) ->
       Lwt.return ({{ <div class={: thr_msg_class :}>s }}, l)
-    and print_children ~arborescent pid = function
+    and print_children ~role ~arborescent ~commentable pid = function
       | [] -> Lwt.return ({{ [] }}, [])
       | ((m::_) as th) 
           when m.m_parent_id = Some pid ->
-          (print_one_message_and_children ~arborescent th >>= fun (b, l) ->
-           print_children ~arborescent pid l >>= fun (s, l) ->
+          (print_one_message_and_children ~role ~arborescent ~commentable th
+           >>= fun (b, l) ->
+           print_children ~role ~arborescent ~commentable pid l
+           >>= fun (s, l) ->
            Lwt.return (({{ [b !s] }} : Xhtmltypes_duce.flows), l))
       | l -> Lwt.return ({{ [] }}, l)
     in
     match thread with
       | [] -> Lwt.return (classes, {{[]}})
       | m::_l ->
-          Forum_sql.get_forum ~forum:m.m_forum () >>= fun f ->
-          print_one_message_and_children ~arborescent:f.f_arborescent thread
+          Forum_sql.get_forum ~forum:m.m_forum () >>= fun forum ->
+          Forum.get_role sp m.m_forum >>= fun role ->
+          !!(role.Forum.comment_creators) >>= fun commentator ->
+          print_one_message_and_children
+            ~role
+            ~arborescent:forum.f_arborescent
+            ~commentable:(commentable && commentator) thread
           >>= fun (a, _) -> 
           Lwt.return (classes, {{[a]}})
 
@@ -280,7 +285,7 @@ object (self)
     Lwt_util.map
       (fun raw_msg_info -> 
          message_widget#pretty_print_message
-           ~classes:[] ~commentable:false ~sp
+           ~classes:[] ~sp
            (Forum_sql.Types.get_message_info raw_msg_info)
          >>= fun (classes, content) ->
          message_widget#display_message ~classes content)

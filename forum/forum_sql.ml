@@ -303,7 +303,8 @@ let get_thread ~message_id () =
                            root_id, forum_id, wikibox, moderated, sticky,\
                            tree_min, tree_max \
                       FROM forums_messages \
-                      WHERE tree_min >= $min AND tree_max <= $max \
+                      WHERE root_id= $message_id \
+                      AND tree_min >= $min AND tree_max <= $max \
                       ORDER BY tree_min"
          ))
 
@@ -318,9 +319,11 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
          PGSQL(db) "SELECT *
                     FROM forums_messages \
                     WHERE forum_id = $forum AND moderated = true \
+                    AND parent_id IS NULL \
                     ORDER BY datetime DESC OFFSET $offset LIMIT $number"
        else
          PGSQL(db) "SELECT *
                     FROM forums_messages \
                     WHERE forum_id = $forum \
+                    AND parent_id IS NULL \
                     ORDER BY datetime DESC OFFSET $offset LIMIT $number")
