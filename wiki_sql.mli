@@ -152,4 +152,4 @@ val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t
 
 
 
-val get_wikibox_info : wikibox -> wikibox_info Lwt.t
+val get_wikibox_info : ?db:Sql.db_t -> wikibox -> wikibox_info Lwt.t

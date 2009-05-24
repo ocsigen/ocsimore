@@ -45,5 +45,7 @@ COMMENT ON COLUMN forums_messages.moderated IS
   'true if the message has been moderated';
 COMMENT ON COLUMN forums_messages.sticky IS
   'Sticky messages will be displayed first';
+COMMENT ON COLUMN forums_messages.wikibox IS
+  'id of the wiki box in the wiki';
 
 ALTER TABLE public.forums_messages OWNER TO ocsimore;

@@ -389,6 +389,8 @@ exception Forum_action_info of forum_action_info
 
 let eliom_forum = Eliom_parameters.user_type forum_of_string string_of_forum 
 let eliom_message = Eliom_parameters.user_type message_of_string string_of_message 
+let eliom_forum_input ?a ~input_type ?name ?value () = 
+  Eliom_duce.Xhtml.user_type_input string_of_forum ?a ~input_type ?name ?value ()
 let eliom_message_input ?a ~input_type ?name ?value () = 
   Eliom_duce.Xhtml.user_type_input string_of_message ?a ~input_type ?name ?value ()
 let eliom_message_button ?a ~name ~value v =

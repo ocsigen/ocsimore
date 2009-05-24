@@ -164,7 +164,11 @@ let new_message ~sp ~forum ~wiki ~creator_id
   Sql.full_transaction_block
     (fun db ->
        Wiki.new_wikitextbox ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
-         ~content:text ~content_type () >>= fun wikibox ->
+         ~content:text ~content_type () >>= fun wikibox_id ->
+       Wiki_sql.get_wikibox_info ~db (wiki, wikibox_id) >>= fun wikibox_info ->
+       let wikibox = 
+         Wiki_types.sql_of_wikibox_uid wikibox_info.Wiki_types.wikibox_uid 
+       in
        (match parent_id with
          | None ->
              PGSQL(db) "SELECT NEXTVAL('forums_messages_id_seq')"
@@ -304,3 +308,19 @@ let get_thread ~message_id () =
          ))
 
 
+let get_message_list ~forum ~first ~number ~moderated_only () =
+  let forum = sql_of_forum forum in
+  let offset = Int64.sub first 1L in
+  Sql.full_transaction_block
+    (fun db -> 
+       if moderated_only
+       then
+         PGSQL(db) "SELECT *
+                    FROM forums_messages \
+                    WHERE forum_id = $forum AND moderated = true \
+                    ORDER BY datetime DESC OFFSET $offset LIMIT $number"
+       else
+         PGSQL(db) "SELECT *
+                    FROM forums_messages \
+                    WHERE forum_id = $forum \
+                    ORDER BY datetime DESC OFFSET $offset LIMIT $number")

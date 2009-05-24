@@ -28,9 +28,53 @@ open Forum_sql.Types
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+class add_message_widget
+  (add_message_service, moderate_message_service) =
+object (self)
+
+  val add_msg_class = "ocsiforum_add_message_form"
+
+  method display
+    ~sp ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) () =
+    let draw_form (actionnamename,
+                   ((parentname, forumname), (subjectname, textname))) =
+      let num =
+        match parent, forum with
+          | Some p, _ ->
+              Forum.eliom_message_input ~input_type:{: "hidden" :}
+                ~name:parentname ~value:p ()
+          | None, Some forum ->
+              Forum.eliom_forum_input ~input_type:{: "hidden" :}
+                ~name:forumname ~value:forum ()
+          | _ -> failwith "Forum_widgets.add_message_widget"
+      in
+      let title = 
+        {{ [ 'Title:'
+               {: Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
+                  ~name:subjectname () :}
+             <br>[]
+           ] }}
+      in
+      {{ [<p>[ num
+             !title
+             {: Eliom_duce.Xhtml.textarea ~name:textname ~rows ~cols () :}
+           ]
+           <p>[{: Eliom_duce.Xhtml.string_button ~name:actionnamename
+                  ~value:"save" {{ "Send" }} :} ]
+         ]
+       }}
+    in
+    Eliom_duce.Xhtml.post_form
+      ~a:{{ { accept-charset="utf-8" } }}
+      ~service:add_message_service
+      ~sp draw_form ()
+
+end
+
 class message_widget
   (widget_with_error_box : Widget.widget_with_error_box) 
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
+  (add_message_widget : add_message_widget)
   (add_message_service, moderate_message_service) =
 object (self)
 
@@ -47,19 +91,7 @@ object (self)
     Lwt.return
       {{ <div class={: classes :}>content }}
 
-  method display_comment_line
-    ~sp ~role:_role ?(rows = 3) ?(cols = 50) m =
-    let draw_form (actionnamename, ((parentname, _), (_, textname))) =
-         {{ [<p>[
-              {: Forum.eliom_message_input ~input_type:{: "hidden" :}
-                 ~name:parentname ~value:m.m_id () :}
-              {: Eliom_duce.Xhtml.textarea ~name:textname ~rows ~cols () :}
-              ]
-              <p>[{: Eliom_duce.Xhtml.string_button ~name:actionnamename
-                     ~value:"save" {{ "Send" }} :} ]
-            ]
-          }}
-    in
+  method display_comment_line ~sp ~role:_role ?rows ?cols m =
 (*    Lwt.return
        {{ [
          <span class={: comment_class :}>
@@ -72,19 +104,15 @@ object (self)
          ] }} *)
   let n1_id = Eliom_obrowser.fresh_id () in
   let n2_id = Eliom_obrowser.fresh_id () in
+  let form = 
+    add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
+  in
   let rec n1 = {{ <span class={: comment_class :}
                     id={: n1_id :}
                     onclick={: "caml_run_from_table(main_vm, 1, "
                              ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
                     {: Ocamlduce.Utf8.make "Comment" :} }}
-  and n2 =
-    {{ <div id={: n2_id :}
-            class={: comment_class :}
-              >[
-         {: Eliom_duce.Xhtml.post_form
-            ~a:{{ { accept-charset="utf-8" } }}
-            ~service:add_message_service
-            ~sp draw_form () :}] }}
+  and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
   in 
   Lwt.return {{ [ n1 n2 ] }}
 
@@ -224,6 +252,51 @@ object (self)
       (self#get_thread ~sp ~message_id)
       (self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols)
       (self#display_thread)
+
+end
+
+class message_list_widget
+  (widget_with_error_box : Widget.widget_with_error_box)
+  (message_widget : message_widget) 
+  (add_message_widget : add_message_widget) 
+  =
+object (self)
+
+  val ml_class = "ocsiforum_message_list"
+
+  method get_message_list ~sp ~forum ~first ~number =
+    Forum_data.get_message_list ~sp ~forum ~first ~number ()
+    
+  method display_message_list ~classes content =
+    let classes = Ocsimore_lib.build_class_attr (ml_class::classes) in
+    Lwt.return
+      {{ <div class={: classes :}>content }}
+
+  method pretty_print_message_list ~forum ?rows ?cols ~classes ~sp 
+    ~add_message_form list =
+    Lwt_util.map
+      (fun raw_msg_info -> 
+         message_widget#pretty_print_message
+           ~classes:[] ~commentable:false ~sp
+           (Forum_sql.Types.get_message_info raw_msg_info)
+         >>= fun (classes, content) ->
+         message_widget#display_message ~classes content)
+      list
+    >>= fun l ->
+    let form =
+      if add_message_form
+      then {{ [ {: add_message_widget#display ~sp ~forum ?rows ?cols () :} ] }}
+      else {{ [] }}
+    in
+    Lwt.return (classes, {{ [ !{: l :} !form ] }})
+
+  method display ~sp ?(rows : int option) ?(cols : int option) ?(classes=[])
+    ~forum ~first ~number ?(add_message_form = true) () =
+    widget_with_error_box#bind_or_display_error
+      (self#get_message_list ~sp ~forum ~first ~number)
+      (self#pretty_print_message_list
+         ~forum ?rows ?cols ~classes ~sp ?add_message_form)
+      (self#display_message_list)
 
 end
 

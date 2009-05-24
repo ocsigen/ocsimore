@@ -28,11 +28,18 @@ let _ =
   let wiki_widgets = Wiki_models.get_widgets forum_wiki_model in
   let services = Forum_services.register_services () in
   let widget_err = new Widget.widget_with_error_box in
+  let add_message_widget = new Forum_widgets.add_message_widget services in 
   let message_widget = 
-    new Forum_widgets.message_widget widget_err wiki_widgets services 
+    new Forum_widgets.message_widget 
+      widget_err wiki_widgets add_message_widget services 
   in 
   let thread_widget = 
     new Forum_widgets.thread_widget widget_err message_widget services
   in
+  let message_list_widget = 
+    new Forum_widgets.message_list_widget
+      widget_err message_widget add_message_widget
+  in
   Forum_wikiext.register_wikiext
-    Wiki_syntax.wikicreole_parser (message_widget, thread_widget)
+    Wiki_syntax.wikicreole_parser 
+    (message_widget, thread_widget, message_list_widget)

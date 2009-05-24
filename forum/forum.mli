@@ -117,6 +117,13 @@ val eliom_forum :
 val eliom_message :
   string -> (message, [`WithoutSuffix], [`One of message] Eliom_parameters.param_name) Eliom_parameters.params_type
 
+(** Eliom input field for forums *)
+val eliom_forum_input : 
+  ?a:Eliom_duce.Xhtml.input_attrib_t ->
+  input_type: Eliom_duce.Xhtml.input_type_t ->
+  ?name:[< Forum_sql.Types.forum Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
+  ?value:Forum_sql.Types.forum -> unit -> Eliom_duce.Xhtml.input_elt
+
 (** Eliom input field for messages *)
 val eliom_message_input : 
   ?a:Eliom_duce.Xhtml.input_attrib_t ->

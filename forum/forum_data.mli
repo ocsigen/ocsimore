@@ -108,3 +108,15 @@ val get_thread :
   message_id:Forum_sql.Types.message -> 
   Forum_sql.Types.message_info list Lwt.t
   
+(** returns the list of messages (without comments) in a forum. 
+    If not moderator, only moderated messages are returned.
+*)
+val get_message_list : 
+  sp:Eliom_sessions.server_params ->
+  forum:Forum_sql.Types.forum ->
+  first:int64 ->
+  number:int64 ->
+  unit ->
+  Forum_sql.Types.raw_message_info list Lwt.t
+  
+

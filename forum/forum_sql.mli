@@ -145,3 +145,13 @@ val get_thread :
   raw_message_info list Lwt.t
   
 
+(** returns the list of messages (without comments) in a forum. *)
+val get_message_list : 
+  forum:Types.forum ->
+  first:int64 ->
+  number:int64 ->
+  moderated_only:bool ->
+  unit ->
+  raw_message_info list Lwt.t
+  
+

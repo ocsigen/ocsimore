@@ -713,8 +713,10 @@ object (self)
             (error_box#display_error_box ~classes ~exn:error (), false)
 
 
-   method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
-     self#display_interactive_wikibox_aux ~bi ?rows ?cols ~classes ?special_box wb
+   method display_interactive_wikibox
+     ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+     self#display_interactive_wikibox_aux
+       ~bi ?rows ?cols ~classes ?special_box wb
      >>= fun (r, _allowed) -> Lwt.return r
 
 

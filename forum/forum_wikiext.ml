@@ -23,7 +23,7 @@
 
 let (>>=) = Lwt.bind
 
-let register_wikiext wp (message_widget, thread_widget) =
+let register_wikiext wp (message_widget, thread_widget, message_list_widget) =
   let add_extension = Wiki_syntax.add_extension ~wp in
   add_extension ~name:"forum_message" ~wiki_content:true
     (fun bi args content ->
@@ -83,4 +83,51 @@ let register_wikiext wp (message_widget, thread_widget) =
             let s = Wiki_syntax.string_of_extension "raw" args content in
             Lwt.return {{ [ <b>{: s :} ] }}
          )
-    )
+    );
+
+  add_extension ~name:"forum_message_list" ~wiki_content:true
+    (fun bi args content ->
+       Wikicreole.Block
+         (let classes = 
+            try Some [List.assoc "class" args]
+            with Not_found -> None
+          in
+          let rows = 
+            try Some (int_of_string (List.assoc "rows" args))
+            with Not_found | Failure _ -> None
+          in
+          let cols = 
+            try Some (int_of_string (List.assoc "cols" args))
+            with Not_found | Failure _ -> None
+          in
+          let first = 
+            try Int64.of_string (List.assoc "first" args)
+            with Not_found | Failure _ -> 1L
+          in
+          let number = 
+            try Int64.of_string (List.assoc "number" args)
+            with Not_found | Failure _ -> 1000L
+          in
+          let add_message_form = 
+            Some
+              (try match List.assoc "addform" args with
+                 | "false" -> false
+                 | _ -> true
+               with Not_found -> true)
+          in
+          try
+            let sp = bi.Wiki_widgets_interface.bi_sp in
+            let forum =
+              Forum_sql.Types.forum_of_string (List.assoc "forum" args) 
+            in
+            message_list_widget#display
+              ~sp ?rows ?cols ?classes
+              ~forum  ~first ~number
+              ?add_message_form () >>= fun (b : Xhtmltypes_duce.block) ->
+            Lwt.return {{ [ {: b :} ] }}
+          with Not_found | Failure _ -> 
+            let s = Wiki_syntax.string_of_extension "raw" args content in
+            Lwt.return {{ [ <b>{: s :} ] }}
+         )
+    );
+

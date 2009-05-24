@@ -308,21 +308,24 @@ let iter_wikis f =
   Lwt_util.iter (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l
 
 
-let get_wikibox_info (wid, wbid as wb) =
+let get_wikibox_info ?db (wid, wbid as wb) =
   let wiki = t_int32 (wid : wiki) in
-  Sql.full_transaction_block
-    (fun db -> PGSQL(db) "SELECT * FROM wikiboxindex
-                          WHERE wiki_id = $wiki AND id = $wbid"
-       >>= function
-         | [] -> Lwt.fail Not_found
-         | (_, _, comment, rights, uid) :: _ ->
-             Lwt.return {
-               wikibox_id = wb;
-               wikibox_uid = Opaque.int32_t uid;
-               wikibox_comment = comment;
-               wikibox_special_rights = rights;
-             }
-    )
+  let f db =
+    PGSQL(db) "SELECT * FROM wikiboxindex
+                        WHERE wiki_id = $wiki AND id = $wbid"
+    >>= function
+      | [] -> Lwt.fail Not_found
+      | (_, _, comment, rights, uid) :: _ ->
+          Lwt.return {
+            wikibox_id = wb;
+            wikibox_uid = Opaque.int32_t uid;
+            wikibox_comment = comment;
+            wikibox_special_rights = rights;
+          }
+  in
+  match db with
+    | None -> Sql.full_transaction_block f
+    | Some db -> f db
 
 let set_wikibox_special_rights_ (wid, wbid) v =
   let wiki = t_int32 (wid : wiki) in

@@ -38,8 +38,7 @@ let new_forum ~sp ~title ~descr ?arborescent ~messages_wiki ~comments_wiki () =
     ~title ~descr ?arborescent ~messages_wiki ~comments_wiki ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let new_message ~sp ~forum ~creator_id
-    ?subject ?parent_id ?sticky ~text () = 
+let new_message ~sp ~forum ~creator_id ?subject ?parent_id ?sticky ~text () = 
   Forum.get_role sp forum >>= fun role ->
   Forum_sql.get_forum ~forum () >>= fun f ->
   if f.f_deleted
@@ -205,3 +204,16 @@ let get_thread ~sp ~message_id =
           if (not first_msg && comment_readers)
           then Lwt.return (comment_filter comment_moderators th)
           else Lwt.fail Ocsimore_common.Permission_denied
+
+let get_message_list ~sp ~forum ~first ~number () =
+  Forum_sql.get_forum ~forum () >>= fun _ ->
+  (* get_forum only to verify that the forum is not deleted *)
+  Forum.get_role sp forum >>= fun role ->
+  !!(role.message_readers) >>= fun message_readers ->
+  if not message_readers
+  then Lwt.fail Ocsimore_common.Permission_denied
+  else
+    !!(role.message_moderators) >>= fun message_moderators ->
+    Forum_sql.get_message_list ~forum ~first ~number 
+      ~moderated_only:(not message_moderators) ()
+
