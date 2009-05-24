@@ -28,8 +28,10 @@ open Forum_sql.Types
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
-class message_widget (widget_with_error_box : Widget.widget_with_error_box) 
-  (add_message_service, moderate_message_service, delete_message_service) =
+class message_widget
+  (widget_with_error_box : Widget.widget_with_error_box) 
+  (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
+  (add_message_service, moderate_message_service) =
 object (self)
 
   val msg_class = "ocsiforum_msg"
@@ -96,13 +98,6 @@ object (self)
           }}
     in
 
-    let draw_delete_form name =
-         {{ [<p>[{: Forum.eliom_message_button ~name:name
-                    ~value:m.m_id {{ "Delete message" }} :} ]
-            ]
-          }}
-    in
-
     let first_msg = m.m_parent_id = None in
     (if not m.m_moderated
     then begin
@@ -122,26 +117,16 @@ object (self)
       else Lwt.return s
     end
     else Lwt.return {{ [] }}) >>= fun moderation_line ->
-    (if first_msg 
-     then !!(role.Forum.message_deletors)
-     else !!(role.Forum.comment_deletors)) >>= fun deletor ->
-    if deletor
-    then 
-      let form = Eliom_duce.Xhtml.post_form
-        ~service:delete_message_service
-        ~sp draw_delete_form () 
-      in
-      Lwt.return {{ [ !moderation_line form ] }}
-    else Lwt.return moderation_line
+    Lwt.return moderation_line
 
   method pretty_print_message
     ~classes
     ~commentable ?(arborescent = true) ~sp ?rows ?cols m =
-    User_sql.get_basicuser_data m.m_author_id >>= fun ud ->
+    User_sql.get_basicuser_data m.m_creator_id >>= fun ud ->
     let author = ud.User_sql.Types.user_fullname in
-    Forum.get_role sp m.m_forum_id >>= fun role ->
+    Forum.get_role sp m.m_forum >>= fun role ->
     self#display_admin_line ~sp ~role m >>= fun admin_line ->
-    !!(role.Forum.comment_writers) >>= fun commentator ->
+    !!(role.Forum.comment_creators) >>= fun commentator ->
     let draw_comment_form =
       (commentable && 
          commentator && (arborescent || (m.m_id = m.m_root_id))) 
@@ -152,6 +137,13 @@ object (self)
     let classes = 
       if m.m_moderated then classes else not_moderated_class::classes 
     in
+    Wiki_sql.wikibox_from_uid m.m_wikibox >>= fun (wiki, box) ->
+    Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+    let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
+    let bi = Wiki_widgets_interface.default_bi
+      ~sp ~root_wiki:wiki (*VVV <- NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOON *) ~wikibox:(wiki, box) ~rights
+    in
+    wiki_widgets#display_interactive_wikibox ~bi (wiki, box) >>= fun wikibox ->
     Lwt.return
       (classes,
        {{ [
@@ -165,7 +157,7 @@ object (self)
             {: Ocamlduce.Utf8.make
                  (Format.sprintf "posted by %s %s" 
                     author (Ocsimore_lib.sod m.m_datetime)) :}
-          <p>{: m.m_text :}
+          wikibox
           !comment_line
          ] }})
 
@@ -180,7 +172,7 @@ end
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget) 
-  (add_message_service, moderate_message_service, delete_message_service) =
+  (add_message_service, moderate_message_service) =
 object (self)
 
   val thr_class = "ocsiforum_thread"
@@ -221,7 +213,7 @@ object (self)
     match thread with
       | [] -> Lwt.return (classes, {{[]}})
       | m::_l ->
-          Forum_sql.get_forum ~forum_id:m.m_forum_id () >>= fun f ->
+          Forum_sql.get_forum ~forum:m.m_forum () >>= fun f ->
           print_one_message_and_children ~arborescent:f.f_arborescent thread
           >>= fun (a, _) -> 
           Lwt.return (classes, {{[a]}})

@@ -22,13 +22,17 @@
 *)
 
 
+let forum_wiki_model = Ocsisite.wikicreole_model (* pour l'instant *)
 
 let _ =
+  let wiki_widgets = Wiki_models.get_widgets forum_wiki_model in
   let services = Forum_services.register_services () in
   let widget_err = new Widget.widget_with_error_box in
-  let message_widget = new Forum_widgets.message_widget widget_err services in 
+  let message_widget = 
+    new Forum_widgets.message_widget widget_err wiki_widgets services 
+  in 
   let thread_widget = 
     new Forum_widgets.thread_widget widget_err message_widget services
   in
   Forum_wikiext.register_wikiext
-    Wiki_syntax.default_parser (message_widget, thread_widget)
+    Wiki_syntax.wikicreole_parser (message_widget, thread_widget)

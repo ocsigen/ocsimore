@@ -27,25 +27,19 @@ open User_sql.Types
 open Forum_sql.Types
 
 (** {2 Forum related groups} *)
-val message_writers : forum_arg parameterized_group
-val message_writers_notmod : forum_arg parameterized_group
-val message_moderators : forum_arg parameterized_group
-val message_deletors : forum_arg parameterized_group
-val message_deletors_if_author : forum_arg parameterized_group
-val message_sticky_makers : forum_arg parameterized_group
-val message_readers  : forum_arg parameterized_group
-val comment_writers : forum_arg parameterized_group
-val comment_writers_notmod : forum_arg parameterized_group
-val comment_moderators : forum_arg parameterized_group
-val comment_deletors : forum_arg parameterized_group
-val comment_deletors_if_author : forum_arg parameterized_group
-val comment_sticky_makers : forum_arg parameterized_group
-val comment_readers  : forum_arg parameterized_group
-val writers : forum_arg parameterized_group
-val writers_notmod : forum_arg parameterized_group
+val message_creators : Wiki_types.wiki_arg parameterized_group
+val message_creators_notmod : Wiki_types.wiki_arg parameterized_group
+val message_moderators : Wiki_types.wiki_arg parameterized_group
+val message_deletors : Wiki_types.wiki_arg parameterized_group
+val message_deletors_if_creator : Wiki_types.wiki_arg parameterized_group
+val message_sticky_makers : Wiki_types.wiki_arg parameterized_group
+val message_readers  : Wiki_types.wiki_arg parameterized_group
+
+val creators : forum_arg parameterized_group
+val creators_notmod : forum_arg parameterized_group
 val moderators : forum_arg parameterized_group
 val deletors : forum_arg parameterized_group
-val deletors_if_author : forum_arg parameterized_group
+val deletors_if_creator : forum_arg parameterized_group
 val sticky_makers : forum_arg parameterized_group
 val readers  : forum_arg parameterized_group
 val forum_admin : forum_arg parameterized_group
@@ -59,6 +53,7 @@ val forum_creators : user
 (** Creates a new forum or returns its id without modification
     if it already exists. *)
 val create_forum : 
+  wiki_model:Wiki_types.wiki_model ->
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
@@ -69,27 +64,27 @@ val create_forum :
 
 type role = 
     {
-      message_writers : bool Lwt.t Lazy.t;
-      message_writers_notmod : bool Lwt.t Lazy.t;
+      message_creators : bool Lwt.t Lazy.t;
+      message_creators_notmod : bool Lwt.t Lazy.t;
       message_moderators : bool Lwt.t Lazy.t;
       message_deletors : bool Lwt.t Lazy.t;
-      message_deletors_if_author : bool Lwt.t Lazy.t;
+      message_deletors_if_creator : bool Lwt.t Lazy.t;
       message_sticky_makers : bool Lwt.t Lazy.t;
       message_readers : bool Lwt.t Lazy.t;
 
-      comment_writers : bool Lwt.t Lazy.t;
-      comment_writers_notmod : bool Lwt.t Lazy.t;
+      comment_creators : bool Lwt.t Lazy.t;
+      comment_creators_notmod : bool Lwt.t Lazy.t;
       comment_moderators : bool Lwt.t Lazy.t;
       comment_deletors : bool Lwt.t Lazy.t;
-      comment_deletors_if_author : bool Lwt.t Lazy.t;
+      comment_deletors_if_creator : bool Lwt.t Lazy.t;
       comment_sticky_makers : bool Lwt.t Lazy.t;
       comment_readers : bool Lwt.t Lazy.t;
 
-      writers : bool Lwt.t Lazy.t;
-      writers_notmod : bool Lwt.t Lazy.t;
+      creators : bool Lwt.t Lazy.t;
+      creators_notmod : bool Lwt.t Lazy.t;
       moderators : bool Lwt.t Lazy.t;
       deletors : bool Lwt.t Lazy.t;
-      deletors_if_author : bool Lwt.t Lazy.t;
+      deletors_if_creator : bool Lwt.t Lazy.t;
       sticky_makers : bool Lwt.t Lazy.t;
       readers : bool Lwt.t Lazy.t;
 

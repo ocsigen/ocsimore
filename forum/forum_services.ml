@@ -47,24 +47,24 @@ let register_services () =
     (fun sp () (actionname, (parent, (subject, text))) ->
 
      (match parent with
-        | Eliom_parameters.Inj2 forum_id -> (* new messages *)
-            Lwt.return (forum_id, None)
+        | Eliom_parameters.Inj2 forum -> (* new messages *)
+            Lwt.return (forum, None)
         | Eliom_parameters.Inj1 parent_id -> (* comment *)
             (* We do not require the user to be allowed to read the message ... 
                (Forum_sql.get_message and not Forum_data.get_message) *)
             Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
-            Lwt.return (m.Forum_sql.Types.m_forum_id, Some parent_id))
-       >>= fun (forum_id, parent_id) ->
+            Lwt.return (m.Forum_sql.Types.m_forum, Some parent_id))
+       >>= fun (forum, parent_id) ->
 
-       Forum.get_role sp forum_id >>= fun _role -> (* VVV : why is role not used here ? *)
+       Forum.get_role sp forum >>= fun _role -> (* VVV : why is role not used here ? *)
 
        if actionname = "save" 
        then
          (Lwt.catch
             (fun () ->
                Users.get_user_data sp >>= fun u ->
-               Forum_data.new_message ~sp ~forum_id 
-                 ~author_id:u.user_id ?subject ?parent_id ~text ()
+               Forum_data.new_message ~sp ~forum 
+                 ~creator_id:u.user_id ?subject ?parent_id ~text ()
                >>= fun _ ->
                Eliom_predefmod.Redirection.send ~sp 
                  Eliom_services.void_hidden_coservice'
@@ -75,7 +75,7 @@ let register_services () =
                      (Eliom_sessions.get_request_cache sp)
                      Ocsimore_common.tmp 
                      [Forum.Forum_action_info 
-                        (Forum.Msg_creation_not_allowed (forum_id, parent_id))
+                        (Forum.Msg_creation_not_allowed (forum, parent_id))
                      ];
                    Eliom_predefmod.Action.send ~sp ()
                | e -> Lwt.fail e)
@@ -85,7 +85,7 @@ let register_services () =
            (Eliom_sessions.get_request_cache sp)
            Ocsimore_common.tmp 
            [Forum.Forum_action_info
-              (Forum.Preview ((forum_id, parent_id), text))];
+              (Forum.Preview ((forum, parent_id), text))];
          Eliom_predefmod.Action.send ~sp ()
        end
     );
@@ -106,6 +106,7 @@ let register_services () =
        Forum_data.set_moderated ~sp ~message_id:msg ~moderated:true
     );
 
+(* AEFF
   (* Deletion *)
   let delete_message_service =
     Eliom_services.new_post_coservice'
@@ -120,7 +121,7 @@ let register_services () =
     (fun sp () msg ->
        Forum_data.set_deleted ~sp ~message_id:msg ~deleted:true
     );
+*)
 
   (add_message_service,
-   moderate_message_service,
-   delete_message_service)
+   moderate_message_service)

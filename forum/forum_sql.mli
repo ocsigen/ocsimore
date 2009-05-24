@@ -50,19 +50,20 @@ module Types : sig
     f_descr: string;
     f_arborescent: bool;
     f_deleted: bool;
+    f_messages_wiki: Wiki_types.wiki;
+    f_comments_wiki: Wiki_types.wiki;
   }
 
   type message_info = {
     m_id: message;
     m_subject: string option;
-    m_author_id: User_sql.Types.userid;
+    m_creator_id: User_sql.Types.userid;
     m_datetime: CalendarLib.Calendar.t;
     m_parent_id: message option;
     m_root_id: message;
-    m_forum_id: forum;
-    m_text: string;
+    m_forum: forum;
+    m_wikibox: Wiki_types.wikibox_uid;
     m_moderated: bool;
-    m_deleted: bool;
     m_sticky: bool;
     m_tree_min: int32;
     m_tree_max: int32;
@@ -83,14 +84,18 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
+  messages_wiki:Wiki_types.wiki ->
+  comments_wiki:Wiki_types.wiki ->
   unit ->
   forum Lwt.t
 
 (** inserts a message in a forum. 
     [?moderated] and [?sticky] are false by default. *)
 val new_message :
-  forum_id:forum ->
-  author_id:userid ->
+  sp:Eliom_sessions.server_params ->
+  forum:forum ->
+  wiki:Wiki_types.wiki ->
+  creator_id:userid ->
   ?subject:string ->
   ?parent_id:message ->
   ?moderated:bool ->
@@ -98,10 +103,6 @@ val new_message :
   text:string ->
   message Lwt.t
 
-(** delete or undelete a message *)
-val set_deleted :
-  message_id:message -> deleted:bool -> unit Lwt.t
-  
 (** set ou unset sticky flag on a message *)
 val set_sticky :
   message_id:message -> sticky:bool -> unit Lwt.t
@@ -115,7 +116,7 @@ val set_moderated :
 *)
 val get_forum: 
   ?not_deleted_only:bool ->
-  ?forum_id:forum -> 
+  ?forum:forum -> 
   ?title:string -> 
   unit -> 
   forum_info Lwt.t
@@ -124,10 +125,8 @@ val get_forum:
 val get_forums_list : ?not_deleted_only:bool -> unit ->
   raw_forum_info list Lwt.t
   
-(** returns id, subject, author, datetime, parent id, root id, forum id, text,
-    and moderated, deleted, sticky status of a message *)
+(** returns a message *)
 val get_message : 
-  ?not_deleted_only:bool ->
   message_id:message -> 
   unit ->
   message_info Lwt.t
@@ -135,8 +134,8 @@ val get_message :
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
     For each message, the information retrieved is:
-    [(id, subject, author, datetime, parent_id, root_id, forum_id, text, 
-    moderated, deleted, sticky, tree_min, tree_max)]. 
+    [(id, subject, author, datetime, parent_id, root_id, forum_id, wikibox, 
+    moderated, sticky, tree_min, tree_max)]. 
     The list is not filtered and also contains deleted messages.
     The result is ordered according to tree_min.
 *)

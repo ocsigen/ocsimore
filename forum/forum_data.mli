@@ -36,6 +36,8 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
+  messages_wiki:Wiki_types.wiki ->
+  comments_wiki:Wiki_types.wiki ->
   unit ->
   Forum_sql.Types.forum Lwt.t
 
@@ -45,8 +47,8 @@ val new_forum :
  *)
 val new_message :
   sp:Eliom_sessions.server_params ->
-  forum_id:Forum_sql.Types.forum ->
-  author_id:User_sql.Types.userid ->
+  forum:Forum_sql.Types.forum ->
+  creator_id:User_sql.Types.userid ->
   ?subject:string ->
   ?parent_id:Forum_sql.Types.message ->
   ?sticky:bool ->
@@ -54,13 +56,6 @@ val new_message :
   unit ->
   Forum_sql.Types.message Lwt.t
 
-(** delete or undelete a message.
-    May fail with exception [Ocsimore_common.Permission_denied].
- *)
-val set_deleted :
-  sp:Eliom_sessions.server_params ->
-  message_id:Forum_sql.Types.message -> deleted:bool -> unit Lwt.t
-  
 (** set ou unset sticky flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
@@ -80,7 +75,7 @@ val set_moderated :
  *)
 val get_forum: 
   sp:Eliom_sessions.server_params ->
-  ?forum_id:Forum_sql.Types.forum -> 
+  ?forum:Forum_sql.Types.forum -> 
   ?title:string -> 
   unit -> 
   Forum_sql.Types.forum_info Lwt.t
@@ -102,9 +97,7 @@ val get_message :
   
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
-    For each message, the information retrieved is:
-    [(id, subject, author, datetime, parent_id, root_id, forum_id, text, 
-    moderated, deleted, sticky, _, _)]. 
+    Deleted messages are returned.
     Only readable messages comments are returned.
     Comments of unreadable messages are not returned.
     May fail with exceptions [Ocsimore_common.Permission_denied]
