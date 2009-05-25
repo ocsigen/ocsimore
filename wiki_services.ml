@@ -293,29 +293,25 @@ let make_services () =
        (* We always show a preview before saving. Moreover, we check that the
           wikibox that the wikibox has not been modified in parallel of our
           modifications. If this is the case, we also show a warning *)
-       Wiki.modified_wikibox wb boxversion
-       >>= fun modified ->
-         if actionname = "save" 
-         then
-           match modified with
-             | None ->
-                 Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
-                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
-                   let wp = Wiki_models.get_default_wiki_preparser
-                     wiki_info.wiki_model 
-                   in
-                   let content_type = 
-                     Wiki_models.get_default_content_type wiki_info.wiki_model 
-                   in
-                   wp (sp, wb) content >>= fun content ->
-                     save_then_redirect wb ~sp
-                       (fun () -> Wiki.save_wikitextbox ~rights
-                          ~content_type ~sp ~wb ~content:(Some content))
-                   | Some _ ->
-                       Wiki_widgets_interface.set_override_wikibox
-                         ~sp
-                         (wb, PreviewWikitext (wb, (content, boxversion)));
-                       Eliom_predefmod.Action.send ~sp ()
+       Wiki.modified_wikibox wb boxversion >>= fun modified ->
+       if actionname = "save" 
+       then
+         match modified with
+           | None ->
+               Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
+               let rights = Wiki_models.get_rights wiki_info.wiki_model in
+               let wp = Wiki_models.get_default_wiki_preparser
+                 wiki_info.wiki_model in
+               Wiki.wikibox_content rights sp wb >>= fun (content_type, _, _) ->
+               wp (sp, wb) content >>= fun content ->
+               save_then_redirect wb ~sp
+                 (fun () -> Wiki.save_wikitextbox ~rights
+                    ~content_type ~sp ~wb ~content:(Some content))
+           | Some _ ->
+               Wiki_widgets_interface.set_override_wikibox
+                 ~sp
+                 (wb, PreviewWikitext (wb, (content, boxversion)));
+               Eliom_predefmod.Action.send ~sp ()
          else begin
            Wiki_widgets_interface.set_override_wikibox
              ~sp
