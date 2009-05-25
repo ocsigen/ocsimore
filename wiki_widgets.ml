@@ -582,7 +582,7 @@ object (self)
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
             ?special_box ~wb_loc:wb ~override ?exn ()
       | _ ->
-          bi.bi_rights#can_write_wikibox ~sp ~wb >>= function
+          bi.bi_rights#can_write_wikibox ~sp wb >>= function
             | true ->
                 error_box#bind_or_display_error
                   ?exn
@@ -594,7 +594,7 @@ object (self)
                 Lwt.return (r, true)
 
              | false ->
-                 bi.bi_rights#can_read_wikibox ~sp ~wb >>= function
+                 bi.bi_rights#can_read_wikibox ~sp wb >>= function
                    | true ->
                        error_box#bind_or_display_error
                          ?exn

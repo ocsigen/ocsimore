@@ -110,7 +110,7 @@ let modified_wikibox ~wikibox ~boxversion =
 exception Unknown_box of wikibox * int32 option
 
 let wikibox_content ~rights ~sp ?version wb =
-  rights#can_read_wikibox ~sp ~wb >>= function
+  rights#can_read_wikibox ~sp wb >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
         Wiki_sql.get_wikibox_data ?version ~wikibox:wb () >>= function
@@ -126,7 +126,7 @@ let wikibox_content' ~rights ~sp ?version wikibox =
 let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
   (if content = None 
    then rights#can_delete_wikiboxes ~sp (fst wb)
-   else rights#can_write_wikibox ~sp ~wb) >>= function
+   else rights#can_write_wikibox ~sp wb) >>= function
     | true ->
         Users.get_user_id sp >>= fun user ->
         Wiki_sql.update_wikibox ~wikibox:wb ~author:user ~comment:""

@@ -138,7 +138,7 @@ let () = Lwt_unix.run (
 
 open Users.GenericRights
 
-let can_sthg_wikibox f ~sp ~wb:(wid, _ as wb) =
+let can_sthg_wikibox f ~sp (wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
   let g = if special_rights then
@@ -175,7 +175,7 @@ object (self)
     Wiki_sql.get_wiki_info_by_id wiki
     >>= fun { wiki_boxrights = boxrights } ->
       if boxrights then
-        self#can_admin_wikibox ~sp ~wb
+        self#can_admin_wikibox ~sp wb
       else
         Lwt.return false
 

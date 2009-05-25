@@ -83,42 +83,23 @@ type wikibox_info = {
   wikibox_special_rights: bool;
 }
 
+type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
 
 class type wiki_rights =
 object
-  method can_admin_wiki :
-    sp:Eliom_sessions.server_params ->
-    wiki_arg Opaque.int32_t -> bool Lwt.t
-  method can_admin_wikibox :
-    sp:Eliom_sessions.server_params ->
-    wb:wiki * wikibox_id -> bool Lwt.t
-  method can_create_genwikiboxes :
-    sp:Eliom_sessions.server_params ->
-    wiki_arg Opaque.int32_t -> bool Lwt.t
-  method can_create_subwikiboxes :
-    sp:Eliom_sessions.server_params ->
-    wiki_arg Opaque.int32_t -> bool Lwt.t
-  method can_create_wikicss :
-    sp:Eliom_sessions.server_params ->
-    wiki_arg Opaque.int32_t -> bool Lwt.t
-  method can_create_wikipagecss :
-    sp:Eliom_sessions.server_params ->
-    wikipage -> bool Lwt.t
-  method can_create_wikipages :
-    sp:Eliom_sessions.server_params ->
-    wiki_arg Opaque.int32_t -> bool Lwt.t
-  method can_delete_wikiboxes :
-    sp:Eliom_sessions.server_params ->
-    wiki_arg Opaque.int32_t -> bool Lwt.t
-  method can_read_wikibox :
-    sp:Eliom_sessions.server_params ->
-    wb:wiki * wikibox_id -> bool Lwt.t
-  method can_set_wikibox_specific_permissions :
-    sp:Eliom_sessions.server_params ->
-    wiki * wikibox_id -> bool Lwt.t
-  method can_write_wikibox :
-    sp:Eliom_sessions.server_params ->
-    wb:wiki * wikibox_id -> bool Lwt.t
+  method can_admin_wiki :          wiki rights_aux
+  method can_create_genwikiboxes : wiki rights_aux
+  method can_create_subwikiboxes : wiki rights_aux
+  method can_create_wikicss :      wiki rights_aux
+  method can_create_wikipages :    wiki rights_aux
+  method can_delete_wikiboxes :    wiki rights_aux
+
+  method can_admin_wikibox : wikibox rights_aux
+  method can_set_wikibox_specific_permissions : wikibox rights_aux
+  method can_write_wikibox : wikibox rights_aux
+  method can_read_wikibox : wikibox rights_aux
+
+  method can_create_wikipagecss : wikipage rights_aux
 end
 
 
