@@ -161,6 +161,8 @@ end : sig
 end)
 
 
+let clear_all = ref []
+
 module Make =
   functor (A: sig
              type key
@@ -183,16 +185,19 @@ struct
         finder : A.key -> A.value Lwt.t
       }
 
-  let create f size =
-    {pointers = Dlist.create size;
-     table = H.create size;
-     finder = f
-    }
-
   let clear cache =
     let size = Dlist.maxsize cache.pointers in
     cache.pointers <- Dlist.create size;
     cache.table <- H.create size
+
+  let create f size =
+    let cache = {pointers = Dlist.create size;
+                 table = H.create size;
+                 finder = f
+                }
+    in
+    clear_all := (fun () -> clear cache)::!clear_all;
+    cache
 
   let poke r node =
     Dlist.up r.pointers node
@@ -237,3 +242,9 @@ struct
 
 end
 
+let () = 
+  Ocsigen_extensions.register_command_function ~prefix:"ocsimore"
+    (fun s c -> 
+       match c with
+         | ["clearcache"] -> List.iter (fun f -> f ()) !clear_all
+         | _ -> raise Ocsigen_extensions.Unknown_command)
