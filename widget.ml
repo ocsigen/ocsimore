@@ -36,11 +36,11 @@ object(self)
 
   val error_class = "errormsg"
 
-  method private display_error_message = function
-    | Some message ->
-        {{ [ {{ self#display_error_box ~message () }} ] }}
-    | None ->
-        {{ [] }}
+  method private display_error_message ?message ?exn () = 
+    match message, exn with
+      | None, None -> {{ [] }}
+      | message, exn ->
+          {{ [ {{ self#display_error_box ?message ?exn () }} ] }}
 
   method display_error_box ?(classes=[]) ?(message = "Error") ?exn () =
     let classe = Ocsimore_lib.build_class_attr (error_class::classes) in
@@ -63,20 +63,21 @@ object(self)
 
   method bind_or_display_error : 'a.
     ?error: string ->
+    ?exn: exn ->
     'a Lwt.t ->
     ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) ->
     (classes:string list ->
       Xhtmltypes_duce.flows ->
       Xhtmltypes_duce.block Lwt.t) ->
     Xhtmltypes_duce.block Lwt.t
-    = fun ?error data transform_data display_box  ->
+    = fun ?error ?exn data transform_data display_box  ->
       (Lwt.catch
          (fun () -> data >>= transform_data)
          (fun exn ->
             Lwt.return ([error_class],
                         {{ [ {{ self#display_error_box ~exn () }} ] }}) ))
       >>= fun (classes, content) ->
-      let err = self#display_error_message error in
+      let err = self#display_error_message ?message:error ?exn () in
       display_box ~classes {{ [ !err !content ] }}
 
 end

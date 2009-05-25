@@ -116,7 +116,13 @@ object (self)
   method display_frozen_wikibox ~bi ?(classes=[]) ~wikibox =
     Lwt.catch
       (fun () ->
+         let exn = 
+           match Wiki_widgets_interface.get_wikibox_error ~sp:bi.bi_sp with
+             | None -> None
+             | Some (wb', e) -> if wikibox = wb' then Some e else None
+         in
          error_box#bind_or_display_error
+           ?exn
            (Wiki.wikibox_content bi.bi_rights bi.bi_sp wikibox)
            (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
            (self#display_basic_box)
@@ -566,14 +572,20 @@ object (self)
   method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
     let sp = bi.bi_sp in
     let override = Wiki_widgets_interface.get_override_wikibox ~sp in
+    let exn = 
+      match Wiki_widgets_interface.get_wikibox_error ~sp with
+        | None -> None
+        | Some (wb', e) -> if wb = wb' then Some e else None
+    in
     match override with
       | Some (wb', override) when wb = wb' ->
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
-            ?special_box ~wb_loc:wb ~override
+            ?special_box ~wb_loc:wb ~override ?exn ()
       | _ ->
           bi.bi_rights#can_write_wikibox ~sp ~wb >>= function
             | true ->
                 error_box#bind_or_display_error
+                  ?exn
                   (Wiki.wikibox_content bi.bi_rights sp wb)
                   (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
@@ -585,6 +597,7 @@ object (self)
                  bi.bi_rights#can_read_wikibox ~sp ~wb >>= function
                    | true ->
                        error_box#bind_or_display_error
+                         ?exn
                          (Wiki.wikibox_content bi.bi_rights sp wb)
                          (self#display_wikiboxcontent ~classes
                             ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
@@ -601,11 +614,12 @@ object (self)
                         false)
 
 
-  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override =
+  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
     let sp = bi.bi_sp in
     match override with
       | EditWikitext wb ->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_content' bi.bi_rights bi.bi_sp wb)
             (self#display_wikitext_edit_form_help ~bi ?cols ?rows
                ~previewonly:true ~wb ~classes)
@@ -615,6 +629,7 @@ object (self)
 
       | EditCss ((wbcss, wikipage), css) ->
           error_box#bind_or_display_error
+            ?exn
             (match css with
                | None -> Wiki.wikibox_content' bi.bi_rights sp wbcss
                | Some (content, version) ->
@@ -628,6 +643,7 @@ object (self)
 
       | EditWikiboxPerms wb ->
           error_box#bind_or_display_error
+            ?exn
             (Lwt.return wb)
             (self#display_edit_wikibox_perm_form ~bi ~classes)
             (self#menu_edit_wikibox_perms ~bi ?special_box wb_loc)
@@ -636,6 +652,7 @@ object (self)
 
       | EditWikiPerms wiki ->
           error_box#bind_or_display_error
+            ?exn
             (Lwt.return wiki)
             (self#display_edit_wiki_perm_form ~bi ~classes ~wb:wb_loc)
             (self#menu_edit_wiki_perms ~bi ?special_box wb_loc wiki)
@@ -644,6 +661,7 @@ object (self)
 
       | PreviewWikitext (wb, (content, version)) ->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wb 
              >>= fun (syntax, _, _) ->
              Lwt.return (syntax, (Some content, version)))
@@ -668,6 +686,7 @@ object (self)
 
       | History wb ->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_history wb)
             (self#display_wikitext_history ~bi ~classes ~wb)
             (self#menu_wikitext_history ~bi ?special_box wb_loc)
@@ -676,6 +695,7 @@ object (self)
 
       | CssHistory (wbcss, wikipage) ->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_history wbcss)
             (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss ~wikipage)
             (self#menu_css_history ~bi ?special_box wb_loc (fst wbcss (* XXX Not general enough *), wikipage))
@@ -684,6 +704,7 @@ object (self)
 
       | Oldversion (wb, version) ->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
             (self#display_wikiboxcontent ~classes
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
@@ -693,6 +714,7 @@ object (self)
 
       | CssOldversion ((wbcss, page), version) ->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wbcss)
             (self#display_wikiboxcontent ~classes
                ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
@@ -702,15 +724,12 @@ object (self)
 
       | Src (wb, version)->
           error_box#bind_or_display_error
+            ?exn
             (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
             (self#display_raw_wikiboxcontent ~classes)
             (self#menu_src_wikitext ~bi ?special_box wb_loc version)
           >>= fun r ->
           Lwt.return (r, true)
-
-      | Error error ->
-          Lwt.return
-            (error_box#display_error_box ~classes ~exn:error (), false)
 
 
    method display_interactive_wikibox

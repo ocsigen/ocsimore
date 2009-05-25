@@ -72,8 +72,6 @@ type wikibox_override =
   (** Edition of the permissions of a wiki *)
   | EditWikiPerms of wiki
 
-  (** Error message *)
-  | Error of exn
 
 
 (*VVV why in this module? *)
@@ -93,6 +91,24 @@ let set_override_wikibox ~sp v =
   Polytables.set
     ~table:(Eliom_sessions.get_request_cache ~sp)
     ~key:override_wikibox_key
+    ~value:v
+
+
+let wikibox_error_key : (wikibox * exn) Polytables.key = 
+  Polytables.make_key ()
+
+(** The error to display in the wikibox *)
+let get_wikibox_error ~sp =
+  try
+    Some (Polytables.get
+            ~table:(Eliom_sessions.get_request_cache ~sp)
+            ~key:wikibox_error_key)
+  with Not_found -> None
+
+let set_wikibox_error ~sp v =
+  Polytables.set
+    ~table:(Eliom_sessions.get_request_cache ~sp)
+    ~key:wikibox_error_key
     ~value:v
 
 (*********************************************************************)
@@ -402,6 +418,8 @@ class type virtual interactive_wikibox =
       ?special_box:special_box ->
       wb_loc:wikibox ->
       override:wikibox_override ->
+      ?exn:exn ->
+      unit ->
       (Xhtmltypes_duce.block * bool) Lwt.t
 
 

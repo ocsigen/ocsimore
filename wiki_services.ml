@@ -166,9 +166,9 @@ let save_then_redirect overriden_wikibox ~sp f =
        Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
     )
     (fun e ->
-       Wiki_widgets_interface.set_override_wikibox
+       Wiki_widgets_interface.set_wikibox_error
          ~sp
-         (overriden_wikibox, Error e);
+         (overriden_wikibox, e);
        Eliom_predefmod.Action.send ~sp ())
 
 
@@ -363,15 +363,15 @@ let make_services () =
       ~post_params:(Eliom_parameters.bool "special" ** (arg ** params))
       (fun sp () (special, (wbuid, args))->
          Wiki_sql.wikibox_from_uid wbuid >>= fun wb ->
-           Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
-             let rights = Wiki_models.get_rights wiki_info.wiki_model in
-             rights#can_set_wikibox_specific_permissions sp wb >>= function
-               | true ->
-                   save_then_redirect wb ~sp
-                     (fun () ->
-                        f wbuid args >>= fun () ->
-                          Wiki_sql.set_wikibox_special_rights wb special)
-               | false -> Lwt.fail Ocsimore_common.Permission_denied
+         Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
+         let rights = Wiki_models.get_rights wiki_info.wiki_model in
+         rights#can_set_wikibox_specific_permissions sp wb >>= function
+           | true ->
+               save_then_redirect wb ~sp
+                 (fun () ->
+                    f wbuid args >>= fun () ->
+                    Wiki_sql.set_wikibox_special_rights wb special)
+           | false -> Lwt.fail Ocsimore_common.Permission_denied
       )
 
   and action_send_wiki_permissions =
@@ -421,9 +421,9 @@ let make_services () =
                          in the wikibox that should have contained the button
                          leading to the creation of the page. *)
                       let wb = (wid, wbid) in
-                      Wiki_widgets_interface.set_override_wikibox
+                      Wiki_widgets_interface.set_wikibox_error
                         ~sp
-                        (wb, Error Page_already_exists);
+                        (wb, Page_already_exists);
                       Lwt.return ()
                  )
                  (function
