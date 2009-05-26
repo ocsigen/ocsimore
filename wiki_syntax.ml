@@ -275,12 +275,42 @@ let inline (x : Xhtmltypes_duce.a_content)
     : Xhtmltypes_duce.inlines
     = {{ {: [ x ] :} }}
 
-let absolute_link_regexp = Netstring_pcre.regexp "[a-z|A-Z|0-9]+:"
+let link_regexp = Netstring_pcre.regexp "(http\\+|https\\+)?([a-z|A-Z|0-9]+)(\\((.*)\\))?:(.*)"
 
-let is_absolute_link addr = 
-  (Netstring_pcre.string_match absolute_link_regexp addr 0) <> None
+type force_https = bool option
 
+type link_kind =
+  | Absolute of string
+  | Page of string * force_https
+  | Wiki_page of Wiki_types.wiki * string * force_https
+  | Site of string * force_https
 
+let link_kind addr = 
+  match Netstring_pcre.string_match link_regexp addr 0 with
+    | None -> Page (addr, None)
+    | Some result ->
+        let forceproto = 
+          try
+            if (Netstring_pcre.matched_group result 1 addr) = "https+"
+            then Some true
+            else Some false
+          with Not_found -> None
+        in
+        let proto = Netstring_pcre.matched_group result 2 addr in
+        if proto = "wiki"
+        then
+          let page = Netstring_pcre.matched_group result 5 addr in
+          try
+            let wikinum = Netstring_pcre.matched_group result 4 addr in
+            Wiki_page ((Wiki_types.wiki_of_sql (Int32.of_string wikinum)),
+                       page,
+                       forceproto)
+          with Failure _ | Not_found -> Page (page, forceproto)
+        else if proto = "site"
+        then
+          let page = Netstring_pcre.matched_group result 5 addr in
+          Site (page, forceproto)
+        else Absolute addr
 
 
 type syntax_extension =
@@ -357,7 +387,9 @@ let builder wp plugin_action =
     strong_elem = nothing;
     em_elem = nothing;
     a_elem = (fun _ _ _ _ -> ());
-    make_href = (fun _ _ a -> a);
+    make_href = (fun _ _ a fragment -> match fragment with 
+                   | None -> a
+                   | Some f -> a ^"#"^f);
     br_elem = nothing1;
     img_elem = (fun _ _ _ -> ());
     tt_elem = nothing;
@@ -415,6 +447,65 @@ let preparse_extension
   then Buffer.add_substring buf content pos (l - pos);
   Lwt.return (Buffer.contents buf)
 
+let site_url_syntax =
+  {
+    Neturl.url_enable_scheme = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_user = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_user_param = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_password = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_host = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_port = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_path = Neturl.Url_part_allowed;
+    Neturl.url_enable_param = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_query = Neturl.Url_part_allowed;
+    Neturl.url_enable_fragment = Neturl.Url_part_allowed;
+    Neturl.url_enable_other = Neturl.Url_part_not_recognized;
+    Neturl.url_accepts_8bits = true;
+    Neturl.url_is_valid = (fun _ -> true);
+    Neturl.url_enable_relative = true;
+  }
+
+let make_href sp bi addr fragment =
+  let aux ~fragment https wiki page =
+    match Wiki_widgets_interface.find_servpage wiki with
+      | Some servpage ->
+          let addr =
+            Ocsigen_lib.remove_slash_at_beginning
+              (Neturl.split_path page)
+          in
+          Eliom_predefmod.Xhtml.make_string_uri ?https
+            ?fragment ~service:servpage ~sp addr
+      | None -> "malformed link" (*VVV ??? *)
+  in
+  match addr with
+    | Page (page, forceproto) ->
+        let wiki = fst bi.Wiki_widgets_interface.bi_box in
+        aux ~fragment forceproto wiki page
+    | Absolute addr -> (match fragment with
+                          | None -> addr
+                          | Some fragment -> addr^"#"^fragment)
+    | Wiki_page (wiki, page, forceproto) -> aux ~fragment forceproto wiki page
+    | Site (href, forceproto) ->
+        try
+          let url = Neturl.url_of_string site_url_syntax href in
+          let path = Neturl.url_path url in
+          let path =
+            (Eliom_sessions.get_site_dir sp) @
+              (Ocsigen_lib.remove_slash_at_beginning path)
+          in
+          match forceproto with
+            | None ->
+                let path =
+                  Eliom_mkforms.reconstruct_relative_url_path
+                    (Eliom_sessions.get_original_full_path ~sp)
+                    path
+                in
+                Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
+            | Some https -> 
+                (Eliom_predefmod.Xhtml.make_proto_prefix ~sp https)^
+                  (Neturl.string_of_url (Neturl.modify_url ?fragment ~path url))
+        with Neturl.Malformed_URL -> 
+          "malformed link"
 
 let default_builder =
   { Wikicreole.chars = make_string;
@@ -455,17 +546,7 @@ let default_builder =
            Lwt_util.map_serial (fun x -> x) c >>= fun c ->
            Lwt.return
              {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
-    make_href =
-      (fun sp bi addr ->
-         let wiki_id = fst bi.Wiki_widgets_interface.bi_box in
-         let servpage = Wiki_widgets_interface.find_servpage wiki_id in
-         match servpage, is_absolute_link addr with
-           | (Some servpage, false) ->
-               let addr =
-                 Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path addr)
-               in
-               Eliom_predefmod.Xhtml.make_string_uri servpage sp addr
-           | _ -> addr);
+    make_href = (fun a b c fragment -> make_href a b (link_kind c) fragment);
     br_elem = (fun attribs -> 
                    let atts = parse_common_attribs attribs in
                    Lwt.return {{ [<br (atts)>[]] }});
@@ -762,21 +843,8 @@ let () =
               Lwt.return {{ <li (classe)>text2}}
             else
               let href = 
-                if is_absolute_link link
-                then link
-                else 
-                  match Wiki_widgets_interface.find_servpage wiki_id with
-                    | Some servpage -> 
-                        let path =
-                          Ocsigen_lib.remove_slash_at_beginning
-                            (Neturl.split_path link)
-                        in
-                        Eliom_duce.Xhtml.make_uri
-                          ~service:servpage
-                          ~sp:bi.Wiki_widgets_interface.bi_sp
-                          path
-                    | _ -> link
-              in
+                make_href bi.Wiki_widgets_interface.bi_sp bi 
+                  (link_kind link) None in
               let link2 = Ocamlduce.Utf8.make href in
               let classe = match classe with
                 | None -> {{ {} }}

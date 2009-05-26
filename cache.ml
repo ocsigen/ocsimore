@@ -244,7 +244,7 @@ end
 
 let () = 
   Ocsigen_extensions.register_command_function ~prefix:"ocsimore"
-    (fun s c -> 
+    (fun _s c -> 
        match c with
          | ["clearcache"] -> List.iter (fun f -> f ()) !clear_all
          | _ -> raise Ocsigen_extensions.Unknown_command)

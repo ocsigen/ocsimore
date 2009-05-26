@@ -61,7 +61,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     superscripted_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
     a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
-    make_href : 'sp -> 'param -> string -> string;
+    make_href : 'sp -> 'param -> string -> string option -> string;
     p_elem : attribs -> 'inline list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
     h1_elem : attribs -> 'inline list -> 'flow;
@@ -575,7 +575,7 @@ and parse_rem c =
       parse_bol c lexbuf
     }
   | "[[" (("@@" ?) as att) 
-      { parse_link c (read_attribs att parse_attribs c lexbuf) lexbuf }
+      { parse_link "" None c (read_attribs att parse_attribs c lexbuf) lexbuf }
   | "]]" {
       begin match c.stack with
         Link (addr, attribs, stack) ->
@@ -672,38 +672,66 @@ and parse_rem c =
       end_paragraph c 0
     }
 
-and parse_link c attribs =
+and parse_link beg fragment c attribs =
     parse 
-        (']' ? (not_line_break # [ ']' '|' ])) * "]]" {
+    (']' ? (not_line_break # [ ']' '|' '~' '#' ])) * 
+          { match fragment with
+              | None -> 
+                  parse_link (beg^Lexing.lexeme lexbuf) None c attribs lexbuf
+              | Some f -> 
+                  parse_link beg (Some (f^Lexing.lexeme lexbuf)) c attribs lexbuf
+          }
+  | "]]" | '|' {
+      let lb = Lexing.lexeme lexbuf in
       if c.link then begin
         push_string c "[["; (*VVV We loose attributes *)
-        push_chars c lexbuf
-      end
-      else
-        let s = Lexing.lexeme lexbuf in
-        let addr = 
-          c.build.make_href c.sp c.param (String.sub s 0 (String.length s - 2))
-        in
-        c.inline_mix <-
-         c.build.a_elem attribs c.sp addr [c.build.chars addr] :: c.inline_mix;
-      parse_rem c lexbuf
-  }
-  | (']' ? (not_line_break # [ ']' '|' ])) * "|" {
-      if c.link then begin
-        push_string c "[["; (*VVV We loose attributes *)
-        push_chars c lexbuf
+        push_string c beg;
+        (match fragment with
+          | None -> ()
+          | Some f -> 
+              push_string c "#";
+              push_string c f);
+        push_string c lb
       end
       else begin
-        let s = Lexing.lexeme lexbuf in
-        let addr = c.build.make_href c.sp c.param
-          (String.sub s 0 (String.length s - 1)) in
-        c.stack <- Link (addr, attribs, c.stack);
-        c.link <- true
+        let addr = c.build.make_href c.sp c.param beg fragment in
+        if lb = "|"
+        then begin
+          c.stack <- Link (addr, attribs, c.stack);
+          c.link <- true
+        end
+        else
+          let text = match fragment with
+            | None -> beg
+            | Some f -> beg^"#"^f
+          in
+          c.inline_mix <-
+            c.build.a_elem
+            attribs c.sp addr [c.build.chars text] :: c.inline_mix;
       end;
       parse_rem c lexbuf
   }
+  | '~' not_line_break {
+      let s = Lexing.lexeme lexbuf in
+      let char = String.sub s 1 1 in
+(*VVV missing: nbsp ... *)
+      (* It amounts to the same to quote a UTF-8 char or its first byte *)
+       match fragment with
+         | None -> parse_link (beg^char) fragment c attribs lexbuf
+         | Some f -> parse_link beg (Some (f^char)) c attribs lexbuf
+    }
+  | '#' { let beg = match fragment with
+            | None -> beg
+            | Some f -> beg^"#"^f
+          in parse_link beg (Some "") c attribs lexbuf }
   | "" {
       push_string c "[["; (*VVV We loose attributes *)
+      push_string c beg;
+      (match fragment with
+         | None -> ()
+         | Some f -> 
+             push_string c "#";
+             push_string c f);   
       parse_rem c lexbuf
     }
 
@@ -713,7 +741,7 @@ and parse_image c attribs =
          ('}' ? (not_line_break # '}')) * "}}" {
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
-      let url = c.build.make_href c.sp c.param (String.sub s 0 i) in
+      let url = c.build.make_href c.sp c.param (String.sub s 0 i) None in
       let alt = String.sub s (i + 1) (String.length s - i - 3) in
       push c (c.build.img_elem attribs url alt);
       parse_rem c lexbuf

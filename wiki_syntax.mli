@@ -113,7 +113,23 @@ val string_of_extension :
 (** parses common attributes ([class], [id]) *)
 val parse_common_attribs : (string * string) list -> Xhtmltypes_duce.coreattrs
 
-(** returns true if the string is an absolute URL (http://...) *)
-val is_absolute_link : string -> bool
+(** returns the type of URL. 
+    [Page] means a page in current wiki ([wiki:page], or [page]),
+    [Wiki_page] means a page in another wiki ([wiki(num):page]),
+    [Site] means an URL relative to the root of the site ([site:href]),
+    [Absolute] means an absolute URL ([<otherscheme>:href]).
+*)
+type force_https = bool option
 
+type link_kind =
+  | Absolute of string
+  | Page of string * force_https
+  | Wiki_page of Wiki_types.wiki * string * force_https
+  | Site of string * force_https
 
+val link_kind : string -> link_kind
+
+val make_href :
+  Eliom_sessions.server_params ->
+  Wiki_widgets_interface.box_info ->
+  link_kind -> string option -> string

@@ -948,35 +948,28 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
    with Failure _ -> Lwt.return None)
   );
 
+
 add_extension ~name:"link" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Link_plugin
        (let sp = bi.bi_sp in
-        let href = Ocsimore_lib.list_assoc_default "page" args "" in
+        let page = Ocsimore_lib.list_assoc_default "page" args "" in
         let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
         let https = extract_https args in
         let content =
           match c with
             | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
-            | None -> Lwt.return (Ocamlduce.Utf8.make href)
+            | None -> Lwt.return (Ocamlduce.Utf8.make page)
         in
         (* class and id attributes will be taken by Wiki_syntax.a_elem *)
-        ((if Wiki_syntax.is_absolute_link href then
-            href
-          else
-            let wiki_id = extract_wiki_id args (fst bi.bi_box) in
-            match Wiki_widgets_interface.find_servpage wiki_id with
-              | Some s ->
-                  let href = Ocsigen_lib.remove_slash_at_beginning
-                    (Neturl.split_path href)
-                  in Eliom_duce.Xhtml.make_uri
-                       ?https ?fragment ~service:s ~sp href
-              | None -> href
-         ),
-         args,
-         content)
-       )
+        (let wiki = extract_wiki_id args (fst bi.bi_box) in
+         Wiki_syntax.make_href
+           sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
+        ),
+        args,
+        content)
   );
+
 
 add_extension ~name:"nonattachedlink" ~wiki_content:true
   (fun bi args c ->
@@ -1017,24 +1010,15 @@ add_extension ~name:"cancellink" ~wiki_content:true
 add_extension ~name:"object" ~wiki_content:true
   (fun bi args _c ->
      Wikicreole.A_content
-       (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
-        and href = Ocsimore_lib.list_assoc_default "data" args ""
+       (let sp = bi.bi_sp in
+        let type_ = Ocsimore_lib.list_assoc_default "type" args ""
+        and page = Ocsimore_lib.list_assoc_default "data" args ""
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
-        and wiki_id = extract_wiki_id args (fst bi.bi_box)
+        and wiki = extract_wiki_id args (fst bi.bi_box)
         and https = extract_https args
         and atts = Wiki_syntax.parse_common_attribs args in
-        let url =
-          if Wiki_syntax.is_absolute_link href then
-            href
-          else
-            match Wiki_widgets_interface.find_servpage wiki_id with
-              | Some s ->
-                  let href = Ocsigen_lib.remove_slash_at_beginning
-                    (Neturl.split_path href)
-                  in
-                  Eliom_duce.Xhtml.make_uri ?https ?fragment ~service:s
-                    ~sp:bi.bi_sp href
-              | None -> href
+        let url = Wiki_syntax.make_href
+          sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
         in
         Lwt.return
           {{ [<object
@@ -1043,31 +1027,24 @@ add_extension ~name:"object" ~wiki_content:true
                   ++ atts)>[] ] }})
   );
 
+
+
 add_extension ~name:"img" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.A_content
-       (let href = Ocsimore_lib.list_assoc_default "name" args ""
+       (let sp = bi.bi_sp in
+        let page = Ocsimore_lib.list_assoc_default "name" args ""
         and https = extract_https args
-        and wiki_id = extract_wiki_id args (fst bi.bi_box) in
-        let alt = match c with Some c -> c | None -> href in
+        and wiki = extract_wiki_id args (fst bi.bi_box) in
+        let alt = match c with Some c -> c | None -> page in
         let atts = Wiki_syntax.parse_common_attribs args in
-        let url =
-          if Wiki_syntax.is_absolute_link href then
-            href
-          else
-            match Wiki_widgets_interface.find_servpage wiki_id with
-              | Some s ->
-                  let href =
-                    Ocsigen_lib.remove_slash_at_beginning
-                      (Neturl.split_path href)
-                  in
-                  Eliom_duce.Xhtml.make_uri ?https ~service:s
-                    ~sp:bi.bi_sp href
-              | _ -> href
+        let url = Wiki_syntax.make_href
+          sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) None
         in
         Lwt.return
           {{ [<img ({ src={: Ocamlduce.Utf8.make url :}
                         alt={: Ocamlduce.Utf8.make alt :}}
                     ++ atts )>[] ] }})
   );
+
 
