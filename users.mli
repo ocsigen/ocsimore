@@ -208,16 +208,35 @@ module GroupsForms : sig
       Xhtmltypes_duce.inline_forms;
   }
 
-
   val helpers_admin_writer_reader :
     string -> 'a User_sql.Types.admin_writer_reader -> 'a awr_helper
 
 
+  (** Helper forms to add and remove users from groups. If [show_edit]
+      is false, no controls to edit the permissions are shown *)
+  (** Form to add users to a group *)
   val form_edit_group:
+    ?show_edit:bool ->
     group:user -> text:string ->
     (input_string * input_string -> Xhtmltypes_duce.inlines) Lwt.t
 
-  val update_perms: add:string -> remove:string -> user -> unit Lwt.t
+  (** Form to add an user to a group *)
+  val form_edit_user:
+    ?show_edit:bool ->
+    user:user -> text:string ->
+    (input_string * input_string -> Xhtmltypes_duce.inlines) Lwt.t
+
+
+  (** Add the space separated groups in [add], and remove the
+      space-separated groups in [remove] from the given [user] *)
+  val add_remove_users_from_group:
+    add:string -> remove:string -> group:user -> unit Lwt.t
+
+  (** Add [user] to the space separated groups in [add], and removes
+      [user] from the space-separated groups in [remove] *)
+  val user_add_remove_from_groups:
+    user:user -> add:string -> remove:string -> unit Lwt.t
+
 
 end
 

@@ -189,55 +189,88 @@ let () =
 let () =
   let params = Eliom_parameters.string "group" **
     (Eliom_parameters.string "add" ** Eliom_parameters.string "rem") in
-  let action_send_rights = Eliom_predefmod.Any.register_new_post_coservice'
-    ~name:"rights_save" ~post_params:params
-    (fun sp () (g, (add, rem)) ->
-       (** XXX add error catching *)
-       Users.get_user_id sp >>= fun user ->
-       if user = Users.admin then
-         Users.get_user_by_name g
-         >>= fun group ->
-         Users.GroupsForms.update_perms add rem group >>= fun () ->
-         Eliom_predefmod.Action.send ~sp ()
-       else
-         Lwt.fail Ocsimore_common.Permission_denied
-    )
-
+  let action_add_remove_users_from_group =
+    Eliom_predefmod.Any.register_new_post_coservice'
+      ~name:"add_remove_users_from_group" ~post_params:params
+      (fun sp () (g, (add, rem)) ->
+         (** XXX add error catching *)
+         Users.get_user_id sp >>= fun user ->
+         if user = Users.admin then
+           Users.get_user_by_name g
+           >>= fun group ->
+           Users.GroupsForms.add_remove_users_from_group add rem group
+           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
+         else
+           Lwt.fail Ocsimore_common.Permission_denied
+      )
+  and action_add_remove_user_from_groups =
+    Eliom_predefmod.Any.register_new_post_coservice'
+      ~name:"add_remove_user_from_groups" ~post_params:params
+      (fun sp () (g, (add, rem)) ->
+         (** XXX add error catching *)
+         Users.get_user_id sp >>= fun user ->
+         if user = Users.admin then
+           Users.get_user_by_name g
+           >>= fun group ->
+           Users.GroupsForms.user_add_remove_from_groups group add rem
+           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
+         else
+           Lwt.fail Ocsimore_common.Permission_denied
+      )
   in
   let service_edit_user = Eliom_predefmod.Any.register_new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "perms_edit_group"]
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_group"]
     ~get_params:(Eliom_parameters.string "group")
     (fun sp g () ->
-       (if g = "nobody" then
-          let msg = Ocamlduce.Utf8.make
-            "Cannot add or remove users from nobody" in
-          Lwt.return {{ <p>msg }}
+       Users.get_user_by_name g
+       >>= fun group ->
+       (if group = basic_user Users.nobody && g <> "nobody" then
+          let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
+          Lwt.return {{ [<p>msg] }}
         else
-          Users.get_user_by_name g
-          >>= fun group ->
-          if group = basic_user Users.nobody then
-            let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
-            Lwt.return {{ <p>msg }}
-          else
-            Users.GroupsForms.form_edit_group ~group ~text:("Group " ^ g)
-            >>= fun form  ->
-            let form (n, (n1, n2)) =
-              {{ [<p>[{: Eliom_duce.Xhtml.string_input
-                         ~input_type:{: "hidden" :} ~name:n ~value:g () :}
-                        !{: form (n1, n2) :} <br>[]
-                        !{: [Eliom_duce.Xhtml.button
-                               ~button_type:{: "submit" :} {{ "Save" }}] :}
-                     ]] }} in
-            Lwt.return
-              (Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-                 ~service:action_send_rights ~sp form ())
+          Users.get_user_id sp >>= fun user ->
+          let isadmin = (user = Users.admin) in
+
+          (* Adding groups to the group *)
+          Users.GroupsForms.form_edit_group ~show_edit:isadmin
+            ~group ~text:("Group " ^ g)
+          >>= fun form  ->
+          let form (n, (n1, n2)) =
+            {{ [<p>[{: Eliom_duce.Xhtml.string_input
+                       ~input_type:{: "hidden" :} ~name:n ~value:g () :}
+                    !{: form (n1, n2) :}
+                    !{: if isadmin then
+                        {{ [ {: Eliom_duce.Xhtml.button
+                                ~button_type:{: "submit" :} {{ "Save" }} :} ] }}
+                      else {{ [] }} :}
+                   ]] }} in
+          let f1 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
+            ~service:action_add_remove_users_from_group ~sp form () in
+
+          (* Adding the group to groups *)
+          Users.GroupsForms.form_edit_user ~show_edit:isadmin
+            ~user:group ~text:""
+          >>= fun form  ->
+          let form (n, (n1, n2)) =
+            {{ [<p>[{: Eliom_duce.Xhtml.string_input
+                       ~input_type:{: "hidden" :} ~name:n ~value:g () :}
+                    !{: form (n1, n2) :}
+                    !{: if isadmin then
+                        {{ [ {: Eliom_duce.Xhtml.button
+                                ~button_type:{: "submit" :} {{ "Save" }} :} ] }}
+                      else {{ [] }} :}
+                   ]] }} in
+          let f2 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
+            ~service:action_add_remove_user_from_groups ~sp form ()
+          in
+          Lwt.return {{ [ f1 f2 ] }}
        )>>= fun body ->
-       let html = wikibox_widget#display_container {{ [ body ] }} in
+       let html = wikibox_widget#display_container {{ body }} in
        Eliom_duce.Xhtml.send ~sp html
     )
   in
-  let service_edit_user_root = Eliom_predefmod.Any.register_new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "perms_edit"]
+  let service_choose_group = Eliom_predefmod.Any.register_new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
     ~get_params:(Eliom_parameters.unit)
     (fun sp () () ->
        User_sql.all_groups () >>= fun l ->
@@ -260,7 +293,7 @@ let () =
        let line2 (g, d, _) =
          let g = Ocamlduce.Utf8.make g and d = Ocamlduce.Utf8.make d
          and l = {{ [ {: Eliom_duce.Xhtml.a ~service:service_edit_user ~sp
-                         {: "Add groups" :} g :}] }}
+                         {: "Edit" :} g :}] }}
          in
          {{ <tr>[<td>[<b>g ] <td>d <td>l] }}
        in
@@ -271,7 +304,7 @@ let () =
        let form name = {{ [<p>[
            {: Eliom_duce.Xhtml.string_input ~name~input_type:{: "text" :} () :}
            {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-              {{ "Add groups to this user/group" }} :}
+              {{ "Edit this user/group" }} :}
                             ]] }}
        in
        let f = Eliom_duce.Xhtml.get_form ~a:{{ { accept-charset="utf-8" } }}

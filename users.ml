@@ -144,6 +144,14 @@ let user_list_of_string s =
   let r = Ocsigen_lib.split ' ' s in
   List.fold_left f (Lwt.return []) r
 
+let user_list_to_string =
+  List.fold_left
+    (fun s r ->
+       s >>= fun s ->
+       User_sql.user_to_string r
+       >>= fun s2 -> Lwt.return (s^" "^s2))
+    (Lwt.return "")
+
 
 (* dynamic groups: *)
 module DynGroups = Hashtbl.Make(
@@ -362,6 +370,17 @@ let iter_list_group f ~l ~group =
 let add_list_to_group = iter_list_group add_to_group
 let remove_list_from_group = iter_list_group User_sql.remove_from_group
 
+let iter_user_list f ~user ~l =
+  List.fold_left
+    (fun beg g ->
+       beg >>= fun () ->
+       f ~user ~group:g)
+    (Lwt.return ())
+    l
+
+let add_user_to_list = iter_user_list add_to_group
+let remove_user_from_list = iter_user_list User_sql.remove_from_group
+
 
 (** {2 Session data} *)
 
@@ -497,16 +516,22 @@ module GroupsForms = struct
   let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
 
 
-  let update_perms ~(add : string) ~(remove : string) group =
+  let add_remove_users_from_group ~(add : string) ~(remove : string) ~group =
     user_list_of_string add >>= fun addl ->
     user_list_of_string remove >>= fun reml ->
     add_list_to_group ~l:addl ~group >>= fun () ->
     remove_list_from_group ~l:reml ~group
 
+  let user_add_remove_from_groups ~user ~(add : string) ~(remove : string) =
+    user_list_of_string add >>= fun addl ->
+    user_list_of_string remove >>= fun reml ->
+    add_user_to_list ~l:addl ~user >>= fun () ->
+    remove_user_from_list ~l:reml ~user
 
-  let update_perms_param add rem grp arg =
+
+  let add_remove_users_from_group_param add rem grp arg =
     let group = grp $ arg in
-    update_perms add rem group
+    add_remove_users_from_group add rem group
 
 
   let ( ** ) = Eliom_parameters.prod
@@ -533,17 +558,10 @@ module GroupsForms = struct
       'a Opaque.int32_t -> string * string -> unit Lwt.t
   }
 
-  let form_edit_group ~group ~(text : string) =
+  let form_edit_group ?(show_edit=false) ~group ~(text : string) =
     User_sql.users_in_group ~generic:false ~group
     >>= fun users ->
-    (List.fold_left
-       (fun s r ->
-          s >>= fun s ->
-          User_sql.user_to_string r
-          >>= fun s2 -> Lwt.return (s^" "^s2))
-       (Lwt.return "")
-       users
-    )
+    user_list_to_string users
     >>= fun members ->
     let string_input arg =
       Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
@@ -554,17 +572,54 @@ module GroupsForms = struct
                     "No user currently in this group"
                   else
                     "Current users in this group:" in
-                  {{ [
+                  let cur =
+                    {{ [ <b>{: text :} <br>[]
+                         !{: textcur :} !{: members :} <br>[] ] }}
+                  and edit = if show_edit then
+                    {{ [ !{: textadd :}
+                         {: string_input iadd :} <br>[]
+                         !{: if users = [] then
+                             {{ [ {: Eliom_duce.Xhtml.string_input
+                                  ~input_type:{: "hidden" :} ~name:irem ():}]}}
+                           else
+                             {{ [ !{: textrem :}{: string_input irem :}<br>[]]}}
+                         :}
+                       ] }}
+                  else {{ [] }}
+                  in {{ [ !cur !edit] }}
+               )
+
+  let form_edit_user ?(show_edit=false) ~user ~(text : string) =
+    User_sql.groups_of_user ~user
+    >>= fun groups ->
+    user_list_to_string groups
+    >>= fun members ->
+    let string_input arg =
+      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+    Lwt.return (fun (iadd, irem) ->
+                  let textadd = "Add user to: "
+                  and textrem = "Remove user from: "
+                  and textcur = if groups = [] then
+                    "User is currently in no group"
+                  else
+                    "Groups in which the user is currently: " in
+                  let cur = {{ [
                        <b>{: text :} <br>[]
                        !{: textcur :} !{: members :} <br>[]
+                     ] }}
+                  and edit = if show_edit then
+                    {{ [
                        !{: textadd :} {: string_input iadd :} <br>[]
-                       !{: if users = [] then
+                       !{: if groups = [] then
                            {{ [ {: Eliom_duce.Xhtml.string_input
                                    ~input_type:{: "hidden" :} ~name:irem ():}]}}
                          else
                            {{ [ !{: textrem :} {: string_input irem :} <br>[]]}}
                              :}
-                     ] }}
+                       ] }}
+                  else
+                    {{ [] }}
+                  in {{ [ !cur !edit] }}
                )
 
 
@@ -582,11 +637,12 @@ module GroupsForms = struct
 
     and form arg text = form_edit_group ~group:(grp $ arg) ~text
 
-    and update_perms arg (add, rem) = update_perms_param add rem grp arg
+    and update_perms arg (add, rem) =
+      add_remove_users_from_group_param add rem grp arg
     in
     {grp_eliom_params = params;
      grp_eliom_arg_param = param_arg;
-     grp_form_fun = form;
+     grp_form_fun = form ~show_edit:true;
      grp_form_arg = form_arg;
      grp_save = update_perms}
 
@@ -648,7 +704,5 @@ module GroupsForms = struct
       awr_eliom_arg_param = helpa.grp_eliom_arg_param;
       awr_form_arg = helpa.grp_form_arg
     }
-
-(* Button : Eliom_duce.Xhtml.button ~button_type:{: "submit" :}{{"Save"}} *)
 
 end
