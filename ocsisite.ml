@@ -168,9 +168,7 @@ let () =
        Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        let wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
-       let bi = Wiki_widgets_interface.default_bi
-         ~sp ~root_wiki:w ~wikibox:wb ~rights
-       in
+       let bi = Wiki_widgets_interface.default_bi ~sp ~wikibox:wb ~rights in
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
        >>= fun subbox ->
        Wiki_services.get_admin_wiki () >>= fun admin_wiki ->

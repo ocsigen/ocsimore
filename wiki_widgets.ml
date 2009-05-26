@@ -792,8 +792,7 @@ object (self)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box;
                     wikipage_title = title } ->
-          let bi = default_bi ~sp ~root_wiki:wiki ~wikibox:(wiki', box) ~rights
-          in
+          let bi = default_bi ~sp ~wikibox:(wiki', box) ~rights in
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) (wiki', box)
           >>= fun (subbox, allowed) ->
@@ -839,8 +838,8 @@ object (self)
 
        (* We render the container *)
        let wb_container = (wiki, wiki_info.wiki_container) in
-       let bi = { (default_bi ~sp ~root_wiki:wiki ~rights
-                     ~wikibox:wb_container) with bi_subbox = Some subbox } in
+       let bi = { (default_bi ~sp ~rights ~wikibox:wb_container) with 
+                    bi_subbox = Some subbox } in
        self#display_interactive_wikibox ~bi
          ~special_box:(WikiContainerBox wiki) wb_container
        >>= fun pagecontent ->

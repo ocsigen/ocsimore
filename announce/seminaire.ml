@@ -422,9 +422,7 @@ let summary_contents category sp =
   let wikibox = (Common.wiki_id, cat.cat_desc) in
   Wiki_sql.get_wiki_info_by_id Common.wiki_id >>= fun wiki_info ->
   let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
-  let bi = Wiki_widgets_interface.default_bi ~sp ~root_wiki:Common.wiki_id
-    ~wikibox ~rights 
-  in
+  let bi = Wiki_widgets_interface.default_bi ~sp ~wikibox ~rights in
   Ocsisite.wikibox_widget#display_interactive_wikibox wikibox ~bi
   >>= fun desc ->
   let show_all = true in (*XXXX*)

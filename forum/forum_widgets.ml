@@ -135,8 +135,7 @@ object (self)
     Wiki_sql.wikibox_from_uid m.m_wikibox >>= fun (wiki, box) ->
     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
     let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
-    let bi = Wiki_widgets_interface.default_bi
-      ~sp ~root_wiki:wiki (*VVV <- NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOON *) ~wikibox:(wiki, box) ~rights
+    let bi = Wiki_widgets_interface.default_bi ~sp ~wikibox:(wiki, box) ~rights
     in
     wiki_widgets#display_interactive_wikibox ~bi (wiki, box) >>= fun wikibox ->
     Lwt.return

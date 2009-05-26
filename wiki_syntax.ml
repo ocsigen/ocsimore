@@ -457,7 +457,7 @@ let default_builder =
              {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
     make_href =
       (fun sp bi addr ->
-         let wiki_id = bi.Wiki_widgets_interface.bi_root_wiki in
+         let wiki_id = fst bi.Wiki_widgets_interface.bi_box in
          let servpage = Wiki_widgets_interface.find_servpage wiki_id in
          match servpage, is_absolute_link addr with
            | (Some servpage, false) ->
@@ -765,8 +765,7 @@ let () =
                 if is_absolute_link link
                 then link
                 else 
-                  match Wiki_widgets_interface.find_servpage
-                    bi.bi_root_wiki with
+                  match Wiki_widgets_interface.find_servpage wiki_id with
                     | Some servpage -> 
                         let path =
                           Ocsigen_lib.remove_slash_at_beginning

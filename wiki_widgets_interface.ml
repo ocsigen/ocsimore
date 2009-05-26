@@ -138,20 +138,17 @@ type box_info =
    bi_ancestors: Ancestors.ancestors;
    bi_sp: Eliom_sessions.server_params;
    bi_box : wikibox (* Wikibox which is being displayed *);
-   bi_root_wiki: wiki (* Id of the wiki that responds to the url,
-                         used to generate links *) ;
    bi_rights: Wiki_types.wiki_rights;
 }
 
 let add_ancestor_bi x bi =
   { bi with bi_ancestors = Ancestors.add_ancestor x bi.bi_ancestors }
 
-let default_bi ~sp ~root_wiki ~wikibox ~rights =
+let default_bi ~sp ~wikibox ~rights =
   {
     bi_sp = sp;
     bi_ancestors = Ancestors.no_ancestors;
     bi_subbox = None;
-    bi_root_wiki = root_wiki;
     bi_box = wikibox;
     bi_rights = rights;
   }

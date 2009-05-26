@@ -79,8 +79,7 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
   Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
   let rights = Wiki_models.get_rights wiki_info.wiki_model in
-  let bi = { (Wiki_widgets_interface.default_bi ~sp ~root_wiki:wiki_id
-             ~wikibox:wiki_box ~rights)
+  let bi = { (Wiki_widgets_interface.default_bi ~sp ~wikibox:wiki_box ~rights)
              with Wiki_widgets_interface.bi_subbox = Some subbox } in
   Ocsisite.wikibox_widget#display_interactive_wikibox ~bi wiki_box
   >>= fun box ->
