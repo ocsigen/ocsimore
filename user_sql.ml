@@ -108,6 +108,14 @@ let pass_authtype_from_pass pwd = match pwd with
       fun crypt ->
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
 
+let all_groups () =
+  Lwt_pool.use Sql.pool
+    (fun db -> PGSQL(db) "SELECT login, fullname, authtype FROM users"
+       >>= fun l ->
+       Lwt.return
+         (List.map (fun (login, descr, auth) -> (login, descr, auth="g")) l)
+    )
+
 
 let remove_from_group_aux db (u, vu) (g, vg) =
   match vu, vg with
@@ -324,7 +332,7 @@ let groups_of_user_ ~user =
     )
 
 (* as above *)
-let users_in_group_ ~group =
+let users_in_group_ ?(generic=true) ~group =
   let g, vg = decompose_user group in
   Lwt_pool.use Sql.pool
     (fun db ->
@@ -337,8 +345,12 @@ let users_in_group_ ~group =
               PGSQL(db) "SELECT id, idarg FROM userrights
                          WHERE groupid = $g AND groupidarg = $vg"
               >>= fun r1 ->
-              PGSQL(db) "SELECT id FROM userrights
-                         WHERE groupid = $g AND groupidarg = $ct_parameterized_edge"
+              (if generic then
+                 PGSQL(db) "SELECT id FROM userrights
+                            WHERE groupid = $g AND groupidarg = $ct_parameterized_edge"
+               else
+                 Lwt.return []
+              )
               >>= fun r2 ->
               Lwt.return (convert_generic_lists r1 r2 vg)
        )
@@ -433,34 +445,41 @@ let get_user_by_name name =
 
 (* Groups-related functions *)
 
-module GroupCache = Cache.Make (struct
+module GroupUsersCache = Cache.Make (struct
                              type key = user
                              type value = user list
                            end)
 
-let group_of_users_cache = GroupCache.create (fun u -> groups_of_user_ u) 8777
-let users_in_group_cache = GroupCache.create (fun g -> users_in_group_ g) 8777
+module UsersGroupCache = Cache.Make (struct
+                             type key = user * bool
+                             type value = user list
+                           end)
+
+let group_of_users_cache = GroupUsersCache.create
+  (fun u -> groups_of_user_ u) 8777
+let users_in_group_cache = UsersGroupCache.create
+  (fun (g, b) -> users_in_group_ ~generic:b ~group:g) 8777
 
 let groups_of_user ~user =
   print_cache "cache groups_of_user ";
-  GroupCache.find group_of_users_cache user
+  GroupUsersCache.find group_of_users_cache user
 
-let users_in_group ~group =
+let users_in_group ?(generic=true) ~group =
   print_cache "cache users_in_group ";
-  GroupCache.find users_in_group_cache group
+  UsersGroupCache.find users_in_group_cache (group, generic)
 
 let add_to_group ~user ~group =
-  GroupCache.remove group_of_users_cache user;
-  GroupCache.clear users_in_group_cache;
+  GroupUsersCache.remove group_of_users_cache user;
+  UsersGroupCache.clear users_in_group_cache;
   add_to_group_ ~user ~group
 
 let add_generic_inclusion ~subset ~superset =
-  GroupCache.clear group_of_users_cache;
+  GroupUsersCache.clear group_of_users_cache;
   add_generic_inclusion_ ~subset ~superset
 
 let remove_from_group ~user ~group =
-  GroupCache.remove group_of_users_cache user;
-  GroupCache.clear users_in_group_cache;
+  GroupUsersCache.remove group_of_users_cache user;
+  UsersGroupCache.clear users_in_group_cache;
   remove_from_group_ ~user ~group
 
 
@@ -472,8 +491,8 @@ let delete_user ~userid =
   IUserCache.clear iusercache;
   NUseridCache.clear nuseridcache;
   NUserCache.clear nusercache;
-  GroupCache.clear group_of_users_cache;
-  GroupCache.clear users_in_group_cache;
+  GroupUsersCache.clear group_of_users_cache;
+  UsersGroupCache.clear users_in_group_cache;
   delete_user_ ~userid
 
 

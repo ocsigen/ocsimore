@@ -26,6 +26,9 @@ open Lwt
 open User_sql.Types
 open Wiki_types
 
+let ( ** ) = Eliom_parameters.prod
+
+
 type user_creation =
   | NoUserCreation
   | BasicUserCreation of User_widgets.basic_user_creation
@@ -181,6 +184,114 @@ let () =
        >>= fun css ->
        Lwt.return (wikibox_widget#display_container ~css {{ [ page ] }})
     )
+
+
+let () =
+  let params = Eliom_parameters.string "group" **
+    (Eliom_parameters.string "add" ** Eliom_parameters.string "rem") in
+  let action_send_rights = Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"rights_save" ~post_params:params
+    (fun sp () (g, (add, rem)) ->
+       (** XXX add error catching *)
+       Users.get_user_id sp >>= fun user ->
+       if user = Users.admin then
+         Users.get_user_by_name g
+         >>= fun group ->
+         Users.GroupsForms.update_perms add rem group >>= fun () ->
+         Eliom_predefmod.Action.send ~sp ()
+       else
+         Lwt.fail Ocsimore_common.Permission_denied
+    )
+
+  in
+  let service_edit_user = Eliom_predefmod.Any.register_new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "perms_edit_group"]
+    ~get_params:(Eliom_parameters.string "group")
+    (fun sp g () ->
+       (if g = "nobody" then
+          let msg = Ocamlduce.Utf8.make
+            "Cannot add or remove users from nobody" in
+          Lwt.return {{ <p>msg }}
+        else
+          Users.get_user_by_name g
+          >>= fun group ->
+          if group = basic_user Users.nobody then
+            let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
+            Lwt.return {{ <p>msg }}
+          else
+            Users.GroupsForms.form_edit_group ~group ~text:("Group " ^ g)
+            >>= fun form  ->
+            let form (n, (n1, n2)) =
+              {{ [<p>[{: Eliom_duce.Xhtml.string_input
+                         ~input_type:{: "hidden" :} ~name:n ~value:g () :}
+                        !{: form (n1, n2) :} <br>[]
+                        !{: [Eliom_duce.Xhtml.button
+                               ~button_type:{: "submit" :} {{ "Save" }}] :}
+                     ]] }} in
+            Lwt.return
+              (Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+                 ~service:action_send_rights ~sp form ())
+       )>>= fun body ->
+       let html = wikibox_widget#display_container {{ [ body ] }} in
+       Eliom_duce.Xhtml.send ~sp html
+    )
+  in
+  let service_edit_user_root = Eliom_predefmod.Any.register_new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "perms_edit"]
+    ~get_params:(Eliom_parameters.unit)
+    (fun sp () () ->
+       User_sql.all_groups () >>= fun l ->
+       let l1, l2 = List.partition (fun (_, _, p) -> p) l in
+       let l2 = List.sort (fun (_, d1, _) (_, d2, _) -> compare d1 d2) l2 in
+
+       (* Parameterized users *)
+       let hd1, tl1 = List.hd l1, List.tl l1 (* some groups always exist*) in
+       let line1 (g, d, _) =
+         let g = Ocamlduce.Utf8.make g and d = Ocamlduce.Utf8.make d in
+         {{ <tr>[<td>[<b>g ] <td>d ] }}
+       in
+       let l1 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
+                                 {{ [ !s {: line1 arg:} ] }}) {{ [] }} tl1 in
+       let t1 = {{ <table>[{: line1 hd1 :}
+                              !l1]}} in
+
+       (* Standard users *)
+       let hd2, tl2 = List.hd l2, List.tl l2 (* admin always exists*) in
+       let line2 (g, d, _) =
+         let g = Ocamlduce.Utf8.make g and d = Ocamlduce.Utf8.make d
+         and l = {{ [ {: Eliom_duce.Xhtml.a ~service:service_edit_user ~sp
+                         {: "Add groups" :} g :}] }}
+         in
+         {{ <tr>[<td>[<b>g ] <td>d <td>l] }}
+       in
+       let l2 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
+                                 {{ [ !s {: line2 arg:} ] }}) {{ [] }} tl2 in
+       let t2 = {{ <table>[{: line2 hd2 :}
+                              !l2]}} in
+       let form name = {{ [<p>[
+           {: Eliom_duce.Xhtml.string_input ~name~input_type:{: "text" :} () :}
+           {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+              {{ "Add groups to this user/group" }} :}
+                            ]] }}
+       in
+       let f = Eliom_duce.Xhtml.get_form ~a:{{ { accept-charset="utf-8" } }}
+               ~service:service_edit_user ~sp form
+       in
+
+       let title1 = Ocamlduce.Utf8.make "Standard groups"
+       and title2 = Ocamlduce.Utf8.make "Parameterized groups"
+       and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it with \
+                    its parameter below" in
+       let html = wikibox_widget#display_container
+         {{ [ <p>[<b>title1]               t2
+              <p>[<b>title2 <br>[] !msg2 ] t1
+              f
+            ] }} in
+       Eliom_duce.Xhtml.send ~sp html
+    )
+  in ()
+
+
 
 
 

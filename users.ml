@@ -497,12 +497,16 @@ module GroupsForms = struct
   let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
 
 
-  let update_perms (add : string) (rem : string) grp arg =
-    let group = grp $ arg in
+  let update_perms ~(add : string) ~(remove : string) group =
     user_list_of_string add >>= fun addl ->
-    user_list_of_string rem >>= fun reml ->
+    user_list_of_string remove >>= fun reml ->
     add_list_to_group ~l:addl ~group >>= fun () ->
     remove_list_from_group ~l:reml ~group
+
+
+  let update_perms_param add rem grp arg =
+    let group = grp $ arg in
+    update_perms add rem group
 
 
   let ( ** ) = Eliom_parameters.prod
@@ -529,6 +533,41 @@ module GroupsForms = struct
       'a Opaque.int32_t -> string * string -> unit Lwt.t
   }
 
+  let form_edit_group ~group ~(text : string) =
+    User_sql.users_in_group ~generic:false ~group
+    >>= fun users ->
+    (List.fold_left
+       (fun s r ->
+          s >>= fun s ->
+          User_sql.user_to_string r
+          >>= fun s2 -> Lwt.return (s^" "^s2))
+       (Lwt.return "")
+       users
+    )
+    >>= fun members ->
+    let string_input arg =
+      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+    Lwt.return (fun (iadd, irem) ->
+                  let textadd = "Add users: "
+                  and textrem = "Remove users: "
+                  and textcur = if users = [] then
+                    "No user currently in this group"
+                  else
+                    "Current users in this group:" in
+                  {{ [
+                       <b>{: text :} <br>[]
+                       !{: textcur :} !{: members :} <br>[]
+                       !{: textadd :} {: string_input iadd :} <br>[]
+                       !{: if users = [] then
+                           {{ [ {: Eliom_duce.Xhtml.string_input
+                                   ~input_type:{: "hidden" :} ~name:irem ():}]}}
+                         else
+                           {{ [ !{: textrem :} {: string_input irem :} <br>[]]}}
+                             :}
+                     ] }}
+               )
+
+
 
   let helpers_group prefix grp =
     let add = "add#" ^ prefix and rem = "rem#" ^ prefix in
@@ -541,32 +580,9 @@ module GroupsForms = struct
       Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
                ~input_type:{: "hidden" :} ~name:arg_name ~value ()
 
-    and form arg (text : string) =
-      User_sql.users_in_group ~group:(grp $ arg) >>= fun users ->
-      (List.fold_left
-         (fun s r ->
-            s >>= fun s ->
-            User_sql.user_to_string r
-            >>= fun s2 -> Lwt.return (s^" "^s2))
-         (Lwt.return "")
-         users
-      )
-      >>= fun members ->
-      let string_input arg =
-        Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
-      Lwt.return (fun (iadd, irem) ->
-                    let textadd = "Add users: "
-                    and textrem = "Remove users: "
-                    and textcur = "Current users in this group:" in
-                    {{ [
-                         <b>{: text :} <br>[]
-                         !{: textcur :} !{: members :} <br>[]
-                         !{: textadd :} {: string_input iadd :} <br>[]
-                         !{: textrem :} {: string_input irem :} <br>[]
-                       ] }}
-                 )
+    and form arg text = form_edit_group ~group:(grp $ arg) ~text
 
-    and update_perms arg (add, rem) = update_perms add rem grp arg
+    and update_perms arg (add, rem) = update_perms_param add rem grp arg
     in
     {grp_eliom_params = params;
      grp_eliom_arg_param = param_arg;

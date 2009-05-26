@@ -191,22 +191,6 @@ end
 
 open Users.GroupsForms
 
-
-
-
-(*
-h_wiki_admins
-h_subwikiboxes_creators
-h_wiki_wikipages_creators
-h_wiki_genwikiboxes_creators
-h_wiki_css_creators
-h_wiki_wikiboxes_deletors
-h_wiki_wikiboxes_grps
-h_wiki_files_readers
-*)
-
-
-
 let helpers_wikibox_permissions =
   Users.GroupsForms.helpers_admin_writer_reader
     "edit_wikibox_permissions" wikibox_grps

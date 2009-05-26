@@ -158,12 +158,16 @@ let create_and_register_wiki ?sp
        | e -> Lwt.fail e)
 
 
-let save_then_redirect overriden_wikibox ~sp f =
+let save_then_redirect overriden_wikibox ~sp redirect_mode f =
   Lwt.catch
     (fun () ->
        f () >>= fun _ ->
        (* We do a redirection to prevent repost *)
-       Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
+       match redirect_mode with
+         | `BasePage ->
+             Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
+         | `SamePage ->
+             Eliom_predefmod.Action.send ~sp ()
     )
     (fun e ->
        Wiki_widgets_interface.set_wikibox_error
@@ -217,7 +221,7 @@ let make_services () =
          let content_type = 
            Wiki_models.get_default_content_type wiki_info.wiki_model 
          in
-         save_then_redirect wb ~sp
+         save_then_redirect wb ~sp `BasePage
            (fun () -> 
               Wiki.save_wikitextbox ~rights ~content_type ~sp ~wb ~content:None)
     )
@@ -304,7 +308,7 @@ let make_services () =
                  wiki_info.wiki_model in
                Wiki.wikibox_content rights sp wb >>= fun (content_type, _, _) ->
                wp (sp, wb) content >>= fun content ->
-               save_then_redirect wb ~sp
+               save_then_redirect wb ~sp `BasePage
                  (fun () -> Wiki.save_wikitextbox ~rights
                     ~content_type ~sp ~wb ~content:(Some content))
            | Some _ ->
@@ -335,7 +339,7 @@ let make_services () =
            let rights = Wiki_models.get_rights wiki_info.wiki_model in
            match modified with
              | None ->
-                 save_then_redirect wb ~sp
+                 save_then_redirect wb ~sp `BasePage
                    (fun () -> match page with
                       | None -> Wiki.save_wikicssbox ~rights ~sp
                           ~wiki:(fst wbcss) ~content:(Some content)
@@ -363,7 +367,7 @@ let make_services () =
          let rights = Wiki_models.get_rights wiki_info.wiki_model in
          rights#can_set_wikibox_specific_permissions sp wb >>= function
            | true ->
-               save_then_redirect wb ~sp
+               save_then_redirect wb ~sp `SamePage
                  (fun () ->
                     f wbuid args >>= fun () ->
                     Wiki_sql.set_wikibox_special_rights wb special)
@@ -378,7 +382,7 @@ let make_services () =
       (fun sp () (wb, args) ->
          Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
            let rights = Wiki_models.get_rights wiki_info.wiki_model in
-           save_then_redirect wb ~sp (fun () -> f rights sp args))
+           save_then_redirect wb ~sp `SamePage (fun () -> f rights sp args))
 
   (* Below are the services for the css of wikis and wikipages.  The css
      at the level of wikis are registered in Wiki.ml *)

@@ -210,10 +210,7 @@ object (self)
                args,
                content)
              )
-        )
-
-
-
+        );
 
 end
 

@@ -94,8 +94,9 @@ val get_user_data : user -> userdata Lwt.t
 (** Returns the groups in which a user is directly included *)
 val groups_of_user : user:user -> user list Lwt.t
 
-(** Returns the users or groups inside a group *)
-val users_in_group : group:user -> user list Lwt.t
+(** Returns the users or groups inside a group. If [generic] is false,
+    inclusions coming from generic edges are not returned *)
+val users_in_group : ?generic:bool -> group:user -> user list Lwt.t
 
 
 val add_to_group: user:user -> group:user -> unit Lwt.t
@@ -136,3 +137,10 @@ val user_to_string: user -> string Lwt.t
     (inverse of the function [user_to_string], or raises
     [Not_found] if the user does not exists *)
 val get_user_by_name: string -> user Lwt.t
+
+
+
+(** Returns a list of all the existing users and groups. The first
+    field is the name of the group, the second the description;
+    the third indicate whether the group is parameterized or not *)
+val all_groups : unit -> (string * string * bool) list Lwt.t

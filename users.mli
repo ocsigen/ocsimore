@@ -213,5 +213,11 @@ module GroupsForms : sig
     string -> 'a User_sql.Types.admin_writer_reader -> 'a awr_helper
 
 
+  val form_edit_group:
+    group:user -> text:string ->
+    (input_string * input_string -> Xhtmltypes_duce.inlines) Lwt.t
+
+  val update_perms: add:string -> remove:string -> user -> unit Lwt.t
+
 end
 

@@ -405,8 +405,8 @@ object (self)
                {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
                   ~value:(Ocamlduce.Utf8.make content) () :}
                <br>[]
-               !{: [Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                      {{ "Save" }}] :}
+               {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                  {{ "Save" }} :}
               ] ] }}
     in
     Lwt.return
