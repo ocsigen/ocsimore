@@ -35,12 +35,13 @@ div.boxmenu:hover div.boxmenucontent {
   right: 0px;
   z-index: 20;
   background-color: white;
+  overflow: visible;
 }
 
 div.editform,
 div.history{
     background-color: white;
-    overflow: auto;
+    overflow: visible;
 }
 
 p.boxtitle{

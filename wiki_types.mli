@@ -100,6 +100,11 @@ object
   method can_read_wikibox : wikibox rights_aux
 
   method can_create_wikipagecss : wikipage rights_aux
+
+  method can_set_wiki_permissions : wiki rights_aux
+  method can_view_history : wikibox rights_aux
+  method can_view_oldversions : wikibox rights_aux
+  method can_view_oldversions_src : wikibox rights_aux
 end
 
 

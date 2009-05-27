@@ -181,6 +181,14 @@ object (self)
       else
         Lwt.return false
 
+(*VVV Les suivantes à réécrire (créer des groupes pour chaque) *)
+  method can_set_wiki_permissions = aux_group wiki_admins (* trop fort *)
+(* = can_admin ? *)
+  method can_view_history = can_wr_wb (* trop fort *)
+  method can_view_oldversions = can_wr_wb (* trop fort *)
+  method can_view_oldversions_src = can_wr_wb (* trop fort *)
+
+
 end
 
 
