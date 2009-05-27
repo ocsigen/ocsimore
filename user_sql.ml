@@ -33,8 +33,8 @@ module Types = struct
 
   type userid = [`User ] Opaque.int32_t
 
-  let user_from_sql (u : int32) = (Opaque.int32_t u : userid)
-  let sql_from_user (u : userid) = Opaque.t_int32 u
+  let userid_from_sql (u : int32) = (Opaque.int32_t u : userid)
+  let sql_from_userid (u : userid) = Opaque.t_int32 u
 
   type pwd =
     | Connect_forbidden
@@ -49,7 +49,7 @@ module Types = struct
     mutable user_fullname: string;
     mutable user_email: string option;
     user_dyn: bool;
-    user_parameterized_group: bool;
+    user_kind: [`BasicUser | `ParameterizedGroup | `NonParameterizedGroup];
   }
 
 
@@ -58,17 +58,19 @@ module Types = struct
   type 'a parameterized_group = userid
 
   type user =
-    | Ground of userid
-    | Applied of userid * int32
+    | BasicUser of userid
+    | AppliedParameterizedGroup of userid * int32
+    | NonParameterizedGroup of userid
 
 
-  let apply_parameterized_group g v = Applied (g, Opaque.t_int32 v)
+  let apply_parameterized_group g v =
+    AppliedParameterizedGroup (g, Opaque.t_int32 v)
   let ($) = apply_parameterized_group
-  let basic_user v = Ground v
+  let basic_user v = BasicUser v
 
   let userid_from_user = function
-    | Ground u -> u
-    | Applied (u, _) -> u
+    | BasicUser u | NonParameterizedGroup u -> u
+    | AppliedParameterizedGroup (u, _) -> u
 
 
   type 'a admin_writer_reader = {
@@ -81,9 +83,27 @@ end
 open Types
 
 
-let decompose_user = function
-  | Ground u -> (sql_from_user u, None)
-  | Applied (u, v) -> (sql_from_user u, Some v)
+(* Constant used in the database to detect parameterized edge. Must
+   of course be different from all other parameters. This must be
+   enforced in all the modules using parameterized groups, for example
+   by using serial types that statr at 0 *)
+let ct_parameterized_edge = -1l
+
+(* Same kind of things for non parameterized groups *)
+let ct_non_parameterized_group = -2l
+
+let sql_from_user = function
+  | BasicUser u -> (sql_from_userid u, None)
+  | AppliedParameterizedGroup (u, v) -> (sql_from_userid u, Some v)
+  | NonParameterizedGroup u ->
+      (sql_from_userid u, Some ct_non_parameterized_group)
+
+let user_from_sql = function
+  | (u, None) -> BasicUser (userid_from_sql u)
+  | (u, Some v) ->
+      if v = ct_non_parameterized_group
+      then NonParameterizedGroup (userid_from_sql u)
+      else AppliedParameterizedGroup (userid_from_sql u, v)
 
 
 (* Transforms an incoming value of type [pwd], in which
@@ -91,8 +111,8 @@ let decompose_user = function
    into the outgoing value of type [pwd] ([Ocsimore_user_crypt] contains the
    encrypted password) and the database representation of this value,
    for the columns password and authtype respectively *)
-(* Notice that "g" is used in the database for parametrized groups. However
-   it is still translated as having authtype [Connect_forbidden] *)
+(* Notice that "g" and "h" are used in the database for parametrized groups.
+   However they are still translated as having authtype [Connect_forbidden] *)
 let pass_authtype_from_pass pwd = match pwd with
   | Connect_forbidden ->
       Lwt.return (pwd, (None, "l"))
@@ -107,14 +127,6 @@ let pass_authtype_from_pass pwd = match pwd with
       Nis_chkpwd.crypt_passwd pass >>=
       fun crypt ->
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
-
-let all_groups () =
-  Lwt_pool.use Sql.pool
-    (fun db -> PGSQL(db) "SELECT login, fullname, authtype FROM users"
-       >>= fun l ->
-       Lwt.return
-         (List.map (fun (login, descr, auth) -> (login, descr, auth="g")) l)
-    )
 
 
 let remove_from_group_aux db (u, vu) (g, vg) =
@@ -138,7 +150,7 @@ let remove_from_group_aux db (u, vu) (g, vg) =
 
 let remove_from_group_ ~user ~group =
   Lwt_pool.use Sql.pool (fun db -> remove_from_group_aux db
-                           (decompose_user user) (decompose_user group))
+                           (sql_from_user user) (sql_from_user group))
 
 let add_to_group_aux db (u, vu) (g, vg) =
   remove_from_group_aux db (u, vu) (g, vg) >>= fun () ->
@@ -146,26 +158,21 @@ let add_to_group_aux db (u, vu) (g, vg) =
              VALUES ($u, $g, $?vu, $?vg)"
 
 let populate_groups db user groups =
-  let (u, vu) = decompose_user user in
-  Lwt_util.iter_serial (fun g -> add_to_group_aux db (u, vu) (decompose_user g))
+  let (u, vu) = sql_from_user user in
+  Lwt_util.iter_serial (fun g -> add_to_group_aux db (u, vu) (sql_from_user g))
     groups
 
 let add_to_group_ ~user ~group =
   Lwt_pool.use Sql.pool
     (fun db ->
-       add_to_group_aux db (decompose_user user) (decompose_user group))
+       add_to_group_aux db (sql_from_user user) (sql_from_user group))
 
-(* Constant used in the database to detect parameterized edge. Must
-   of course be different from all other parameters. This must be
-   enforced in all the modules using parameterized groups, for example
-   by using serial types that statr at 0 *)
-let ct_parameterized_edge = -1l
 
 let add_generic_inclusion_ ~subset ~superset =
   Lwt_pool.use Sql.pool
     (fun db ->
-       let subset = sql_from_user subset
-       and superset = sql_from_user superset in
+       let subset = sql_from_userid subset
+       and superset = sql_from_userid superset in
        add_to_group_aux db (subset, Some ct_parameterized_edge)
          (superset, Some ct_parameterized_edge)
     )
@@ -192,7 +199,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
        ) >>= fun () ->
        serial4 db "users_id_seq"
        >>= fun id ->
-       let id = user_from_sql id in
+       let id = userid_from_sql id in
        Lwt.return (id, pwd)
     )
 
@@ -200,12 +207,11 @@ let find_userid_by_name_aux_ db name =
   PGSQL(db) "SELECT id FROM users WHERE login = $name"
   >>= function
     | [] -> Lwt.fail Not_found
-    | r :: _ -> Lwt.return (user_from_sql r)
+    | r :: _ -> Lwt.return (userid_from_sql r)
 
 
-let new_parametrized_group ~prefix ~name ~fullname =
+let new_group authtype ~prefix ~name ~fullname =
   let name = "#" ^ prefix ^ "." ^ name in
-  let authtype = "g" in
   Sql.full_transaction_block
     (fun db ->
        Lwt.catch
@@ -216,9 +222,14 @@ let new_parametrized_group ~prefix ~name ~fullname =
                            VALUES ($name, $fullname, FALSE, $authtype)"
                 >>= fun () ->
                 serial4 db "users_id_seq"
-                >>= fun id -> Lwt.return (user_from_sql id)
+                >>= fun id -> Lwt.return (userid_from_sql id)
             | e -> Lwt.fail e
          ))
+
+let new_parameterized_group = new_group "g"
+let new_nonparameterized_group ~prefix ~name ~fullname =
+  new_group "h" ~prefix ~name ~fullname >>= fun id ->
+  Lwt.return (NonParameterizedGroup id)
 
 let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
   let password = match authtype, pwd with
@@ -227,10 +238,14 @@ let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
     | "l", Some p -> Ocsimore_user_plain p
     | _ -> Connect_forbidden
   in
-  Lwt.return ({ user_id = user_from_sql id; user_login = login;
-                user_pwd = password; user_fullname = name;
-                user_email = email; user_dyn = dyn;
-                user_parameterized_group = (authtype = "g") })
+  { user_id = userid_from_sql id; user_login = login;
+    user_pwd = password; user_fullname = name;
+    user_email = email; user_dyn = dyn;
+    user_kind =
+      match authtype with
+        | "g" -> `ParameterizedGroup
+        | "h" -> `NonParameterizedGroup
+        | _ -> `BasicUser}
 
 
 let find_user_by_name_ name =
@@ -240,25 +255,32 @@ let find_user_by_name_ name =
                   FROM users WHERE login = $name"
        >>= function
          | [] -> Lwt.fail Not_found
-         | r :: _ -> wrap_userdata r)
+         | r :: _ -> Lwt.return (wrap_userdata r))
 
 let find_userid_by_name_ name =
   Lwt_pool.use Sql.pool (fun db -> find_userid_by_name_aux_ db name)
 
 
 let find_user_by_id_ id =
-  let id = sql_from_user id in
+  let id = sql_from_userid id in
   Lwt_pool.use Sql.pool
     (fun db ->
        PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
                   FROM users WHERE id = $id"
        >>= function
          | [] -> Lwt.fail Not_found
-         | r :: _ -> wrap_userdata r)
+         | r :: _ -> Lwt.return (wrap_userdata r))
+
+let all_groups () =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+       PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
+                  FROM users"
+       >>= fun l -> Lwt.return (List.map wrap_userdata l))
 
 
 let delete_user_ ~userid =
-  let userid = sql_from_user userid in
+  let userid = sql_from_userid userid in
   Lwt_pool.use Sql.pool (fun db ->
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
@@ -296,20 +318,18 @@ let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
     )
 *)
 
-let convert_group_list =
-  List.map (function
-              | (g, None) -> basic_user (user_from_sql g)
-              | (g, Some v) -> Applied (user_from_sql g, v)
-           )
+(* Auxiliary functions to read permissions from the userrights table *)
+let convert_group_list = List.map user_from_sql
 
 let convert_generic_lists r1 r2 v =
   let l1 = convert_group_list r1
-  and l2 = List.map (fun g -> Applied (user_from_sql g, v)) r2 in
+  and l2 = List.map (fun g ->
+                       AppliedParameterizedGroup (userid_from_sql g, v)) r2 in
   l1 @ l2
 
 
 let groups_of_user_ ~user =
-  let u, vu = decompose_user user in
+  let u, vu = sql_from_user user in
   Lwt_pool.use Sql.pool
     (fun db ->
        (match vu with
@@ -333,7 +353,7 @@ let groups_of_user_ ~user =
 
 (* as above *)
 let users_in_group_ ?(generic=true) ~group =
-  let g, vg = decompose_user group in
+  let g, vg = sql_from_user group in
   Lwt_pool.use Sql.pool
     (fun db ->
        (match vg with
@@ -382,7 +402,8 @@ let get_basicuser_data i =
 let get_parameterized_user_data = get_basicuser_data
 
 let get_user_data = function
-  | Applied (i, _) | Ground i -> get_basicuser_data i
+  | AppliedParameterizedGroup (i, _) | BasicUser i | NonParameterizedGroup i ->
+      get_basicuser_data i
 
 
 (* Find userid by login *)
@@ -398,7 +419,7 @@ let nuseridcache = NUseridCache.create
   (fun name ->
      find_user_by_name_ name
      >>= fun u ->
-     if u.user_parameterized_group then
+     if u.user_kind <> `BasicUser then
        Lwt.fail (NotBasicUser u)
      else (
        Lwt.return u.user_id)
@@ -424,12 +445,21 @@ let nusercache = NUserCache.create
            (fun g v ->
               find_user_by_name_ g
               >>= fun u ->
-                if u.user_parameterized_group then
-                  Lwt.return (Applied (u.user_id, v))
-                else
-                  Lwt.fail Not_found
+              if u.user_kind = `ParameterizedGroup then
+                Lwt.return (AppliedParameterizedGroup (u.user_id, v))
+              else
+                Lwt.fail Not_found
            )
-       with _ -> Lwt.fail Not_found
+       with _ ->
+         try
+           find_user_by_name_ s
+           >>= fun u ->
+           if u.user_kind = `NonParameterizedGroup then
+             Lwt.return (NonParameterizedGroup u.user_id)
+           else
+             Lwt.fail Not_found
+         with _ -> Lwt.fail Not_found
+
      else
        get_basicuser_by_login s >>= fun u ->
          Lwt.return (basic_user u)
@@ -503,8 +533,8 @@ let userid_to_string u =
   >>= fun { user_login = r } -> Lwt.return r
 
 let user_to_string = function
-  | Ground u -> userid_to_string u
-  | Applied (u, v) ->
+  | BasicUser u | NonParameterizedGroup u -> userid_to_string u
+  | AppliedParameterizedGroup (u, v) ->
       userid_to_string u >>= fun s ->
       Lwt.return (Printf.sprintf "%s(%ld)" s v)
 

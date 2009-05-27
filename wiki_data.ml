@@ -28,9 +28,11 @@ let (>>=) = Lwt.bind
 let ( ** ) = Eliom_parameters.prod
 
 
+let prefix = "wiki"
+
 let aux_grp name descr =
-  let g = Lwt_unix.run (User_sql.new_parametrized_group ~prefix:"wiki" ~name
-                          ~fullname:descr) in
+  let g = Lwt_unix.run
+    (User_sql.new_parameterized_group ~prefix ~name ~fullname:descr) in
   g, Users.GroupsForms.helpers_group name g
 
 let admin_writer_reader_aux ~name ~descr =
@@ -39,10 +41,10 @@ let admin_writer_reader_aux ~name ~descr =
 
 (** All wiki-related groups *)
 
-(* Small hack : we want a special group, but without parameter *)
 let wikis_creator =
-  let grp, _h = aux_grp "WikisCreators" "Users who can create new wikis" in
-  grp $ (Opaque.int32_t 1l)
+  Lwt_unix.run
+    (User_sql.new_nonparameterized_group ~prefix ~name:"WikisCreators"
+       ~fullname:"Users who can create new wikis")
 
 
 (** Groups taking a wiki as argument *)

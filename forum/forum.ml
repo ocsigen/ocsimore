@@ -33,7 +33,7 @@ let ($) = User_sql.Types.apply_parameterized_group
 (** {2 Forum related groups} *)
 
 let aux_grp name descr =
-  Lwt_unix.run (User_sql.new_parametrized_group "forum" name descr)
+  Lwt_unix.run (User_sql.new_parameterized_group "forum" name descr)
 
 let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
@@ -91,14 +91,9 @@ let forum_visible : forum_arg parameterized_group =
   aux_grp "visible" "Can see the forum"
 
 let forum_creators =
-  User_sql.Types.basic_user
-    (Lwt_unix.run
-       (Users.create_user 
-          ~name:"forum_creators"
-          ~pwd:User_sql.Types.Connect_forbidden
-          ~fullname:"Can create new forums"
-          ()
-       ))
+  Lwt_unix.run (User_sql.new_nonparameterized_group ~name:"forum_creators"
+                  ~prefix:"forum" ~fullname:"Can create new forums")
+
 
 (* Generic relations between groups *)
 let () = Lwt_unix.run (

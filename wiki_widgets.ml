@@ -528,7 +528,7 @@ object (self)
     let sp = bi.bi_sp in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
-         User_sql.get_basicuser_data (User_sql.Types.user_from_sql author)
+         User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
          >>= fun { user_fullname = author } ->
          Lwt.return
            {{ [ !{: Int32.to_string version :}'. '
@@ -553,7 +553,7 @@ object (self)
     in
     Lwt_util.map
       (fun (version, _comment, author, date) ->
-         User_sql.get_basicuser_data (User_sql.Types.user_from_sql author)
+         User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
          >>= fun { user_fullname = author } ->
            Lwt.return
              {{ [ !{: Int32.to_string version :}'. '

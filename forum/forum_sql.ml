@@ -122,7 +122,7 @@ module Types = struct
     {
       m_id = message_of_sql id;
       m_subject = subject;
-      m_creator_id = User_sql.Types.user_from_sql creator_id;
+      m_creator_id = User_sql.Types.userid_from_sql creator_id;
       m_datetime = datetime;
       m_parent_id = message_of_sql_option parent_id;
       m_root_id = message_of_sql root_id;
@@ -153,7 +153,7 @@ let new_forum
 
 let new_message ~sp ~forum ~wiki ~creator_id
     ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
-  let creator_id' = sql_from_user creator_id in
+  let creator_id' = sql_from_userid creator_id in
   let parent_id = sql_of_message_option parent_id in
   let forum_id = sql_of_forum forum in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->

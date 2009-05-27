@@ -39,7 +39,7 @@ let eliom_wiki = Eliom_parameters.user_type wiki_of_string string_of_wiki
 
 let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author ~model () =
   let container_wikibox = 0l
-  and author = User_sql.Types.sql_from_user author
+  and author = User_sql.Types.sql_from_userid author
   and model = Wiki_types.string_of_wiki_model model in
   Sql.full_transaction_block
     (fun db ->
@@ -91,7 +91,7 @@ let update_wiki_ ?container_id ?staticdir ?pages wiki =
 let new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type () =
   let wiki' = t_int32 (wiki : wiki)
   and content_type = string_of_content_type content_type
-  and author = User_sql.Types.sql_from_user author
+  and author = User_sql.Types.sql_from_userid author
   in
   let f db =
     (PGSQL(db) "SELECT max(id) FROM wikiboxes WHERE wiki_id = $wiki'"
@@ -120,7 +120,7 @@ let new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type () =
 let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_type =
   let wiki = t_int32 (wiki : wiki)
   and content_type = string_of_content_type content_type
-  and author = User_sql.Types.sql_from_user author
+  and author = User_sql.Types.sql_from_userid author
   in
   Sql.full_transaction_block
     (fun db ->
@@ -159,7 +159,7 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
        >>= function
          | [] -> Lwt.return None
          | (c, a, v, d, t, ver) :: _ ->
-             Lwt.return (Some (c, User_sql.Types.user_from_sql a,
+             Lwt.return (Some (c, User_sql.Types.userid_from_sql a,
                                v, d, content_type_of_string t, ver))
     )
 

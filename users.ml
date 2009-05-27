@@ -491,9 +491,9 @@ module GenericRights = struct
        "Can read the " ^ descr)
     in
     Lwt_unix.run (
-      User_sql.new_parametrized_group prefix namea descra >>= fun ga ->
-      User_sql.new_parametrized_group prefix namew descrw >>= fun gw ->
-      User_sql.new_parametrized_group prefix namer descrr >>= fun gr ->
+      User_sql.new_parameterized_group prefix namea descra >>= fun ga ->
+      User_sql.new_parameterized_group prefix namew descrw >>= fun gw ->
+      User_sql.new_parameterized_group prefix namer descrr >>= fun gr ->
       User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
       User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
 

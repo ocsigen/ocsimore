@@ -21,8 +21,8 @@ module Types : sig
   (** The abstract type of user ids *)
   type userid
 
-  val user_from_sql : int32 -> userid
-  val sql_from_user : userid -> int32
+  val userid_from_sql : int32 -> userid
+  val sql_from_userid : userid -> int32
 
   type pwd =
     | Connect_forbidden
@@ -37,7 +37,7 @@ module Types : sig
     mutable user_fullname: string;
     mutable user_email: string option;
     user_dyn: bool;
-    user_parameterized_group: bool;
+    user_kind: [`BasicUser | `ParameterizedGroup | `NonParameterizedGroup];
   }
 
 
@@ -72,11 +72,17 @@ val new_user:
   (userid * pwd) Lwt.t
 
 
-val new_parametrized_group:
+val new_parameterized_group:
   prefix:string ->
   name:string ->
   fullname:string ->
   'a parameterized_group Lwt.t
+
+val new_nonparameterized_group:
+  prefix:string ->
+  name:string ->
+  fullname:string ->
+  user Lwt.t
 
 
 
@@ -139,8 +145,5 @@ val user_to_string: user -> string Lwt.t
 val get_user_by_name: string -> user Lwt.t
 
 
-
-(** Returns a list of all the existing users and groups. The first
-    field is the name of the group, the second the description;
-    the third indicate whether the group is parameterized or not *)
-val all_groups : unit -> (string * string * bool) list Lwt.t
+(** Returns a list of all the existing users and groups. *)
+val all_groups : unit -> userdata list Lwt.t

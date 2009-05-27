@@ -274,14 +274,19 @@ let () =
     ~get_params:(Eliom_parameters.unit)
     (fun sp () () ->
        User_sql.all_groups () >>= fun l ->
-       let l1, l2 = List.partition (fun (_, _, p) -> p) l in
-       let l2 = List.sort (fun (_, d1, _) (_, d2, _) -> compare d1 d2) l2 in
+       let l1, l2 = List.partition (fun {user_kind = u} -> u <> `BasicUser) l in
+       let l2 = List.sort
+         (fun u1 u2 -> compare u1.user_fullname u2.user_fullname) l2 in
 
        (* Parameterized users *)
        let hd1, tl1 = List.hd l1, List.tl l1 (* some groups always exist*) in
-       let line1 (g, d, _) =
-         let g = Ocamlduce.Utf8.make g and d = Ocamlduce.Utf8.make d in
-         {{ <tr>[<td>[<b>g ] <td>d ] }}
+       let line1 u =
+         let g = Ocamlduce.Utf8.make u.user_login
+         and p =  (if u.user_kind = `ParameterizedGroup then
+                     {{ [<em>['(param)']] }}
+                   else {{ [] }})
+         and d = Ocamlduce.Utf8.make u.user_fullname in
+         {{ <tr>[<td>[<b>g!p ] <td>d ] }}
        in
        let l1 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
                                  {{ [ !s {: line1 arg:} ] }}) {{ [] }} tl1 in
@@ -290,10 +295,11 @@ let () =
 
        (* Standard users *)
        let hd2, tl2 = List.hd l2, List.tl l2 (* admin always exists*) in
-       let line2 (g, d, _) =
-         let g = Ocamlduce.Utf8.make g and d = Ocamlduce.Utf8.make d
+       let line2 u =
+         let g = Ocamlduce.Utf8.make u.user_login
+         and d = Ocamlduce.Utf8.make u.user_fullname
          and l = {{ [ {: Eliom_duce.Xhtml.a ~service:service_edit_user ~sp
-                         {: "Edit" :} g :}] }}
+                         {: "Edit" :} u.user_login :}] }}
          in
          {{ <tr>[<td>[<b>g ] <td>d <td>l] }}
        in
@@ -311,10 +317,10 @@ let () =
                ~service:service_edit_user ~sp form
        in
 
-       let title1 = Ocamlduce.Utf8.make "Standard groups"
-       and title2 = Ocamlduce.Utf8.make "Parameterized groups"
+       let title1 = Ocamlduce.Utf8.make "Standard users"
+       and title2 = Ocamlduce.Utf8.make "Groups"
        and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it with \
-                    its parameter below" in
+                    (including its parameter if needed) below" in
        let html = wikibox_widget#display_container
          {{ [ <p>[<b>title1]               t2
               <p>[<b>title2 <br>[] !msg2 ] t1
