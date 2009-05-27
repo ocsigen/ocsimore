@@ -17,8 +17,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   @author Piero Furiesi
-   @author Jaap Boender
    @author Vincent Balat
    @author Boris Yakobowski
 *)
@@ -170,12 +168,13 @@ object (self)
 
   inherit frozen_wikibox error_box
 
-  val editform_class = "wikibox editform"
-  val history_class = "wikibox history"
-  val css_history_class = "wikibox history"
-  val interactive_class = "wikibox editable"
-  val oldwikibox_class = "wikibox editable oldversion"
-  val srcwikibox_class = "wikibox editable src"
+  val wikibox_class = "wikibox"
+  val interactive_class = "interactive" (* means with menu *)
+  val editform_class = "editform"
+  val history_class = "history"
+  val css_history_class = "history"
+  val oldwikibox_class = "oldversion"
+  val srcwikibox_class = "src"
   val box_button_class = "boxbutton"
   val box_title_class = "boxtitle"
   val preview_class = "preview"
@@ -281,9 +280,14 @@ object (self)
       [edit_wiki_perms; edit_css; history_css; create_css] l in
     let title = Ocamlduce.Utf8.make title in
     Lwt.return
-      {{ [ {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
-              (history, {{ "history" }}) l ?service :}
-           <p class={: box_title_class :}>title
+      {{ [ <div class="boxmenu">[
+             <img class="boxmenu" src="crayon.png" alt="edit">[]
+             <div class="boxmenucontent">[
+               <p class={: box_title_class :}>title
+               {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
+                  (history, {{ "history" }}) l ?service :}
+             ]
+           ]
          ]  }}
 
   method display_menu_box ~bi ~classes ?active_item ?special_box ?title ~wb content =
@@ -424,7 +428,8 @@ object (self)
     Wiki_sql.get_wikibox_info wb
     >>= fun { wikibox_uid = uid; wikibox_special_rights = sr } ->
     let { Users.GroupsForms.awr_form_fun = form; awr_form_arg = arg} =
-    Wiki_data.helpers_wikibox_permissions in
+      Wiki_data.helpers_wikibox_permissions 
+    in
     let msg1 = Ocamlduce.Utf8.make
       "Check this box if you want permissions specific to the wikibox. \
        Otherwise, permissions are inherited from the wiki"
@@ -569,7 +574,8 @@ object (self)
     Lwt.return (classes, {{ map {: l :} with i -> i }})
 
 
-  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+  method display_interactive_wikibox_aux
+    ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
     let sp = bi.bi_sp in
     let override = Wiki_widgets_interface.get_override_wikibox ~sp in
     let exn = 
@@ -607,14 +613,15 @@ object (self)
 
                    | false ->
                        Lwt.return
-                       (error_box#display_error_box
-                          ~classes:(frozen_wb_class::classes)
-                          ~message:"You are not allowed to see this content."
-                          (),
-                        false)
+                         (error_box#display_error_box
+                            ~classes:(frozen_wb_class::classes)
+                            ~message:"You are not allowed to see this content."
+                            (),
+                          false)
 
 
-  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
+  method display_overriden_interactive_wikibox
+    ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
     let sp = bi.bi_sp in
     match override with
       | EditWikitext wb ->
@@ -797,8 +804,9 @@ object (self)
             ~special_box:(WikiPageBox (wiki, page)) (wiki', box)
           >>= fun (subbox, allowed) ->
           Lwt.return ({{ [ subbox ] }},
-                      (if allowed then Wiki_widgets_interface.Page_displayable
-                       else            Wiki_widgets_interface.Page_403),
+                      (if allowed
+                       then Wiki_widgets_interface.Page_displayable
+                       else Wiki_widgets_interface.Page_403),
                       title)
        )
        (function
@@ -856,7 +864,6 @@ object (self)
        in
        Lwt.return (self#display_container ~css ~title {{ [pagecontent] }},
                    code)
-
 
 end
 
