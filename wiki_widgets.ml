@@ -183,7 +183,7 @@ object (self)
   val css_class = "editcss"
 
 
-  method private box_menu ~bi ?(special_box=RegularBox) ?active_item ?(title = "") wb =
+  method private box_menu ~bi ?(special_box=RegularBox) ?active_item ?(title = "") html_id_wikibox wb =
     let sp = bi.bi_sp
     and preapply = Eliom_services.preapply in
     let history = preapply action_wikibox_history wb
@@ -293,11 +293,6 @@ object (self)
     bi.bi_rights#can_write_wikibox ~sp wb >>= fun wbwr ->
     bi.bi_rights#can_view_history ~sp wb >>= fun wbhist ->
     bi.bi_rights#can_set_wikibox_specific_permissions ~sp wb >>= fun  wbperm ->
-    let menudel = 
-      if wbdel
-      then Some (delete, {{ "delete" }})
-      else None
-    in
     let menuedit =
       if wbwr
       then Some (edit, {{ "edit" }})
@@ -314,13 +309,22 @@ object (self)
       else None
     in
     let l = Ocsimore_lib.concat_list_opt
-      [menuedit; menudel; menuperm; menuhist;
+      [menuedit; menuperm; menuhist;
        edit_wiki_perms; edit_css; history_css; create_css] 
       []
     in
+    let menudel = 
+      if wbdel
+      then
+        let link = Eliom_duce.Xhtml.make_string_uri ~service:delete ~sp () in
+        {{ [<a
+               onclick={: "caml_run_from_table(main_vm, 777, "
+                        ^Eliom_obrowser.jsmarshal (link, html_id_wikibox)^")" :}>"delete"] }}
+      else {{[]}}
+    in
     let title = Ocamlduce.Utf8.make title in
-    match l with
-      | [] -> Lwt.return {{[]}} (* empty list => no menu *)
+    match l, wbdel with
+      | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
       | _ ->
           Lwt.return
             {{ [ <div class="boxmenu">[
@@ -329,19 +333,21 @@ object (self)
                        <p class={: box_title_class :}>title
                          {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
                             (view, {{ "view"}}) l ?service :}
+                         !menudel
                      ]
                  ]
                ]  }}
 
   method display_menu_box
     ~bi ~classes ?active_item ?special_box ?title ~wb content =
-    self#box_menu ~bi ?special_box ?active_item ?title wb >>= fun menu -> 
+    let id = Eliom_obrowser.fresh_id () in
+    self#box_menu ~bi ?special_box ?active_item ?title id wb >>= fun menu -> 
     let classes = 
       if menu = {{[]}} then classes else interactive_class::classes 
     in
     let classes = Ocsimore_lib.build_class_attr classes in
     Lwt.return
-      {{ <div class={: classes :}>[
+      {{ <div id={: id :} class={: classes :}>[
            !menu
            <div>content ]}}
 

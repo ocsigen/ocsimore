@@ -7,4 +7,5 @@ forum/ocsicreateforum.cmo
 forum/forum.cma
 forum/forum_site.cmo
 forum/forum_client.cmo
+wiki_client.cmo
 

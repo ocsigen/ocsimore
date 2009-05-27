@@ -127,3 +127,14 @@ span.linethrough {
   text-decoration: line-through;
 }
 
+div.deletewidget {
+    position:fixed;
+    left: 0px;
+    top: 0px;
+    z-index: 1000;
+    padding: 50px;
+    margin: 50px;
+    width: 300px;
+    opacity: 0.8;
+    background-color: red;
+}

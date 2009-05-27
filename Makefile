@@ -66,8 +66,8 @@ ocsimore.mllib: ocsimore.mllib.IN
 	cp -f ocsimore.mllib.IN ocsimore.mllib
 	if [ $(PAM) = YES ]; then echo Ocsimore_pam >> ocsimore.mllib; fi
 
-static/ocsimore_client.uue:
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser.cmo _build/forum/forum_client.cmo
+static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 
 static/vm.js: $(OBROWSERDIR)/vm.js
