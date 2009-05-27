@@ -549,8 +549,9 @@ object (self)
       (string_of_wiki wiki) (self#css_wikibox_text page) in
     self#menu_box_aux ~title ~active_item:Menu_HistoryCss css_history_class wb
 
-  method private menu_view =
-    self#menu_box_aux ~active_item:Menu_View view_class
+  method private menu_view (w, b as wb) =
+    let title = Printf.sprintf "Wiki %s, box %ld" (string_of_wiki w) b in
+    self#menu_box_aux ~title ~active_item:Menu_View view_class wb
 
   method private menu_old_wikitext (w, b as wb) version =
     let title = Printf.sprintf "Old version - Wiki %s, box %ld, version %ld"

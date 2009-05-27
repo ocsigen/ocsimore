@@ -23,8 +23,13 @@ div.interactive:hover>div.boxmenu>img.boxmenu {
   z-index: 10;
 }
 
+div.boxmenu {
+  overflow: visible;
+}
+
 div.boxmenu div.boxmenucontent {
   display: none;
+  overflow: visible;
 }
 
 div.boxmenu:hover div.boxmenucontent {
