@@ -748,7 +748,8 @@ object (self)
                        ~classes:[] ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
                        (syntax, content, version)
                    >>= fun (_, pp) ->
-                   self#display_basic_box ~classes:[] pp >>= fun preview ->
+                   self#display_basic_box ~classes:[preview_class] pp
+                   >>= fun preview ->
                    self#display_wikitext_edit_form_help ~classes:[]
                      ~bi ?cols ?rows ~previewonly:false ~wb cv
                    >>= fun (_, form) ->
