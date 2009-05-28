@@ -127,20 +127,6 @@ let _ =
 
 
 
-
-let display_container ?(css={{ [] }}) ?(title="Ocsimore") content =
-    let title = Ocamlduce.Utf8.make title in
-    {{
-       <html xmlns="http://www.w3.org/1999/xhtml">[
-         <head>[
-           <title>title
-             !css
-         ]
-         <body>content
-       ]
-     }}
-
-
 let () =
   let params = Eliom_parameters.string "group" **
     (Eliom_parameters.string "add" ** Eliom_parameters.string "rem") in
@@ -181,8 +167,15 @@ let () =
           let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
           Lwt.return {{ [<p>msg] }}
         else
-          Users.get_user_id sp >>= fun user ->
-          let isadmin = (user = Users.admin) in
+          Users.get_user_data sp >>= fun user ->
+
+          (* Head *)
+          let msg = "You are logged as: " in
+          let head = {{ <p>[ !{: msg :} !{: user.user_fullname :} ] }} in
+
+          (* Password change *)
+
+          let isadmin = (user.user_id = Users.admin) in
 
           (* Adding groups to the group *)
           Users.GroupsForms.form_edit_group ~show_edit:isadmin
@@ -216,9 +209,9 @@ let () =
           let f2 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
             ~service:action_add_remove_user_from_groups ~sp form ()
           in
-          Lwt.return {{ [ f1 f2 ] }}
+          Lwt.return {{ [ head f1 f2 ] }}
        )>>= fun body ->
-       let html = display_container {{ body }} in
+       let html = Ocsimore_common.html_page {{ body }} in
        Eliom_duce.Xhtml.send ~sp html
     )
   in
@@ -226,6 +219,7 @@ let () =
     ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
     ~get_params:(Eliom_parameters.unit)
     (fun sp () () ->
+       (* Lists of groups *)
        User_sql.all_groups () >>= fun l ->
        let l1, l2 = List.partition (fun {user_kind = u} -> u <> `BasicUser) l in
        let l2 = List.sort
@@ -274,7 +268,7 @@ let () =
        and title2 = Ocamlduce.Utf8.make "Groups"
        and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it with \
                     (including its parameter if needed) below" in
-       let html = display_container
+       let html = Ocsimore_common.html_page
          {{ [ <p>[<b>title1]               t2
               <p>[<b>title2 <br>[] !msg2 ] t1
               f
@@ -282,3 +276,27 @@ let () =
        Eliom_duce.Xhtml.send ~sp html
     )
   in ()
+
+
+(*
+let() =
+  let action_create_user = Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"action_create_user" ~post_params:
+    (Eliom_parameters.string "login" **
+    (fun sp () (g, (add, rem)) ->
+         Users.get_user_id sp >>= fun user ->
+         if user = Users.admin then
+           Users.get_user_by_name g
+           >>= fun group ->
+           Users.GroupsForms.user_add_remove_from_groups group add rem
+           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
+         else
+           Lwt.fail Ocsimore_common.Permission_denied
+      )
+
+ _create_user = Eliom_predefmod.Any.register_new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "new_user"]
+  ~get_params:(Eliom_parameters.unit)
+  (fun sp () () -> Eliom_duce.Xhtml.send ~sp (display_container {{[]}}) )
+
+*)

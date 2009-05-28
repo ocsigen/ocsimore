@@ -22,7 +22,7 @@
 
 let (>>=) = Lwt.bind
 
-let nis_auth ~name ~pwd () =
+let nis_auth ~name ~pwd =
   Lwt.catch
     (fun () -> 
        Nis_chkpwd.check_nis name pwd >>= fun b ->

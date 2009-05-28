@@ -24,7 +24,7 @@ let (>>=) = Lwt.bind
 
 let mutex = Lwt_mutex.create ()
 
-let pam_auth ?(service = "") ~name ~pwd () =
+let pam_auth ?(service = "") ~name ~pwd =
   Lwt_mutex.lock mutex >>= fun () ->
   Lwt.finalize
     (fun () ->

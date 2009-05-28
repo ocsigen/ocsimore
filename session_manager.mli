@@ -82,24 +82,6 @@ object
 
 end;;
 
-(* BY : disabled, problem with sp *)
-(*
-val connect:
-  sessionmanager ->
-  ('get,
-   'post,
-   internal_service_kind,
-   [`WithoutSuffix],
-   'gn,
-   'pn,
-   [`Registrable]) service ->
-  (sp:server_params ->
-    sd:Ocsimore_common.session_data ->
-    contents: Xhtmltypes_duce.blocks ->
-    Eliom_duce.Xhtml.page Lwt.t) ->
-  ('get -> 'post -> (sp:server_params -> Xhtmltypes_duce._div Lwt.t) list)
-  -> unit
-*)
 
 class sessionmanager_pam :
   string option ->
@@ -114,7 +96,7 @@ class sessionmanager_nis :
 
 
 val set_pam_auth :
-  (?service:string -> name:string -> pwd:string -> unit -> unit Lwt.t) ->
+  (?service:string -> name:string -> pwd:string -> unit Lwt.t) ->
   unit
 
 val pam_loaded : unit -> bool
