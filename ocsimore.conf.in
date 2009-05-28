@@ -43,10 +43,8 @@
     <host defaulthostname="localhost">
 
       <static dir="_STATICDIR_" />
-      <eliommodule findlib-package="ocsimore.ocsisite">
 
-        <admin staticdir="_STATICDIR_" />
-
+      <eliommodule findlib-package="ocsimore.users">
         <!-- The following arguments are optional: -->
 
         <notsecure/> <!-- accept login with http or https (DANGEROUS!)
@@ -60,7 +58,10 @@
 
         <!-- To create Ocsimore users: -->
         <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>
+      </eliommodule>
 
+      <eliommodule findlib-package="ocsimore.ocsisite">
+        <admin staticdir="_STATICDIR_" />
       </eliommodule>
 
 <!-- personal pages: 

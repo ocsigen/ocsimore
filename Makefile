@@ -35,7 +35,7 @@ OBROWSERDIR := $(shell ocamlfind query obrowser)
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 
 TOINSTALL := files/META \
-             _build/ocsimore.cma _build/ocsisite.cmo \
+             _build/ocsimore.cma _build/user_ext.cmo _build/ocsisite.cmo \
              _build/ocsicreatewiki.cmo _build/wikiperso.cmo \
              _build/announce/announce.cma \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \

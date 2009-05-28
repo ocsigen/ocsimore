@@ -93,9 +93,9 @@ let wiki_path user =
    Currently, Pam authentification is not supported
 *)
 let external_user user =
-  match Ocsisite.auth with
-    | Ocsisite.NoExternalAuth -> return None
-    | Ocsisite.Nis ->
+  match User_ext.auth with
+    | User_ext.NoExternalAuth -> return None
+    | User_ext.Nis ->
         (Nis_chkpwd.userinfo user
          >>= function
            | None -> return None
@@ -108,7 +108,7 @@ let external_user user =
                >>= fun userdata ->
                  return (Some userdata)
         )
-    | Ocsisite.Pam _ ->
+    | User_ext.Pam _ ->
         Ocsigen_messages.warning
           "PAM authentification not supported by wikiperso";
         return None

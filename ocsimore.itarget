@@ -1,4 +1,5 @@
 ocsimore.cma
+user_ext.ml
 ocsisite.cmo
 ocsicreatewiki.cmo
 wikiperso.cmo
