@@ -182,7 +182,7 @@ let () =
        >>= fun page ->
        wikibox_widget#css_header ~admin:true ~bi ?page:None w
        >>= fun css ->
-       Lwt.return (wikibox_widget#display_container ~css {{ [ page ] }})
+       Lwt.return (wikibox_widget#display_container ~sp ~css {{ [ page ] }})
     )
 
 
@@ -265,7 +265,7 @@ let () =
           in
           Lwt.return {{ [ f1 f2 ] }}
        )>>= fun body ->
-       let html = wikibox_widget#display_container {{ body }} in
+       let html = wikibox_widget#display_container ~sp {{ body }} in
        Eliom_duce.Xhtml.send ~sp html
     )
   in
@@ -321,7 +321,7 @@ let () =
        and title2 = Ocamlduce.Utf8.make "Groups"
        and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it with \
                     (including its parameter if needed) below" in
-       let html = wikibox_widget#display_container
+       let html = wikibox_widget#display_container ~sp
          {{ [ <p>[<b>title1]               t2
               <p>[<b>title2 <br>[] !msg2 ] t1
               f

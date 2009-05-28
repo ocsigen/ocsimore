@@ -197,6 +197,7 @@ object
 
   (** Wraps some xhtml blocks inside an entire xhtml page *)
   method display_container :
+    sp:Eliom_sessions.server_params ->
     ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
     ?title:string ->
     Xhtmltypes_duce.blocks ->

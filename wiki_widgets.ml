@@ -61,17 +61,32 @@ class wikibox_aux (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.wikibox_aux =
 object (self)
 
-  method display_container ?(css={{ [] }}) ?(title="Ocsimore wiki") content =
+  method display_container
+    ~sp ?(css={{ [] }}) ?(title="Ocsimore wiki") content =
     let title = Ocamlduce.Utf8.make title in
 (*VVV à revoir : fichiers statiques *)
+    let static_dir = Eliom_services.static_dir ~sp in
+    let vm = Eliom_duce.Xhtml.js_script
+      ~uri:(Eliom_duce.Xhtml.make_uri ~service:static_dir ~sp ["vm.js"])
+      ()
+    in
+    let eliom_obrowser = Eliom_duce.Xhtml.js_script
+      ~uri:(Eliom_duce.Xhtml.make_uri
+              ~service:static_dir ~sp ["eliom_obrowser.js"])
+      ()
+    in
+    let ocsimore = Eliom_duce.Xhtml.js_script
+      ~uri:(Eliom_duce.Xhtml.make_uri ~service:static_dir ~sp ["ocsimore.js"])
+      ()
+    in
     {{
        <html xmlns="http://www.w3.org/1999/xhtml">[
          <head>[
            <title>title
-           <script type="text/javascript" src="vm.js">[]
-           <script type="text/javascript" src="eliom_obrowser.js">[]
-           <script type="text/javascript" src="ocsimore.js">[]
-             !css
+           vm
+           eliom_obrowser
+           ocsimore
+           !css
          ]
          <body>content
        ]
@@ -326,14 +341,18 @@ object (self)
     match l, wbdel with
       | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
       | _ ->
+          let img = 
+            Eliom_duce.Xhtml.make_string_uri 
+              ~service:(Eliom_services.static_dir ~sp) ~sp ["crayon.png"]
+          in
           Lwt.return
             {{ [ <div class="boxmenu">[
                    <img class="boxmenu" src="crayon.png" alt="edit">[]
-                     <div class="boxmenucontent">[
-                       <p class={: box_title_class :}>title
-                         {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
-                            (view, {{ "view"}}) l ?service :}
-                         !menudel
+                   <div class="boxmenucontent">[
+                     <p class={: box_title_class :}>title
+                       {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
+                          (view, {{ "view"}}) l ?service :}
+                     !menudel
                      ]
                  ]
                ]  }}
@@ -956,7 +975,7 @@ object (self)
          | Wiki_widgets_interface.Page_404 -> 404
          | Wiki_widgets_interface.Page_403 -> 403
        in
-       Lwt.return (self#display_container ~css ~title {{ [pagecontent] }},
+       Lwt.return (self#display_container ~sp ~css ~title {{ [pagecontent] }},
                    code)
 
 end
