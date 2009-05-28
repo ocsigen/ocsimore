@@ -112,7 +112,7 @@ let () =
 
 
 let error_box = new Wiki_widgets.wikibox_error_box
-let wiki_rights = new Wiki_data.wiki_rights
+let wiki_rights = new Wiki.wiki_rights
 
 (** We are at eliom registration time, we can create the services *)
 let wiki_services = Wiki_services.make_services ()
@@ -269,7 +269,7 @@ let () =
        Eliom_duce.Xhtml.send ~sp html
     )
   in
-  let service_choose_group = Eliom_predefmod.Any.register_new_service
+  let _service_choose_group = Eliom_predefmod.Any.register_new_service
     ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
     ~get_params:(Eliom_parameters.unit)
     (fun sp () () ->
@@ -340,7 +340,7 @@ let wiki_admin = Lwt_unix.run
      (fun () -> Wiki_sql.get_wiki_info_by_name Wiki_services.wiki_admin_name)
      (function
         | Not_found ->
-            Wiki.really_create_wiki
+            Wiki_data.really_create_wiki
               ~title:Wiki_services.wiki_admin_name
               ~descr:"Administration boxes"
               ~path:[Ocsimore_lib.ocsimore_admin_dir]
@@ -364,8 +364,8 @@ let wiki_admin = Lwt_unix.run
    ((** And give reading rights to the wiki itself. (As usual, this can be
         overridden on a per-page basis) *)
      let groups = [
-       Wiki_data.wiki_wikiboxes_grps.grp_reader;
-       Wiki_data.wiki_files_readers;
+       Wiki.wiki_wikiboxes_grps.grp_reader;
+       Wiki.wiki_files_readers;
      ] in
      Lwt_util.iter
        (fun g -> User_sql.add_to_group ~user:(basic_user Users.anonymous)
@@ -442,13 +442,13 @@ let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = name} ->
         Users.add_to_group ~user:(basic_user Users.anonymous)
-          ~group:(Wiki_data.wiki_wikiboxes_grps.grp_reader $ wiki)
+          ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
         >>= fun () ->
         try Scanf.sscanf name "wikiperso for %s"
           (fun user ->
              Users.get_user_by_name user
              >>= fun user ->
-             Users.add_to_group ~user ~group:(Wiki_data.wiki_admins $ wiki)
+             Users.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
           )
         with Scanf.Scan_failure _ -> Lwt.return ()
 

@@ -38,7 +38,7 @@ object
 
   method display_error_box ?classes ?message ?exn () =
     match exn with
-      | Some (Wiki.Unknown_box ((w, i), ver)) ->
+      | Some (Wiki_data.Unknown_box ((w, i), ver)) ->
           error_box#display_error_box ?classes ?exn
             ~message:(Printf.sprintf
                         "The box %ld does not exist in wiki %s%s."
@@ -121,7 +121,7 @@ object (self)
          in
          error_box#bind_or_display_error
            ?exn
-           (Wiki.wikibox_content bi.bi_rights bi.bi_sp wikibox)
+           (Wiki_data.wikibox_content bi.bi_rights bi.bi_sp wikibox)
            (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
            (self#display_basic_box)
       )
@@ -360,7 +360,7 @@ object (self)
       | None -> "<<|  Deleted >>"
       | Some content -> content
     and sp = bi.bi_sp in
-    Wiki.modified_wikibox wb version >>=
+    Wiki_data.modified_wikibox wb version >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -413,7 +413,7 @@ object (self)
       ~page:Wiki_widgets_interface.wikisyntax_help_name
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
     error_box#bind_or_display_error
-      (Wiki.wikibox_content bi.bi_rights bi.bi_sp (wid_help, wbid_help))
+      (Wiki_data.wikibox_content bi.bi_rights bi.bi_sp (wid_help, wbid_help))
       (self#display_wikiboxcontent ~bi ~classes:["wikihelp"])
       (self#display_basic_box)
     >>= fun b ->
@@ -429,7 +429,7 @@ object (self)
       | None -> "/* Deleted CSS */"
       | Some content -> content
     and sp = bi.bi_sp in
-    Wiki.modified_wikibox wbcss boxversion >>=
+    Wiki_data.modified_wikibox wbcss boxversion >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -483,7 +483,7 @@ object (self)
     Wiki_sql.get_wikibox_info wb
     >>= fun { wikibox_uid = uid; wikibox_special_rights = sr } ->
     let { Users.GroupsForms.awr_form_fun = form; awr_form_arg = arg} =
-      Wiki_data.helpers_wikibox_permissions 
+      Wiki.helpers_wikibox_permissions 
     in
     let msg1 = Ocamlduce.Utf8.make
       "Check this box if you want permissions specific to the wikibox. \
@@ -511,7 +511,7 @@ object (self)
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
   method display_edit_wiki_perm_form ~bi ~classes ~wb:(wid, wbid) wiki =
-    let _, _, form = Wiki_data.helpers_wiki_permissions in
+    let _, _, form = Wiki.helpers_wiki_permissions in
     form wiki >>= fun form ->
     let form ((widname, wbidname), nargs) =
       {{ [ <p>[ {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
@@ -649,7 +649,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_content bi.bi_rights sp wb)
+                  (Wiki_data.wikibox_content bi.bi_rights sp wb)
                   (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                   (self#menu_view ~bi ?special_box wb)
@@ -661,7 +661,7 @@ object (self)
                    | true ->
                        error_box#bind_or_display_error
                          ?exn
-                         (Wiki.wikibox_content bi.bi_rights sp wb)
+                         (Wiki_data.wikibox_content bi.bi_rights sp wb)
                          (self#display_wikiboxcontent ~classes
                             ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                          (self#display_basic_box)
@@ -693,7 +693,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_content' bi.bi_rights bi.bi_sp wb)
+                  (Wiki_data.wikibox_content' bi.bi_rights bi.bi_sp wb)
                   (self#display_wikitext_edit_form_help ~bi ?cols ?rows
                      ~previewonly:true ~wb ~classes)
                   (self#menu_edit_wikitext ~bi ?special_box wb_loc)
@@ -707,7 +707,7 @@ object (self)
                 error_box#bind_or_display_error
                   ?exn
                   (match css with
-                     | None -> Wiki.wikibox_content' bi.bi_rights sp wbcss
+                     | None -> Wiki_data.wikibox_content' bi.bi_rights sp wbcss
                      | Some (content, version) ->
                      Lwt.return (Some content, version)
                   )
@@ -747,7 +747,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wb 
+                  (Wiki_data.wikibox_content ~sp ~version ~rights:bi.bi_rights wb 
                    >>= fun (syntax, _, _) ->
                    Lwt.return (syntax, (Some content, version)))
                   (fun (syntax, (content, version as cv)) ->
@@ -776,7 +776,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_history wb)
+                  (Wiki_data.wikibox_history wb)
                   (self#display_wikitext_history ~bi ~classes ~wb)
                   (self#menu_wikitext_history ~bi ?special_box wb_loc)
                 >>= fun r ->
@@ -788,7 +788,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_history wbcss)
+                  (Wiki_data.wikibox_history wbcss)
                   (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss ~wikipage)
                   (self#menu_css_history ~bi ?special_box wb_loc (fst wbcss (* XXX Not general enough *), wikipage))
                 >>= fun r ->
@@ -800,7 +800,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
+                  (Wiki_data.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
                   (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                   (self#menu_old_wikitext ~bi ?special_box wb_loc version)
@@ -813,7 +813,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wbcss)
+                  (Wiki_data.wikibox_content ~sp ~version ~rights:bi.bi_rights wbcss)
                   (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
                   (self#menu_old_css ~bi ?special_box wb_loc page)
@@ -826,7 +826,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
+                  (Wiki_data.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
                   (self#display_raw_wikiboxcontent ~classes)
                   (self#menu_src_wikitext ~bi ?special_box wb_loc version)
                 >>= fun r ->
@@ -921,7 +921,7 @@ object (self)
               in
               Users.in_group ~sp 
                 ~group:(apply_parameterized_group
-                          Wiki_data.wiki_wikipages_creators wiki) ()
+                          Wiki.wiki_wikipages_creators wiki) ()
               >>= fun c ->
               let form =
                 if c then
@@ -1032,7 +1032,7 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
           Users.get_user_id ~sp >>= fun userid ->
           rights#can_create_subwikiboxes ~sp wid >>= function
             | true ->
-                Wiki.new_wikitextbox
+                Wiki_data.new_wikitextbox
                   ~rights ~sp
                   ~wiki:wid
                   ~author:userid

@@ -269,7 +269,7 @@ let edit_event =
               let rights = 
                 Wiki_models.get_rights wiki_info.Wiki_types.wiki_model 
               in
-              Wiki.wikibox_content ~sp ~rights (Common.wiki_id, ev'.description)
+              Wiki_data.wikibox_content ~sp ~rights (Common.wiki_id, ev'.description)
               >>= fun (content_type, _, _) ->
               Event_sql.update_event
                 Common.wiki_id Users.admin

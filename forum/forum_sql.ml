@@ -163,7 +163,7 @@ let new_message ~sp ~forum ~wiki ~creator_id
   in
   Sql.full_transaction_block
     (fun db ->
-       Wiki.new_wikitextbox ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
+       Wiki_data.new_wikitextbox ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
          ~content:text ~content_type () >>= fun wikibox_id ->
        Wiki_sql.get_wikibox_info ~db (wiki, wikibox_id) >>= fun wikibox_info ->
        let wikibox = 

@@ -142,7 +142,7 @@ let create_and_register_wiki ~rights ?sp
     (function
        | Not_found ->
            begin
-             Wiki.really_create_wiki ~title ~descr ?path ?staticdir ~boxrights
+             Wiki_data.really_create_wiki ~title ~descr ?path ?staticdir ~boxrights
                ~author ~admins ~readers ?wiki_css ~container_text ~model ()
              >>= fun wiki_id ->
              (match path with
@@ -219,7 +219,7 @@ let make_services () =
          in
          save_then_redirect wb ~sp `BasePage
            (fun () -> 
-              Wiki.save_wikitextbox ~rights ~content_type ~sp ~wb ~content:None)
+              Wiki_data.save_wikitextbox ~rights ~content_type ~sp ~wb ~content:None)
     )
 
   and action_edit_wikibox_permissions =
@@ -293,7 +293,7 @@ let make_services () =
        (* We always show a preview before saving. Moreover, we check that the
           wikibox that the wikibox has not been modified in parallel of our
           modifications. If this is the case, we also show a warning *)
-       Wiki.modified_wikibox wb boxversion >>= fun modified ->
+       Wiki_data.modified_wikibox wb boxversion >>= fun modified ->
        if actionname = "save" 
        then
          match modified with
@@ -302,10 +302,10 @@ let make_services () =
                let rights = Wiki_models.get_rights wiki_info.wiki_model in
                let wp = Wiki_models.get_default_wiki_preparser
                  wiki_info.wiki_model in
-               Wiki.wikibox_content rights sp wb >>= fun (content_type, _, _) ->
+               Wiki_data.wikibox_content rights sp wb >>= fun (content_type, _, _) ->
                wp (sp, wb) content >>= fun content ->
                save_then_redirect wb ~sp `BasePage
-                 (fun () -> Wiki.save_wikitextbox ~rights
+                 (fun () -> Wiki_data.save_wikitextbox ~rights
                     ~content_type ~sp ~wb ~content:(Some content))
            | Some _ ->
                Wiki_widgets_interface.set_override_wikibox
@@ -330,16 +330,16 @@ let make_services () =
        (* We always show a preview before saving. Moreover, we check that the
           wikibox that the wikibox has not been modified in parallel of our
           modifications. If this is the case, we also show a warning *)
-       Wiki.modified_wikibox wbcss boxversion >>= fun modified ->
+       Wiki_data.modified_wikibox wbcss boxversion >>= fun modified ->
          Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
            let rights = Wiki_models.get_rights wiki_info.wiki_model in
            match modified with
              | None ->
                  save_then_redirect wb ~sp `BasePage
                    (fun () -> match page with
-                      | None -> Wiki.save_wikicssbox ~rights ~sp
+                      | None -> Wiki_data.save_wikicssbox ~rights ~sp
                           ~wiki:(fst wbcss) ~content:(Some content)
-                      | Some page -> Wiki.save_wikipagecssbox ~rights ~sp
+                      | Some page -> Wiki_data.save_wikipagecssbox ~rights ~sp
                           ~wiki:(fst wbcss) ~page ~content:(Some content)
                    )
              | Some _ ->
@@ -353,7 +353,7 @@ let make_services () =
   and action_send_wikibox_permissions =
     let { Users.GroupsForms.awr_eliom_params = params; awr_save = f;
           awr_eliom_arg_param = arg} =
-      Wiki_data.helpers_wikibox_permissions in
+      Wiki.helpers_wikibox_permissions in
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"wiki_save_wikibox_permissions"
       ~post_params:(Eliom_parameters.bool "special" ** (arg ** params))
@@ -371,7 +371,7 @@ let make_services () =
       )
 
   and action_send_wiki_permissions =
-    let params, f, _ = Wiki_data.helpers_wiki_permissions in
+    let params, f, _ = Wiki.helpers_wiki_permissions in
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"wiki_save_wiki_permissions"
       ~post_params:(eliom_wikibox_args ** params)
@@ -381,7 +381,7 @@ let make_services () =
            save_then_redirect wb ~sp `SamePage (fun () -> f rights sp args))
 
   (* Below are the services for the css of wikis and wikipages.  The css
-     at the level of wikis are registered in Wiki.ml *)
+     at the level of wikis are registered in Wiki_data.ml *)
 
   (* do not use this service, but the one below for css <link>s inside page *)
   and _ = Eliom_predefmod.CssText.register_new_service
@@ -429,7 +429,7 @@ let make_services () =
                             Wiki_models.get_default_content_type
                               wiki_info.wiki_model 
                           in
-                          Wiki.new_wikitextbox ~rights
+                          Wiki_data.new_wikitextbox ~rights
                             ~content_type ~sp ~wiki ~author:user
                             ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                         page (string_of_wiki wiki))

@@ -1,6 +1,5 @@
 (* Ocsimore
- * Copyright (C) 2005
- * Laboratoire PPS - Université Paris Diderot - CNRS
+ * Copyright (C) 2005 Piero Furiesi Jaap Boender Vincent Balat
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,268 +15,145 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
+
+
 (**
-   @author Boris Yakobowski
+This is the wiki component of Ocsimore.
+
+@author Jaap Boender
+@author Piero Furiesi
+@author Vincent Balat
 *)
 
-open User_sql.Types
+
 open Wiki_types
+open User_sql.Types
 
 
 let (>>=) = Lwt.bind
-let ( ** ) = Eliom_parameters.prod
 
 
-let prefix = "wiki"
-
-let aux_grp name descr =
-  let g = Lwt_unix.run
-    (User_sql.new_parameterized_group ~prefix ~name ~fullname:descr) in
-  g, Users.GroupsForms.helpers_group name g
-
-let admin_writer_reader_aux ~name ~descr =
-  Users.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr
+(* An exception raised when we register two wikis at the same path.
+   The first two strings are the description of the conflicting wikis,
+   the third string is the path *)
+exception Wiki_already_registered_at_path of (string * string) * string
 
 
-(** All wiki-related groups *)
-
-let wikis_creator =
-  Lwt_unix.run
-    (User_sql.new_nonparameterized_group ~prefix ~name:"WikisCreators"
-       ~fullname:"Users who can create new wikis")
-
-
-(** Groups taking a wiki as argument *)
-
-let (wiki_admins, h_wiki_admins : wiki_arg parameterized_group * _) = aux_grp
-  "WikiAdmin" "All rights on the wiki"
-
-let (wiki_subwikiboxes_creators, h_subwikiboxes_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiSubwikiboxesCreator" "Can create subwikiboxes in the wiki"
-
-let (wiki_wikipages_creators, h_wiki_wikipages_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiWikipagesCreator" "Can create wikipages in the wiki"
-
-let (wiki_genwikiboxes_creators, h_wiki_genwikiboxes_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki"
-
-let (wiki_css_creators, h_wiki_css_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiCssCreator" "Can create css for the wiki"
-
-let (wiki_wikiboxes_deletors, h_wiki_wikiboxes_deletors :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiWikiboxesDeletor" "Can delete wikiboxes in the wiki"
-
-let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
-  admin_writer_reader_aux ~name:"WikiWikiboxes"
-    ~descr:"the wikiboxes of the wiki"
-let h_wiki_wikiboxes_grps = Users.GroupsForms.helpers_admin_writer_reader
-  "WikiWikiboxes" wiki_wikiboxes_grps
-
-let (wiki_files_readers, h_wiki_files_readers :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiFilesReader" "can read the staic files for this wiki"
-
-
-(** The following groups take a wikibox as argument. They are used to override
-    generic wiki permissions. *)
-let wikibox_grps : wikibox_arg admin_writer_reader = admin_writer_reader_aux
-  ~name:"Wikibox" ~descr:"the wikibox"
-
-
-(** These groups take a wikipage as argument *)
-let (wikipage_css_creators, _ : wikipage_arg parameterized_group * _)= aux_grp
-  "WikipageCssCreator" "Can create css for the wikipage"
-
-
-(* Hierarchy of wiki groups :
- w : parameterized by wikis
- wb : parameterized by wikiboxes
- wp : parameterized by wikipages (unused right now)
-
-       -------- WikiAdmin(w)-------------------------------------------------
-      /                 |                 |           |             |       |
-WikiboxesAdmins(w)   SubWikiboxes    Wikipages   CssCreators(w) Wikiboxes   |
-     |               Creators(w)    Creators(w)      /          Deletors(w) |
-WikiboxesWriters(w)          \            |         /                       |
-     |                        --    GenWikiboxes  --                        |
-WikiboxesReaders(w)                  Creators(w)                FilesReaders(w)
-
-
-WikiboxAdmin(wb)
-   |
-WikiboxWriter(wb)
-   |
-WikiboxReader(wb)
-
-*)
-
-
-let () = Lwt_unix.run (
-  let add_admin g =
-    User_sql.add_generic_inclusion ~superset:g ~subset:wiki_admins
+(* Create a wiki that is supposed not to exist already *)
+let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
+    ~author
+    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
+    ?wiki_css ~container_text
+    ~model
+    () =
+  let path_string = Ocsimore_lib.bind_opt
+    path (Ocsigen_lib.string_of_url_path ~encode:true)
   in
-  add_admin wiki_subwikiboxes_creators    >>= fun () ->
-  add_admin wiki_wikiboxes_deletors       >>= fun () ->
-  add_admin wiki_wikipages_creators       >>= fun () ->
-  add_admin wiki_css_creators             >>= fun () ->
-  add_admin wiki_wikiboxes_grps.grp_admin >>= fun () ->
-  add_admin wiki_files_readers            >>= fun () ->
-  User_sql.add_generic_inclusion 
-    ~superset:wiki_genwikiboxes_creators ~subset:wiki_subwikiboxes_creators
-  >>= fun () ->
-  User_sql.add_generic_inclusion 
-    ~superset:wiki_genwikiboxes_creators ~subset:wiki_wikipages_creators
-  >>= fun () ->
-  User_sql.add_generic_inclusion 
-    ~superset:wiki_genwikiboxes_creators ~subset:wiki_css_creators
-)
+  (* We check that no wiki is already registered at the same path *)
+  Ocsimore_lib.lwt_bind_opt path_string
+    (fun path -> Wiki_sql.iter_wikis
+       (fun { wiki_descr = wiki; wiki_pages = path' } ->
+          if path' = Some path then
+            Lwt.fail (Wiki_already_registered_at_path ((wiki, descr), path))
+          else
+            Lwt.return ())
+    ) >>= fun _ ->
+  (* Notice that there is a theoretical race condition in the code below,
+     when the container wikibox receives its rights, in the case this
+     container has changed between the creation of the wiki and the moments
+     the rights are added *)
+  Wiki_sql.new_wiki ~title ~descr ~pages:path_string
+     ~boxrights ?staticdir ~container_text ~author ~model ()
+   >>= fun (wiki_id, _wikibox_container) ->
+
+   (* Putting users in groups *)
+   (* Admins *)
+   Users.add_list_to_group ~l:admins ~group:(apply_parameterized_group
+                           Wiki.wiki_admins wiki_id) >>= fun () ->
+   (* Readers *)
+   Users.add_list_to_group ~l:readers
+     ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
+   Users.add_list_to_group ~l:readers
+     ~group:(Wiki.wiki_files_readers $ wiki_id) >>= fun () ->
+
+   (match wiki_css with
+      | None -> Lwt.return ()
+      | Some css -> Wiki_sql.set_css_for_wiki
+          ~wiki:wiki_id ~author (Some css)
+   ) >>= fun () ->
+
+   Lwt.return wiki_id
 
 
-open Users.GenericRights
-
-let can_sthg_wikibox f ~sp (wid, _ as wb) =
-  Wiki_sql.get_wikibox_info wb
-  >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
-  let g = if special_rights then
-    (f.field wikibox_grps) $ uid
-  else
-    (f.field wiki_wikiboxes_grps) $ wid
-  in
-  Users.in_group ~sp ~group:g ()
-
-let aux_group grp ~sp data =
-  Users.in_group ~sp ~group:(grp $ data) ()
+let new_wikitextbox ?db
+    ~rights ~content_type ~sp ~wiki ~author ~comment ~content () =
+  rights#can_create_genwikiboxes ~sp wiki
+  >>= function
+    | true -> Wiki_sql.new_wikibox ?db ~wiki ~author ~comment ~content
+        ~content_type ()
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-class wiki_rights : Wiki_types.wiki_rights =
-  let can_adm_wb, can_wr_wb, can_re_wb = can_sthg can_sthg_wikibox in
-object (self)
-  method can_admin_wiki = aux_group wiki_admins
-
-  method can_admin_wikibox = can_adm_wb
-  method can_write_wikibox = can_wr_wb
-  method can_read_wikibox = can_re_wb
-
-  method can_view_static_files = aux_group wiki_files_readers
-
-  method can_create_wikipages = aux_group wiki_wikipages_creators
-  method can_create_subwikiboxes = aux_group wiki_subwikiboxes_creators
-  method can_create_genwikiboxes = aux_group wiki_genwikiboxes_creators
-  method can_delete_wikiboxes = aux_group wiki_wikiboxes_deletors
-
-  method can_create_wikicss = aux_group wiki_css_creators
-  method can_create_wikipagecss ~sp (wiki, _page : wikipage) =
-  (* XXX add a field to override by wikipage and use wikipage_css_creators *)
-  Users.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
-
-  method can_set_wikibox_specific_permissions ~sp (wiki, _  as wb) =
-    Wiki_sql.get_wiki_info_by_id wiki
-    >>= fun { wiki_boxrights = boxrights } ->
-      if boxrights then
-        self#can_admin_wikibox ~sp wb
-      else
-        Lwt.return false
-
-(*VVV Les suivantes à réécrire (créer des groupes pour chaque) *)
-  method can_set_wiki_permissions = aux_group wiki_admins (* trop fort *)
-(* = can_admin ? *)
-  method can_view_history = can_wr_wb (* trop fort *)
-  method can_view_oldversions = can_wr_wb (* trop fort *)
-  method can_view_oldversions_src = can_wr_wb (* trop fort *)
+(* Checks that [boxversion] is the current version of the wikibox *)
+let modified_wikibox ~wikibox ~boxversion =
+  Wiki_sql.current_wikibox_version wikibox
+  >>= function
+    | None -> Lwt.return None (* This case is not supposed to happen *)
+    | Some curversion ->
+        if curversion > boxversion then
+          Lwt.return (Some curversion)
+        else
+          Lwt.return None
 
 
-end
+(** Exception raised when the content of a wikibox cannot be found *)
+exception Unknown_box of wikibox * int32 option
+
+let wikibox_content ~rights ~sp ?version wb =
+  rights#can_read_wikibox ~sp wb >>= function
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
+    | true ->
+        Wiki_sql.get_wikibox_data ?version ~wikibox:wb () >>= function
+          | None -> Lwt.fail (Unknown_box (wb, version))
+          | Some (_com, _a, cont, _d, ct, ver) ->
+              Lwt.return (ct, cont, ver)
+
+let wikibox_content' ~rights ~sp ?version wikibox =
+  wikibox_content ~rights ~sp ?version wikibox >>= fun (_, cont, ver) ->
+  Lwt.return (cont, ver)
 
 
+let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
+  (if content = None 
+   then rights#can_delete_wikiboxes ~sp (fst wb)
+   else rights#can_write_wikibox ~sp wb) >>= function
+    | true ->
+        Users.get_user_id sp >>= fun user ->
+        Wiki_sql.update_wikibox ~wikibox:wb ~author:user ~comment:""
+          ~content ~content_type
+
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
+let save_wikitextbox ~rights ~content_type ~sp ~wb ~content =
+  save_wikibox_aux ~rights ~sp ~wb ~content_type ~content
+
+let save_wikicssbox ~rights ~sp ~wiki ~content =
+  Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
+    | Some wb ->
+        save_wikibox_aux ~rights ~sp ~wb
+          ~content_type:Wiki_models.css_content_type ~content
+    | None -> Lwt.fail Ocsimore_common.Incorrect_argument
+
+let save_wikipagecssbox ~rights ~sp ~wiki ~page ~content =
+  Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
+    | Some wb ->
+        save_wikibox_aux ~rights ~sp ~wb
+          ~content_type:Wiki_models.css_content_type ~content
+    | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
 
+(* XXX add rights *)
+let wikibox_history = Wiki_sql.get_history
 
-(** Auxiliary functions and structures to edit rights *)
-
-open Users.GroupsForms
-
-let helpers_wikibox_permissions =
-  Users.GroupsForms.helpers_admin_writer_reader
-    "edit_wikibox_permissions" wikibox_grps
-
-let helpers_wiki_permissions =
-  let params =
-    h_wiki_admins.grp_eliom_arg_param **
-      (h_wiki_admins.grp_eliom_params **
-         (h_subwikiboxes_creators.grp_eliom_params **
-            (h_wiki_wikipages_creators.grp_eliom_params **
-               (h_wiki_genwikiboxes_creators.grp_eliom_params **
-                  (h_wiki_css_creators.grp_eliom_params **
-                     (h_wiki_wikiboxes_deletors.grp_eliom_params **
-                        (h_wiki_wikiboxes_grps.awr_eliom_params **
-                         h_wiki_files_readers.grp_eliom_params)))))))
-
-  and f_save (rights : Wiki_types.wiki_rights) sp
-      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, wfr)))))))) =
-    rights#can_admin_wiki sp wiki >>= function
-      | true ->
-          h_wiki_admins.grp_save wiki adm >>= fun () ->
-          h_subwikiboxes_creators.grp_save wiki subwbcre >>= fun () ->
-          h_wiki_wikipages_creators.grp_save wiki wpcre >>= fun () ->
-          h_wiki_genwikiboxes_creators.grp_save wiki wbcre >>= fun () ->
-          h_wiki_css_creators.grp_save wiki csscre >>= fun () ->
-          h_wiki_wikiboxes_deletors.grp_save wiki wbdel >>= fun () ->
-          h_wiki_files_readers.grp_save wiki wfr >>= fun () ->
-          h_wiki_wikiboxes_grps.awr_save wiki wbgrps
-      | false -> Lwt.fail Ocsimore_common.Permission_denied
-  and form wiki =
-    let aux h = h.grp_form_fun wiki in
-    aux h_wiki_admins "Administer the wiki" >>= fun f1 ->
-    aux h_subwikiboxes_creators "Create subwikiboxes" >>= fun f2 ->
-    aux h_wiki_wikipages_creators "Create wikipages" >>= fun f3 ->
-    aux h_wiki_genwikiboxes_creators "Create wikiboxes" >>= fun f4 ->
-    aux h_wiki_css_creators "Create CSS" >>= fun f5 ->
-    aux h_wiki_wikiboxes_deletors "Delete wikiboxes" >>= fun f6 ->
-    h_wiki_wikiboxes_grps.awr_form_fun wiki >>= fun f7 ->
-    aux h_wiki_files_readers "Read static files" >>= fun f8 ->
-
-    let msg = Ocamlduce.Utf8.make
-      ("Permissions for wiki " ^ string_of_wiki wiki)
-    and msg_wikiboxes = Ocamlduce.Utf8.make "Global permissions for wikiboxes:"
-    in
-    Lwt.return (
-      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, n8)))))))) ->
-        {{ [
-             <p>[ !msg ]
-             <p>[ {: h_wiki_admins.grp_form_arg wiki narg :}
-                  !{: f1 n1 :} <br>[]
-                  !{: f2 n2 :} <br>[]
-                  !{: f3 n3 :} <br>[]
-                  !{: f4 n4 :} <br>[]
-                  !{: f5 n5 :} <br>[]
-                  !{: f6 n6 :} <br>[]
-                  !{: f8 n8 :} <br>[]
-                  <b>msg_wikiboxes <br>[]
-                  !{: f7 n7 :}]
-             <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                     {{"Save"}} :} ]
-           ] }})
-
-  in
-  (* Uncomment to check to see that the type are correct *)
-  (*(fun v sp ->
-     let service = Eliom_predefmod.Any.register_new_post_coservice'
-       ~name:"foo"  ~post_params:params
-       (fun sp () args ->
-          f_save (new wiki_rights) sp args >>= fun () ->
-          Eliom_predefmod.Redirection.send ~sp
-            Eliom_services.void_coservice')
-     in
-     form v >>= fun form ->
-     Lwt.return (Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-       ~service ~sp form () : Eliom_duce.Xhtml.form_elt)
-  )*)
-  params, f_save, form
 

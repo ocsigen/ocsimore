@@ -39,13 +39,13 @@ let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
 
 let message_creators_notmod : Wiki_types.wiki_arg parameterized_group =
-  Wiki_data.wiki_genwikiboxes_creators
+  Wiki.wiki_genwikiboxes_creators
 
 let message_moderators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagemoderators" "Can moderate messages in the forum wiki"
 
 let message_deletors : Wiki_types.wiki_arg parameterized_group =
-  Wiki_data.wiki_wikiboxes_deletors
+  Wiki.wiki_wikiboxes_deletors
 
 let message_deletors_if_creator : 
     Wiki_types.wiki_arg parameterized_group =
@@ -56,7 +56,7 @@ let message_sticky_makers : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagestickymakers" "Can make messages sticky in the forum wiki"
 
 let message_readers  : Wiki_types.wiki_arg parameterized_group =
-  Wiki_data.wiki_wikiboxes_grps.grp_reader
+  Wiki.wiki_wikiboxes_grps.grp_reader
 
 
 let creators : forum_arg parameterized_group =
@@ -136,7 +136,7 @@ let () = Lwt_unix.run (
 
 (** {2 } *)
 let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
-  Wiki.really_create_wiki
+  Wiki_data.really_create_wiki
     ~title:(title^" (messages)")
     ~descr:(descr^" (messages)")
     ~boxrights:false
@@ -144,7 +144,7 @@ let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
     ~container_text:Wiki_services.default_container_page 
     ~model:wiki_model
     () >>= fun mw ->
-  Wiki.really_create_wiki
+  Wiki_data.really_create_wiki
     ~title:(title^" (comments)")
     ~descr:(descr^" (comments)")
     ~boxrights:false
