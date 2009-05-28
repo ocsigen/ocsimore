@@ -24,17 +24,6 @@ exception Permission_denied
 exception Incorrect_argument
 
 
-let tmp : exn list Polytables.key = Polytables.make_key ()
-
-let get_exn ~sp =
-  try
-    Polytables.get 
-      ~table:(Eliom_sessions.get_request_cache sp)
-      ~key:tmp
-  with Not_found -> []
-
-
-
 let html_page ?(css={{ [] }}) ?(title="Ocsimore") content =
   let title = Ocamlduce.Utf8.make title in
   {{ <html xmlns="http://www.w3.org/1999/xhtml">[

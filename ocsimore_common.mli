@@ -29,11 +29,6 @@ exception Permission_denied
     incoherent arguments *)
 exception Incorrect_argument
 
-(* VVV Document this !!! *)
-val tmp : exn list Polytables.key
-
-val get_exn : sp:Eliom_sessions.server_params -> exn list
-
 
 (** Generic headers for an html page. Currently no CSS is added *)
 val html_page :

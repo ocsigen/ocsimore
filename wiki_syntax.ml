@@ -891,7 +891,9 @@ let () =
                  Lwt.return
                    (List.exists
                       (fun e -> e = Users.BadPassword || e = Users.BadUser)
-                      (Ocsimore_common.get_exn ~sp))
+                      (Polytables.get
+                         ~table:(Eliom_sessions.get_request_cache ~sp)
+                         ~key:Session_manager.login_error_key))
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->

@@ -88,7 +88,9 @@ object (self)
                    ~sp
                    (fun _ -> self#display_logout_box sp u) ()
                else
-                 let exn = Ocsimore_common.get_exn ~sp in
+                 let exn = Polytables.get
+                   ~table:(Eliom_sessions.get_request_cache ~sp)
+                   ~key:Session_manager.login_error_key in
                  if List.exists
                    (fun e -> e = Users.BadPassword || e = Users.BadUser)
                    exn

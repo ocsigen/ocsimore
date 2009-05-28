@@ -34,6 +34,8 @@ type sessionmanager_in =
   administrator: userid;
 }
 
+let login_error_key = Polytables.make_key ()
+
 
 (* use https for login? *)
 let secure = ref true
@@ -108,7 +110,7 @@ object (self)
            Eliom_services.void_hidden_coservice')
       (fun e ->
          Polytables.set (Eliom_sessions.get_request_cache sp)
-           Ocsimore_common.tmp [e];
+           login_error_key [e];
          Eliom_predefmod.Action.send ~sp ())
 
   method add_login_actions f =

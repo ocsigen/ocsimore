@@ -104,8 +104,6 @@ type forum_action_info =
   | Msg_creation_not_allowed of (Forum_sql.Types.forum * 
                                    Forum_sql.Types.message option (* parent *))
 
-exception Forum_action_info of forum_action_info
-
 
 (** {2 Eliom related values} *)
 

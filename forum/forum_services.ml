@@ -26,6 +26,8 @@ let ( >>= ) = Lwt.bind
 
 open User_sql.Types
 
+let forum_action_key : Forum.forum_action_info Polytables.key = 
+  Polytables.make_key ()
 
 let register_services () =
   let add_message_service =
@@ -73,19 +75,17 @@ let register_services () =
                | Ocsimore_common.Permission_denied ->
                    Polytables.set
                      (Eliom_sessions.get_request_cache sp)
-                     Ocsimore_common.tmp 
-                     [Forum.Forum_action_info 
-                        (Forum.Msg_creation_not_allowed (forum, parent_id))
-                     ];
+                     forum_action_key
+                     (Forum.Msg_creation_not_allowed (forum, parent_id))
+                   ;
                    Eliom_predefmod.Action.send ~sp ()
                | e -> Lwt.fail e)
          )
        else begin (* preview *)
          Polytables.set
            (Eliom_sessions.get_request_cache sp)
-           Ocsimore_common.tmp 
-           [Forum.Forum_action_info
-              (Forum.Preview ((forum, parent_id), text))];
+           forum_action_key
+           (Forum.Preview ((forum, parent_id), text));
          Eliom_predefmod.Action.send ~sp ()
        end
     );

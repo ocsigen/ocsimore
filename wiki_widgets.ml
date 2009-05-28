@@ -347,7 +347,7 @@ object (self)
           in
           Lwt.return
             {{ [ <div class="boxmenu">[
-                   <img class="boxmenu" src="crayon.png" alt="edit">[]
+                   <img class="boxmenu" src={: img :} alt="edit">[]
                    <div class="boxmenucontent">[
                      <p class={: box_title_class :}>title
                        {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
