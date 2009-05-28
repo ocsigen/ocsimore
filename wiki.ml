@@ -21,8 +21,8 @@
 *)
 
 (** This file contains all the groups for the wiki component of Ocsimore,
-    as well as a default implemenetation of a [Wiki_types.Wiki_rights]
-    structure *)
+    a default implemenetation of a [Wiki_types.Wiki_rights] structure,
+    and a few other misc definitions *)
 
 open User_sql.Types
 open Wiki_types
@@ -31,6 +31,20 @@ open Wiki_types
 let (>>=) = Lwt.bind
 let ( ** ) = Eliom_parameters.prod
 
+
+
+(** Name of the administration wiki. This is the name that must
+    be used when creating (or searching for) this wiki. If that
+    name is changed, the database *must* be upgraded manually to
+    reflect the change *)
+let wiki_admin_name = "Adminwiki"
+
+let get_admin_wiki () =
+  Wiki_sql.get_wiki_info_by_name wiki_admin_name
+
+
+
+(** Wiki groups *)
 
 let prefix = "wiki"
 
@@ -161,7 +175,10 @@ let aux_group grp ~sp data =
 class wiki_rights : Wiki_types.wiki_rights =
   let can_adm_wb, can_wr_wb, can_re_wb = can_sthg can_sthg_wikibox in
 object (self)
-  method can_admin_wiki = aux_group wiki_admins
+  method can_create_wiki ~sp () =
+    Users.in_group ~sp ~group:wikis_creator ()
+
+ method can_admin_wiki = aux_group wiki_admins
 
   method can_admin_wikibox = can_adm_wb
   method can_write_wikibox = can_wr_wb
@@ -270,18 +287,94 @@ let helpers_wiki_permissions =
            ] }})
 
   in
-  (* Uncomment to check to see that the type are correct *)
-  (*(fun v sp ->
-     let service = Eliom_predefmod.Any.register_new_post_coservice'
-       ~name:"foo"  ~post_params:params
-       (fun sp () args ->
-          f_save (new wiki_rights) sp args >>= fun () ->
-          Eliom_predefmod.Redirection.send ~sp
-            Eliom_services.void_coservice')
-     in
-     form v >>= fun form ->
-     Lwt.return (Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-       ~service ~sp form () : Eliom_duce.Xhtml.form_elt)
-  )*)
   params, f_save, form
 
+
+
+
+(** A text suitable as the default text for a container page *)
+let default_container_page =
+  "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+
+
+(** An exception raised when we register two wikis at the same path.
+   The first two strings are the description of the conflicting wikis,
+   the third string is the path *)
+exception Wiki_already_registered_at_path of (string * string) * string
+(** Same thing with two wikis of the same name. The [wiki] returned
+    is the id of the existing wiki *)
+exception Wiki_with_same_title of wiki
+
+
+(** Creation of a wiki
+
+    If the optional argument [path] is present, the wiki will be bound to the
+    URL represented by [path] when it is registered.
+
+    The argument [container_text] is the wikicreole code for the container
+    wikibox of the wiki; [wiki_css] is the css for the wiki.
+
+    If [boxrights] is true (default), it is possible to set the rights on
+    each box individually.
+*)
+let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
+    ~author
+    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
+    ?wiki_css ?(container_text=default_container_page)
+    ~model
+    () =
+  let path_string = Ocsimore_lib.bind_opt
+    path (Ocsigen_lib.string_of_url_path ~encode:true)
+  in
+  (* We check that no wiki of the same name or already registered at the same
+     path exists *)
+  Ocsimore_lib.lwt_bind_opt path_string
+    (fun path -> Wiki_sql.iter_wikis
+       (fun ({ wiki_title = title'; wiki_pages = path' } as w) ->
+          if path' = Some path then
+            Lwt.fail (Wiki_already_registered_at_path
+                        ((descr, w.wiki_descr), path))
+          else
+            if title = title' then
+              Lwt.fail (Wiki_with_same_title w.wiki_id)
+            else
+              Lwt.return ())
+    ) >>= fun _ ->
+  (* Notice that there is a theoretical race condition in the code below,
+     when the container wikibox receives its rights, in the case this
+     container has changed between the creation of the wiki and the moments
+     the rights are added *)
+  Wiki_sql.new_wiki ~title ~descr ~pages:path_string
+     ~boxrights ?staticdir ~container_text ~author ~model ()
+   >>= fun (wiki_id, _wikibox_container) ->
+
+   (* Putting users in groups *)
+   (* Admins *)
+   Users.add_list_to_group ~l:admins ~group:(wiki_admins $ wiki_id) >>= fun ()->
+   (* Readers *)
+   Users.add_list_to_group ~l:readers
+     ~group:(wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
+   Users.add_list_to_group ~l:readers
+     ~group:(wiki_files_readers $ wiki_id) >>= fun () ->
+
+   (match wiki_css with
+      | None -> Lwt.return ()
+      | Some css -> Wiki_sql.set_css_for_wiki ~wiki:wiki_id ~author (Some css)
+   ) >>= fun () ->
+
+   Lwt.return wiki_id
+
+
+
+(** [modified_wikibox box version] returns [Some curversion] iff the current
+    version [curversion] of [box] is greater than [version], [None]
+    otherwise *)
+let modified_wikibox ~wikibox ~boxversion =
+  Wiki_sql.current_wikibox_version wikibox
+  >>= function
+    | None -> Lwt.return None (* This case is not supposed to happen *)
+    | Some curversion ->
+        if curversion > boxversion then
+          Lwt.return (Some curversion)
+        else
+          Lwt.return None

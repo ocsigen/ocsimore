@@ -10,30 +10,25 @@ This is the wiki component of Ocsimore.
 *)
 
 
-(** Creates a wiki that is not supposed to exists.
-
-    If the optional argument [path] is present, the wiki will be bound to the
-    URL represented by [path] when it is registered.
-
-    The argument [container_text] is the wikicreole code for the container
-    wikibox of the wiki. A suitable default page is given below.
-
-    If [boxrights] is true (default), it is possible to set the rights on
-    each box individually.
+(** Creates the specified wiki if the user has enough permissions.
+    Raise [Permission_denied] if it is not the case, and or fails with
+    the same errors as [Wiki.create_wiki] if the wiki cannot be created.
+    The options are the same as for the this function, except for
+    the field [admin], which is used as the author of the container page,
+    and becomes admin of the wiki. By default, no one can read
+    the wiki.
 *)
-
-
-val really_create_wiki :
+val create_wiki :
+  rights:Wiki_types.wiki_rights ->
+  sp: Eliom_sessions.server_params ->
   title:string ->
   descr:string ->
   ?path: string list ->
   ?staticdir:string ->
   ?boxrights:bool ->
-  author: userid ->
-  ?admins:user list ->
-  ?readers:user list ->
+  admin: userid ->
   ?wiki_css:string ->
-  container_text:string ->
+  ?container_text:string ->
   model:Wiki_types.wiki_model ->
   unit ->
   wiki Lwt.t
@@ -52,7 +47,8 @@ val new_wikitextbox :
   unit -> int32 Lwt.t
 
 
-(** Saves a wikibox and returns the new version id of this wikibox. *)
+(** The next three functiosn save a wikibox and returns the new version id of
+    this wikibox. *)
 val save_wikitextbox :
   rights:Wiki_types.wiki_rights ->
   content_type:Wiki_types.content_type ->
@@ -78,35 +74,47 @@ val save_wikipagecssbox :
 
 
 
-(** [modified_wikibox box version] returns [Some curversion] iff the current
-    version [curversion] of [box] is greater than [version], [None]
-    otherwise *)
-val modified_wikibox:
-  wikibox:wikibox -> boxversion:Int32.t -> Int32.t option Lwt.t
+(** Raised in case of a non-existing wikibox. The optional [int32]
+   argument is the version number *)
+exception Unknown_box of wikibox * int32 option
 
 
+(** Returns the content of the wikibox if the user has enough rights,
+    possibly for the given revision *)
 val wikibox_content:
   rights:Wiki_types.wiki_rights ->
   sp:Eliom_sessions.server_params ->
-  ?version:int32 -> 
+  ?version:int32 ->
   wikibox ->
   Wiki_types.wikibox_content Lwt.t
 
 val wikibox_content':
   rights:Wiki_types.wiki_rights ->
   sp:Eliom_sessions.server_params ->
-  ?version:int32 -> 
+  ?version:int32 ->
   wikibox ->
   (string option * int32) Lwt.t
 
 
-val wikibox_history : wikibox:wikibox ->
+val wikibox_history :
+  rights:Wiki_types.wiki_rights ->
+  sp:Eliom_sessions.server_params ->
+  wb:wikibox ->
   (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
 
 
-(** Raised in case of a non-existing wikibox. The optional [int32]
-   argument is the version number *)
-exception Unknown_box of wikibox * int32 option
+(** Returns the css for the specified wiki. Fail with [Permission_denied]
+    if the user cannot view the css, and [Eliom_common.Eliom_404] if there
+    is no css for this wiki *)
+val wiki_css :
+  rights:Wiki_types.wiki_rights ->
+  sp:Eliom_sessions.server_params ->
+  wiki:wiki ->
+  string Lwt.t
 
-
-
+(** Same thing for a wikipage *)
+val wikipage_css :
+  rights:Wiki_types.wiki_rights ->
+  sp:Eliom_sessions.server_params ->
+  wiki:wiki -> page:string ->
+  string Lwt.t

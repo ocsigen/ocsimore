@@ -174,7 +174,7 @@ let () =
        let bi = Wiki_widgets_interface.default_bi ~sp ~wikibox:wb ~rights in
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
        >>= fun subbox ->
-       Wiki_services.get_admin_wiki () >>= fun admin_wiki ->
+       Wiki.get_admin_wiki () >>= fun admin_wiki ->
        let bi = { bi with Wiki_widgets_interface.bi_subbox =
            Some {{ [ subbox ] }} } in
        wikibox_widget#display_interactive_wikibox ~bi
@@ -337,11 +337,11 @@ let () =
 (** (We create the wiki containing the administration boxes *)
 let wiki_admin = Lwt_unix.run
   (Lwt.catch
-     (fun () -> Wiki_sql.get_wiki_info_by_name Wiki_services.wiki_admin_name)
+     (fun () -> Wiki_sql.get_wiki_info_by_name Wiki.wiki_admin_name)
      (function
         | Not_found ->
-            Wiki_data.really_create_wiki
-              ~title:Wiki_services.wiki_admin_name
+            Wiki.create_wiki
+              ~title:Wiki.wiki_admin_name
               ~descr:"Administration boxes"
               ~path:[Ocsimore_lib.ocsimore_admin_dir]
               ~boxrights:true

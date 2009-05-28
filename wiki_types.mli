@@ -87,6 +87,8 @@ type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
 
 class type wiki_rights =
 object
+  method can_create_wiki : unit rights_aux
+
   method can_admin_wiki :          wiki rights_aux
   method can_create_genwikiboxes : wiki rights_aux
   method can_create_subwikiboxes : wiki rights_aux

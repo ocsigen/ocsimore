@@ -18,7 +18,7 @@
 
 
 (**
-This is the wiki component of Ocsimore.
+Access to wiki data with permission checks
 
 @author Jaap Boender
 @author Piero Furiesi
@@ -33,58 +33,6 @@ open User_sql.Types
 let (>>=) = Lwt.bind
 
 
-(* An exception raised when we register two wikis at the same path.
-   The first two strings are the description of the conflicting wikis,
-   the third string is the path *)
-exception Wiki_already_registered_at_path of (string * string) * string
-
-
-(* Create a wiki that is supposed not to exist already *)
-let really_create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
-    ~author
-    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
-    ?wiki_css ~container_text
-    ~model
-    () =
-  let path_string = Ocsimore_lib.bind_opt
-    path (Ocsigen_lib.string_of_url_path ~encode:true)
-  in
-  (* We check that no wiki is already registered at the same path *)
-  Ocsimore_lib.lwt_bind_opt path_string
-    (fun path -> Wiki_sql.iter_wikis
-       (fun { wiki_descr = wiki; wiki_pages = path' } ->
-          if path' = Some path then
-            Lwt.fail (Wiki_already_registered_at_path ((wiki, descr), path))
-          else
-            Lwt.return ())
-    ) >>= fun _ ->
-  (* Notice that there is a theoretical race condition in the code below,
-     when the container wikibox receives its rights, in the case this
-     container has changed between the creation of the wiki and the moments
-     the rights are added *)
-  Wiki_sql.new_wiki ~title ~descr ~pages:path_string
-     ~boxrights ?staticdir ~container_text ~author ~model ()
-   >>= fun (wiki_id, _wikibox_container) ->
-
-   (* Putting users in groups *)
-   (* Admins *)
-   Users.add_list_to_group ~l:admins ~group:(apply_parameterized_group
-                           Wiki.wiki_admins wiki_id) >>= fun () ->
-   (* Readers *)
-   Users.add_list_to_group ~l:readers
-     ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
-   Users.add_list_to_group ~l:readers
-     ~group:(Wiki.wiki_files_readers $ wiki_id) >>= fun () ->
-
-   (match wiki_css with
-      | None -> Lwt.return ()
-      | Some css -> Wiki_sql.set_css_for_wiki
-          ~wiki:wiki_id ~author (Some css)
-   ) >>= fun () ->
-
-   Lwt.return wiki_id
-
-
 let new_wikitextbox ?db
     ~rights ~content_type ~sp ~wiki ~author ~comment ~content () =
   rights#can_create_genwikiboxes ~sp wiki
@@ -93,17 +41,6 @@ let new_wikitextbox ?db
         ~content_type ()
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
-
-(* Checks that [boxversion] is the current version of the wikibox *)
-let modified_wikibox ~wikibox ~boxversion =
-  Wiki_sql.current_wikibox_version wikibox
-  >>= function
-    | None -> Lwt.return None (* This case is not supposed to happen *)
-    | Some curversion ->
-        if curversion > boxversion then
-          Lwt.return (Some curversion)
-        else
-          Lwt.return None
 
 
 (** Exception raised when the content of a wikibox cannot be found *)
@@ -153,7 +90,38 @@ let save_wikipagecssbox ~rights ~sp ~wiki ~page ~content =
     | None -> Lwt.fail Ocsimore_common.Incorrect_argument
 
 
-(* XXX add rights *)
-let wikibox_history = Wiki_sql.get_history
+let wikibox_history ~rights ~sp ~wb =
+  rights#can_view_history ~sp wb >>= function
+    | true -> Wiki_sql.get_history wb
+    | false -> Lwt.fail Ocsimore_common.Incorrect_argument
 
 
+
+
+let create_wiki ~(rights : Wiki_types.wiki_rights) ~sp
+    ~title ~descr ?path ?staticdir ?(boxrights = true)
+    ~admin ?wiki_css ?container_text ~model () =
+  rights#can_create_wiki sp () >>= function
+    | true ->
+        Wiki.create_wiki ~title ~descr ?path ?staticdir ~boxrights
+          ~author:admin ~admins:[basic_user admin] ~readers:[]
+          ?wiki_css ?container_text ~model ()
+    | false ->
+        Lwt.fail Ocsimore_common.Permission_denied
+
+
+let wiki_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki =
+  Wiki_sql.get_css_wikibox_for_wiki wiki >>= function
+    | None -> Lwt.fail Eliom_common.Eliom_404
+    | Some wb ->
+        wikibox_content rights sp wb >>= function
+          | (_, Some cont, _) -> Lwt.return cont
+          | (_, None, _) -> Lwt.fail Eliom_common.Eliom_404
+
+let wikipage_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
+  Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= function
+    | None -> Lwt.fail Eliom_common.Eliom_404
+    | Some wb ->
+        wikibox_content rights sp wb >>= function
+          | (_, Some cont, _) -> Lwt.return cont
+          | (_, None, _) -> Lwt.fail Eliom_common.Eliom_404

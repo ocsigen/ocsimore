@@ -68,6 +68,7 @@ let wiki_data =
 let wiki_name_duce = Ocamlduce.Utf8.make wiki_data.name
 
 
+(*
 let _ =
   Lwt_unix.run (
      Wiki_services.create_and_register_wiki
@@ -80,6 +81,34 @@ let _ =
        ?readers:wiki_data.readers
        ?admins:wiki_data.admins
        ~boxrights:wiki_data.boxrights
-       ~container_text:Wiki_services.default_container_page
+       ~container_text:Wiki.default_container_page
        ()
     )
+*)
+
+(*
+(* Creates and registers a wiki if it does not already exists  *)
+let create_and_register_wiki ~rights ?sp
+    ~title ~descr ?path ?staticdir ?(boxrights = true)
+    ~author
+    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
+    ?wiki_css ?container_text ~model
+    () =
+  Lwt.catch
+    (fun () ->
+       Wiki_sql.get_wiki_info_by_name title
+       >>= fun w -> Lwt.return w.wiki_id)
+    (function
+       | Not_found ->
+           begin
+             Wiki_data.really_create_wiki ~title ~descr ?path ?staticdir ~author
+               ~boxrights ~admins ~readers ?wiki_css ?container_text ~model ()
+             >>= fun wiki_id ->
+             (match path with
+                | None -> ()
+                | Some path -> register_wiki ~rights ?sp ~path ~wiki:wiki_id ()
+             );
+             Lwt.return wiki_id
+           end
+       | e -> Lwt.fail e)
+*)

@@ -311,8 +311,7 @@ let create_wiki () =
   let wikibox_widget = Ocsisite.wikibox_widget in
   Lwt_unix.run
     (Wiki_services.create_and_register_wiki
-       ~title:"Announcements" ~descr:"Announcement manager"
-       ~wikibox_widget ~container_page:Wiki_services.default_container_page ())
+       ~title:"Announcements" ~descr:"Announcement manager" ~wikibox_widget ())
 
 let et = Str.regexp_string " et "
 let persons = Hashtbl.create 101

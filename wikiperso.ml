@@ -152,8 +152,7 @@ let create_wikiperso ~model ~wiki_title ~userdata =
   template_wiki_css () >>= fun css ->
   (* We create the wiki, without supplying the [path] field. This will make
      the relocation of the wiki easier *)
-  Wiki_data.really_create_wiki 
-    ~model
+  Wiki.create_wiki ~model
     ~title:wiki_title
     ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
               userdata.user_fullname)

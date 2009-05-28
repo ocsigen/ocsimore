@@ -360,7 +360,7 @@ object (self)
       | None -> "<<|  Deleted >>"
       | Some content -> content
     and sp = bi.bi_sp in
-    Wiki_data.modified_wikibox wb version >>=
+    Wiki.modified_wikibox wb version >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -407,8 +407,7 @@ object (self)
 
   (* Wikitext in editing mode, with an help box on the syntax of the wiki *)
   method display_wikitext_edit_form_help ~bi ~classes ?rows ?cols ~previewonly ~wb data=
-    Wiki_services.get_admin_wiki ()
-    >>= fun { wiki_id = admin_wiki } ->
+    Wiki.get_admin_wiki () >>= fun { wiki_id = admin_wiki } ->
     Wiki_sql.get_wikipage_info ~wiki:admin_wiki
       ~page:Wiki_widgets_interface.wikisyntax_help_name
     >>= fun { wikipage_dest_wiki = wid_help; wikipage_wikibox = wbid_help } ->
@@ -429,7 +428,7 @@ object (self)
       | None -> "/* Deleted CSS */"
       | Some content -> content
     and sp = bi.bi_sp in
-    Wiki_data.modified_wikibox wbcss boxversion >>=
+    Wiki.modified_wikibox wbcss boxversion >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -776,7 +775,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki_data.wikibox_history wb)
+                  (Wiki_data.wikibox_history bi.bi_rights sp wb)
                   (self#display_wikitext_history ~bi ~classes ~wb)
                   (self#menu_wikitext_history ~bi ?special_box wb_loc)
                 >>= fun r ->
@@ -788,7 +787,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki_data.wikibox_history wbcss)
+                  (Wiki_data.wikibox_history bi.bi_rights sp wbcss)
                   (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss ~wikipage)
                   (self#menu_css_history ~bi ?special_box wb_loc (fst wbcss (* XXX Not general enough *), wikipage))
                 >>= fun r ->

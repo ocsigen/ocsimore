@@ -136,20 +136,18 @@ let () = Lwt_unix.run (
 
 (** {2 } *)
 let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
-  Wiki_data.really_create_wiki
+  Wiki.create_wiki
     ~title:(title^" (messages)")
     ~descr:(descr^" (messages)")
     ~boxrights:false
     ~author:Users.admin
-    ~container_text:Wiki_services.default_container_page 
     ~model:wiki_model
     () >>= fun mw ->
-  Wiki_data.really_create_wiki
+  Wiki.create_wiki
     ~title:(title^" (comments)")
     ~descr:(descr^" (comments)")
     ~boxrights:false
     ~author:Users.admin
-    ~container_text:Wiki_services.default_container_page
     ~model:wiki_model
     () >>= fun cw ->
   Forum_sql.new_forum
