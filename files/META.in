@@ -9,9 +9,9 @@ package "users" (
   requires = "ocsimore"
   version = "[distributed with Ocsimore]"
   description = "Gestion of users in Ocsimore"
-  archive(byte) = "user_ext.cmo"
-  archive(native,-plugin) = "user_ext.cmx"
-  archive(native,plugin) = "user_ext.cmxs"
+  archive(byte) = "user_site.cmo"
+  archive(native,-plugin) = "user_site.cmx"
+  archive(native,plugin) = "user_site.cmxs"
 )
 
 package "ocsisite" (
