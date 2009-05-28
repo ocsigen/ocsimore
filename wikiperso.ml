@@ -203,9 +203,9 @@ let gen sp =
                         create_wikiperso ~model ~wiki_title ~userdata
                         >>= fun wiki ->
                         (* We then register the wiki at the correct url *)
-                        Wiki_services.register_wiki ~sp
-                          ~path:(wiki_path userdata.user_login)
-                          ~wiki:wiki ();
+                        Wiki_services.register_wiki ~sp ~wiki:wiki ()
+                          ~rights:Ocsisite.wiki_rights
+                          ~path:(wiki_path userdata.user_login);
                         Lwt.return ()
                     | e -> Lwt.fail e)
         )
@@ -228,8 +228,8 @@ let () =
         (match Netstring_pcre.string_match regexp title 0 with
            | Some result ->
                let user = Netstring_pcre.matched_group result 1 title in
-               Wiki_services.register_wiki ~path:(wiki_path user)
-                 ~wiki:wiki ()
+               Wiki_services.register_wiki ~rights:Ocsisite.wiki_rights
+                 ~path:(wiki_path user) ~wiki:wiki ()
            | None -> ()
         );
         Lwt.return ()

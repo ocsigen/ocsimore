@@ -430,7 +430,7 @@ let _ = Lwt_unix.run
            | None -> ()
            | Some path ->
                let path = Ocsigen_lib.split '/' path in
-               Wiki_services.register_wiki ~path ~wiki ()
+               Wiki_services.register_wiki ~rights:wiki_rights ~path ~wiki ()
         );
         Lwt.return ()
      )

@@ -51,22 +51,19 @@ let default_container_page =
   "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
 
 
-let send_static_file sp wiki dir page =
-  let g = apply_parameterized_group
-    Wiki_data.wiki_wikiboxes_grps.grp_reader wiki in
-  Users.in_group ~sp ~group:g () >>= function
-    | true -> Eliom_predefmod.Files.send ~sp (dir^"/"^page)
-    | false -> Lwt.fail Eliom_common.Eliom_404
 
 
-let send_wikipage ~sp ~wiki ~page =
+let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
   (* if there is a static page, and should we send it ? *)
   Lwt.catch
     (fun () ->
        match wiki_info.wiki_staticdir with
-         | Some d ->
-             send_static_file sp wiki_info.wiki_id d page
+         | Some dir ->
+             (rights#can_view_static_files sp wiki >>= function
+                | true -> Eliom_predefmod.Files.send ~sp (dir^"/"^page)
+                | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX 403 would be better *)
+             )
          | None -> Lwt.fail Eliom_common.Eliom_404)
     (function
        | Eliom_common.Eliom_404 ->
@@ -89,7 +86,7 @@ let wikipagecss_service_handler (wiki, page) () =
 
 
 (* Register the services for the wiki [wiki] *)
-let register_wiki ?sp ~path ~wiki () =
+let register_wiki ~rights ?sp ~path ~wiki () =
   Ocsigen_messages.debug
     (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
        (string_of_wiki wiki) (String.concat "/"  path));
@@ -102,7 +99,7 @@ let register_wiki ?sp ~path ~wiki () =
     Eliom_predefmod.Any.register_new_service ~path ?sp
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
-         send_wikipage ~sp ~wiki
+         send_wikipage ~rights ~sp ~wiki
            ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
       )
   in
@@ -117,7 +114,7 @@ let register_wiki ?sp ~path ~wiki () =
          let path =
            Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page) in
          let page = Ocsigen_lib.string_of_url_path ~encode:true path in
-         send_wikipage ~sp ~wiki ~page
+         send_wikipage ~rights ~sp ~wiki ~page
       )
   in
   add_naservpage wiki naservpage;
@@ -132,7 +129,7 @@ let register_wiki ?sp ~path ~wiki () =
 
 
 (* Creates and registers a wiki if it does not already exists  *)
-let create_and_register_wiki ?sp
+let create_and_register_wiki ~rights ?sp
     ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~author
     ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
@@ -150,8 +147,7 @@ let create_and_register_wiki ?sp
              >>= fun wiki_id ->
              (match path with
                 | None -> ()
-                | Some path ->
-                    register_wiki ?sp ~path ~wiki:wiki_id ()
+                | Some path -> register_wiki ~rights ?sp ~path ~wiki:wiki_id ()
              );
              Lwt.return wiki_id
            end

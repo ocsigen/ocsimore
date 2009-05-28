@@ -163,6 +163,8 @@ object (self)
   method can_write_wikibox = can_wr_wb
   method can_read_wikibox = can_re_wb
 
+  method can_view_static_files = aux_group wiki_files_readers
+
   method can_create_wikipages = aux_group wiki_wikipages_creators
   method can_create_subwikiboxes = aux_group wiki_subwikiboxes_creators
   method can_create_genwikiboxes = aux_group wiki_genwikiboxes_creators
