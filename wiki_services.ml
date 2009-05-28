@@ -42,9 +42,10 @@ let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
     (fun () ->
        match wiki_info.wiki_staticdir with
          | Some dir ->
-             (rights#can_view_static_files sp wiki >>= function
-                | true -> Eliom_predefmod.Files.send ~sp (dir^"/"^page)
-                | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX 403 would be better *)
+                Eliom_predefmod.Files.send ~sp (dir^"/"^page) >>= fun r ->
+                  (rights#can_view_static_files sp wiki >>= function
+                     | true -> Lwt.return r
+                     | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
              )
          | None -> Lwt.fail Eliom_common.Eliom_404)
     (function

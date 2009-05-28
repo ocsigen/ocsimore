@@ -193,7 +193,6 @@ let () =
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"add_remove_users_from_group" ~post_params:params
       (fun sp () (g, (add, rem)) ->
-         (** XXX add error catching *)
          Users.get_user_id sp >>= fun user ->
          if user = Users.admin then
            Users.get_user_by_name g
@@ -207,7 +206,6 @@ let () =
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"add_remove_user_from_groups" ~post_params:params
       (fun sp () (g, (add, rem)) ->
-         (** XXX add error catching *)
          Users.get_user_id sp >>= fun user ->
          if user = Users.admin then
            Users.get_user_by_name g
@@ -443,6 +441,9 @@ let _ = Lwt_unix.run
      (fun { wiki_id = wiki; wiki_title = name} ->
         Users.add_to_group ~user:(basic_user Users.anonymous)
           ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
+        >>= fun () ->
+        Users.add_to_group ~user:(basic_user Users.anonymous)
+          ~group:(Wiki.wiki_files_readers $ wiki)
         >>= fun () ->
         try Scanf.sscanf name "wikiperso for %s"
           (fun user ->
