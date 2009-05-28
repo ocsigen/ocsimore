@@ -245,11 +245,11 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
      | (None, None) -> Lwt.fail (Invalid_argument "Forum_sql.find_forum"))
   >>= fun r -> 
   (match r with
-     | [(_id, _title, _descr, _arborescent, deleted, mw, cw) as a] -> 
+     | [(_id, _title, _descr, _arborescent, deleted, _mw, _cw) as a] -> 
          if not_deleted_only && deleted
          then Lwt.fail Not_found
          else Lwt.return (get_forum_info a)
-     | ((_id, _title, _descr, _arborescent, deleted, mw, cw) as a)::_ -> 
+     | ((_id, _title, _descr, _arborescent, deleted, _mw, _cw) as a)::_ -> 
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
          if not_deleted_only && deleted
          then Lwt.fail Not_found

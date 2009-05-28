@@ -30,7 +30,7 @@ let (!!) = Lazy.force
 
 class add_message_widget
   (add_message_service, moderate_message_service) =
-object (self)
+object (_self)
 
   val add_msg_class = "ocsiforum_add_message_form"
 
