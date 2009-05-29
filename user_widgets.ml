@@ -88,9 +88,7 @@ object (self)
                    ~sp
                    (fun _ -> self#display_logout_box sp u) ()
                else
-                 let exn = Polytables.get
-                   ~table:(Eliom_sessions.get_request_cache ~sp)
-                   ~key:Session_manager.login_error_key in
+                 let exn = Session_manager.get_login_error ~sp in
                  if List.exists
                    (fun e -> e = Users.BadPassword || e = Users.BadUser)
                    exn

@@ -36,6 +36,12 @@ type sessionmanager_in =
 
 let login_error_key = Polytables.make_key ()
 
+let get_login_error ~sp =
+  try
+    Polytables.get
+      ~table:(Eliom_sessions.get_request_cache ~sp)
+      ~key:login_error_key
+  with Not_found -> []
 
 (* use https for login? *)
 let secure = ref true
@@ -168,8 +174,8 @@ let pam_loaded () = !pam_loaded
 (* Authentification by external means *)
 let external_auth f_auth f_fullname ~name ~pwd =
   Lwt.catch
-    (fun () -> Users.authenticate ~name ~pwd
-               >>= fun u -> Lwt.return u.user_id)
+    (fun () -> Users.authenticate ~name ~pwd >>= fun u -> 
+               Lwt.return u.user_id)
     (function
        | Users.UseAuth u ->
            (* check external pwd *)

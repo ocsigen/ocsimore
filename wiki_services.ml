@@ -53,7 +53,7 @@ let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
            Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
            let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
            widgets#display_wikipage ~sp ~wiki ~page >>= fun (html, code) ->
-             Eliom_duce.Xhtml.send ~sp ~code html
+           Eliom_duce.Xhtml.send ~sp ~code html
        | e -> Lwt.fail e)
 
 

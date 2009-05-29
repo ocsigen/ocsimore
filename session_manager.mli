@@ -36,8 +36,9 @@ type sessionmanager_in =
   administrator: User_sql.Types.userid;
 }
 
-(** The key to find login errors from request cache *)
-val login_error_key : exn list Polytables.key
+(** The list of login errors *)
+val get_login_error : sp:server_params -> exn list
+
 
 (** do you want https for login/password?
    (see option <notsecure/> in ocsisite) *)
