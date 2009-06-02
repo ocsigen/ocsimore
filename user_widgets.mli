@@ -33,7 +33,7 @@ object
     ?pwd_prompt:Ocamlduce.Utf8.repr ->
     ?auth_error:Ocamlduce.Utf8.repr ->
     ?switchtohttps:Ocamlduce.Utf8.repr ->
-    sp:Eliom_sessions.server_params -> 
+    sp:Eliom_sessions.server_params ->
     unit ->
     Xhtmltypes_duce._div Lwt.t
 
@@ -58,38 +58,27 @@ class login_widget_basic_user_creation :
 object
   inherit login_widget
 
-  method srv_register: 
-    (unit, 
-     unit, 
-     Eliom_services.get_service_kind, 
-     [`WithoutSuffix],
-     unit, 
-     unit, 
-     [`Registrable ]) Eliom_services.service
-
-  method srv_reminder: 
-    (unit, 
-     unit, 
+  method srv_register:
+    (unit,
+     unit,
      Eliom_services.get_service_kind,
-     [`WithoutSuffix], 
-     unit, 
+     [`WithoutSuffix],
+     unit,
      unit,
      [`Registrable ]) Eliom_services.service
 
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
-  method srv_edit: 
-    (unit, 
-     unit, 
-     Eliom_services.get_service_kind, 
-     [`WithoutSuffix], 
-     unit, 
+
+  method srv_edit:
+    (unit,
+     unit,
+     Eliom_services.get_service_kind,
+     [`WithoutSuffix],
+     unit,
      unit,
      [`Registrable ]) Eliom_services.service
-*)
 
-  method container: 
-    sp:Eliom_sessions.server_params -> 
+  method container:
+    sp:Eliom_sessions.server_params ->
     contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
 
 end

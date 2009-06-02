@@ -115,18 +115,14 @@ val delete_user: userid:userid -> unit Lwt.t
 
 
 
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated.
-   See ml *)
-(*
 val update_data:
-  userid:User_sql.userid ->
-  password:User_sql.pwd ->
-  fullname:string ->
-  email:string option ->
-  ?groups:User_sql.userid list ->
+  userid:userid ->
+  ?password:pwd ->
+  ?fullname:string ->
+  ?email:string ->
+  ?dyn:bool ->
   unit ->
   unit Lwt.t
-*)
 
 
 (** Converts an [userid] to a string, by giving the corresponding

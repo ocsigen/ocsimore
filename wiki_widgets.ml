@@ -66,6 +66,7 @@ object (self)
     let title = Ocamlduce.Utf8.make title in
 (*VVV à revoir : fichiers statiques *)
     let static_dir = Eliom_services.static_dir ~sp in
+
     let vm = Eliom_duce.Xhtml.js_script
       ~uri:(Eliom_duce.Xhtml.make_uri ~service:static_dir ~sp ["vm.js"])
       ()
@@ -85,7 +86,7 @@ object (self)
            <title>title
            vm
            eliom_obrowser
-           ocsimore
+           ocsimore 
            !css
          ]
          <body>content

@@ -61,25 +61,16 @@ val create_user:
   userid Lwt.t
 
 
-val create_unique_user: (* XXX Buggy, will fail if all name-related logins are used *)
+(** Same as above, except that the function will raise [BadUser] if
+    the user already exists *)
+val create_fresh_user:
   name:string ->
   pwd:pwd ->
   fullname:string ->
   ?email:string ->
   unit ->
-  (userid * string) Lwt.t
+  userid Lwt.t
 
-
-(* BY 2009-03-13: deactivated because update_data is deactivated. See this file
-val update_user_data:
-  user:userdata ->
-  ?pwd:pwd ->
-  ?fullname:string ->
-  ?email:string option ->
-  ?groups: userid list ->
-  unit ->
-  unit Lwt.t
-*)
 
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
 

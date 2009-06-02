@@ -285,38 +285,35 @@ let delete_user_ ~userid =
   PGSQL(db) "DELETE FROM users WHERE id = $userid")
 
 
-(* BY 2009-03-13: deactivated because probably buggued. Check the DEFAULT below *)
-(*
-let update_data_ ~userid ~password ~fullname ~email ?groups ?dyn () =
-  pass_authtype_from_pass password
-  >>= fun (pwd, (password, authtype)) ->
+let update_data_ ~userid ?password ?fullname ?email ?dyn () =
+  let userid = sql_from_userid userid in
   Sql.full_transaction_block
     (fun db ->
-       (match password, email with
-         | None, None -> 
-             PGSQL(db) "UPDATE users SET fullname = $fullname, email = DEFAULT, password = DEFAULT, authtype = $authtype WHERE id = $userid"
-         | None, Some email -> 
-             PGSQL(db) "UPDATE users SET fullname = $fullname, password = DEFAULT, email = $email, authtype = $authtype WHERE id = $userid"
-         | Some pwd, None -> 
-             PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = DEFAULT, authtype = $authtype WHERE id = $userid"
-         | Some pwd, Some email -> 
-             PGSQL(db) "UPDATE users SET password = $pwd, fullname = $fullname, email = $email, authtype = $authtype WHERE id = $userid"
-       ) 
-       >>= fun () ->
-         (match dyn with
-            | Some dyn -> 
-                PGSQL(db) "UPDATE users SET dyn = $dyn WHERE id = $userid"
-            | None -> Lwt.return ())
-       >>= fun () ->
-         (match groups with
-            | Some groups ->
-                PGSQL(db) "DELETE FROM userrights WHERE id=$userid"
-                >>= fun () ->
-                populate_groups db userid groups;
-            | None -> Lwt.return ())
-       >>= fun () -> Lwt.return pwd
+       (match password with
+          | None -> Lwt.return ()
+          | Some pwd ->
+              pass_authtype_from_pass pwd
+              >>= fun (_pwd, (password, authtype)) ->
+              PGSQL(db) "UPDATE users
+                         SET password = $?password, authtype = $authtype
+                         WHERE id = $userid"
+       ) >>= fun () ->
+       (match fullname with
+          | None -> Lwt.return ()
+          | Some fullname -> PGSQL(db)
+              "UPDATE users SET fullname = $fullname WHERE id = $userid"
+       ) >>= fun () ->
+       (match email with
+          | None -> Lwt.return ()
+          | Some email -> PGSQL(db)
+              "UPDATE users SET email = $email WHERE id = $userid"
+       ) >>= fun () ->
+       (match dyn with
+          | Some dyn -> PGSQL(db)
+              "UPDATE users SET dyn = $dyn WHERE id = $userid"
+          | None -> Lwt.return ()
+       )
     )
-*)
 
 (* Auxiliary functions to read permissions from the userrights table *)
 let convert_group_list = List.map user_from_sql
@@ -471,6 +468,11 @@ let get_user_by_name name =
 
 
 
+let update_data ~userid ?password ?fullname ?email ?dyn () =
+  IUserCache.clear iusercache;
+  NUserCache.clear nusercache;
+  update_data_ ~userid ?password ?fullname ?email ?dyn ()
+
 
 
 (* Groups-related functions *)
@@ -537,16 +539,3 @@ let user_to_string = function
   | AppliedParameterizedGroup (u, v) ->
       userid_to_string u >>= fun s ->
       Lwt.return (Printf.sprintf "%s(%ld)" s v)
-
-
-
-
-(* BY 2009-03-13: deactivated because update_data_ is deactivated. *)
-(*
-let update_data ~userid ~password ~fullname ~email ?groups () =
-  IUserCache.find iusercache userid >>= fun ((_, n, _, _, _, _), _) ->
-  IUserCache.remove iusercache userid;
-  NUserCache.remove nusercache n;
-  GroupCache.remove group_cache userid;
-  User_sql.update_data_ ~userid ~password ~fullname ~email ?groups ()
-*)

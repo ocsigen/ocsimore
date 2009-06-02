@@ -149,7 +149,6 @@ object (self)
                             (Eliom_duce.Xhtml.make_uri
                                (Eliom_services.static_dir sp)
                                sp ["example.css"]) () :}
-(*VVV css ??? *)
                      ]
                      <body>[ lb ]
                    ]
@@ -290,22 +289,11 @@ class login_widget_basic_user_creation ?sp
   let internal_srv_register =
     Eliom_services.new_service ?sp
       ~path:([Ocsimore_lib.ocsimore_admin_dir; "register"])
-(*VVV URL??? Make it configurable (and all others!!) *)
       ~get_params:unit () in
   let srv_register_done =
     Eliom_services.new_post_coservice
       ~fallback:internal_srv_register
       ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
-  and internal_srv_reminder =
-    Eliom_services.new_service ?sp
-      ~path:[Ocsimore_lib.ocsimore_admin_dir; "reminder"]
-      ~get_params:unit ()
-  and srv_reminder_done =
-    Eliom_services.new_post_coservice
-      ~fallback:internal_srv_register
-      ~post_params:(string "usr") ()
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
   and internal_srv_edit =
     Eliom_services.new_coservice
       ~fallback:internal_srv_register
@@ -316,7 +304,6 @@ class login_widget_basic_user_creation ?sp
       ~fallback:internal_srv_register
       ~post_params:(string "pwd" **
                       (string "pwd2" ** (string "descr" ** string "email"))) ()
-*)
   in
 object (self)
 
@@ -331,7 +318,6 @@ object (self)
     let user_prompt = Ocamlduce.Utf8.make user_prompt in
     let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
     let auth_error = Ocamlduce.Utf8.make auth_error in
-(*VVV How to personalize every message??? or at least internationalize *)
     if (Eliom_sessions.get_ssl sp) || not (Session_manager.get_secure ())
     then begin
       {{ [<table>([
@@ -347,12 +333,10 @@ object (self)
                           {: Eliom_duce.Xhtml.a self#srv_register
                              sp {{ "New user? Register now!" }} () :}]]] @
                   {: if error then
-                     {{ [<tr>[<td colspan="2">auth_error]
-                          <tr>[<td colspan="2">[
-                                  {: Eliom_duce.Xhtml.a self#srv_reminder sp
-                                     {{ "Forgot your password?" }} () :}]]] }}
+                     {{ [<tr>[<td colspan="2">auth_error] ] }}
                    else
-                     {{ [] }} :})] }}
+                     {{ [] }} :}
+                 )] }}
     end
     else
       let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
@@ -360,21 +344,15 @@ object (self)
                       Eliom_services.https_void_coservice'
                       sp switchtohttps () :} ] ] }}
 
-  method private display_logout_box ~sp:_sp u =
+  method private display_logout_box ~sp u =
     {{ [<table>[
            <tr>[<td>{: Printf.sprintf "Hi %s!" u.user_fullname :}]
            <tr>[<td>[{: Eliom_duce.Xhtml.string_input
                         ~input_type:{:"submit":} ~value:"logout" () :}]]
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
            <tr>[<td>[{: Eliom_duce.Xhtml.a self#srv_edit
                         sp {{ "Manage your account" }} () :}]]
-*)
          ]] }}
 
-
-
-(*VVV Il faut revoir tout ce qui suit!!!!!!!!! *)
 
 
   method srv_register :
@@ -387,18 +365,6 @@ object (self)
      [`Registrable]) Eliom_services.service
     = internal_srv_register
 
-  method srv_reminder :
-    (unit,
-     unit,
-     Eliom_services.get_service_kind,
-     [`WithoutSuffix],
-     unit,
-     unit,
-     [`Registrable]) Eliom_services.service
-    = internal_srv_reminder
-
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
   method srv_edit :
     (unit,
      unit,
@@ -408,7 +374,6 @@ object (self)
      unit,
      [`Registrable]) Eliom_services.service
     = internal_srv_edit
-*)
 
   method container
     ~sp:(_ : Eliom_sessions.server_params)
@@ -426,14 +391,9 @@ object (self)
       ~sp
       ~contents:
       {{ [<h1>"Registration form"
-           <p>['Please fill in the following fields.'
-               <br>[]
-               'You can freely choose your login name: it will be \
-               slightly modified automatically if it has already been chosen \
-                 by another registered user.'
-                 <br>[]
-                 'Be very careful to enter a valid e-mail address, \
-                   as the password for logging in will be sent there.']
+           <p>['Please fill in the following fields.' <br>[]
+               'Be very careful to enter a valid e-mail address, \
+                 as the password for logging in will be sent there.']
            {: Eliom_duce.Xhtml.post_form
               ~service:srv_register_done
               ~sp
@@ -459,92 +419,46 @@ object (self)
 
 
 
-  method private page_register_done = fun sp () (usr, (fullname, email)) ->
-    if not (valid_username usr) then
+  method private page_register_done = fun sp () (user, (fullname, email)) ->
+    if not (valid_username user) then
       self#page_register "ERROR: Bad character(s) in login name!" sp () ()
     else if not (valid_emailaddr email) then
       self#page_register "ERROR: Bad formed e-mail address!" sp () ()
     else
       let pwd = generate_password () in
-      Users.create_unique_user ~name:usr
-        ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
-      >>= fun (user, n) ->
-      Users.add_to_groups (basic_user user)
-        basic_user_creation_options.new_user_groups >>= fun () ->
-      mail_password
-        ~name:n ~password:pwd
-        ~from_name:basic_user_creation_options.mail_from
-        ~from_addr:basic_user_creation_options.mail_addr
-        ~subject:basic_user_creation_options.mail_subject
-      >>= function
-        | true ->
-            self#container
-              ~sp
-              ~contents:
-              {{ [<h1>"Registration ok."
-                  <p>(['You\'ll soon receive an e-mail message at the \
-                         following address:'
-                        <br>[]] @
-                        {: email :} @
-                         [<br>[]
-                             'reporting your login name and password.'])] }}
+      Lwt.catch (fun () ->
+        Users.create_fresh_user ~name:user
+          ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
+        >>= fun userid ->
+        Users.add_to_groups (basic_user userid)
+          basic_user_creation_options.new_user_groups >>= fun () ->
+        mail_password
+          ~name:user ~password:pwd
+          ~from_name:basic_user_creation_options.mail_from
+          ~from_addr:basic_user_creation_options.mail_addr
+          ~subject:basic_user_creation_options.mail_subject
+        >>= function
+          | true ->
+              self#container ~sp ~contents:
+                {{ [<h1>"Registration ok."
+                    <p>(['You\'ll soon receive an e-mail message at the \
+                           following address:'
+                          <br>[]] @
+                          {: email :} @ [<br>[]
+                         'with your password.'])] }}
 
-        | false ->
-            User_sql.delete_user ~userid:user >>= fun () ->
-            self#container ~sp
-              ~contents:{{ [<h1>"Registration failed."
-                            <p>"Please try later."] }}
+          | false ->
+              User_sql.delete_user ~userid:userid >>= fun () ->
+                self#container ~sp
+                  ~contents:{{ [<h1>"Registration failed."
+                                 <p>"Please try later."] }}
+                )
+        (function
+           | Users.BadUser ->
+               self#page_register "ERROR: This login already exists" sp () ()
+           | e -> Lwt.fail e)
 
 
-
-  method private page_reminder err = fun sp () () ->
-    self#container
-      ~sp
-      ~contents:
-      {{ [<h1>"Password reminder"
-           <p>['This service allows you to get an e-mail message \
-           with your connection password.'
-               <br>[]
-               'The message will be sent to the address you \
-                 entered when you registered your account.']
-           {: Eliom_duce.Xhtml.post_form
-              ~service:srv_reminder_done
-              ~sp
-              (fun usr ->
-                 {{ [<table>[
-                        <tr>[
-                          <td>"Enter your login name:"
-                          <td>[{: Eliom_duce.Xhtml.string_input ~input_type:{:"text":} ~name:usr () :}]
-                          <td>[{: Eliom_duce.Xhtml.string_input ~input_type:{:"submit":} ~value:"Submit" () :}]
-                        ]]]
-                  }}) ()        :}
-           <p>[<strong>{: err :}]] }}
-
-  method private page_reminder_done = fun sp () _usr ->
-    self#page_reminder "Users are being implemented (TODO)" sp () ()
-      (* if not (valid_username usr) then
-         self#page_reminder "ERROR: Bad character(s) in login name!" sp () ()
-         else
-         mail_password
-         ~name:usr ~from_addr:sessionmanagerinfo.registration_mail_from
-         ~subject:sessionmanagerinfo.registration_mail_subject >>= (fun b ->
-         if b
-         then
-         self#container
-         ~sp
-         ~contents:{{ [<h1>"Password sent"
-         <p>"You'll soon receive an e-mail message at \
-         the address you entered when you \
-         registered your account."] }}
-         else
-         self#container
-         ~sp
-         ~contents:{{ [<h1>"Failure"
-         <p>"The username you entered doesn't exist, or \
-         the service is unavailable at the moment."] }}) *)
-
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
   method private page_edit err = fun sp () () ->
     Users.is_logged_on sp >>= fun logged ->
     if logged
@@ -562,7 +476,7 @@ object (self)
                    {{ [<table>[
                           <tr>[
                             <td>"login name: "
-                            <td>[<strong>{: u.user_name :}]
+                            <td>[<strong>{: u.user_fullname :}]
                           ]
                           <tr>[
                             <td>"real name: "
@@ -619,30 +533,29 @@ object (self)
         let email = Some email in
         try
           let pwd = match user.user_pwd with
-            | User_sql.Connect_forbidden (* Should never happen, the user cannot
+            | Connect_forbidden (* Should never happen, the user cannot
                                             be logged *) -> None
 
-            | User_sql.External_Auth (* We cannot change this password,
+            | External_Auth (* We cannot change this password,
                                         we should not leave the possibility
                                         to the user  *) ->
                 failwith "ERROR: Cannot change NIS or PAM passwords \
                     from Ocsimore!"
-            | User_sql.Ocsimore_user_plain _ ->
-                if pwd = "" then None else Some (User_sql.Ocsimore_user_plain pwd)
-            | User_sql.Ocsimore_user_crypt _ ->
-                if pwd = "" then None else Some (User_sql.Ocsimore_user_crypt pwd)
+            | Ocsimore_user_plain _ ->
+                if pwd = "" then None else Some (Ocsimore_user_plain pwd)
+            | Ocsimore_user_crypt _ ->
+                if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
           in
-          ignore (Users.update_user_data ~user ~fullname ~email ?pwd ());
-          Users.set_session_data sp user >>= fun () ->
-            self#container
-              ~sp
+          User_sql.update_data ~userid:user.user_id ~fullname ?email
+            ?password:pwd ()
+          >>= fun () ->
+            self#container ~sp
               ~contents:{{ [<h1>"Personal information updated"] }}
 
         with Failure s -> self#page_edit s sp () ()
       )
     else failwith "VVV: SHOULD NOT OCCUR (not implemented)"
 (*VVV: Must be accessible only to logged users *)
-*)
 
   initializer
     begin
@@ -653,16 +566,9 @@ object (self)
       Eliom_duce.Xhtml.register ?sp
         ~service:srv_register_done self#page_register_done;
       Eliom_duce.Xhtml.register ?sp
-        ~service:internal_srv_reminder (self#page_reminder "");
-      Eliom_duce.Xhtml.register ?sp
-        ~service:srv_reminder_done self#page_reminder_done;
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
-      Eliom_duce.Xhtml.register ?sp
         ~service:internal_srv_edit (self#page_edit "");
       Eliom_duce.Xhtml.register ?sp
         ~service:srv_edit_done self#page_edit_done;
-*)
     end
 
 

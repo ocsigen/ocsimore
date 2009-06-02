@@ -173,63 +173,30 @@ let add_dyn_group, in_dyn_group, fold_dyn_groups =
 
 
 
-let create_user ~name ~pwd ~fullname ?email ?test () =
-  get_basicuser_by_login name
-  >>= fun u ->
-  (if (u = nobody) && (name != nobody_login)
-   then (* the user does not exist *)
-     let dyn = not (test = None) in
-     User_sql.new_user ~name ~password:pwd ~fullname ~email ~dyn
-     >>= fun (u, _) -> Lwt.return u
-   else
-     Lwt.return u)
-   >>= fun u ->
-   (match test with
-     | None -> ()
-     | Some f -> add_dyn_group (basic_user u) f
-   );
-   Lwt.return u
+let create_user, create_fresh_user =
+  let mutex_user = Lwt_mutex.create () in
+  let aux already_existing ~name ~pwd ~fullname ?email ?test () =
+    Lwt_mutex.lock mutex_user >>= fun () ->
+    get_basicuser_by_login name
+    >>= fun u ->
+    (if (u = nobody) && (name != nobody_login)
+     then (* the user does not exist *)
+       let dyn = not (test = None) in
+       User_sql.new_user ~name ~password:pwd ~fullname ~email ~dyn
+       >>= fun (u, _) -> Lwt.return u
+     else
+       already_existing u
+    ) >>= fun u ->
+    (match test with
+       | None -> ()
+       | Some f -> add_dyn_group (basic_user u) f
+    );
+    Lwt_mutex.unlock mutex_user;
+    Lwt.return u
+  in
+  aux (fun u -> Lwt.return u),
+  aux (fun _ -> raise BadUser) ?test:None
 
-
-let create_unique_user =
-  (* Buggy if all users with 0-9 exist *)
-  let digit s = s.[0] <- String.get "0123456789" (Random.int 10); s in
-  let lock = Lwt_mutex.create () in
-  fun ~name ~pwd ~fullname ?email () ->
-    let rec suffix name =
-      get_basicuser_by_login name
-      >>= fun u ->
-      if (u = nobody) && (name != nobody_login)
-      then begin (* the user does not exist *)
-        create_user
-          ~name ~pwd ~fullname ?email () >>= fun x ->
-        Lwt.return (x, name)
-      end
-      else suffix (name ^ (digit "X"))
-    in
-    Lwt_mutex.lock lock >>= fun () ->
-    suffix name >>= fun r ->
-    Lwt_mutex.unlock lock;
-    Lwt.return r
-
-(* BY 2009-03-13: deactivated because User_sql.update_data is deactivated. See this file *)
-(*
-let update_user_data ~user
-    ?pwd
-    ?(fullname = user.fullname)
-    ?(email = user.email)
-    ?groups () =
-  user.fullname <- fullname;
-  user.email <- email;
-  (match pwd with None -> () | Some pwd -> user.pwd <- pwd);
-  User_sql.update_data
-    ~userid:user.user_id
-    ~password:pwd
-    ~fullname
-    ~email
-    ?groups
-    ()
-*)
 
 
 let authenticate ~name ~pwd =
