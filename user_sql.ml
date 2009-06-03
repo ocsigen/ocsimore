@@ -36,6 +36,9 @@ module Types = struct
   let userid_from_sql (u : int32) = (Opaque.int32_t u : userid)
   let sql_from_userid (u : userid) = Opaque.t_int32 u
 
+  let string_from_userid i = Int32.to_string (Opaque.t_int32 i)
+
+
   type pwd =
     | Connect_forbidden
     | Ocsimore_user_plain of string

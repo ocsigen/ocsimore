@@ -35,4 +35,13 @@ val html_page :
   ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
   ?title:string ->
   Xhtmltypes_duce.blocks ->
-  Xhtmltypes_duce.html
+  Xhtmltypes_duce.html Lwt.t
+
+
+type 'a eliom_usertype =
+    ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameters.param_name)
+    Eliom_parameters.params_type
+
+val eliom_opaque_int32 :
+  string ->
+  'a Opaque.int32_t eliom_usertype

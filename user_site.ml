@@ -99,11 +99,9 @@ let (auth, basicusercreation) =
   Lwt_unix.run (find_wikidata default_data c)
 
 
-let _ =
+let user_widget =
   let sminfo = {
-    Session_manager.url = ["users"];
-    administrator = Users.admin;
-    login_actions = (fun _sp _sess -> return ());
+    Session_manager.login_actions = (fun _sp _sess -> return ());
     logout_actions = (fun _sp -> return ());
   }
   in
@@ -116,20 +114,22 @@ let _ =
       | NoExternalAuth ->
           new Session_manager.sessionmanager sminfo
   in
-  (* Creation of the login box. This register some extensions at the level
-     of the wiki (in the initializer of User_widgets.login_widget)  *)
+  (* Creation of the login box. This register some services, in the
+     initializers of User_widgets.login_widget  *)
   (match basicusercreation with
      | BasicUserCreation buc ->
-         ignore (new User_widgets.login_widget_basic_user_creation sm buc)
+         (new User_widgets.login_widget_basic_user_creation sm buc
+          :> User_widgets.login_widget)
      | NoUserCreation ->
-         ignore (new User_widgets.login_widget sm)
+         new User_widgets.login_widget sm
   )
 
+let () = User_ext.register_user_extensions
+  Wiki_syntax.wikicreole_parser user_widget
 
 
+(*
 let () =
-  let params = Eliom_parameters.string "group" **
-    (Eliom_parameters.string "add" ** Eliom_parameters.string "rem") in
   let action_add_remove_users_from_group =
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"add_remove_users_from_group" ~post_params:params
@@ -169,10 +169,6 @@ let () =
         else
           Users.get_user_data sp >>= fun user ->
 
-          (* Head *)
-          let msg = "You are logged as: " in
-          let head = {{ <p>[ !{: msg :} !{: user.user_fullname :} ] }} in
-
           (* Password change *)
 
           let isadmin = (user.user_id = Users.admin) in
@@ -209,9 +205,9 @@ let () =
           let f2 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
             ~service:action_add_remove_user_from_groups ~sp form ()
           in
-          Lwt.return {{ [ head f1 f2 ] }}
+          Lwt.return {{ [ f1 f2 ] }}
        )>>= fun body ->
-       let html = Ocsimore_common.html_page {{ body }} in
+       Ocsimore_common.html_page {{ body }} >>= fun html ->
        Eliom_duce.Xhtml.send ~sp html
     )
   in
@@ -266,37 +262,14 @@ let () =
 
        let title1 = Ocamlduce.Utf8.make "Standard users"
        and title2 = Ocamlduce.Utf8.make "Groups"
-       and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it with \
+       and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it \
                     (including its parameter if needed) below" in
-       let html = Ocsimore_common.html_page
+       Ocsimore_common.html_page
          {{ [ <p>[<b>title1]               t2
               <p>[<b>title2 <br>[] !msg2 ] t1
               f
-            ] }} in
+            ] }} >>= fun html ->
        Eliom_duce.Xhtml.send ~sp html
     )
   in ()
-
-
-(*
-let() =
-  let action_create_user = Eliom_predefmod.Any.register_new_post_coservice'
-    ~name:"action_create_user" ~post_params:
-    (Eliom_parameters.string "login" **
-    (fun sp () (g, (add, rem)) ->
-         Users.get_user_id sp >>= fun user ->
-         if user = Users.admin then
-           Users.get_user_by_name g
-           >>= fun group ->
-           Users.GroupsForms.user_add_remove_from_groups group add rem
-           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
-         else
-           Lwt.fail Ocsimore_common.Permission_denied
-      )
-
- _create_user = Eliom_predefmod.Any.register_new_service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "new_user"]
-  ~get_params:(Eliom_parameters.unit)
-  (fun sp () () -> Eliom_duce.Xhtml.send ~sp (display_container {{[]}}) )
-
 *)

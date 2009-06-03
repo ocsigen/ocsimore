@@ -22,20 +22,39 @@
    @author Vincent Balat
 *)
 
-(** A widget for the login/logout box *)
+(** A widget for the login/logout box, with the creation of new users *)
 class login_widget:
   ?sp:Eliom_sessions.server_params ->
   sessman:Session_manager.sessionmanager ->
 object
 
+  method session_manager:Session_manager.sessionmanager
+
   method display_login_widget :
+    sp:Eliom_sessions.server_params ->
     ?user_prompt:Ocamlduce.Utf8.repr ->
     ?pwd_prompt:Ocamlduce.Utf8.repr ->
     ?auth_error:Ocamlduce.Utf8.repr ->
     ?switchtohttps:Ocamlduce.Utf8.repr ->
-    sp:Eliom_sessions.server_params ->
     unit ->
     Xhtmltypes_duce._div Lwt.t
+
+  method display_all_groups:
+    sp:Eliom_sessions.server_params ->
+    Eliom_duce.Xhtml.page Lwt.t
+
+  method display_group:
+    sp:Eliom_sessions.server_params ->
+    string ->
+    Eliom_duce.Xhtml.page Lwt.t
+
+  method service_edit_user_data:
+  (User_sql.Types.userid option, unit, Eliom_services.get_service_kind,
+   [ `WithoutSuffix ],
+   [ `One of User_sql.Types.userid ] Eliom_parameters.param_name, unit,
+   [ `Registrable ])
+  Eliom_services.service
+
 
 end;;
 
@@ -58,7 +77,7 @@ class login_widget_basic_user_creation :
 object
   inherit login_widget
 
-  method srv_register:
+  method service_create_new_user:
     (unit,
      unit,
      Eliom_services.get_service_kind,
@@ -66,19 +85,4 @@ object
      unit,
      unit,
      [`Registrable ]) Eliom_services.service
-
-
-  method srv_edit:
-    (unit,
-     unit,
-     Eliom_services.get_service_kind,
-     [`WithoutSuffix],
-     unit,
-     unit,
-     [`Registrable ]) Eliom_services.service
-
-  method container:
-    sp:Eliom_sessions.server_params ->
-    contents:Xhtmltypes_duce.blocks -> Xhtmltypes_duce.html Lwt.t
-
 end

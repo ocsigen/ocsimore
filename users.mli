@@ -26,6 +26,7 @@ val admin : userid
 (** A user/group that does not belong to any group,  and in which nobody
     can be.  *)
 val nobody : userid
+val nobody_login: string
 
 (** A group containing all authenticated users (not groups) *)
 val authenticated_users : userid

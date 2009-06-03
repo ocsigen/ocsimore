@@ -19,10 +19,12 @@
 module Types : sig
 
   (** The abstract type of user ids *)
-  type userid
+  type userid = [`User ] Opaque.int32_t
 
   val userid_from_sql : int32 -> userid
   val sql_from_userid : userid -> int32
+
+  val string_from_userid : userid -> string
 
   type pwd =
     | Connect_forbidden

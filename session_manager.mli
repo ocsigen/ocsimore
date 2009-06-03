@@ -30,10 +30,8 @@ open Eliom_duce.Xhtml
 
 type sessionmanager_in =
 {
-  url: string list;
   login_actions: server_params -> User_sql.Types.userid -> unit Lwt.t;
   logout_actions: server_params -> unit Lwt.t;
-  administrator: User_sql.Types.userid;
 }
 
 (** The list of login errors *)

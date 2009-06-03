@@ -28,10 +28,8 @@ open User_sql.Types
 
 type sessionmanager_in =
 {
-  url: string list;
   login_actions:  Eliom_sessions.server_params -> userid -> unit Lwt.t;
   logout_actions: Eliom_sessions.server_params -> unit Lwt.t;
-  administrator: userid;
 }
 
 let login_error_key = Polytables.make_key ()

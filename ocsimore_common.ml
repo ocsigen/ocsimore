@@ -26,6 +26,7 @@ exception Incorrect_argument
 
 let html_page ?(css={{ [] }}) ?(title="Ocsimore") content =
   let title = Ocamlduce.Utf8.make title in
+  Lwt.return
   {{ <html xmlns="http://www.w3.org/1999/xhtml">[
        <head>[
          <title>title
@@ -34,3 +35,13 @@ let html_page ?(css={{ [] }}) ?(title="Ocsimore") content =
        <body>content
      ]
    }}
+
+
+type 'a eliom_usertype =
+    ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameters.param_name)
+    Eliom_parameters.params_type
+
+let eliom_opaque_int32 s =
+  Eliom_parameters.user_type
+    (fun s -> Opaque.int32_t (Int32.of_string s))
+    (fun i -> Int32.to_string (Opaque.t_int32 i)) s
