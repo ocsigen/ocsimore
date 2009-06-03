@@ -100,19 +100,14 @@ let (auth, basicusercreation) =
 
 
 let user_widget =
-  let sminfo = {
-    Session_manager.login_actions = (fun _sp _sess -> return ());
-    logout_actions = (fun _sp -> return ());
-  }
-  in
   let sm =
     match auth with
       | Pam pam_service ->
-          new Session_manager.sessionmanager_pam pam_service sminfo
+          new Session_manager.sessionmanager_pam pam_service ()
       | Nis ->
-          new Session_manager.sessionmanager_nis sminfo
+          new Session_manager.sessionmanager_nis ()
       | NoExternalAuth ->
-          new Session_manager.sessionmanager sminfo
+          new Session_manager.sessionmanager ()
   in
   (* Creation of the login box. This register some services, in the
      initializers of User_widgets.login_widget  *)

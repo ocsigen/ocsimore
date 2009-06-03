@@ -28,11 +28,6 @@ open Eliom_services
 open Eliom_sessions
 open Eliom_duce.Xhtml
 
-type sessionmanager_in =
-{
-  login_actions: server_params -> User_sql.Types.userid -> unit Lwt.t;
-  logout_actions: server_params -> unit Lwt.t;
-}
 
 (** The list of login errors *)
 val get_login_error : sp:server_params -> exn list
@@ -43,7 +38,7 @@ val get_login_error : sp:server_params -> exn list
 val set_secure : bool -> unit
 val get_secure : unit -> bool
 
-class sessionmanager : ?sp:server_params -> sessionmanagerinfo: sessionmanager_in ->
+class sessionmanager : ?sp:server_params -> unit ->
 object
 
   method act_login:
@@ -75,11 +70,6 @@ object
 (** Use GET service if you want to make a link
     towards a POST service ... It uses a redirection instead of an action. *)
 
-  method add_login_actions:
-      (server_params -> User_sql.Types.userid -> unit Lwt.t) -> unit
-
-  method add_logout_actions:
-      (server_params -> unit Lwt.t) -> unit
 
 end;;
 
@@ -87,12 +77,12 @@ end;;
 class sessionmanager_pam :
   string option ->
   ?sp:server_params ->
-  sessionmanagerinfo: sessionmanager_in ->
+  unit ->
   sessionmanager
 
 class sessionmanager_nis :
   ?sp:server_params ->
-  sessionmanagerinfo: sessionmanager_in ->
+  unit ->
   sessionmanager
 
 

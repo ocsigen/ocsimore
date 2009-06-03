@@ -19,6 +19,7 @@
 (**
    @author Piero Furiesi
    @author Jaap Boender
+   @author Boris Yakobowski
 *)
 
 open Eliom_parameters
@@ -26,11 +27,6 @@ open Lwt
 open User_sql.Types
 
 
-type sessionmanager_in =
-{
-  login_actions:  Eliom_sessions.server_params -> userid -> unit Lwt.t;
-  logout_actions: Eliom_sessions.server_params -> unit Lwt.t;
-}
 
 let login_error_key = Polytables.make_key ()
 
@@ -48,7 +44,7 @@ let get_secure () = !secure
 
 
 
-class sessionmanager_aux f_auth ?sp ~(sessionmanagerinfo: sessionmanager_in) =
+class sessionmanager_aux f_auth ?sp ()  =
   let internal_act_login =
     Eliom_services.new_post_coservice'
       ~https:!secure
@@ -98,18 +94,13 @@ object (self)
     = internal_act_logout_get
 
 
-  val mutable all_login_actions = sessionmanagerinfo.login_actions
-  val mutable all_logout_actions = sessionmanagerinfo.logout_actions
-
   method private mk_act_login sp () (usr, pwd) =
-    all_logout_actions sp >>= fun () ->
     Eliom_sessions.close_session ~sp () >>= fun () ->
     Lwt.catch
       (fun () ->
          f_auth ~name:usr ~pwd  >>= fun user ->
          Eliom_sessions.clean_request_cache ~sp;
          Users.set_session_data sp user >>= fun () ->
-         all_login_actions sp user >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp
            Eliom_services.void_hidden_coservice')
       (fun e ->
@@ -117,21 +108,11 @@ object (self)
            login_error_key [e];
          Eliom_predefmod.Action.send ~sp ())
 
-  method add_login_actions f =
-    let old_la = all_login_actions in
-    all_login_actions <- fun sp u ->
-    old_la sp u >>= (fun () -> f sp u)
 
   method private mk_act_logout sp () () =
-    all_logout_actions sp >>= fun () ->
     Eliom_sessions.close_session ~sp () >>= fun () ->
     Eliom_sessions.clean_request_cache ~sp;
     Eliom_predefmod.Redirection.send ~sp Eliom_services.void_hidden_coservice'
-
-  method add_logout_actions f =
-    let old_la = all_logout_actions in
-    all_logout_actions <- fun sp ->
-    old_la sp >>= fun () -> f sp
 
 
   initializer
