@@ -116,3 +116,39 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
+
+let logout ~sp =
+  Eliom_sessions.close_session ~sp () >>= fun () ->
+  Eliom_sessions.clean_request_cache ~sp;
+  Lwt.return ()
+
+
+open User_external_auth
+
+let login ~sp ~name ~pwd ~external_auth =
+  Eliom_sessions.close_session ~sp () >>= fun () ->
+  Lwt.catch
+    (fun () ->
+       Users.authenticate ~name ~pwd >>= fun u ->
+       Lwt.return u.user_id)
+    (fun e ->
+       match external_auth with
+         | None -> Lwt.fail e
+         | Some ea -> match e with
+             | Users.UseAuth u ->
+                 (* check external pwd *)
+                 ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
+                   Lwt.return u
+             | Users.BadUser ->
+                 (* check external pwd, and create user if ok *)
+                 ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
+                 ea.ext_auth_fullname name >>= fun fullname ->
+                 Users.create_user ~pwd:User_sql.Types.External_Auth
+                   ~name ~fullname ()
+                 (* Do we need to actualize the fullname every time
+                    the user connects? *)
+              | e -> Lwt.fail e)
+  >>= fun user ->
+  Eliom_sessions.clean_request_cache ~sp;
+  Users.set_session_data sp user
+

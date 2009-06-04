@@ -30,7 +30,7 @@ let ( ** ) = Eliom_parameters.prod
 
 type user_creation =
   | NoUserCreation
-  | BasicUserCreation of User_widgets.basic_user_creation
+  | UserCreation of User_services.user_creation
 
 type external_auth = NoExternalAuth | Nis | Pam of string option
 
@@ -72,8 +72,8 @@ let (auth, basicusercreation, force_secure) =
         >>= fun default_groups ->
         find_data
           (auth,
-           BasicUserCreation {
-             User_widgets.mail_from = registration_mail_from;
+           UserCreation {
+             User_services.mail_from = registration_mail_from;
              mail_addr = registration_mail_addr;
              mail_subject = registration_mail_subject;
              new_user_groups = default_groups
@@ -89,32 +89,85 @@ let (auth, basicusercreation, force_secure) =
   Lwt_unix.run (find_data default_data c)
 
 
+let external_auth = match auth with
+  | NoExternalAuth -> None
+  | Nis -> Some User_external_auth.external_auth_nis
+  | Pam service ->
+      match !User_external_auth.external_auth_pam with
+        | Some pam -> Some (pam ?service)
+        | None -> raise (Ocsigen_config.Config_file_error
+                           "Ocsimore compiled without PAM support")
+
+let (
+    action_login,
+    action_logout,
+    action_logout_get,
+    service_edit_user_data,
+    action_edit_user_data,
+    action_add_remove_users_from_group,
+    action_add_remove_user_from_groups,
+    service_view_group,
+    service_view_groups
+  as user_services) =
+  User_services.services ~external_auth ~force_secure
+
 let user_widget =
-  let sm =
-    let sm_aux = new Session_manager.sessionmanager ~force_secure in
-    match auth with
-      | NoExternalAuth ->
-          sm_aux ~external_auth:None ()
-      | Nis ->
-          sm_aux ~external_auth:(Some Session_manager.external_auth_nis) ()
-      | Pam service ->
-          match !Session_manager.external_auth_pam with
-            | None -> raise
-                (Ocsigen_config.Config_file_error
-                   "Ocsimore compiled without PAM support")
-            | Some pam ->
-                sm_aux ~external_auth:(Some (pam ?service)) ()
+  match basicusercreation with
+    | NoUserCreation ->
+        new User_widgets.user_widget force_secure user_services
 
-  in
-  (* Creation of the login box. This register some services, in the
-     initializers of User_widgets.login_widget  *)
-  (match basicusercreation with
-     | BasicUserCreation buc ->
-         (new User_widgets.login_widget_basic_user_creation sm buc
-          :> User_widgets.login_widget)
-     | NoUserCreation ->
-         new User_widgets.login_widget sm
-  )
+    | UserCreation user_creation_options ->
+        (* We create some services specific to the creation of user *)
+        let (service_create_new_user, action_create_new_user
+               as creation_services) = User_services.services_user_creation ()
+        in
+        let user_widget_creation =
+          new User_widgets.user_widget_user_creation
+            ~force_secure ~user_services
+            ~user_creation_options ~creation_services in
 
-let () = User_ext.register_user_extensions
-  Wiki_syntax.wikicreole_parser user_widget
+        (* We register the services above *)
+        Eliom_duce.Xhtml.register ~service:service_create_new_user
+          (fun sp () () -> user_widget_creation#display_user_creation
+             ~err:"" ~sp);
+        Eliom_duce.Xhtml.register ~service:action_create_new_user
+          user_widget_creation#display_user_creation_done;
+
+        (user_widget_creation :> User_widgets.user_widget)
+
+
+
+let () =
+  (* We register all the (non-creation related) services that depend on the
+     rendering widget *)
+  Eliom_duce.Xhtml.register ~service:service_edit_user_data
+    (user_widget#display_edit_user_data ~err:"");
+  Eliom_duce.Xhtml.register ~service:action_edit_user_data
+    (fun sp _ args ->
+       (* The first userid is always ignored, but is needed because we use as
+          fallback a service that takes this argument *)
+       user_widget#display_edit_user_data_done sp args);
+
+  Eliom_duce.Xhtml.register service_view_group
+    (fun sp g () -> user_widget#display_group ~sp g);
+
+  Eliom_duce.Xhtml.register service_view_groups
+    (fun sp () () -> user_widget#display_all_groups ~sp);
+
+  (* This service is provided as a commodity to the admin, but is not
+     used otherwise *)
+  ignore
+    (Eliom_duce.Xhtml.register_new_service
+       ~https:force_secure
+       ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
+       ~get_params:Eliom_parameters.unit
+       (fun sp () () ->
+          user_widget#display_login_widget ~sp () >>= fun lb ->
+          Ocsimore_common.html_page {{ [ lb ] }}
+       )
+    );
+
+  (* We register the syntax extensions *)
+  User_ext.register_user_extensions Wiki_syntax.wikicreole_parser user_widget
+
+

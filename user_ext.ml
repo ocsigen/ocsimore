@@ -24,10 +24,11 @@
 
 open Eliom_parameters
 open User_sql.Types
+open Wiki_widgets_interface
 
 let (>>=) = Lwt.bind
 
-let register_user_extensions wp (widget_login : User_widgets.login_widget) =
+let register_user_extensions wp (user_widget : User_widgets.user_widget) =
   let add_extension = Wiki_syntax.add_extension ~wp in
 
   add_extension ~name:"loginbox" ~wiki_content:true
@@ -38,16 +39,15 @@ let register_user_extensions wp (widget_login : User_widgets.login_widget) =
           let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
           let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args
           in
-          (widget_login#display_login_widget ~sp:bi.Wiki_widgets_interface.bi_sp
-            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () :
-            Xhtmltypes_duce._div Lwt.t)
+          (user_widget#display_login_widget ~sp:bi.bi_sp
+            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ())
           >>= fun b ->
           Lwt.return {{ [ b ] }}));
 
   add_extension ~name:"username" ~wiki_content:true
     (fun bi _args _c ->
        Wikicreole.A_content
-         (Users.get_user_data ~sp:bi.Wiki_widgets_interface.bi_sp
+         (Users.get_user_data ~sp:bi.bi_sp
           >>= fun ud ->
           Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
     );
@@ -59,20 +59,10 @@ let register_user_extensions wp (widget_login : User_widgets.login_widget) =
             | Some c -> c
             | None -> "logout"
           in
-          Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi content
-          >>= fun c ->
-          Lwt.return
-            {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { class="logoutbutton"} }}
-                    ~service:widget_login#session_manager#action_logout
-                    ~sp:bi.Wiki_widgets_interface.bi_sp
-                    (fun () ->
-                       {{ [<p>[
-                              {: Eliom_duce.Xhtml.button
-                                 ~button_type:{:"submit":}
-                                 {: [ <div class="ocsimore_button">c ] :}
-                                 (*VVV How to avoid the <div> here??? *)
-                              :}] ] }}) ()
-                    :} ] }}
+          Wiki_syntax.xml_of_wiki wp bi content
+          >>= fun content ->
+          user_widget#display_logout_button bi.bi_sp content >>= fun f ->
+          Lwt.return {{ [ {: f :} ] }}
          )
     );
 
@@ -80,14 +70,10 @@ let register_user_extensions wp (widget_login : User_widgets.login_widget) =
     (fun bi args c ->
        Wikicreole.Link_plugin
          (let content = match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki
-                Wiki_syntax.wikicreole_parser bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
           in
-          ((Eliom_duce.Xhtml.make_uri
-              ~service:widget_login#session_manager#action_logout_get
-              ~sp:bi.Wiki_widgets_interface.bi_sp ()
-           ),
+          (user_widget#logout_uri bi.bi_sp,
            args,
            content)
          )

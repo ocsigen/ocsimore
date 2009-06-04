@@ -891,7 +891,7 @@ let () =
                  Lwt.return
                    (List.exists
                       (fun e -> e = Users.BadPassword || e = Users.BadUser)
-                      (Session_manager.get_login_error ~sp))
+                      (User_services.get_login_error ~sp))
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->

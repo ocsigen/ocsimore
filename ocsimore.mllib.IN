@@ -9,10 +9,11 @@ Ocsimore_lib
 Sql
 User_sql
 Users
+User_external_auth
 User_data
+User_services
 Wiki_sql
 Ocsimore_nis
-Session_manager
 Widget
 Wikicreole
 Wiki_types

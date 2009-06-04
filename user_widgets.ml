@@ -36,69 +36,23 @@ let submit_input value =
   Eliom_duce.Xhtml.string_input ~input_type:{:"submit":} ~value ()
 
 
-let eliom_user =
-  Ocsimore_common.eliom_opaque_int32 "userid"
 
 (** Widget for user login/logout/edition without addition of new users *)
-class login_widget ?sp ~(sessman: Session_manager.sessionmanager) =
-
-  (** Edition of an user *)
-  let internal_srv_edit =
-    Eliom_services.new_service ?sp
-      ~path:([Ocsimore_lib.ocsimore_admin_dir; "edit_user"])
-      ~get_params:(opt eliom_user) () in
-  let srv_edit_done =
-    Eliom_services.new_post_coservice
-      ~https:sessman#force_secure
-      ~fallback:internal_srv_edit
-      ~post_params:(eliom_user ** (string "pwd" **
-                      (string "pwd2" ** (string "descr" ** string "email")))) ()
-  in
-
-  (** Groups-related services *)
-  let params_groups = Eliom_parameters.string "group" **
-    (Eliom_parameters.string "add" ** Eliom_parameters.string "rem") in
-
-  let action_add_remove_users_from_group =
-    Eliom_predefmod.Any.register_new_post_coservice' ?sp
-      ~name:"add_remove_users_from_group" ~post_params:params_groups
-      (fun sp () (g, (add, rem)) ->
-         Users.get_user_id sp >>= fun user ->
-         if user = Users.admin then
-           Users.get_user_by_name g
-           >>= fun group ->
-           Users.GroupsForms.add_remove_users_from_group add rem group
-           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
-         else
-           Lwt.fail Ocsimore_common.Permission_denied
-      )
-  and action_add_remove_user_from_groups =
-    Eliom_predefmod.Any.register_new_post_coservice' ?sp
-      ~name:"add_remove_user_from_groups" ~post_params:params_groups
-      (fun sp () (g, (add, rem)) ->
-         Users.get_user_id sp >>= fun user ->
-         if user = Users.admin then
-           Users.get_user_by_name g
-           >>= fun group ->
-           Users.GroupsForms.user_add_remove_from_groups group add rem
-           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
-         else
-           Lwt.fail Ocsimore_common.Permission_denied
-      )
-  in
-  let service_edit_user = Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_group"]
-    ~get_params:(Eliom_parameters.string "group") ()
-  in
-  let service_choose_group = Eliom_services.new_service ?sp
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
-    ~get_params:(Eliom_parameters.unit) ()
-in
+class user_widget ~force_secure
+~user_services:(
+    action_login,
+    action_logout,
+    action_logout_get,
+    service_edit_user_data,
+    action_edit_user_data,
+    action_add_remove_users_from_group,
+    action_add_remove_user_from_groups,
+    service_view_group,
+    service_view_groups
+  ) =
 object (self)
 
   val xhtml_class = "logbox"
-
-  method session_manager = sessman
 
   method private display_login_box
     ?(user_prompt= "login:")
@@ -106,7 +60,7 @@ object (self)
     ?(auth_error= "Wrong login or password")
     ?(switchtohttps= "Click here to switch to https and login")
     ~sp error usr pwd =
-    if (Eliom_sessions.get_ssl sp) || not sessman#force_secure
+    if (Eliom_sessions.get_ssl sp) || not force_secure
     then begin
       let user_prompt = Ocamlduce.Utf8.make user_prompt in
       let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
@@ -143,9 +97,24 @@ object (self)
 
   method private logout_box_extension ~sp =
     Users.get_user_data sp >>= fun ud ->
-    Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a service_edit_user sp
+    Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a service_view_group sp
                                   {{ "Manage your account" }} ud.user_login :}]]
                   ] }}
+
+  method display_logout_button ~sp (content : Xhtmltypes_duce.flows) =
+    Lwt.return
+      (Eliom_duce.Xhtml.post_form ~a:{{ { class="logoutbutton"} }}
+         ~sp ~service:action_logout
+         (fun () ->
+            {{ [<p>[
+                   {: Eliom_duce.Xhtml.button ~button_type:{:"submit":}
+                      {: [ <div class="ocsimore_button">content ] :}
+                      (*VVV How to avoid the <div> here??? *)
+                      :}] ] }}) ())
+
+  method logout_uri ~sp =
+    Eliom_duce.Xhtml.make_uri ~service:action_logout_get ~sp ()
+
 
   method display_login_widget ~sp
     ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () =
@@ -155,17 +124,17 @@ object (self)
        self#display_logout_box sp u >>= fun f ->
        Lwt.return (
          Eliom_duce.Xhtml.post_form ~a:{{ { class="logbox logged"} }}
-           ~service:sessman#action_logout ~sp (fun _ -> f) ())
+           ~service:action_logout ~sp (fun _ -> f) ())
      else
        let f_login error ~a = Eliom_duce.Xhtml.post_form
-         ~service:sessman#action_login ~sp ~a
+         ~service:action_login ~sp ~a
          (fun (usr, pwd) ->
             (self#display_login_box ?user_prompt ?pwd_prompt
                ?auth_error ?switchtohttps ~sp error usr pwd))
        in
        if List.exists
          (fun e -> e = Users.BadPassword || e = Users.BadUser)
-         (Session_manager.get_login_error ~sp)
+         (User_services.get_login_error ~sp)
        then (* unsuccessful attempt *)
          Lwt.return (f_login true ~a:{{ {class="logbox error"} }} ())
        else (* no login attempt yet *)
@@ -173,7 +142,7 @@ object (self)
     ) >>= fun f ->
     Lwt.return {{<div class={: xhtml_class :}>[f]}}
 
-  method private page_edit err = fun sp userid () ->
+  method display_edit_user_data ?(err="") = fun sp userid () ->
     (match userid with
       | None -> Users.get_user_id sp
       | Some user -> Lwt.return user
@@ -184,7 +153,7 @@ object (self)
         Ocsimore_common.html_page
           {{ [<h1>"Your account"
                <p>"Change your personal information:"
-               {: Eliom_duce.Xhtml.post_form ~service:srv_edit_done ~sp
+               {: Eliom_duce.Xhtml.post_form ~service:action_edit_user_data ~sp
                   (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
                      {{ [<table>[
                             <tr>[
@@ -219,13 +188,15 @@ object (self)
                             ]
                           ]]
                       }}) None :}
-               <p>[<strong>{: err :}]] }}
+               <p>[<strong>{: err :}] (*XXX remove if unused *)] }}
         | false ->
             let msg = "You do not have sufficient rights to perform this \
                       operation" in
             Ocsimore_common.html_page {{ [<p>[<strong>{: msg :}]] }}
 
-  method private page_edit_done = fun sp _ (userid, (pw,(pw2,(fullname,email))))->
+  method display_edit_user_data_done sp (userid, (pw,(pw2,(fullname,email)))) =
+    (* The first userid is always ignored, but is needed because we use as
+       fallback a service that takes this argument *)
     Lwt.catch
       (fun () ->
          User_data.change_user_data ~sp ~userid ~pwd:(pw, pw2) ~fullname ~email
@@ -234,22 +205,12 @@ object (self)
       )
       (function
        | Failure s ->
-           self#page_edit s sp (Some userid) ()
+           self#display_edit_user_data ~err:s sp (Some userid) ()
        | Ocsimore_common.Permission_denied ->
-           self#page_edit "ERROR: Insufficient rights" sp (Some userid) ()
+           self#display_edit_user_data
+            ~err:"ERROR: Insufficient rights" sp (Some userid) ()
        | e -> Lwt.fail e
       )
-
-
-  method service_edit_user_data :
-    (userid option,
-     unit,
-     Eliom_services.get_service_kind,
-     [`WithoutSuffix],
-     [ `One of User_sql.Types.userid ] Eliom_parameters.param_name,
-     unit,
-     [`Registrable]) Eliom_services.service
-    = internal_srv_edit
 
 
   method display_group ~sp g =
@@ -266,7 +227,7 @@ object (self)
           | true ->
               User_sql.get_user_data group >>= fun dgroup ->
               Lwt.return {{ [ <p>[ {: Eliom_duce.Xhtml.a
-                                      ~service:self#service_edit_user_data ~sp
+                                      ~service:service_edit_user_data ~sp
                                       {: "Edit information" :}
                                       (Some dgroup.user_id) :}] ] }}
 
@@ -337,7 +298,7 @@ object (self)
     let line2 u =
       let g = Ocamlduce.Utf8.make u.user_login
       and d = Ocamlduce.Utf8.make u.user_fullname
-      and l = {{ [ {: Eliom_duce.Xhtml.a ~service:service_edit_user ~sp
+      and l = {{ [ {: Eliom_duce.Xhtml.a ~service:service_view_group ~sp
                       {: "Edit" :} u.user_login :}] }}
       in
       {{ <tr>[<td>[<b>g ] <td>d <td>l] }}
@@ -353,7 +314,7 @@ object (self)
                          ]] }}
     in
     let f = Eliom_duce.Xhtml.get_form ~a:{{ { accept-charset="utf-8" } }}
-      ~service:service_edit_user ~sp form
+      ~service:service_view_group ~sp form
     in
 
     let title1 = Ocamlduce.Utf8.make "Standard users"
@@ -366,85 +327,29 @@ object (self)
            f
          ] }}
 
-
-initializer
-
-  Eliom_duce.Xhtml.register ?sp
-    ~service:internal_srv_edit (self#page_edit "");
-  Eliom_duce.Xhtml.register ?sp
-    ~service:srv_edit_done self#page_edit_done;
-
-  ignore
-    (Eliom_duce.Xhtml.register_new_service ?sp
-       ~https:sessman#force_secure
-       ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
-       ~get_params:Eliom_parameters.unit
-       (fun sp () () ->
-          self#display_login_widget ~sp () >>= fun lb ->
-          Ocsimore_common.html_page {{ [ lb ] }}
-       )
-    );
-
-
-  Eliom_duce.Xhtml.register service_edit_user
-    (fun sp g () -> self#display_group ~sp g);
-  Eliom_duce.Xhtml.register service_choose_group
-    (fun sp () () -> self#display_all_groups ~sp);
 end
 
 
 
-
-type basic_user_creation = {
-  mail_from: string;
-  mail_addr: string;
-  mail_subject: string;
-  new_user_groups: User_sql.Types.user list;
-}
-
-
-class login_widget_basic_user_creation ?sp
-  ~(sessman: Session_manager.sessionmanager)
-  ~basic_user_creation_options
-=
-  let internal_srv_register =
-    Eliom_services.new_service ?sp
-      ~path:([Ocsimore_lib.ocsimore_admin_dir; "register"])
-      ~get_params:unit () in
-  let srv_register_done =
-    Eliom_services.new_post_coservice
-      ~fallback:internal_srv_register
-      ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
-  in
+class user_widget_user_creation ~force_secure ~user_services ~user_creation_options ~creation_services:(service_create_new_user, action_create_new_user) =
 object (self)
 
-  inherit login_widget sessman
+  inherit user_widget ~force_secure ~user_services
 
   method private login_box_extension ~sp =
     {{ [ <tr>[<td colspan="2">[
-               {: Eliom_duce.Xhtml.a self#service_create_new_user
+               {: Eliom_duce.Xhtml.a service_create_new_user
                   sp {{ "New user? Register now!" }} () :}]] ] }}
 
 
-  method service_create_new_user :
-    (unit,
-     unit,
-     Eliom_services.get_service_kind,
-     [`WithoutSuffix],
-     unit,
-     unit,
-     [`Registrable]) Eliom_services.service
-    = internal_srv_register
-
-
-  method private page_register err = fun sp () ()->
+  method display_user_creation ?(err="") ~sp =
     Ocsimore_common.html_page
       {{ [<h1>"Registration form"
            <p>['Please fill in the following fields.' <br>[]
                'Be very careful to enter a valid e-mail address, \
                  as the password for logging in will be sent there.']
            {: Eliom_duce.Xhtml.post_form ~sp
-              ~service:srv_register_done
+              ~service:action_create_new_user
               (fun (usr,(desc,email)) ->
                  {{ [<table>[
                         <tr>[
@@ -468,11 +373,11 @@ object (self)
 
 
 
-  method private page_register_done = fun sp () (user, (fullname, email)) ->
+  method display_user_creation_done sp () (user, (fullname, email)) =
     if not (User_data.valid_username user) then
-      self#page_register "ERROR: Bad character(s) in login name!" sp () ()
+      self#display_user_creation ~err:"ERROR: Bad character(s) in login name!" ~sp
     else if not (User_data.valid_emailaddr email) then
-      self#page_register "ERROR: Bad formed e-mail address!" sp () ()
+      self#display_user_creation ~err:"ERROR: Bad formed e-mail address!" ~sp
     else
       let pwd = User_data.generate_password () in
       Lwt.catch (fun () ->
@@ -480,12 +385,12 @@ object (self)
           ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
         >>= fun userid ->
         Users.add_to_groups (basic_user userid)
-          basic_user_creation_options.new_user_groups >>= fun () ->
+          user_creation_options.User_services.new_user_groups >>= fun () ->
         User_data.mail_password
           ~name:user ~password:pwd
-          ~from_name:basic_user_creation_options.mail_from
-          ~from_addr:basic_user_creation_options.mail_addr
-          ~subject:basic_user_creation_options.mail_subject
+          ~from_name:user_creation_options.User_services.mail_from
+          ~from_addr:user_creation_options.User_services.mail_addr
+          ~subject:user_creation_options.User_services.mail_subject
         >>= function
           | true ->
               Ocsimore_common.html_page
@@ -504,16 +409,7 @@ object (self)
                 )
         (function
            | Users.BadUser ->
-               self#page_register "ERROR: This login already exists" sp () ()
+               self#display_user_creation ~sp
+                 ~err:"ERROR: This login already exists"
            | e -> Lwt.fail e)
-
-  initializer
-    begin
-      Eliom_duce.Xhtml.register ?sp
-        ~service:internal_srv_register (self#page_register "");
-      Eliom_duce.Xhtml.register ?sp
-        ~service:srv_register_done self#page_register_done;
-    end
-
-
 end
