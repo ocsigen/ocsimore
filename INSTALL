@@ -3,7 +3,7 @@
  - ocaml
  - ocamlduce
  - ocsigen and eliom with compiled ocamlduce support
- - pgocaml with lwt support
+ - pgocaml >= 1.2
  - ocamlpam (recommended)
 
 2. Run 
