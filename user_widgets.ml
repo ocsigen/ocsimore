@@ -393,8 +393,9 @@ object (self)
                  <p>[<strong>{: err :}]]
              }}
       | false ->
-          Ocsimore_common.html_page
-            {{ [<h1>"Only admin can create new users"] }}
+          Ocsimore_common.html_page {{ [
+                      <h1>"Error"
+                      <p>"Only admin can create new users" ] }}
 
   method display_user_creation_done sp () (name, (fullname, email)) =
     Lwt.catch
