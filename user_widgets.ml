@@ -54,36 +54,38 @@ object (self)
 
   val xhtml_class = "logbox"
 
-  method private display_login_box
+  method private login_box_aux
     ?(user_prompt= "login:")
     ?(pwd_prompt= "password:")
     ?(auth_error= "Wrong login or password")
     ?(switchtohttps= "Click here to switch to https and login")
-    ~sp error usr pwd =
+    ~sp error =
     if (Eliom_sessions.get_ssl sp) || not force_secure
     then begin
       let user_prompt = Ocamlduce.Utf8.make user_prompt in
       let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
       let auth_error = Ocamlduce.Utf8.make auth_error in
-      {{ [<table>([
-                  <tr>[<td>user_prompt
-                       <td>[{: str_input usr :}]]
-                  <tr>[<td>pwd_prompt
-                       <td>[{: passwd_input pwd :}]]
-                  <tr>[<td>[{: submit_input "Login" :}]]
-                  !{: self#login_box_extension ~sp :}
-                ] @
-                  {: if error then
-                     {{ [<tr>[<td colspan="2">auth_error]
-                        ] }}
-                   else
-                     {{ [] }} :})] }}
+      self#login_box_extension ~sp >>= fun ext ->
+      Lwt.return (fun (usr, pwd) ->
+        {{ [<table>[
+               <tr>[<td>user_prompt
+                    <td>[{: str_input usr :}]]
+               <tr>[<td>pwd_prompt
+                    <td>[{: passwd_input pwd :}]]
+               <tr>[<td>[{: submit_input "Login" :}]]
+               !{: ext :}
+               !{: if error then
+                   {{ [<tr>[<td colspan="2">auth_error]] }}
+                 else
+                   {{ [] }} :}
+             ] ] }})
     end
     else
       let switchtohttps = Ocamlduce.Utf8.make switchtohttps in
-      {{ [ <p>[{: Eliom_duce.Xhtml.a
+      Lwt.return (fun _ ->
+        {{ [ <p>[{: Eliom_duce.Xhtml.a
                     Eliom_services.https_void_coservice'
-                    sp switchtohttps () :} ] ] }}
+                    sp switchtohttps () :} ] ] }})
 
   method private display_logout_box ~sp u =
     self#logout_box_extension ~sp >>= fun ext ->
@@ -93,7 +95,7 @@ object (self)
                       !ext
                     ]] }}
 
-  method private login_box_extension ~sp:_ = {{ [] }}
+  method private login_box_extension ~sp:_ = Lwt.return {{ [] }}
 
   method private logout_box_extension ~sp =
     Users.get_user_data sp >>= fun ud ->
@@ -125,20 +127,22 @@ object (self)
        Lwt.return (
          Eliom_duce.Xhtml.post_form ~a:{{ { class="logbox logged"} }}
            ~service:action_logout ~sp (fun _ -> f) ())
+
      else
-       let f_login error ~a = Eliom_duce.Xhtml.post_form
-         ~service:action_login ~sp ~a
-         (fun (usr, pwd) ->
-            (self#display_login_box ?user_prompt ?pwd_prompt
-               ?auth_error ?switchtohttps ~sp error usr pwd))
+       let f_login error ~a =
+         self#login_box_aux ?user_prompt ?pwd_prompt ?auth_error
+           ?switchtohttps ~sp error
+         >>= fun f ->
+         Lwt.return
+           (Eliom_duce.Xhtml.post_form ~service:action_login ~sp ~a f ())
        in
        if List.exists
          (fun e -> e = Users.BadPassword || e = Users.BadUser)
          (User_services.get_login_error ~sp)
        then (* unsuccessful attempt *)
-         Lwt.return (f_login true ~a:{{ {class="logbox error"} }} ())
+         f_login true ~a:{{ {class="logbox error"} }}
        else (* no login attempt yet *)
-         Lwt.return (f_login false ~a:{{ {class="logbox notlogged"} }} ())
+         f_login false ~a:{{ {class="logbox notlogged"} }}
     ) >>= fun f ->
     Lwt.return {{<div class={: xhtml_class :}>[f]}}
 
@@ -351,49 +355,51 @@ object (self)
   inherit user_widget ~force_secure ~user_services
 
   method private login_box_extension ~sp =
-    {{ [ <tr>[<td colspan="2">[
-               {: Eliom_duce.Xhtml.a service_create_new_user
-                  sp {{ "New user? Register now!" }} () :}]] ] }}
-
+    User_data.can_create_user ~sp ~options:user_creation_options >>= function
+      | true -> Lwt.return
+          {{ [ <tr>[<td colspan="2">[
+                       {: Eliom_duce.Xhtml.a service_create_new_user
+                          sp {{ "New user? Register now!" }} () :}]] ] }}
+      | false -> Lwt.return {{ [] }}
 
   method display_user_creation ?(err="") ~sp =
-    Users.get_user_id sp >>= fun u ->
-    if u = Users.admin ||
-      user_creation_options.User_data.non_admin_can_create then
-      Ocsimore_common.html_page
-        {{ [<h1>"Registration form"
-            <p>['Please fill in the following fields.' <br>[]
-                 'Be very careful to enter a valid e-mail address, \
-                 as the password for logging in will be sent there.']
-            {: Eliom_duce.Xhtml.post_form ~sp  ~service:action_create_new_user
-               (fun (usr,(desc,email)) ->
-                  {{ [<table>[
-                         <tr>[
-                           <td>"login name: (letters & digits only)"
-                           <td>[{: str_input usr :}]
-                         ]
-                         <tr>[
-                           <td>"real name:"
-                           <td>[{: str_input desc :}]
-                         ]
-                         <tr>[
-                           <td>"e-mail address:"
-                           <td>[{: str_input email :}]
-                         ]
-                         <tr>[
-                           <td>[{: submit_input "Register" :}]
-                         ]]] }})
-               () :}
-             <p>[<strong>{: err :}]]
-         }}
-    else
-      Ocsimore_common.html_page
-        {{ [<h1>"Only admin can create new users"] }}
+    User_data.can_create_user ~sp ~options:user_creation_options >>= function
+      | true ->
+          Ocsimore_common.html_page
+            {{ [<h1>"Registration form"
+                 <p>['Please fill in the following fields.' <br>[]
+                     'Be very careful to enter a valid e-mail address, \
+                       as the password for logging in will be sent there.']
+                 {: Eliom_duce.Xhtml.post_form ~sp
+                    ~service:action_create_new_user
+                    (fun (usr,(desc,email)) ->
+                       {{ [<table>[
+                              <tr>[
+                                <td>"login name: (letters & digits only)"
+                                <td>[{: str_input usr :}]
+                              ]
+                              <tr>[
+                                <td>"real name:"
+                                <td>[{: str_input desc :}]
+                              ]
+                              <tr>[
+                                <td>"e-mail address:"
+                                <td>[{: str_input email :}]
+                              ]
+                              <tr>[
+                                <td>[{: submit_input "Register" :}]
+                              ]]] }})
+                    () :}
+                 <p>[<strong>{: err :}]]
+             }}
+      | false ->
+          Ocsimore_common.html_page
+            {{ [<h1>"Only admin can create new users"] }}
 
-  method display_user_creation_done sp () (user, (fullname, email)) =
+  method display_user_creation_done sp () (name, (fullname, email)) =
     Lwt.catch
       (fun () ->
-         User_data.create_user ~sp ~user ~fullname ~email
+         User_data.create_user ~sp ~name ~fullname ~email
            ~options:user_creation_options >>= fun () ->
          Ocsimore_common.html_page
            {{ [<h1>"Registration ok."

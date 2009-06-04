@@ -88,37 +88,40 @@ type user_creation = {
   new_user_groups: User_sql.Types.user list;
 }
 
-
-let create_user ~sp ~user ~fullname ~email ~options =
+let can_create_user ~sp ~options =
   Users.get_user_id sp >>= fun u ->
-  if u = Users.admin || options.non_admin_can_create then
-    if not (valid_username user) then
-      Lwt.fail (Failure "ERROR: Bad character(s) in login name!")
-    else if not (valid_emailaddr email) then
-      Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
-    else
-      let pwd = generate_password () in
-      Lwt.catch (fun () ->
-          Users.create_fresh_user ~name:user
-            ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
-          >>= fun userid ->
-          Users.add_to_groups (basic_user userid) options.new_user_groups
-          >>= fun () ->
-          mail_password ~name:user ~password:pwd ~from_name:options.mail_from
-            ~from_addr:options.mail_addr ~subject:options.mail_subject
-          >>= function
-            | true -> Lwt.return ()
-            | false ->
-                User_sql.delete_user ~userid:userid >>= fun () ->
-                Lwt.fail (Failure
-                     "Registration failed: cannot send confirmation email")
-      )
-      (function
-         | Users.BadUser ->
-             Lwt.fail (Failure "ERROR: This login already exists")
-         | e -> Lwt.fail e)
-  else
-    Lwt.fail Ocsimore_common.Permission_denied
+  Lwt.return (u = Users.admin || options.non_admin_can_create)
+
+let create_user ~sp ~name ~fullname ~email ~options =
+  can_create_user ~sp ~options >>= function
+    | true ->
+        if not (valid_username name) then
+          Lwt.fail (Failure "ERROR: Bad character(s) in login name!")
+        else if not (valid_emailaddr email) then
+          Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
+        else
+          let pwd = generate_password () in
+          Lwt.catch (fun () ->
+              Users.create_fresh_user ~name ~fullname ~email
+                ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
+              >>= fun userid ->
+              Users.add_to_groups (basic_user userid) options.new_user_groups
+              >>= fun () ->
+              mail_password ~name ~password:pwd ~subject:options.mail_subject
+                ~from_name:options.mail_from ~from_addr:options.mail_addr
+              >>= function
+                | true -> Lwt.return ()
+                | false ->
+                    User_sql.delete_user ~userid:userid >>= fun () ->
+                    Lwt.fail (Failure
+                          "Registration failed: cannot send confirmation email")
+          )
+          (function
+             | Users.BadUser ->
+                 Lwt.fail (Failure "ERROR: This login already exists")
+             | e -> Lwt.fail e)
+    | false ->
+        Lwt.fail Ocsimore_common.Permission_denied
 
 
 (** Change user information *)
