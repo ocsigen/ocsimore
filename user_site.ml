@@ -51,7 +51,7 @@ let (auth, basicusercreation, force_secure) =
         find_data (Pam None, basicusercreation, secure) l
 
     | (Simplexmlparser.Element ("notsecure", [], []))::l ->
-        find_data (auth, basicusercreation, true) l
+        find_data (auth, basicusercreation, false) l
 
     | (Simplexmlparser.Element ("basicusercreation", atts, []))::l ->
         let registration_mail_from =

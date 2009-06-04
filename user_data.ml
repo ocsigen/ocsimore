@@ -79,17 +79,17 @@ let generate_password () =
     pwd
 
 
-let can_change_user_by_userid sp userid =
+let can_change_user_data_by_userid sp userid =
   Users.get_user_id sp >>= fun lu ->
   Lwt.return ((lu = userid && lu <> Users.nobody) || lu = Users.admin)
 
-let can_change_user_by_user sp user =
+let can_change_user_data_by_user sp user =
   User_sql.get_user_data user >>= fun ud ->
-  can_change_user_by_userid sp ud.user_id
+  can_change_user_data_by_userid sp ud.user_id
 
 
 let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
-  can_change_user_by_userid sp userid >>= function
+  can_change_user_data_by_userid sp userid >>= function
     | true ->
         if not (valid_emailaddr email) then
           failwith "ERROR: Bad formed e-mail address!"
@@ -116,14 +116,36 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
+(** Edition of groups *)
+
+let add_remove_users_from_group sp g (add, rem) =
+  Users.get_user_id sp >>= fun user ->
+  if user = Users.admin then
+    Users.get_user_by_name g
+    >>= fun group ->
+    Users.GroupsForms.add_remove_users_from_group add rem group
+  else
+    Lwt.fail Ocsimore_common.Permission_denied
+
+
+let add_remove_user_from_groups sp u (add, rem) =
+  Users.get_user_id sp >>= fun user ->
+  if user = Users.admin then
+    Users.get_user_by_name u
+    >>= fun group ->
+    Users.GroupsForms.user_add_remove_from_groups group add rem
+  else
+    Lwt.fail Ocsimore_common.Permission_denied
+
+
+
+(** Login and logout *)
+open User_external_auth
 
 let logout ~sp =
   Eliom_sessions.close_session ~sp () >>= fun () ->
   Eliom_sessions.clean_request_cache ~sp;
   Lwt.return ()
-
-
-open User_external_auth
 
 let login ~sp ~name ~pwd ~external_auth =
   Eliom_sessions.close_session ~sp () >>= fun () ->

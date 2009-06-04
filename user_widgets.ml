@@ -147,7 +147,7 @@ object (self)
       | None -> Users.get_user_id sp
       | Some user -> Lwt.return user
     ) >>= fun userid ->
-    User_data.can_change_user_by_userid sp userid >>= function
+    User_data.can_change_user_data_by_userid sp userid >>= function
       | true ->
         User_sql.get_basicuser_data userid >>= fun u ->
         Ocsimore_common.html_page
@@ -219,11 +219,25 @@ object (self)
        let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
        Lwt.return {{ [<p>msg] }}
      else
+       let error = match Ocsimore_common.get_action_failure sp with
+         | None -> {{ [] }}
+         | Some e -> (* YYY add error handler somewhere *)
+             let msg = match e with
+               | Ocsimore_common.Permission_denied  ->
+                   "Unable to perform operation, insufficient rights"
+               | Failure s -> s
+               | Users.UnknownUser u ->
+                   "Unknown user '" ^ u ^ "'"
+               | _ -> "Error"
+             in
+             {{ [<h2>[<em>{:msg:}]] }}
+       in
+
        Users.get_user_data sp >>= fun user ->
        let isadmin = (user.user_id = Users.admin) in
 
        (* Group change *)
-       (User_data.can_change_user_by_user sp group >>= function
+       (User_data.can_change_user_data_by_user sp group >>= function
           | true ->
               User_sql.get_user_data group >>= fun dgroup ->
               Lwt.return {{ [ <p>[ {: Eliom_duce.Xhtml.a
@@ -266,7 +280,7 @@ object (self)
        let f2 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
          ~service:action_add_remove_user_from_groups ~sp form ()
        in
-       Lwt.return {{ [ !head f1 f2 ] }}
+       Lwt.return {{ [ !error !head f1 f2 ] }}
     ) >>= fun body ->
     Ocsimore_common.html_page {{ body }}
 

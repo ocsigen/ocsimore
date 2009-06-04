@@ -21,6 +21,23 @@
 *)
 
 exception Permission_denied
+
+let action_failure_key = Polytables.make_key ()
+
+let catch_action_failure ~sp ?(f_exn=fun exn -> exn) f =
+  Lwt.catch
+    f
+    (fun exn ->
+       Polytables.set (Eliom_sessions.get_request_cache sp)
+         action_failure_key (f_exn exn);
+       Lwt.return ())
+
+let get_action_failure ~sp =
+  try
+    Some (Polytables.get ~table:(Eliom_sessions.get_request_cache sp)
+            ~key:action_failure_key)
+  with Not_found -> None
+
 exception Incorrect_argument
 
 

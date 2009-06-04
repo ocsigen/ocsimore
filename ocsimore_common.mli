@@ -25,6 +25,21 @@
 *)
 exception Permission_denied
 
+(** A key that can be used to find inside the session cache an
+    exception is raised in an action *)
+val action_failure_key : exn Polytables.key
+
+val catch_action_failure :
+  sp:Eliom_sessions.server_params ->
+  ?f_exn:(exn -> exn) ->
+  (unit -> unit Lwt.t) ->
+  unit Lwt.t
+
+val get_action_failure :
+  sp:Eliom_sessions.server_params ->
+  exn option
+
+
 (** Exception raised when a service is called with incorrect or
     incoherent arguments *)
 exception Incorrect_argument

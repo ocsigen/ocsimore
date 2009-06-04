@@ -149,27 +149,17 @@ let services ~external_auth ~force_secure =
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"add_remove_users_from_group" ~post_params:params_groups
       (fun sp () (g, (add, rem)) ->
-         Users.get_user_id sp >>= fun user ->
-         if user = Users.admin then
-           Users.get_user_by_name g
-           >>= fun group ->
-           Users.GroupsForms.add_remove_users_from_group add rem group
-           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
-         else
-           Lwt.fail Ocsimore_common.Permission_denied
+         Ocsimore_common.catch_action_failure ~sp
+           (fun () -> User_data.add_remove_users_from_group sp g (add, rem))
+         >>= fun () -> Eliom_predefmod.Action.send ~sp ()
       )
   and action_add_remove_user_from_groups =
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"add_remove_user_from_groups" ~post_params:params_groups
-      (fun sp () (g, (add, rem)) ->
-         Users.get_user_id sp >>= fun user ->
-         if user = Users.admin then
-           Users.get_user_by_name g
-           >>= fun group ->
-           Users.GroupsForms.user_add_remove_from_groups group add rem
-           >>= fun () -> Eliom_predefmod.Action.send ~sp ()
-         else
-           Lwt.fail Ocsimore_common.Permission_denied
+      (fun sp () (u, (add, rem)) ->
+         Ocsimore_common.catch_action_failure ~sp
+           (fun () -> User_data.add_remove_user_from_groups sp u (add, rem))
+         >>= fun () -> Eliom_predefmod.Action.send ~sp ()
       )
 
   and service_view_group = Eliom_services.new_service
