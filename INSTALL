@@ -56,7 +56,6 @@ Make sure to properly set DEFAULT_UNIX_DOMAIN_SOCKET_DIR in
 pgocaml's Makefile.config, depending on your installation
 
 6. Compile ocsimore
-make depend
 make
 
 7. If you want system wide install:
