@@ -32,7 +32,7 @@ let ($) = User_sql.Types.apply_parameterized_group
 (** {2 Database access with verification of permissions} *)
 
 let new_forum ~sp ~title ~descr ?arborescent ~messages_wiki ~comments_wiki () =
-  Users.in_group ~sp ~group:forum_creators () >>= fun b ->
+  User.in_group ~sp ~group:forum_creators () >>= fun b ->
   if b
   then Forum_sql.new_forum
     ~title ~descr ?arborescent ~messages_wiki ~comments_wiki ()
@@ -81,7 +81,7 @@ let new_message ~sp ~forum ~creator_id ?subject ?parent_id ?sticky ~text () =
 let set_deleted ~sp ~message_id ~deleted =
   Forum_sql.get_message ~message_id () >>= fun m ->
   Forum.get_role sp m.m_forum >>= fun role ->
-  Users.get_user_data sp >>= fun u ->
+  User.get_user_data sp >>= fun u ->
   let uid = u.User_sql.Types.user_id in
   let first_msg = m.m_parent_id = None in
   !!(role.message_deletors) >>= fun message_deletors ->
@@ -121,7 +121,7 @@ let set_sticky ~sp ~message_id ~sticky =
 
 let get_forum ~sp ?forum ?title () =
   Forum_sql.get_forum ?forum ?title () >>= fun f ->
-  Users.in_group ~sp ~group:(forum_visible $ f.f_id) () >>= fun b ->
+  User.in_group ~sp ~group:(forum_visible $ f.f_id) () >>= fun b ->
   if b
   then Lwt.return f
   else Lwt.fail Ocsimore_common.Permission_denied
@@ -132,7 +132,7 @@ let get_forums_list ~sp () =
     (fun f e -> 
        e >>= fun e ->
        let f = get_forum_info f in
-       Users.in_group ~sp ~group:(forum_visible $ f.f_id) () >>= fun b ->
+       User.in_group ~sp ~group:(forum_visible $ f.f_id) () >>= fun b ->
        if b
        then Lwt.return (f::e)
        else Lwt.return e)

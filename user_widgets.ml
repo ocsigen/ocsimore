@@ -98,7 +98,7 @@ object (self)
   method private login_box_extension ~sp:_ = Lwt.return {{ [] }}
 
   method private logout_box_extension ~sp =
-    Users.get_user_data sp >>= fun ud ->
+    User.get_user_data sp >>= fun ud ->
     Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a service_view_group sp
                                   {{ "Manage your account" }} ud.user_login :}]]
                   ] }}
@@ -120,8 +120,8 @@ object (self)
 
   method display_login_widget ~sp
     ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () =
-    Users.get_user_data sp >>= fun u ->
-    Users.is_logged_on sp >>= fun logged ->
+    User.get_user_data sp >>= fun u ->
+    User.is_logged_on sp >>= fun logged ->
     (if logged then
        self#display_logout_box sp u >>= fun f ->
        Lwt.return (
@@ -137,7 +137,7 @@ object (self)
            (Eliom_duce.Xhtml.post_form ~service:action_login ~sp ~a f ())
        in
        if List.exists
-         (fun e -> e = Users.BadPassword || e = Users.BadUser)
+         (fun e -> e = User.BadPassword || e = User.BadUser)
          (User_services.get_login_error ~sp)
        then (* unsuccessful attempt *)
          f_login true ~a:{{ {class="logbox error"} }}
@@ -148,7 +148,7 @@ object (self)
 
   method display_edit_user_data ?(err="") = fun sp userid () ->
     (match userid with
-      | None -> Users.get_user_id sp
+      | None -> User.get_user_id sp
       | Some user -> Lwt.return user
     ) >>= fun userid ->
     User_data.can_change_user_data_by_userid sp userid >>= function
@@ -218,8 +218,8 @@ object (self)
 
 
   method display_group ~sp g =
-    Users.get_user_by_name g  >>= fun group ->
-    (if group = basic_user Users.nobody && g <> Users.nobody_login then
+    User.get_user_by_name g  >>= fun group ->
+    (if group = basic_user User.nobody && g <> User.nobody_login then
        let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
        Lwt.return {{ [<p>msg] }}
      else
@@ -230,15 +230,15 @@ object (self)
                | Ocsimore_common.Permission_denied  ->
                    "Unable to perform operation, insufficient rights"
                | Failure s -> s
-               | Users.UnknownUser u ->
+               | User.UnknownUser u ->
                    "Unknown user '" ^ u ^ "'"
                | _ -> "Error"
              in
              {{ [<h2>[<em>{:msg:}]] }}
        in
 
-       Users.get_user_data sp >>= fun user ->
-       let isadmin = (user.user_id = Users.admin) in
+       User.get_user_data sp >>= fun user ->
+       let isadmin = (user.user_id = User.admin) in
 
        (* Group change *)
        (User_data.can_change_user_data_by_user sp group >>= function
@@ -255,7 +255,7 @@ object (self)
                        !edit ] }} in
 
        (* Adding groups to the group *)
-       Users.GroupsForms.form_edit_group ~show_edit:isadmin ~group ~text:""
+       User.GroupsForms.form_edit_group ~show_edit:isadmin ~group ~text:""
        >>= fun form  ->
        let form (n, (n1, n2)) =
          {{ [<p>[{: Eliom_duce.Xhtml.string_input
@@ -270,7 +270,7 @@ object (self)
          ~service:action_add_remove_users_from_group ~sp form () in
 
        (* Adding the group to groups *)
-       Users.GroupsForms.form_edit_user ~show_edit:isadmin ~user:group ~text:""
+       User.GroupsForms.form_edit_user ~show_edit:isadmin ~user:group ~text:""
        >>= fun form  ->
        let form (n, (n1, n2)) =
          {{ [<p>[{: Eliom_duce.Xhtml.string_input

@@ -20,7 +20,6 @@ open Lwt
 open Eliommod
 open Eliom_sessions
 open Eliom_duce.Xhtml
-open Session_manager
 
 (**
 This module contains general-use widgets for Ocsimore.

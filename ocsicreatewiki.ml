@@ -40,13 +40,13 @@ let wiki_data =
           {data with path = path}
           l
     | (Simplexmlparser.Element ("readers", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        User.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with readers = Some a}
           l
     | (Simplexmlparser.Element ("admins", [], s))::l -> 
-        Users.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
+        User.user_list_of_string (Ocsigen_parseconfig.parse_string s) 
         >>= fun a ->
         find_wikidata 
           {data with admins = Some a}
@@ -74,7 +74,7 @@ let _ =
      Wiki_services.create_and_register_wiki
        ~rights:Ocsisite.wiki_rights
        ~model:Ocsisite.wikicreole_model
-       ~author:Users.admin
+       ~author:User.admin
        ~title:wiki_data.name
        ~descr:""
        ~path:wiki_data.path
@@ -91,7 +91,7 @@ let _ =
 let create_and_register_wiki ~rights ?sp
     ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~author
-    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
+    ?(admins=[basic_user author]) ?(readers = [basic_user User.anonymous])
     ?wiki_css ?container_text ~model
     () =
   Lwt.catch

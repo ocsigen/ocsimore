@@ -28,10 +28,10 @@ let nis_auth ~name ~pwd =
        Nis_chkpwd.check_nis name pwd >>= fun b ->
        if b
        then Lwt.return ()
-       else Lwt.fail Users.BadPassword
+       else Lwt.fail User.BadPassword
     )
     (function
-       | Users.BadPassword -> Lwt.fail Users.BadPassword
+       | User.BadPassword -> Lwt.fail User.BadPassword
        | e -> 
            Ocsigen_messages.debug (fun () -> "Ocsimore_nis: "^
                                      Printexc.to_string e);

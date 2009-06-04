@@ -140,14 +140,14 @@ let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
     ~title:(title^" (messages)")
     ~descr:(descr^" (messages)")
     ~boxrights:false
-    ~author:Users.admin
+    ~author:User.admin
     ~model:wiki_model
     () >>= fun mw ->
   Wiki.create_wiki
     ~title:(title^" (comments)")
     ~descr:(descr^" (comments)")
     ~boxrights:false
-    ~author:Users.admin
+    ~author:User.admin
     ~model:wiki_model
     () >>= fun cw ->
   Forum_sql.new_forum
@@ -252,14 +252,14 @@ type role =
     }
 
 let get_role ~sp ~forum =
-  Users.get_user_id sp >>= fun u ->
-  let aux g id = Users.in_group ~sp
+  User.get_user_id sp >>= fun u ->
+  let aux g id = User.in_group ~sp
     ~user:(User_sql.Types.basic_user u) ~group:(g $ id) () 
   in
   let noright = lazy (Lwt.return false) in
 
   Forum_sql.get_forum ~forum () >>= fun forum_info ->
-  Users.in_group ~sp ~group:(forum_visible $ forum_info.f_id) ()
+  User.in_group ~sp ~group:(forum_visible $ forum_info.f_id) ()
   >>= fun b ->
   if b
   then Lwt.return

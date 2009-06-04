@@ -215,7 +215,7 @@ let create_event =
                title description comment status ->
              Event_sql.insert_persons persons >>= fun persons ->
              Event_sql.insert_event
-                Common.wiki_info.Wiki_types.wiki_id Users.admin
+                Common.wiki_info.Wiki_types.wiki_id User.admin
                 cat.cat_id start finish room location
                 persons title description comment status >>= fun id ->
              Lwt.return
@@ -272,7 +272,7 @@ let edit_event =
               Wiki_data.wikibox_content ~sp ~rights (Common.wiki_id, ev'.description)
               >>= fun (content_type, _, _) ->
               Event_sql.update_event
-                Common.wiki_id Users.admin
+                Common.wiki_id User.admin
                 ev' (Some desc) content_type comment persons >>= fun () ->
               Lwt.return
                 {{<html xmlns="http://www.w3.org/1999/xhtml">

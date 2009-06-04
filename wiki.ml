@@ -51,10 +51,10 @@ let prefix = "wiki"
 let aux_grp name descr =
   let g = Lwt_unix.run
     (User_sql.new_parameterized_group ~prefix ~name ~fullname:descr) in
-  g, Users.GroupsForms.helpers_group name g
+  g, User.GroupsForms.helpers_group name g
 
 let admin_writer_reader_aux ~name ~descr =
-  Users.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr
+  User.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr
 
 
 (** All wiki-related groups *)
@@ -93,7 +93,7 @@ let (wiki_wikiboxes_deletors, h_wiki_wikiboxes_deletors :
 let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
   admin_writer_reader_aux ~name:"WikiWikiboxes"
     ~descr:"the wikiboxes of the wiki"
-let h_wiki_wikiboxes_grps = Users.GroupsForms.helpers_admin_writer_reader
+let h_wiki_wikiboxes_grps = User.GroupsForms.helpers_admin_writer_reader
   "WikiWikiboxes" wiki_wikiboxes_grps
 
 let (wiki_files_readers, h_wiki_files_readers :
@@ -156,7 +156,7 @@ let () = Lwt_unix.run (
 )
 
 
-open Users.GenericRights
+open User.GenericRights
 
 let can_sthg_wikibox f ~sp (wid, _ as wb) =
   Wiki_sql.get_wikibox_info wb
@@ -166,17 +166,17 @@ let can_sthg_wikibox f ~sp (wid, _ as wb) =
   else
     (f.field wiki_wikiboxes_grps) $ wid
   in
-  Users.in_group ~sp ~group:g ()
+  User.in_group ~sp ~group:g ()
 
 let aux_group grp ~sp data =
-  Users.in_group ~sp ~group:(grp $ data) ()
+  User.in_group ~sp ~group:(grp $ data) ()
 
 
 class wiki_rights : Wiki_types.wiki_rights =
   let can_adm_wb, can_wr_wb, can_re_wb = can_sthg can_sthg_wikibox in
 object (self)
   method can_create_wiki ~sp () =
-    Users.in_group ~sp ~group:wikis_creator ()
+    User.in_group ~sp ~group:wikis_creator ()
 
  method can_admin_wiki = aux_group wiki_admins
 
@@ -194,7 +194,7 @@ object (self)
   method can_create_wikicss = aux_group wiki_css_creators
   method can_create_wikipagecss ~sp (wiki, _page : wikipage) =
   (* XXX add a field to override by wikipage and use wikipage_css_creators *)
-  Users.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
+  User.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
 
   method can_set_wikibox_specific_permissions ~sp (wiki, _  as wb) =
     Wiki_sql.get_wiki_info_by_id wiki
@@ -222,10 +222,10 @@ end
 
 (** Auxiliary functions and structures to edit rights *)
 
-open Users.GroupsForms
+open User.GroupsForms
 
 let helpers_wikibox_permissions =
-  Users.GroupsForms.helpers_admin_writer_reader
+  User.GroupsForms.helpers_admin_writer_reader
     "edit_wikibox_permissions" wikibox_grps
 
 let helpers_wiki_permissions =
@@ -319,7 +319,7 @@ exception Wiki_with_same_title of wiki
 *)
 let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~author
-    ?(admins=[basic_user author]) ?(readers = [basic_user Users.anonymous])
+    ?(admins=[basic_user author]) ?(readers = [basic_user User.anonymous])
     ?wiki_css ?(container_text=default_container_page)
     ~model
     () =
@@ -350,11 +350,11 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
 
    (* Putting users in groups *)
    (* Admins *)
-   Users.add_list_to_group ~l:admins ~group:(wiki_admins $ wiki_id) >>= fun ()->
+   User.add_list_to_group ~l:admins ~group:(wiki_admins $ wiki_id) >>= fun ()->
    (* Readers *)
-   Users.add_list_to_group ~l:readers
+   User.add_list_to_group ~l:readers
      ~group:(wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
-   Users.add_list_to_group ~l:readers
+   User.add_list_to_group ~l:readers
      ~group:(wiki_files_readers $ wiki_id) >>= fun () ->
 
    (match wiki_css with

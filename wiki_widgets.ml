@@ -501,7 +501,7 @@ object (self)
   method display_edit_wikibox_perm_form ~bi ~classes wb =
     Wiki_sql.get_wikibox_info wb
     >>= fun { wikibox_uid = uid; wikibox_special_rights = sr } ->
-    let { Users.GroupsForms.awr_form_fun = form; awr_form_arg = arg} =
+    let { User.GroupsForms.awr_form_fun = form; awr_form_arg = arg} =
       Wiki.helpers_wikibox_permissions 
     in
     let msg1 = Ocamlduce.Utf8.make
@@ -915,7 +915,7 @@ object (self)
                           ~input_type:{: "submit" :} ~value:"Create it!" () :}
                      ]] }}
               in
-              Users.in_group ~sp 
+              User.in_group ~sp 
                 ~group:(apply_parameterized_group
                           Wiki.wiki_wikipages_creators wiki) ()
               >>= fun c ->
@@ -1025,7 +1025,7 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
         try (* If a wikibox is already specified, there is nothing to do *)
           ignore (List.assoc "box" args); Lwt.return None
         with Not_found ->
-          Users.get_user_id ~sp >>= fun userid ->
+          User.get_user_id ~sp >>= fun userid ->
           rights#can_create_subwikiboxes ~sp wid >>= function
             | true ->
                 Wiki_data.new_wikitextbox

@@ -113,7 +113,7 @@ let wiki_admin = Lwt_unix.run
               ~descr:"Administration boxes"
               ~path:[Ocsimore_lib.ocsimore_admin_dir]
               ~boxrights:true
-              ~author:Users.admin
+              ~author:User.admin
               ~container_text:"= Ocsimore administration\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
               ~model:wikicreole_model
               ()
@@ -136,7 +136,7 @@ let wiki_admin = Lwt_unix.run
        Wiki.wiki_files_readers;
      ] in
      Lwt_util.iter
-       (fun g -> User_sql.add_to_group ~user:(basic_user Users.anonymous)
+       (fun g -> User_sql.add_to_group ~user:(basic_user User.anonymous)
           ~group:(g $ id.wiki_id))
        groups
    ) >>= fun () ->
@@ -159,7 +159,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
       (function Not_found ->
          Wiki_sql.new_wikibox
            ~wiki:wiki_admin_id ~comment ~content ~content_type
-           ~author:Users.admin ()
+           ~author:User.admin ()
          >>= fun box ->
          Wiki_sql.set_box_for_page ~sourcewiki:wiki_admin_id ~wbid:box ~page ()
 
@@ -209,17 +209,17 @@ let _ = Lwt_unix.run
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = name} ->
-        Users.add_to_group ~user:(basic_user Users.anonymous)
+        User.add_to_group ~user:(basic_user User.anonymous)
           ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
         >>= fun () ->
-        Users.add_to_group ~user:(basic_user Users.anonymous)
+        User.add_to_group ~user:(basic_user User.anonymous)
           ~group:(Wiki.wiki_files_readers $ wiki)
         >>= fun () ->
         try Scanf.sscanf name "wikiperso for %s"
           (fun user ->
-             Users.get_user_by_name user
+             User.get_user_by_name user
              >>= fun user ->
-             Users.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
+             User.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
           )
         with Scanf.Scan_failure _ -> Lwt.return ()
 

@@ -30,7 +30,7 @@ let rec aux = function
   | (name, s)::l ->
       aux l >>= fun () ->
       let test = Accesscontrol.parse_condition s in
-      Users.create_user
+      User.create_user
         ~name
         ~pwd:User_sql.Types.Connect_forbidden
         ~fullname:name

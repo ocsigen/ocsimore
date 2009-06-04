@@ -42,7 +42,7 @@ let valid_emailaddr email =
 let mail_password ~name ~password ~from_name ~from_addr ~subject =
   Lwt.catch
     (fun () ->
-       Users.get_basicuser_by_login name
+       User.get_basicuser_by_login name
        >>= fun u ->
        User_sql.get_basicuser_data u
        >>= fun user ->
@@ -89,8 +89,8 @@ type user_creation = {
 }
 
 let can_create_user ~sp ~options =
-  Users.get_user_id sp >>= fun u ->
-  Lwt.return (u = Users.admin || options.non_admin_can_create)
+  User.get_user_id sp >>= fun u ->
+  Lwt.return (u = User.admin || options.non_admin_can_create)
 
 let create_user ~sp ~name ~fullname ~email ~options =
   can_create_user ~sp ~options >>= function
@@ -102,10 +102,10 @@ let create_user ~sp ~name ~fullname ~email ~options =
         else
           let pwd = generate_password () in
           Lwt.catch (fun () ->
-              Users.create_fresh_user ~name ~fullname ~email
+              User.create_fresh_user ~name ~fullname ~email
                 ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
               >>= fun userid ->
-              Users.add_to_groups (basic_user userid) options.new_user_groups
+              User.add_to_groups (basic_user userid) options.new_user_groups
               >>= fun () ->
               mail_password ~name ~password:pwd ~subject:options.mail_subject
                 ~from_name:options.mail_from ~from_addr:options.mail_addr
@@ -117,7 +117,7 @@ let create_user ~sp ~name ~fullname ~email ~options =
                           "Registration failed: cannot send confirmation email")
           )
           (function
-             | Users.BadUser ->
+             | User.BadUser ->
                  Lwt.fail (Failure "ERROR: This login already exists")
              | e -> Lwt.fail e)
     | false ->
@@ -127,8 +127,8 @@ let create_user ~sp ~name ~fullname ~email ~options =
 (** Change user information *)
 
 let can_change_user_data_by_userid sp userid =
-  Users.get_user_id sp >>= fun lu ->
-  Lwt.return ((lu = userid && lu <> Users.nobody) || lu = Users.admin)
+  User.get_user_id sp >>= fun lu ->
+  Lwt.return ((lu = userid && lu <> User.nobody) || lu = User.admin)
 
 let can_change_user_data_by_user sp user =
   User_sql.get_user_data user >>= fun ud ->
@@ -143,7 +143,7 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
         else if pwd <> pwd2 then
           Lwt.fail (Failure "ERROR: Passwords don't match!")
         else
-          Users.get_user_data sp >>= fun user ->
+          User.get_user_data sp >>= fun user ->
           Ocsigen_messages.debug2 (Printf.sprintf "Updating user '%s'"fullname);
           let pwd = match user.user_pwd with
             | Connect_forbidden (* Should never happen, the user cannot
@@ -167,21 +167,21 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
 (** Edition of groups *)
 
 let add_remove_users_from_group sp g (add, rem) =
-  Users.get_user_id sp >>= fun user ->
-  if user = Users.admin then
-    Users.get_user_by_name g
+  User.get_user_id sp >>= fun user ->
+  if user = User.admin then
+    User.get_user_by_name g
     >>= fun group ->
-    Users.GroupsForms.add_remove_users_from_group add rem group
+    User.GroupsForms.add_remove_users_from_group add rem group
   else
     Lwt.fail Ocsimore_common.Permission_denied
 
 
 let add_remove_user_from_groups sp u (add, rem) =
-  Users.get_user_id sp >>= fun user ->
-  if user = Users.admin then
-    Users.get_user_by_name u
+  User.get_user_id sp >>= fun user ->
+  if user = User.admin then
+    User.get_user_by_name u
     >>= fun group ->
-    Users.GroupsForms.user_add_remove_from_groups group add rem
+    User.GroupsForms.user_add_remove_from_groups group add rem
   else
     Lwt.fail Ocsimore_common.Permission_denied
 
@@ -199,26 +199,26 @@ let login ~sp ~name ~pwd ~external_auth =
   Eliom_sessions.close_session ~sp () >>= fun () ->
   Lwt.catch
     (fun () ->
-       Users.authenticate ~name ~pwd >>= fun u ->
+       User.authenticate ~name ~pwd >>= fun u ->
        Lwt.return u.user_id)
     (fun e ->
        match external_auth with
          | None -> Lwt.fail e
          | Some ea -> match e with
-             | Users.UseAuth u ->
+             | User.UseAuth u ->
                  (* check external pwd *)
                  ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
                    Lwt.return u
-             | Users.BadUser ->
+             | User.BadUser ->
                  (* check external pwd, and create user if ok *)
                  ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
                  ea.ext_auth_fullname name >>= fun fullname ->
-                 Users.create_user ~pwd:User_sql.Types.External_Auth
+                 User.create_user ~pwd:User_sql.Types.External_Auth
                    ~name ~fullname ()
                  (* Do we need to actualize the fullname every time
                     the user connects? *)
               | e -> Lwt.fail e)
   >>= fun user ->
   Eliom_sessions.clean_request_cache ~sp;
-  Users.set_session_data sp user
+  User.set_session_data sp user
 

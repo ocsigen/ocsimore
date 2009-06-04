@@ -297,7 +297,7 @@ let make_services () =
     )
 
   and action_send_wikibox_permissions =
-    let { Users.GroupsForms.awr_eliom_params = params; awr_save = f;
+    let { User.GroupsForms.awr_eliom_params = params; awr_save = f;
           awr_eliom_arg_param = arg} =
       Wiki.helpers_wikibox_permissions in
     Eliom_predefmod.Any.register_new_post_coservice'
@@ -378,7 +378,7 @@ let make_services () =
                  )
                  (function
                     | Not_found ->
-                        Users.get_user_id ~sp >>= fun user ->
+                        User.get_user_id ~sp >>= fun user ->
                           let content_type = 
                             Wiki_models.get_default_content_type
                               wiki_info.wiki_model 
@@ -401,7 +401,7 @@ let make_services () =
     ~get_params:(eliom_wiki_args **
                    (Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
     (fun sp (wiki, page) () ->
-       Users.get_user_id ~sp >>= fun user ->
+       User.get_user_id ~sp >>= fun user ->
          Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
            let rights = Wiki_models.get_rights wiki_info.wiki_model in
            (match page with

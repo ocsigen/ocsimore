@@ -47,7 +47,7 @@ let register_user_extensions wp (user_widget : User_widgets.user_widget) =
   add_extension ~name:"username" ~wiki_content:true
     (fun bi _args _c ->
        Wikicreole.A_content
-         (Users.get_user_data ~sp:bi.bi_sp
+         (User.get_user_data ~sp:bi.bi_sp
           >>= fun ud ->
           Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
     );

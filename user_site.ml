@@ -69,8 +69,8 @@ let (auth, basicusercreation, force_secure) =
           Ocsimore_lib.list_assoc_default "non_admin" atts ""
         in
         (try
-          Users.user_list_of_string (List.assoc "groups" atts)
-        with Not_found -> Lwt.return [basic_user Users.authenticated_users])
+          User.user_list_of_string (List.assoc "groups" atts)
+        with Not_found -> Lwt.return [basic_user User.authenticated_users])
         >>= fun default_groups ->
         find_data
           (auth,

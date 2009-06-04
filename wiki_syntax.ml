@@ -890,13 +890,13 @@ let () =
              | ("error", "autherror") ->
                  Lwt.return
                    (List.exists
-                      (fun e -> e = Users.BadPassword || e = Users.BadUser)
+                      (fun e -> e = User.BadPassword || e = User.BadUser)
                       (User_services.get_login_error ~sp))
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->
-                      Users.get_user_by_name g >>= fun group ->
-                      Users.in_group ~sp ~group ())
+                      User.get_user_by_name g >>= fun group ->
+                      User.in_group ~sp ~group ())
                    (function _ -> Lwt.return false)
              | ("http_code", "404") ->
                  Lwt.return (Wiki_widgets_interface.page_displayable sp =

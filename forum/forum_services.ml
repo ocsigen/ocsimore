@@ -64,7 +64,7 @@ let register_services () =
        then
          (Lwt.catch
             (fun () ->
-               Users.get_user_data sp >>= fun u ->
+               User.get_user_data sp >>= fun u ->
                Forum_data.new_message ~sp ~forum 
                  ~creator_id:u.user_id ?subject ?parent_id ~text ()
                >>= fun _ ->

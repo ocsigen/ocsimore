@@ -8,7 +8,7 @@ Ocsimore_common
 Ocsimore_lib
 Sql
 User_sql
-Users
+User
 User_external_auth
 User_data
 User_services

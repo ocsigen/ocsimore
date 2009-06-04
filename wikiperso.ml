@@ -100,7 +100,7 @@ let external_user user =
          >>= function
            | None -> return None
            | Some userdata ->
-               Users.create_user ~name:user
+               User.create_user ~name:user
                  ~pwd:User_sql.Types.External_Auth
                  ~fullname:userdata.Unix.pw_gecos
                  ~email:(user ^ "@localhost")
@@ -164,9 +164,9 @@ let create_wikiperso ~model ~wiki_title ~userdata =
 (* Given a user name, we find the id of the corresponding ocsimore
    user. If it does not exists, we try external authentification *)
 let find_user user =
-  Users.get_basicuser_by_login user
+  User.get_basicuser_by_login user
   >>= fun userdata ->
-    if userdata <> Users.nobody then
+    if userdata <> User.nobody then
       Lwt.return (Some userdata)
     else
       external_user user

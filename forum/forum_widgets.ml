@@ -124,7 +124,7 @@ object (self)
 
   method pretty_print_message
     ~classes
-    ?(arborescent = true) ~sp m =
+    ?(arborescent:_ = true) ~sp m =
     User_sql.get_basicuser_data m.m_creator_id >>= fun ud ->
     let author = ud.User_sql.Types.user_fullname in
     Forum.get_role sp m.m_forum >>= fun role ->
