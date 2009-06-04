@@ -357,73 +357,56 @@ object (self)
 
 
   method display_user_creation ?(err="") ~sp =
-    Ocsimore_common.html_page
-      {{ [<h1>"Registration form"
-           <p>['Please fill in the following fields.' <br>[]
-               'Be very careful to enter a valid e-mail address, \
+    Users.get_user_id sp >>= fun u ->
+    if u = Users.admin ||
+      user_creation_options.User_data.non_admin_can_create then
+      Ocsimore_common.html_page
+        {{ [<h1>"Registration form"
+            <p>['Please fill in the following fields.' <br>[]
+                 'Be very careful to enter a valid e-mail address, \
                  as the password for logging in will be sent there.']
-           {: Eliom_duce.Xhtml.post_form ~sp
-              ~service:action_create_new_user
-              (fun (usr,(desc,email)) ->
-                 {{ [<table>[
-                        <tr>[
-                          <td>"login name: (letters & digits only)"
-                          <td>[{: str_input usr :}]
-                        ]
-                        <tr>[
-                          <td>"real name:"
-                          <td>[{: str_input desc :}]
-                        ]
-                        <tr>[
-                          <td>"e-mail address:"
-                          <td>[{: str_input email :}]
-                        ]
-                        <tr>[
-                          <td>[{: submit_input "Register" :}]
-                        ]]] }})
-              () :}
-           <p>[<strong>{: err :}]]
-       }}
-
-
+            {: Eliom_duce.Xhtml.post_form ~sp  ~service:action_create_new_user
+               (fun (usr,(desc,email)) ->
+                  {{ [<table>[
+                         <tr>[
+                           <td>"login name: (letters & digits only)"
+                           <td>[{: str_input usr :}]
+                         ]
+                         <tr>[
+                           <td>"real name:"
+                           <td>[{: str_input desc :}]
+                         ]
+                         <tr>[
+                           <td>"e-mail address:"
+                           <td>[{: str_input email :}]
+                         ]
+                         <tr>[
+                           <td>[{: submit_input "Register" :}]
+                         ]]] }})
+               () :}
+             <p>[<strong>{: err :}]]
+         }}
+    else
+      Ocsimore_common.html_page
+        {{ [<h1>"Only admin can create new users"] }}
 
   method display_user_creation_done sp () (user, (fullname, email)) =
-    if not (User_data.valid_username user) then
-      self#display_user_creation ~err:"ERROR: Bad character(s) in login name!" ~sp
-    else if not (User_data.valid_emailaddr email) then
-      self#display_user_creation ~err:"ERROR: Bad formed e-mail address!" ~sp
-    else
-      let pwd = User_data.generate_password () in
-      Lwt.catch (fun () ->
-        Users.create_fresh_user ~name:user
-          ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
-        >>= fun userid ->
-        Users.add_to_groups (basic_user userid)
-          user_creation_options.User_services.new_user_groups >>= fun () ->
-        User_data.mail_password
-          ~name:user ~password:pwd
-          ~from_name:user_creation_options.User_services.mail_from
-          ~from_addr:user_creation_options.User_services.mail_addr
-          ~subject:user_creation_options.User_services.mail_subject
-        >>= function
-          | true ->
-              Ocsimore_common.html_page
-                {{ [<h1>"Registration ok."
-                    <p>(['You\'ll soon receive an e-mail message at the \
-                           following address:'
-                          <br>[]] @
-                          {: email :} @ [<br>[]
-                         'with your password.'])] }}
-
-          | false ->
-              User_sql.delete_user ~userid:userid >>= fun () ->
-              Ocsimore_common.html_page
-                {{ [<h1>"Registration failed."
-                    <p>"Please try later."] }}
-                )
-        (function
-           | Users.BadUser ->
-               self#display_user_creation ~sp
-                 ~err:"ERROR: This login already exists"
-           | e -> Lwt.fail e)
+    Lwt.catch
+      (fun () ->
+         User_data.create_user ~sp ~user ~fullname ~email
+           ~options:user_creation_options >>= fun () ->
+         Ocsimore_common.html_page
+           {{ [<h1>"Registration ok."
+                <p>[!"You\'ll soon receive an e-mail message at the \
+                       following address:" <br>[]
+                     !{: email :} <br>[]
+                     !"with your password."] ] }}
+      )
+      (function
+         | Failure err -> self#display_user_creation ~err ~sp
+         | Ocsimore_common.Permission_denied ->
+             Ocsimore_common.html_page {{ [
+                      <h1>"Error"
+                      <p>"Only admin can create new users" ] }}
+         | e -> Lwt.fail e)
 end

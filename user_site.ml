@@ -30,7 +30,7 @@ let ( ** ) = Eliom_parameters.prod
 
 type user_creation =
   | NoUserCreation
-  | UserCreation of User_services.user_creation
+  | UserCreation of User_data.user_creation
 
 type external_auth = NoExternalAuth | Nis | Pam of string option
 
@@ -65,6 +65,8 @@ let (auth, basicusercreation, force_secure) =
         and registration_mail_subject =
           Ocsimore_lib.list_assoc_default "registration_mail_subject" atts
             "Ocsimore registration"
+        and non_admin =
+          Ocsimore_lib.list_assoc_default "non_admin" atts ""
         in
         (try
           Users.user_list_of_string (List.assoc "groups" atts)
@@ -73,10 +75,11 @@ let (auth, basicusercreation, force_secure) =
         find_data
           (auth,
            UserCreation {
-             User_services.mail_from = registration_mail_from;
+             User_data.mail_from = registration_mail_from;
              mail_addr = registration_mail_addr;
              mail_subject = registration_mail_subject;
-             new_user_groups = default_groups
+             new_user_groups = default_groups;
+             non_admin_can_create = (non_admin = "true");
            },
            secure
           )

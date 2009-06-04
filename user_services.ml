@@ -28,8 +28,6 @@ open User_sql.Types
 
 
 
-
-
 type external_auth = {
   (** A function returning unit if the given user can be authentified by
       the given password, or failing with [BadUser] *)
@@ -37,15 +35,6 @@ type external_auth = {
 
   (** The fullname of the user whose login is the argument *)
   ext_auth_fullname: string -> string Lwt.t;
-}
-
-
-(** Options for the creation of a new user *)
-type user_creation = {
-  mail_from: string;
-  mail_addr: string;
-  mail_subject: string;
-  new_user_groups: User_sql.Types.user list;
 }
 
 

@@ -79,6 +79,50 @@ let generate_password () =
     pwd
 
 
+(** Options for the creation of a new user *)
+type user_creation = {
+  non_admin_can_create: bool;
+  mail_from: string;
+  mail_addr: string;
+  mail_subject: string;
+  new_user_groups: User_sql.Types.user list;
+}
+
+
+let create_user ~sp ~user ~fullname ~email ~options =
+  Users.get_user_id sp >>= fun u ->
+  if u = Users.admin || options.non_admin_can_create then
+    if not (valid_username user) then
+      Lwt.fail (Failure "ERROR: Bad character(s) in login name!")
+    else if not (valid_emailaddr email) then
+      Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
+    else
+      let pwd = generate_password () in
+      Lwt.catch (fun () ->
+          Users.create_fresh_user ~name:user
+            ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ~fullname ~email ()
+          >>= fun userid ->
+          Users.add_to_groups (basic_user userid) options.new_user_groups
+          >>= fun () ->
+          mail_password ~name:user ~password:pwd ~from_name:options.mail_from
+            ~from_addr:options.mail_addr ~subject:options.mail_subject
+          >>= function
+            | true -> Lwt.return ()
+            | false ->
+                User_sql.delete_user ~userid:userid >>= fun () ->
+                Lwt.fail (Failure
+                     "Registration failed: cannot send confirmation email")
+      )
+      (function
+         | Users.BadUser ->
+             Lwt.fail (Failure "ERROR: This login already exists")
+         | e -> Lwt.fail e)
+  else
+    Lwt.fail Ocsimore_common.Permission_denied
+
+
+(** Change user information *)
+
 let can_change_user_data_by_userid sp userid =
   Users.get_user_id sp >>= fun lu ->
   Lwt.return ((lu = userid && lu <> Users.nobody) || lu = Users.admin)
@@ -92,9 +136,9 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
   can_change_user_data_by_userid sp userid >>= function
     | true ->
         if not (valid_emailaddr email) then
-          failwith "ERROR: Bad formed e-mail address!"
+          Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
         else if pwd <> pwd2 then
-          failwith "ERROR: Passwords don't match!"
+          Lwt.fail (Failure "ERROR: Passwords don't match!")
         else
           Users.get_user_data sp >>= fun user ->
           Ocsigen_messages.debug2 (Printf.sprintf "Updating user '%s'"fullname);
@@ -104,7 +148,8 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
 
             | External_Auth (* We cannot change this password, we should not
                                leave the possibility to the user  *) ->
-              failwith"ERROR: Cannot change NIS or PAM passwords from Ocsimore!"
+                failwith
+                     "ERROR: Cannot change NIS or PAM passwords from Ocsimore!"
             | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
                 (* We always use crypted passwords, even if the user
                    previously unencrypted ones *)
