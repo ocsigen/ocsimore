@@ -966,9 +966,12 @@ let context sp param b =
     stack = Paragraph [] }
 
 let from_lexbuf sp param b lexbuf =
-  let c = context sp param b in
-  parse_bol c lexbuf;
-  List.rev c.flow
+  Lwt_preemptive.detach
+    (fun () ->
+       let c = context sp param b in
+       parse_bol c lexbuf;
+       List.rev c.flow)
+    ()
 
 let from_channel sp param b ch = from_lexbuf sp param b (Lexing.from_channel ch)
 

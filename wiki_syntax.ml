@@ -656,11 +656,11 @@ let wikicreole_parser = {
   plugin_action_assoc = Hashtbl.create 17;
 }
 
-let xml_of_wiki wp bi s = 
-  Lwt_util.map_serial
-    (fun x -> x)
-    (Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-       (builder_from_builder_ext wp) s)
+let xml_of_wiki wp bi s =
+  Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+       (builder_from_builder_ext wp) s
+  >>= fun l ->
+  Lwt_util.map_serial (fun x -> x) l
   >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
@@ -670,9 +670,8 @@ let wikicreole_content_type =
     (xml_of_wiki wikicreole_parser)
 
 let inline_of_wiki builder bi s : Xhtmltypes_duce.inlines Lwt.t =
-  match Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-    (builder_from_builder_ext builder) s
-  with
+  Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+    (builder_from_builder_ext builder) s >>= function
     | [] -> Lwt.return {{ [] }}
     | a::_ -> a >>= (function
                        | {{ [ <p>l _* ] }} -> Lwt.return l

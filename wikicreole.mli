@@ -85,13 +85,13 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
 val from_channel :
   'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> in_channel -> 'flow list
+  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> in_channel -> 'flow list Lwt.t
 val from_string :
   'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> string -> 'flow list
+  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> string -> 'flow list Lwt.t
 val from_lexbuf :
   'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> Lexing.lexbuf -> 'flow list
+  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> Lexing.lexbuf -> 'flow list Lwt.t
 
