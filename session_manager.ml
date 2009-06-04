@@ -37,26 +37,35 @@ let get_login_error ~sp =
       ~key:login_error_key
   with Not_found -> []
 
-(* use https for login? *)
-let secure = ref true
-let set_secure b = secure := b
-let get_secure () = !secure
+
+
+type external_auth = {
+  (** A function returning unit if the given user can be authentified by
+      the given password, or failing with [BadUser] *)
+  ext_auth_authenticate: name:string -> pwd:string -> unit Lwt.t;
+
+  (** The fullname of the user whose login is the argument *)
+  ext_auth_fullname: string -> string Lwt.t;
+}
 
 
 
-class sessionmanager_aux f_auth ?sp ()  =
-  let internal_act_login =
+
+
+
+class sessionmanager ~external_auth ~force_secure ?sp () =
+  let action_login =
     Eliom_services.new_post_coservice'
-      ~https:!secure
+      ~https:force_secure
       ~name:"login"
       ~keep_get_na_params:false
       ~post_params:(string "usr" ** string "pwd") ()
-  and internal_act_logout =
+  and action_logout =
     Eliom_services.new_post_coservice'
       ~name:"logoutpost"
       ~keep_get_na_params:false
       ~post_params:unit ()
-  and internal_act_logout_get =
+  and action_logout_get =
     Eliom_services.new_coservice' ~name:"logout" ~get_params:unit ()
 (*VVV I add this GET service because it is not possible to make a link
   towards a POST service ... I use a redirection instead of an action *)
@@ -64,16 +73,16 @@ class sessionmanager_aux f_auth ?sp ()  =
 
 object (self)
 
-  method act_login :
+  method action_login :
     (unit, string * string,
      [`Nonattached of [`Post] Eliom_services.na_s],
      [`WithoutSuffix], unit,
      [`One of string] Eliom_parameters.param_name *
        [`One of string] Eliom_parameters.param_name,
      [`Registrable]) Eliom_services.service
-    = internal_act_login
+    = action_login
 
-  method act_logout :
+  method action_logout :
     (unit,
      unit,
      [`Nonattached of [`Post] Eliom_services.na_s],
@@ -81,9 +90,9 @@ object (self)
      unit,
      unit,
      [`Registrable]) Eliom_services.service
-    = internal_act_logout
+    = action_logout
 
-  method act_logout_get :
+  method action_logout_get :
     (unit,
      unit,
      [`Nonattached of [`Get] Eliom_services.na_s],
@@ -91,14 +100,36 @@ object (self)
      unit,
      unit,
      [`Registrable]) Eliom_services.service
-    = internal_act_logout_get
+    = action_logout_get
 
 
-  method private mk_act_login sp () (usr, pwd) =
+  method force_secure = force_secure
+
+  method private do_login sp () (name, pwd) =
     Eliom_sessions.close_session ~sp () >>= fun () ->
     Lwt.catch
       (fun () ->
-         f_auth ~name:usr ~pwd  >>= fun user ->
+         Lwt.catch
+           (fun () -> Users.authenticate ~name ~pwd >>= fun u -> 
+              Lwt.return u.user_id)
+           (fun e ->
+              match external_auth with
+                | None -> Lwt.fail e
+                | Some ea -> match e with
+                    | Users.UseAuth u ->
+                        (* check external pwd *)
+                        ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
+                        Lwt.return u
+                    | Users.BadUser ->
+                        (* check external pwd, and create user if ok *)
+                        ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
+                        ea.ext_auth_fullname name >>= fun fullname ->
+                        Users.create_user ~pwd:User_sql.Types.External_Auth
+                          ~name ~fullname ()
+                        (* Do we need to actualize the fullname every time
+                           the user connects? *)
+                    | e -> Lwt.fail e)
+         >>= fun user ->
          Eliom_sessions.clean_request_cache ~sp;
          Users.set_session_data sp user >>= fun () ->
          Eliom_predefmod.Redirection.send ~sp
@@ -109,7 +140,7 @@ object (self)
          Eliom_predefmod.Action.send ~sp ())
 
 
-  method private mk_act_logout sp () () =
+  method private do_logout sp () () =
     Eliom_sessions.close_session ~sp () >>= fun () ->
     Eliom_sessions.clean_request_cache ~sp;
     Eliom_predefmod.Redirection.send ~sp Eliom_services.void_hidden_coservice'
@@ -118,67 +149,28 @@ object (self)
   initializer
     begin
       Eliom_predefmod.Any.register
-        ?sp ~service:internal_act_login self#mk_act_login;
+        ?sp ~service:action_login self#do_login;
       Eliom_predefmod.Any.register
-        ?sp ~service:internal_act_logout self#mk_act_logout;
-      Eliom_predefmod.Redirection.register ?sp ~service:internal_act_logout_get
+        ?sp ~service:action_logout self#do_logout;
+      Eliom_predefmod.Redirection.register
+        ?sp ~service:action_logout_get
         (fun sp () () ->
-           ignore (self#mk_act_logout sp () ());
+           ignore (self#do_logout sp () ());
            Lwt.return Eliom_services.void_coservice'
         );
     end
 end;;
 
 
-class sessionmanager = sessionmanager_aux
-  (fun ~name ~pwd -> Users.authenticate ~name ~pwd
-                     >>= fun u -> Lwt.return u.user_id)
+let external_auth_pam =
+  ref (None : (?service:string -> external_auth) option)
 
 
-let pam_auth :
-    (?service:string -> name:string -> pwd:string -> unit Lwt.t) ref =
-  ref (fun ?service:_service ~name:_name ~pwd:_pwd ->
-         raise Users.BadUser)
-
-let pam_loaded = ref false
-
-let set_pam_auth f =
-  pam_loaded := true;
-  pam_auth := f
-
-let pam_loaded () = !pam_loaded
-
-
-
-(* Authentification by external means *)
-let external_auth f_auth f_fullname ~name ~pwd =
-  Lwt.catch
-    (fun () -> Users.authenticate ~name ~pwd >>= fun u -> 
-               Lwt.return u.user_id)
-    (function
-       | Users.UseAuth u ->
-           (* check external pwd *)
-           f_auth ~name ~pwd >>= fun () ->
-           Lwt.return u
-       | Users.BadUser ->
-           (* check external pwd, and create user if ok *)
-           f_auth ~name ~pwd >>= fun () ->
-           f_fullname name >>= fun fullname ->
-           Users.create_user ~pwd:User_sql.Types.External_Auth
-             ~name
-             ~fullname
-             (* Do we need to actualize the fullanem every time the user
-                connects? *)
-             ()
-        | e -> Lwt.fail e)
-
-
-
-class sessionmanager_pam pam_service = sessionmanager_aux
-  (external_auth (!pam_auth ?service:pam_service) (* XXX find full name using PAM *) (fun n -> Lwt.return n))
-
-class sessionmanager_nis =
-  sessionmanager_aux (external_auth Ocsimore_nis.nis_auth
-                        (fun usr -> Nis_chkpwd.userinfo usr >>= function
+let external_auth_nis = {
+  ext_auth_authenticate = Ocsimore_nis.nis_auth;
+  ext_auth_fullname = (fun usr -> Nis_chkpwd.userinfo usr >>= function
                            | None -> Lwt.return usr
-                           | Some { Unix.pw_gecos = v } -> Lwt.return v))
+                           | Some { Unix.pw_gecos = v } -> Lwt.return v);
+}
+
+

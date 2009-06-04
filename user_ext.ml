@@ -63,7 +63,7 @@ let register_user_extensions wp (widget_login : User_widgets.login_widget) =
           >>= fun c ->
           Lwt.return
             {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { class="logoutbutton"} }}
-                    ~service:widget_login#session_manager#act_logout
+                    ~service:widget_login#session_manager#action_logout
                     ~sp:bi.Wiki_widgets_interface.bi_sp
                     (fun () ->
                        {{ [<p>[
@@ -85,7 +85,7 @@ let register_user_extensions wp (widget_login : User_widgets.login_widget) =
             | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
           in
           ((Eliom_duce.Xhtml.make_uri
-              ~service:widget_login#session_manager#act_logout_get
+              ~service:widget_login#session_manager#action_logout_get
               ~sp:bi.Wiki_widgets_interface.bi_sp ()
            ),
            args,

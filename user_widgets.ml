@@ -49,7 +49,7 @@ class login_widget ?sp ~(sessman: Session_manager.sessionmanager) =
       ~get_params:(opt eliom_user) () in
   let srv_edit_done =
     Eliom_services.new_post_coservice
-      ~https:(Session_manager.get_secure ())
+      ~https:sessman#force_secure
       ~fallback:internal_srv_edit
       ~post_params:(eliom_user ** (string "pwd" **
                       (string "pwd2" ** (string "descr" ** string "email")))) ()
@@ -106,7 +106,7 @@ object (self)
     ?(auth_error= "Wrong login or password")
     ?(switchtohttps= "Click here to switch to https and login")
     ~sp error usr pwd =
-    if (Eliom_sessions.get_ssl sp) || not (Session_manager.get_secure ())
+    if (Eliom_sessions.get_ssl sp) || not sessman#force_secure
     then begin
       let user_prompt = Ocamlduce.Utf8.make user_prompt in
       let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
@@ -155,10 +155,10 @@ object (self)
        self#display_logout_box sp u >>= fun f ->
        Lwt.return (
          Eliom_duce.Xhtml.post_form ~a:{{ { class="logbox logged"} }}
-           ~service:sessman#act_logout ~sp (fun _ -> f) ())
+           ~service:sessman#action_logout ~sp (fun _ -> f) ())
      else
        let f_login error ~a = Eliom_duce.Xhtml.post_form
-         ~service:sessman#act_login ~sp ~a
+         ~service:sessman#action_login ~sp ~a
          (fun (usr, pwd) ->
             (self#display_login_box ?user_prompt ?pwd_prompt
                ?auth_error ?switchtohttps ~sp error usr pwd))
@@ -376,7 +376,7 @@ initializer
 
   ignore
     (Eliom_duce.Xhtml.register_new_service ?sp
-       ~https:(Session_manager.get_secure ())
+       ~https:sessman#force_secure
        ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
        ~get_params:Eliom_parameters.unit
        (fun sp () () ->

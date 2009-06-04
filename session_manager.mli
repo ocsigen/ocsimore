@@ -33,15 +33,27 @@ open Eliom_duce.Xhtml
 val get_login_error : sp:server_params -> exn list
 
 
-(** do you want https for login/password?
-   (see option <notsecure/> in ocsisite) *)
-val set_secure : bool -> unit
-val get_secure : unit -> bool
+(** Authentification with external methods *)
+type external_auth = {
+  (** A function returning unit if the given user can be authentified by
+      the given password, or failing with [BadUser] *)
+  ext_auth_authenticate: name:string -> pwd:string -> unit Lwt.t;
 
-class sessionmanager : ?sp:server_params -> unit ->
+  (** The fullname of the user whose login is the argument *)
+  ext_auth_fullname: string -> string Lwt.t;
+}
+
+
+class sessionmanager :
+external_auth:external_auth option ->
+(** do you want https for login? (see option <notsecure/> in User_site) *)
+force_secure:bool ->
+?sp:server_params -> unit ->
 object
 
-  method act_login:
+  method force_secure:bool
+
+  method action_login:
     (unit,
      string * string,
      [`Nonattached of [`Post] na_s],
@@ -50,7 +62,7 @@ object
      [`One of string] param_name * [`One of string] param_name,
      [`Registrable]) service
 
-  method act_logout:
+  method action_logout:
     (unit,
      unit,
      [`Nonattached of [`Post] na_s],
@@ -59,7 +71,7 @@ object
      unit,
      [`Registrable]) service
 
-  method act_logout_get:
+  method action_logout_get:
     (unit,
      unit,
      [`Nonattached of [`Get] na_s],
@@ -73,22 +85,10 @@ object
 
 end;;
 
+(** Authentification using PAM. May not be available if Ocsimore is
+    compiled without Ocsimore_pam *)
+val external_auth_pam : (?service:string -> external_auth) option ref
 
-class sessionmanager_pam :
-  string option ->
-  ?sp:server_params ->
-  unit ->
-  sessionmanager
-
-class sessionmanager_nis :
-  ?sp:server_params ->
-  unit ->
-  sessionmanager
-
-
-val set_pam_auth :
-  (?service:string -> name:string -> pwd:string -> unit Lwt.t) ->
-  unit
-
-val pam_loaded : unit -> bool
+(** NIS authentification. *)
+val external_auth_nis : external_auth
 
