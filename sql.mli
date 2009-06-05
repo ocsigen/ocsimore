@@ -1,5 +1,4 @@
-(** Database interface. 
-    All SQL commands go here. *)
+(** Database interface to the Ocsimore database. *)
 
 open Ocsimore_lib
 open CalendarLib
@@ -19,19 +18,3 @@ val transaction_block : db_t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 
 (** Same as [transaction_block] but takes a db connection in the pool. *)
 val full_transaction_block : (db_t -> 'a Lwt.t) -> 'a Lwt.t
-
-
-
-
-
-(*
-(** create a new service *)
-val new_service: db_t -> url:string -> int32 Lwt.t
-
-(** list services *)
-val list_services: db_t -> string list Lwt.t
-
-val get_service_parameters: db_t -> url:string -> (int32 * string) list Lwt.t
-
-val add_parameter_to_service: db_t -> url:string -> param_name:string -> int32 Lwt.t
-*)
