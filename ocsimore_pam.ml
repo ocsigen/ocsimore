@@ -39,7 +39,7 @@ let pam_auth ?(service = "") ~name ~pwd =
             with (Pam.Pam_Error _) as e -> 
               Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
                                         Printexc.to_string e);
-              raise Users.BadPassword
+              raise User.BadPassword
               | e -> 
                   Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
                                             Printexc.to_string e);
@@ -50,9 +50,9 @@ let pam_auth ?(service = "") ~name ~pwd =
     (fun () -> Lwt_mutex.unlock mutex; Lwt.return ())
 
 let _ =
-  Session_manager.external_auth_pam := Some
+  User_external_auth.external_auth_pam := Some
     (fun ?service -> {
-       ext_auth_authenticate = pam_auth ?service;
+       User_external_auth.ext_auth_authenticate = pam_auth ?service;
        ext_auth_fullname = fun n -> Lwt.return n
          (* XXX find full name *);
      })
