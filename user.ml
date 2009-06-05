@@ -34,7 +34,6 @@ exception BadPassword
 exception BadUser
 exception UnknownUser of string
 exception UseAuth of userid
-exception Users_error of string
 
 
 (* We might want to simply overwrite incorrect values by the correct ones *)
