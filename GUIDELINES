@@ -37,12 +37,14 @@ For example:
 ==== More specific instructions ====
 
 * Decompose your extension in 8 parts:\\
-{{{_createdb.sql}}} SQL creation of databases\\
-{{{_sql.ml}}} database requests, using lwt-pgocaml and lwt_pool\\
+{{{_createdb.sql}}} SQL creation of the tables related to your extension\\
+{{{_sql.ml}}} database requests, using lwt-pgocaml \\
 {{{_cache.ml}}} cache on database requests, using the Cache module.
     For all cached SQL-related functions,, we use a name ending with {{{_}}} in
     {{{*_sql.ml}}} and without the {{{_}}} in {{{*cache.ml}}}, to remember that
     we must not call the functions from {{{_sql.ml}}} directly.
+    (For Wiki and User, _sql and _cache are merged. However, the convention
+    on the name of functions above is followed.)\\
 {{{.ml}}} higher level functions needed by the module. Also, creation of the
     groups specific to the extension, using the module Users, and of the
     inclusions between those groups.\\
@@ -52,16 +54,17 @@ For example:
     calls the cached function if authorized,
     then filters the result  to remove forbidden content (if needed).
     They may fail with exception {{{Ocsimore_common.Permission_denied}}}.\\
-{{{_services.ml}}} definition of the services needed by the extension\\
-{{{_widgets.ml}}} widgets defined by the extension, which usually call the
-    services of the previous module \\
+{{{_services.ml}}} definition of the services needed by the extension. They
+    may not be registered, as the content they send may depend on what
+    is returned by _widgets (below) \\
+{{{_widgets.ml}}} widgets defined by the extension, which typically call the
+    services of the previous module for buttons and links. We typically
+    use classes for this module.\\
 {{{_wikiext.ml}}} the wiki syntax extensions you define for your module\\
-{{{_site.ml}}} a separate module to be loaded dynamically from config file
-    inside the {{{<host>}}} section. Will register services, but also
-    instanciates widget classes and create wiki extensions.\\
-
-
-
+{{{_site.ml}}} a separate module (not linked in ocsimore.cma) to be loaded
+    dynamically from config file inside the {{{<host>}}} section.
+    It will instantiate the widget classes, register the services
+    and register the wiki extensions.\\
 
 
 
@@ -108,7 +111,7 @@ Predefined users/groups:
  - anonymous: non authenticated user
  - users: group of authenticated users
  - nobody: a special user with no right at all 
- (for ex when the user does not exist)
+ (for example when the user does not exist)
 
 You can also create generic groups, that are parematerized by a an
 abstracted integer, using {{{User_sql.new_parametrized_group}}}.  For
@@ -117,8 +120,10 @@ you can add generic inclusions between generic groups, using
 {{{User_sql.add_generic_inclusion}}}. As an example the administrators of a
 given wiki are also readers of this wiki.
 
-You probably want to compute the permission for one user at the beginning of
+You may want to compute the permission for one user at the beginning of
 the request.  To do that, create a record with boolean fields for each
 possible action (for one forum, one box in a wiki, one wiki, etc).  The
 function that will compute this can be memoised in the session cache to
 avoid to compute several times the same thing.  See forum.ml for an example.
+Notice however that group inclusion calls are automatically cache. Thus
+you may not need your own caching mechanism if you only do simple requests.
