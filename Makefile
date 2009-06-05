@@ -63,7 +63,8 @@ $(MYOCAMLFIND): myocamlfind.ml
 	$(OCAMLBUILD) -no-plugin $(subst _build/,,$@)
 
 ocsimore.mllib: ocsimore.mllib.IN
-	cp -f ocsimore.mllib.IN ocsimore.mllib
+	echo "# Warning: Generated from ocsimore.mllib.IN" > ocsimore.mllib
+	cat ocsimore.mllib.IN >> ocsimore.mllib
 	if [ $(PAM) = YES ]; then echo Ocsimore_pam >> ocsimore.mllib; fi
 
 static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
