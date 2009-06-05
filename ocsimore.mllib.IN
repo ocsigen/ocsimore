@@ -12,11 +12,11 @@ User
 User_external_auth
 User_data
 User_services
+Wiki_types
 Wiki_sql
 Ocsimore_nis
 Widget
 Wikicreole
-Wiki_types
 Wiki_models
 Wiki_widgets_interface
 Wiki_syntax
@@ -27,3 +27,4 @@ Wiki_services
 Wiki
 Wiki_data
 Wiki_widgets
+Wiki_ext

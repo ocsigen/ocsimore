@@ -71,7 +71,7 @@ let wikicreole_model =
     ~widgets:wikibox_widget
 
 let () =
-  Wiki_widgets.register_wikibox_syntax_extensions
+  Wiki_ext.register_wikibox_syntax_extensions
     Wiki_syntax.wikicreole_parser error_box
 
 
