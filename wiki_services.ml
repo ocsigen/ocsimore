@@ -322,9 +322,9 @@ let make_services () =
       ~name:"wiki_save_wiki_permissions"
       ~post_params:(eliom_wikibox_args ** params)
       (fun sp () (wb, args) ->
-         Wiki_sql.get_wiki_info_by_id (fst wb) >>= fun wiki_info ->
-           let rights = Wiki_models.get_rights wiki_info.wiki_model in
-           save_then_redirect wb ~sp `SamePage (fun () -> f rights sp args))
+         Wiki_sql.get_wiki_info_by_id (fst args) >>= fun wiki_info ->
+         let rights = Wiki_models.get_rights wiki_info.wiki_model in
+         save_then_redirect wb ~sp `SamePage (fun () -> f rights sp args))
 
   (* Below are the services for the css of wikis and wikipages.  The css
      at the level of wikis are registered in Wiki_data.ml *)
