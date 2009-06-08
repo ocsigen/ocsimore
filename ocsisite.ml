@@ -205,6 +205,7 @@ let _ = Lwt_unix.run
   )
 
 
+(*
 (* Default permissions for the migration to the new system *)
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
@@ -224,4 +225,4 @@ let _ = Lwt_unix.run
         with Scanf.Scan_failure _ -> Lwt.return ()
 
      ))
-
+*)
