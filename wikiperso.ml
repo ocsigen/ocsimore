@@ -192,12 +192,7 @@ let gen sp =
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
-(*VVV This is a hack! 
-  I don't know how to have the model here because it is not created yet.
-*)
-                        let model = 
-                          Wiki_types.wiki_model_of_string "wikicreole" in
-(* end hack *)
+                        let model = Ocsisite.wikicreole_model in
                         User_sql.get_basicuser_data userid >>= fun userdata ->
                         create_wikiperso ~model ~wiki_title ~userdata
                         >>= fun wiki ->
