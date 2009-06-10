@@ -100,11 +100,12 @@ let wikibox_history ~rights ~sp ~wb =
 
 let create_wiki ~(rights : Wiki_types.wiki_rights) ~sp
     ~title ~descr ?path ?staticdir ?(boxrights = true)
-    ~admin ?wiki_css ?container_text ~model () =
+    ~admins ~readers ?wiki_css ?container_text ~model () =
+  User.get_user_id sp >>= fun u ->
   rights#can_create_wiki sp () >>= function
     | true ->
         Wiki.create_wiki ~title ~descr ?path ?staticdir ~boxrights
-          ~author:admin ~admins:[basic_user admin] ~readers:[]
+          ~author:u ~admins ~readers
           ?wiki_css ?container_text ~model ()
     | false ->
         Lwt.fail Ocsimore_common.Permission_denied

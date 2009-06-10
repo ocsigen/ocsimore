@@ -26,7 +26,8 @@ val create_wiki :
   ?path: string list ->
   ?staticdir:string ->
   ?boxrights:bool ->
-  admin: userid ->
+  admins:user list ->
+  readers: user list ->
   ?wiki_css:string ->
   ?container_text:string ->
   model:Wiki_types.wiki_model ->
