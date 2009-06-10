@@ -226,3 +226,90 @@ let _ = Lwt_unix.run
 
      ))
 *)
+
+
+let str = Ocamlduce.Utf8.make
+
+open Xform.Ops
+
+let user_exists user =
+  Lwt_unix.run
+    (User.get_user_by_name user >>= fun u ->
+     if u = basic_user User.nobody && user <> User.nobody_login then
+       Lwt.return (Some ("This user does not exists: " ^ user))
+     else
+       Lwt.return None)
+
+
+let create_wiki_form ~path:_path ~service ~arg ~sp
+      ~title ~descr ~admins ~readers ~container ~css
+      ?err_handler cont =
+  let page _sp _arg error form =
+    let title = match error with
+      | Xform.NoError -> "Wiki creation"
+      | _ -> "Error" in
+    Ocsimore_common.html_page ~title
+      {{ [<h1>(str title)
+          !{: match error with
+              | Xform.ErrorMsg err -> {{[<p>(str err)] }}
+              | _ -> {{ [] }}
+          :}
+          form] }}
+  in
+  let form =
+    Xform.form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
+      (Xform.p
+         (Xform.text "Name: " @+ Xform.string_input title +@
+          Xform.text " (used to identify the wiki in the database) ")
+       @@
+       Xform.p
+         (Xform.text "Description: " @+ Xform.string_input descr)
+       @@
+       Xform.extensible_list "Add wiki admin" "" admins
+         (fun adm ->
+           Xform.p
+             (Xform.text "Admin" @+ Xform.string_input adm))
+       @@
+       Xform.extensible_list "Add wiki reader" "" readers
+         (fun reader ->
+           Xform.p
+             (Xform.text "Reader" @+
+              Xform.check (Xform.string_input reader) user_exists))
+       @@
+       Xform.p
+         (Xform.text "Container text :" @+ [{{<br>[]}}] @+
+          Xform.text_area ~cols:80 ~rows:20 container)
+       @@
+       Xform.p
+         (Xform.text "Css :" @+ [{{<br>[]}}] @+
+          Xform.text_area ~cols:80 ~rows:20 css)
+       @@
+       Xform.p
+          (Xform.submit_button "Create")
+      |> (fun (title, (descr, (admins, (readers, (container, (css, _v)))))) ->
+            cont ~title ~descr ~container ~css
+              ~admins:(List.filter (fun n -> n <> "") admins)
+              ~readers:(List.filter (fun n -> n <> "") readers))
+      )
+  in
+  page sp arg Xform.NoError form
+
+let create_wiki =
+  let path = [Ocsimore_lib.ocsimore_admin_dir;"create_wiki"] in
+  let create_wiki = Eliom_services.new_service ~path
+      ~get_params:Eliom_parameters.unit () in
+  Eliom_duce.Xhtml.register create_wiki
+    (fun sp () () ->
+       User.get_user_name sp >>= fun u ->
+       create_wiki_form ~path ~service:create_wiki ~arg:() ~sp
+         ~title:"" ~descr:"" ~admins:[u] ~readers:[User.anonymous_login]
+         ~container:Wiki.default_container_page ~css:""
+         ~err_handler:(function
+                         | Failure "bla" -> Some "Bli!"
+                         | _ -> None)
+         (fun ~title ~descr ~container ~css ~admins ~readers sp ->
+            assert false
+            (*Wiki_data.create_wiki ~sp ~title ~descr ~admins ~readers
+              ~wiki_css ~container_text ()*)
+         ));
+  create_wiki

@@ -326,6 +326,7 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
   let path_string = Ocsimore_lib.bind_opt
     path (Ocsigen_lib.string_of_url_path ~encode:true)
   in
+  (* XXX many race conditions below. Export database handler *)
   (* We check that no wiki of the same name or already registered at the same
      path exists *)
   Ocsimore_lib.lwt_bind_opt path_string
