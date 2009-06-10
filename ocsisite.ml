@@ -230,7 +230,8 @@ let _ = Lwt_unix.run
 
 let str = Ocamlduce.Utf8.make
 
-open Xform.Ops
+open Xform.Xform
+open Ops
 
 let user_exists user =
   Lwt_unix.run
@@ -258,34 +259,27 @@ let create_wiki_form ~path:_path ~service ~arg ~sp
   in
   let form =
     Xform.form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
-      (Xform.p
-         (Xform.text "Name: " @+ Xform.string_input title +@
-          Xform.text " (used to identify the wiki in the database) ")
-       @@
-       Xform.p
-         (Xform.text "Description: " @+ Xform.string_input descr)
-       @@
-       Xform.extensible_list "Add wiki admin" "" admins
+      (p (text "Name: " @+ string_input title +@
+          text " (used to identify the wiki in the database) ") @@
+       p (text "Description: " @+ string_input descr) @@
+       extensible_list "Add wiki admin" "" admins
          (fun adm ->
-           Xform.p
-             (Xform.text "Admin" @+ Xform.string_input adm))
-       @@
-       Xform.extensible_list "Add wiki reader" "" readers
+           p
+             (text "Admin" @+ string_input adm)) @@
+       extensible_list "Add wiki reader" "" readers
          (fun reader ->
-           Xform.p
-             (Xform.text "Reader" @+
-              Xform.check (Xform.string_input reader) user_exists))
+           p
+             (text "Reader" @+
+              check (string_input reader) user_exists)) @@
+       p (text "Container text :" @+ [{{<br>[]}}] @+
+          text_area ~cols:80 ~rows:20 container)
        @@
-       Xform.p
-         (Xform.text "Container text :" @+ [{{<br>[]}}] @+
-          Xform.text_area ~cols:80 ~rows:20 container)
+       p
+         (text "Css :" @+ [{{<br>[]}}] @+
+          text_area ~cols:80 ~rows:20 css)
        @@
-       Xform.p
-         (Xform.text "Css :" @+ [{{<br>[]}}] @+
-          Xform.text_area ~cols:80 ~rows:20 css)
-       @@
-       Xform.p
-          (Xform.submit_button "Create")
+       p
+          (submit_button "Create")
       |> (fun (title, (descr, (admins, (readers, (container, (css, _v)))))) ->
             cont ~title ~descr ~container ~css
               ~admins:(List.filter (fun n -> n <> "") admins)

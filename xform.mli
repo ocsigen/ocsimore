@@ -1,25 +1,31 @@
-
 open CalendarLib
-
-type (+'html, +'o) t
 
 type inline =
   {{ (Char | Xhtmltypes_duce.inline | Xhtmltypes_duce.misc_inline) }}
 
+
+module type Xform = sig
+
+type (+'html, +'o) t
+
+
 val string_input :
   ?a:Xhtmltypes_duce.input_attrs -> string -> (inline, string) t
+
 val int_input :
   ?a:Xhtmltypes_duce.input_attrs -> ?format:(int -> string) ->
   int -> (inline, int) t
 val bounded_int_input :
   ?format:(int -> string) -> int -> int -> int -> (inline, int) t
+
 val text_area :
   ?a:Eliom_duce.Xhtml.textarea_attrib_t ->
   rows:int -> cols:int -> string -> (inline, string) t
+
 val submit_button : string -> (inline, bool) t
+
 val select_single : (string * string) list -> string -> (inline, string) t
-(*val select_single : (string * 'a) list -> 'a -> (inline, 'a) t*)
-(*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
+
 val list : 'i list -> ('i -> (Xhtmltypes_duce.form_content, 'o) t) -> (Xhtmltypes_duce.form_content, 'o list) t
 
 val list' : int -> (Xhtmltypes_duce.form_content, 'o) t -> (Xhtmltypes_duce.form_content, 'o list) t
@@ -50,11 +56,14 @@ val date_input : Calendar.t -> (inline, Calendar.t) t
 val text : string -> inline list
 val p : (inline, 'b) t -> (Xhtmltypes_duce.form_content, 'b) t
 
+end
+
 type error =
   | NoError
   | ErrorNoMsg
   | ErrorMsg of string
 
+module Xform: Xform
 
 val form :
   fallback:('a, unit,
@@ -69,5 +78,5 @@ val form :
   sp:Eliom_sessions.server_params ->
   ?err_handler:(exn -> string option) ->
   (Eliom_duce.Xhtml.form_content_elt,
-   Eliom_sessions.server_params -> Eliom_duce.Xhtml.page Lwt.t) t ->
+   Eliom_sessions.server_params -> Eliom_duce.Xhtml.page Lwt.t) Xform.t ->
   Xhtmltypes_duce.form

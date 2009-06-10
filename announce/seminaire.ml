@@ -111,6 +111,7 @@ let edit_link target sp txt arg = M.a target sp (str ("[" ^ txt ^ "]")) arg
 let opt_enc f v = match v with None -> "" | Some v -> f v
 let opt_dec f s = match s with "" -> None | _ -> Some (f s)
 
+open Xform
 open Xform.Ops
 
 let talk_editor path service arg sp
@@ -126,7 +127,7 @@ let talk_editor path service arg sp
    Common.wiki_page path sp {{ [] }} (fun _sp ->
     let txt =
       match error with
-        | Xform.NoError -> (cat.cat_name ^ ": nouvel événement")
+        | NoError -> (cat.cat_name ^ ": nouvel événement")
         | _ -> "Erreur"
     in
     Lwt.return
@@ -134,7 +135,7 @@ let talk_editor path service arg sp
        {{ [<h1>(str txt) form] }}))
   in
   let form =
-    Xform.form service arg page sp
+    form service arg page sp
       (Xform.p
          (Xform.text "Date : " @+ Xform.date_input start @@
           Xform.text " — Durée : " @+
@@ -185,7 +186,7 @@ let talk_editor path service arg sp
                    (List.filter (fun (nm, _) -> nm <> "") persons)
                    title description comment status))
   in
-  page sp arg Xform.NoError form
+  page sp arg NoError form
 
 let create_event =
   let path = ["create"] in
