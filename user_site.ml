@@ -97,7 +97,7 @@ let external_auth = match auth with
   | Nis -> Some User_external_auth.external_auth_nis
   | Pam service ->
       match !User_external_auth.external_auth_pam with
-        | Some pam -> Some (pam ?service)
+        | Some pam -> Some (pam ?service ())
         | None -> raise (Ocsigen_config.Config_file_error
                            "Ocsimore compiled without PAM support")
 

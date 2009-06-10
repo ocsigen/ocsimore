@@ -34,7 +34,7 @@ type external_auth = {
 
 (** Pam authentification, updated by [Ocsimore_pam] if it is loaded *)
 let external_auth_pam =
-  ref (None : (?service:string -> external_auth) option)
+  ref (None : (?service:string -> unit -> external_auth) option)
 
 
 let external_auth_nis = {

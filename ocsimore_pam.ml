@@ -51,7 +51,7 @@ let pam_auth ?(service = "") ~name ~pwd =
 
 let _ =
   User_external_auth.external_auth_pam := Some
-    (fun ?service -> {
+    (fun ?service () -> {
        User_external_auth.ext_auth_authenticate = pam_auth ?service;
        ext_auth_fullname = fun n -> Lwt.return n
          (* XXX find full name *);
