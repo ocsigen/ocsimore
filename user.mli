@@ -19,9 +19,11 @@ exception UseAuth of userid
 
 (** Non authenticated users *)
 val anonymous : userid
+val anonymous_login: string
 
 (** A user that belongs to all groups *)
 val admin : userid
+val admin_login: string
 
 (** A user/group that does not belong to any group,  and in which nobody
     can be.  *)

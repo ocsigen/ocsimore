@@ -61,12 +61,14 @@ let possibly_create ~login ~fullname ?email ?pwd () =
   )
 
 
-let anonymous = possibly_create ~login:"anonymous" ~fullname:"Anonymous" ()
+let anonymous_login="anonymous"
+let anonymous = possibly_create ~login:anonymous_login ~fullname:"Anonymous" ()
 let anonymous' = basic_user anonymous
 let nobody_login = "nobody"
 let nobody = possibly_create ~login:nobody_login ~fullname:"Nobody" ()
 let nobody' = basic_user nobody
 
+let admin_login="admin"
 let admin =
   let rec get_pwd message =
     print_string message;
