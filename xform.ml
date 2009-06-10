@@ -279,11 +279,10 @@ let list' n f =
               None -> repeat n None
             | Some l -> List.map (fun x -> Some x) l
           in
-          let l =
-            name.P.it (fun name v' -> [f.form v' name]) l [] in
-          (* XXX can we optimize this fold and the P.it above ? *)
-          List.fold_left (fun r e -> e >>= fun e -> r >>= fun r ->
-                            return (e :: r)) (return []) l
+          name.P.it (fun name v' l ->
+                       l >>= fun l ->
+                       f.form v' name >>= fun r ->
+                       return (r :: l)) l (return [])
           >>= fun l ->
           return
         (List.flatten (List.map fst l),
@@ -356,9 +355,11 @@ let extensible_list txt default l f =
                  let l = List.map (fun x -> Some x) l in
                  ((if b <> None then l @ [None] else l), Some b)
            in
-           let l = name1.P.it (fun name v' -> [f.form v' name]) l [] in
-           List.fold_left (fun r e -> e >>= fun e -> r >>= fun r ->
-                            return (e :: r)) (return []) l >>= fun l ->
+           name1.P.it (fun name v' l ->
+                                 l >>= fun l ->
+                                 f.form v' name >>= fun r ->
+                                 return (r :: l)) l (return [])
+           >>= fun l ->
            button.form b name2 >>= fun (b, _r) ->
            return
            (List.flatten (List.map fst l) @ b,
