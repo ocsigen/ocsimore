@@ -153,7 +153,7 @@ let concat_params params1 params2 name =
   let (p2, name) = params2 name in
   (p1 ** p2, name)
 
-let concat_int f1 f2 =
+let concat f1 f2 =
   {form =
      (fun v (name1, name2) ->
         let (l1, r1) = f1.form (opt_map fst v) name1 in
@@ -168,7 +168,7 @@ let concat_int f1 f2 =
 module Ops = struct
 
 let (@@) f1 f2 =
-  unpack f1 {f = fun f1 -> unpack f2 {f = fun f2 -> pack (concat_int f1 f2)}}
+  unpack f1 {f = fun f1 -> unpack f2 {f = fun f2 -> pack (concat f1 f2)}}
 
 let (+@) f h =
   unpack f {f = fun f ->
@@ -190,7 +190,7 @@ open Ops
 (****)
 
 let empty_list =
-  pack {form = (fun v name -> ([], opt_outcome v));
+  pack {form = (fun v _name -> ([], opt_outcome v));
         params = (fun name -> (P.unit, name))}
   |> (fun () -> [])
 
@@ -225,7 +225,7 @@ let list' n f =
 
 (****)
 
-let error s = [{{<span>{:str ("(" ^ s ^ ")"):}}}]
+let error s = [{{<span class="errmsg">{:str s:} }} ]
 
 let check f tst =
   unpack f {f = fun f ->
@@ -240,6 +240,7 @@ let check f tst =
                        None    -> (x, Success r)
                      | Some x' -> (x @ error x', Error)}}
 
+
 (****)
 
 let text s = {:{{str s}}:}
@@ -249,7 +250,12 @@ let hidden (x : (inline, 'b) t) =
 
 (****)
 
-let form fallback get_args page sp f =
+type error =
+  | NoError
+  | ErrorNoMsg
+  | ErrorMsg of string
+
+let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
   let f = hidden (submit_button "Submit") @@ f |> snd in
   unpack f {f = fun f ->
   let (params, _) = f.params Name.first in
@@ -260,17 +266,30 @@ let form fallback get_args page sp f =
     M.register_for_session ~sp ~service
           (fun sp get_args v ->
              match f.form (Some v) names with
-               (_, Success act) -> act sp
-             | ((x : Eliom_duce.Xhtml.form_content_elt list), err)     ->
+               (x, Success act) ->
+                 Lwt.catch
+                   (fun () -> act sp)
+                   (fun e ->
+                      match err_handler e with
+                        | None -> Lwt.fail e
+                        | Some err ->
+                            let form = M.post_form ~service ~sp
+                              (fun _ -> {{ {:x:} }}) get_args in
+                            page sp get_args (ErrorMsg err) form
+                   )
+             | ((x : Eliom_duce.Xhtml.form_content_elt list),
+                (Error | Redisplay as err))     ->
                   let form =
                     M.post_form ~service ~sp (fun _ -> {{ {:x:} }}) get_args in
-                  page sp get_args (err = Error) form);
+                  let error = if err = Error then ErrorNoMsg else NoError in
+                  page sp get_args error form
+          );
     {{ {:fst (f.form None names):} }}) get_args}
 
 (*XXXX Validate result *)
 let int_input ?a ?(format = string_of_int) i =
   check (string_input ?a (format i))
-        (fun s -> None (*XXX Some (error s)*))
+        (fun _s -> None (*XXX Some (error s)*))
   |> (fun s -> int_of_string s)
 
 let bounded_int_input ?format a b i =
@@ -303,7 +322,7 @@ let extensible_list txt default l f =
                  ((if b <> None then l @ [None] else l), Some b)
            in
            let l = name1.P.it (fun name v' -> [f.form v' name]) l [] in
-           let (b, r) = button.form b name2 in
+           let (b, _r) = button.form b name2 in
            (List.flatten (List.map fst l) @ b,
             oc_list (List.map snd l)));
       params =

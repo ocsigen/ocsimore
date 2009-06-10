@@ -50,17 +50,24 @@ val date_input : Calendar.t -> (inline, Calendar.t) t
 val text : string -> inline list
 val p : (inline, 'b) t -> (Xhtmltypes_duce.form_content, 'b) t
 
+type error =
+  | NoError
+  | ErrorNoMsg
+  | ErrorMsg of string
+
+
 val form :
-  ('a, unit,
+  fallback:('a, unit,
    [ `Attached of
        [ `Internal of [< `Coservice | `Service ] * [ `Get ] ]
        Eliom_services.a_s ],
    [< Eliom_services.suff ], 'b, unit, [< `Registrable ])
   Eliom_services.service ->
-  'a ->
-  (Eliom_sessions.server_params -> 'a -> bool ->
-   Xhtmltypes_duce.form -> Xhtmltypes_duce.html Lwt.t) ->
-  Eliom_sessions.server_params ->
+  get_args:'a ->
+  page:(Eliom_sessions.server_params -> 'a -> error ->
+        Xhtmltypes_duce.form -> Xhtmltypes_duce.html Lwt.t) ->
+  sp:Eliom_sessions.server_params ->
+  ?err_handler:(exn -> string option) ->
   (Eliom_duce.Xhtml.form_content_elt,
    Eliom_sessions.server_params -> Eliom_duce.Xhtml.page Lwt.t) t ->
   Xhtmltypes_duce.form

@@ -125,7 +125,10 @@ let talk_editor path service arg sp
   let page sp _arg error form =
    Common.wiki_page path sp {{ [] }} (fun _sp ->
     let txt =
-      if error then "Erreur" else (cat.cat_name ^ ": nouvel événement") in
+      match error with
+        | Xform.NoError -> (cat.cat_name ^ ": nouvel événement")
+        | _ -> "Erreur"
+    in
     Lwt.return
       (str txt,
        {{ [<h1>(str txt) form] }}))
@@ -182,7 +185,7 @@ let talk_editor path service arg sp
                    (List.filter (fun (nm, _) -> nm <> "") persons)
                    title description comment status))
   in
-  page sp arg false form
+  page sp arg Xform.NoError form
 
 let create_event =
   let path = ["create"] in

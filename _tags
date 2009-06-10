@@ -2,6 +2,7 @@
 <myocamlfind.*> : use_unix
 <**/*_sql.ml*>: pkg_calendar, pkg_pgocaml, pkg_pgocaml.syntax, syntax_camlp4o, notocamlduce
 <wiki.ml*>: pkg_calendar
+<xform.ml*>: pkg_calendar
 <**/*.ml*> : pkg_threads, pkg_ocsigen, dtypes, warn_Y, warn_Z
 <sql.ml*> : pkg_calendar, pkg_pgocaml
 <ocsimore_lib.ml*> : pkg_threads, pkg_ocsigen, pkg_calendar
