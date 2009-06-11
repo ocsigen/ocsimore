@@ -56,7 +56,7 @@ let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) =
     with Not_found -> atts
 that typechecks with ocamlduce ... ?
 *)
-let parse_common_attribs attribs =
+let parse_common_attribs attribs : Xhtmltypes_duce.coreattrs =
   let atts =
     try
       let c = Ocamlduce.Utf8.make (List.assoc "class" attribs) in
@@ -71,7 +71,7 @@ let parse_common_attribs attribs =
   in
   atts
 
-let parse_table_attribs attribs =
+let parse_table_attribs attribs : Xhtmltypes_duce.table_attrs =
   let atts = parse_common_attribs attribs in
   let atts =
     try
@@ -189,45 +189,45 @@ let parse_table_row_attribs attribs : Xhtmltypes_duce.align_attrs =
   let atts3 = parse_align_attrib attribs in
   {{ atts2++atts3++atts }}
 
-let parse_table_cell_attribs attribs =
+let parse_table_cell_attribs attribs : Xhtmltypes_duce.thd_attribs =
   let atts = parse_common_attribs attribs in
-  let atts =
-    try
-      let c = Ocamlduce.Utf8.make (List.assoc  "abbr" attribs) in
-      {{ {abbr=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts =
-    try
-      let c = Ocamlduce.Utf8.make (List.assoc  "axis" attribs) in
-      {{ {axis=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts =
+  let atts : {{ Xhtmltypes_duce.attrs ++ { char=?String } }} =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "char" attribs) in
       {{ {char=c}++atts }}
     with Not_found -> atts
   in
-  let atts =
+  let atts : Xhtmltypes_duce.align_attrs =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "charoff" attribs) in
       {{ {charoff=c}++atts }}
     with Not_found -> atts
   in
-  let atts =
+  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String } }} =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "abbr" attribs) in
+      {{ {abbr=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String axis=?String } }} =
+    try
+      let c = Ocamlduce.Utf8.make (List.assoc  "axis" attribs) in
+      {{ {axis=c}++atts }}
+    with Not_found -> atts
+  in
+  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String axis=?String char=?String colspan=?String } }}=
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "colspan" attribs) in
       {{ {colspan=c}++atts }}
     with Not_found -> atts
   in
-  let atts =
+  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String axis=?String char=?String colspan=?String headers=?String } }}=
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "headers" attribs) in
       {{ {headers=c}++atts }}
     with Not_found -> atts
   in
-  let atts =
+  let atts : Xhtmltypes_duce.thd_attribs =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "rowspan" attribs) in
       {{ {rowspan=c}++atts }}
