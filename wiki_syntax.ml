@@ -56,41 +56,37 @@ let element2 (c : {{ [ Xhtmltypes_duce.a_content* ] }} list) =
     with Not_found -> atts
 that typechecks with ocamlduce ... ?
 *)
-let parse_common_attribs attribs : Xhtmltypes_duce.coreattrs =
-  let atts =
+let parse_common_attribs attribs =
+  let at1 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc "class" attribs) in
       {{ {class=c} }}
     with Not_found -> {{ {} }}
-  in
-  let atts =
+  and at2 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "id" attribs) in
-      {{ {id=c}++atts }}
-    with Not_found -> atts
+      {{ {id=c} }}
+    with Not_found -> {{ {} }}
   in
-  atts
+  ({{ at1++at2 }} : Xhtmltypes_duce.coreattrs)
 
-let parse_table_attribs attribs : Xhtmltypes_duce.table_attrs =
-  let atts = parse_common_attribs attribs in
-  let atts =
+let parse_table_attribs attribs =
+  let atts = parse_common_attribs attribs
+  and at1 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "border" attribs) in
-      {{ {border=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts =
+      {{ {border=c} }}
+    with Not_found -> {{ {} }}
+  and at2 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "cellpadding" attribs) in
-      {{ {cellpadding=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts =
+      {{ {cellpadding=c} }}
+    with Not_found -> {{ {} }}
+  and at3 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "cellspacing" attribs) in
-      {{ {cellspacing=c}++atts }}
-    with Not_found -> atts
-  in
+      {{ {cellspacing=c} }}
+    with Not_found -> {{ {} }}
 (*  let atts =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "frame" attribs) in
@@ -103,19 +99,18 @@ let parse_table_attribs attribs : Xhtmltypes_duce.table_attrs =
       {{ {rules=c}++atts }}
     with Not_found -> atts
   in*)
-  let atts =
+  and at4 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "summary" attribs) in
-      {{ {summary=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts =
+      {{ {summary=c} }}
+    with Not_found -> {{ {} }}
+  and at5 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "width" attribs) in
-      {{ {width=c}++atts }}
-    with Not_found -> atts
+      {{ {width=c} }}
+    with Not_found -> {{ {} }}
   in
-  atts
+  ({{ atts++at1++at2++at3++at4++at5 }} : Xhtmltypes_duce.table_attrs)
 
 let parse_valign_attrib attribs : {{ { valign =? Xhtmltypes_duce.valign } }} =
   try
@@ -171,72 +166,64 @@ let parse_scope_attrib attribs : {{ { scope =? Xhtmltypes_duce.scope } }} =
     else {{ {} }}
   with Not_found -> {{ {} }}
 
-let parse_table_row_attribs attribs : Xhtmltypes_duce.align_attrs =
-  let atts = parse_common_attribs attribs in
-  let atts =
+let parse_table_row_attribs attribs =
+  let atts = parse_common_attribs attribs
+  and at1 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "char" attribs) in
-      {{ {char=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts =
+      {{ {char=c} }}
+    with Not_found -> {{ {} }}
+    and at2 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "charoff" attribs) in
-      {{ {charoff=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts2 = parse_valign_attrib attribs in
+      {{ {charoff=c} }}
+    with Not_found -> {{ {} }}
+  and atts2 = parse_valign_attrib attribs in
   let atts3 = parse_align_attrib attribs in
-  {{ atts2++atts3++atts }}
+  ({{ atts++at1++at2++atts2++atts3++atts }} : Xhtmltypes_duce.align_attrs)
 
-let parse_table_cell_attribs attribs : Xhtmltypes_duce.thd_attribs =
-  let atts = parse_common_attribs attribs in
-  let atts : {{ Xhtmltypes_duce.attrs ++ { char=?String } }} =
+let parse_table_cell_attribs attribs =
+  let atts = parse_common_attribs attribs
+  and at1 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "char" attribs) in
-      {{ {char=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts : Xhtmltypes_duce.align_attrs =
+      {{ {char=c} }}
+    with Not_found -> {{ {} }}
+  and at2  =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "charoff" attribs) in
-      {{ {charoff=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String } }} =
+      {{ {charoff=c} }}
+    with Not_found -> {{ {} }}
+  and at3  =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "abbr" attribs) in
-      {{ {abbr=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String axis=?String } }} =
+      {{ {abbr=c} }}
+    with Not_found -> {{ {} }}
+  and at4 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "axis" attribs) in
-      {{ {axis=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String axis=?String char=?String colspan=?String } }}=
+      {{ {axis=c} }}
+    with Not_found -> {{ {} }}
+  and at5 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "colspan" attribs) in
-      {{ {colspan=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts : {{ Xhtmltypes_duce.align_attrs ++ { abbr=?String axis=?String char=?String colspan=?String headers=?String } }}=
+      {{ {colspan=c} }}
+    with Not_found -> {{ {} }}
+  and at6 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "headers" attribs) in
-      {{ {headers=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts : Xhtmltypes_duce.thd_attribs =
+      {{ {headers=c} }}
+    with Not_found -> {{ {} }}
+  and at7 =
     try
       let c = Ocamlduce.Utf8.make (List.assoc  "rowspan" attribs) in
-      {{ {rowspan=c}++atts }}
-    with Not_found -> atts
-  in
-  let atts2 = parse_valign_attrib attribs in
-  let atts3 = parse_align_attrib attribs in
-  let atts4 = parse_scope_attrib attribs in
-  {{ atts++atts2++atts3++atts4 }}
+      {{ {rowspan=c} }}
+    with Not_found -> {{ {} }}
+  and atts2 = parse_valign_attrib attribs
+  and atts3 = parse_align_attrib attribs
+  and atts4 = parse_scope_attrib attribs in
+  ({{ atts++at1++at2++at3++at4++at5++at6++at7++atts2++atts3++atts4 }}
+     : Xhtmltypes_duce.thd_attribs)
 
 let list_builder = function
   | [] -> Lwt.return {{ [ <li>[] ] }} (*VVV ??? *)
