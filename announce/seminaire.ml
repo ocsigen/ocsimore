@@ -135,7 +135,7 @@ let talk_editor path service arg sp
        {{ [<h1>(str txt) form] }}))
   in
   let form =
-    form service arg page sp
+    Xform.form service arg page sp
       (Xform.p
          (Xform.text "Date : " @+ Xform.date_input start @@
           Xform.text " — Durée : " @+

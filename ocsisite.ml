@@ -230,20 +230,19 @@ let _ = Lwt_unix.run
 
 let str = Ocamlduce.Utf8.make
 
-open Xform.Xform
+open Xform.XformLwt
 open Ops
 
-let user_exists user =
-  Lwt_unix.run
-    (User.get_user_by_name user >>= fun u ->
-     if u = basic_user User.nobody && user <> User.nobody_login then
-       Lwt.return (Some ("This user does not exists: " ^ user))
-     else
-       Lwt.return None)
+let user_from_userlogin user =
+  User.get_user_by_name user >>= fun u ->
+  if u = basic_user User.nobody && user <> User.nobody_login then
+    Lwt.return (Xform.ConvError ("This user does not exists: " ^ user))
+  else
+    Lwt.return (Xform.Converted u)
 
 
-let create_wiki_form ~path:_path ~service ~arg ~sp
-      ~title ~descr ~admins ~readers ~container ~css
+let create_wiki_form ~serv_path:_ ~service ~arg ~sp
+      ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~css
       ?err_handler cont =
   let page _sp _arg error form =
     let title = match error with
@@ -257,53 +256,72 @@ let create_wiki_form ~path:_path ~service ~arg ~sp
           :}
           form] }}
   in
-  let form =
-    Xform.form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
-      (p (text "Name: " @+ string_input title +@
+    form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
+      (p (text "Title: " @+ string_input title +@
           text " (used to identify the wiki in the database) ") @@
        p (text "Description: " @+ string_input descr) @@
+       p (text "Link this wiki to an url: " @+ string_opt_input path) @@
+       p (text "Authorize special permissions on wikiboxes: " @+
+          bool_checkbox boxrights) @@
+       p (text "Serve static files from a directory: " @+
+          string_opt_input staticdir) @@
        extensible_list "Add wiki admin" "" admins
          (fun adm ->
-           p
-             (text "Admin" @+ string_input adm)) @@
+            p (text "Admin" @+
+               convert (string_input adm) user_from_userlogin)) @@
        extensible_list "Add wiki reader" "" readers
          (fun reader ->
-           p
-             (text "Reader" @+
-              check (string_input reader) user_exists)) @@
+            p (text "Reader" @+
+               convert (string_input reader) user_from_userlogin)) @@
        p (text "Container text :" @+ [{{<br>[]}}] @+
           text_area ~cols:80 ~rows:20 container)
        @@
-       p
-         (text "Css :" @+ [{{<br>[]}}] @+
+       p (text "Css :" @+ [{{<br>[]}}] @+
           text_area ~cols:80 ~rows:20 css)
        @@
-       p
-          (submit_button "Create")
-      |> (fun (title, (descr, (admins, (readers, (container, (css, _v)))))) ->
-            cont ~title ~descr ~container ~css
-              ~admins:(List.filter (fun n -> n <> "") admins)
-              ~readers:(List.filter (fun n -> n <> "") readers))
+       p (submit_button "Create")
+      |> (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (css, _v))))))))) ->
+            cont ~title ~descr ~path ~boxrights ~staticdir ~container ~css
+              ~admins ~readers)
       )
-  in
+  >>= fun form ->
   page sp arg Xform.NoError form
 
 let create_wiki =
+  let err_handler = function
+    | Wiki.Wiki_already_registered_at_path ((_, descr), _) ->
+        Some (Printf.sprintf "The wiki '%s' is already registered at this path"
+                descr)
+    | Wiki.Wiki_with_same_title _ ->
+        Some "A wiki with this title already exists"
+    | Ocsimore_common.Permission_denied ->
+        Some "You do not have sufficient permissions to create wikis"
+    | _ -> Some "An unknown error has occurred"
+ in
   let path = [Ocsimore_lib.ocsimore_admin_dir;"create_wiki"] in
   let create_wiki = Eliom_services.new_service ~path
       ~get_params:Eliom_parameters.unit () in
   Eliom_duce.Xhtml.register create_wiki
     (fun sp () () ->
        User.get_user_name sp >>= fun u ->
-       create_wiki_form ~path ~service:create_wiki ~arg:() ~sp
-         ~title:"" ~descr:"" ~admins:[u] ~readers:[User.anonymous_login]
+       create_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
+         ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true ~staticdir:None
+         ~admins:[u] ~readers:[User.anonymous_login]
          ~container:Wiki.default_container_page ~css:""
-         ~err_handler:(function
-                         | Failure "bla" -> Some "Bli!"
-                         | _ -> None)
-         (fun ~title ~descr ~container ~css ~admins ~readers sp ->
-            assert false
-            (*Wiki_data.create_wiki ~sp ~title ~descr ~admins ~readers
-              ~wiki_css ~container_text ()*)
+         ~err_handler
+         (fun ~title ~descr ~path ~boxrights ~staticdir ~container ~css ~admins ~readers sp ->
+            let path = match path with
+              | None -> None
+              | Some p -> Some (Neturl.split_path p)
+            in
+            Wiki_data.create_wiki ~sp ~title ~descr ?path ~boxrights ?staticdir
+              ~admins ~readers ~wiki_css:css ~container_text:container
+              ~model:wikicreole_model ~rights:wiki_rights ()
+            >>= fun wid ->
+            let title = str "Wiki sucessfully created"
+            and msg = str (Printf.sprintf "You have created wiki %s"
+                             (string_of_wiki wid)) in
+            Ocsimore_common.html_page
+              {{ [<h1>title <p>msg] }}
          ));
   create_wiki

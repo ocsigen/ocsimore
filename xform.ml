@@ -13,6 +13,10 @@ let def d v = match v with None -> d | Some v -> v
 let opt_map f v = match v with None -> None | Some v -> Some (f v)
 let opt_bind v f = match v with None -> None | Some v -> f v
 
+type error =
+  | NoError
+  | ErrorNoMsg
+  | ErrorMsg of string
 
 (****)
 
@@ -30,19 +34,28 @@ end
 
 type 'a outcome = Success of 'a | Redisplay | Error
 
+type 'a convert =
+  | ConvError of string
+  | Converted of 'a
 
 module type Xform = sig
+
+type 'a monad
 
 type (+'html, +'o) t
 
 
 val string_input :
   ?a:Xhtmltypes_duce.input_attrs -> string -> (inline, string) t
+val string_opt_input :
+  string option -> (inline, string option) t
 val int_input :
   ?a:Xhtmltypes_duce.input_attrs -> ?format:(int -> string) ->
   int -> (inline, int) t
 val bounded_int_input :
   ?format:(int -> string) -> int -> int -> int -> (inline, int) t
+val bool_checkbox :
+  ?a:Xhtmltypes_duce.input_attrs -> bool -> (inline, bool) t
 val text_area :
   ?a:Eliom_duce.Xhtml.textarea_attrib_t ->
   rows:int -> cols:int -> string -> (inline, string) t
@@ -65,6 +78,7 @@ val (@@) : ('elt, 'o1) t -> ('elt, 'o2) t -> ('elt, 'o1 * 'o2) t
 val (+@) : ('a, 'b) t -> 'a list -> ('a, 'b) t
 val (@+) : 'a list -> ('a, 'b) t -> ('a, 'b) t
 val ( |> ) : ('html, 'o1) t -> ('o1 -> 'o2) -> ('html, 'o2) t
+val ( ||> ) : ('html, 'o1) t -> ('o1 -> 'o2 monad) -> ('html, 'o2) t
 
 end
 
@@ -73,12 +87,32 @@ val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 val check :
   (inline, 'a) t -> ('a -> string option) -> (inline, 'a) t
 
+val convert :
+  (inline, 'a) t -> ('a -> 'b convert monad) -> (inline, 'b) t
+
 val hour_input : int -> int -> (inline, int * int) t
 val day_input : int -> int -> int -> (inline, int * int * int) t
 val date_input : Calendar.t -> (inline, Calendar.t) t
 
 val text : string -> inline list
 val p : (inline, 'b) t -> (Xhtmltypes_duce.form_content, 'b) t
+
+val form:
+  fallback:('a, unit,
+   [ `Attached of
+       [ `Internal of [< `Coservice | `Service ] * [ `Get ] ]
+       Eliom_services.a_s ],
+   [< Eliom_services.suff ], 'b, unit, [< `Registrable ])
+  Eliom_services.service ->
+  get_args:'a ->
+  page:(Eliom_sessions.server_params -> 'a -> error ->
+        Xhtmltypes_duce.form -> Xhtmltypes_duce.html Lwt.t) ->
+  sp:Eliom_sessions.server_params ->
+  ?err_handler:(exn -> string option) ->
+  (Eliom_duce.Xhtml.form_content_elt,
+   Eliom_sessions.server_params -> Eliom_duce.Xhtml.page Lwt.t) t ->
+  Xhtmltypes_duce.form monad
+
 
 end
 
@@ -90,6 +124,8 @@ end) = struct
 open Monad
 
 (****)
+
+type 'a monad = 'a Monad.t
 
 type ('content, 'spec, 'html, 'o) u =
   {form : 'content option -> 'spec -> ('html list * 'o outcome) Monad.t;
@@ -116,6 +152,12 @@ let outcome_map f o =
   | Redisplay -> Redisplay
   | Success v -> Success (f v)
 
+let outcome_map_monad f o =
+  match o with
+    | Error -> return Error
+    | Redisplay -> return Redisplay
+    | Success v -> f v >>= fun r -> return (Success r)
+
 (****)
 
 let string_param name =
@@ -140,6 +182,17 @@ let text_area ?a ~rows ~cols value =
               ~rows ~cols ~name ~value:(str (def value v')) ()],
          opt_outcome v'));
     params = string_param}
+
+let v = M.bool_checkbox
+
+let bool_checkbox ?a checked =
+  pack
+   {form =
+      (fun v' name ->
+         return
+         ([M.bool_checkbox ?a ~name ~checked ()],
+         opt_outcome v'));
+    params = fun name -> (P.bool (Name.to_string name), Name.next name)}
 
 let submit_button_int value =
   {form =
@@ -248,6 +301,15 @@ let (|>) f g =
   pack {f with
         form = fun v name ->
           f.form v name >>= fun (x, r) -> return (x, outcome_map g r)}}
+
+let (||>) f g =
+  unpack f {f = fun f ->
+  pack {f with
+        form = fun v name ->
+          f.form v name >>= fun (x, r) ->
+          outcome_map_monad g r >>= fun r ->
+          return (x, r)}}
+
 end
 
 open Ops
@@ -302,12 +364,27 @@ let check f tst =
         form = fun v name ->
                  f.form v name >>= fun (x, r) ->
                  match r with
-                   Error | Redisplay ->
+                 | Error | Redisplay ->
                      return (x, r)
                  | Success r ->
                      match tst r with
                        None    -> return (x, Success r)
                      | Some x' -> return (x @ error x', Error)}}
+
+
+let convert f conv =
+  unpack f {f = fun f ->
+  pack {f with
+        form = fun v name ->
+          f.form v name >>= fun (x, r) ->
+          match r with
+            | Error -> return (x, Error)
+            | Redisplay -> return (x, Redisplay)
+            | Success r ->
+                conv r >>= function
+                  | Converted v -> return (x, Success v)
+                  | ConvError x' -> return (x @ error x', Error)}}
+
 
 
 (****)
@@ -394,24 +471,27 @@ let date_input date =
   |> (fun ((day, month, year), (hour, min)) ->
         Calendar.make year month day hour min 0)
 
+let string_opt_input v =
+  bool_checkbox (v <> None) @@
+  string_input (match v with None -> "" | Some s -> s)
+  |> (fun (check, s) -> if check then Some s else None)
+
 end
 
 
-type error =
-  | NoError
-  | ErrorNoMsg
-  | ErrorMsg of string
+module Xform = struct
 
-module Xform = Make(struct
-                       type +'a t = 'a
-                       let return x = x
-                       let (>>=) x f = f x
-                     end)
+include Make(struct
+               type +'a t = 'a
+               let return x = x
+               let (>>=) x f = f x
+             end)
 
-open Xform
-open Xform.Ops
+open Ops
 
-
+(* We must duplicate the function [form] for the Lwt and non-lwt versions,
+   as the code is typable only for (>>=)  = Lwt.bind or (>>=) = id,
+   and this cannot be expressed in the signature of the functor [Make] *)
 
 let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
   let f = hidden (submit_button "Submit") @@ f |> snd in
@@ -445,10 +525,48 @@ let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
     let r, _ = f.form None names in {{ {:r:}}})
     get_args}
 
-(*
-module XformLwt = Make(struct
-                       type +'a t = 'a Lwt.t
-                       let return = Lwt.return
-                       let (>>=) = Lwt.bind
-                     end)
-*)
+end
+
+module XformLwt = struct
+
+  include Make(struct
+                 type +'a t = 'a Lwt.t
+                 let return = Lwt.return
+                 let (>>=) = Lwt.bind
+               end)
+  open Ops
+
+let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
+  let f = hidden (submit_button "Submit") @@ f |> snd in
+  unpack f {f = fun f ->
+  let (params, _) = f.params Name.first in
+  let service =
+    Eliom_services.new_post_coservice ~fallback ~post_params:params ()
+  in
+  M.lwt_post_form ~service ~sp (fun names ->
+    M.register_for_session ~sp ~service (* XXX timeout *)
+          (fun sp get_args v ->
+             f.form (Some v) names >>= function
+             | (x, Success act) ->
+                 Lwt.catch
+                   (fun () -> act sp)
+                   (fun e ->
+                      match err_handler e with
+                        | None -> Lwt.fail e
+                        | Some err ->
+                            let form = M.post_form ~service ~sp
+                              (fun _ -> {{ {:x:} }}) get_args in
+                            page sp get_args (ErrorMsg err) form
+                   )
+             | ((x : Eliom_duce.Xhtml.form_content_elt list),
+                (Error | Redisplay as err))     ->
+                  let form =
+                    M.post_form ~service ~sp (fun _ -> {{ {:x:} }}) get_args in
+                  let error = if err = Error then ErrorNoMsg else NoError in
+                  page sp get_args error form
+          );
+    f.form None names >>= fun (r, _) -> Lwt.return {{ {:r:}}})
+    get_args}
+
+end
+
