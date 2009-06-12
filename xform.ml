@@ -497,8 +497,8 @@ let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
   let f = hidden (submit_button "Submit") @@ f |> snd in
   unpack f {f = fun f ->
   let (params, _) = f.params Name.first in
-  let service =
-    Eliom_services.new_post_coservice ~fallback ~post_params:params ()
+  let service = Eliom_services.new_post_coservice ~timeout:600. ~fallback
+    ~post_params:params ()
   in
   M.post_form ~service ~sp (fun names ->
     M.register_for_session ~sp ~service
@@ -540,11 +540,11 @@ let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
   let f = hidden (submit_button "Submit") @@ f |> snd in
   unpack f {f = fun f ->
   let (params, _) = f.params Name.first in
-  let service =
-    Eliom_services.new_post_coservice ~fallback ~post_params:params ()
+  let service = Eliom_services.new_post_coservice ~timeout:600. ~fallback
+    ~post_params:params ()
   in
   M.lwt_post_form ~service ~sp (fun names ->
-    M.register_for_session ~sp ~service (* XXX timeout *)
+    M.register_for_session ~sp ~service
           (fun sp get_args v ->
              f.form (Some v) names >>= function
              | (x, Success act) ->
