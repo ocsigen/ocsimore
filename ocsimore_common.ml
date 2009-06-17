@@ -62,3 +62,13 @@ let eliom_opaque_int32 s =
   Eliom_parameters.user_type
     (fun s -> Opaque.int32_t (Int32.of_string s))
     (fun i -> Int32.to_string (Opaque.t_int32 i)) s
+
+
+let input_opaque_int32 ?value ?(hidden=true) name =
+  let f = Eliom_duce.Xhtml.user_type_input
+    (fun v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
+  in
+  if hidden then
+    f ~input_type:{: "hidden" :} ()
+  else
+    f ~input_type:{: "text" :} ()

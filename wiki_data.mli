@@ -9,6 +9,20 @@ This is the wiki component of Ocsimore.
 @author Vincent Balat
 *)
 
+(** Exception raised when a wikipage already exists. The argument
+   is the wikibox for the pre-existing page *)
+exception Page_already_exists of wikibox
+
+exception Css_already_exists
+
+
+
+type 'a rights_sp =
+  rights:Wiki_types.wiki_rights ->
+  sp: Eliom_sessions.server_params ->
+  'a
+
+
 
 (** Creates the specified wiki if the user has enough permissions.
     Raise [Permission_denied] if it is not the case, and or fails with
@@ -19,9 +33,7 @@ This is the wiki component of Ocsimore.
     the wiki.
 *)
 val create_wiki :
-  rights:Wiki_types.wiki_rights ->
-  sp: Eliom_sessions.server_params ->
-  title:string ->
+ (title:string ->
   descr:string ->
   ?path: string list ->
   ?staticdir:string ->
@@ -32,47 +44,56 @@ val create_wiki :
   ?container_text:string ->
   model:Wiki_types.wiki_model ->
   unit ->
-  wiki Lwt.t
+  wiki Lwt.t) rights_sp
 
 
 
 val new_wikitextbox :
-  ?db:Sql.db_t ->
-  rights:Wiki_types.wiki_rights ->
-  content_type:Wiki_types.content_type ->
-  sp:Eliom_sessions.server_params ->
+ ?db:Sql.db_t ->
+ (content_type:Wiki_types.content_type ->
   wiki:wiki ->
   author:userid ->
   comment:string ->
   content:string ->
-  unit -> int32 Lwt.t
+  unit -> wikibox Lwt.t) rights_sp
 
 
 (** The next three functiosn save a wikibox and returns the new version id of
     this wikibox. *)
 val save_wikitextbox :
-  rights:Wiki_types.wiki_rights ->
-  content_type:Wiki_types.content_type ->
-  sp:Eliom_sessions.server_params ->
+ (content_type:Wiki_types.content_type ->
   wb:wikibox ->
   content:string option ->
-  int32 Lwt.t
+  int32 Lwt.t) rights_sp
 
 val save_wikicssbox :
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  wiki:wiki ->
+ (wiki:wiki ->
   content:string option ->
-  int32 Lwt.t
+  int32 Lwt.t) rights_sp
 
 val save_wikipagecssbox :
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  wiki:wiki ->
+ (wiki:wiki ->
   page:string ->
   content:string option ->
-  int32 Lwt.t
+  int32 Lwt.t) rights_sp
 
+
+val set_wikibox_specific_permissions :
+ (wb:wikibox ->
+  perms:User.GroupsForms.six_strings ->
+  special_rights:bool ->
+  unit Lwt.t) rights_sp
+
+
+val create_wikipage:
+ (wiki:wiki ->
+  page:string ->
+  unit Lwt.t) rights_sp
+
+val create_css:
+  (wiki:wiki ->
+   page:string option ->
+   unit Lwt.t) rights_sp
 
 
 (** Raised in case of a non-existing wikibox. The optional [int32]
@@ -83,39 +104,30 @@ exception Unknown_box of wikibox * int32 option
 (** Returns the content of the wikibox if the user has enough rights,
     possibly for the given revision *)
 val wikibox_content:
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  ?version:int32 ->
+ (?version:int32 ->
   wikibox ->
-  Wiki_types.wikibox_content Lwt.t
+  Wiki_types.wikibox_content Lwt.t) rights_sp
 
 val wikibox_content':
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  ?version:int32 ->
+ (?version:int32 ->
   wikibox ->
-  (string option * int32) Lwt.t
+  (string option * int32) Lwt.t) rights_sp
 
 
 val wikibox_history :
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  wb:wikibox ->
-  (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
+ (wb:wikibox ->
+  (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t)
+ rights_sp
 
 
 (** Returns the css for the specified wiki. Fail with [Permission_denied]
     if the user cannot view the css, and [Eliom_common.Eliom_404] if there
     is no css for this wiki *)
 val wiki_css :
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  wiki:wiki ->
-  string Lwt.t
+ (wiki:wiki ->
+  string Lwt.t) rights_sp
 
 (** Same thing for a wikipage *)
 val wikipage_css :
-  rights:Wiki_types.wiki_rights ->
-  sp:Eliom_sessions.server_params ->
-  wiki:wiki -> page:string ->
-  string Lwt.t
+ (wiki:wiki -> page:string ->
+  string Lwt.t) rights_sp

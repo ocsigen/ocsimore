@@ -34,15 +34,13 @@ val sql_of_wiki : wiki -> int32
 val wiki_of_sql : int32 -> wiki
 
 type wikibox_arg = [ `Wikibox ]
-type wikibox_id = int32
-type wikibox = wiki * wikibox_id
-type wikibox_uid = wikibox_arg Opaque.int32_t
+type wikibox = wikibox_arg Opaque.int32_t
 
-val sql_of_wikibox_uid : wikibox_uid -> int32
-val wikibox_uid_of_sql : int32 -> wikibox_uid
+val sql_of_wikibox : wikibox -> int32
+val wikibox_of_sql : int32 -> wikibox
+val string_of_wikibox : wikibox -> string
 
 type wikipage = wiki * string
-
 type wikipage_arg = [ `Wikipage ]
 type wikipage_uid = wikipage_arg Opaque.int32_t
 
@@ -60,7 +58,7 @@ type wiki_info = {
   wiki_descr : string;
   wiki_pages : string option;
   wiki_boxrights : bool;
-  wiki_container : wikibox_id;
+  wiki_container : wikibox option;
   wiki_staticdir : string option (** if static dir is given,
                                 ocsimore will serve static pages if present,
                                 instead of wiki pages *);
@@ -68,19 +66,18 @@ type wiki_info = {
 }
 
 type wikipage_info = {
-  wikipage_source_wiki: wiki;
+  wikipage_wiki: wiki;
+  wikipage_wikibox: wikibox;
   wikipage_page: string;
-  wikipage_dest_wiki: wiki;
-  wikipage_wikibox: wikibox_id;
   wikipage_title: string option;
-  wikipage_uid: wikipage_uid;
+  wikipage_uid : wikipage_uid;
 }
 
 type wikibox_info = {
-  wikibox_id : wikibox;
-  wikibox_uid: wikibox_uid;
+  wikibox_wiki : wiki;
   wikibox_comment: string option;
   wikibox_special_rights: bool;
+  wikibox_id : wikibox;
 }
 
 type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t

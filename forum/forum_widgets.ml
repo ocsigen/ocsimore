@@ -132,12 +132,11 @@ object (self)
     let classes = 
       if m.m_moderated then classes else not_moderated_class::classes 
     in
-    Wiki_sql.wikibox_from_uid m.m_wikibox >>= fun (wiki, box) ->
+    Wiki_sql.wikibox_wiki m.m_wikibox >>= fun wiki ->
     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
     let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
-    let bi = Wiki_widgets_interface.default_bi ~sp ~wikibox:(wiki, box) ~rights
-    in
-    wiki_widgets#display_interactive_wikibox ~bi (wiki, box) >>= fun wikibox ->
+    Wiki.default_bi ~sp ~wikibox:m.m_wikibox ~rights >>= fun bi ->
+    wiki_widgets#display_interactive_wikibox ~bi m.m_wikibox >>= fun wikibox ->
     Lwt.return
       (classes,
        {{ [

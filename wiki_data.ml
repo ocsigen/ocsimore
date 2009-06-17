@@ -32,9 +32,14 @@ open User_sql.Types
 
 let (>>=) = Lwt.bind
 
+type 'a rights_sp =
+  rights:Wiki_types.wiki_rights ->
+  sp: Eliom_sessions.server_params ->
+  'a
+
 
 let new_wikitextbox ?db
-    ~rights ~content_type ~sp ~wiki ~author ~comment ~content () =
+    ~rights ~sp ~content_type ~wiki ~author ~comment ~content () =
   rights#can_create_genwikiboxes ~sp wiki
   >>= function
     | true -> Wiki_sql.new_wikibox ?db ~wiki ~author ~comment ~content
@@ -50,7 +55,7 @@ let wikibox_content ~rights ~sp ?version wb =
   rights#can_read_wikibox ~sp wb >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
-        Wiki_sql.get_wikibox_data ?version ~wikibox:wb () >>= function
+        Wiki_sql.get_wikibox_data ?version ~wb () >>= function
           | None -> Lwt.fail (Unknown_box (wb, version))
           | Some (_com, _a, cont, _d, ct, ver) ->
               Lwt.return (ct, cont, ver)
@@ -61,18 +66,20 @@ let wikibox_content' ~rights ~sp ?version wikibox =
 
 
 let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
-  (if content = None 
-   then rights#can_delete_wikiboxes ~sp (fst wb)
+  (if content = None
+   then
+     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
+     rights#can_delete_wikiboxes ~sp wiki
    else rights#can_write_wikibox ~sp wb) >>= function
     | true ->
         User.get_user_id sp >>= fun user ->
-        Wiki_sql.update_wikibox ~wikibox:wb ~author:user ~comment:""
+        Wiki_sql.update_wikibox ~wb ~author:user ~comment:""
           ~content ~content_type
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikitextbox ~rights ~content_type ~sp ~wb ~content =
+let save_wikitextbox ~rights ~sp ~content_type ~wb ~content =
   save_wikibox_aux ~rights ~sp ~wb ~content_type ~content
 
 let save_wikicssbox ~rights ~sp ~wiki ~content =
@@ -126,3 +133,70 @@ let wikipage_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
         wikibox_content rights sp wb >>= function
           | (_, Some cont, _) -> Lwt.return cont
           | (_, None, _) -> Lwt.fail Eliom_common.Eliom_404
+
+
+
+let set_wikibox_specific_permissions ~(rights : Wiki_types.wiki_rights) ~sp ~wb  ~perms ~special_rights =
+  rights#can_set_wikibox_specific_permissions sp wb >>= function
+    | true ->
+        let { User.GroupsForms.awr_save = save } =
+          Wiki.helpers_wikibox_permissions in
+        save wb perms >>= fun () ->
+        Wiki_sql.set_wikibox_special_rights wb special_rights
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
+
+
+
+exception Page_already_exists of wikibox
+
+let create_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
+  rights#can_create_wikipages ~sp wiki >>= function
+    | true ->
+        Lwt.catch
+          (fun () ->
+             Wiki_sql.get_wikipage_info wiki page
+             >>= fun { wikipage_wikibox = wb } ->
+             Lwt.fail (Page_already_exists wb)
+          )
+          (function
+             | Not_found ->
+                 User.get_user_id ~sp >>= fun user ->
+                 Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+                 let content_type = Wiki_models.get_default_content_type
+                   wiki_info.wiki_model in
+                 new_wikitextbox ~rights ~content_type ~sp ~wiki ~author:user
+                   ~comment:(Printf.sprintf "wikipage %s in wiki %s"
+                               page (string_of_wiki wiki))
+                   ~content:("== Page "^page^"==") ()
+                 >>= fun wb ->
+                 Wiki_sql.set_box_for_page ~wiki ~wb ~page ()
+
+             | e -> Lwt.fail e)
+    | false ->  Lwt.fail Ocsimore_common.Permission_denied
+
+
+exception Css_already_exists
+
+
+let create_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
+  User.get_user_id ~sp >>= fun user ->
+  (match page with
+     | None -> rights#can_create_wikicss sp wiki
+     | Some page -> rights#can_create_wikipagecss sp (wiki, page)
+  ) >>= function
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
+    | true ->
+        let text = Some "" (* empty CSS by default *) in
+        match page with
+          | None -> (* Global CSS for the wiki *)
+              (Wiki_sql.get_css_for_wiki wiki >>= function
+                 | None -> Wiki_sql.set_css_for_wiki ~wiki ~author:user text
+                 | Some _ -> Lwt.fail Css_already_exists
+              )
+
+          | Some page -> (* Css for a specific wikipage *)
+              (Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
+                 | None ->
+                     Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:user text
+                 | Some _ -> Lwt.fail Css_already_exists
+              )

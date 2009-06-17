@@ -158,13 +158,13 @@ let () = Lwt_unix.run (
 
 open User.GenericRights
 
-let can_sthg_wikibox f ~sp (wid, _ as wb) =
+let can_sthg_wikibox f ~sp wb =
   Wiki_sql.get_wikibox_info wb
-  >>= fun { wikibox_uid = uid ; wikibox_special_rights = special_rights }->
+  >>= fun { wikibox_special_rights = special_rights ; wikibox_wiki = wiki}->
   let g = if special_rights then
-    (f.field wikibox_grps) $ uid
+    (f.field wikibox_grps) $ wb
   else
-    (f.field wiki_wikiboxes_grps) $ wid
+    (f.field wiki_wikiboxes_grps) $ wiki
   in
   User.in_group ~sp ~group:g ()
 
@@ -196,7 +196,8 @@ object (self)
   (* XXX add a field to override by wikipage and use wikipage_css_creators *)
   User.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
 
-  method can_set_wikibox_specific_permissions ~sp (wiki, _  as wb) =
+  method can_set_wikibox_specific_permissions ~sp wb =
+    Wiki_sql.wikibox_wiki wb >>= fun wiki ->
     Wiki_sql.get_wiki_info_by_id wiki
     >>= fun { wiki_boxrights = boxrights } ->
       if boxrights then
@@ -320,15 +321,20 @@ exception Wiki_with_same_title of wiki
 let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~author
     ?(admins=[basic_user author]) ?(readers = [basic_user User.anonymous])
-    ?wiki_css ?(container_text=default_container_page)
+    ?wiki_css ?container_text
     ~model
     () =
   let path_string = Ocsimore_lib.bind_opt
     path (Ocsigen_lib.string_of_url_path ~encode:true)
   in
-  (* XXX many race conditions below. Export database handler *)
   (* We check that no wiki of the same name or already registered at the same
-     path exists *)
+     path exists. There are some race conditions in this code, but
+     - when a Postgres error is raised, it is difficult to know the
+     cause of the error, as we only get a string. Thus it is perilous
+     to try and see if an error is raised
+     - nothing can be done for the race on the 'path' field, as wikis
+     are not registered in this function
+  *)
   Ocsimore_lib.lwt_bind_opt path_string
     (fun path -> Wiki_sql.iter_wikis
        (fun ({ wiki_title = title'; wiki_pages = path' } as w) ->
@@ -346,7 +352,7 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
      container has changed between the creation of the wiki and the moments
      the rights are added *)
   Wiki_sql.new_wiki ~title ~descr ~pages:path_string
-     ~boxrights ?staticdir ~container_text ~author ~model ()
+     ~boxrights ?staticdir ?container_text ~author ~model ()
    >>= fun (wiki_id, _wikibox_container) ->
 
    (* Putting users in groups *)
@@ -379,3 +385,15 @@ let modified_wikibox ~wikibox ~boxversion =
           Lwt.return (Some curversion)
         else
           Lwt.return None
+
+
+let default_bi ~sp ~wikibox ~rights =
+  Wiki_sql.wikibox_wiki wikibox >>= fun wiki ->
+  Lwt.return {
+    Wiki_widgets_interface.bi_sp = sp;
+    bi_ancestors = Wiki_widgets_interface.Ancestors.no_ancestors;
+    bi_subbox = None;
+    bi_box = wikibox;
+    bi_wiki = wiki;
+    bi_rights = rights;
+  }

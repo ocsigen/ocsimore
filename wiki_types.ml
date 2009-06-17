@@ -23,7 +23,6 @@
 
 open Opaque
 type wiki_arg = [ `Wiki ]
-type wikibox_arg = [ `Wikibox ]
 type wiki = [`Wiki] int32_t
 let wiki_of_sql (i : int32) = (int32_t i : wiki)
 let sql_of_wiki (i : wiki) = t_int32 i
@@ -31,13 +30,12 @@ let string_of_wiki i = Int32.to_string (sql_of_wiki i)
 let wiki_of_string s = (Opaque.int32_t (Int32.of_string s) : wiki)
 
 
-(* For now. Someday the second int32 will be a properly opacified type *)
-type wikibox_id = int32
-type wikibox = wiki * wikibox_id
-type wikibox_uid = wikibox_arg Opaque.int32_t
+type wikibox_arg = [ `Wikibox ]
+type wikibox = wikibox_arg Opaque.int32_t
 
-let wikibox_uid_of_sql (i : int32) = (int32_t i : wikibox_uid)
-let sql_of_wikibox_uid (i : wikibox_uid) = t_int32 i
+let wikibox_of_sql (i : int32) = (int32_t i : wikibox)
+let sql_of_wikibox (i : wikibox) = t_int32 i
+let string_of_wikibox i = Int32.to_string (sql_of_wikibox i)
 
 type wikipage = wiki * string
 
@@ -57,23 +55,22 @@ type wiki_info = {
   wiki_descr : string;
   wiki_pages : string option;
   wiki_boxrights : bool;
-  wiki_container : wikibox_id;
+  wiki_container : wikibox option;
   wiki_staticdir : string option;
   wiki_model : wiki_model;
 }
 
 type wikibox_info = {
-  wikibox_id : wikibox;
-  wikibox_uid: wikibox_uid;
+  wikibox_wiki : wiki;
   wikibox_comment: string option;
   wikibox_special_rights: bool;
+  wikibox_id : wikibox;
 }
 
 type wikipage_info = {
-  wikipage_source_wiki: wiki;
+  wikipage_wiki: wiki;
+  wikipage_wikibox: wikibox;
   wikipage_page: string;
-  wikipage_dest_wiki: wiki;
-  wikipage_wikibox: int32;
   wikipage_title: string option;
   wikipage_uid : wikipage_uid;
 (*  wikipage_css_special_rights; *)

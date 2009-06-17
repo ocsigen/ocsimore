@@ -25,27 +25,23 @@ open Wiki_types
 
 
 
-(** Eliom parameter type for wikis *)
-val eliom_wiki :
-  string -> (wiki, [`WithoutSuffix], [`One of wiki] Eliom_parameters.param_name) Eliom_parameters.params_type
-
 
 (** inserts a new wiki, creating on the fly the container wikibox
     (which is returned along the index of the new wiki). The [author]
     argument is used when creating the wikibox for the container. *)
 val new_wiki :
-  title:string -> 
-  descr:string -> 
+  title:string ->
+  descr:string ->
   pages:string option ->
   boxrights:bool ->
   staticdir:string option ->
-  container_text:string ->
+  ?container_text:string ->
   author:userid ->
   model:Wiki_types.wiki_model ->
   unit ->
-  (wiki * wikibox_id) Lwt.t
+  (wiki * wikibox option) Lwt.t
 
-(** Inserts a new wikibox in an existing wiki and return the id of the 
+(** Inserts a new wikibox in an existing wiki and return the id of the
     wikibox. *)
 val new_wikibox :
   ?db: Sql.db_t ->
@@ -55,10 +51,10 @@ val new_wikibox :
   content:string ->
   content_type:Wiki_types.content_type ->
   unit ->
-  wikibox_id Lwt.t
+  wikibox Lwt.t
 
 (** return the history of a wikibox. *)
-val get_history : wikibox:wikibox ->
+val get_history : wb:wikibox ->
   (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
 
 
@@ -68,12 +64,11 @@ val get_history : wikibox:wikibox ->
 val get_wikipage_info : wiki:wiki -> page:string -> wikipage_info Lwt.t
 
 (** sets the box corresponding to a wikipage. The previous entry is
-    entirely overwritten. If [destwiki] is not supplied, it is set
-    equal to [sourcewiki]. If [title] is not supplied, it is set equal
+    entirely overwritten. If [title] is not supplied, it is set equal
     to NULL (and the title for the wiki will be used).
-*)
+*) (* XXX Preserve previous info*)
 val set_box_for_page :
-  sourcewiki:wiki -> page:string -> ?destwiki:wiki -> wbid:wikibox_id -> ?title:string -> unit -> unit Lwt.t
+  wiki:wiki -> page:string -> wb:wikibox -> ?title:string -> unit -> unit Lwt.t
 
 
 
@@ -111,23 +106,28 @@ val get_wiki_info_by_name : name:string -> wiki_info Lwt.t
     content_type, version)], or [None] if the page doesn't exist. *)
 val get_wikibox_data : 
   ?version:int32 ->
-  wikibox:wikibox ->
+  wb:wikibox ->
   unit ->
   (string * userid * string option * CalendarLib.Calendar.t * Wiki_types.content_type * int32) option Lwt.t
 
-val set_wikibox_special_rights:
-  wikibox -> bool -> unit Lwt.t
 
-val wikibox_from_uid: wikibox_uid -> wikibox Lwt.t
+(** Does the wikibox have special permission rights *)
+val set_wikibox_special_rights:
+  wb:wikibox -> bool -> unit Lwt.t
+
+
+(** Wiki in which the wikibox currently resides *)
+val wikibox_wiki: wb:wikibox -> wiki Lwt.t
+
 
 (** Current revision number of a wikibox *)
-val current_wikibox_version : wikibox:wikibox -> Int32.t option Lwt.t
+val current_wikibox_version : wb:wikibox -> Int32.t option Lwt.t
 
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
 val update_wikibox :
-  wikibox:wikibox ->
+  wb:wikibox ->
   author:userid ->
   comment:string ->
   content:string option ->
@@ -137,7 +137,8 @@ val update_wikibox :
 (** Update the information of a wiki. All arguments not passed are left
     unchanged *)
 val update_wiki :
-  ?container_id:wikibox_id ->
+  ?db: Sql.db_t ->
+  ?container:wikibox ->
   ?staticdir:string option ->
   ?pages:string option ->
   wiki -> unit Lwt.t
@@ -147,9 +148,15 @@ val update_wiki :
 val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t
 
 
-
-(** **)
-
-
-
 val get_wikibox_info : ?db:Sql.db_t -> wikibox -> wikibox_info Lwt.t
+
+
+
+(** / **)
+(* This function can be used to convert from the all wikiboxes ids to
+   the (new) uids. THEY DO NOT RESPECT THE CACHE DISCIPLINE AND ARE THUS
+   UNSAGE FOR GENERAL USE *)
+
+val update : (wikibox -> int32 -> string option -> string option Lwt.t) -> unit Lwt.t
+
+val wikibox_new_id: wiki:wiki -> wb_old_id:int32 -> wikibox Lwt.t

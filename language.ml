@@ -1,4 +1,4 @@
-(* XXX : extend... *)
+(* YYY : extend... *)
 
 
 type messages = {

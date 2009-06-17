@@ -17,13 +17,13 @@ module Event = struct
       last_updated : Calendar.t; category : int32; status : status;
       start : PGOCaml.timestamptz; finish : PGOCaml.timestamptz;
       room : string; location : string; title : string;
-      description : int32 }
+      description : Wiki_types.wikibox }
 
   type cat =
     { cat_id : int32;
       cat_name : string;
       cat_path : string list;
-      cat_desc : int32;
+      cat_desc : Wiki_types.wikibox;
       cat_editable : bool }
 
 end
@@ -67,15 +67,15 @@ let make_event (i, v, v', u, c, st, s, f, r, l, t, d) =
   { id = i; minor_version = v; major_version = v';
     last_updated = u; category = c; status = status_of_int st;
     start = s; finish = f; room = r; location = l; title = t;
-    description = d }
+    description = Wiki_types.wikibox_of_sql d }
 
 let make_events filter l =
   Lwt.return (List.filter filter (List.map make_event l))
 
 let make_category (i, n, p, d, e) =
   Lwt.return
-    {cat_id = i; cat_name = n; cat_desc = d; cat_editable = e;
-     cat_path = Str.split (Str.regexp_string "/") p }
+    {cat_id = i; cat_name = n; cat_desc = Wiki_types.wikibox_of_sql d;
+     cat_editable = e; cat_path = Str.split (Str.regexp_string "/") p }
 
 (****)
 
@@ -179,6 +179,7 @@ let insert_event
       persons title desc comment status =
   let status = int_of_status status in
   insert_desc wiki author comment desc >>= fun desc ->
+  let desc = Wiki_types.sql_of_wikibox desc in
   transaction Common_sql.dbpool (fun dbh ->
   PGSQL(dbh)
   "insert
@@ -192,9 +193,8 @@ let insert_event
   insert_event_person dbh event persons >>= fun () ->
   Lwt.return event)
 
-let update_desc wiki author wikibox content_type comment content =
-  Wiki_sql.update_wikibox
-    ~wikibox:(wiki, wikibox) ~author ~comment ~content ~content_type
+let update_desc author wb content_type comment content =
+  Wiki_sql.update_wikibox ~wb ~author ~comment ~content ~content_type
 
 let check_no_concurrent_update dbh ev =
   let id = ev.id in
@@ -207,11 +207,11 @@ let check_no_concurrent_update dbh ev =
      | _      -> false);
   Lwt.return ()
 
-let update_event wiki author ev desc content_type comment persons =
+let update_event author ev desc content_type comment persons =
   Lwt_pool.use Common_sql.dbpool (fun dbh ->
   check_no_concurrent_update dbh ev) >>= fun () ->
   (*XXX Not atomic! *)
-  update_desc wiki author ev.description content_type comment desc >>= fun _ ->
+  update_desc author ev.description content_type comment desc >>= fun _ ->
   transaction Common_sql.dbpool (fun dbh ->
   let id = ev.id in
   let minor_version = ev.minor_version in

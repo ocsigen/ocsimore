@@ -38,54 +38,54 @@ and extract_https args =
     | _ -> None
   with Not_found -> None
 
-
 let register_wikibox_syntax_extensions wp (error_box : Widget.widget_with_error_box) =
 let add_extension = Wiki_syntax.add_extension ~wp in
 add_extension ~name:"wikibox" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Block
        (try
-         let wiki = extract_wiki_id args (fst bi.bi_box) in
-         Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-         let widget = Wiki_models.get_widgets wiki_info.wiki_model in
-         try
-           let box = Int32.of_string (List.assoc "box" args) in
-           if Ancestors.in_ancestors (wiki, box) bi.bi_ancestors then
-             Lwt.return {{ [ {: error_box#display_error_box
-                                ~message:"Wiki error: loop of wikiboxes" () :} ] }}
-           else
-             (match c with
-                | None -> Lwt.return None
-                | Some c ->
-                    Wiki_syntax.xml_of_wiki wp bi c
-                    >>= fun r -> Lwt.return (Some r)
-             ) >>=fun subbox ->
-             widget#display_interactive_wikibox
-               ?rows:(Ocsimore_lib.int_of_string_opt
-                        (Ocsimore_lib.list_assoc_opt "rows" args))
-               ?cols:(Ocsimore_lib.int_of_string_opt
-                        (Ocsimore_lib.list_assoc_opt "cols" args))
-               ?classes:(try Some [List.assoc "class" args]
-                         with Not_found -> None)
-               ~bi:{bi with
-                      bi_ancestors =
-                   Ancestors.add_ancestor (wiki, box) bi.bi_ancestors;
-                      bi_subbox = subbox}
-               (wiki, box)
-             >>= fun b ->
-               Lwt.return {{ [ b ] }}
-         with Not_found ->
-           Lwt.return {{ [ <code>"<<wikibox>>" ] }}
-       with
-         | Failure _ ->
-             Lwt.return {{ [ {: error_box#display_error_box
-                                ~message:"Wiki error: error in wikibox extension" () :} ] }}
+          let box = wikibox_of_sql (Int32.of_string (List.assoc "box" args)) in
+          if Ancestors.in_ancestors box bi.bi_ancestors then
+            Lwt.return {{ [ {: error_box#display_error_box
+                               ~message:"Wiki error: loop of wikiboxes" () :} ] }}
+          else
+            (match c with
+               | None -> Lwt.return None
+               | Some c ->
+                   Wiki_syntax.xml_of_wiki wp bi c
+                   >>= fun r -> Lwt.return (Some r)
+            ) >>=fun subbox ->
+            Wiki_sql.wikibox_wiki box >>= fun wiki ->
+            Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+            let widget = Wiki_models.get_widgets wiki_info.wiki_model in
+            widget#display_interactive_wikibox
+              ?rows:(Ocsimore_lib.int_of_string_opt
+                       (Ocsimore_lib.list_assoc_opt "rows" args))
+              ?cols:(Ocsimore_lib.int_of_string_opt
+                       (Ocsimore_lib.list_assoc_opt "cols" args))
+              ?classes:(try Some [List.assoc "class" args]
+                        with Not_found -> None)
+              ~bi:{bi with
+                     bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
+                     bi_subbox = subbox}
+              box
+              >>= fun b ->
+              Lwt.return {{ [ b ] }}
+        with
+          | Not_found ->
+              Lwt.return {{ [ <code>"<<wikibox>>" ] }}
+          | Failure _ ->
+              Lwt.return {{ [ {: error_box#display_error_box
+                                 ~message:"Wiki error: error in wikibox \
+                                             extension" () :} ] }}
   ));
 
 Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
   (fun (sp, wb) args c ->
      (try
-        let wid = extract_wiki_id args (fst wb) in
+        Wiki_sql.wikibox_wiki wb >>= fun wid ->
+        (* The user can specify the wiki, or we deduce it from the context. *)
+        let wid = extract_wiki_id args wid in
         Wiki_sql.get_wiki_info_by_id wid >>= fun wiki_info ->
         let rights = Wiki_models.get_rights wiki_info.wiki_model in
         let content_type = 
@@ -101,8 +101,8 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
                   ~rights ~sp
                   ~wiki:wid
                   ~author:userid
-                  ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %ld"
-                              (string_of_wiki (fst wb)) (snd wb))
+                  ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %s"
+                              (string_of_wiki wid) (string_of_wikibox wb))
                   ~content:"**//new wikibox//**" 
                   ~content_type
                   ()
@@ -110,10 +110,39 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
                   >>= fun box ->
                   Lwt.return
                     (Some (Wiki_syntax.string_of_extension "wikibox"
-                             (("box", Int32.to_string box)::args) c))
+                             (("box", string_of_wikibox box) ::
+                                (* We remove the wiki information, which 
+                                   is no longer useful *)
+                                List.remove_assoc "wiki" args) c))
             | false -> Lwt.return None
    with Failure _ -> Lwt.return None)
   );
+
+(* Update of the database : wiki='' box='' to box='' where box an uid *)
+(*
+Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
+  (fun (_sp, wb) args c ->
+     (try
+        try
+          let box = Int32.of_string (List.assoc "box" args) in
+          Wiki_sql.wikibox_wiki wb >>= fun wid ->
+          let wid = extract_wiki_id args wid in
+          Wiki_sql.wikibox_new_id wid box >>= fun box' ->
+          let s = (Wiki_syntax.string_of_extension "wikibox"
+                     (("box", string_of_wikibox box') ::
+                        (* We remove the wiki information *)
+                        List.remove_assoc "wiki" (List.remove_assoc "box" args)) c) in
+          Lwt.return (Some s)
+
+        with Not_found ->
+          (* No box, the preparser extension will take care of this
+             case, we do nothing *)
+          Lwt.return None
+      with Failure _ -> Lwt.return None
+        | Not_found -> Ocsigen_messages.console2 "Box not found";
+            Lwt.return None)
+  );
+*)
 
 
 add_extension ~name:"link" ~wiki_content:true
@@ -129,7 +158,7 @@ add_extension ~name:"link" ~wiki_content:true
             | None -> Lwt.return (Ocamlduce.Utf8.make page)
         in
         (* class and id attributes will be taken by Wiki_syntax.a_elem *)
-        (let wiki = extract_wiki_id args (fst bi.bi_box) in
+        (let wiki = extract_wiki_id args bi.bi_wiki in
          Wiki_syntax.make_href
            sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
         ),
@@ -150,9 +179,9 @@ add_extension ~name:"nonattachedlink" ~wiki_content:true
             | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make href)
         in
-        let wiki_id = extract_wiki_id args (fst bi.bi_box) in
+        let wiki_id = extract_wiki_id args bi.bi_wiki in
         (Eliom_duce.Xhtml.make_uri ?https ?fragment
-           ~service:(Wiki_widgets_interface.find_naservpage wiki_id) ~sp href,
+           ~service:(Wiki_self_services.find_naservpage wiki_id) ~sp href,
          args,
          content)
        )
@@ -181,7 +210,7 @@ add_extension ~name:"object" ~wiki_content:true
         let type_ = Ocsimore_lib.list_assoc_default "type" args ""
         and page = Ocsimore_lib.list_assoc_default "data" args ""
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
-        and wiki = extract_wiki_id args (fst bi.bi_box)
+        and wiki = extract_wiki_id args bi.bi_wiki
         and https = extract_https args
         and atts = Wiki_syntax.parse_common_attribs args in
         let url = Wiki_syntax.make_href
@@ -202,7 +231,7 @@ add_extension ~name:"img" ~wiki_content:true
        (let sp = bi.bi_sp in
         let page = Ocsimore_lib.list_assoc_default "name" args ""
         and https = extract_https args
-        and wiki = extract_wiki_id args (fst bi.bi_box) in
+        and wiki = extract_wiki_id args bi.bi_wiki in
         let alt = match c with Some c -> c | None -> page in
         let atts = Wiki_syntax.parse_common_attribs args in
         let url = Wiki_syntax.make_href

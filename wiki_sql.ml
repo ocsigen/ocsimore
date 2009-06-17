@@ -34,81 +34,51 @@ open Wiki_types
 let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
 
 
-let eliom_wiki = Eliom_parameters.user_type wiki_of_string string_of_wiki
-
-
-let new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir ~container_text ~author ~model () =
-  let container_wikibox = 0l
-  and author = User_sql.Types.sql_from_userid author
-  and model = Wiki_types.string_of_wiki_model model in
-  Sql.full_transaction_block
-    (fun db ->
-       PGSQL(db)
-         "INSERT INTO wikis (title, descr, pages, boxrights, container_id, staticdir, model)
-          VALUES ($title, $descr, $?pages, $boxrights, $container_wikibox, $?staticdir, $model);
-                  "
-     >>= fun () ->
-     serial4 db "wikis_id_seq" >>= fun wiki_id ->
-     let comment = Printf.sprintf "Container box for wiki %ld" wiki_id in
-     PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
-                VALUES ($wiki_id, $container_wikibox, $comment)"
-     >>= fun () ->
-     PGSQL(db) "INSERT INTO wikiboxes (id, wiki_id, author, content)
-                VALUES ($container_wikibox, $wiki_id, $author, $container_text)"
-     >>= fun () ->
-     return (wiki_of_sql wiki_id, container_wikibox)
-    )
-
-
-let update_wiki_ ?container_id ?staticdir ?pages wiki =
+let update_wiki_ ?db ?container ?staticdir ?pages wiki =
+  let f db =
   let wiki = t_int32 (wiki : wiki) in
-  Sql.full_transaction_block
-    (fun db ->
-       (match container_id with
-          | None -> Lwt.return ()
-          | Some container_id ->
-              PGSQL(db) "UPDATE wikis SET container_id = $container_id \
-                         WHERE id = $wiki"
-       ) >>= fun () ->
-       (match staticdir with
-          | None -> Lwt.return ()
-          | Some staticdir ->
-              PGSQL(db) "UPDATE wikis SET staticdir = $?staticdir \
-                         WHERE id = $wiki"
-       ) >>= fun () ->
-       (match pages with
-          | None -> Lwt.return ()
-          | Some pages ->
-              PGSQL(db) "UPDATE wikis SET pages = $?pages \
-                         WHERE id = $wiki"
-       )
+    (match container with
+       | None -> Lwt.return ()
+       | Some container ->
+           let container = sql_of_wikibox container in
+           PGSQL(db) "UPDATE wikis SET container = $container \
+                      WHERE id = $wiki"
+    ) >>= fun () ->
+    (match staticdir with
+       | None -> Lwt.return ()
+       | Some staticdir ->
+           PGSQL(db) "UPDATE wikis SET staticdir = $?staticdir \
+                      WHERE id = $wiki"
+    ) >>= fun () ->
+    (match pages with
+       | None -> Lwt.return ()
+       | Some pages ->
+           PGSQL(db) "UPDATE wikis SET pages = $?pages \
+                      WHERE id = $wiki"
     )
-
+  in match db with
+    | None -> full_transaction_block f
+    | Some db -> f db
 
 
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
-let new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type () =
+let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
   let wiki' = t_int32 (wiki : wiki)
   and content_type = string_of_content_type content_type
   and author = User_sql.Types.sql_from_userid author
   in
   let f db =
-    (PGSQL(db) "SELECT max(id) FROM wikiboxes WHERE wiki_id = $wiki'"
-     >>= fun last ->
-     let boxid = match last with
-       | [] | None::_ -> 1l
-       | (Some last)::_ -> Int32.add last 1l
-     in
-     PGSQL(db) "INSERT INTO wikiboxindex (wiki_id, id, comment)
-                   VALUES ($wiki', $boxid, $comment)"
+    (PGSQL(db) "INSERT INTO wikiboxindex (wiki, comment)
+                   VALUES ($wiki', $comment)"
      >>= fun () ->
-     PGSQL(db) "INSERT INTO wikiboxes
-                (id, wiki_id, author, comment, content, content_type)
+     serial4 db "wikiboxindex_uid_seq" >>= fun boxid ->
+     PGSQL(db) "INSERT INTO wikiboxescontent
+                  (wikibox, author, comment, content, content_type)
                 VALUES
-                ($boxid, $wiki', $author, '', $content, $content_type)"
+                  ($boxid, $author, '', $content, $content_type)"
      >>= fun () ->
-     Lwt.return boxid)
+     Lwt.return (wikibox_of_sql boxid))
   in
   match db with
     | None -> Sql.full_transaction_block f
@@ -117,45 +87,43 @@ let new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type () =
 
 (** Inserts a new version of an existing wikibox in a wiki 
     and return its version number. *)
-let update_wikibox_ ~wikibox:(wiki, wbox) ~author ~comment ~content ~content_type =
-  let wiki = t_int32 (wiki : wiki)
+let update_wikibox_ ~wb ~author ~comment ~content ~content_type =
+  let wikibox = sql_of_wikibox wb
   and content_type = string_of_content_type content_type
   and author = User_sql.Types.sql_from_userid author
   in
   Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "INSERT INTO wikiboxes \
-                    (id, wiki_id, author, comment, content, content_type) \
-                  VALUES ($wbox, $wiki, $author, \
-                          $comment, $?content, $content_type)" >>= fun () ->
+       PGSQL(db) "INSERT INTO wikiboxescontent \
+                    (wikibox, author, comment, content, content_type) \
+                 VALUES ($wikibox, $author, $comment, $?content, $content_type)"
+       >>= fun () ->
        serial4 db "wikiboxes_version_seq")
 
 
 
 (** Returns the content of a wikibox, or [None] if the wikibox or version
     does not exists *)
-let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use 
+let get_wikibox_data_ ?version ~wb () =
+  let wikibox = sql_of_wikibox wb in
+  Lwt_pool.use
     Sql.pool
     (fun db ->
        (match version with
          | None ->
-             PGSQL(db) "SELECT comment, author, content, datetime, content_type, version \
-                        FROM wikiboxes \
-                        WHERE wiki_id = $wiki \
-                        AND id = $id \
-                        AND version = \
-                           (SELECT max(version) \
-                            FROM wikiboxes \
-                            WHERE wiki_id = $wiki \
-                            AND id = $id)"
+             PGSQL(db) "SELECT comment, author, content, datetime,
+                            content_type, version
+                        FROM wikiboxescontent
+                        WHERE wikibox=$wikibox
+                        AND version =
+                           (SELECT max(version)
+                            FROM wikiboxescontent
+                            WHERE wikibox=$wikibox)"
          | Some version ->
-             PGSQL(db) "SELECT comment, author, content, datetime, content_type, version \
-                        FROM wikiboxes \
-                        WHERE wiki_id = $wiki \
-                        AND id = $id \
-                        AND version = $version")
+             PGSQL(db) "SELECT comment, author, content, datetime,
+                            content_type, version
+                        FROM wikiboxescontent
+                        WHERE wikibox=$wikibox AND version=$version")
        >>= function
          | [] -> Lwt.return None
          | (c, a, v, d, t, ver) :: _ ->
@@ -163,31 +131,27 @@ let get_wikibox_data_ ?version ~wikibox:(wiki, id) () =
                                v, d, content_type_of_string t, ver))
     )
 
-let current_wikibox_version_ ~wikibox:(wiki, id) =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use
-    Sql.pool
+let current_wikibox_version_ ~wb =
+  let wikibox = sql_of_wikibox wb in
+  Lwt_pool.use Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT max(version) \
-                   FROM wikiboxes \
-                   WHERE wiki_id = $wiki \
-                   AND id = $id"
+       PGSQL(db) "SELECT max(version)
+                   FROM wikiboxescontent
+                   WHERE wikibox = $wikibox"
     )
   >>= function
     | [] -> Lwt.return None
     | [v] -> Lwt.return v
-    | _ -> assert false (* (wiki_id, wiki, version) is a primary key *)
+    | _ -> assert false (* (wikibox, version) is a primary key *)
 
 
-let get_history ~wikibox:(wiki, wbid) =
-  let wiki = t_int32 (wiki : wiki) in
-  Lwt_pool.use
-    Sql.pool
+let get_history ~wb =
+  let wikibox = sql_of_wikibox wb in
+  Lwt_pool.use Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT version, comment, author, datetime \
-                  FROM wikiboxes \
-                  WHERE wiki_id = $wiki \
-                  AND id = $wbid \
+       PGSQL(db) "SELECT version, comment, author, datetime
+                  FROM wikiboxescontent
+                  WHERE wikibox = $wikibox
                   ORDER BY version DESC")
 
 
@@ -197,32 +161,29 @@ let get_box_for_page_ ~wiki ~page =
   Lwt_pool.use
     Sql.pool
     (fun db ->
-       PGSQL(db) "SELECT * \
-                  FROM wikipages \
-                  WHERE sourcewiki = $wiki' \
+       PGSQL(db) "SELECT * FROM wikipages
+                  WHERE wiki = $wiki'
                   AND pagename = $page") >>= function
       | [] -> Lwt.fail Not_found
-      | (_sourcewiki, wikibox, _page, destwiki, title, uid) :: _ ->
-          (* (sourcewiki, pagename) is a primary key *)
+      | (_wiki, wikibox, _page, title, uid) :: _ ->
+          (* (wiki, pagename) is a primary key *)
           Lwt.return ({
-            wikipage_source_wiki = wiki;
+            wikipage_wiki = wiki;
             wikipage_page = page;
-            wikipage_dest_wiki = (int32_t destwiki : wiki);
-            wikipage_wikibox = wikibox;
+            wikipage_wikibox = (int32_t wikibox);
             wikipage_title = title;
             wikipage_uid = sql_to_wikipage uid;
           })
 
 (** Sets the box corresponding to a wikipage *)
-let set_box_for_page_ ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () =
-  let sourcewiki = t_int32 (sourcewiki : wiki)
-  and destwiki = t_int32 (destwiki: wiki) in
-  Lwt_pool.use
-    Sql.pool
+let set_box_for_page_ ~wiki ~page ~wb ?title () =
+  let wiki = t_int32 (wiki : wiki)
+  and wb = sql_of_wikibox wb in
+  Sql.full_transaction_block
     (fun db ->
-       PGSQL(db) "DELETE FROM wikipages WHERE sourcewiki=$sourcewiki AND pagename = $page"
+       PGSQL(db) "DELETE FROM wikipages WHERE wiki=$wiki AND pagename = $page"
        >>= fun () ->
-       PGSQL(db) "INSERT INTO wikipages VALUES ($sourcewiki, $wbid, $page, $destwiki, $?title)"
+       PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $wb, $page, $?title)"
     )
 
 
@@ -231,20 +192,21 @@ let reencapsulate_wiki (w, t, d, p, br, ci, s, m) =
     wiki_title = t;
     wiki_descr = d;
     wiki_pages = p;
-    wiki_boxrights = br; 
-    wiki_container = ci;
+    wiki_boxrights = br;
+    wiki_container =
+      (match ci with None -> None | Some ci -> Some (wikibox_of_sql ci));
     wiki_staticdir = s;
     wiki_model = Wiki_types.wiki_model_of_string m;
   }
 
 
-let find_wiki_ ~id =
+let find_wiki_ id =
   let id = t_int32 (id : wiki) in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) "SELECT * FROM wikis
                   WHERE id = $id"
-       >>= fun r -> 
+       >>= fun r ->
        (match r with
           | [c] -> Lwt.return (reencapsulate_wiki c)
           | [] -> Lwt.fail Not_found
@@ -253,12 +215,12 @@ let find_wiki_ ~id =
     )
 
 
-let find_wiki_by_name_ ~name =
-  Lwt_pool.use Sql.pool 
+let find_wiki_by_name_ name =
+  Lwt_pool.use Sql.pool
     (fun db ->
        PGSQL(db) "SELECT * FROM wikis
                   WHERE title = $name"
-       >>= fun r -> 
+       >>= fun r ->
        (match r with
           | [c] -> Lwt.return (reencapsulate_wiki c)
           | [] -> Lwt.fail Not_found
@@ -282,7 +244,7 @@ let get_css_wikibox_aux_ ~wiki ~page =
                         WHERE wiki = $wiki AND page = $page"
        ) >>= function
          | [] -> Lwt.return None
-         | x::_ -> Lwt.return (Some (wiki_of_sql wiki, x))
+         | x::_ -> Lwt.return (Some (wikibox_of_sql x))
     )
 
 let get_css_wikibox_for_wikipage_ ~wiki ~page =
@@ -291,13 +253,14 @@ let get_css_wikibox_for_wikipage_ ~wiki ~page =
 let get_css_wikibox_for_wiki_ ~wiki =
   get_css_wikibox_aux_ ~wiki ~page:None
 
-let set_css_wikibox_aux_ ~wiki ~page ~wikibox =
-  let wiki = t_int32 (wiki : wiki) in
+let set_css_wikibox_aux_ ~wiki ~page ~wb =
+  let wiki = t_int32 (wiki : wiki)
+  and wb = sql_of_wikibox wb in
   Lwt_pool.use
     Sql.pool
     (fun db ->
        PGSQL(db) "INSERT INTO css (wiki, page, wikibox) \
-                  VALUES ($wiki, $?page, $wikibox)"
+                  VALUES ($wiki, $?page, $wb)"
     )
 
 
@@ -308,17 +271,17 @@ let iter_wikis f =
   Lwt_util.iter (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l
 
 
-let get_wikibox_info ?db (wid, wbid as wb) =
-  let wiki = t_int32 (wid : wiki) in
+let get_wikibox_info ?db wb =
+  let wb' = sql_of_wikibox wb in
   let f db =
-    PGSQL(db) "SELECT * FROM wikiboxindex
-                        WHERE wiki_id = $wiki AND id = $wbid"
+    PGSQL(db) "SELECT wiki, comment, specialrights, uid FROM wikiboxindex
+                        WHERE uid = $wb'"
     >>= function
       | [] -> Lwt.fail Not_found
-      | (_, _, comment, rights, uid) :: _ ->
+      | (wiki, comment, rights, _) :: _ ->
           Lwt.return {
+            wikibox_wiki = wiki_of_sql wiki;
             wikibox_id = wb;
-            wikibox_uid = Opaque.int32_t uid;
             wikibox_comment = comment;
             wikibox_special_rights = rights;
           }
@@ -327,21 +290,20 @@ let get_wikibox_info ?db (wid, wbid as wb) =
     | None -> Sql.full_transaction_block f
     | Some db -> f db
 
-let set_wikibox_special_rights_ (wid, wbid) v =
-  let wiki = t_int32 (wid : wiki) in
+let set_wikibox_special_rights_ ~wb v =
+  let wb = sql_of_wikibox wb in
   Sql.full_transaction_block
     (fun db -> PGSQL(db) "UPDATE wikiboxindex SET specialrights = $v
-                          WHERE wiki_id = $wiki AND id = $wbid"
+                          WHERE uid = $wb"
     )
 
-(* XXX : cache this *)
-let wikibox_from_uid wbuid =
-  let uid = t_int32 (wbuid: wikibox_uid) in
+let wikibox_wiki_ wb =
+  let wb = sql_of_wikibox wb in
   Sql.full_transaction_block
-    (fun db -> PGSQL(db) "SELECT wiki_id, id FROM wikiboxindex
-                          WHERE uid = $uid"
+    (fun db -> PGSQL(db) "SELECT wiki FROM wikiboxindex
+                          WHERE uid = $wb"
        >>= function
-         | (wiki, wbid) :: _ -> Lwt.return (wiki_of_sql wiki, wbid)
+         | wiki :: _ -> Lwt.return (wiki_of_sql wiki)
          | [] -> Lwt.fail Not_found
     )
 
@@ -355,8 +317,6 @@ let print_cache s =
 
 let
   get_wikibox_data,
-  new_wiki,
-  new_wikibox,
   update_wikibox,
   current_wikibox_version,
   set_wikibox_special_rights
@@ -379,35 +339,19 @@ let
   in
   let cache = C.create (fun a -> get_wikibox_data_ a ()) 64 in
   let cachewv = C3.create (fun b -> current_wikibox_version_ b) 64 in
-  ((fun ?version ~wikibox () ->
+  ((fun ?version ~wb () ->
     match version with
-      | None -> 
-          print_cache "cache wikibox ";
-          C.find cache wikibox
+      | None ->
+          C.find cache wb
       | Some _ ->
-          print_cache (Int32.to_string (snd wikibox) ^ " (with version) -> wikibox: db access");
-          get_wikibox_data_ ?version ~wikibox ()
+          get_wikibox_data_ ?version ~wb ()
    ),
-  (fun ~title ~descr ~pages ~boxrights ~staticdir ~container_text 
-     ~author ~model () ->
-     new_wiki_ ~title ~descr ~pages ~boxrights ~staticdir
-       ~container_text ~author ~model ()
-     >>= function (wiki, wikibox) ->
-     C.remove cache (wiki, wikibox);
-     C3.remove cachewv (wiki, wikibox);
-     Lwt.return (wiki, wikibox)),
-  (fun ?db ~wiki ~author ~comment ~content ~content_type () ->
-     new_wikibox_ ?db ~wiki ~author ~comment ~content ~content_type ()
-     >>= fun wikibox ->
-     C.remove cache (wiki, wikibox);
-     C3.remove cachewv (wiki, wikibox);
-     Lwt.return wikibox),
-  (fun ~wikibox ~author ~comment ~content ->
-     C.remove cache wikibox;
-     C3.remove cachewv wikibox;
-     update_wikibox_ ~wikibox ~author ~comment ~content),
-  (fun ~wikibox -> C3.find cachewv wikibox),
-  (fun wb v ->
+  (fun ~wb ~author ~comment ~content ->
+     C.remove cache wb;
+     C3.remove cachewv wb;
+     update_wikibox_ ~wb ~author ~comment ~content),
+  (fun ~wb -> C3.find cachewv wb),
+  (fun ~wb v ->
      C.remove cache wb;
      set_wikibox_special_rights_ wb v)
   )
@@ -426,10 +370,10 @@ let get_wikipage_info, set_box_for_page =
       let page = Ocsigen_lib.remove_end_slash page in
       print_cache "cache wikipage ";
       C.find cache (wiki, page)),
-   (fun ~sourcewiki ~page ?(destwiki=sourcewiki) ~wbid ?title () ->
+   (fun ~wiki ~page ~wb ?title () ->
       let page = Ocsigen_lib.remove_end_slash page in
-      C.remove cache (sourcewiki, page);
-      set_box_for_page_ ~sourcewiki ~page ~destwiki ~wbid ?title ()
+      C.remove cache (wiki, page);
+      set_box_for_page_ ~wiki ~page ~wb ?title ()
    ))
 
 
@@ -437,44 +381,42 @@ let get_wikipage_info, set_box_for_page =
 (***)
 
 let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
-  let module HW = Hashtbl.Make(struct
-                                type t = wiki
-                                let equal = (=)
-                                let hash = Hashtbl.hash
-                              end)
+  let module CW = Cache.Make(struct
+                               type key = wiki
+                               type value = wiki_info
+                             end)
   in
-  let module HN = Hashtbl.Make(struct
-                                type t = string
-                                let equal = (=)
-                                let hash = Hashtbl.hash
-                              end)
+  let module CN = Cache.Make(struct
+                               type key = string
+                               type value = wiki_info
+                             end)
   in
-  let wiki_info_wiki_table = HW.create 8
-  and wiki_info_name_table = HN.create 8
+  let wiki_info_wiki = CW.create find_wiki_ 8
+  and wiki_info_name = CN.create find_wiki_by_name_ 8
   in
   (* get_wiki_by_id *)
-  (fun ~id ->
-     try
-       print_cache "cache wiki ";
-       Lwt.return (HW.find wiki_info_wiki_table id)
-     with Not_found -> find_wiki_ ~id),
+  (fun ~id -> CW.find wiki_info_wiki id),
   (* get_wiki_by_name *)
-  (fun ~name ->
-     try
-       print_cache "cache wiki ";
-       Lwt.return (HN.find wiki_info_name_table name)
-     with Not_found -> find_wiki_by_name_ ~name),
+  (fun ~name -> CN.find wiki_info_name name),
   (* update_wiki *)
-  (fun ?container_id ?staticdir ?pages wiki_id ->
-     HW.remove wiki_info_wiki_table  wiki_id;
+  (fun ?db ?container ?staticdir ?pages wiki ->
+     CW.remove wiki_info_wiki  wiki;
      (* A bit drastic, but search by name (and update_wiki) are rarely
         used anyway. The alternative is to find the the id of the
         wiki, and to remove only this key *)
-     HN.clear wiki_info_name_table;
-     update_wiki_ ?container_id ?staticdir ?pages wiki_id)
+     CN.clear wiki_info_name;
+     update_wiki_ ?db ?container ?staticdir ?pages wiki)
 
-(***)
-(* Functions related to css. Since css are stored in wikiboxes,
+
+(** Wiki of a wikibox *)
+let wikibox_wiki =
+  let module C = Cache.Make(struct type key = wikibox
+                                   type value = wiki end) in
+  let c = C.create wikibox_wiki_ 64 in
+  (fun ~wb -> C.find c wb)
+
+
+(** Functions related to css. Since css are stored in wikiboxes,
    we only cache the association (wiki, page) -> wikibox *)
 let get_css_wikibox, set_css_wikibox_in_cache =
   let module C = Cache.Make (struct 
@@ -489,11 +431,15 @@ let get_css_wikibox, set_css_wikibox_in_cache =
       print_cache "cache css";
       C.find cache (wiki, page)),
    (fun ~wiki ~page box ->
-      C.add cache (wiki, page) (Some (wiki, box));
+      C.add cache (wiki, page) (Some box);
       set_css_wikibox_aux_ wiki page box
    )
   )
 
+
+let page_to_string wiki = function
+  | None -> "wiki " ^ string_of_wiki wiki
+  | Some page -> "page " ^ page ^ " of wiki " ^ string_of_wiki wiki
 
 let get_css_wikibox_for_wiki ~wiki =
   get_css_wikibox ~wiki ~page:None
@@ -529,13 +475,13 @@ let set_css_aux ~wiki ~page ~author content =
         (match content with
            | None -> Lwt.return ()
            | Some content ->
-               new_wikibox ~wiki ~comment:"" ~author ~content
-                 ~content_type:Wiki_models.css_content_type ()
+               new_wikibox ~wiki ~comment:("CSS for " ^page_to_string wiki page)
+                 ~author ~content ~content_type:Wiki_models.css_content_type ()
                >>= fun wikibox ->
                set_css_wikibox_in_cache ~wiki ~page wikibox
         )
-    | Some wbid ->
-        update_wikibox ~wikibox:wbid ~author ~comment:""
+    | Some wb ->
+        update_wikibox ~wb ~author ~comment:""
           ~content ~content_type:Wiki_models.css_content_type
         >>= fun _ -> Lwt.return ()
 
@@ -544,3 +490,61 @@ let set_css_for_wikipage ~wiki ~page ~author content =
 
 let set_css_for_wiki ~wiki ~author content =
   set_css_aux ~wiki ~page:None ~author content
+
+
+let new_wiki ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~author ~model () =
+  let model_sql = Wiki_types.string_of_wiki_model model in
+  Sql.full_transaction_block
+    (fun db ->
+       PGSQL(db)
+        "INSERT INTO wikis (title, descr, pages, boxrights, staticdir, model)
+         VALUES ($title, $descr, $?pages, $boxrights, $?staticdir, $model_sql);"
+     >>= fun () ->
+     serial4 db "wikis_id_seq" >>= fun wiki_sql ->
+     let wiki = wiki_of_sql wiki_sql in
+     (match container_text with
+        | None -> Lwt.return None
+        | Some content ->
+            let comment= Printf.sprintf "Container box for wiki %ld" wiki_sql in
+            new_wikibox ~db ~wiki ~author ~comment ~content
+              ~content_type:(Wiki_models.get_default_content_type model) ()
+            >>= fun container ->
+            update_wiki ~db ~container wiki >>= fun () ->
+            Lwt.return (Some container)
+     ) >>= fun container ->
+     return (wiki, container)
+    )
+
+
+
+
+(* Temporary functions, not cache-safe *)
+
+let update f =
+  Sql.full_transaction_block
+    (fun db -> PGSQL(db) "SELECT version, wikibox, content
+                          FROM wikiboxescontent
+                          WHERE content_type='wikicreole'"
+       >>= fun l ->
+       Lwt_util.iter_serial (fun (v, wb, c) ->
+                        f (wikibox_of_sql wb) v c >>= function
+                          | None -> Lwt.return ()
+                          | Some s ->
+                              PGSQL (db)
+                              "UPDATE wikiboxescontent
+                               SET content = $s
+                               WHERE wikibox = $wb AND version = $v"
+                            ) l
+       >>= fun () -> Ocsigen_messages.console2 "Done";
+       Lwt.return ();
+    )
+
+let wikibox_new_id ~wiki ~wb_old_id =
+  let wiki = sql_of_wiki wiki in
+  Sql.full_transaction_block
+    (fun db -> PGSQL(db) "SELECT uid FROM wikiboxindex
+                          WHERE wiki=$wiki AND id=$wb_old_id"
+     >>= function
+       | [] -> Lwt.fail Not_found
+       | uid :: _ -> Lwt.return (wikibox_of_sql uid)
+    )

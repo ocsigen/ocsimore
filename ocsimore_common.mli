@@ -60,3 +60,10 @@ type 'a eliom_usertype =
 val eliom_opaque_int32 :
   string ->
   'a Opaque.int32_t eliom_usertype
+
+
+val input_opaque_int32 :
+  ?value:'a Opaque.int32_t ->
+  ?hidden:bool ->
+  [< 'a Opaque.int32_t Eliom_parameters.setoneradio ]
+  Eliom_parameters.param_name -> {{Eliom_duce.Blocks.input_elt}}

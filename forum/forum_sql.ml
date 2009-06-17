@@ -95,7 +95,7 @@ module Types = struct
     m_parent_id: message option;
     m_root_id: message;
     m_forum: forum;
-    m_wikibox: Wiki_types.wikibox_uid;
+    m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
     m_sticky: bool;
     m_tree_min: int32;
@@ -127,7 +127,7 @@ module Types = struct
       m_parent_id = message_of_sql_option parent_id;
       m_root_id = message_of_sql root_id;
       m_forum = forum_of_sql forum_id;
-      m_wikibox = Wiki_types.wikibox_uid_of_sql wikibox;
+      m_wikibox = Wiki_types.wikibox_of_sql wikibox;
       m_moderated = moderated;
       m_sticky = sticky;
       m_tree_min = tree_min;
@@ -164,11 +164,8 @@ let new_message ~sp ~forum ~wiki ~creator_id
   Sql.full_transaction_block
     (fun db ->
        Wiki_data.new_wikitextbox ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
-         ~content:text ~content_type () >>= fun wikibox_id ->
-       Wiki_sql.get_wikibox_info ~db (wiki, wikibox_id) >>= fun wikibox_info ->
-       let wikibox = 
-         Wiki_types.sql_of_wikibox_uid wikibox_info.Wiki_types.wikibox_uid 
-       in
+         ~content:text ~content_type () >>= fun wikibox ->
+         let wikibox = Wiki_types.sql_of_wikibox wikibox in
        (match parent_id with
          | None ->
              PGSQL(db) "SELECT NEXTVAL('forums_messages_id_seq')"

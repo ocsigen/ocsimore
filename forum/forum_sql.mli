@@ -62,7 +62,7 @@ module Types : sig
     m_parent_id: message option;
     m_root_id: message;
     m_forum: forum;
-    m_wikibox: Wiki_types.wikibox_uid;
+    m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
     m_sticky: bool;
     m_tree_min: int32;

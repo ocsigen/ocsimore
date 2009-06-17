@@ -21,6 +21,7 @@
 
 open Wiki_types
 
+let (>>=) = Lwt.bind
 
 (** This module declares the interface for the widget that is used
     to display wikiboxes, as well a few related types and functions.
@@ -32,9 +33,8 @@ open Wiki_types
 (** Inductive type used by services to specify a special way to display a
    wikibox. See Wiki_widgets, method interactive_wikibox for details.
 
-   For CSS related constructors, the wikibox is the wikibox holding
-   the css. The string option contains the corresponding wikipage, or None
-   if the css is for a wiki *)
+   For CSS related constructors, the first argument is of type
+    [css_wikibox], described below. *)
 type wikibox_override =
   (** Edition of a wikibox containing wikitext *)
   | EditWikitext of wikibox
@@ -54,17 +54,17 @@ type wikibox_override =
      of concurrent edits*)
   | PreviewWikitext of (wikibox * (string * int32))
 
-  (** Edition of a CSS. The first arguments is the standard CSS arguments.
+  (** Edition of a CSS. The first argument is the standard CSS arguments.
      The (string * int32) is the CSS and the time at which the edition
      started (as for PreviewWikitext), or None if we are about to
      start the edition *)
-  | EditCss of ((wikibox  * string option) *(string * int32) option)
+  | EditCss of (css_wikibox * (string * int32) option)
 
   (** History of a css *)
-  | CssHistory of (wikibox * string option)
+  | CssHistory of css_wikibox
 
   (** Old version of a wikibox *)
-  | CssOldversion of (wikibox * string option) * int32
+  | CssOldversion of css_wikibox * int32
 
   (** Edition of the permissions of a wikibox *)
   | EditWikiboxPerms of wikibox
@@ -72,44 +72,13 @@ type wikibox_override =
   (** Edition of the permissions of a wiki *)
   | EditWikiPerms of wiki
 
+(** Arguments for the edition of a css. The [wiki] argument is the
+wiki which is concerned. The [string option] argument is [None] if
+the CSS is for the wiki, [Some page] if it is for the page [page]
+of the wiki. The [wikibox] argument contains the wikibox which holds
+the css *)
+and css_wikibox = (wiki * string option) * wikibox
 
-
-(*VVV why in this module? *)
-let override_wikibox_key : (wikibox * wikibox_override) Polytables.key = 
-  Polytables.make_key ()
-
-(** How to change the display of a wikibox: which wikibox is concerned,
-   and what should be displayed instead *)
-let get_override_wikibox ~sp =
-  try
-    Some (Polytables.get
-            ~table:(Eliom_sessions.get_request_cache ~sp)
-            ~key:override_wikibox_key)
-  with Not_found -> None
-
-let set_override_wikibox ~sp v =
-  Polytables.set
-    ~table:(Eliom_sessions.get_request_cache ~sp)
-    ~key:override_wikibox_key
-    ~value:v
-
-
-let wikibox_error_key : (wikibox * exn) Polytables.key = 
-  Polytables.make_key ()
-
-(** The error to display in the wikibox *)
-let get_wikibox_error ~sp =
-  try
-    Some (Polytables.get
-            ~table:(Eliom_sessions.get_request_cache ~sp)
-            ~key:wikibox_error_key)
-  with Not_found -> None
-
-let set_wikibox_error ~sp v =
-  Polytables.set
-    ~table:(Eliom_sessions.get_request_cache ~sp)
-    ~key:wikibox_error_key
-    ~value:v
 
 (*********************************************************************)
 
@@ -131,6 +100,9 @@ let add_ancestor x (a : ancestors) = x::a
 
 end
 
+
+(*********************************************************************)
+
 (** Information available to display a box *)
 
 type box_info =
@@ -138,20 +110,12 @@ type box_info =
    bi_ancestors: Ancestors.ancestors;
    bi_sp: Eliom_sessions.server_params;
    bi_box : wikibox (* Wikibox which is being displayed *);
+   bi_wiki : wiki (* wiki of the box displayed *);
    bi_rights: Wiki_types.wiki_rights;
 }
 
 let add_ancestor_bi x bi =
   { bi with bi_ancestors = Ancestors.add_ancestor x bi.bi_ancestors }
-
-let default_bi ~sp ~wikibox ~rights =
-  {
-    bi_sp = sp;
-    bi_ancestors = Ancestors.no_ancestors;
-    bi_subbox = None;
-    bi_box = wikibox;
-    bi_rights = rights;
-  }
 
 
 
@@ -319,7 +283,7 @@ class type virtual interactive_wikibox =
       ?cols:int ->
       wb:wikibox ->
       wbcss:wikibox ->
-      wikipage:string option ->
+      wikipage:wiki * string option ->
       (** content *) string option * (** version *) int32 ->
       (classes * Xhtmltypes_duce.flows) Lwt.t
 
@@ -359,7 +323,7 @@ class type virtual interactive_wikibox =
       classes:string list ->
       wb:wikibox ->
       wbcss:wikibox ->
-      wikipage:string option ->
+      wikipage:wiki * string option ->
       (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
       (classes * Xhtmltypes_duce.flows) Lwt.t
 
@@ -424,7 +388,7 @@ class type virtual interactive_wikibox =
     (** Returns the css headers for one wiki and optionally one page.
         Set [?admin] to [true] for administration pages. *)
     method css_header :
-      bi:box_info ->
+      sp:Eliom_sessions.server_params ->
       ?admin:bool ->
       ?page:string ->
       wiki ->
@@ -439,56 +403,3 @@ class type virtual interactive_wikibox =
       (Xhtmltypes_duce.html * int) Lwt.t
 
   end
-
-
-(** XXX This must be moved somewhere else. Unfortunately it cannot go into Wiki_services, as it is referenced from Wiki_syntax, itself reference from Wiki_services *)
-
-(* a table containing the Eliom services generating pages
-   for each wiki associated to an URL *)
-module Servpages =
-  Hashtbl.Make(struct
-                 type t = wiki
-                 let equal = (=)
-                 let hash = Hashtbl.hash
-               end)
-
-let naservpages :
-    (string,
-     unit,
-     [ `Nonattached of [ `Get ] Eliom_services.na_s ],
-     [ `WithoutSuffix ],
-     [ `One of string ] Eliom_parameters.param_name,
-     unit,
-     [`Registrable ]
-    ) Eliom_services.service Servpages.t = Servpages.create 5
-let servpages :
-    (string list,
-     unit,
-     Eliom_services.get_service_kind,
-     [ `WithSuffix ],
-     [ `One of string list ] Eliom_parameters.param_name,
-     unit,
-     [ `Registrable ]
-    ) Eliom_services.service Servpages.t = Servpages.create 5
-let servwikicss :
-    (unit,
-     unit,
-     [ `Attached of
-         [ `Internal of [ `Service | `Coservice ] * [ `Get ]
-         | `External ] Eliom_services.a_s ],
-     [ `WithoutSuffix ],
-     unit,
-     unit,
-     [ `Registrable ]
-    ) Eliom_services.service Servpages.t = Servpages.create 5
-
-let add_naservpage = Servpages.add naservpages
-let add_servpage = Servpages.add servpages
-let add_servwikicss = Servpages.add servwikicss
-let find_naservpage = Servpages.find naservpages
-let find_servpage k =
-  try Some (Servpages.find servpages k)
-  with Not_found -> None
-let find_servwikicss k =
-  try Some (Servpages.find servwikicss k)
-  with Not_found -> None

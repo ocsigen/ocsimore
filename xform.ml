@@ -208,7 +208,7 @@ let submit_button value =
 
 (****)
 
-(*XXXX Validate results*)
+(* JJJ Validate results*)
 let select_single lst value =
   pack
    {form =
@@ -235,7 +235,7 @@ let mapi f l = mapi_rec f 0 l
 
 (*
 let select_single lst n =
-  (* XXX Validation: check integer in the right range *)
+  (* JJJ Validation: check integer in the right range *)
   pack
    {form =
       (fun v' name ->
@@ -397,10 +397,10 @@ let hidden (x : (inline, 'b) t) =
 (****)
 
 
-(*XXXX Validate result *)
+(* JJJ Validate result *)
 let int_input ?a ?(format = string_of_int) i =
   check (string_input ?a (format i))
-        (fun _s -> None (*XXX Some (error s)*))
+        (fun _s -> None (*JJJ Some (error s)*))
   |> (fun s -> int_of_string s)
 
 let bounded_int_input ?format a b i =

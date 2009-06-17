@@ -83,20 +83,15 @@ let service_edit_wikibox = Eliom_services.new_service
 
 let () =
   Eliom_duce.Xhtml.register service_edit_wikibox
-    (fun sp ((w, _b) as wb) () ->
+    (fun sp wb () ->
+       Wiki_sql.wikibox_wiki wb >>= fun w ->
        Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        let wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
-       let bi = Wiki_widgets_interface.default_bi ~sp ~wikibox:wb ~rights in
+       Wiki.default_bi ~sp ~wikibox:wb ~rights >>= fun bi ->
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
-       >>= fun subbox ->
-       Wiki.get_admin_wiki () >>= fun admin_wiki ->
-       let bi = { bi with Wiki_widgets_interface.bi_subbox =
-           Some {{ [ subbox ] }} } in
-       wikibox_widget#display_interactive_wikibox ~bi
-         (admin_wiki.wiki_id, admin_wiki.wiki_container)
        >>= fun page ->
-       wikibox_widget#css_header ~admin:true ~bi ?page:None w
+       wikibox_widget#css_header ~admin:true ~sp ?page:None w
        >>= fun css ->
        Lwt.return (wikibox_widget#display_container ~sp ~css {{ [ page ] }})
     )
@@ -161,14 +156,14 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
            ~wiki:wiki_admin_id ~comment ~content ~content_type
            ~author:User.admin ()
          >>= fun box ->
-         Wiki_sql.set_box_for_page ~sourcewiki:wiki_admin_id ~wbid:box ~page ()
+         Wiki_sql.set_box_for_page ~wiki:wiki_admin_id ~wb:box ~page ()
 
        | e -> Lwt.fail e)
   );
   (fun () ->
      Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page
-     >>= fun { wikipage_dest_wiki = wiki'; wikipage_wikibox = box} ->
-     Wiki_sql.get_wikibox_data ~wikibox:(wiki', box) ()
+     >>= fun { wikipage_wikibox = wb} ->
+     Wiki_sql.get_wikibox_data ~wb ()
      >>= function
      | Some (_, _, Some content, _, _, _) ->
          Lwt.return content
@@ -203,29 +198,6 @@ let _ = Lwt_unix.run
         Lwt.return ()
      )
   )
-
-
-(*
-(* Default permissions for the migration to the new system *)
-let _ = Lwt_unix.run
-  (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_title = name} ->
-        User.add_to_group ~user:(basic_user User.anonymous)
-          ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
-        >>= fun () ->
-        User.add_to_group ~user:(basic_user User.anonymous)
-          ~group:(Wiki.wiki_files_readers $ wiki)
-        >>= fun () ->
-        try Scanf.sscanf name "wikiperso for %s"
-          (fun user ->
-             User.get_user_by_name user
-             >>= fun user ->
-             User.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
-          )
-        with Scanf.Scan_failure _ -> Lwt.return ()
-
-     ))
-*)
 
 
 let str = Ocamlduce.Utf8.make
@@ -318,10 +290,75 @@ let create_wiki =
               ~admins ~readers ~wiki_css:css ~container_text:container
               ~model:wikicreole_model ~rights:wiki_rights ()
             >>= fun wid ->
+            let link = match path with
+              | None -> {{ [] }}
+              | Some path ->
+                  Wiki_services.register_wiki ~rights:wiki_rights
+                    ~sp ~path ~wiki:wid ();
+                  match Wiki_self_services.find_servpage wid with
+                    | None -> (* should never happen, but this is not
+                                 really important *) {{ [] }}
+                    | Some service ->
+                        let link = Eliom_duce.Xhtml.a
+                          ~sp ~service {{ "root page" }} [] in
+                        let msg1 = str "you can go the "
+                        and msg2 = str " of this wiki." in
+                        {{ [<p>[ !msg1 link !msg2 ]] }}
+            in
             let title = str "Wiki sucessfully created"
             and msg = str (Printf.sprintf "You have created wiki %s"
                              (string_of_wiki wid)) in
             Ocsimore_common.html_page
-              {{ [<h1>title <p>msg] }}
+              {{ [<h1>title <p>msg !link] }}
          ));
   create_wiki
+
+
+
+(* Code to migrate from old wikibox ids to uids *)
+(*
+let service_update_wikiboxes_uid = Eliom_services.new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "update"]
+  ~get_params:Eliom_parameters.unit ()
+
+let () =
+  Eliom_duce.Xhtml.register service_update_wikiboxes_uid
+    (fun sp () () ->
+       let r = ref 0 in
+       let wp = Wiki_models.get_default_wiki_preparser wikicreole_model in
+       Wiki_sql.update
+         (fun wb version content ->
+            Ocsigen_messages.console2 (Printf.sprintf "%d: wb %s, ver %ld%!"
+                                (incr r; !r) (string_of_wikibox wb) version);
+            match content with
+              | None -> Lwt.return None
+              | Some content ->
+                  wp (sp, wb) content >>= fun r -> Lwt.return (Some r)
+         )
+       >>= fun () ->
+       Ocsimore_common.html_page {{ [<p>"Done"] }}
+    )
+*)
+
+
+(* Default permissions for the migration to the new permissions system *)
+(*
+let _ = Lwt_unix.run
+  (Wiki_sql.iter_wikis
+     (fun { wiki_id = wiki; wiki_title = name} ->
+        User.add_to_group ~user:(basic_user User.anonymous)
+          ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
+        >>= fun () ->
+        User.add_to_group ~user:(basic_user User.anonymous)
+          ~group:(Wiki.wiki_files_readers $ wiki)
+        >>= fun () ->
+        try Scanf.sscanf name "wikiperso for %s"
+          (fun user ->
+             User.get_user_by_name user
+             >>= fun user ->
+             User.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
+          )
+        with Scanf.Scan_failure _ -> Lwt.return ()
+
+     ))
+*)

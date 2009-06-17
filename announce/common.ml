@@ -58,8 +58,9 @@ open Wiki_types
 let wiki_info = Lwt_unix.run (Wiki_sql.get_wiki_info_by_name "Announcements")
 
 let wiki_id = wiki_info.wiki_id
-let page_id = wiki_info.wiki_container
-let wiki_box = (wiki_id, page_id)
+let page_id =
+  match wiki_info.wiki_container with None -> assert false | Some wb -> wb
+let wiki_box = page_id
 
 let (>>=) = Lwt.bind
 
@@ -72,7 +73,7 @@ let _ =
          | None -> Lwt.return ""
          | Some css -> Lwt.return css)
   in
-  Wiki_widgets_interface.add_servwikicss wiki_id wikicss_service
+  Wiki_self_services.add_servwikicss wiki_id wikicss_service
 
 
 let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
@@ -81,11 +82,11 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   >>= fun ((title, subbox) : ({{String}} * Xhtmltypes_duce.blocks)) ->
   Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
   let rights = Wiki_models.get_rights wiki_info.wiki_model in
-  let bi = { (Wiki_widgets_interface.default_bi ~sp ~wikibox:wiki_box ~rights)
-             with Wiki_widgets_interface.bi_subbox = Some subbox } in
+  Wiki.default_bi ~sp ~wikibox:wiki_box ~rights >>= fun bi ->
+  let bi = { bi with Wiki_widgets_interface.bi_subbox = Some subbox } in
   Ocsisite.wikibox_widget#display_interactive_wikibox ~bi wiki_box
   >>= fun box ->
-  Ocsisite.wikibox_widget#css_header ~bi ~admin:false ~page wiki_id
+  Ocsisite.wikibox_widget#css_header ~sp ~admin:false ~page wiki_id
   >>= fun css ->
   Lwt.return
     ({{ <html xmlns="http://www.w3.org/1999/xhtml">[ <head>[<title>title !css !headers] <body>[box] ] }} :

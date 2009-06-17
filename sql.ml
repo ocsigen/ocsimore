@@ -21,6 +21,8 @@
 module PGOCaml =
   PGOCaml_generic.Make (struct include Lwt include Lwt_chan end)
 
+let () = PGOCaml.verbose := 2
+
 open Lwt
 open Ocsimore_lib
 open CalendarLib

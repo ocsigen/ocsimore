@@ -22,7 +22,7 @@ LANGUAGE plpgsql VOLATILE;
 
 BEGIN TRANSACTION;
 ALTER TABLE css ADD PRIMARY KEY (wiki, page);
-ALTER TABLE css DROP CONSTRAINT css_page_key;
+/*ALTER TABLE css DROP CONSTRAINT css_page_key;*/
 ALTER TABLE css ADD COLUMN wikibox integer;
 
 SELECT update_db_css_wikipage_versioning();

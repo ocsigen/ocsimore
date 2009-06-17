@@ -192,7 +192,9 @@ object (self)
                             ]
                           ]]
                       }}) None :}
-               <p>[<strong>{: err :}] (*XXX remove if unused *)] }}
+               !{: if err = "" then [] else
+                   [{{<p>[<strong>{: err :}] }}] :}
+             ] }}
         | false ->
             let msg = "You do not have sufficient rights to perform this \
                       operation" in

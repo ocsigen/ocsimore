@@ -363,7 +363,8 @@ let make_plugin_action wp =
       subst := (start,
                 end_,
                 (try
-                   Hashtbl.find wp.plugin_action_assoc name params args content
+                   (Hashtbl.find wp.plugin_action_assoc)
+                     name params args content
                  with Not_found -> Lwt.return None))::!subst)
    ,
    fun () -> !subst
@@ -454,7 +455,7 @@ let site_url_syntax =
 
 let make_href sp bi addr fragment =
   let aux ~fragment https wiki page =
-    match Wiki_widgets_interface.find_servpage wiki with
+    match Wiki_self_services.find_servpage wiki with
       | Some servpage ->
           let addr =
             Ocsigen_lib.remove_slash_at_beginning
@@ -466,7 +467,7 @@ let make_href sp bi addr fragment =
   in
   match addr with
     | Page (page, forceproto) ->
-        let wiki = fst bi.Wiki_widgets_interface.bi_box in
+        let wiki = bi.Wiki_widgets_interface.bi_wiki in
         aux ~fragment forceproto wiki page
     | Absolute addr -> (match fragment with
                           | None -> addr
@@ -745,7 +746,7 @@ let () =
   add_extension_aux ~name:"wikiname" ~wiki_content:true
     (fun bi _ _ ->
        Wikicreole.A_content
-         (let wid = fst bi.Wiki_widgets_interface.bi_box in
+         (let wid = bi.Wiki_widgets_interface.bi_wiki in
           Wiki_sql.get_wiki_info_by_id wid
           >>= fun wiki_info ->
           Lwt.return {{ {: Ocamlduce.Utf8.make (wiki_info.wiki_descr) :} }})
@@ -787,7 +788,7 @@ let () =
 
   add_extension_aux ~name:"menu"
     (fun bi args _ ->
-       let wiki_id = fst bi.Wiki_widgets_interface.bi_box in
+       let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
        Wikicreole.Block
          (let classe = 
             let c =
