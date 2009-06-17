@@ -864,7 +864,7 @@ object (self)
 
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
-   method display_wikipage ~sp ~wiki ~page =
+   method display_wikipage ~sp ~wiki ~page:(page, page_list) =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
@@ -874,6 +874,7 @@ object (self)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
           Wiki.default_bi ~sp ~wikibox:box ~rights >>= fun bi ->
+          let bi = { bi with bi_page = Some page_list } in
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) box
           >>= fun (subbox, allowed) ->
@@ -927,7 +928,8 @@ object (self)
 
           | Some wb_container ->
               Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
-              let bi = { bi with  bi_subbox = Some subbox } in
+              let bi = { bi with  bi_subbox = Some subbox;
+                                  bi_page = Some page_list } in
               self#display_interactive_wikibox ~bi
                 ~special_box:(WikiContainerBox wiki) wb_container
               >>= fun b -> Lwt.return {{ [b] }}

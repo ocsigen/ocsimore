@@ -81,7 +81,7 @@ let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
     (fun () ->
        match wiki_info.wiki_staticdir with
          | Some dir ->
-                Eliom_predefmod.Files.send ~sp (dir^"/"^page) >>= fun r ->
+                Eliom_predefmod.Files.send ~sp (dir ^"/"^ fst page) >>= fun r ->
                   (rights#can_view_static_files sp wiki >>= function
                      | true -> Lwt.return r
                      | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
@@ -110,8 +110,8 @@ let register_wiki ~rights ?sp ~path ~wiki () =
     Eliom_predefmod.Any.register_new_service ~path ?sp
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
-         send_wikipage ~rights ~sp ~wiki
-           ~page:(Ocsigen_lib.string_of_url_path ~encode:true path)
+         let page' = Ocsigen_lib.string_of_url_path ~encode:true path in
+         send_wikipage ~rights ~sp ~wiki ~page:(page', path)
       )
   in
   Wiki_self_services.add_servpage wiki servpage;
@@ -124,8 +124,8 @@ let register_wiki ~rights ?sp ~path ~wiki () =
       (fun sp page () ->
          let path =
            Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page) in
-         let page = Ocsigen_lib.string_of_url_path ~encode:true path in
-         send_wikipage ~rights ~sp ~wiki ~page
+         let page' = Ocsigen_lib.string_of_url_path ~encode:true path in
+         send_wikipage ~rights ~sp ~wiki ~page:(page', path)
       )
   in
   Wiki_self_services.add_naservpage wiki naservpage;

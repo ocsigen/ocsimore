@@ -396,4 +396,5 @@ let default_bi ~sp ~wikibox ~rights =
     bi_box = wikibox;
     bi_wiki = wiki;
     bi_rights = rights;
+    bi_page = None;
   }

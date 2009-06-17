@@ -111,6 +111,7 @@ type box_info =
    bi_sp: Eliom_sessions.server_params;
    bi_box : wikibox (* Wikibox which is being displayed *);
    bi_wiki : wiki (* wiki of the box displayed *);
+   bi_page : string list option (* page at the origin of the display request *);
    bi_rights: Wiki_types.wiki_rights;
 }
 
@@ -395,11 +396,13 @@ class type virtual interactive_wikibox =
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
 
-    (** Displaying of the content of an entire wikipage *)
+    (** Displaying of the content of an entire wikipage. For technical
+        reasons, we send both the string list and the string corresponding
+        to the page. *)
     method display_wikipage :
       sp:Eliom_sessions.server_params ->
       wiki:wiki ->
-      page:string ->
+      page:(string * string list) ->
       (Xhtmltypes_duce.html * int) Lwt.t
 
   end
