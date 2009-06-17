@@ -102,7 +102,7 @@ val a_content_of_wiki :
   wikicreole_parser ->
   Wiki_widgets_interface.box_info ->
   string ->
-  {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t
+  Xhtmltypes_duce.a_contents Lwt.t
 
 (** Returns the wiki syntax for an extension box
     from its name, arguments and content.
