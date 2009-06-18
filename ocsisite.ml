@@ -314,9 +314,8 @@ let create_wiki =
   create_wiki
 
 
-
-(* Code to migrate from old wikibox ids to uids *)
 (*
+(* Code to migrate from old wikibox ids to uids *)
 let service_update_wikiboxes_uid = Eliom_services.new_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "update"]
   ~get_params:Eliom_parameters.unit ()
@@ -338,11 +337,42 @@ let () =
        >>= fun () ->
        Ocsimore_common.html_page {{ [<p>"Done"] }}
     )
-*)
+
+let () =
+  Wiki_syntax.add_preparser_extension
+    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikibox"
+  (fun (_sp, wb) args c ->
+     Ocsigen_messages.console2 "Wikibox found";
+     (try
+        try
+          Ocsigen_messages.console2 "Changing";
+          let box = Int32.of_string (List.assoc "box" args) in
+          Wiki_sql.wikibox_wiki wb >>= fun wid ->
+          let wid = Wiki_ext.extract_wiki_id args wid in
+          Ocsigen_messages.console2
+            (Printf.sprintf "Changing %ld %s" box (string_of_wiki wid));
+          Wiki_sql.wikibox_new_id wid box >>= fun box' ->
+          Ocsigen_messages.console2
+            (Printf.sprintf "New wikibox %s" (string_of_wikibox box'));
+          let s = (Wiki_syntax.string_of_extension "wikibox"
+                     (("box", string_of_wikibox box') ::
+                        (* We remove the wiki information *)
+                        List.remove_assoc "wiki" (List.remove_assoc "box" args)) c) in
+          Lwt.return (Some s)
+
+        with Not_found ->
+          Ocsigen_messages.console2 "Error?";
+          (* No box, the preparser extension will take care of this
+             case, we do nothing *)
+          Lwt.return None
+      with Failure _ -> Ocsigen_messages.console2 "Error"; Lwt.return None
+        | Not_found -> Ocsigen_messages.console2 "Box not found";
+            Lwt.return None)
+  )
+
 
 
 (* Default permissions for the migration to the new permissions system *)
-(*
 let _ = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = name} ->

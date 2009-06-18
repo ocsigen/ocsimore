@@ -118,33 +118,6 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
    with Failure _ -> Lwt.return None)
   );
 
-(* Update of the database : wiki='' box='' to box='' where box an uid *)
-(*
-Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
-  (fun (_sp, wb) args c ->
-     (try
-        try
-          let box = Int32.of_string (List.assoc "box" args) in
-          Wiki_sql.wikibox_wiki wb >>= fun wid ->
-          let wid = extract_wiki_id args wid in
-          Wiki_sql.wikibox_new_id wid box >>= fun box' ->
-          let s = (Wiki_syntax.string_of_extension "wikibox"
-                     (("box", string_of_wikibox box') ::
-                        (* We remove the wiki information *)
-                        List.remove_assoc "wiki" (List.remove_assoc "box" args)) c) in
-          Lwt.return (Some s)
-
-        with Not_found ->
-          (* No box, the preparser extension will take care of this
-             case, we do nothing *)
-          Lwt.return None
-      with Failure _ -> Lwt.return None
-        | Not_found -> Ocsigen_messages.console2 "Box not found";
-            Lwt.return None)
-  );
-*)
-
-
 add_extension ~name:"link" ~wiki_content:true
   (fun bi args c ->
      Wikicreole.Link_plugin
