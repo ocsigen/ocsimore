@@ -93,7 +93,7 @@ let () =
        >>= fun page ->
        wikibox_widget#css_header ~admin:true ~sp ?page:None w
        >>= fun css ->
-       Lwt.return (wikibox_widget#display_container ~sp ~css {{ [ page ] }})
+       wikibox_widget#display_container ~sp ~css {{ [ page ] }}
     )
 
 

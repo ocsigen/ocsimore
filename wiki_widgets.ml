@@ -63,23 +63,15 @@ object (self)
   method display_container
     ~sp ?(css={{ [] }}) ?(title="Ocsimore wiki") content =
     let title = Ocamlduce.Utf8.make title in
-(*VVV à revoir : fichiers statiques *)
-    let static_dir = Eliom_services.static_dir ~sp in
-
+    Wiki.wiki_admin_servpage () >>= fun service ->
     let vm = Eliom_duce.Xhtml.js_script
-      ~uri:(Eliom_duce.Xhtml.make_uri ~service:static_dir ~sp ["vm.js"])
-      ()
+      ~uri:(Eliom_duce.Xhtml.make_uri ~service ~sp ["vm.js"])  ()
+    and eliom_obrowser = Eliom_duce.Xhtml.js_script
+      ~uri:(Eliom_duce.Xhtml.make_uri ~service ~sp ["eliom_obrowser.js"]) ()
+    and ocsimore = Eliom_duce.Xhtml.js_script
+      ~uri:(Eliom_duce.Xhtml.make_uri ~service ~sp ["ocsimore.js"]) ()
     in
-    let eliom_obrowser = Eliom_duce.Xhtml.js_script
-      ~uri:(Eliom_duce.Xhtml.make_uri
-              ~service:static_dir ~sp ["eliom_obrowser.js"])
-      ()
-    in
-    let ocsimore = Eliom_duce.Xhtml.js_script
-      ~uri:(Eliom_duce.Xhtml.make_uri ~service:static_dir ~sp ["ocsimore.js"])
-      ()
-    in
-    {{
+    Lwt.return {{
        <html xmlns="http://www.w3.org/1999/xhtml">[
          <head>[
            <title>title
@@ -341,10 +333,7 @@ object (self)
     match l, wbdel with
       | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
       | _ ->
-          let img = 
-            Eliom_duce.Xhtml.make_string_uri 
-              ~service:(Eliom_services.static_dir ~sp) ~sp ["crayon.png"]
-          in
+          Wiki.wiki_admin_page_link sp ["crayon.png"] >>= fun img ->
           Lwt.return
             {{ [ <div class="boxmenu">[
                    <img class="boxmenu" src={: img :} alt="edit">[]
@@ -946,7 +935,7 @@ object (self)
          | Wiki_widgets_interface.Page_404 -> 404
          | Wiki_widgets_interface.Page_403 -> 403
        in
-       Lwt.return (self#display_container ~sp ~css ~title pagecontent,
-                   code)
+       self#display_container ~sp ~css ~title pagecontent >>= fun r ->
+       Lwt.return (r, code)
 
 end

@@ -39,8 +39,27 @@ let ( ** ) = Eliom_parameters.prod
     reflect the change *)
 let wiki_admin_name = "Adminwiki"
 
+exception No_admin_wiki
+
 let get_admin_wiki () =
-  Wiki_sql.get_wiki_info_by_name wiki_admin_name
+  Lwt.catch
+    (fun () -> Wiki_sql.get_wiki_info_by_name wiki_admin_name)
+    (function
+       | Not_found -> raise No_admin_wiki
+       | e -> Lwt.fail e)
+
+
+let wiki_admin_servpage () =
+  get_admin_wiki () >>= fun wadmin ->
+  Lwt.return (match Wiki_self_services.find_servpage wadmin.wiki_id with
+                | None -> raise No_admin_wiki
+                | Some service -> service)
+
+
+let wiki_admin_page_link sp page =
+  wiki_admin_servpage () >>= fun service ->
+  Lwt.return (Eliom_duce.Xhtml.make_uri ~service ~sp page)
+
 
 
 

@@ -166,7 +166,7 @@ object
     ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
     ?title:string ->
     Xhtmltypes_duce.blocks ->
-    Xhtmltypes_duce.html
+    Xhtmltypes_duce.html Lwt.t
 
   (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
