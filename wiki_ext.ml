@@ -53,21 +53,22 @@ add_extension ~name:"wikibox" ~wiki_content:true
                | None -> Lwt.return None
                | Some c ->
                    Wiki_syntax.xml_of_wiki wp bi c
-                   >>= fun r -> Lwt.return (Some r)
-            ) >>=fun subbox ->
+                   >>= fun r -> Lwt.return (Some (Some bi.bi_box, r))
+            ) >>= fun subbox ->
             Wiki_sql.wikibox_wiki box >>= fun wiki ->
             Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
             let widget = Wiki_models.get_widgets wiki_info.wiki_model in
+            let class_box = Wiki_syntax.class_wikibox box in
             widget#display_interactive_wikibox
               ?rows:(Ocsimore_lib.int_of_string_opt
                        (Ocsimore_lib.list_assoc_opt "rows" args))
               ?cols:(Ocsimore_lib.int_of_string_opt
                        (Ocsimore_lib.list_assoc_opt "cols" args))
-              ?classes:(try Some [List.assoc "class" args]
-                        with Not_found -> None)
+              ?classes:(try Some [List.assoc "class" args; class_box]
+                        with Not_found -> Some [class_box])
               ~bi:{bi with
                      bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
-                     bi_subbox = subbox}
+                     bi_subbox = subbox }
               box
               >>= fun b ->
               Lwt.return {{ [ b ] }}
@@ -80,19 +81,33 @@ add_extension ~name:"wikibox" ~wiki_content:true
                                              extension" () :} ] }}
   ));
 
+(* add_extension "wikibox" above has already added a preparser for wikibox,
+   which recursively parses the argument of the wikibox. We override it
+   below, but do the same thing at the beginning of our preparser *)
 Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
   (fun (sp, wb) args c ->
+     (* There are two parts in the extension : we try to create boxes if the
+        box='' argument of wikibox is missing. We also recursively parse the
+        content c of the extension *)
+     (* Parsing of c : *)
+     match c with
+       | None -> Lwt.return None
+       | Some c ->
+           Wiki_syntax.preparse_extension wp (sp, wb) c >>= fun c ->
+           Lwt.return (Some c)
+     >>= fun c ->
+     (* Adding the 'box=' argument *)
      (try
         Wiki_sql.wikibox_wiki wb >>= fun wid ->
         (* The user can specify the wiki, or we deduce it from the context. *)
         let wid = extract_wiki_id args wid in
         Wiki_sql.get_wiki_info_by_id wid >>= fun wiki_info ->
         let rights = Wiki_models.get_rights wiki_info.wiki_model in
-        let content_type = 
-          Wiki_models.get_default_content_type wiki_info.wiki_model 
+        let content_type =
+          Wiki_models.get_default_content_type wiki_info.wiki_model
         in
-        try (* If a wikibox is already specified, there is nothing to do *)
-          ignore (List.assoc "box" args); Lwt.return None
+        try (* If a wikibox is already specified, there is nothing to change *)
+          ignore (List.assoc "box" args); Lwt.return args
         with Not_found ->
           User.get_user_id ~sp >>= fun userid ->
           rights#can_create_subwikiboxes ~sp wid >>= function
@@ -108,14 +123,13 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
                   ()
                   (* XXX Must create some permissions *)
                   >>= fun box ->
-                  Lwt.return
-                    (Some (Wiki_syntax.string_of_extension "wikibox"
-                             (("box", string_of_wikibox box) ::
-                                (* We remove the wiki information, which 
-                                   is no longer useful *)
-                                List.remove_assoc "wiki" args) c))
-            | false -> Lwt.return None
-   with Failure _ -> Lwt.return None)
+                  Lwt.return (("box", string_of_wikibox box) ::
+                              (* We remove the wiki information, which is no
+                                 longer useful *) List.remove_assoc "wiki" args)
+            | false -> Lwt.return args
+      with Failure _ -> Lwt.return args)
+     >>= fun args ->
+     Lwt.return (Some (Wiki_syntax.string_of_extension "wikibox" args c))
   );
 
 add_extension ~name:"link" ~wiki_content:true

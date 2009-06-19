@@ -105,14 +105,17 @@ end
 
 (** Information available to display a box *)
 
-type box_info =
-  {bi_subbox: Xhtmltypes_duce.flows option;
-   bi_ancestors: Ancestors.ancestors;
-   bi_sp: Eliom_sessions.server_params;
-   bi_box : wikibox (* Wikibox which is being displayed *);
-   bi_wiki : wiki (* wiki of the box displayed *);
-   bi_page : string list option (* page at the origin of the display request *);
-   bi_rights: Wiki_types.wiki_rights;
+type box_info = {
+  bi_sp: Eliom_sessions.server_params;
+  bi_subbox: (wikibox option * Xhtmltypes_duce.flows) option
+    (* Text to paste inside an <<option>> extension. The wikibox
+       option is (if available) the wikibox which gave rise to this text *);
+  bi_ancestors: Ancestors.ancestors (* pages which are currently being
+                                       displayed. Using to detect loops *);
+  bi_box : wikibox (* Wikibox which is being displayed *);
+  bi_wiki : wiki (* wiki of the box displayed *);
+  bi_page : string list option (* page at the origin of the display request *);
+  bi_rights: Wiki_types.wiki_rights;
 }
 
 let add_ancestor_bi x bi =

@@ -867,7 +867,8 @@ object (self)
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) box
           >>= fun (subbox, allowed) ->
-          Lwt.return ({{ [ subbox ] }},
+          Lwt.return (Some box,
+                      {{ [ subbox ] }},
                       (if allowed
                        then Wiki_widgets_interface.Page_displayable
                        else Wiki_widgets_interface.Page_403),
@@ -903,12 +904,13 @@ object (self)
               and err_msg = !Language.messages.Language.page_does_not_exist
               in
               Lwt.return
-                ({{ [ <p>{:err_msg:} !form ] }},
+                (None,
+                 {{ [ <p>{:err_msg:} !form ] }},
                  Wiki_widgets_interface.Page_404,
                  None)
           | e -> Lwt.fail e
        )
-       >>= fun (subbox, err_code, title) ->
+       >>= fun (wbid, subbox, err_code, title) ->
        Wiki_widgets_interface.set_page_displayable sp err_code;
 
        (* We render the container, if it exists *)
@@ -917,9 +919,10 @@ object (self)
 
           | Some wb_container ->
               Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
-              let bi = { bi with  bi_subbox = Some subbox;
+              let bi = { bi with  bi_subbox = Some (wbid, subbox);
                                   bi_page = Some page_list } in
               self#display_interactive_wikibox ~bi
+                 ~classes:[Wiki_syntax.class_wikibox wb_container]
                 ~special_box:(WikiContainerBox wiki) wb_container
               >>= fun b -> Lwt.return {{ [b] }}
 

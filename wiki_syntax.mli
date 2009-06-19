@@ -133,3 +133,8 @@ val make_href :
   Eliom_sessions.server_params ->
   Wiki_widgets_interface.box_info ->
   link_kind -> string option -> string
+
+
+(** The class to use to denote the fact that the content comes
+    from the specified wikibox *)
+val class_wikibox: wikibox -> string

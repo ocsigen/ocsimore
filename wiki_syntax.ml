@@ -27,6 +27,8 @@ open Wiki_widgets_interface
 let (>>=) = Lwt.bind
 
 
+let class_wikibox wb = Printf.sprintf "wikiboxcontent%s" (string_of_wikibox wb)
+
 
 let string_of_extension name args content =
   "<<"^name^
@@ -309,6 +311,18 @@ type syntax_extension =
 
 type 'a plugin_hash = (string, 'a) Hashtbl.t
 
+(* A wikicreole_parser is essentially a [Wikicreole.builder] object
+   (contained in the field [builder] but easily extensible. That is,
+   the fields [plugin] and [plugin_action] of [Wikicreole.builder],
+   which are supposed to be functions, are here represented as
+   association tables. Thus, it becomes easy (and, more importantly,
+   not costly) to add extensions. When a [wikicreole_parser] must be
+   used as a builder, we call the function [builder_from_wikicreole_parser]
+   (defined below), which updates the field [plugin] of the builder.
+   (This supposes that the builder is used to parse something. When
+   used as a preparser, the field [plugin_assoc] is also overridden
+   using a proper function. See [preparse_extension] below.
+*)
 type wikicreole_parser = {
   builder: (Xhtmltypes_duce.flows Lwt.t,
             Xhtmltypes_duce.inlines Lwt.t,
@@ -326,17 +340,11 @@ type wikicreole_parser = {
     plugin_hash;
 }
 
-let copy_parser wp = {
-  wp with
-    plugin_assoc = Hashtbl.copy wp.plugin_assoc;
-    plugin_action_assoc = Hashtbl.copy wp.plugin_action_assoc;
-}
-
-let builder_from_builder_ext bext =
-  { bext.builder with
+let builder_from_wikicreole_parser parser =
+  { parser.builder with
       Wikicreole.plugin =
       (fun name ->
-         try Hashtbl.find bext.plugin_assoc name
+         try Hashtbl.find parser.plugin_assoc name
          with Not_found ->
            (false,
             (fun _ _ _ ->
@@ -347,31 +355,35 @@ let builder_from_builder_ext bext =
       );
   }
 
-
-
+let copy_parser wp = {
+  wp with
+    plugin_assoc = Hashtbl.copy wp.plugin_assoc;
+    plugin_action_assoc = Hashtbl.copy wp.plugin_action_assoc;
+}
 
 
 let add_preparser_extension ~wp ~name f =
   Hashtbl.add wp.plugin_action_assoc name f
 
-let nothing _ _ = ()
-let nothing1 _ = ()
 
-let make_plugin_action wp =
+let preparse_extension
+    wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wikibox)
+    content =
   let subst = ref [] in
-  ((fun name start end_ params args content ->
-      subst := (start,
-                end_,
-                (try
-                   (Hashtbl.find wp.plugin_action_assoc)
-                     name params args content
-                 with Not_found -> Lwt.return None))::!subst)
-   ,
-   fun () -> !subst
-  )
-
-let builder wp plugin_action =
-  { Wikicreole.chars = nothing1;
+  let plugin_action name start end_ params args content =
+    subst := (start,
+              end_,
+              (try
+                 (Hashtbl.find wp.plugin_action_assoc)
+                   name params args content
+               with Not_found -> Lwt.return None))::!subst
+  and nothing _ _ = ()
+  and nothing1 _ = ()
+  in
+  (* This builder does essentially nothing, except on extensions
+     where it calls plugin_action *)
+  let preparse_builder = {
+    Wikicreole.chars = nothing1;
     strong_elem = nothing;
     em_elem = nothing;
     a_elem = (fun _ _ _ _ -> ());
@@ -402,24 +414,19 @@ let builder wp plugin_action =
     table_elem = nothing;
     inline = nothing1;
     plugin =
-      (fun name -> 
+      (fun name ->
          let wiki_content =
            try fst (Hashtbl.find wp.plugin_assoc name)
            with Not_found -> false
          in (wiki_content, (fun _ _ _ -> Wikicreole.A_content ())));
     plugin_action = plugin_action;
     error = nothing1;
-  }
-
-let preparse_extension
-    wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wikibox)
-    content =
-  let (plugin_action, get_subst) = make_plugin_action wp in
-  let builder = builder wp plugin_action in
-  Wikicreole.from_string sp (sp, wb) builder content >>= fun (_ : unit list) ->
+  } in
+  Wikicreole.from_string sp (sp, wb) preparse_builder content
+  >>= fun (_ : unit list) ->
   let buf = Buffer.create 1024 in
   Lwt_util.fold_left
-    (fun pos (start, end_, replacement) -> 
+    (fun pos (start, end_, replacement) ->
        replacement >>= function
          | None -> Lwt.return pos;
          | Some replacement ->
@@ -428,7 +435,7 @@ let preparse_extension
              Lwt.return end_
     )
     0
-    (List.rev (get_subst ()))
+    (List.rev !subst)
   >>= fun pos ->
   let l = String.length content in
   if pos < l 
@@ -646,7 +653,7 @@ let wikicreole_parser = {
 
 let xml_of_wiki wp bi s =
   Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-       (builder_from_builder_ext wp) s
+       (builder_from_wikicreole_parser wp) s
   >>= fun l ->
   Lwt_util.map_serial (fun x -> x) l
   >>= fun r ->
@@ -659,7 +666,7 @@ let wikicreole_content_type =
 
 let inline_of_wiki builder bi s : Xhtmltypes_duce.inlines Lwt.t =
   Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-    (builder_from_builder_ext builder) s >>= function
+    (builder_from_wikicreole_parser builder) s >>= function
     | [] -> Lwt.return {{ [] }}
     | a::_ -> a >>= (function
                        | {{ [ <p>l _* ] }} -> Lwt.return l
@@ -765,24 +772,30 @@ let () =
     );
 
   add_extension_aux ~name:"content"
-    (fun bi args _ -> 
+    (fun bi args _ ->
        Wikicreole.Block
-         (let classe = 
+         (let classe, classe' =
             try
               let a = List.assoc "class" args in
-              {{ { class={: a :} } }} 
-            with Not_found -> {{ {} }} 
-          in
-          let id = 
+              {{ { class={: a :} } }}, a
+            with Not_found -> {{ {} }}, ""
+          and id =
             try
               let a = List.assoc "id" args in
-              {{ { id={: a :} } }} 
-            with Not_found -> {{ {} }} 
+              {{ { id={: a :} } }}
+            with Not_found -> {{ {} }}
           in
           match bi.Wiki_widgets_interface.bi_subbox with
             | None -> Lwt.return {{ [ <div (classe ++ id) >
                                         [<strong>[<em>"<<content>>"]]] }}
-            | Some subbox -> Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
+            | Some (wb, subbox) ->
+                let classe = match wb with
+                  | None -> classe
+                  | Some wb ->
+                      let cl = classe' ^ " " ^ class_wikibox wb in
+                      {{ { class={: cl :}  } }}
+                in
+                Lwt.return {{ [ <div (classe ++ id) >subbox ] }}
          )
     );
 
