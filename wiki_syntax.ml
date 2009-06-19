@@ -416,7 +416,7 @@ let preparse_extension
     content =
   let (plugin_action, get_subst) = make_plugin_action wp in
   let builder = builder wp plugin_action in
-  ignore (Wikicreole.from_string sp (sp, wb) builder content);
+  Wikicreole.from_string sp (sp, wb) builder content >>= fun (_ : unit list) ->
   let buf = Buffer.create 1024 in
   Lwt_util.fold_left
     (fun pos (start, end_, replacement) -> 
