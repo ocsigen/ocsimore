@@ -48,7 +48,7 @@ STATICFILES := static/vm.js static/eliom_obrowser.js static/ocsimore.js \
 all: $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
-	make -C nis_chkpwd
+	$(MAKE) -C nis_chkpwd
 	mkdir -p _build
 	cp nis_chkpwd/nis_chkpwd.{cma,cmi} _build
 
@@ -129,7 +129,7 @@ uninstall:
 
 clean:
 	rm -Rf _build
-	make -C nis_chkpwd clean
+	$(MAKE) -C nis_chkpwd clean
 
 .PHONY: all ocamlbuild clean check_db ocsimore.mllib nis_chkpwd_
 
