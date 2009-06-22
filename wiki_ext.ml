@@ -90,12 +90,12 @@ Wiki_syntax.add_preparser_extension ~wp ~name:"wikibox"
         box='' argument of wikibox is missing. We also recursively parse the
         content c of the extension *)
      (* Parsing of c : *)
-     match c with
+     (match c with
        | None -> Lwt.return None
        | Some c ->
            Wiki_syntax.preparse_extension wp (sp, wb) c >>= fun c ->
            Lwt.return (Some c)
-     >>= fun c ->
+     ) >>= fun c ->
      (* Adding the 'box=' argument *)
      (try
         Wiki_sql.wikibox_wiki wb >>= fun wid ->
