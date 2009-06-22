@@ -163,14 +163,6 @@ type classes = string list
 class type wikibox_aux =
 object
 
-  (** Wraps some xhtml blocks inside an entire xhtml page *)
-  method display_container :
-    sp:Eliom_sessions.server_params ->
-    ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
-    ?title:string ->
-    Xhtmltypes_duce.blocks ->
-    Xhtmltypes_duce.html Lwt.t
-
   (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
     classes:classes ->

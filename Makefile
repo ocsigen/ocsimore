@@ -41,7 +41,7 @@ TOINSTALL := files/META \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
              _build/forum/forum_site.cmo
 
-STATICFILES := static/vm.js static/eliom_obrowser.js static/ocsimore.js \
+STATICFILES := static/vm.js static/eliom_obrowser.js \
 	static/ocsimore_client.uue static/ocsiwikistyle.css \
 	static/creole_cheat_sheet.png
 

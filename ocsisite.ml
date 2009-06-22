@@ -93,7 +93,7 @@ let () =
        >>= fun page ->
        wikibox_widget#css_header ~admin:true ~sp ?page:None w
        >>= fun css ->
-       wikibox_widget#display_container ~sp ~css {{ [ page ] }}
+       Ocsimore_common.html_page ~sp ~css {{ [ page ] }}
     )
 
 
@@ -185,8 +185,8 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 {{creole_cheat_sheet.png|Wikicreole's syntax}}"
 
 
-(** Finally, we register the existing wikis of the database *)
-let _ = Lwt_unix.run
+(** We register the existing wikis of the database *)
+let () = Lwt_unix.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_pages = path } ->
         (match path with
@@ -198,6 +198,15 @@ let _ = Lwt_unix.run
         Lwt.return ()
      )
   )
+
+(** We can now register the service for static files *)
+let () =
+  let service = match Wiki_self_services.find_servpage wiki_admin_id with
+    | None -> raise Wiki.No_admin_wiki
+    | Some service -> service
+  in
+  Ocsimore_common.set_service_for_static_files service
+
 
 
 let str = Ocamlduce.Utf8.make
@@ -216,11 +225,11 @@ let user_from_userlogin user =
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
       ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~css
       ?err_handler cont =
-  let page _sp _arg error form =
+  let page sp _arg error form =
     let title = match error with
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
-    Ocsimore_common.html_page ~title
+    Ocsimore_common.html_page ~sp ~title
       {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p>(str err)] }}
@@ -308,7 +317,7 @@ let create_wiki =
             let title = str "Wiki sucessfully created"
             and msg = str (Printf.sprintf "You have created wiki %s"
                              (string_of_wiki wid)) in
-            Ocsimore_common.html_page
+            Ocsimore_common.html_page ~sp
               {{ [<h1>title <p>msg !link] }}
          ));
   create_wiki

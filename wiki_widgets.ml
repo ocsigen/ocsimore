@@ -60,31 +60,6 @@ class wikibox_aux (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.wikibox_aux =
 object (self)
 
-  method display_container
-    ~sp ?(css={{ [] }}) ?(title="Ocsimore wiki") content =
-    let title = Ocamlduce.Utf8.make title in
-    Wiki.wiki_admin_servpage () >>= fun service ->
-    let vm = Eliom_duce.Xhtml.js_script
-      ~uri:(Eliom_duce.Xhtml.make_uri ~service ~sp ["vm.js"])  ()
-    and eliom_obrowser = Eliom_duce.Xhtml.js_script
-      ~uri:(Eliom_duce.Xhtml.make_uri ~service ~sp ["eliom_obrowser.js"]) ()
-    and ocsimore = Eliom_duce.Xhtml.js_script
-      ~uri:(Eliom_duce.Xhtml.make_uri ~service ~sp ["ocsimore.js"]) ()
-    in
-    Lwt.return {{
-       <html xmlns="http://www.w3.org/1999/xhtml">[
-         <head>[
-           <title>title
-           vm
-           eliom_obrowser
-           ocsimore 
-           !css
-         ]
-         <body>content
-       ]
-     }}
-
-
   method display_wikiboxcontent
     ~bi ~classes (wiki_syntax, content, _ver as wb) =
     let wiki_parser = Wiki_models.get_wiki_parser wiki_syntax in
@@ -938,7 +913,7 @@ object (self)
          | Wiki_widgets_interface.Page_404 -> 404
          | Wiki_widgets_interface.Page_403 -> 403
        in
-       self#display_container ~sp ~css ~title pagecontent >>= fun r ->
+       Ocsimore_common.html_page ~sp ~css ~title pagecontent >>= fun r ->
        Lwt.return (r, code)
 
 end

@@ -166,7 +166,7 @@ let () =
        ~get_params:Eliom_parameters.unit
        (fun sp () () ->
           user_widget#display_login_widget ~sp () >>= fun lb ->
-          Ocsimore_common.html_page {{ [ lb ] }}
+          Ocsimore_common.html_page ~sp {{ [ lb ] }}
        )
     );
 

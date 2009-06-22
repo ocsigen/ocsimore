@@ -20,6 +20,8 @@
    @author Vincent Balat
 *)
 
+let (>>=) = Lwt.bind
+
 exception Permission_denied
 
 let action_failure_key = Polytables.make_key ()
@@ -41,17 +43,66 @@ let get_action_failure ~sp =
 exception Incorrect_argument
 
 
-let html_page ?(css={{ [] }}) ?(title="Ocsimore") content =
+let static_services :
+    ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
+      [ `One of string list ] Eliom_parameters.param_name, unit,
+      [ `Registrable ])
+     Eliom_services.service * _) option ref = ref None
+
+let set_service_for_static_files service =
+  match !static_services with
+    | None ->
+        let service_uue =
+          Eliom_predefmod.Text.register_new_service
+            ~path:([Ocsimore_lib.ocsimore_admin_dir ; "ocsimore_client.js"])
+            ~get_params:(Eliom_parameters.string "path")
+            (fun _sp s () ->
+               let vm = s ^ "/ocsimore_client.uue" in
+               Lwt.return
+                 (Printf.sprintf
+                    "window.onload = function () { \
+                       main_vm = exec_caml (\"%s\"); \
+                     }" vm,
+                  "text/javascript")
+            )
+        in
+        static_services := Some (service, service_uue)
+    | Some _ ->
+        Ocsigen_messages.errlog "In Ocsimore_common: Static services already \
+                    loaded. Ignoring call to set_service_for_static_files"
+
+
+
+let html_page ~sp ?(css={{ [] }}) ?(title="Ocsimore") content =
   let title = Ocamlduce.Utf8.make title in
-  Lwt.return
-  {{ <html xmlns="http://www.w3.org/1999/xhtml">[
-       <head>[
-         <title>title
-         !css
-       ]
-       <body>content
-     ]
-   }}
+  let static_files_services, ocsimore_uue = match !static_services with
+    | None -> failwith "No service for static files"
+    | Some (s1, s2) -> s1, s2
+  in
+  let static_uri path =
+    Eliom_duce.Xhtml.make_uri ~service:static_files_services ~sp [path] in
+  let eliom_obrowser = Eliom_duce.Xhtml.js_script
+    ~uri:(static_uri "eliom_obrowser.js") ()
+  and vm = Eliom_duce.Xhtml.js_script ~uri:(static_uri "vm.js") ()
+  and uue =
+    let path = static_uri "."  in
+    Eliom_duce.Xhtml.js_script
+      ~uri:(Eliom_duce.Xhtml.make_uri ~service:ocsimore_uue ~sp path) ()
+  in
+  Lwt.return {{
+      <html xmlns="http://www.w3.org/1999/xhtml">[
+        <head>[
+          <title>title
+          <script type="text/javascript">[]
+          vm
+          eliom_obrowser
+          uue
+          !css
+        ]
+        <body>content
+      ]
+    }}
+(*  *)
 
 
 type 'a eliom_usertype =
