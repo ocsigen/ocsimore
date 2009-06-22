@@ -299,7 +299,7 @@ object (self)
       if wbdel
       then
         let link = Eliom_duce.Xhtml.make_string_uri ~service:delete ~sp () in
-        {{ [<a
+        {{ [<a class="jslink"
                onclick={: "caml_run_from_table(main_vm, 777, "
                         ^Eliom_obrowser.jsmarshal (link, html_id_wikibox)^")" :}>"delete"] }}
       else {{[]}}
@@ -309,14 +309,16 @@ object (self)
       | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
       | _ ->
           Wiki.wiki_admin_page_link sp ["crayon.png"] >>= fun img ->
+          let menu = Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
+            (view, {{ "view"}}) l ?service in
+          let menu = match menu with {{ <ul (attrs)>[ (li::_)* ] }} ->
+            {{ <ul (attrs)>[!li <li>menudel] }} in
           Lwt.return
             {{ [ <div class="boxmenu">[
                    <img class="boxmenu" src={: img :} alt="edit">[]
                    <div class="boxmenucontent">[
                      <p class={: box_title_class :}>title
-                       {: Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
-                          (view, {{ "view"}}) l ?service :}
-                     !menudel
+                     menu
                      ]
                  ]
                ]  }}

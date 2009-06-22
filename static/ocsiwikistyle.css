@@ -94,6 +94,10 @@ ul.boxbutton{
     text-decoration: none;
 }
 
+.jslink {
+    cursor: pointer;
+}
+
 div.preview{
     border: 1px solid #ff8888;
     background-image: url(preview.png);
