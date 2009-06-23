@@ -1,7 +1,6 @@
 ocsimore.cma
 user_site.cmo
 ocsisite.cmo
-ocsicreatewiki.cmo
 wikiperso.cmo
 announce/announce.cma
 forum/ocsicreateforum.cmo

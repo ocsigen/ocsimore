@@ -90,22 +90,7 @@
 
       <eliommodule findlib-package="ocsimore.forum.site" />
 
-      <!-- The following option has effect only the first time, and creates the
-           specified wiki. Already created wikis are automatically reloaded -->
-<!--      <eliommodule module="ocsicreatewiki.cmo">
-        <name>My wiki</name>
-        <path>/</path>
 
-        <readers>anonymous</readers>
-        <writers>users</writers>
-        <rightsadm>admin</rightsadm>
-        <wikiboxescreators>users</wikiboxescreators>
-        <containeradm>admin</containeradm>
-        <pagecreators>users</pagecreators>
-        <csseditors>users</csseditors>
-        <admins>admin</admins>
-        <boxrights/>
-      </eliommodule> -->
 
 <!--      <eliommodule module="_build/forum/ocsicreateforum.cmo">
         <name>My forum</name>
