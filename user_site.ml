@@ -169,7 +169,7 @@ let () =
   Eliom_duce.Xhtml.register service_login
     (fun sp () () ->
        user_widget#display_login_widget ~sp () >>= fun lb ->
-       Ocsimore_common.html_page ~sp {{ [ lb ] }}
+       Ocsimore_page.html_page ~sp {{ [ lb ] }}
     );
 
   (* We register the syntax extensions *)

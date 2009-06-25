@@ -91,9 +91,9 @@ let () =
        Wiki.default_bi ~sp ~wikibox:wb ~rights >>= fun bi ->
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
        >>= fun page ->
-       wikibox_widget#css_header ~admin:true ~sp ?page:None w
+       wikibox_widget#css_header ~sp ?page:None w
        >>= fun css ->
-       Ocsimore_common.html_page ~sp ~css {{ [ page ] }}
+       Ocsimore_page.html_page ~sp ~css {{ [ page ] }}
     )
 
 
@@ -121,7 +121,7 @@ let wiki_admin = Lwt_unix.run
       | None -> Lwt.return ()
       | Some path ->
           Wiki_sql.update_wiki
-            ~staticdir:(Some path) ~pages:(Some Ocsimore_lib.ocsimore_admin_dir)
+            ~staticdir:(Some path) ~path:(Some Ocsimore_lib.ocsimore_admin_dir)
             id.wiki_id
    ) >>=fun () ->
    ((** And give reading rights to the wiki itself. (As usual, this can be
@@ -205,7 +205,8 @@ let () =
     | None -> raise Wiki.No_admin_wiki
     | Some service -> service
   in
-  Ocsimore_common.set_service_for_static_files service
+  Ocsimore_page.set_service_for_static_files service
+
 
 
 
@@ -271,7 +272,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
     let title = match error with
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
-    Ocsimore_common.html_page ~sp ~title
+    Ocsimore_page.html_page ~sp ~title
       {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p>(str err)] }}
@@ -357,7 +358,7 @@ let create_wiki =
             let title = str "Wiki sucessfully created"
             and msg = str (Printf.sprintf "You have created wiki %s"
                              (string_of_wiki wid)) in
-            Ocsimore_common.html_page ~sp
+            Ocsimore_page.html_page ~sp
               {{ [<h1>title <p>msg !link] }}
          ));
   create_wiki
@@ -370,7 +371,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
     let title = match error with
       | Xform.NoError -> "Wiki edition"
       | _ -> "Error" in
-    Ocsimore_common.html_page ~sp ~title
+    Ocsimore_page.html_page ~sp ~title
       {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p>(str err)] }}
@@ -422,7 +423,7 @@ let edit_wiki =
               ~container wiki
             >>= fun () ->
             let title = str "Wiki information sucessfully edited" in
-            Ocsimore_common.html_page ~sp {{ [<h1>title ] }}
+            Ocsimore_page.html_page ~sp {{ [<h1>title ] }}
          ));
   edit_wiki
 
@@ -444,7 +445,7 @@ let admin_root =
 
 let () = Eliom_duce.Xhtml.register admin_root
   (fun sp () () ->
-     Ocsimore_common.html_page sp (!root_page sp))
+     Ocsimore_page.html_page sp (!root_page sp))
 
 (* Links for users and wikis *)
 let () =
@@ -493,7 +494,7 @@ let () =
                   wp (sp, wb) content >>= fun r -> Lwt.return (Some r)
          )
        >>= fun () ->
-       Ocsimore_common.html_page {{ [<p>"Done"] }}
+       Ocsimore_page.html_page {{ [<p>"Done"] }}
     )
 
 let () =

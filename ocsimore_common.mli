@@ -45,15 +45,6 @@ val get_action_failure :
 exception Incorrect_argument
 
 
-(** Generic headers for an html page. Currently no CSS is added *)
-val html_page :
-  sp:Eliom_sessions.server_params ->
-  ?css:{{ [ Xhtmltypes_duce.link* ] }} ->
-  ?title:string ->
-  Xhtmltypes_duce.blocks ->
-  Xhtmltypes_duce.html Lwt.t
-
-
 type 'a eliom_usertype =
     ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameters.param_name)
     Eliom_parameters.params_type
@@ -67,14 +58,4 @@ val input_opaque_int32 :
   ?value:'a Opaque.int32_t ->
   ?hidden:bool ->
   [< 'a Opaque.int32_t Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> {{Eliom_duce.Blocks.input_elt}}
-
-
-(** Registers the service that answers for admin files.
-    This function must be called at eliom initialisation time,
-    as it registers another service automatically *)
-val set_service_for_static_files :
-  ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
-    [ `One of string list ] Eliom_parameters.param_name, unit,
-    [ `Registrable ])
-   Eliom_services.service) -> unit
+  Eliom_parameters.param_name -> Eliom_duce.Blocks.input_elt

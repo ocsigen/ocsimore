@@ -44,3 +44,15 @@ let _ =
   Forum_wikiext.register_wikiext
     Wiki_syntax.wikicreole_parser 
     (message_widget, thread_widget, message_list_widget)
+
+
+(** We register the css headers for forums (that are, for now,
+    inconditionnaly added) *)
+
+let () =
+  Ocsimore_page.add_html_header_hook
+    (fun sp ->
+       {{ [ {: Eliom_duce.Xhtml.css_link
+               (Ocsimore_page.static_file_uri sp ["ocsiforumstyle.css"]) () :}
+          ] }}
+    )

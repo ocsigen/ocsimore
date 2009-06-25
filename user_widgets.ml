@@ -154,7 +154,7 @@ object (self)
     User_data.can_change_user_data_by_userid sp userid >>= function
       | true ->
         User_sql.get_basicuser_data userid >>= fun u ->
-        Ocsimore_common.html_page sp
+        Ocsimore_page.html_page sp
           {{ [<h1>"Your account"
                <p>"Change your personal information:"
                {: Eliom_duce.Xhtml.post_form ~service:action_edit_user_data ~sp
@@ -198,7 +198,7 @@ object (self)
         | false ->
             let msg = "You do not have sufficient rights to perform this \
                       operation" in
-            Ocsimore_common.html_page sp {{ [<p>[<strong>{: msg :}]] }}
+            Ocsimore_page.html_page sp {{ [<p>[<strong>{: msg :}]] }}
 
   method display_edit_user_data_done sp (userid, (pw,(pw2,(fullname,email)))) =
     (* The first userid is always ignored, but is needed because we use as
@@ -207,7 +207,7 @@ object (self)
       (fun () ->
          User_data.change_user_data ~sp ~userid ~pwd:(pw, pw2) ~fullname ~email
          >>= fun () ->
-         Ocsimore_common.html_page sp {{ [<h1>"Personal information updated"] }}
+         Ocsimore_page.html_page sp {{ [<h1>"Personal information updated"] }}
       )
       (function
        | Failure s ->
@@ -288,7 +288,7 @@ object (self)
        in
        Lwt.return {{ [ !error !head f1 f2 ] }}
     ) >>= fun body ->
-    Ocsimore_common.html_page sp {{ body }}
+    Ocsimore_page.html_page sp {{ body }}
 
 
   method display_all_groups ~sp =
@@ -341,7 +341,7 @@ object (self)
     and title2 = Ocamlduce.Utf8.make "Groups"
     and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it \
                     (including its parameter if needed) below" in
-    Ocsimore_common.html_page sp
+    Ocsimore_page.html_page sp
       {{ [ <p>[<b>title1]               t2
            <p>[<b>title2 <br>[] !msg2 ] t1
            f
@@ -367,7 +367,7 @@ object (self)
   method display_user_creation ?(err="") ~sp =
     User_data.can_create_user ~sp ~options:user_creation_options >>= function
       | true ->
-          Ocsimore_common.html_page sp
+          Ocsimore_page.html_page sp
             {{ [<h1>"Registration form"
                  <p>['Please fill in the following fields.' <br>[]
                      'Be very careful to enter a valid e-mail address, \
@@ -395,7 +395,7 @@ object (self)
                  <p>[<strong>{: err :}]]
              }}
       | false ->
-          Ocsimore_common.html_page sp {{ [
+          Ocsimore_page.html_page sp {{ [
                       <h1>"Error"
                       <p>"Only admin can create new users" ] }}
 
@@ -404,7 +404,7 @@ object (self)
       (fun () ->
          User_data.create_user ~sp ~name ~fullname ~email
            ~options:user_creation_options >>= fun () ->
-         Ocsimore_common.html_page sp
+         Ocsimore_page.html_page sp
            {{ [<h1>"Registration ok."
                 <p>[!"You\'ll soon receive an e-mail message at the \
                        following address:" <br>[]
@@ -414,7 +414,7 @@ object (self)
       (function
          | Failure err -> self#display_user_creation ~err ~sp
          | Ocsimore_common.Permission_denied ->
-             Ocsimore_common.html_page sp {{ [
+             Ocsimore_page.html_page sp {{ [
                       <h1>"Error"
                       <p>"Only admin can create new users" ] }}
          | e -> Lwt.fail e)

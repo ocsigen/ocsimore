@@ -30,6 +30,29 @@ open Wiki_types
 let (>>=) = Lwt.bind
 
 
+(* Functions to add a CSS header for wiki, and to query whether
+   this header must be added *)
+let add_wiki_css_header, must_add_wiki_css_header =
+  let key = Polytables.make_key () in
+  (fun sp -> Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
+     ~key ~value:true),
+  (fun sp ->
+     try Polytables.get ~table:(Eliom_sessions.get_request_cache sp) ~key
+     with Not_found -> false)
+
+(* We define the function generating this header there *)
+let () =
+  Ocsimore_page.add_html_header_hook
+    (fun sp ->
+       if must_add_wiki_css_header sp then
+         {{ [ {: Eliom_duce.Xhtml.css_link
+             (Ocsimore_page.static_file_uri sp ["ocsiwikistyle.css"]) () :}
+            ] }}
+          else {{ [] }}
+    )
+
+
+
 class wikibox_error_box =
 object
 
@@ -60,8 +83,8 @@ class wikibox_aux (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.wikibox_aux =
 object (self)
 
-  method display_wikiboxcontent
-    ~bi ~classes (wiki_syntax, content, _ver as wb) =
+  method display_wikiboxcontent ~bi ~classes (wiki_syntax, content, _ver as wb) =
+    add_wiki_css_header bi.bi_sp;
     let wiki_parser = Wiki_models.get_wiki_parser wiki_syntax in
     match content with
       | Some content ->
@@ -172,6 +195,7 @@ object (self)
     and delete = preapply action_delete_wikibox wb
     and edit_wikibox_perm = preapply action_edit_wikibox_permissions wb
     and view = Eliom_services.void_coservice' in
+    Ocsimore_page.add_obrowser_header sp;
     (match special_box with
        | WikiPageBox (w, page) -> (* Edition of the css for page [page] *)
            (Wiki_sql.get_css_wikibox_for_wikipage w page >>= function
@@ -597,8 +621,7 @@ object (self)
     Lwt.return (classes, {{ map {: l :} with i -> i }})
 
 
-  method display_interactive_wikibox_aux
-    ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
     let classes = wikibox_class::classes in
     let sp = bi.bi_sp in
     let override = Wiki_services.get_override_wikibox ~sp in
@@ -620,8 +643,7 @@ object (self)
           >>= fun r ->
           Lwt.return (r, true)
 
-  method display_overriden_interactive_wikibox
-    ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
+  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
     let sp = bi.bi_sp in
     let display_error () = 
       Lwt.return (error_box#display_error_box
@@ -780,41 +802,25 @@ object (self)
             | false -> display_error ())
 
 
-   method display_interactive_wikibox
-     ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+   method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+     add_wiki_css_header bi.bi_sp;
      self#display_interactive_wikibox_aux
        ~bi ?rows ?cols ~classes ?special_box wb
      >>= fun (r, _allowed) -> Lwt.return r
 
 
-   method css_header ~sp ?(admin=false) ?page wiki =
+   method css_header ~sp ?page wiki =
      let css_url_service service args = Eliom_duce.Xhtml.css_link
        (Eliom_duce.Xhtml.make_uri service sp args) () in
-     let css_url path = css_url_service (Eliom_services.static_dir sp) path in
-
-     let css =
-(*VVV HACK: forum css should not be here.
-  Find a way to add css for all extensions.
-*)
-       {{ [ {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikistyle.css"]:}
-            {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiforumstyle.css"]:}
-          ] }}
-     in
-     if admin then
-       Lwt.return
-         {{ [ !css
-              {:css_url [Ocsimore_lib.ocsimore_admin_dir; "ocsiwikiadmin.css"]:}
-            ] }}
-     else
-       (match Wiki_self_services.find_servwikicss wiki with
-          | None -> Lwt.return {{ css }}
-          | Some wikicss_service ->
-              Wiki_sql.get_css_for_wiki wiki
-              >>= function
-                | Some _ -> Lwt.return (* encoding? *)
-                    {{ [ !css  {: css_url_service wikicss_service ():} ]}}
-                | None -> Lwt.return {{ css }}
-       )
+     (match Wiki_self_services.find_servwikicss wiki with
+        | None -> Lwt.return {{ [] }}
+        | Some wikicss_service ->
+            Wiki_sql.get_css_for_wiki wiki
+            >>= function
+              | Some _ -> Lwt.return (* encoding? *)
+                  {{ [ {: css_url_service wikicss_service ():} ]}}
+              | None -> Lwt.return {{ [] }}
+     )
      >>= fun css ->
      match page with
        | None -> Lwt.return css
@@ -823,7 +829,7 @@ object (self)
              | None -> Lwt.return css
              | Some _ -> Lwt.return
                  {{ [ !css
-                        {: css_url_service pagecss_service (wiki, page)
+                      {: css_url_service pagecss_service (wiki, page)
                            (* encoding? *) :}
                     ]}}
 
@@ -905,7 +911,7 @@ object (self)
 
        ) >>= fun pagecontent ->
 
-       self#css_header ~sp ~admin:false ~page wiki >>= fun css ->
+       self#css_header ~sp ~page wiki >>= fun css ->
 
        let title = (match title with
                       | Some title -> title
@@ -915,7 +921,7 @@ object (self)
          | Wiki_widgets_interface.Page_404 -> 404
          | Wiki_widgets_interface.Page_403 -> 403
        in
-       Ocsimore_common.html_page ~sp ~css ~title pagecontent >>= fun r ->
+       Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
        Lwt.return (r, code)
 
 end

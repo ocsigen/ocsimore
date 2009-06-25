@@ -381,11 +381,9 @@ class type virtual interactive_wikibox =
       (Xhtmltypes_duce.block * bool) Lwt.t
 
 
-    (** Returns the css headers for one wiki and optionally one page.
-        Set [?admin] to [true] for administration pages. *)
+    (** Returns the css headers for one wiki and optionally one page. *)
     method css_header :
       sp:Eliom_sessions.server_params ->
-      ?admin:bool ->
       ?page:string ->
       wiki ->
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
