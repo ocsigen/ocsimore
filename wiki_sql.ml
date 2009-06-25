@@ -34,14 +34,17 @@ open Wiki_types
 let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
 
 
-let update_wiki_ ?db ?container ?staticdir ?pages wiki =
+let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
   let f db =
   let wiki = t_int32 (wiki : wiki) in
     (match container with
        | None -> Lwt.return ()
        | Some container ->
-           let container = sql_of_wikibox container in
-           PGSQL(db) "UPDATE wikis SET container = $container \
+           let container = match container with
+             | None -> None
+             | Some c -> Some (sql_of_wikibox c)
+           in
+           PGSQL(db) "UPDATE wikis SET container = $?container \
                       WHERE id = $wiki"
     ) >>= fun () ->
     (match staticdir with
@@ -50,10 +53,22 @@ let update_wiki_ ?db ?container ?staticdir ?pages wiki =
            PGSQL(db) "UPDATE wikis SET staticdir = $?staticdir \
                       WHERE id = $wiki"
     ) >>= fun () ->
-    (match pages with
+    (match path with
        | None -> Lwt.return ()
        | Some pages ->
            PGSQL(db) "UPDATE wikis SET pages = $?pages \
+                      WHERE id = $wiki"
+    ) >>= fun () ->
+    (match descr with
+       | None -> Lwt.return ()
+       | Some descr ->
+           PGSQL(db) "UPDATE wikis SET descr = $descr \
+                      WHERE id = $wiki"
+    ) >>= fun () ->
+    (match boxrights with
+       | None -> Lwt.return ()
+       | Some boxrights ->
+           PGSQL(db) "UPDATE wikis SET boxrights = $boxrights \
                       WHERE id = $wiki"
     )
   in match db with
@@ -399,13 +414,13 @@ let get_wiki_info_by_id, get_wiki_info_by_name, update_wiki =
   (* get_wiki_by_name *)
   (fun ~name -> CN.find wiki_info_name name),
   (* update_wiki *)
-  (fun ?db ?container ?staticdir ?pages wiki ->
+  (fun ?db ?container ?staticdir ?path ?descr ?boxrights wiki ->
      CW.remove wiki_info_wiki  wiki;
      (* A bit drastic, but search by name (and update_wiki) are rarely
         used anyway. The alternative is to find the the id of the
         wiki, and to remove only this key *)
      CN.clear wiki_info_name;
-     update_wiki_ ?db ?container ?staticdir ?pages wiki)
+     update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki)
 
 
 (** Wiki of a wikibox *)
@@ -509,7 +524,7 @@ let new_wiki ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~author 
             new_wikibox ~db ~wiki ~author ~comment ~content
               ~content_type:(Wiki_models.get_default_content_type model) ()
             >>= fun container ->
-            update_wiki ~db ~container wiki >>= fun () ->
+            update_wiki ~db ~container:(Some container) wiki >>= fun () ->
             Lwt.return (Some container)
      ) >>= fun container ->
      return (wiki, container)

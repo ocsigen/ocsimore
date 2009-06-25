@@ -114,10 +114,11 @@ let (
   as user_services) =
   User_services.services ~external_auth ~force_secure
 
-let user_widget =
+let user_widget, service_user_creation =
   match basicusercreation with
     | NoUserCreation ->
-        new User_widgets.user_widget force_secure user_services
+        new User_widgets.user_widget force_secure user_services,
+        None
 
     | UserCreation user_creation_options ->
         (* We create some services specific to the creation of user *)
@@ -136,8 +137,16 @@ let user_widget =
         Eliom_duce.Xhtml.register ~service:action_create_new_user
           user_widget_creation#display_user_creation_done;
 
-        (user_widget_creation :> User_widgets.user_widget)
+        (user_widget_creation :> User_widgets.user_widget),
+        Some service_create_new_user
 
+
+(* This service is provided as a commodity to the admin *)
+let service_login = Eliom_services.new_service
+  ~https:force_secure
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
+  ~get_params:Eliom_parameters.unit
+  ()
 
 
 let () =
@@ -157,17 +166,10 @@ let () =
   Eliom_duce.Xhtml.register service_view_groups
     (fun sp () () -> user_widget#display_all_groups ~sp);
 
-  (* This service is provided as a commodity to the admin, but is not
-     used otherwise *)
-  ignore
-    (Eliom_duce.Xhtml.register_new_service
-       ~https:force_secure
-       ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
-       ~get_params:Eliom_parameters.unit
-       (fun sp () () ->
-          user_widget#display_login_widget ~sp () >>= fun lb ->
-          Ocsimore_common.html_page ~sp {{ [ lb ] }}
-       )
+  Eliom_duce.Xhtml.register service_login
+    (fun sp () () ->
+       user_widget#display_login_widget ~sp () >>= fun lb ->
+       Ocsimore_common.html_page ~sp {{ [ lb ] }}
     );
 
   (* We register the syntax extensions *)

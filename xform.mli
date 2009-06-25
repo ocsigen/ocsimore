@@ -53,6 +53,13 @@ val extensible_list :
   ('i -> (Xhtmltypes_duce.form_content, 'o) t) ->
   (Xhtmltypes_duce.form_content, 'o list) t
 
+val opt_input:
+  input:('a -> (inline, 'b) t) ->
+  default:'a ->
+  'a option ->
+  (inline, 'b option) t
+
+
 module Ops : sig
 
 val (@@) : ('elt, 'o1) t -> ('elt, 'o2) t -> ('elt, 'o1 * 'o2) t

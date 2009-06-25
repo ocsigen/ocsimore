@@ -200,3 +200,11 @@ let create_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
                      Wiki_sql.set_css_for_wikipage ~wiki ~page ~author:user text
                  | Some _ -> Lwt.fail Css_already_exists
               )
+
+
+let update_wiki ~(rights : Wiki_types.wiki_rights) ~sp ?container ?staticdir ?path ?descr ?boxrights wiki =
+  rights#can_admin_wiki ~sp wiki >>= function
+    | true ->
+        Wiki_sql.update_wiki ?container ?staticdir ?path ?descr ?boxrights
+          wiki
+    | false -> Lwt.fail Ocsimore_common.Permission_denied

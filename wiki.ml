@@ -197,7 +197,7 @@ object (self)
   method can_create_wiki ~sp () =
     User.in_group ~sp ~group:wikis_creator ()
 
- method can_admin_wiki = aux_group wiki_admins
+  method can_admin_wiki = aux_group wiki_admins
 
   method can_admin_wikibox = can_adm_wb
   method can_write_wikibox = can_wr_wb

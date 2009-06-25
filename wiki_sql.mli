@@ -138,9 +138,11 @@ val update_wikibox :
     unchanged *)
 val update_wiki :
   ?db: Sql.db_t ->
-  ?container:wikibox ->
+  ?container:wikibox option ->
   ?staticdir:string option ->
-  ?pages:string option ->
+  ?path:string option ->
+  ?descr:string ->
+  ?boxrights:bool ->
   wiki -> unit Lwt.t
 
 

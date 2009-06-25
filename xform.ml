@@ -72,6 +72,13 @@ val extensible_list :
   ('i -> (Xhtmltypes_duce.form_content, 'o) t) ->
   (Xhtmltypes_duce.form_content, 'o list) t
 
+val opt_input:
+  input:('a -> (inline, 'b) t) ->
+  default:'a ->
+  'a option ->
+  (inline, 'b option) t
+
+
 module Ops : sig
 
 val (@@) : ('elt, 'o1) t -> ('elt, 'o2) t -> ('elt, 'o1 * 'o2) t
@@ -471,10 +478,12 @@ let date_input date =
   |> (fun ((day, month, year), (hour, min)) ->
         Calendar.make year month day hour min 0)
 
-let string_opt_input v =
+let opt_input ~input ~default v =
   bool_checkbox (v <> None) @@
-  string_input (match v with None -> "" | Some s -> s)
-  |> (fun (check, s) -> if check then Some s else None)
+  input (match v with None -> default | Some s -> s)
+  |> (fun (checked, s) -> if checked then Some s else None)
+
+let string_opt_input = opt_input ~input:string_input ~default:""
 
 end
 
@@ -494,6 +503,7 @@ open Ops
    and this cannot be expressed in the signature of the functor [Make] *)
 
 let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
+  (* Hidden button, present to catch a press on the enter key *)
   let f = hidden (submit_button "Submit") @@ f |> snd in
   unpack f {f = fun f ->
   let (params, _) = f.params Name.first in

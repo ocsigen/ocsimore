@@ -222,6 +222,48 @@ let user_from_userlogin user =
     Lwt.return (Xform.Converted u)
 
 
+let opaque_int32_input_aux ?a s =
+  convert (string_input ?a s)
+    (fun s ->
+       Lwt.return (
+         try Xform.Converted (Opaque.int32_t (Int32.of_string s))
+         with Failure _ -> Xform.ConvError ("Invalid value " ^ s)
+       ))
+
+let opaque_int32_input ?a (i : 'a Opaque.int32_t) :
+    (Xform.inline, 'a Opaque.int32_t) Xform.XformLwt.t =
+  opaque_int32_input_aux ?a (Int32.to_string (Opaque.t_int32 i))
+
+let opaque_int32_input_opt_aux ?a s =
+  convert (string_input ?a s)
+    (fun s ->
+       Lwt.return (
+         if s = "" then
+           Xform.Converted None
+         else
+           try Xform.Converted (Some (Opaque.int32_t (Int32.of_string s)))
+           with Failure _ -> Xform.ConvError ("Invalid value " ^ s)
+       ))
+
+let opaque_int32_input_opt ?a : 'a Opaque.int32_t option -> (Xform.inline, 'a Opaque.int32_t option) Xform.XformLwt.t = function
+  | None -> opaque_int32_input_opt_aux ?a ""
+  | Some v -> opaque_int32_input_opt_aux ?a (Int32.to_string (Opaque.t_int32 v))
+
+let path_input ?a path =
+  string_input ?a
+    (match path with
+       | None -> ""
+       | Some "" -> "/"
+       | Some p -> p)
+  |> function
+       | "" -> None
+       | "/" -> Some ""
+       | s -> Some s
+
+let staticdir_input ?a staticdir =
+  string_input ?a (match staticdir with None -> "" | Some s -> s)
+  |> function "" -> None | s -> Some s
+
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
       ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~css
       ?err_handler cont =
@@ -241,11 +283,11 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
       (p (text "Title: " @+ string_input title +@
           text " (used to identify the wiki in the database) ") @@
        p (text "Description: " @+ string_input descr) @@
-       p (text "Link this wiki to an url: " @+ string_opt_input path) @@
+       p (text "Link this wiki to an url: " @+ path_input path) @@
        p (text "Authorize special permissions on wikiboxes: " @+
           bool_checkbox boxrights) @@
-       p (text "Serve static files from a directory: " @+
-          string_opt_input staticdir) @@
+       p (text "Serve static files from a local directory: " @+
+          staticdir_input staticdir) @@
        extensible_list "Add wiki admin" "" admins
          (fun adm ->
             p (text "Admin" @+
@@ -261,12 +303,10 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
           text_area ~cols:80 ~rows:20 css)
        @@
        p (submit_button "Create")
-      |> (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (css, _v))))))))) ->
-            cont ~title ~descr ~path ~boxrights ~staticdir ~container ~css
-              ~admins ~readers)
-      )
+      |> cont)
   >>= fun form ->
   page sp arg Xform.NoError form
+
 
 let create_wiki =
   let err_handler = function
@@ -290,7 +330,7 @@ let create_wiki =
          ~admins:[u] ~readers:[User.anonymous_login]
          ~container:Wiki.default_container_page ~css:""
          ~err_handler
-         (fun ~title ~descr ~path ~boxrights ~staticdir ~container ~css ~admins ~readers sp ->
+         (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (css, _button))))))))) sp ->
             let path = match path with
               | None -> None
               | Some p -> Some (Neturl.split_path p)
@@ -321,6 +361,115 @@ let create_wiki =
               {{ [<h1>title <p>msg !link] }}
          ));
   create_wiki
+
+
+let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
+      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~(container:wikibox option)
+      ?err_handler cont =
+  let page sp _arg error form =
+    let title = match error with
+      | Xform.NoError -> "Wiki edition"
+      | _ -> "Error" in
+    Ocsimore_common.html_page ~sp ~title
+      {{ [<h1>(str title)
+          !{: match error with
+              | Xform.ErrorMsg err -> {{[<p>(str err)] }}
+              | _ -> {{ [] }}
+          :}
+          form] }}
+  in
+    form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
+      (p (opaque_int32_input ~a:{{ { type="hidden" } }} wiki) @@
+       p (text "Description: " @+ string_input descr) @@
+       p (text "Link this wiki to an url: " @+ path_input path +@
+          [{{<br>[]}}] +@
+          text "Changing this option will only take effect after the server \
+            is restarted; use '/' for the root URL, or nothing if you do not \
+            want to bind the wiki") @@
+       p (text "Authorize special permissions on wikiboxes: " @+
+          bool_checkbox boxrights) @@
+       p (text "Serve static files from a local directory: " @+
+          staticdir_input staticdir) @@
+       p (text "Container wikibox :" @+ opaque_int32_input_opt container)
+       @@
+       p (submit_button "Create")
+      |> cont)
+  >>= fun form ->
+  page sp arg Xform.NoError form
+
+
+let edit_wiki =
+  let err_handler = function
+    | Ocsimore_common.Permission_denied ->
+        Some "You do not have sufficient permissions to edit wikis"
+    | _ -> Some "An unknown error has occurred"
+ in
+  let path = [Ocsimore_lib.ocsimore_admin_dir;"edit_wiki"] in
+  let edit_wiki = Eliom_services.new_service ~path
+      ~get_params:Wiki_services.eliom_wiki_args () in
+  Eliom_duce.Xhtml.register edit_wiki
+    (fun sp wiki () ->
+       Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
+       edit_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
+         ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
+         ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
+         ~container:info.wiki_container
+         ~err_handler
+         (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, _v)))))) sp ->
+            Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+            let rights = Wiki_models.get_rights wiki_info.wiki_model in
+            Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights ~staticdir
+              ~container wiki
+            >>= fun () ->
+            let title = str "Wiki information sucessfully edited" in
+            Ocsimore_common.html_page ~sp {{ [<h1>title ] }}
+         ));
+  edit_wiki
+
+
+(** Administration page *)
+
+let root_page : (Eliom_sessions.server_params -> Xhtmltypes_duce.blocks) ref =
+  ref (fun _sp -> {{ [ <h1>"Ocsimore administration page"] }})
+
+let add_to_root_page (arg : Eliom_sessions.server_params -> Xhtmltypes_duce.blocks) =
+  let old = !root_page in
+  root_page := (fun sp -> {{ {: old sp :} @ (arg sp) }})
+
+
+let admin_root =
+  Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir;"root"]
+    ~get_params:Eliom_parameters.unit ()
+
+let () = Eliom_duce.Xhtml.register admin_root
+  (fun sp () () ->
+     Ocsimore_common.html_page sp (!root_page sp))
+
+(* Links for users and wikis *)
+let () =
+    add_to_root_page (fun sp ->
+      let link service text =
+        let href = Ocamlduce.Utf8.make
+          (Eliom_duce.Xhtml.make_uri ~sp ~service ())
+        and text = Ocamlduce.Utf8.make text in
+        {{ <a href=href>text }}
+      in
+      let link_login = link User_site.service_login "Login"
+      and link_create_user = match User_site.service_user_creation with
+        | None -> {{ [] }}
+        | Some service -> {{ [ {: link service "Create a new user" :} <br>[]] }}
+      and link_view_groups = link User_site.service_view_groups
+        "View and edit groups or users"
+      and link_create = link create_wiki "Create a new wiki"
+      in
+      {{ [ <h2>"Users"
+           <p>[ link_login <br>[] !link_create_user link_view_groups<br>[] ]
+
+           <h2>"Wikis"
+           <p>[ link_create <br>[] ]
+         ] }})
+
 
 
 (*

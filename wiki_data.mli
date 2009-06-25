@@ -131,3 +131,15 @@ val wiki_css :
 val wikipage_css :
  (wiki:wiki -> page:string ->
   string Lwt.t) rights_sp
+
+
+
+(** Same as [Wiki_sql.update_wiki, except that this function fails
+    with [Permission_denied] if the user has not enough rights to edit a wiki *)
+val update_wiki :
+ (?container:wikibox option->
+  ?staticdir:string option ->
+  ?path:string option ->
+  ?descr:string ->
+  ?boxrights:bool ->
+  wiki -> unit Lwt.t) rights_sp
