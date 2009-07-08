@@ -2,7 +2,6 @@ div.wikiboxlinearmenu {
     overflow: auto;
     font-size: 80%;
     display:inline;
-    float: right;
     background:white;
 }
 
