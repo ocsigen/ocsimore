@@ -97,13 +97,13 @@ let (wiki_wikipages_creators, h_wiki_wikipages_creators :
        wiki_arg parameterized_group * _) = aux_grp
   "WikiWikipagesCreator" "Can create wikipages in the wiki"
 
-let (wiki_genwikiboxes_creators, h_wiki_genwikiboxes_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki"
-
 let (wiki_css_creators, h_wiki_css_creators :
        wiki_arg parameterized_group * _) = aux_grp
   "WikiCssCreator" "Can create css for the wiki"
+
+let (wiki_genwikiboxes_creators, h_wiki_genwikiboxes_creators :
+       wiki_arg parameterized_group * _) = aux_grp
+  "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki"
 
 let (wiki_wikiboxes_deletors, h_wiki_wikiboxes_deletors :
        wiki_arg parameterized_group * _) = aux_grp
@@ -118,6 +118,14 @@ let h_wiki_wikiboxes_grps = User.GroupsForms.helpers_admin_writer_reader
 let (wiki_files_readers, h_wiki_files_readers :
        wiki_arg parameterized_group * _) = aux_grp
   "WikiFilesReader" "can read the staic files for this wiki"
+
+let (wiki_wikiboxes_src_viewers, h_wiki_wikiboxes_src_viewers :
+       wiki_arg parameterized_group * _) = aux_grp
+  "WikiWikiboxesSrcViewers" "can view the source of a wikibox"
+
+let (wiki_wikiboxes_oldversion_viewers, h_wiki_wikiboxes_oldversion_viewers :
+       wiki_arg parameterized_group * _) = aux_grp
+  "WikiWikiboxesOldversionViewers" "can view an old version of a wikibox"
 
 
 (** The following groups take a wikibox as argument. They are used to override
@@ -137,15 +145,16 @@ let (wikipage_css_creators, _ : wikipage_arg parameterized_group * _)= aux_grp
  wp : parameterized by wikipages (unused right now)
 
        -------- WikiAdmin(w)-------------------------------------------------
-      /                 |                 |           |             |       |
-WikiboxesAdmins(w)   SubWikiboxes    Wikipages   CssCreators(w) Wikiboxes   |
-     |               Creators(w)    Creators(w)      /          Deletors(w) |
-WikiboxesWriters(w)          \            |         /                       |
-     |                        --    GenWikiboxes  --                        |
-WikiboxesReaders(w)                  Creators(w)                FilesReaders(w)
-
-
-WikiboxAdmin(wb)
+      /                 |                 |           |        |    |       |
+WikiboxesAdmins(w)   SubWikiboxes    Wikipages   CssCreators(w)|Wikiboxes   |
+     |               Creators(w)    Creators(w)      /         |Deletors(w) |
+WikiboxesWriters(w)          \            |         /          |            |
+     |                        --    GenWikiboxes  --           |            |
+WikiboxesReaders(w)                  Creators(w)               | FilesReaders(w)
+                                                               |
+                                                 --------------|
+                                                 |             |
+WikiboxAdmin(wb)          WikiboxesOldversionViewers(w)  WikiboxesSrcViewsers(w)
    |
 WikiboxWriter(wb)
    |
@@ -164,13 +173,16 @@ let () = Lwt_unix.run (
   add_admin wiki_css_creators             >>= fun () ->
   add_admin wiki_wikiboxes_grps.grp_admin >>= fun () ->
   add_admin wiki_files_readers            >>= fun () ->
-  User_sql.add_generic_inclusion 
+  add_admin wiki_wikiboxes_src_viewers    >>= fun () ->
+  add_admin wiki_wikiboxes_oldversion_viewers >>= fun () ->
+
+  User_sql.add_generic_inclusion
     ~superset:wiki_genwikiboxes_creators ~subset:wiki_subwikiboxes_creators
   >>= fun () ->
-  User_sql.add_generic_inclusion 
+  User_sql.add_generic_inclusion
     ~superset:wiki_genwikiboxes_creators ~subset:wiki_wikipages_creators
   >>= fun () ->
-  User_sql.add_generic_inclusion 
+  User_sql.add_generic_inclusion
     ~superset:wiki_genwikiboxes_creators ~subset:wiki_css_creators
 )
 
@@ -198,6 +210,7 @@ object (self)
     User.in_group ~sp ~group:wikis_creator ()
 
   method can_admin_wiki = aux_group wiki_admins
+  method can_set_wiki_permissions = self#can_admin_wiki (* By construction *)
 
   method can_admin_wikibox = can_adm_wb
   method can_write_wikibox = can_wr_wb
@@ -224,13 +237,21 @@ object (self)
       else
         Lwt.return false
 
-(*VVV Les suivantes à réécrire (créer des groupes pour chaque) *)
-  method can_set_wiki_permissions = aux_group wiki_admins (* trop fort *)
-(* = can_admin ? *)
-  method can_view_history = can_wr_wb (* trop fort *)
-  method can_view_oldversions = can_wr_wb (* trop fort *)
-  method can_view_oldversions_src = can_wr_wb (* trop fort *)
+  (* YYY We might want to introduce overrides at the level of wikiboxes *)
+  method can_view_oldversions ~sp wb =
+    Wiki_sql.wikibox_wiki wb >>= fun w ->
+    aux_group wiki_wikiboxes_oldversion_viewers sp w
 
+  method can_view_history = self#can_view_oldversions
+
+  method can_view_oldversions_src ~sp wb =
+    self#can_view_oldversions ~sp wb >>= function
+      | false -> Lwt.return false
+      | true -> self#can_view_src ~sp wb
+
+  method can_view_src ~sp wb =
+    Wiki_sql.wikibox_wiki wb >>= fun w ->
+    aux_group wiki_wikiboxes_src_viewers sp w
 
 end
 
@@ -258,10 +279,12 @@ let helpers_wiki_permissions =
                   (h_wiki_css_creators.grp_eliom_params **
                      (h_wiki_wikiboxes_deletors.grp_eliom_params **
                         (h_wiki_wikiboxes_grps.awr_eliom_params **
-                         h_wiki_files_readers.grp_eliom_params)))))))
+                           (h_wiki_files_readers.grp_eliom_params **
+                              (h_wiki_wikiboxes_src_viewers.grp_eliom_params **
+                               h_wiki_wikiboxes_oldversion_viewers.grp_eliom_params)))))))))
 
   and f_save (rights : Wiki_types.wiki_rights) sp
-      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, wfr)))))))) =
+      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, (wfr, (wsrc, wold)))))))))) =
     rights#can_admin_wiki sp wiki >>= function
       | true ->
           h_wiki_admins.grp_save wiki adm >>= fun () ->
@@ -271,7 +294,11 @@ let helpers_wiki_permissions =
           h_wiki_css_creators.grp_save wiki csscre >>= fun () ->
           h_wiki_wikiboxes_deletors.grp_save wiki wbdel >>= fun () ->
           h_wiki_files_readers.grp_save wiki wfr >>= fun () ->
-          h_wiki_wikiboxes_grps.awr_save wiki wbgrps
+          h_wiki_wikiboxes_grps.awr_save wiki wbgrps >>= fun () ->
+          h_wiki_wikiboxes_src_viewers.grp_save wiki wsrc >>= fun () ->
+          h_wiki_wikiboxes_oldversion_viewers.grp_save wiki wold >>= fun () ->
+          Lwt.return ()
+
       | false -> Lwt.fail Ocsimore_common.Permission_denied
   and form wiki =
     let aux h = h.grp_form_fun wiki in
@@ -283,15 +310,19 @@ let helpers_wiki_permissions =
     aux h_wiki_wikiboxes_deletors "Delete wikiboxes" >>= fun f6 ->
     h_wiki_wikiboxes_grps.awr_form_fun wiki >>= fun f7 ->
     aux h_wiki_files_readers "Read static files" >>= fun f8 ->
+    aux h_wiki_wikiboxes_src_viewers "View wikiboxes source" >>= fun f9 ->
+    aux h_wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" >>= fun f10 ->
 
     let msg = Ocamlduce.Utf8.make
       ("Permissions for wiki " ^ string_of_wiki wiki)
+    and msg2 = Ocamlduce.Utf8.make "(inherited permissions are not shown)"
     and msg_wikiboxes = Ocamlduce.Utf8.make "Global permissions for wikiboxes:"
     in
     Lwt.return (
-      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, n8)))))))) ->
+      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, (n8, (n9, n10)))))))))) ->
         {{ [
-             <p>[ !msg ]
+             <h2>msg
+             <p>[<em>msg2]
              <p>[ {: h_wiki_admins.grp_form_arg wiki narg :}
                   !{: f1 n1 :} <br>[]
                   !{: f2 n2 :} <br>[]
@@ -300,6 +331,8 @@ let helpers_wiki_permissions =
                   !{: f5 n5 :} <br>[]
                   !{: f6 n6 :} <br>[]
                   !{: f8 n8 :} <br>[]
+                  !{: f9 n9 :} <br>[]
+                  !{: f10 n10 :} <br>[]
                   <b>msg_wikiboxes <br>[]
                   !{: f7 n7 :}]
              <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
