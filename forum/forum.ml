@@ -39,7 +39,7 @@ let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
 
 let message_creators_notmod : Wiki_types.wiki_arg parameterized_group =
-  Wiki.wiki_genwikiboxes_creators
+  Wiki.wiki_wikiboxes_creators
 
 let message_moderators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagemoderators" "Can moderate messages in the forum wiki"

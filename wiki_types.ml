@@ -84,8 +84,8 @@ object
   method can_create_wiki : unit rights_aux
 
   method can_admin_wiki :          wiki rights_aux
-  method can_set_wiki_permissions : wiki rights_aux
-  method can_create_genwikiboxes : wiki rights_aux
+  method can_set_wiki_permissions :wiki rights_aux
+  method can_create_wikiboxes :    wiki rights_aux
   method can_create_subwikiboxes : wiki rights_aux
   method can_create_wikicss :      wiki rights_aux
   method can_create_wikipages :    wiki rights_aux

@@ -101,7 +101,7 @@ let (wiki_css_creators, h_wiki_css_creators :
        wiki_arg parameterized_group * _) = aux_grp
   "WikiCssCreator" "Can create css for the wiki"
 
-let (wiki_genwikiboxes_creators, h_wiki_genwikiboxes_creators :
+let (wiki_wikiboxes_creators, h_wiki_wikiboxes_creators :
        wiki_arg parameterized_group * _) = aux_grp
   "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki"
 
@@ -177,13 +177,13 @@ let () = Lwt_unix.run (
   add_admin wiki_wikiboxes_oldversion_viewers >>= fun () ->
 
   User_sql.add_generic_inclusion
-    ~superset:wiki_genwikiboxes_creators ~subset:wiki_subwikiboxes_creators
+    ~superset:wiki_wikiboxes_creators ~subset:wiki_subwikiboxes_creators
   >>= fun () ->
   User_sql.add_generic_inclusion
-    ~superset:wiki_genwikiboxes_creators ~subset:wiki_wikipages_creators
+    ~superset:wiki_wikiboxes_creators ~subset:wiki_wikipages_creators
   >>= fun () ->
   User_sql.add_generic_inclusion
-    ~superset:wiki_genwikiboxes_creators ~subset:wiki_css_creators
+    ~superset:wiki_wikiboxes_creators ~subset:wiki_css_creators
 )
 
 
@@ -220,7 +220,7 @@ object (self)
 
   method can_create_wikipages = aux_group wiki_wikipages_creators
   method can_create_subwikiboxes = aux_group wiki_subwikiboxes_creators
-  method can_create_genwikiboxes = aux_group wiki_genwikiboxes_creators
+  method can_create_wikiboxes = aux_group wiki_wikiboxes_creators
   method can_delete_wikiboxes = aux_group wiki_wikiboxes_deletors
 
   method can_create_wikicss = aux_group wiki_css_creators
@@ -275,7 +275,7 @@ let helpers_wiki_permissions =
       (h_wiki_admins.grp_eliom_params **
          (h_subwikiboxes_creators.grp_eliom_params **
             (h_wiki_wikipages_creators.grp_eliom_params **
-               (h_wiki_genwikiboxes_creators.grp_eliom_params **
+               (h_wiki_wikiboxes_creators.grp_eliom_params **
                   (h_wiki_css_creators.grp_eliom_params **
                      (h_wiki_wikiboxes_deletors.grp_eliom_params **
                         (h_wiki_wikiboxes_grps.awr_eliom_params **
@@ -290,7 +290,7 @@ let helpers_wiki_permissions =
           h_wiki_admins.grp_save wiki adm >>= fun () ->
           h_subwikiboxes_creators.grp_save wiki subwbcre >>= fun () ->
           h_wiki_wikipages_creators.grp_save wiki wpcre >>= fun () ->
-          h_wiki_genwikiboxes_creators.grp_save wiki wbcre >>= fun () ->
+          h_wiki_wikiboxes_creators.grp_save wiki wbcre >>= fun () ->
           h_wiki_css_creators.grp_save wiki csscre >>= fun () ->
           h_wiki_wikiboxes_deletors.grp_save wiki wbdel >>= fun () ->
           h_wiki_files_readers.grp_save wiki wfr >>= fun () ->
@@ -305,7 +305,7 @@ let helpers_wiki_permissions =
     aux h_wiki_admins "Administer the wiki" >>= fun f1 ->
     aux h_subwikiboxes_creators "Create subwikiboxes" >>= fun f2 ->
     aux h_wiki_wikipages_creators "Create wikipages" >>= fun f3 ->
-    aux h_wiki_genwikiboxes_creators "Create wikiboxes" >>= fun f4 ->
+    aux h_wiki_wikiboxes_creators "Create wikiboxes" >>= fun f4 ->
     aux h_wiki_css_creators "Create CSS" >>= fun f5 ->
     aux h_wiki_wikiboxes_deletors "Delete wikiboxes" >>= fun f6 ->
     h_wiki_wikiboxes_grps.awr_form_fun wiki >>= fun f7 ->

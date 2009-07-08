@@ -38,9 +38,8 @@ type 'a rights_sp =
   'a
 
 
-let new_wikitextbox ?db
-    ~rights ~sp ~content_type ~wiki ~author ~comment ~content () =
-  rights#can_create_genwikiboxes ~sp wiki
+let new_wikitextbox ?db ~rights ~sp ~content_type ~wiki ~author ~comment ~content () =
+  rights#can_create_wikiboxes ~sp wiki
   >>= function
     | true -> Wiki_sql.new_wikibox ?db ~wiki ~author ~comment ~content
         ~content_type ()
