@@ -31,11 +31,13 @@ let ($) = User_sql.Types.apply_parameterized_group
 
 (** {2 Database access with verification of permissions} *)
 
-let new_forum ~sp ~title ~descr ?arborescent ~messages_wiki ~comments_wiki () =
+let new_forum
+    ~sp ~title ~descr ?arborescent ~title_syntax
+    ~messages_wiki ~comments_wiki () =
   User.in_group ~sp ~group:forum_creators () >>= fun b ->
   if b
   then Forum_sql.new_forum
-    ~title ~descr ?arborescent ~messages_wiki ~comments_wiki ()
+    ~title ~descr ?arborescent ~title_syntax ~messages_wiki ~comments_wiki ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let new_message ~sp ~forum ~creator_id ?subject ?parent_id ?sticky ~text () = 
@@ -71,8 +73,9 @@ let new_message ~sp ~forum ~creator_id ?subject ?parent_id ?sticky ~text () =
       ) >>= fun (ok, wiki) ->
       if ok
       then
+        let title_syntax = f.f_title_syntax in
         Forum_sql.new_message ~sp ~forum ~wiki ~creator_id
-          ?subject ?parent_id ~moderated ?sticky ~text
+          ?subject ?parent_id ~moderated ~title_syntax ?sticky ~text
       else Lwt.fail Ocsimore_common.Permission_denied
     end
     else Lwt.fail Ocsimore_common.Permission_denied

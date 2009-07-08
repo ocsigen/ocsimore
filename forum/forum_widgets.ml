@@ -136,16 +136,18 @@ object (self)
     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
     let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
     Wiki.default_bi ~sp ~wikibox:m.m_wikibox ~rights >>= fun bi ->
+    (match m.m_subject with
+       | None -> Lwt.return {{ [] }}
+       | Some s ->
+           wiki_widgets#display_interactive_wikibox ~bi s >>= fun r ->
+           Lwt.return {{ [ r ] }})
+    >>= fun wikiboxsubject ->
     wiki_widgets#display_interactive_wikibox ~bi m.m_wikibox >>= fun wikibox ->
     Lwt.return
       (classes,
        {{ [
           !admin_line
-          !{: match m.m_subject with
-              | None -> {{ [] }} 
-              | Some s -> 
-                  let s = Ocamlduce.Utf8.make s in 
-                  {{ [<h1>{: s :}] }} :}
+          !wikiboxsubject
           <span class={: info_class :}>
             {: Ocamlduce.Utf8.make
                  (Format.sprintf "posted by %s %s" 

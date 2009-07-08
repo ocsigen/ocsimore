@@ -135,7 +135,8 @@ let () = Lwt_unix.run (
 
 
 (** {2 } *)
-let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
+let really_create_forum
+    ~wiki_model ~title_syntax ~title ~descr ~arborescent () =
   Wiki.create_wiki
     ~title:(title^" (messages)")
     ~descr:(descr^" (messages)")
@@ -151,7 +152,8 @@ let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
     ~model:wiki_model
     () >>= fun cw ->
   Forum_sql.new_forum
-    ~title ~descr ~arborescent ~messages_wiki:mw ~comments_wiki:cw ()
+    ~title ~descr ~arborescent ~title_syntax
+    ~messages_wiki:mw ~comments_wiki:cw ()
   >>= fun id ->
 
 
@@ -198,6 +200,7 @@ let really_create_forum ~wiki_model ~title ~descr ~arborescent () =
 
 let create_forum
     ~wiki_model
+    ~title_syntax
     ~title
     ~descr
     ?(arborescent=true)
@@ -206,13 +209,15 @@ let create_forum
     (fun () -> Forum_sql.get_forum ~title ())
     (function
        | Not_found ->
-           really_create_forum ~wiki_model ~title ~descr ~arborescent () 
+           really_create_forum
+             ~wiki_model ~title ~descr ~arborescent ~title_syntax () 
            >>= fun (id, mw, cw) -> 
            Lwt.return { f_id = id; 
                         f_title = title; 
                         f_descr = descr;
                         f_arborescent = arborescent;
                         f_deleted = false;
+                        f_title_syntax = title_syntax;
                         f_messages_wiki = mw;
                         f_comments_wiki = cw;
                       }
@@ -387,3 +392,52 @@ let eliom_message_input ?a ~input_type ?name ?value () =
   Eliom_duce.Xhtml.user_type_input string_of_message ?a ~input_type ?name ?value ()
 let eliom_message_button ?a ~name ~value v =
   Eliom_duce.Xhtml.user_type_button string_of_message ?a ~name ~value v
+
+
+(** {2 Right model for forum's wikis} *)
+
+class wiki_rights : Wiki_types.wiki_rights =
+object (self)
+
+  inherit Wiki.wiki_rights
+
+(*
+  method can_create_wiki ~sp () =
+    User.in_group ~sp ~group:wikis_creator ()
+
+  method can_admin_wiki = aux_group wiki_admins
+
+  method can_admin_wikibox = can_adm_wb
+  method can_write_wikibox = can_wr_wb
+  method can_read_wikibox = can_re_wb
+
+  method can_view_static_files = aux_group wiki_files_readers
+
+  method can_create_wikipages = aux_group wiki_wikipages_creators
+  method can_create_subwikiboxes = aux_group wiki_subwikiboxes_creators
+  method can_create_genwikiboxes = aux_group wiki_genwikiboxes_creators
+  method can_delete_wikiboxes = aux_group wiki_wikiboxes_deletors
+
+  method can_create_wikicss = aux_group wiki_css_creators
+  method can_create_wikipagecss ~sp (wiki, _page : wikipage) =
+  (* XXX add a field to override by wikipage and use wikipage_css_creators *)
+  User.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
+
+  method can_set_wikibox_specific_permissions ~sp wb =
+    Wiki_sql.wikibox_wiki wb >>= fun wiki ->
+    Wiki_sql.get_wiki_info_by_id wiki
+    >>= fun { wiki_boxrights = boxrights } ->
+      if boxrights then
+        self#can_admin_wikibox ~sp wb
+      else
+        Lwt.return false
+
+(*VVV Les suivantes à réécrire (créer des groupes pour chaque) *)
+  method can_set_wiki_permissions = aux_group wiki_admins (* trop fort *)
+(* = can_admin ? *)
+  method can_view_history = can_wr_wb (* trop fort *)
+  method can_view_oldversions = can_wr_wb (* trop fort *)
+  method can_view_oldversions_src = can_wr_wb (* trop fort *)
+*)
+
+end

@@ -50,18 +50,19 @@ module Types : sig
     f_descr: string;
     f_arborescent: bool;
     f_deleted: bool;
+    f_title_syntax: Wiki_types.content_type;
     f_messages_wiki: Wiki_types.wiki;
     f_comments_wiki: Wiki_types.wiki;
   }
 
   type message_info = {
     m_id: message;
-    m_subject: string option;
     m_creator_id: User_sql.Types.userid;
     m_datetime: CalendarLib.Calendar.t;
     m_parent_id: message option;
     m_root_id: message;
     m_forum: forum;
+    m_subject: Wiki_types.wikibox option;
     m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
     m_sticky: bool;
@@ -83,7 +84,8 @@ open Types
 val new_forum : 
   title:string -> 
   descr:string -> 
-  ?arborescent:bool -> 
+  ?arborescent:bool ->
+  title_syntax:Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->
@@ -96,6 +98,7 @@ val new_message :
   forum:forum ->
   wiki:Wiki_types.wiki ->
   creator_id:userid ->
+  title_syntax:Wiki_types.content_type ->
   ?subject:string ->
   ?parent_id:message ->
   ?moderated:bool ->

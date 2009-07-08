@@ -45,6 +45,7 @@ module Types = struct
     f_descr: string;
     f_arborescent: bool;
     f_deleted: bool;
+    f_title_syntax: Wiki_types.content_type;
     f_messages_wiki: Wiki_types.wiki;
     f_comments_wiki: Wiki_types.wiki;
   }
@@ -66,7 +67,7 @@ module Types = struct
   let string_of_message i = Int32.to_string (sql_of_message i)
   let message_of_string s = (Opaque.int32_t (Int32.of_string s) : message)
 
-  type raw_forum_info = (int32 * string * string * bool * bool* int32 * int32)
+  type raw_forum_info = (int32 * string * string * bool * bool * string * int32 * int32)
 
   let get_forum_info
       (id,
@@ -74,6 +75,7 @@ module Types = struct
        descr,
        arborescent,
        deleted,
+       title_syntax,
        messages_wiki,
        comments_wiki)
       = 
@@ -83,18 +85,19 @@ module Types = struct
         f_descr = descr;
         f_arborescent = arborescent;
         f_deleted = deleted;
+        f_title_syntax = Wiki_types.content_type_of_string title_syntax;
         f_messages_wiki = Wiki_types.wiki_of_sql messages_wiki;
         f_comments_wiki = Wiki_types.wiki_of_sql comments_wiki;
       }
 
   type message_info = {
     m_id: message;
-    m_subject: string option;
     m_creator_id: User_sql.Types.userid;
     m_datetime: CalendarLib.Calendar.t;
     m_parent_id: message option;
     m_root_id: message;
     m_forum: forum;
+    m_subject: Wiki_types.wikibox option;
     m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
     m_sticky: bool;
@@ -103,17 +106,17 @@ module Types = struct
   }
 
   type raw_message_info =
-      (int32 * string option * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 * bool * bool * int32 * int32)
+      (int32 * int32 * CalendarLib.Calendar.t * int32 option *
+         int32 * int32 * int32 option * int32 * bool * bool * int32 * int32)
 
   let get_message_info
       (id,
-       subject,
        creator_id,
        datetime,
        parent_id,
        root_id,
        forum_id,
+       subject,
        wikibox,
        moderated,
        sticky,
@@ -121,12 +124,14 @@ module Types = struct
        tree_max) =
     {
       m_id = message_of_sql id;
-      m_subject = subject;
       m_creator_id = User_sql.Types.userid_from_sql creator_id;
       m_datetime = datetime;
       m_parent_id = message_of_sql_option parent_id;
       m_root_id = message_of_sql root_id;
       m_forum = forum_of_sql forum_id;
+      m_subject = (match subject with
+                     | None -> None 
+                     | Some s -> Some (Wiki_types.wikibox_of_sql s));
       m_wikibox = Wiki_types.wikibox_of_sql wikibox;
       m_moderated = moderated;
       m_sticky = sticky;
@@ -139,19 +144,22 @@ end
 open Types
 
 let new_forum
-    ~title ~descr ?(arborescent = true) ~messages_wiki ~comments_wiki () =
+    ~title ~descr ?(arborescent = true) ~title_syntax
+    ~messages_wiki ~comments_wiki () =
   let messages_wiki = Wiki_types.sql_of_wiki messages_wiki in
   let comments_wiki = Wiki_types.sql_of_wiki comments_wiki in
+  let title_syntax = Wiki_types.string_of_content_type title_syntax in
   Sql.full_transaction_block
     (fun db ->
        PGSQL(db) 
-         "INSERT INTO forums (title, descr, arborescent, messages_wiki, comments_wiki) \
-          VALUES ($title, $descr, $arborescent, $messages_wiki, $comments_wiki)" >>= fun () -> 
+         "INSERT INTO forums 
+            (title, descr, arborescent, title_syntax, messages_wiki, comments_wiki)
+          VALUES ($title, $descr, $arborescent, $title_syntax, $messages_wiki, $comments_wiki)" >>= fun () -> 
        serial4 db "forums_id_seq" >>= fun s ->
        Lwt.return (forum_of_sql s)
     )
 
-let new_message ~sp ~forum ~wiki ~creator_id
+let new_message ~sp ~forum ~wiki ~creator_id ~title_syntax
     ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
   let creator_id' = sql_from_userid creator_id in
   let parent_id = sql_of_message_option parent_id in
@@ -163,9 +171,19 @@ let new_message ~sp ~forum ~wiki ~creator_id
   in
   Sql.full_transaction_block
     (fun db ->
-       Wiki_data.new_wikitextbox ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
+       Wiki_data.new_wikitextbox
+         ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
          ~content:text ~content_type () >>= fun wikibox ->
-         let wikibox = Wiki_types.sql_of_wikibox wikibox in
+       (match subject with
+          | None -> Lwt.return None
+          | Some subject ->
+              Wiki_data.new_wikitextbox
+                ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
+                ~content:subject ~content_type:title_syntax ()
+              >>= fun subject ->
+              Lwt.return (Some (Wiki_types.sql_of_wikibox subject)))
+       >>= fun subject ->
+       let wikibox = Wiki_types.sql_of_wikibox wikibox in
        (match parent_id with
          | None ->
              PGSQL(db) "SELECT NEXTVAL('forums_messages_id_seq')"
@@ -173,8 +191,8 @@ let new_message ~sp ~forum ~wiki ~creator_id
                | [Some next_id] ->
                    let next_id = Int64.to_int32 next_id in
              PGSQL(db) "INSERT INTO forums_messages \
-               (id, subject, creator_id, parent_id, root_id, forum_id, wikibox, \
-                moderated, sticky) \
+               (id, creator_id, parent_id, root_id, forum_id, \
+                subject, wikibox, moderated, sticky) \
              VALUES ($next_id, $?subject, $creator_id', $?parent_id, $next_id, 
                      $forum_id, $wikibox, $moderated, $sticky)"
                | _ -> Lwt.fail 
@@ -226,27 +244,27 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
     (fun db -> match (title, forum_id) with
      | (Some t, Some i) -> 
          PGSQL(db) "SELECT id, title, descr, arborescent, deleted, \
-                           messages_wiki, comments_wiki \
+                           title_syntax, messages_wiki, comments_wiki \
                 FROM forums \
                 WHERE title = $t AND id = $i"
      | (Some t, None) -> 
          PGSQL(db) "SELECT id, title, descr, arborescent, deleted, \
-                           messages_wiki, comments_wiki \
+                           title_syntax, messages_wiki, comments_wiki \
                 FROM forums \
                 WHERE title = $t"
      | (None, Some i) -> 
          PGSQL(db) "SELECT id, title, descr, arborescent, deleted, \
-                           messages_wiki, comments_wiki \
+                           title_syntax, messages_wiki, comments_wiki \
                 FROM forums \
                 WHERE id = $i"
      | (None, None) -> Lwt.fail (Invalid_argument "Forum_sql.find_forum"))
   >>= fun r -> 
   (match r with
-     | [(_id, _title, _descr, _arborescent, deleted, _mw, _cw) as a] -> 
+     | [(_id, _title, _descr, _arborescent, deleted, _ts, _mw, _cw) as a] -> 
          if not_deleted_only && deleted
          then Lwt.fail Not_found
          else Lwt.return (get_forum_info a)
-     | ((_id, _title, _descr, _arborescent, deleted, _mw, _cw) as a)::_ -> 
+     | ((_id, _title, _descr, _arborescent, deleted, _ts, _mw, _cw) as a)::_ -> 
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
          if not_deleted_only && deleted
          then Lwt.fail Not_found
@@ -260,13 +278,13 @@ let get_forums_list ?(not_deleted_only = true) () =
         then
           PGSQL(db) 
            "SELECT id, title, descr, arborescent, deleted, \
-                   messages_wiki, comments_wiki \
+                   title_syntax, messages_wiki, comments_wiki \
             FROM forums \
             WHERE deleted = false"
         else
           PGSQL(db) 
             "SELECT id, title, descr, arborescent, deleted, \
-                    messages_wiki, comments_wiki \
+                    title_syntax, messages_wiki, comments_wiki \
              FROM forums"))
 
 let get_message ~message_id () =
@@ -275,9 +293,9 @@ let get_message ~message_id () =
     (fun db ->
        (* tree_min and tree_max are here only for the interface to be 
           compatible with get_thread *)
-       PGSQL(db) "SELECT id, subject, creator_id, datetime, parent_id, 
-                         root_id, forum_id, wikibox, moderated, sticky,\
-                         tree_min, tree_max \
+       PGSQL(db) "SELECT id, creator_id, datetime, parent_id, 
+                         root_id, forum_id, subject, wikibox, \
+                         moderated, sticky, tree_min, tree_max \
                   FROM forums_messages \
                   WHERE forums_messages.id = $message_id")
   >>= function
@@ -296,9 +314,9 @@ let get_thread ~message_id () =
             | [] -> Lwt.fail Not_found
             | (min, max) :: _ -> 
                 PGSQL(db)
-                     "SELECT id, subject, creator_id, datetime, parent_id, \
-                           root_id, forum_id, wikibox, moderated, sticky,\
-                           tree_min, tree_max \
+                     "SELECT id, creator_id, datetime, parent_id, \
+                           root_id, forum_id, subject, wikibox, \
+                           moderated, sticky, tree_min, tree_max \
                       FROM forums_messages \
                       WHERE root_id= $message_id \
                       AND tree_min >= $min AND tree_max <= $max \

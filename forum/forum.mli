@@ -54,6 +54,7 @@ val forum_creators : user
     if it already exists. *)
 val create_forum : 
   wiki_model:Wiki_types.wiki_model ->
+  title_syntax:Wiki_types.content_type ->
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
@@ -136,3 +137,9 @@ val eliom_message_button :
   value:Forum_sql.Types.message ->
   {{ [ Xhtmltypes_duce.button_content* ] }} ->
   Xhtmltypes_duce.button
+
+
+(** {2 } *)
+
+class wiki_rights : Wiki_types.wiki_rights
+

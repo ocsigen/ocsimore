@@ -21,11 +21,18 @@
    @author Boris Yakobowski
 *)
 
+let wiki_rights = new Forum.wiki_rights
 
-let forum_wiki_model = Ocsisite.wikicreole_model (* pour l'instant *)
+let wikicreole_forum_model =
+  Wiki_models.register_wiki_model
+    ~name:"wikicreole_forum"
+    ~content_type:Wiki_syntax.wikicreole_content_type
+    ~rights:wiki_rights
+    ~widgets:Ocsisite.wikibox_widget
+
 
 let _ =
-  let wiki_widgets = Wiki_models.get_widgets forum_wiki_model in
+  let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model in
   let services = Forum_services.register_services () in
   let widget_err = new Widget.widget_with_error_box in
   let add_message_widget = new Forum_widgets.add_message_widget services in 

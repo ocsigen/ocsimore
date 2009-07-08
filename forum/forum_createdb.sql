@@ -4,6 +4,7 @@ CREATE TABLE forums (
     descr text DEFAULT ''::text NOT NULL,
     arborescent boolean DEFAULT true NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
+    title_syntax text NOT NULL,
     messages_wiki integer NOT NULL,
     comments_wiki integer NOT NULL
 );
@@ -13,6 +14,8 @@ COMMENT ON COLUMN forums.descr IS
   'Description of the forum. By default, used as the title of the forum pages';
 COMMENT ON COLUMN forums.arborescent IS
   'In non arborescent forums, it is not possible to comment comments';
+COMMENT ON COLUMN forums.title_syntax IS
+  'The syntax of message titles';
 COMMENT ON COLUMN forums.messages_wiki IS
   'Wiki containing the messages';
 COMMENT ON COLUMN forums.comments_wiki IS
@@ -22,12 +25,12 @@ ALTER TABLE public.forums OWNER TO ocsimore;
 
 CREATE TABLE forums_messages (
     id serial NOT NULL primary key,
-    subject text,
     creator_id integer NOT NULL REFERENCES users(id),
     datetime timestamp DEFAULT (now())::timestamp NOT NULL,
     parent_id int4 REFERENCES forums_messages(id),
     root_id integer NOT NULL REFERENCES forums_messages(id),
     forum_id integer NOT NULL REFERENCES forums(id),
+    subject integer,
     wikibox integer NOT NULL,
     moderated boolean DEFAULT false NOT NULL,
     sticky boolean DEFAULT false NOT NULL,

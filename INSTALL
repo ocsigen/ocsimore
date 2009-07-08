@@ -39,6 +39,7 @@ Then do:
 psql -U ocsimore -f createdb.sql ocsimore
 psql -U ocsimore -f user_createdb.sql ocsimore
 psql -U ocsimore -f wiki_createdb.sql ocsimore
+psql -U ocsimore -f forum/forum_createdb.sql ocsimore
 
 Finally, update the database by typing make check_db and following the
 instructions.

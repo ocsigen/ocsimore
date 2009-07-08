@@ -36,6 +36,7 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
+  title_syntax:Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->
