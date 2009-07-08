@@ -178,6 +178,8 @@ let eliom_css_args =
 
 (* Services *)
 
+let path_edit_wiki = [Ocsimore_lib.ocsimore_admin_dir;"edit_wiki"]
+
 let make_services () =
   let action_edit_css = Eliom_predefmod.Action.register_new_coservice'
     ~name:"css_edit"
@@ -413,6 +415,14 @@ let make_services () =
        Wiki_data.create_css ~rights ~sp ~wiki ~page
     )
 
+  and edit_wiki = Eliom_services.new_service
+    ~path:path_edit_wiki ~get_params:eliom_wiki_args ()
+
+  and view_wikis = Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_wikis"]
+    ~get_params:Eliom_parameters.unit ()
+
+
   in (
     action_edit_css,
     action_edit_wikibox,
@@ -430,5 +440,7 @@ let make_services () =
     action_send_wikibox_permissions,
     pagecss_service,
     action_create_page,
-    action_create_css
+    action_create_css,
+    edit_wiki,
+    view_wikis
   )

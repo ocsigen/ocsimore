@@ -165,7 +165,9 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     action_send_wikibox_permissions,
     pagecss_service,
     action_create_page,
-    action_create_css
+    action_create_css,
+    edit_wiki,
+    view_wikis
   ) : Wiki_widgets_interface.interactive_wikibox =
   (* = Wiki_services.make_services () in *)
 object (self)
@@ -943,5 +945,36 @@ object (self)
      in
      Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
      Lwt.return (r, code)
+
+
+   method display_all_wikis ~sp =
+     (* Lists of all wikis *)
+     let l = ref [] in
+     Wiki_sql.iter_wikis (fun w -> Lwt.return (l := w :: !l)) >>= fun () ->
+     let l = List.sort
+      (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l in
+
+     let line w =
+       let t = Ocamlduce.Utf8.make w.wiki_title
+       and d = Ocamlduce.Utf8.make w.wiki_descr
+       and edit = Eliom_duce.Xhtml.a ~service:edit_wiki ~sp
+                      {: "Edit" :} w.wiki_id
+       and page =
+         match Wiki_self_services.find_servpage w.wiki_id with
+           | None -> {{ [] }}
+           | Some service ->
+               {{ [ {: Eliom_duce.Xhtml.a ~service ~sp
+                       {: "View root wikipage" :} [] :} ] }}
+       in
+       {{ <tr>[<td>t <td>d <td>[edit] <td>page ] }}
+     in
+     let l = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
+                                {{ [ !s {: line arg:} ] }}) {{ [] }} l in
+     let page = {{ [ <h1>"Existing Ocsimore wikis"
+                     <table>[ <tr>[<th>"Wiki" <th>"Description" ]
+                              !l]
+                   ] }}
+     in
+     Ocsimore_page.html_page ~sp page
 
 end

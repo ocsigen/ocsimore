@@ -58,7 +58,28 @@ let error_box = new Wiki_widgets.wikibox_error_box
 let wiki_rights = new Wiki.wiki_rights
 
 (** We are at eliom registration time, we can create the services *)
-let wiki_services = Wiki_services.make_services ()
+let (
+    action_edit_css,
+    action_edit_wikibox,
+    action_delete_wikibox,
+    action_edit_wikibox_permissions,
+    action_edit_wiki_permissions,
+    action_wikibox_history,
+    action_css_history,
+    action_old_wikibox,
+    action_old_wikiboxcss,
+    action_src_wikibox,
+    action_send_wikiboxtext,
+    action_send_css,
+    action_send_wiki_permissions,
+    action_send_wikibox_permissions,
+    pagecss_service,
+    action_create_page,
+    action_create_css,
+    edit_wiki,
+    view_wikis
+  ) as wiki_services
+    = Wiki_services.make_services ()
 
 let wikibox_widget = new Wiki_widgets.dynamic_wikibox error_box wiki_services
 
@@ -95,6 +116,10 @@ let () =
        >>= fun css ->
        Ocsimore_page.html_page ~sp ~css {{ [ page ] }}
     )
+
+(** We register the service that lists all the wikis *)
+let () =  Eliom_duce.Xhtml.register view_wikis
+    (fun sp () () -> wikibox_widget#display_all_wikis sp)
 
 
 (** (We create the wiki containing the administration boxes *)
@@ -404,27 +429,32 @@ let edit_wiki =
     | Ocsimore_common.Permission_denied ->
         Some "You do not have sufficient permissions to edit wikis"
     | _ -> Some "An unknown error has occurred"
- in
-  let path = [Ocsimore_lib.ocsimore_admin_dir;"edit_wiki"] in
-  let edit_wiki = Eliom_services.new_service ~path
-      ~get_params:Wiki_services.eliom_wiki_args () in
+  in
   Eliom_duce.Xhtml.register edit_wiki
     (fun sp wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
-       edit_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
-         ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
-         ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
-         ~container:info.wiki_container
-         ~err_handler
-         (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, _v)))))) sp ->
-            Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-            let rights = Wiki_models.get_rights wiki_info.wiki_model in
-            Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights ~staticdir
-              ~container wiki
-            >>= fun () ->
-            let title = str "Wiki information sucessfully edited" in
-            Ocsimore_page.html_page ~sp {{ [<h1>title ] }}
-         ));
+       let rights = Wiki_models.get_rights info.wiki_model in
+       rights#can_admin_wiki sp wiki >>= function
+         | true ->
+             edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
+               ~service:create_wiki ~arg:() ~sp
+               ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
+               ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
+               ~container:info.wiki_container
+               ~err_handler
+               (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, _v)))))) sp ->
+                  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+                  let rights = Wiki_models.get_rights wiki_info.wiki_model in
+                  Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
+                    ~staticdir ~container wiki
+                  >>= fun () ->
+                  let title = str "Wiki information sucessfully edited" in
+                  Ocsimore_page.html_page ~sp {{ [<h1>title ] }}
+               )
+         | false ->
+             Ocsimore_page.html_page sp
+               {{ [ <h1>"Insufficient permissions"
+                    <p>"You do not have enough rights to edit this wiki" ] }} );
   edit_wiki
 
 
@@ -463,12 +493,13 @@ let () =
       and link_view_groups = link User_site.service_view_groups
         "View and edit groups or users"
       and link_create = link create_wiki "Create a new wiki"
+      and link_view_wikis = link view_wikis "View and edit wikis"
       in
       {{ [ <h2>"Users"
            <p>[ link_login <br>[] !link_create_user link_view_groups<br>[] ]
 
            <h2>"Wikis"
-           <p>[ link_create <br>[] ]
+           <p>[ link_create <br>[] link_view_wikis <br>[] ]
          ] }})
 
 

@@ -404,4 +404,11 @@ class type virtual interactive_wikibox =
       page:(string * string list) ->
       (Xhtmltypes_duce.html * int) Lwt.t
 
+
+    (** Display the list of all the wikis, as well as some links to edit
+        their properties *)
+    method display_all_wikis :
+      sp:Eliom_sessions.server_params ->
+      Xhtmltypes_duce.html Lwt.t
+
   end
