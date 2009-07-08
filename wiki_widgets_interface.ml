@@ -105,17 +105,22 @@ end
 
 (** Information available to display a box *)
 
+(* style of the menu for editable wikiboxes *)
+type menu_style = [ `Linear | `Pencil | `None ]
+
 type box_info = {
   bi_sp: Eliom_sessions.server_params;
-  bi_subbox: (wikibox option * Xhtmltypes_duce.flows) option
-    (* Text to paste inside an <<option>> extension. The wikibox
-       option is (if available) the wikibox which gave rise to this text *);
+  bi_subbox: menu_style -> (wikibox option * Xhtmltypes_duce.flows) option Lwt.t
+    (* Function generating the text to paste inside an <<option>> extension.
+       The wikibox option is (if available) the wikibox which gave rise to
+       this text *);
   bi_ancestors: Ancestors.ancestors (* pages which are currently being
                                        displayed. Using to detect loops *);
   bi_box : wikibox (* Wikibox which is being displayed *);
   bi_wiki : wiki (* wiki of the box displayed *);
   bi_page : string list option (* page at the origin of the display request *);
   bi_rights: Wiki_types.wiki_rights;
+  bi_menu_style : menu_style;
 }
 
 let add_ancestor_bi x bi =
@@ -395,6 +400,7 @@ class type virtual interactive_wikibox =
     method display_wikipage :
       sp:Eliom_sessions.server_params ->
       wiki:wiki ->
+      menu_style:menu_style ->
       page:(string * string list) ->
       (Xhtmltypes_duce.html * int) Lwt.t
 

@@ -785,7 +785,7 @@ let () =
               {{ { id={: a :} } }}
             with Not_found -> {{ {} }}
           in
-          match bi.Wiki_widgets_interface.bi_subbox with
+          bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >>= function
             | None -> Lwt.return {{ [ <div (classe ++ id) >
                                         [<strong>[<em>"<<content>>"]]] }}
             | Some (wb, subbox) ->

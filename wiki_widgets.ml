@@ -181,13 +181,15 @@ object (self)
   val css_history_class = "history"
   val oldwikibox_class = "oldversion"
   val srcwikibox_class = "src"
-  val box_button_class = "boxbutton"
   val box_title_class = "boxtitle"
   val preview_class = "preview"
   val css_class = "editcss"
 
 
   method private box_menu ~bi ?(special_box=RegularBox) ?active_item ?(title = "") html_id_wikibox wb =
+    match bi.bi_menu_style with
+      | `None -> Lwt.return {{ [] }}
+      | `Pencil | `Linear as menu_style ->
     let sp = bi.bi_sp
     and preapply = Eliom_services.preapply in
     let history = preapply action_wikibox_history wb
@@ -239,7 +241,7 @@ object (self)
                          in
                          Lwt.return (None, None,
                                      Some (create,
-                                           {{ "create wiki css" }}))
+                                           {{ "create wiki css" }}))
                   )
               | Some wbcss ->
                   bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
@@ -249,13 +251,13 @@ object (self)
                     ((if csshist
                       then
                         let history = preapply action_css_history (wb, wbcss) in
-                        Some (history, {{ "wiki css history" }})
+                        Some (history, {{ "wiki css history" }})
                       else None),
                      (if csswr
                       then 
                         let edit = 
                           preapply action_edit_css (wb, (wbcss, None)) in
-                        Some (edit, {{ "edit wiki css" }})
+                        Some (edit, {{ "edit wiki css" }})
                       else None),
                      None
                     )
@@ -270,7 +272,7 @@ object (self)
            bi.bi_rights#can_set_wiki_permissions sp w >>= function
              | true ->
                  let edit_p = preapply action_edit_wiki_permissions (wb, w) in
-                 Lwt.return (Some (edit_p, {{ "edit wiki permissions" }}))
+                 Lwt.return (Some (edit_p, {{ "edit wiki permissions" }}))
              | false -> Lwt.return None
     ) >>= fun edit_wiki_perms ->
     (* We choose the button to highlight, which is indicated by the
@@ -306,7 +308,7 @@ object (self)
     in
     let menuperm =
       if wbperm
-      then Some (edit_wikibox_perm, {{ "edit permissions" }})
+      then Some (edit_wikibox_perm, {{ "edit permissions" }})
       else None
     in
     let menuhist =
@@ -333,28 +335,34 @@ object (self)
       | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
       | _ ->
           Wiki.wiki_admin_page_link sp ["crayon.png"] >>= fun img ->
-          let menu = Eliom_duce_tools.menu ~sp ~classe:[box_button_class]
+          let menu = Eliom_duce_tools.menu ~sp ~classe:["wikiboxmenu"]
             (view, {{ "view"}}) l ?service in
           let menu = match menu with {{ <ul (attrs)>[ (li::_)* ] }} ->
             {{ <ul (attrs)>[!li <li>menudel] }} in
-          Lwt.return
-            {{ [ <div class="boxmenu">[
-                   <img class="boxmenu" src={: img :} alt="edit">[]
-                   <div class="boxmenucontent">[
-                     <p class={: box_title_class :}>title
-                     menu
-                     ]
-                 ]
-               ]  }}
+          match menu_style with
+            | `Pencil ->
+                Lwt.return
+                  {{ [ <div class="pencilmenucontainer">[
+                         <img class="pencilmenuimg" src={: img :} alt="edit">[]
+                           <div class="pencilmenu">[
+                             <div class="wikiboxmenutitle">title
+                             menu
+                           ]
+                       ]
+                     ]  }}
+            | `Linear ->
+                Lwt.return
+                  {{ [  <div class="wikiboxlinearmenu">[
+                          <div class="wikiboxmenutitle">title
+                            menu
+                        ]
+                     ]  }}
 
-  method display_menu_box
-    ~bi ~classes ?active_item ?special_box ?title ~wb content =
+  method display_menu_box ~bi ~classes ?active_item ?special_box ?title ~wb content =
     let id = Eliom_obrowser.fresh_id () in
-    self#box_menu ~bi ?special_box ?active_item ?title id wb >>= fun menu -> 
-    let classes = 
-      if menu = {{[]}} then classes else interactive_class::classes 
-    in
-    let classes = Ocsimore_lib.build_class_attr classes in
+    self#box_menu ~bi ?special_box ?active_item ?title id wb >>= fun menu ->
+    let classes = Ocsimore_lib.build_class_attr
+      (if menu = {{ [] }} then classes else interactive_class::classes) in
     Lwt.return
       {{ <div id={: id :} class={: classes :}>[
            !menu
@@ -712,12 +720,13 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   ?exn
-                  (Wiki_data.wikibox_content ~sp ~version ~rights:bi.bi_rights wb 
+                  (Wiki_data.wikibox_content ~sp ~version~rights:bi.bi_rights wb
                    >>= fun (syntax, _, _) ->
                    Lwt.return (syntax, (Some content, version)))
                   (fun (syntax, (content, version as cv)) ->
-                     self#display_wikiboxcontent
-                       ~classes:[] ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi)
+                     let bi' = { (Wiki_widgets_interface.add_ancestor_bi wb bi)
+                                 with bi_menu_style = `None } in
+                     self#display_wikiboxcontent ~classes:[] ~bi:bi'
                        (syntax, content, version)
                    >>= fun (_, pp) ->
                    self#display_basic_box ~classes:[preview_class] pp
@@ -836,17 +845,18 @@ object (self)
 
 (* Displaying of an entire page. We essentially render the page,
    and then include it inside its container *)
-   method display_wikipage ~sp ~wiki ~page:(page, page_list) =
+   method display_wikipage ~sp ~wiki ~menu_style ~page:(page, page_list) =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
-     Lwt.catch
+     let gen menu_style = Lwt.catch
        (fun () ->
           (* We render the wikibox for the page *)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
           Wiki.default_bi ~sp ~wikibox:box ~rights >>= fun bi ->
-          let bi = { bi with bi_page = Some page_list } in
+          let bi = { bi with bi_page = Some page_list;
+                             bi_menu_style = menu_style } in
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) box
           >>= fun (subbox, allowed) ->
@@ -893,35 +903,45 @@ object (self)
                  None)
           | e -> Lwt.fail e
        )
-       >>= fun (wbid, subbox, err_code, title) ->
-       Wiki_widgets_interface.set_page_displayable sp err_code;
+     in
+     gen menu_style
+     >>= fun (wbid, subbox, err_code, title) ->
+     Wiki_widgets_interface.set_page_displayable sp err_code;
 
-       (* We render the container, if it exists *)
-       (match wb_container with
-          | None -> Lwt.return subbox
+     (* We render the container, if it exists *)
+     (match wb_container with
+        | None -> Lwt.return subbox
 
-          | Some wb_container ->
-              Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
-              let bi = { bi with  bi_subbox = Some (wbid, subbox);
-                                  bi_page = Some page_list } in
-              self#display_interactive_wikibox ~bi
-                 ~classes:[Wiki_syntax.class_wikibox wb_container]
-                ~special_box:(WikiContainerBox wiki) wb_container
-              >>= fun b -> Lwt.return {{ [b] }}
+        | Some wb_container ->
+            Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
+            let fsubbox ms =
+              if ms = menu_style then
+                Lwt.return (Some (wbid, subbox))
+              else
+                gen ms >>= fun (wbid, subbox, _, _) ->
+                Lwt.return (Some (wbid, subbox))
+            in
+            let bi = { bi with  bi_subbox = fsubbox;
+                         bi_page = Some page_list;
+                         bi_menu_style = menu_style } in
+            self#display_interactive_wikibox ~bi
+              ~classes:[Wiki_syntax.class_wikibox wb_container]
+              ~special_box:(WikiContainerBox wiki) wb_container
+            >>= fun b -> Lwt.return {{ [b] }}
 
-       ) >>= fun pagecontent ->
+     ) >>= fun pagecontent ->
 
-       self#css_header ~sp ~page wiki >>= fun css ->
+     self#css_header ~sp ~page wiki >>= fun css ->
 
-       let title = (match title with
-                      | Some title -> title
-                      | None -> wiki_info.wiki_descr)
-       and code = match err_code with
-         | Wiki_widgets_interface.Page_displayable -> 200
-         | Wiki_widgets_interface.Page_404 -> 404
-         | Wiki_widgets_interface.Page_403 -> 403
-       in
-       Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
-       Lwt.return (r, code)
+     let title = (match title with
+                    | Some title -> title
+                    | None -> wiki_info.wiki_descr)
+     and code = match err_code with
+       | Wiki_widgets_interface.Page_displayable -> 200
+       | Wiki_widgets_interface.Page_404 -> 404
+       | Wiki_widgets_interface.Page_403 -> 403
+     in
+     Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
+     Lwt.return (r, code)
 
 end

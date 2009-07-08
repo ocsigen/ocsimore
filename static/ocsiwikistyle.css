@@ -1,12 +1,29 @@
-.wikibox{
+div.wikiboxlinearmenu {
+    overflow: auto;
+    font-size: 80%;
+    display:inline;
+    float: right;
+    background:white;
 }
 
+div.wikiboxlinearmenu ul.wikiboxmenu {
+    display: inline;
+}
+
+div.wikiboxlinearmenu ul.wikiboxmenu li {
+    display:inline;
+}
+
+
+div.wikiboxlinearmenu div.wikiboxmenutitle{
+    display:inline;
+}
+
+
+
+/* Used to position wikibox menus with pencils */
 div.interactive{
     position: relative;
-}
-
-div.interactive img.boxmenu {
-  display: none;
 }
 
 div.interactive:hover {
@@ -15,7 +32,11 @@ div.interactive:hover {
     margin: 0px;
 }
 
-div.interactive:hover>div.boxmenu>img.boxmenu {
+img.pencilmenuimg {
+  display: none;
+}
+
+div.interactive:hover>div.pencilmenucontainer>img.pencilmenuimg {
   display: block;
   position: absolute;
   top: 0px;
@@ -23,33 +44,31 @@ div.interactive:hover>div.boxmenu>img.boxmenu {
   z-index: 10;
 }
 
-div.boxmenu {
+div.pencilmenucontainer {
   overflow: visible;
 }
 
-div.boxmenu div.boxmenucontent {
+div.pencilmenucontainer div.pencilmenu {
   display: none;
   overflow: visible;
 }
 
-div.boxmenu:hover div.boxmenucontent {
+div.pencilmenucontainer:hover div.pencilmenu {
   border: 1px solid #7777ee;
   display: block;
   position: absolute;
-  top: 0px;
+  top: -10px;
   right: 0px;
   z-index: 20;
   background-color: white;
   overflow: visible;
 }
 
-div.editform,
-div.history{
-    background-color: white;
-    overflow: visible;
+div.pencilmenu ul.wikiboxmenu a {
+    display: block;
 }
 
-p.boxtitle{
+div.wikiboxmenutitle{
     text-align: left;
     margin: 0px;
     padding: 0px 0px 0px 4px;
@@ -58,14 +77,13 @@ p.boxtitle{
     background-color: white;
 }
 
-ul.boxbutton{
+ul.wikiboxmenu{
     list-style-type: none;
     margin: 0px;
     padding: 0px;
 }
 
-.boxbutton li{
-    display: block;
+ul.wikiboxmenu li{
     margin: 2px;
     padding: 0px;
     font-weight: bold;
@@ -73,23 +91,25 @@ ul.boxbutton{
     color: #999999;
 }
 
-.boxbutton li.eliomtools_current{
+ul.wikiboxmenu li.eliomtools_current{
     padding: 0px 6px;
+    color: white;
+    background-color: #DDD;
 }
 
-.boxbutton a{
+ul.wikiboxmenu a{
     color: #999999;
     background-color: #f1f1f1;
     padding: 0px 6px;
     text-decoration: none;
 }
 
-.boxbutton a:hover{
+ul.wikiboxmenu a:hover{
     background-color: #dddddd;
     text-decoration: none;
 }
 
-.boxbutton a:active{
+ul.wikiboxmenu a:active{
     background-color: #ffffff;
     text-decoration: none;
 }

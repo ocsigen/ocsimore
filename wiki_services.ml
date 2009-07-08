@@ -74,7 +74,7 @@ let set_wikibox_error ~sp v =
 
 
 
-let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
+let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ?(menu_style=`Linear) ~page () =
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
   (* if there is a static page, and should we send it ? *)
   Lwt.catch
@@ -91,7 +91,8 @@ let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
        | Eliom_common.Eliom_404 ->
            Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
            let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
-           widgets#display_wikipage ~sp ~wiki ~page >>= fun (html, code) ->
+           widgets#display_wikipage ~sp ~wiki ~menu_style ~page
+           >>= fun (html, code) ->
            Eliom_duce.Xhtml.send ~sp ~code html
        | e -> Lwt.fail e)
 
@@ -111,7 +112,7 @@ let register_wiki ~rights ?sp ~path ~wiki () =
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
          let page' = Ocsigen_lib.string_of_url_path ~encode:true path in
-         send_wikipage ~rights ~sp ~wiki ~page:(page', path)
+         send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
       )
   in
   Wiki_self_services.add_servpage wiki servpage;
@@ -125,7 +126,7 @@ let register_wiki ~rights ?sp ~path ~wiki () =
          let path =
            Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page) in
          let page' = Ocsigen_lib.string_of_url_path ~encode:true path in
-         send_wikipage ~rights ~sp ~wiki ~page:(page', path)
+         send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
       )
   in
   Wiki_self_services.add_naservpage wiki naservpage;

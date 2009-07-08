@@ -49,12 +49,14 @@ add_extension ~name:"wikibox" ~wiki_content:true
             Lwt.return {{ [ {: error_box#display_error_box
                                ~message:"Wiki error: loop of wikiboxes" () :} ] }}
           else
-            (match c with
-               | None -> Lwt.return None
-               | Some c ->
-                   Wiki_syntax.xml_of_wiki wp bi c
-                   >>= fun r -> Lwt.return (Some (Some bi.bi_box, r))
-            ) >>= fun subbox ->
+            let fsubbox menu_style =
+              match c with
+                | None -> Lwt.return None
+                | Some c ->
+                    Wiki_syntax.xml_of_wiki wp
+                      { bi with bi_menu_style = menu_style } c
+                    >>= fun r -> Lwt.return (Some (Some bi.bi_box, r))
+            in
             Wiki_sql.wikibox_wiki box >>= fun wiki ->
             Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
             let widget = Wiki_models.get_widgets wiki_info.wiki_model in
@@ -68,7 +70,7 @@ add_extension ~name:"wikibox" ~wiki_content:true
                         with Not_found -> Some [class_box])
               ~bi:{bi with
                      bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
-                     bi_subbox = subbox }
+                     bi_subbox = fsubbox }
               box
               >>= fun b ->
               Lwt.return {{ [ b ] }}

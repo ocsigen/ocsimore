@@ -411,9 +411,10 @@ let default_bi ~sp ~wikibox ~rights =
   Lwt.return {
     Wiki_widgets_interface.bi_sp = sp;
     bi_ancestors = Wiki_widgets_interface.Ancestors.no_ancestors;
-    bi_subbox = None;
+    bi_subbox = (fun _ -> Lwt.return None);
     bi_box = wikibox;
     bi_wiki = wiki;
     bi_rights = rights;
     bi_page = None;
+    bi_menu_style = `Linear;
   }
