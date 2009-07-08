@@ -50,9 +50,11 @@ val add_obrowser_header : Eliom_sessions.server_params -> unit
 
 (** Generic headers for an html page. The arguments [css] is added
     after the links resulting from the hooks added by the function
-    [add_html_header_hook] above. *)
+    [add_html_header_hook] above. The argument [body_classes] is
+    used for the classes of the [body] html element. *)
 val html_page :
   sp:Eliom_sessions.server_params ->
+  ?body_classes:string list ->
   ?css:Xhtmltypes_duce.links ->
   ?title:string ->
   Xhtmltypes_duce.blocks ->

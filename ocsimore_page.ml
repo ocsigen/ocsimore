@@ -95,9 +95,10 @@ let () =
        else {{ [] }}
     )
 
-let html_page ~sp ?(css={{ [] }}) ?(title="Ocsimore") content =
-  let title = Ocamlduce.Utf8.make title in
-  let links_hooks = headers sp
+let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
+  let title = Ocamlduce.Utf8.make title
+  and links_hooks = headers sp
+  and classes = Ocsimore_lib.build_class_attr body_classes
   in
   Lwt.return {{
       <html xmlns="http://www.w3.org/1999/xhtml">[
@@ -106,6 +107,6 @@ let html_page ~sp ?(css={{ [] }}) ?(title="Ocsimore") content =
           !links_hooks
           !css
         ]
-        <body>content
+        <body class={: classes :}>content
       ]
     }}
