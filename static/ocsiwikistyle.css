@@ -2,7 +2,6 @@ div.wikiboxlinearmenu {
     overflow: auto;
     font-size: 80%;
     display:inline;
-    background:white;
 }
 
 div.wikiboxlinearmenu ul.wikiboxmenu {
@@ -69,10 +68,9 @@ div.pencilmenu ul.wikiboxmenu a {
 
 div.wikiboxmenutitle{
     text-align: left;
-    margin: 0px;
-    padding: 0px 0px 0px 4px;
+    margin: 0px 0px 0px 2px;
+    padding: 0px 4px 0px 4px;
     font-size: 80%;
-    height: 2em;
     background-color: white;
 }
 
