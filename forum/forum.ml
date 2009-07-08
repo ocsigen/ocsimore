@@ -384,8 +384,14 @@ type forum_action_info =
 
 (** {2 Eliom related values} *)
 
-let eliom_forum = Eliom_parameters.user_type forum_of_string string_of_forum 
-let eliom_message = Eliom_parameters.user_type message_of_string string_of_message 
+let eliom_forum =
+  Eliom_parameters.user_type
+    ~of_string:forum_of_string ~to_string:string_of_forum 
+
+let eliom_message = 
+  Eliom_parameters.user_type
+    ~of_string:message_of_string ~to_string:string_of_message 
+
 let eliom_forum_input ?a ~input_type ?name ?value () = 
   Eliom_duce.Xhtml.user_type_input string_of_forum ?a ~input_type ?name ?value ()
 let eliom_message_input ?a ~input_type ?name ?value () = 
