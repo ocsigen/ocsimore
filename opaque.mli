@@ -69,6 +69,7 @@ val t_int32_list : 'a int32_t list -> int32 list
 
 
 val print_int32_t : 'a int32_t -> unit
+val int32_t_to_string : 'a int32_t -> string
 
 
 (** {6 Opaque [string]s } *)

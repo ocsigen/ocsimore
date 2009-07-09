@@ -957,6 +957,7 @@ object (self)
      let line w =
        let t = Ocamlduce.Utf8.make w.wiki_title
        and d = Ocamlduce.Utf8.make w.wiki_descr
+       and id = Opaque.int32_t_to_string w.wiki_id
        and edit = Eliom_duce.Xhtml.a ~service:edit_wiki ~sp
                       {: "Edit" :} w.wiki_id
        and page =
@@ -966,12 +967,12 @@ object (self)
                {{ [ {: Eliom_duce.Xhtml.a ~service ~sp
                        {: "View root wikipage" :} [] :} ] }}
        in
-       {{ <tr>[<td>t <td>d <td>[edit] <td>page ] }}
+       {{ <tr>[<td>{: id :} <td>t <td>d <td>[edit] <td>page ] }}
      in
      let l = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
                                 {{ [ !s {: line arg:} ] }}) {{ [] }} l in
      let page = {{ [ <h1>"Existing Ocsimore wikis"
-                     <table>[ <tr>[<th>"Wiki" <th>"Description" ]
+                     <table>[ <tr>[<th>"Id" <th>"Wiki" <th>"Description" ]
                               !l]
                    ] }}
      in

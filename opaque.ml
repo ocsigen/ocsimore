@@ -32,7 +32,7 @@ let t_int32_list = identity
 
 
 let print_int32_t i = print_string (Int32.to_string i)
-
+let int32_t_to_string = Int32.to_string
 
 type 'a string_t = string
 let string_t = identity
