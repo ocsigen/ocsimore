@@ -193,8 +193,8 @@ let new_message ~sp ~forum ~wiki ~creator_id ~title_syntax
              PGSQL(db) "INSERT INTO forums_messages \
                (id, creator_id, parent_id, root_id, forum_id, \
                 subject, wikibox, moderated, sticky) \
-             VALUES ($next_id, $?subject, $creator_id', $?parent_id, $next_id, 
-                     $forum_id, $wikibox, $moderated, $sticky)"
+             VALUES ($next_id, $creator_id', $?parent_id, $next_id, 
+                     $forum_id, $?subject, $wikibox, $moderated, $sticky)"
                | _ -> Lwt.fail 
                    (Failure
                       "Forum_sql.new_message: error in nextval(id) in table forums_messages"))

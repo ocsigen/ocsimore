@@ -411,4 +411,21 @@ class type virtual interactive_wikibox =
       sp:Eliom_sessions.server_params ->
       Xhtmltypes_duce.html Lwt.t
 
+    (** Display edit form *)
+    method draw_edit_form :
+      rows:int ->
+      cols:int ->
+      Wiki_types.wikibox ->
+      Xhtmltypes_duce.inlines ->
+      Xhtmltypes_duce.inlines ->
+      Int32.t ->
+      string ->
+      bool ->
+      [ `One of string ] Eliom_parameters.param_name *
+        (([ `One of Wiki_types.wikibox_arg Opaque.int32_t ]
+            Eliom_parameters.param_name * 
+            [ `One of int32 ] Eliom_parameters.param_name) *
+           [ `One of string ] Eliom_parameters.param_name) ->
+      Eliom_duce.Xhtml.form_content_elt_list
+
   end

@@ -23,6 +23,9 @@
 
 let wiki_rights = new Forum.wiki_rights
 
+let title_syntax = 
+  Wiki_syntax.wikicreole_inline_content_type (fun c -> {{ [ <h1>c ] }})
+
 let wikicreole_forum_model =
   Wiki_models.register_wiki_model
     ~name:"wikicreole_forum"
@@ -33,12 +36,15 @@ let wikicreole_forum_model =
 
 let _ =
   let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model in
+  let wiki_inline_widgets = 
+    new Wiki_widgets.inline_wikibox Ocsisite.error_box Ocsisite.wiki_services 
+  in
   let services = Forum_services.register_services () in
   let widget_err = new Widget.widget_with_error_box in
   let add_message_widget = new Forum_widgets.add_message_widget services in 
   let message_widget = 
     new Forum_widgets.message_widget 
-      widget_err wiki_widgets services 
+      widget_err wiki_widgets wiki_inline_widgets services 
   in 
   let thread_widget = 
     new Forum_widgets.thread_widget

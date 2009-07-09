@@ -32,7 +32,7 @@ open Opaque
     Shall we put also error_box? yes I think.
 *)
 
-exception Wiki_model_does_not_exist
+exception Wiki_model_does_not_exist of string
 
 type wiki_model =
     {wm_syntax : Wiki_types.content_type;
@@ -57,17 +57,17 @@ let register_wiki_model, get_rights, get_default_content_type, get_widgets =
       k),
    (fun k -> 
       try (H.find t k).wm_rights 
-      with Not_found -> raise Wiki_model_does_not_exist),
+      with Not_found -> raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
    (fun k -> 
       try (H.find t k).wm_syntax
-      with Not_found -> raise Wiki_model_does_not_exist),
+      with Not_found -> raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
    (fun k -> 
       try (H.find t k).wm_widgets
-      with Not_found -> raise Wiki_model_does_not_exist)
+      with Not_found -> raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k)))
   )
 
 (** Table of wiki syntaxes. *)
-exception Content_type_does_not_exist
+exception Content_type_does_not_exist of string
 
 type wiki_preparser = 
     Eliom_sessions.server_params * Wiki_types.wikibox -> string -> string Lwt.t
@@ -89,10 +89,10 @@ let register_wiki_parser, get_wiki_parser, get_wiki_preparser =
                                 H.add t k (a, b); k),
    (fun k -> 
       try snd (H.find t k)
-      with Not_found -> raise Content_type_does_not_exist),
+      with Not_found -> raise (Content_type_does_not_exist (Wiki_types.string_of_content_type k))),
    (fun k -> 
       try fst (H.find t k)
-      with Not_found -> raise Content_type_does_not_exist))
+      with Not_found -> raise (Content_type_does_not_exist (Wiki_types.string_of_content_type k))))
 
 
 let get_default_wiki_parser s = get_wiki_parser (get_default_content_type s)

@@ -53,7 +53,15 @@ val add_extension :
     Currently modified in Wiki_widgets and User_widgets *)
 val wikicreole_parser : wikicreole_parser
 
+(** the content type for wikicreole boxes: *)
 val wikicreole_content_type : Wiki_types.content_type
+
+(** the content type for wikicreole inline content.
+    The function is the container to put around the inline content.
+*)
+val wikicreole_inline_content_type : 
+  (Xhtmltypes_duce.inlines -> Xhtmltypes_duce.flows) ->
+  Wiki_types.content_type
 
 (** Return a copy of a parser. The calls to [add_extension] on one of the
     copy will not be visible on the other *)

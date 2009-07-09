@@ -185,3 +185,6 @@ div.deletewidget {
     background-color: red;
 }
 
+input.wikitextarea {
+  width: 100%;
+}

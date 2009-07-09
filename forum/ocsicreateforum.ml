@@ -45,12 +45,11 @@ let forum_data =
 
 let forum_name_duce = Ocamlduce.Utf8.make forum_data.title
 
-
 let _ =
   Lwt_unix.run (
      Forum.create_forum
        ~wiki_model:Ocsisite.wikicreole_model
-       ~title_syntax:Wiki_syntax.wikicreole_content_type
+       ~title_syntax:Forum_site.title_syntax
        ~title:forum_data.title
        ~descr:forum_data.descr
        ~arborescent:forum_data.arborescent

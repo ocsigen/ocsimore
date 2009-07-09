@@ -655,8 +655,7 @@ let xml_of_wiki wp bi s =
   Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
        (builder_from_wikicreole_parser wp) s
   >>= fun l ->
-  Lwt_util.map_serial (fun x -> x) l
-  >>= fun r ->
+  Lwt_util.map_serial (fun x -> x) l >>= fun r ->
   Lwt.return {{ (map {: r :} with i -> i) }}
 
 let wikicreole_content_type = 
@@ -672,6 +671,14 @@ let inline_of_wiki builder bi s : Xhtmltypes_duce.inlines Lwt.t =
                        | {{ [ <p>l _* ] }} -> Lwt.return l
 (*VVV What can I do with trailing data? *)
                        | {{ _ }} -> Lwt.return {{ [ <b>"error" ] }})
+
+let wikicreole_inline_content_type container = 
+  Wiki_models.register_wiki_parser "wikicreole_inline"
+    (preparse_extension wikicreole_parser)
+    (fun bi s -> 
+       inline_of_wiki wikicreole_parser bi s >>= fun r ->
+       Lwt.return (container r)
+    )
 
 let a_content_of_wiki builder bi s =
   inline_of_wiki builder bi s >>= fun r ->

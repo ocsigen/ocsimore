@@ -29,7 +29,7 @@
     Shall we put also error_box? yes I think.
 *)
 
-exception Wiki_model_does_not_exist
+exception Wiki_model_does_not_exist of string
 
 val register_wiki_model :
   name:string ->
@@ -42,7 +42,7 @@ val get_default_content_type : Wiki_types.wiki_model -> Wiki_types.content_type
 val get_widgets : Wiki_types.wiki_model -> Wiki_widgets_interface.interactive_wikibox
 
 (** Table of wiki syntaxes. *)
-exception Content_type_does_not_exist
+exception Content_type_does_not_exist of string
 
 type wiki_preparser = 
     Eliom_sessions.server_params * Wiki_types.wikibox -> string -> string Lwt.t

@@ -77,6 +77,7 @@ end
 class message_widget
   (widget_with_error_box : Widget.widget_with_error_box) 
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
+  (wiki_inline_widgets : Wiki_widgets_interface.interactive_wikibox)
   (add_message_service, moderate_message_service) =
 object (self)
 
@@ -139,7 +140,10 @@ object (self)
     (match m.m_subject with
        | None -> Lwt.return {{ [] }}
        | Some s ->
-           wiki_widgets#display_interactive_wikibox ~bi s >>= fun r ->
+           Wiki.default_bi ~sp ~wikibox:s ~rights >>= fun bi ->
+           let bi = { bi with Wiki_widgets_interface.bi_menu_style = `Pencil } 
+           in
+           wiki_inline_widgets#display_interactive_wikibox ~bi s >>= fun r ->
            Lwt.return {{ [ r ] }})
     >>= fun wikiboxsubject ->
     wiki_widgets#display_interactive_wikibox ~bi m.m_wikibox >>= fun wikibox ->

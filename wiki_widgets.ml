@@ -175,7 +175,7 @@ object (self)
   inherit frozen_wikibox error_box
 
   val wikibox_class = "wikibox"
-  val interactive_class = "interactive" (* means with menu *)
+  val interactive_class = "interactive" (* means "with menu" *)
 
   val view_class = "view"
   val editform_class = "editform"
@@ -188,7 +188,9 @@ object (self)
   val css_class = "editcss"
 
 
-  method private box_menu ~bi ?(special_box=RegularBox) ?active_item ?(title = "") html_id_wikibox wb =
+  method private box_menu
+    ~bi ?(special_box=RegularBox) ?active_item ?(title = "") 
+    html_id_wikibox wb =
     match bi.bi_menu_style with
       | `None -> Lwt.return {{ [] }}
       | `Pencil | `Linear as menu_style ->
@@ -370,6 +372,27 @@ object (self)
            !menu
            <div>content ]}}
 
+  method draw_edit_form ~rows ~cols wb warning1 warning2 curversion content
+    previewonly
+    (actionname, ((wbname, versionname), contentname)) =
+    {{ [ <p>[!warning1
+               {: Ocsimore_common.input_opaque_int32 ~value:wb wbname :}
+               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                  ~name:versionname ~value:curversion () :}
+               {: Eliom_duce.Xhtml.textarea
+                  ~a:{{ { class="wikitextarea" } }}
+                  ~name:contentname ~rows ~cols
+                  ~value:(Ocamlduce.Utf8.make content) () :}
+               <br>[]
+               !warning2
+               {: Eliom_duce.Xhtml.string_button
+                  ~name:actionname ~value:"preview" {{ "Preview" }} :}
+               !{: if previewonly then []
+                   else
+                     [Eliom_duce.Xhtml.string_button ~name:actionname
+                        ~value:"save" {{ "Save" }} ] :}
+              ]] }}
+
 
   (* Wikitext in editing mode *)
   method display_wikitext_edit_form
@@ -397,27 +420,12 @@ object (self)
 
        | None -> Lwt.return (version, {{ [] }}, {{ [] }})
     ) >>= fun (curversion, warning1, warning2)  ->
-    let draw_form (actionname,((wbname, versionname),contentname)) =
-      {{ [ <p>[!warning1
-               {: Ocsimore_common.input_opaque_int32 ~value:wb wbname :}
-               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
-                  ~name:versionname ~value:curversion () :}
-               {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
-                  ~value:(Ocamlduce.Utf8.make content) () :}
-               <br>[]
-               !warning2
-               {: Eliom_duce.Xhtml.string_button
-                  ~name:actionname ~value:"preview" {{ "Preview" }} :}
-               !{: if previewonly then []
-                   else
-                     [Eliom_duce.Xhtml.string_button ~name:actionname
-                        ~value:"save" {{ "Save" }} ] :}
-              ]] }}
-    in
     Lwt.return
       (classes,
        Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-         ~service:action_send_wikiboxtext ~sp draw_form ())
+         ~service:action_send_wikiboxtext ~sp 
+         (self#draw_edit_form ~rows ~cols wb warning1 warning2 curversion
+            content previewonly) ())
 
   (* Wikitext in editing mode, with an help box on the syntax of the wiki *)
   method display_wikitext_edit_form_help ~bi ~classes ?rows ?cols ~previewonly ~wb data=
@@ -631,7 +639,8 @@ object (self)
     Lwt.return (classes, {{ map {: l :} with i -> i }})
 
 
-  method display_interactive_wikibox_aux ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+  method display_interactive_wikibox_aux
+    ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
     let classes = wikibox_class::classes in
     let sp = bi.bi_sp in
     let override = Wiki_services.get_override_wikibox ~sp in
@@ -653,7 +662,8 @@ object (self)
           >>= fun r ->
           Lwt.return (r, true)
 
-  method display_overriden_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
+  method display_overriden_interactive_wikibox
+    ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
     let sp = bi.bi_sp in
     let display_error () = 
       Lwt.return (error_box#display_error_box
@@ -813,7 +823,8 @@ object (self)
             | false -> display_error ())
 
 
-   method display_interactive_wikibox ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+   method display_interactive_wikibox
+     ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
      add_wiki_css_header bi.bi_sp;
      self#display_interactive_wikibox_aux
        ~bi ?rows ?cols ~classes ?special_box wb
@@ -977,5 +988,42 @@ object (self)
                    ] }}
      in
      Ocsimore_page.html_page ~sp page
+
+end
+
+class inline_wikibox (error_box : Widget.widget_with_error_box) services
+  : Wiki_widgets_interface.interactive_wikibox =
+object (self)
+
+  inherit dynamic_wikibox error_box services
+
+  method draw_edit_form ~rows:_ ~cols:_ wb warning1 warning2 curversion content
+    previewonly
+    (actionname, ((wbname, versionname), contentname)) =
+    {{ [ <p>[!warning1
+               {: Ocsimore_common.input_opaque_int32 ~value:wb wbname :}
+               {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                  ~name:versionname ~value:curversion () :}
+               {: Eliom_duce.Xhtml.string_input
+                    ~a:{{ { class="wikitextarea" } }}
+                    ~input_type:{: "text" :} ~name:contentname
+                    ~value:content () :}
+               <br>[]
+               !warning2
+               {: Eliom_duce.Xhtml.string_button
+                  ~name:actionname ~value:"preview" {{ "Preview" }} :}
+               !{: if previewonly then []
+                   else
+                     [Eliom_duce.Xhtml.string_button ~name:actionname
+                        ~value:"save" {{ "Save" }} ] :}
+              ]] }}
+
+
+  method display_wikitext_edit_form_help ~bi ~classes ?rows ?cols ~previewonly ~wb data=
+    self#display_wikitext_edit_form ~bi ~classes:[] ?rows ?cols
+      ~previewonly ~wb data
+    >>= fun (_, f) ->
+    Lwt.return (classes, {{ [ f ] }})
+
 
 end
