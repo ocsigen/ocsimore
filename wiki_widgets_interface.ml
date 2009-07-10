@@ -394,9 +394,29 @@ class type virtual interactive_wikibox =
       {{ [ Xhtmltypes_duce.link* ] }} Lwt.t
 
 
-    (** Displaying of the content of an entire wikipage. For technical
-        reasons, we send both the string list and the string corresponding
-        to the page. *)
+   (** Adds the container of the wiki around some content. The content
+       is given by the function [gen_box], which takes as argument
+       the default style of the menus for the wikiboxes, and returns
+       the html code for the content, an option indicating whether
+       the content originates from a wikibox (and which one), an html
+       error code, and the title for the whole page. The page argument
+       is the url of the page wrt. the root of the wiki. For technical
+       reasons it must be specified as a string, and as the original
+       path (ie. string list). The function returns the entire
+       html page, and the http error code returned by [gen_box]. *)
+    method display_container:
+      sp:Eliom_sessions.server_params ->
+      wiki:wiki ->
+      menu_style:menu_style ->
+      page:(string * string list) ->
+      gen_box:(menu_style ->
+                 (wikibox option * Xhtmltypes_duce.flows *
+                  page_displayable * string option) Lwt.t) ->
+      (Xhtmltypes_duce.html * int) Lwt.t
+
+    (** Displaying of the content of an entire wikipage, ie. both
+        the container (as per [display_container]) and the content
+        of the wikibox that corresponds to the wikipage. *)
     method display_wikipage :
       sp:Eliom_sessions.server_params ->
       wiki:wiki ->
@@ -405,7 +425,7 @@ class type virtual interactive_wikibox =
       (Xhtmltypes_duce.html * int) Lwt.t
 
 
-    (** Display the list of all the wikis, as well as some links to edit
+    (** Display of the list of all the wikis, as well as of some links to edit
         their properties *)
     method display_all_wikis :
       sp:Eliom_sessions.server_params ->

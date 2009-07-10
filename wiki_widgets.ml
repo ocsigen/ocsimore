@@ -855,14 +855,59 @@ object (self)
                            (* encoding? *) :}
                     ]}}
 
-
-(* Displaying of an entire page. We essentially render the page,
-   and then include it inside its container *)
-   method display_wikipage ~sp ~wiki ~menu_style ~page:(page, page_list) =
+   method private display_container ~sp ~wiki ~menu_style ~page:(page, page_list) ~gen_box =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
-     let gen menu_style = Lwt.catch
+     gen_box menu_style
+     >>= fun (wbid, subbox, err_code, title) ->
+     Wiki_widgets_interface.set_page_displayable sp err_code;
+
+     (* We render the container, if it exists *)
+     (match wb_container with
+        | None -> Lwt.return {{ [ <div>subbox ] }}
+
+        | Some wb_container ->
+            Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
+            let fsubbox ms =
+              if ms = menu_style then
+                Lwt.return (Some (wbid, subbox))
+              else
+                gen_box ms >>= fun (wbid, subbox, _, _) ->
+                Lwt.return (Some (wbid, subbox))
+            in
+            let bi = { bi with  bi_subbox = fsubbox;
+                         bi_page = Some page_list;
+                         bi_menu_style = menu_style } in
+            self#display_interactive_wikibox ~bi
+              ~classes:[Wiki_syntax.class_wikibox wb_container]
+              ~special_box:(WikiContainerBox wiki) wb_container
+            >>= fun b -> Lwt.return {{ [b] }}
+
+     ) >>= fun pagecontent ->
+
+     self#css_header ~sp ~page wiki >>= fun css ->
+
+     let title = (match title with
+                    | Some title -> title
+                    | None -> wiki_info.wiki_descr)
+     and code = match err_code with
+       | Wiki_widgets_interface.Page_displayable -> 200
+       | Wiki_widgets_interface.Page_404 -> 404
+       | Wiki_widgets_interface.Page_403 -> 403
+     in
+     Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
+     Lwt.return (r, code)
+
+
+   (* Displays the wikibox corresponding to a wikipage. This function, properly
+      applied, is suitable for use with [display_container]. *)
+   method private display_wikipage_wikibox ~sp ~wiki ~page:(page, page_list) =
+     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     let rights = Wiki_models.get_rights wiki_info.wiki_model
+     and wb_container = wiki_info.wiki_container in
+     Lwt.return
+     (fun menu_style -> Lwt.catch
        (fun () ->
           (* We render the wikibox for the page *)
           Wiki_sql.get_wikipage_info wiki page
@@ -882,12 +927,15 @@ object (self)
        )
        (function
           | Not_found ->
-              (* No page. We create a default page, which will be
-                 inserted into the container *)
+              (* No wikibox. We create a default page, to insert into the
+                 container *)
               let draw_form (wbname, (wikiidname, pagename)) =
                 {{ [<p>[
                        {: Ocsimore_common.input_opaque_int32
                           ~value:wiki wikiidname :}
+                       (* Used to know where to display errors (only possible
+                          if there is a container, otherwise we don't know
+                          what to override *)
                        !{: match wb_container with
                            | None -> []
                            | Some container ->
@@ -916,46 +964,14 @@ object (self)
                  None)
           | e -> Lwt.fail e
        )
-     in
-     gen menu_style
-     >>= fun (wbid, subbox, err_code, title) ->
-     Wiki_widgets_interface.set_page_displayable sp err_code;
+     )
 
-     (* We render the container, if it exists *)
-     (match wb_container with
-        | None -> Lwt.return subbox
-
-        | Some wb_container ->
-            Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
-            let fsubbox ms =
-              if ms = menu_style then
-                Lwt.return (Some (wbid, subbox))
-              else
-                gen ms >>= fun (wbid, subbox, _, _) ->
-                Lwt.return (Some (wbid, subbox))
-            in
-            let bi = { bi with  bi_subbox = fsubbox;
-                         bi_page = Some page_list;
-                         bi_menu_style = menu_style } in
-            self#display_interactive_wikibox ~bi
-              ~classes:[Wiki_syntax.class_wikibox wb_container]
-              ~special_box:(WikiContainerBox wiki) wb_container
-            >>= fun b -> Lwt.return {{ [b] }}
-
-     ) >>= fun pagecontent ->
-
-     self#css_header ~sp ~page wiki >>= fun css ->
-
-     let title = (match title with
-                    | Some title -> title
-                    | None -> wiki_info.wiki_descr)
-     and code = match err_code with
-       | Wiki_widgets_interface.Page_displayable -> 200
-       | Wiki_widgets_interface.Page_404 -> 404
-       | Wiki_widgets_interface.Page_403 -> 403
-     in
-     Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
-     Lwt.return (r, code)
+   (* Displaying of an entire page. We just pass the proper rendering
+   function to [display_container] *)
+   method display_wikipage ~sp ~wiki ~menu_style ~page =
+     self#display_wikipage_wikibox ~sp ~wiki ~page
+     >>= fun gen_box ->
+     self#display_container ~sp ~wiki ~menu_style ~page ~gen_box
 
 
    method display_all_wikis ~sp =
