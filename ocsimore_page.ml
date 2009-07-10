@@ -107,6 +107,6 @@ let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content
           !links_hooks
           !css
         ]
-        <body class={: classes :}>content
+        <body id="body" class={: classes :}>content
       ]
     }}

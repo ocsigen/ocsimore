@@ -232,4 +232,15 @@ add_extension ~name:"img" ~wiki_content:true
                     ++ atts )>[] ] }})
   );
 
-
+add_extension ~name:"switchmenu" ~wiki_content:true
+  (fun _bi args _ ->
+     Wikicreole.A_content
+       (let id = Eliom_obrowser.fresh_id () in
+        let atts = Wiki_syntax.parse_common_attribs args in
+        Lwt.return
+          {{ [ <span>[<a ({id={: id :} class="shownmenus jslink btmenu"
+                 onclick={: "caml_run_from_table(main_vm, 778, "
+                          ^ Eliom_obrowser.jsmarshal id ^")" :} } ++ atts)
+                         >"Hide menus"] ]
+           }} )
+  );

@@ -1,3 +1,12 @@
+/**********************************************/
+/* Part of the css related to wikiboxes menus */
+
+.btmenu {
+    text-decoration: underline;
+}
+
+/* Menu in linear mode */
+
 div.wikiboxlinearmenu {
     overflow: auto;
     font-size: 80%;
@@ -18,16 +27,14 @@ div.wikiboxlinearmenu div.wikiboxmenutitle{
 }
 
 
+/* Menu with pencils */
 
-/* Used to position wikibox menus with pencils */
 div.interactive{
     position: relative;
 }
 
 div.interactive:hover {
     outline: 1px solid #eeeeee;
-    padding: 0px;
-    margin: 0px;
 }
 
 img.pencilmenuimg {
@@ -65,6 +72,20 @@ div.pencilmenucontainer:hover div.pencilmenu {
 div.pencilmenu ul.wikiboxmenu a {
     display: block;
 }
+
+
+/* When body does have class "nomenu", we hide all menu structures */
+
+body.nomenu div.wikiboxlinearmenu, body.nomenu div.pencilmenucontainer {
+    display:none;
+}
+
+body.nomenu div.interactive:hover {
+    outline: none;
+}
+
+
+/* Generic code, for both kinds of menus */
 
 div.wikiboxmenutitle{
     text-align: left;
@@ -110,6 +131,10 @@ ul.wikiboxmenu a:active{
     background-color: #ffffff;
     text-decoration: none;
 }
+
+
+/*************************/
+/** Remainder of the css */
 
 .jslink {
     cursor: pointer;
