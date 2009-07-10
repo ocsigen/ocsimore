@@ -39,7 +39,17 @@ TOINSTALL := files/META \
              _build/wikiperso.cmo \
              _build/announce/announce.cma \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
-             _build/forum/forum_site.cmo
+             _build/forum/forum_site.cmo \
+             _build/user_sql.cmi _build/opaque.cmi _build/wiki_types.cmi \
+             _build/forum/forum_sql.cmi _build/sql.cmi _build/forum/forum.cmi \
+             _build/user.cmi _build/forum/forum_data.cmi \
+             _build/ocsimore_lib.cmi _build/forum/forum_widgets.cmi \
+             _build/wiki_sql.cmi _build/wikicreole.cmi \
+             _build/wiki_widgets_interface.cmi _build/wiki_syntax.cmi \
+             _build/wiki_self_services.cmi \
+             _build/wiki.cmi _build/wiki_models.cmi _build/widget.cmi \
+             _build/ocsimore_common.cmi _build/ocsisite.cmi \
+             _build/ocsimore_page.cmi
 
 STATICFILES := static/vm.js static/eliom_obrowser.js \
 	static/ocsimore_client.uue static/ocsiwikistyle.css \
