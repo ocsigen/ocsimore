@@ -347,7 +347,7 @@ let helpers_wiki_permissions =
 
 (** A text suitable as the default text for a container page *)
 let default_container_page =
-  "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n\r\n<<content>>"
+  "= Ocsimore wikipage\r\n\r\n<<loginbox>>\r\n<<cond ingroup='users' |<<switchmenu>> >>\r\n\r\n<<content>>"
 
 
 (** An exception raised when we register two wikis at the same path.
