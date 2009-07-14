@@ -173,6 +173,6 @@ let () =
     );
 
   (* We register the syntax extensions *)
-  User_ext.register_user_extensions Wiki_syntax.wikicreole_parser user_widget
+  User_ext.register_user_extensions user_widget
 
 

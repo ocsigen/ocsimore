@@ -302,9 +302,9 @@ let link_kind addr =
         else Absolute addr
 
 
-type syntax_extension =
+type 'res syntax_extension =
     (Wiki_widgets_interface.box_info,
-     Xhtmltypes_duce.flows Lwt.t,
+     'res,
      Eliom_duce.Blocks.a_content_elt_list Lwt.t)
    Wikicreole.plugin
 
@@ -321,17 +321,17 @@ type 'a plugin_hash = (string, 'a) Hashtbl.t
    (defined below), which updates the field [plugin] of the builder.
    (This supposes that the builder is used to parse something. When
    used as a preparser, the field [plugin_assoc] is also overridden
-   using a proper function. See [preparse_extension] below.
+   using a proper function. See [preparse_extension] below. BY
 *)
-type wikicreole_parser = {
-  builder: (Xhtmltypes_duce.flows Lwt.t,
+type 'res wikicreole_parser = {
+  builder: ('res,
             Xhtmltypes_duce.inlines Lwt.t,
             {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
             box_info,
             Eliom_sessions.server_params)
     Wikicreole.builder;
 
-  plugin_assoc: (bool * syntax_extension) plugin_hash;
+  plugin_assoc: (bool * 'res syntax_extension) plugin_hash;
 
   plugin_action_assoc:
      ((Eliom_sessions.server_params * Wiki_types.wikibox,
@@ -340,19 +340,19 @@ type wikicreole_parser = {
     plugin_hash;
 }
 
+let plugin_function parser name =
+  try Hashtbl.find parser.plugin_assoc name
+  with Not_found ->
+    (false,
+     (fun _ _ _ ->
+        Wikicreole.A_content
+          (Lwt.return
+             {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
+                             !{: name :} ] ] ] }})))
+
 let builder_from_wikicreole_parser parser =
   { parser.builder with
-      Wikicreole.plugin =
-      (fun name ->
-         try Hashtbl.find parser.plugin_assoc name
-         with Not_found ->
-           (false,
-            (fun _ _ _ ->
-               Wikicreole.A_content
-                 (Lwt.return
-                    {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
-                                    !{: name :} ] ] ] }})))
-      );
+      Wikicreole.plugin = plugin_function parser      
   }
 
 let copy_parser wp = {
@@ -502,148 +502,362 @@ let make_href sp bi addr fragment =
         with Neturl.Malformed_URL -> 
           "malformed link"
 
-let default_builder =
-  { Wikicreole.chars = make_string;
-    strong_elem = (fun attribs a -> 
-                       let atts = parse_common_attribs attribs in
-                       element a >>= fun r ->
-                       Lwt.return {{ [<strong (atts)>r ] }});
-    em_elem = (fun attribs a -> 
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<em (atts)>r] }});
-    monospace_elem = (fun attribs a -> 
+(********************************)
+(* builders. Default functions: *)
+
+let strong_elem = (fun attribs a -> 
+                     let atts = parse_common_attribs attribs in
+                     element a >>= fun r ->
+                     Lwt.return {{ [<strong (atts)>r ] }})
+
+let em_elem = (fun attribs a -> 
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<em (atts)>r] }})
+
+let monospace_elem = (fun attribs a -> 
+                        let atts = parse_common_attribs attribs in
+                        element a >>= fun r ->
+                        Lwt.return {{ [<tt (atts)>r] }})
+
+let underlined_elem = (fun attribs a -> 
+                         let atts = parse_common_attribs attribs in
+                         element a >>= fun r ->
+                         Lwt.return {{ [<span ({class="underlined"} ++
+                                                   atts)>r] }})
+
+let linethrough_elem = (fun attribs a -> 
                           let atts = parse_common_attribs attribs in
                           element a >>= fun r ->
-                            Lwt.return {{ [<tt (atts)>r] }});
-    underlined_elem = (fun attribs a -> 
-                           let atts = parse_common_attribs attribs in
-                           element a >>= fun r ->
-                           Lwt.return {{ [<span ({class="underlined"} ++
-                                             atts)>r] }});
-    linethrough_elem = (fun attribs a -> 
-                           let atts = parse_common_attribs attribs in
-                           element a >>= fun r ->
-                           Lwt.return {{ [<span ({class="linethrough"} ++
-                                             atts)>r] }});
-    subscripted_elem = (fun attribs a -> 
+                          Lwt.return {{ [<span ({class="linethrough"} ++
+                                                    atts)>r] }})
+
+let subscripted_elem = (fun attribs a -> 
+                          let atts = parse_common_attribs attribs in
+                          element a >>= fun r ->
+                          Lwt.return {{ [<sub (atts)>r] }})
+
+let superscripted_elem = (fun attribs a -> 
                             let atts = parse_common_attribs attribs in
                             element a >>= fun r ->
-                              Lwt.return {{ [<sub (atts)>r] }});
-    superscripted_elem = (fun attribs a -> 
-                              let atts = parse_common_attribs attribs in
-                              element a >>= fun r ->
-                                Lwt.return {{ [<sup (atts)>r] }});
-    a_elem =
-      (fun attribs _sp addr 
-         (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
-           let atts = parse_common_attribs attribs in
-           Lwt_util.map_serial (fun x -> x) c >>= fun c ->
-           Lwt.return
-             {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }});
-    make_href = (fun a b c fragment -> make_href a b (link_kind c) fragment);
-    br_elem = (fun attribs -> 
-                   let atts = parse_common_attribs attribs in
-                   Lwt.return {{ [<br (atts)>[]] }});
-    img_elem =
-      (fun attribs addr alt -> 
-         let atts = parse_common_attribs attribs in
-         Lwt.return 
-           {{ [<img
-                  ({src={: Ocamlduce.Utf8.make addr :} 
-                    alt={: Ocamlduce.Utf8.make alt :}}
-                   ++
-                    atts)
-                  >[] ] }});
-    tt_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<tt (atts)>r ] }});
-    nbsp = Lwt.return {{" "}};
-    p_elem = (fun attribs a -> 
-                  let atts = parse_common_attribs attribs in
-                  element a >>= fun r ->
-                  Lwt.return {{ [<p (atts)>r] }});
-    pre_elem = (fun attribs a ->
+                            Lwt.return {{ [<sup (atts)>r] }})
+
+let a_elem =
+  (fun attribs _sp addr 
+     (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
        let atts = parse_common_attribs attribs in
+       Lwt_util.map_serial (fun x -> x) c >>= fun c ->
        Lwt.return
-         {{ [<pre (atts)>{:Ocamlduce.Utf8.make (String.concat "" a):}] }});
-    h1_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<h1 (atts)>r] }});
-    h2_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<h2 (atts)>r] }});
-    h3_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<h3 (atts)>r] }});
-    h4_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<h4 (atts)>r] }});
-    h5_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<h5 (atts)>r] }});
-    h6_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   element a >>= fun r ->
-                   Lwt.return {{ [<h6 (atts)>r] }});
-    ul_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   list_builder a >>= fun r ->
-                   Lwt.return {{ [<ul (atts)>r] }});
-    ol_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   list_builder a >>= fun r ->
-                   Lwt.return {{ [<ol (atts)>r] }});
-    dl_elem = (fun attribs a ->
-                   let atts = parse_common_attribs attribs in
-                   descr_builder a >>= fun r ->
-                   Lwt.return {{ [<dl (atts)>r] }});
-    hr_elem = (fun attribs -> 
-                   let atts = parse_common_attribs attribs in
-                   Lwt.return {{ [<hr (atts)>[]] }});
-    table_elem =
-      (fun attribs l ->
-         let atts = parse_table_attribs attribs in
-         match l with
-         | [] -> Lwt.return {{ [] }}
-         | row::rows ->
-             let f (h, attribs, c) =
-               let atts = parse_table_cell_attribs attribs in
-               element c >>= fun r ->
-               Lwt.return
+           {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }})
+
+let default_make_href = 
+  (fun a b c fragment -> make_href a b (link_kind c) fragment)
+
+let br_elem = (fun attribs -> 
+                 let atts = parse_common_attribs attribs in
+                 Lwt.return {{ [<br (atts)>[]] }})
+
+let img_elem =
+  (fun attribs addr alt -> 
+     let atts = parse_common_attribs attribs in
+     Lwt.return 
+       {{ [<img
+              ({src={: Ocamlduce.Utf8.make addr :} 
+                   alt={: Ocamlduce.Utf8.make alt :}}
+               ++
+                   atts)
+            >[] ] }})
+
+let tt_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<tt (atts)>r ] }})
+
+let nbsp = Lwt.return {{" "}}
+
+let p_elem = (fun attribs a -> 
+                let atts = parse_common_attribs attribs in
+                element a >>= fun r ->
+                Lwt.return {{ [<p (atts)>r] }})
+
+let pre_elem = (fun attribs a ->
+                  let atts = parse_common_attribs attribs in
+                  Lwt.return
+                    {{ [<pre (atts)>{:Ocamlduce.Utf8.make (String.concat "" a):}] }})
+
+let h1_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<h1 (atts)>r] }})
+
+let h2_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<h2 (atts)>r] }})
+
+let h3_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<h3 (atts)>r] }})
+
+let h4_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<h4 (atts)>r] }})
+
+let h5_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<h5 (atts)>r] }})
+
+let h6_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 element a >>= fun r ->
+                 Lwt.return {{ [<h6 (atts)>r] }})
+
+let ul_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 list_builder a >>= fun r ->
+                 Lwt.return {{ [<ul (atts)>r] }})
+
+let ol_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 list_builder a >>= fun r ->
+                 Lwt.return {{ [<ol (atts)>r] }})
+
+let dl_elem = (fun attribs a ->
+                 let atts = parse_common_attribs attribs in
+                 descr_builder a >>= fun r ->
+                 Lwt.return {{ [<dl (atts)>r] }})
+
+let hr_elem = (fun attribs -> 
+                 let atts = parse_common_attribs attribs in
+                 Lwt.return {{ [<hr (atts)>[]] }})
+
+let table_elem =
+  (fun attribs l ->
+     let atts = parse_table_attribs attribs in
+     match l with
+       | [] -> Lwt.return {{ [] }}
+       | row::rows ->
+           let f (h, attribs, c) =
+             let atts = parse_table_cell_attribs attribs in
+             element c >>= fun r ->
+             Lwt.return
                  (if h 
-                 then {{ <th (atts)>r }}
-                 else {{ <td (atts)>r }})
-             in
-             let f2 (row, attribs) = match row with
-               | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
-               | a::l -> 
-                   let atts = parse_table_row_attribs attribs in
-                   f a >>= fun r ->
-                   Lwt_util.map_serial f l >>= fun l ->
-                   Lwt.return {{ <tr (atts)>[ r !{: l :} ] }}
-             in
-             f2 row >>= fun row ->
-             Lwt_util.map_serial f2 rows >>= fun rows ->
-             Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }});
-    inline = (fun x -> x >>= fun x -> Lwt.return x);
-    plugin = (fun name ->
+                  then {{ <th (atts)>r }}
+                  else {{ <td (atts)>r }})
+           in
+           let f2 (row, attribs) = match row with
+             | [] -> Lwt.return {{ <tr>[<td>[]] }} (*VVV ??? *)
+             | a::l -> 
+                 let atts = parse_table_row_attribs attribs in
+                 f a >>= fun r ->
+                 Lwt_util.map_serial f l >>= fun l ->
+                 Lwt.return {{ <tr (atts)>[ r !{: l :} ] }}
+           in
+           f2 row >>= fun row ->
+           Lwt_util.map_serial f2 rows >>= fun rows ->
+           Lwt.return {{ [<table (atts)>[<tbody>[ row !{: rows :} ] ] ] }})
+
+let inline = (fun x -> (x : Xhtmltypes_duce.a_contents Lwt.t
+                        :> Xhtmltypes_duce.inlines Lwt.t))
+
+let plugin = (fun (name : string) ->
                 (false,
                  (fun _ _ _ ->
                     Wikicreole.A_content 
                       (Lwt.return
                          {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
                                          !{: name :} ] ] ] }})))
-      );
-    plugin_action = (fun _ _ _ _ _ _ -> ());
-    error = (fun s -> Lwt.return {{ [ <b>{: s :} ] }});
+             )
+
+let plugin_action = (fun _ _ _ _ _ _ -> ())
+
+let error = (fun (s : string) -> Lwt.return {{ [ <b>{: s :} ] }})
+
+let span_elem = (fun attribs a ->
+                    let atts = parse_common_attribs attribs in
+                    element a >>= fun r ->
+                    Lwt.return {{ [<span (atts)>r] }})
+
+
+
+(********************************)
+(* Predefined builders.         *)
+
+let inline_builder : (Xhtmltypes_duce.inlines Lwt.t,
+                      Xhtmltypes_duce.inlines Lwt.t,
+                      {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
+                      box_info,
+                      Eliom_sessions.server_params)
+    Wikicreole.builder = (* no images, no titles, no tables, no lists, 
+                        no subwikiboxes, no content, no objects,
+                        no paragraph, no pre, ... *)
+  { Wikicreole.chars = make_string;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem = a_elem;
+    make_href = default_make_href;
+    br_elem = 
+      (fun _ -> 
+         Lwt.return {{ [<em>"Line breaks not enabled in this syntax"] }});
+    img_elem = 
+      (fun _ _ _ -> Lwt.return {{ [<em>"Images not enabled in this syntax"] }});
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    p_elem = span_elem;
+    pre_elem =
+      (fun _ _ -> 
+         Lwt.return {{ [<em>"Blocks of code not enabled in this syntax"] }});
+    h1_elem = span_elem;
+    h2_elem = span_elem;
+    h3_elem = span_elem;
+    h4_elem = span_elem;
+    h5_elem = span_elem;
+    h6_elem = span_elem;
+    ul_elem =
+      (fun _ _ -> Lwt.return {{ [<em>"Lists not enabled in this syntax"] }});
+    ol_elem =
+      (fun _ _ -> Lwt.return {{ [<em>"Lists not enabled in this syntax"] }});
+    dl_elem =
+      (fun _ _ -> Lwt.return {{ [<em>"Lists not enabled in this syntax"] }});
+    hr_elem =
+      (fun _ -> 
+         Lwt.return {{ [<em>"Horizontal rules not enabled in this syntax"] }});
+    table_elem =
+      (fun _ _ -> 
+         Lwt.return 
+           {{ [<em>"Tables not enabled in this syntax"] }});
+    inline = inline;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    error = error;
   }
+
+
+let default_builder =
+  { Wikicreole.chars = make_string;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem = a_elem;
+    make_href = default_make_href;
+    br_elem = br_elem;
+    img_elem = img_elem;
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    p_elem = p_elem;
+    pre_elem = pre_elem;
+    h1_elem = h1_elem;
+    h2_elem = h2_elem;
+    h3_elem = h3_elem;
+    h4_elem = h4_elem;
+    h5_elem = h5_elem;
+    h6_elem = h6_elem;
+    ul_elem = ul_elem;
+    ol_elem = ol_elem;
+    dl_elem = dl_elem;
+    hr_elem = hr_elem;
+    table_elem = table_elem;
+    inline = inline;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    error = error;
+  }
+
+let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
+  { Wikicreole.chars = make_string;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem = a_elem;
+    make_href = default_make_href;
+    br_elem = br_elem;
+    img_elem = 
+      (fun _ _ _ -> 
+         Lwt.return 
+           {{ [<em>"Images not enabled in this syntax"] }});
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    p_elem = p_elem;
+    pre_elem = pre_elem;
+    h1_elem = h1_elem;
+    h2_elem = h2_elem;
+    h3_elem = h3_elem;
+    h4_elem = h4_elem;
+    h5_elem = h5_elem;
+    h6_elem = h6_elem;
+    ul_elem = ul_elem;
+    ol_elem = ol_elem;
+    dl_elem = dl_elem;
+    hr_elem = hr_elem;
+    table_elem = table_elem;
+    inline = inline;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    error = error;
+  }
+
+let reduced_builder2 = (* no images, no titles, no tables, no lists, 
+                          no subwikiboxes, no content, no objects *)
+  { Wikicreole.chars = make_string;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem = a_elem;
+    make_href = default_make_href;
+    br_elem = br_elem;
+    img_elem = 
+      (fun _ _ _ -> Lwt.return {{ [<em>"Images not enabled in this syntax"] }});
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    p_elem = p_elem;
+    pre_elem = pre_elem;
+    h1_elem = p_elem;
+    h2_elem = p_elem;
+    h3_elem = p_elem;
+    h4_elem = p_elem;
+    h5_elem = p_elem;
+    h6_elem = p_elem;
+    ul_elem =
+      (fun _ _ -> Lwt.return {{ [<em>"Lists not enabled in this syntax"] }});
+    ol_elem =
+      (fun _ _ -> Lwt.return {{ [<em>"Lists not enabled in this syntax"] }});
+    dl_elem =
+      (fun _ _ -> Lwt.return {{ [<em>"Lists not enabled in this syntax"] }});
+    hr_elem = hr_elem;
+    table_elem =
+      (fun _ _ -> 
+         Lwt.return 
+           {{ [<em>"Tables not enabled in this syntax"] }});
+    inline = inline;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    error = error;
+  }
+
+
+
+(********************************)
+(* Default parsers:             *)
 
 let wikicreole_parser = {
   builder = default_builder;
@@ -651,37 +865,94 @@ let wikicreole_parser = {
   plugin_action_assoc = Hashtbl.create 17;
 }
 
+let reduced_wikicreole_parser0 = {
+  builder = default_builder;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+}
+
+let reduced_wikicreole_parser1 = {
+  builder = reduced_builder;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+}
+
+let reduced_wikicreole_parser2 = {
+  builder = reduced_builder2;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+}
+
+let inline_wikicreole_parser = {
+  builder = inline_builder;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+}
+
+
+
+(********************************)
+(* Default parser functions:    *)
+
 let xml_of_wiki wp bi s =
   Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-       (builder_from_wikicreole_parser wp) s
+    (builder_from_wikicreole_parser wp) s
   >>= fun l ->
   Lwt_util.map_serial (fun x -> x) l >>= fun r ->
-  Lwt.return {{ (map {: r :} with i -> i) }}
+  Lwt.return {{ (map {: (r : Xhtmltypes_duce.flows list) :} with i -> i) }}
+
+let inline_of_wiki bi s : Xhtmltypes_duce.inlines Lwt.t =
+  Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+    ({inline_builder with
+       Wikicreole.plugin = plugin_function inline_wikicreole_parser      
+    } : (Xhtmltypes_duce.inlines Lwt.t,
+            Xhtmltypes_duce.inlines Lwt.t,
+            {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
+            box_info,
+            Eliom_sessions.server_params)
+    Wikicreole.builder) s >>= function
+      | [] -> Lwt.return {{ [] }}
+      | a::_ -> a
+
+
+(********************************)
+(* Predefined content types:    *)
 
 let wikicreole_content_type = 
   Wiki_models.register_wiki_parser "wikicreole" 
     (preparse_extension wikicreole_parser)
     (xml_of_wiki wikicreole_parser)
 
-let inline_of_wiki builder bi s : Xhtmltypes_duce.inlines Lwt.t =
-  Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-    (builder_from_wikicreole_parser builder) s >>= function
-    | [] -> Lwt.return {{ [] }}
-    | a::_ -> a >>= (function
-                       | {{ [ <p>l _* ] }} -> Lwt.return l
-(*VVV What can I do with trailing data? *)
-                       | {{ _ }} -> Lwt.return {{ [ <b>"error" ] }})
+let reduced_wikicreole_content_type0 = 
+  Wiki_models.register_wiki_parser "reduced_wikicreole0" 
+    (preparse_extension reduced_wikicreole_parser0)
+    (xml_of_wiki reduced_wikicreole_parser0)
+
+let reduced_wikicreole_content_type1 = 
+  Wiki_models.register_wiki_parser "reduced_wikicreole1" 
+    (preparse_extension reduced_wikicreole_parser1)
+    (xml_of_wiki reduced_wikicreole_parser1)
+
+let reduced_wikicreole_content_type2 = 
+  Wiki_models.register_wiki_parser "reduced_wikicreole2" 
+    (preparse_extension reduced_wikicreole_parser2)
+    (xml_of_wiki reduced_wikicreole_parser2)
 
 let wikicreole_inline_content_type container = 
-  Wiki_models.register_wiki_parser "wikicreole_inline"
-    (preparse_extension wikicreole_parser)
+  Wiki_models.register_wiki_parser "inline_wikicreole"
+    (preparse_extension inline_wikicreole_parser)
     (fun bi s -> 
-       inline_of_wiki wikicreole_parser bi s >>= fun r ->
+       inline_of_wiki bi s >>= fun r ->
        Lwt.return (container r)
     )
 
-let a_content_of_wiki builder bi s =
-  inline_of_wiki builder bi s >>= fun r ->
+let rawtext_content_type = 
+  Wiki_models.register_wiki_parser "rawtext" 
+    (fun _ s -> Lwt.return s)
+    (fun _bi s -> Lwt.return {{ [<p>{: s :}] }})
+
+let a_content_of_wiki bi s =
+  inline_of_wiki bi s >>= fun r ->
   Lwt.return
     {{ map r with
          |  <a (Xhtmltypes_duce.a_attrs)>l -> l
@@ -691,6 +962,7 @@ let a_content_of_wiki builder bi s =
 
 
 (*********************************************************************)
+(* Adding syntax extensions in predefined parsers:                   *)
 
 let add_extension ~wp ~name ?(wiki_content=true) f =
   Hashtbl.add wp.plugin_assoc name (wiki_content, f);
@@ -705,9 +977,14 @@ let add_extension ~wp ~name ?(wiki_content=true) f =
 
 
 let () =
-  let add_extension_aux = add_extension ~wp:wikicreole_parser in
+  let add_extension_aux l ~name ?wiki_content f =
+    List.iter (fun wp -> add_extension ~wp ~name ?wiki_content f) l 
+  in
 
-  add_extension_aux ~name:"div" ~wiki_content:true
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0; 
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"div" ~wiki_content:true
     (fun bi args c -> 
        Wikicreole.Block 
          (let content = match c with
@@ -732,53 +1009,76 @@ let () =
     );
 
 
-  add_extension_aux ~name:"span" ~wiki_content:true
-    (fun bi args c -> 
+  let f = (fun bi args c -> 
        Wikicreole.A_content
          (let content = match c with
             | Some c -> c
             | None -> ""
           in
-          inline_of_wiki wikicreole_parser bi content >>= fun content ->
+          inline_of_wiki bi content >>= fun content ->
           let classe = 
             try
-              let a = List.assoc "class" args in
+              let a : string = List.assoc "class" args in
               {{ { class={: a :} } }} 
             with Not_found -> {{ {} }} 
           in
           let id = 
             try
-              let a = List.assoc "id" args in
+              let a : string = List.assoc "id" args in
               {{ { id={: a :} } }} 
             with Not_found -> {{ {} }} 
           in
           Lwt.return 
             {{ [ <span (classe ++ id) >content ] }}
          )
-    );
+    )
+  in
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0; 
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"span" ~wiki_content:true
+    f;
+  add_extension ~wp:inline_wikicreole_parser ~name:"span" ~wiki_content:true f;
 
-  add_extension_aux ~name:"wikiname" ~wiki_content:true
-    (fun bi _ _ ->
+  let f = (fun bi _ _ ->
        Wikicreole.A_content
          (let wid = bi.Wiki_widgets_interface.bi_wiki in
-          Wiki_sql.get_wiki_info_by_id wid
-          >>= fun wiki_info ->
+          Wiki_sql.get_wiki_info_by_id wid >>= fun wiki_info ->
           Lwt.return {{ {: Ocamlduce.Utf8.make (wiki_info.wiki_descr) :} }})
-    );
+    )
+  in
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0; 
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"wikiname" ~wiki_content:true f;
+  add_extension ~wp:inline_wikicreole_parser
+    ~name:"wikiname" ~wiki_content:true f;
 
 
-  add_extension_aux ~name:"raw" ~wiki_content:false
-    (fun _ args content ->
-       Wikicreole.A_content
-         (let s = string_of_extension "raw" args content in
-          Lwt.return {{ [ <b>{: s :} ] }}));
+  let f = (fun _ args content ->
+             Wikicreole.A_content
+               (let s = string_of_extension "raw" args content in
+                Lwt.return {{ [ <b>{: s :} ] }}))
+  in
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"raw" ~wiki_content:false f;
+  add_extension ~wp:inline_wikicreole_parser ~name:"raw" ~wiki_content:false f;
 
-  add_extension_aux ~name:"" ~wiki_content:false
-    (fun _ _ _ ->
-       Wikicreole.A_content (Lwt.return {{ [] }})
-    );
+  let f = (fun _ _ _ ->
+             Wikicreole.A_content (Lwt.return {{ [] }})
+          )
+  in
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"" ~wiki_content:false f;
+  add_extension ~wp:inline_wikicreole_parser ~name:"" ~wiki_content:false f;
 
-  add_extension_aux ~name:"content"
+  add_extension_aux
+    [wikicreole_parser]
+    ~name:"content"
     (fun bi args _ ->
        Wikicreole.Block
          (let classe, classe' =
@@ -806,7 +1106,10 @@ let () =
          )
     );
 
-  add_extension_aux ~name:"menu"
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"menu"
     (fun bi args _ ->
        let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
        Wikicreole.Block
@@ -831,7 +1134,7 @@ let () =
               with Not_found -> s, s
             in
             Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
-            a_content_of_wiki wikicreole_parser bi text >>= fun text2 ->
+            a_content_of_wiki bi text >>= fun text2 ->
             let b = 
               match wiki_info.Wiki_types.wiki_pages with
                 | Some dir ->
@@ -885,7 +1188,10 @@ let () =
     );
 
 
-  add_extension_aux ~name:"cond" ~wiki_content:true
+  add_extension_aux
+    [wikicreole_parser; reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"cond" ~wiki_content:true
     (fun bi args c -> 
        Wikicreole.Block
          (let sp = bi.Wiki_widgets_interface.bi_sp in

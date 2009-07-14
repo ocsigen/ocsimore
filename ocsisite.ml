@@ -91,9 +91,7 @@ let wikicreole_model =
     ~rights:wiki_rights
     ~widgets:wikibox_widget
 
-let () =
-  Wiki_ext.register_wikibox_syntax_extensions
-    Wiki_syntax.wikicreole_parser error_box
+let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
 
 (** We register auxiliary services for administration boxes *)

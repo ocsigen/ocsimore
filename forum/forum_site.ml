@@ -21,7 +21,7 @@
    @author Boris Yakobowski
 *)
 
-let wiki_rights = new Forum.wiki_rights
+let forum_wiki_rights = new Forum.wiki_rights
 
 let title_syntax = 
   Wiki_syntax.wikicreole_inline_content_type (fun c -> {{ [ <h1>c ] }})
@@ -29,8 +29,8 @@ let title_syntax =
 let wikicreole_forum_model =
   Wiki_models.register_wiki_model
     ~name:"wikicreole_forum"
-    ~content_type:Wiki_syntax.wikicreole_content_type
-    ~rights:wiki_rights
+    ~content_type:Wiki_syntax.reduced_wikicreole_content_type0
+    ~rights:forum_wiki_rights
     ~widgets:Ocsisite.wikibox_widget
 
 
@@ -55,7 +55,6 @@ let _ =
       widget_err message_widget add_message_widget
   in
   Forum_wikiext.register_wikiext
-    Wiki_syntax.wikicreole_parser 
     (message_widget, thread_widget, message_list_widget)
 
 

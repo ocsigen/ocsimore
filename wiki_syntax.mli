@@ -25,9 +25,9 @@ open Wiki_types
 
 
 (** The type for a function acting as a syntax extension *)
-type syntax_extension =
+type 'res syntax_extension =
     (Wiki_widgets_interface.box_info,
-     Xhtmltypes_duce.flows Lwt.t,
+     'res,
      Eliom_duce.Blocks.a_content_elt_list Lwt.t)
    Wikicreole.plugin
 
@@ -35,51 +35,84 @@ type syntax_extension =
 (** The abstract type of the objects able to parse wiki creole syntax,
     possibly with extensions. Those objects are passed as arguments
     to all displaing functions *)
-type wikicreole_parser
+type 'res wikicreole_parser
 
 
 (** Add a syntax extension to an existing syntax parser
     XXX Document better *)
 val add_extension :
-  wp:wikicreole_parser ->
+  wp:'res wikicreole_parser ->
   name:string ->
   ?wiki_content:bool ->
-  syntax_extension ->
+  'res syntax_extension ->
   unit
 
 
 (** The default syntax parser. It parses wiki creole syntax, as well
     as div, span, wikiname, raw, content, menu and cond tags.
-    Currently modified in Wiki_widgets and User_widgets *)
-val wikicreole_parser : wikicreole_parser
+    Default (and full) wiki parser.
+*)
+val wikicreole_parser : Xhtmltypes_duce.flows Lwt.t wikicreole_parser
+(* Currently modified in Wiki_widgets and User_widgets *)
+
+(** The same, without subwikiboxes and containers (content).
+    Used for example for forum messages.
+*)
+val reduced_wikicreole_parser0 : Xhtmltypes_duce.flows Lwt.t wikicreole_parser
+
+(** The same, without images, objects, subwikiboxes and containers (content).
+    Used for example for forum messages with restricted features.
+*)
+val reduced_wikicreole_parser1 : Xhtmltypes_duce.flows Lwt.t wikicreole_parser
+
+(** The same, without images, objects, titles, tables, lists, 
+    subwikiboxes and containers (content). *)
+val reduced_wikicreole_parser2 : Xhtmltypes_duce.flows Lwt.t wikicreole_parser
+
+(** Parser for inline wikicreole. *)
+val inline_wikicreole_parser : Xhtmltypes_duce.inlines Lwt.t wikicreole_parser
+
 
 (** the content type for wikicreole boxes: *)
 val wikicreole_content_type : Wiki_types.content_type
 
+(** the content type for reduced_wikicreole_parser0: *)
+val reduced_wikicreole_content_type0 : Wiki_types.content_type
+
+(** the content type for reduced_wikicreole_parser1: *)
+val reduced_wikicreole_content_type1 : Wiki_types.content_type
+
+(** the content type for reduced_wikicreole_parser2: *)
+val reduced_wikicreole_content_type2 : Wiki_types.content_type
+
+(** the content type for raw text boxes: *)
+val rawtext_content_type : Wiki_types.content_type
+
 (** the content type for wikicreole inline content.
-    The function is the container to put around the inline content.
-*)
+    It is using [inline_wikicreole_parser].
+    The function is the container to put around the inline content
+    to produce a block sequence. *)
 val wikicreole_inline_content_type : 
   (Xhtmltypes_duce.inlines -> Xhtmltypes_duce.flows) ->
   Wiki_types.content_type
 
 (** Return a copy of a parser. The calls to [add_extension] on one of the
     copy will not be visible on the other *)
-val copy_parser : wikicreole_parser -> wikicreole_parser
+val copy_parser : 'res wikicreole_parser -> 'res wikicreole_parser
 
 
 
 (** Functions called to transform some wikicreole text *)
 val add_preparser_extension :
-  wp:wikicreole_parser ->
+  wp:'res wikicreole_parser ->
   name:string ->
-  ( Eliom_sessions.server_params * Wiki_types.wikibox,
+  (Eliom_sessions.server_params * Wiki_types.wikibox,
     string option Lwt.t)
   Wikicreole.plugin_args ->
   unit
 
 val preparse_extension :
-  wikicreole_parser ->
+  'res wikicreole_parser ->
   (Eliom_sessions.server_params * Wiki_types.wikibox) ->
   string -> string Lwt.t
 
@@ -92,14 +125,13 @@ val preparse_extension :
 
 (** Returns the XHTML corresponding to a wiki page *)
 val xml_of_wiki :
-  wikicreole_parser ->
+  Xhtmltypes_duce.flows Lwt.t wikicreole_parser ->
   Wiki_widgets_interface.box_info ->
   string ->
   Xhtmltypes_duce.flows Lwt.t
 
 (** returns only the content of the first paragraph of a wiki text. *)
 val inline_of_wiki :
-  wikicreole_parser ->
   Wiki_widgets_interface.box_info ->
   string ->
   Xhtmltypes_duce.inlines Lwt.t
@@ -107,7 +139,6 @@ val inline_of_wiki :
 (** returns only the content of the first paragraph of a wiki text,
     after having removed links. *)
 val a_content_of_wiki :
-  wikicreole_parser ->
   Wiki_widgets_interface.box_info ->
   string ->
   Xhtmltypes_duce.a_contents Lwt.t

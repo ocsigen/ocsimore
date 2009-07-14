@@ -49,7 +49,7 @@ type wiki_preparser =
 
 type wiki_parser =
     Wiki_widgets_interface.box_info -> string -> 
-  Xhtmltypes_duce.flows Lwt.t(* pretty printer *) 
+  Xhtmltypes_duce.flows Lwt.t (* pretty printer *) 
 
 val register_wiki_parser : 
   name:string -> 

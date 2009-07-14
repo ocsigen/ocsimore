@@ -146,6 +146,7 @@ object (self)
            wiki_inline_widgets#display_interactive_wikibox ~bi s >>= fun r ->
            Lwt.return {{ [ r ] }})
     >>= fun wikiboxsubject ->
+    let bi = { bi with Wiki_widgets_interface.bi_menu_style = `Pencil } in
     wiki_widgets#display_interactive_wikibox ~bi m.m_wikibox >>= fun wikibox ->
     Lwt.return
       (classes,

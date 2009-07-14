@@ -28,10 +28,20 @@ open Wiki_widgets_interface
 
 let (>>=) = Lwt.bind
 
-let register_user_extensions wp (user_widget : User_widgets.user_widget) =
-  let add_extension = Wiki_syntax.add_extension ~wp in
+let register_user_extensions (user_widget : User_widgets.user_widget) =
+  let add_extension l ~name ~wiki_content f = 
+    List.iter (fun wp -> 
+                 Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
+  in
+  let wikicreole_parser = Wiki_syntax.wikicreole_parser in
+  let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0 in
+  let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1 in
+  let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2 in
+  let inline_wikicreole_parser = Wiki_syntax.inline_wikicreole_parser in
 
-  add_extension ~name:"loginbox" ~wiki_content:true
+  add_extension
+    [wikicreole_parser]
+    ~name:"loginbox" ~wiki_content:true
     (fun bi args _c ->
        Wikicreole.Block
          (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
@@ -44,37 +54,48 @@ let register_user_extensions wp (user_widget : User_widgets.user_widget) =
           >>= fun b ->
           Lwt.return {{ [ b ] }}));
 
-  add_extension ~name:"username" ~wiki_content:true
-    (fun bi _args _c ->
-       Wikicreole.A_content
-         (User.get_user_data ~sp:bi.bi_sp
-          >>= fun ud ->
-          Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
-    );
-
-  add_extension ~name:"logoutbutton" ~wiki_content:true
+  add_extension
+    [wikicreole_parser]
+    ~name:"logoutbutton" ~wiki_content:true
     (fun bi _args c ->
        Wikicreole.Block
          (let content = match c with
             | Some c -> c
             | None -> "logout"
           in
-          Wiki_syntax.xml_of_wiki wp bi content
+          Wiki_syntax.xml_of_wiki wikicreole_parser (* !!! *) bi content
           >>= fun content ->
           user_widget#display_logout_button bi.bi_sp content >>= fun f ->
           Lwt.return {{ [ {: f :} ] }}
          )
     );
 
-  add_extension ~name:"logoutlink" ~wiki_content:true
+  let f = (fun bi _args _c ->
+             Wikicreole.A_content
+               (User.get_user_data ~sp:bi.bi_sp >>= fun ud ->
+                Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
+          )
+  in
+  add_extension
+    [wikicreole_parser; reduced_wikicreole_parser0; 
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"username" ~wiki_content:true f;
+  Wiki_syntax.add_extension
+    ~wp:inline_wikicreole_parser ~name:"username" ~wiki_content:true f;
+
+  add_extension
+    [wikicreole_parser]
+    ~name:"logoutlink" ~wiki_content:true
     (fun bi args c ->
        Wikicreole.Link_plugin
          (let content = match c with
-            | Some c -> Wiki_syntax.a_content_of_wiki wp bi c
+            | Some c -> Wiki_syntax.a_content_of_wiki bi c
             | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
           in
           (user_widget#logout_uri bi.bi_sp,
            args,
            content)
          )
-    );
+    )
+
+

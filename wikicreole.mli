@@ -19,6 +19,8 @@
 (**
    Parser for Wikicreole
    @author Jérôme Vouillon
+   @author Vincent Balat
+   @author Boris Yakobowski
 *)
 
 
@@ -86,10 +88,12 @@ val from_channel :
   'sp ->
   'param ->
   ('flow, 'inline, 'a_content, 'param, 'sp) builder -> in_channel -> 'flow list Lwt.t
+
 val from_string :
   'sp ->
   'param ->
   ('flow, 'inline, 'a_content, 'param, 'sp) builder -> string -> 'flow list Lwt.t
+
 val from_lexbuf :
   'sp ->
   'param ->
