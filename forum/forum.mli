@@ -32,15 +32,21 @@ val message_creators_notmod : Wiki_types.wiki_arg parameterized_group
 val message_moderators : Wiki_types.wiki_arg parameterized_group
 val message_deletors : Wiki_types.wiki_arg parameterized_group
 val message_deletors_if_creator : Wiki_types.wiki_arg parameterized_group
+val message_modifiers : Wiki_types.wiki_arg parameterized_group
+val message_modifiers_if_creator : Wiki_types.wiki_arg parameterized_group
 val message_sticky_makers : Wiki_types.wiki_arg parameterized_group
-val message_readers  : Wiki_types.wiki_arg parameterized_group
+val moderated_message_readers  : Wiki_types.wiki_arg parameterized_group
+val message_readers_evennotmoderated  : Wiki_types.wiki_arg parameterized_group
 
 val creators : forum_arg parameterized_group
 val creators_notmod : forum_arg parameterized_group
 val moderators : forum_arg parameterized_group
 val deletors : forum_arg parameterized_group
 val deletors_if_creator : forum_arg parameterized_group
+val modifiers : forum_arg parameterized_group
+val modifiers_if_creator : forum_arg parameterized_group
 val sticky_makers : forum_arg parameterized_group
+val moderated_readers  : forum_arg parameterized_group
 val readers  : forum_arg parameterized_group
 val forum_admin : forum_arg parameterized_group
 val forum_visible : forum_arg parameterized_group
@@ -70,27 +76,37 @@ type role =
       message_moderators : bool Lwt.t Lazy.t;
       message_deletors : bool Lwt.t Lazy.t;
       message_deletors_if_creator : bool Lwt.t Lazy.t;
+      message_modifiers : bool Lwt.t Lazy.t;
+      message_modifiers_if_creator : bool Lwt.t Lazy.t;
       message_sticky_makers : bool Lwt.t Lazy.t;
-      message_readers : bool Lwt.t Lazy.t;
+      moderated_message_readers : bool Lwt.t Lazy.t;
+      message_readers_evennotmoderated : bool Lwt.t Lazy.t;
 
       comment_creators : bool Lwt.t Lazy.t;
       comment_creators_notmod : bool Lwt.t Lazy.t;
       comment_moderators : bool Lwt.t Lazy.t;
       comment_deletors : bool Lwt.t Lazy.t;
       comment_deletors_if_creator : bool Lwt.t Lazy.t;
+      comment_modifiers : bool Lwt.t Lazy.t;
+      comment_modifiers_if_creator : bool Lwt.t Lazy.t;
       comment_sticky_makers : bool Lwt.t Lazy.t;
-      comment_readers : bool Lwt.t Lazy.t;
+      moderated_comment_readers : bool Lwt.t Lazy.t;
+      comment_readers_evennotmoderated : bool Lwt.t Lazy.t;
 
       creators : bool Lwt.t Lazy.t;
       creators_notmod : bool Lwt.t Lazy.t;
       moderators : bool Lwt.t Lazy.t;
       deletors : bool Lwt.t Lazy.t;
       deletors_if_creator : bool Lwt.t Lazy.t;
+      modifiers : bool Lwt.t Lazy.t;
+      modifiers_if_creator : bool Lwt.t Lazy.t;
       sticky_makers : bool Lwt.t Lazy.t;
+      moderated_readers : bool Lwt.t Lazy.t;
       readers : bool Lwt.t Lazy.t;
 
       forum_admin : bool Lwt.t Lazy.t;
     }
+
 
 val get_role : 
   sp:Eliom_sessions.server_params ->

@@ -121,9 +121,25 @@ you can add generic inclusions between generic groups, using
 given wiki are also readers of this wiki.
 
 You may want to compute the permission for one user at the beginning of
-the request.  To do that, create a record with boolean fields for each
+the request.  To do that, you may create a record with boolean fields for each
 possible action (for one forum, one box in a wiki, one wiki, etc).  The
 function that will compute this can be memoised in the session cache to
 avoid to compute several times the same thing.  See forum.ml for an example.
 Notice however that group inclusion calls are automatically cache. Thus
 you may not need your own caching mechanism if you only do simple requests.
+
+Warning: Even if two groups are equal, it is often more convenient to
+create both, in order to avoid errors. For example if you have three possible
+actions : read, write, set permissions, and you want an "admin" group,
+meaning all three. And if you want the following generic inclusions:
+admin > set-perm > write > read
+Here, admin = set-perm, as admin is in no other group.
+But it is convenient to have both of them.
+Thus, you will not need to remember the
+group hierachy when you want to test rights.
+If you want to test if a user has right to set permissions, just test whether
+he is in the group set-perm.
+If you want to give all rights to an user, put it in group admin.
+It is also more tolerant to changes in group hierarchy.
+
+

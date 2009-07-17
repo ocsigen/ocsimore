@@ -342,3 +342,26 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
                     WHERE forum_id = $forum \
                     AND parent_id IS NULL \
                     ORDER BY datetime DESC OFFSET $offset LIMIT $number")
+
+let get_wikibox_creator ~wb =
+  let wb = Wiki_types.sql_of_wikibox wb in
+  Sql.full_transaction_block
+    (fun db -> 
+       PGSQL(db) "SELECT creator_id
+                  FROM forums_messages \
+                  WHERE wikibox = $wb OR subject = $wb"
+    ) >>= function
+      | [] -> Lwt.return None
+      | a::_ -> Lwt.return (Some (User_sql.Types.userid_from_sql a))
+
+let wikibox_is_moderated ~wb =
+  let wb = Wiki_types.sql_of_wikibox wb in
+  Sql.full_transaction_block
+    (fun db -> 
+       PGSQL(db) "SELECT moderated
+                  FROM forums_messages \
+                  WHERE wikibox = $wb OR subject = $wb"
+    ) >>= function
+      | [] -> Lwt.return false (* ? *)
+      | a::_ -> Lwt.return a
+

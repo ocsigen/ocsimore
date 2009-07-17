@@ -113,6 +113,10 @@ val remove_from_group: user:user -> group:user -> unit Lwt.t
 val add_generic_inclusion :
   subset:'a parameterized_group -> superset:'a parameterized_group -> unit Lwt.t
 
+(** Same as [add_generic_inclusion]. Use the one you prefer. *)
+val add_to_group_generic :
+  user:'a parameterized_group -> group:'a parameterized_group -> unit Lwt.t
+
 val delete_user: userid:userid -> unit Lwt.t
 
 

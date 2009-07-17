@@ -157,4 +157,13 @@ val get_message_list :
   unit ->
   raw_message_info list Lwt.t
   
+(** returns the creator of a wikibox containing a forum message 
+    or forum message title. [None] if not a forum wikibox. *)
+val get_wikibox_creator : 
+  wb:Wiki_types.wikibox -> User_sql.Types.userid option Lwt.t
 
+(** returns whether the message has been moderated or not.
+    The argument is either the wikibox containing the message or the
+    message title. The result is [false] if it is not a forum wikibox.
+*)
+val wikibox_is_moderated : wb:Wiki_types.wikibox -> bool Lwt.t

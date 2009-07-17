@@ -68,7 +68,9 @@ module Types = struct
 
   let apply_parameterized_group g v =
     AppliedParameterizedGroup (g, Opaque.t_int32 v)
+
   let ($) = apply_parameterized_group
+
   let basic_user v = BasicUser v
 
   let userid_from_user = function
@@ -511,6 +513,9 @@ let add_to_group ~user ~group =
 let add_generic_inclusion ~subset ~superset =
   GroupUsersCache.clear group_of_users_cache;
   add_generic_inclusion_ ~subset ~superset
+
+let add_to_group_generic ~user ~group =
+  add_generic_inclusion ~subset:user ~superset:group
 
 let remove_from_group ~user ~group =
   GroupUsersCache.remove group_of_users_cache user;

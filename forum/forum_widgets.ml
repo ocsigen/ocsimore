@@ -187,7 +187,7 @@ object (self)
     Lwt.return
       {{ <div class={: classes :}>content }}
 
-  method display_comment_line ~sp ~role:_role ?rows ?cols m =
+  method display_comment_line ~sp ~role ?rows ?cols m =
 (*    Lwt.return
        {{ [
          <span class={: comment_class :}>
@@ -198,19 +198,24 @@ object (self)
               ~service:add_message_service
               ~sp draw_form () :}]
          ] }} *)
-  let n1_id = Eliom_obrowser.fresh_id () in
-  let n2_id = Eliom_obrowser.fresh_id () in
-  let form = 
-    add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
-  in
-  let rec n1 = {{ <span class={: comment_class :}
-                    id={: n1_id :}
-                    onclick={: "caml_run_from_table(main_vm, 1, "
-                             ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
-                    {: Ocamlduce.Utf8.make "Comment" :} }}
-  and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
-  in 
-  Lwt.return {{ [ n1 n2 ] }}
+  !!(role.Forum.comment_creators) >>= fun comment_creators ->
+  if comment_creators
+  then
+    let n1_id = Eliom_obrowser.fresh_id () in
+    let n2_id = Eliom_obrowser.fresh_id () in
+    let form = 
+      add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
+    in
+    let rec n1 = {{ <span class={: comment_class :}
+                      id={: n1_id :}
+                      onclick={: "caml_run_from_table(main_vm, 1, "
+                               ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
+                      {: Ocamlduce.Utf8.make "Comment" :} }}
+    and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
+    in 
+    Lwt.return {{ [ n1 n2 ] }}
+  else Lwt.return {{ [] }}
+
 
   method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread =
     let rec print_one_message_and_children
@@ -296,11 +301,17 @@ object (self)
          message_widget#display_message ~classes content)
       list
     >>= fun l ->
-    let form =
-      if add_message_form
-      then {{ [ {: add_message_widget#display ~sp ~forum ?rows ?cols () :} ] }}
-      else {{ [] }}
-    in
+    (if add_message_form
+     then
+       Forum.get_role sp forum >>= fun role ->
+       !!(role.Forum.message_creators) >>= fun message_creators ->
+       Lwt.return
+         (if message_creators
+          then
+            {{ [ {: add_message_widget#display ~sp ~forum ?rows ?cols () :} ] }}
+          else {{ [] }})
+     else Lwt.return {{ [] }})
+    >>= fun form ->
     Lwt.return (classes, {{ [ !{: l :} !form ] }})
 
   method display ~sp ?(rows : int option) ?(cols : int option) ?(classes=[])

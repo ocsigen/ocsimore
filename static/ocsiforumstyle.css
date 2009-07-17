@@ -2,6 +2,11 @@ div.ocsiforum_comment_form {
   display: none;
 }
 
+span.ocsiforum_comment_form {
+  cursor: pointer;
+  font-size: 50%;
+}
+
 div.ocsiforum_msg h1 {
   font-size: 120%;
   color: #336699;
@@ -25,4 +30,8 @@ div.ocsiforum_thread_msg {
   border: 1px solid #339933;
   margin: 0px;
   padding: 0px 0px 0px 25px;
+}
+
+span.ocsiforum_msg_info {
+  font-size: 50%;
 }
