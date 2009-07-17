@@ -60,6 +60,8 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     subscripted_elem : attribs -> 'inline list -> 'a_content;
     superscripted_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
+    endash : 'a_content;
+    emdash : 'a_content;
     a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
     make_href : 'sp -> 'param -> string -> string option -> string;
     p_elem : attribs -> 'inline list -> 'flow;
@@ -643,6 +645,14 @@ and parse_rem c =
     }
   | "~ " {
       push c c.build.nbsp;
+      parse_rem c lexbuf
+    }
+  | "--" {
+      push c c.build.endash;
+      parse_rem c lexbuf
+    }
+  | "---" {
+      push c c.build.emdash;
       parse_rem c lexbuf
     }
   | '|' white_space* (line_break | eof) {

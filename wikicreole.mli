@@ -58,6 +58,8 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     subscripted_elem : attribs -> 'inline list -> 'a_content;
     superscripted_elem : attribs -> 'inline list -> 'a_content;
     nbsp : 'a_content;
+    endash : 'a_content;
+    emdash : 'a_content;
     a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
     make_href : 'sp -> 'param -> string -> string option -> string;
     (** the string option is the fragment part of the URL (#...)*)

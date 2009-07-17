@@ -1,6 +1,6 @@
 (* Ocsimore
  * Copyright (C) 2008
- * Laboratoire PPS - Universit� Paris Diderot - CNRS
+ * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -399,6 +399,8 @@ let preparse_extension
     subscripted_elem = nothing;
     superscripted_elem = nothing;
     nbsp = ();
+    endash = ();
+    emdash = ();
     p_elem = nothing;
     pre_elem = nothing;
     h1_elem = nothing;
@@ -573,7 +575,11 @@ let tt_elem = (fun attribs a ->
                  element a >>= fun r ->
                  Lwt.return {{ [<tt (atts)>r ] }})
 
-let nbsp = Lwt.return {{"�"}}
+let nbsp = Lwt.return (Ocamlduce.Utf8.make " ")
+
+let endash = Lwt.return (Ocamlduce.Utf8.make "–")
+
+let emdash = Lwt.return (Ocamlduce.Utf8.make "—")
 
 let p_elem = (fun attribs a -> 
                 let atts = parse_common_attribs attribs in
@@ -711,6 +717,8 @@ let inline_builder : (Xhtmltypes_duce.inlines Lwt.t,
       (fun _ _ _ -> Lwt.return {{ [<em>"Images not enabled in this syntax"] }});
     tt_elem = tt_elem;
     nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
     p_elem = span_elem;
     pre_elem =
       (fun _ _ -> 
@@ -756,6 +764,8 @@ let default_builder =
     img_elem = img_elem;
     tt_elem = tt_elem;
     nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
     p_elem = p_elem;
     pre_elem = pre_elem;
     h1_elem = h1_elem;
@@ -793,6 +803,8 @@ let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
            {{ [<em>"Images not enabled in this syntax"] }});
     tt_elem = tt_elem;
     nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
     p_elem = p_elem;
     pre_elem = pre_elem;
     h1_elem = h1_elem;
@@ -829,6 +841,8 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
       (fun _ _ _ -> Lwt.return {{ [<em>"Images not enabled in this syntax"] }});
     tt_elem = tt_elem;
     nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
     p_elem = p_elem;
     pre_elem = pre_elem;
     h1_elem = p_elem;
