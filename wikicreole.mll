@@ -568,7 +568,11 @@ and parse_rem c =
       style_change c Underlined att parse_attribs lexbuf;
       parse_rem c lexbuf
     }
-  | "--" (("@@" ?) as att) {
+  | "/-" (("@@" ?) as att) {
+      style_change c Linethrough att parse_attribs lexbuf;
+      parse_rem c lexbuf
+    }
+  | "-/" (("@@" ?) as att) {
       style_change c Linethrough att parse_attribs lexbuf;
       parse_rem c lexbuf
     }
