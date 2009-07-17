@@ -161,7 +161,12 @@ end : sig
 end)
 
 
-let clear_all = ref []
+module Weak =  Weak.Make(struct type t = unit -> unit
+                                let hash = Hashtbl.hash
+                                let equal = (==)
+                         end)
+
+let clear_all = Weak.create 17
 
 module Make =
   functor (A: sig
@@ -196,7 +201,7 @@ struct
                  finder = f
                 }
     in
-    clear_all := (fun () -> clear cache)::!clear_all;
+    Weak.add clear_all (fun () -> clear cache);
     cache
 
   let poke r node =
@@ -246,5 +251,5 @@ let () =
   Ocsigen_extensions.register_command_function ~prefix:"ocsimore"
     (fun _s c -> 
        match c with
-         | ["clearcache"] -> List.iter (fun f -> f ()) !clear_all
+         | ["clearcache"] -> Weak.iter (fun f -> f ()) clear_all
          | _ -> raise Ocsigen_extensions.Unknown_command)
