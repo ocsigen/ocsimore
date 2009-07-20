@@ -41,6 +41,8 @@ TOINSTALL := files/META \
              _build/announce/announce.cma \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
              _build/forum/forum_site.cmo \
+             _build/forum/forum_client.cmo \
+             _build/wiki_client.cmo \
              _build/cache.cmi \
              _build/dyngroups.cmi \
              _build/language.cmi \

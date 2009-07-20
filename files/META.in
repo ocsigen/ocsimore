@@ -50,3 +50,9 @@ package "forum" (
   )
 )
 
+package "client" (
+  requires = "ocsimore"
+  version = "[distributed with Ocsimore]"
+  description = "Client part of Ocsimore"
+  archive(byte) = "wiki_client.cmo,forum_client.cmo"
+)
