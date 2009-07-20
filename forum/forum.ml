@@ -88,11 +88,11 @@ let deletors_if_creator : forum_arg parameterized_group =
     "Can delete messages or comments in the forum if author"
 
 let modifiers : forum_arg parameterized_group =
-  aux_grp "modifiers" "Can modify messages or comments in the forum"
+  aux_grp "modifiers" "Can modify messages or comments in the forum (without moderation)"
 
 let modifiers_if_creator : forum_arg parameterized_group =
   aux_grp "modifiersifauthor" 
-    "Can modify messages or comments in the forum if author"
+    "Can modify messages or comments in the forum if author (without moderation)"
 
 let sticky_makers : forum_arg parameterized_group =
   aux_grp "stickymakers" "Can make messages or comments sticky in the forum"
@@ -100,7 +100,7 @@ let sticky_makers : forum_arg parameterized_group =
 let readers  : forum_arg parameterized_group =
   aux_grp "readers" "Can read messages or comments in the forum (even not moderated)"
 
-let moderated_readers  : forum_arg parameterized_group =
+let moderated_readers : forum_arg parameterized_group =
   aux_grp "moderatedreaders" "Can read moderated messages or comments in the forum"
 
 
@@ -113,6 +113,34 @@ let forum_visible : forum_arg parameterized_group =
 let forum_creators =
   Lwt_unix.run (User_sql.new_nonparameterized_group ~name:"forum_creators"
                   ~prefix:"forum" ~fullname:"Can create new forums")
+
+
+
+(* special rights for some threads - 
+   will override forum rights if present.
+   There is a boolean information on the root of the thread to tell that 
+   it has special rights. The group parameter is the root identifier.
+*)
+
+let thread_readers_evennotmoderated : message_arg parameterized_group =
+  aux_grp "threadreadersnotmod"
+    "Can read all messages or comments in the thread (even not moderated)"
+    (* replaces readers *)
+
+let thread_moderated_readers : message_arg parameterized_group =
+  aux_grp "threadreaders"
+    "Can read moderated messages or comments in the thread"
+    (* replaces moderated_readers *)
+
+let thread_comments_creators : message_arg parameterized_group =
+  aux_grp "threadcommentcreators" "Can add comments in the thread"
+    (* replaces creators *)
+
+let thread_comments_creators_notmod : message_arg parameterized_group =
+  aux_grp "threadcommentcreatorsnotmod" 
+    "Can add comments in the thread without moderation"
+    (* replaces creators_notmod *)
+
 
 
 (* Generic relations between groups *)
@@ -162,7 +190,16 @@ let () = Lwt_unix.run (
   User_sql.add_to_group_generic
     ~user:message_creators ~group:moderated_message_readers >>= fun () ->
   User_sql.add_to_group_generic
-    ~user:message_modifiers ~group:moderated_message_readers
+    ~user:message_modifiers ~group:moderated_message_readers >>= fun () ->
+
+  User_sql.add_to_group_generic
+    ~user:thread_readers_evennotmoderated ~group:thread_moderated_readers
+  >>= fun () ->
+  User_sql.add_to_group_generic
+    ~user:thread_comments_creators_notmod ~group:thread_comments_creators
+  >>= fun () ->
+  User_sql.add_to_group_generic
+    ~user:thread_comments_creators ~group:thread_moderated_readers
 
 )
 

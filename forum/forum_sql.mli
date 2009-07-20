@@ -66,6 +66,7 @@ module Types : sig
     m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
     m_sticky: bool;
+    m_has_special_rights: bool Lwt.t Lazy.t;
     m_tree_min: int32;
     m_tree_max: int32;
   }
@@ -148,7 +149,11 @@ val get_thread :
   raw_message_info list Lwt.t
   
 
-(** returns the list of messages (without comments) in a forum. *)
+(** returns the list of messages (without comments) in a forum.
+    If [moderated_only] is true, will return:
+    - moderated messages
+    - all messages with special rights (without looking at rights)
+*)
 val get_message_list : 
   forum:Types.forum ->
   first:int64 ->

@@ -123,9 +123,7 @@ object (self)
     else Lwt.return {{ [] }}) >>= fun moderation_line ->
     Lwt.return moderation_line
 
-  method pretty_print_message
-    ~classes
-    ?(arborescent:_ = true) ~sp m =
+  method pretty_print_message ~classes ~sp m =
     User_sql.get_basicuser_data m.m_creator_id >>= fun ud ->
     let author = ud.User_sql.Types.user_fullname in
     Forum.get_role sp m.m_forum >>= fun role ->
@@ -226,7 +224,7 @@ object (self)
          | m::l ->
              message_widget#pretty_print_message
                ~classes:[]
-               ~arborescent ~sp m
+               ~sp m
              >>= fun (classes, msg_info) ->
              let draw_comment_form =
                (commentable && (arborescent || (m.m_id = m.m_root_id)))
@@ -293,12 +291,20 @@ object (self)
   method pretty_print_message_list ~forum ?rows ?cols ~classes ~sp 
     ~add_message_form list =
     Lwt_util.map
-      (fun raw_msg_info -> 
-         message_widget#pretty_print_message
-           ~classes:[] ~sp
-           (Forum_sql.Types.get_message_info raw_msg_info)
-         >>= fun (classes, content) ->
-         message_widget#display_message ~classes content)
+      (fun raw_msg_info ->
+         Lwt.catch
+         (fun() ->
+            Forum_data.message_info_of_raw_message ~sp raw_msg_info
+            >>= fun m -> 
+            message_widget#pretty_print_message ~classes:[] ~sp m
+            >>= fun (classes, content) ->
+            message_widget#display_message ~classes content >>= fun m ->
+            Lwt.return {{ [ m ] }}
+         )
+         (function 
+            | Ocsimore_common.Permission_denied ->
+                Lwt.return {{ [] }}
+            | e -> Lwt.fail e))
       list
     >>= fun l ->
     (if add_message_form
@@ -312,6 +318,7 @@ object (self)
           else {{ [] }})
      else Lwt.return {{ [] }})
     >>= fun form ->
+    let l = {{ map {: l :} with i -> i }} in 
     Lwt.return (classes, {{ [ !{: l :} !form ] }})
 
   method display ~sp ?(rows : int option) ?(cols : int option) ?(classes=[])

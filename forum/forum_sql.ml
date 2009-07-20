@@ -29,6 +29,21 @@ open Sql
 
 let (>>=) = Lwt.bind
 
+let get_message_raw ~message_id () =
+  Lwt_pool.use Sql.pool 
+    (fun db ->
+       (* tree_min and tree_max are here only for the interface to be 
+          compatible with get_thread *)
+       PGSQL(db) "SELECT id, creator_id, datetime, parent_id, 
+                         root_id, forum_id, subject, wikibox, \
+                         moderated, sticky, special_rights, tree_min, tree_max \
+                  FROM forums_messages \
+                  WHERE forums_messages.id = $message_id")
+  >>= function
+    | [] -> Lwt.fail Not_found
+    | x :: _ -> Lwt.return x
+
+
 module Types = struct
 
   (** Semi-abstract type for a forum *)
@@ -101,13 +116,15 @@ module Types = struct
     m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
     m_sticky: bool;
+    m_has_special_rights: bool Lwt.t Lazy.t;
     m_tree_min: int32;
     m_tree_max: int32;
   }
 
   type raw_message_info =
       (int32 * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 option * int32 * bool * bool * int32 * int32)
+         int32 * int32 * int32 option * int32 * bool * bool * bool
+       * int32 * int32)
 
   let get_message_info
       (id,
@@ -120,6 +137,7 @@ module Types = struct
        wikibox,
        moderated,
        sticky,
+       has_special_rights,
        tree_min,
        tree_max) =
     {
@@ -135,6 +153,15 @@ module Types = struct
       m_wikibox = Wiki_types.wikibox_of_sql wikibox;
       m_moderated = moderated;
       m_sticky = sticky;
+      m_has_special_rights = 
+        lazy (if root_id = id (* root *)
+              then Lwt.return has_special_rights
+              else begin
+                get_message_raw ~message_id:root_id ()
+                >>= fun (_, _, _, _, _, _, _, _, _, _,
+                         has_special_rights, _, _) ->
+                Lwt.return has_special_rights
+              end);
       m_tree_min = tree_min;
       m_tree_max = tree_max;
     }
@@ -289,18 +316,7 @@ let get_forums_list ?(not_deleted_only = true) () =
 
 let get_message ~message_id () =
   let message_id = sql_of_message message_id in
-  Lwt_pool.use Sql.pool 
-    (fun db ->
-       (* tree_min and tree_max are here only for the interface to be 
-          compatible with get_thread *)
-       PGSQL(db) "SELECT id, creator_id, datetime, parent_id, 
-                         root_id, forum_id, subject, wikibox, \
-                         moderated, sticky, tree_min, tree_max \
-                  FROM forums_messages \
-                  WHERE forums_messages.id = $message_id")
-  >>= function
-    | [] -> Lwt.fail Not_found
-    | x :: _ -> Lwt.return (get_message_info x)
+  get_message_raw ~message_id () >>= fun x -> Lwt.return (get_message_info x)
     
 
 let get_thread ~message_id () =
@@ -316,7 +332,8 @@ let get_thread ~message_id () =
                 PGSQL(db)
                      "SELECT id, creator_id, datetime, parent_id, \
                            root_id, forum_id, subject, wikibox, \
-                           moderated, sticky, tree_min, tree_max \
+                           moderated, sticky, special_rights, \
+                           tree_min, tree_max \
                       FROM forums_messages \
                       WHERE root_id= $message_id \
                       AND tree_min >= $min AND tree_max <= $max \
@@ -333,8 +350,9 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
        then
          PGSQL(db) "SELECT *
                     FROM forums_messages \
-                    WHERE forum_id = $forum AND moderated = true \
+                    WHERE forum_id = $forum \
                     AND parent_id IS NULL \
+                    AND (moderated = true OR special_rights = true) \
                     ORDER BY datetime DESC OFFSET $offset LIMIT $number"
        else
          PGSQL(db) "SELECT *

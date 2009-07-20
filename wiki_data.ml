@@ -74,7 +74,6 @@ let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
         User.get_user_id sp >>= fun user ->
         Wiki_sql.update_wikibox ~wb ~author:user ~comment:""
           ~content ~content_type
-
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 

@@ -53,6 +53,10 @@ val forum_visible : forum_arg parameterized_group
 
 val forum_creators : user
 
+val thread_comments_creators  : message_arg parameterized_group
+val thread_comments_creators_notmod  : message_arg parameterized_group
+val thread_moderated_readers  : message_arg parameterized_group
+val thread_readers_evennotmoderated  : message_arg parameterized_group
 
 (** {2 Forum creation} *)
 

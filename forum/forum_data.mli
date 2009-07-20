@@ -109,8 +109,12 @@ val get_thread :
   message_id:Forum_sql.Types.message -> 
   Forum_sql.Types.message_info list Lwt.t
   
+type raw_message
+
 (** returns the list of messages (without comments) in a forum. 
-    If not moderator, only moderated messages are returned.
+    If the user cannot read unmoderated messages, 
+    only moderated messages and messages with special rights
+    (must be filtered afterwards!!!) are returned.
 *)
 val get_message_list : 
   sp:Eliom_sessions.server_params ->
@@ -118,6 +122,14 @@ val get_message_list :
   first:int64 ->
   number:int64 ->
   unit ->
-  Forum_sql.Types.raw_message_info list Lwt.t
+  raw_message list Lwt.t
   
-
+(** translate [raw_message] to [Forum_sql.Types.forum_info],
+    verifying special rights if needed (only for first messages). 
+    Raises [Ocsimore_common.Permission_denied] if special rights do not
+    allow to read the message.
+*)
+val message_info_of_raw_message : 
+  sp:Eliom_sessions.server_params ->
+  raw_message -> 
+  Forum_sql.Types.message_info Lwt.t 

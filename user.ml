@@ -36,6 +36,18 @@ exception UnknownUser of string
 exception UseAuth of userid
 
 
+(* better: set this in config file 
+let () = 
+  Eliom_sessions.set_global_persistent_data_session_timeout (Some 604800.)
+    (* one week *)
+
+let () = 
+  Eliom_sessions.set_persistent_data_session_cookie_exp_date None
+    (* None = when browser is closed *)
+*)
+
+
+
 (* We might want to simply overwrite incorrect values by the correct ones *)
 let possibly_create ~login ~fullname ?email ?pwd () =
   Lwt_unix.run (

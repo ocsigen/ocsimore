@@ -34,6 +34,7 @@ CREATE TABLE forums_messages (
     wikibox integer NOT NULL,
     moderated boolean DEFAULT false NOT NULL,
     sticky boolean DEFAULT false NOT NULL,
+    special_rights boolean DEFAULT false NOT NULL,
     tree_min integer DEFAULT 1 NOT NULL,
     tree_max integer DEFAULT 2 NOT NULL
 );
@@ -50,5 +51,7 @@ COMMENT ON COLUMN forums_messages.sticky IS
   'Sticky messages will be displayed first';
 COMMENT ON COLUMN forums_messages.wikibox IS
   'id of the wiki box in the wiki';
+COMMENT ON COLUMN forums_messages.special_rights IS
+  'means that it is the root of a thread with special rights. It has its own groups (will not look at forum groups)';
 
 ALTER TABLE public.forums_messages OWNER TO ocsimore;

@@ -40,45 +40,68 @@ let new_forum
     ~title ~descr ?arborescent ~title_syntax ~messages_wiki ~comments_wiki ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
+let can_create_message ~sp ~parent_id f role =
+  (* returns (wiki * bool (* moderated *)) or fails with Permission_denied *)
+  let first_msg = parent_id = None in
+  (match parent_id with
+     | None -> Lwt.return None
+     | Some parent_id -> 
+        Forum_sql.get_message ~message_id:parent_id () >>= fun parent ->
+        (* If the forum is not arborescent, we must not comment comments *)
+        if (not f.f_arborescent) && (parent.m_parent_id != None)
+        then Lwt.fail Ocsimore_common.Permission_denied
+        else
+          !!(parent.m_has_special_rights) >>= fun has_special_rights ->
+          if has_special_rights
+          then Lwt.return (Some parent)
+          else Lwt.return None)
+  >>= fun special_rights ->
+  let (mod_creator, notmod_creator) =
+    match special_rights with
+      | Some parent ->
+          (User.in_group 
+             ~sp ~group:(Forum.thread_comments_creators $ parent.m_root_id) (),
+           User.in_group
+             ~sp 
+             ~group:(Forum.thread_comments_creators_notmod $ parent.m_root_id)
+             ())
+      | None ->
+          ((!!(role.message_creators) >>= fun message_creators ->
+            !!(role.comment_creators) >>= fun comment_creators ->
+            Lwt.return ((first_msg && message_creators) ||
+                          (not first_msg && comment_creators))),
+           (!!(role.message_creators_notmod) >>= fun message_creators_notmod ->
+            !!(role.comment_creators_notmod) >>= fun comment_creators_notmod ->
+            Lwt.return ((first_msg && message_creators_notmod) ||
+                          (not first_msg && comment_creators_notmod))))
+  in
+  let wiki = if first_msg then f.f_messages_wiki else f.f_comments_wiki in
+  notmod_creator >>= fun notmod_creator ->
+  if notmod_creator
+  then Lwt.return (wiki, true)
+  else
+    mod_creator >>= fun mod_creator ->
+    if not mod_creator
+    then Lwt.fail Ocsimore_common.Permission_denied
+    else 
+      !!(role.message_moderators) >>= fun message_moderators ->
+      !!(role.comment_moderators) >>= fun comment_moderators ->
+      let moderator =
+        ((first_msg && message_moderators) ||
+           (not first_msg && comment_moderators))
+      in
+      Lwt.return (wiki, moderator)
+
 let new_message ~sp ~forum ~creator_id ?subject ?parent_id ?sticky ~text () = 
   Forum.get_role sp forum >>= fun role ->
   Forum_sql.get_forum ~forum () >>= fun f ->
   if f.f_deleted
   then Lwt.fail Ocsimore_common.Permission_denied
   else
-    let first_msg = parent_id = None in
-    !!(role.message_creators) >>= fun message_creators ->
-    !!(role.comment_creators) >>= fun comment_creators ->
-    if (first_msg && message_creators)
-      || (not first_msg && comment_creators)
-    then begin
-      !!(role.message_moderators) >>= fun message_moderators ->
-      !!(role.message_creators_notmod) >>= fun message_creators_notmod ->
-      !!(role.comment_moderators) >>= fun comment_moderators ->
-      !!(role.comment_creators_notmod) >>= fun comment_creators_notmod ->
-      let moderated =
-        (first_msg && (message_moderators || message_creators_notmod))
-        || (not first_msg && (comment_moderators || comment_creators_notmod))
-      in
-      ((* If the forum is not arborescent, we must not comment comments *)
-        match parent_id with
-         | None -> (* it is not a comment *) 
-             Lwt.return (true, f.f_messages_wiki)
-         | Some parent_id -> (* it is a comment *)
-             if f.f_arborescent
-             then Lwt.return (true, f.f_comments_wiki)
-             else 
-               Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
-               Lwt.return ((m.m_parent_id = None), f.f_comments_wiki)
-      ) >>= fun (ok, wiki) ->
-      if ok
-      then
-        let title_syntax = f.f_title_syntax in
-        Forum_sql.new_message ~sp ~forum ~wiki ~creator_id
-          ?subject ?parent_id ~moderated ~title_syntax ?sticky ~text
-      else Lwt.fail Ocsimore_common.Permission_denied
-    end
-    else Lwt.fail Ocsimore_common.Permission_denied
+    can_create_message ~sp ~parent_id f role >>= fun (wiki, moderated) ->
+    let title_syntax = f.f_title_syntax in
+    Forum_sql.new_message ~sp ~forum ~wiki ~creator_id
+      ?subject ?parent_id ~moderated ~title_syntax ?sticky ~text
 
 let set_moderated ~sp ~message_id ~moderated =
   Forum_sql.get_message ~message_id () >>= fun m ->
@@ -122,25 +145,39 @@ let get_forums_list ~sp () =
     l
     (Lwt.return [])
 
-let can_read_message m role =
+let can_read_message ~sp m role =
   let first_msg = m.m_parent_id = None in
-  !!(role.moderated_message_readers) >>= fun moderated_message_readers ->
-  !!(role.moderated_comment_readers) >>= fun moderated_comment_readers ->
-  if not ((first_msg && moderated_message_readers)
-          || (not first_msg && moderated_comment_readers))
+  !!(m.m_has_special_rights) >>= fun has_special_rights ->
+  let (mod_reader, notmod_reader) =
+    if has_special_rights
+    then
+      (User.in_group
+         ~sp ~group:(Forum.thread_moderated_readers $ m.m_root_id) (),
+       lazy 
+         (User.in_group
+            ~sp 
+            ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()))
+    else
+      ((!!(role.moderated_message_readers) >>= fun moderated_message_readers ->
+        !!(role.moderated_comment_readers) >>= fun moderated_comment_readers ->
+        Lwt.return ((first_msg && moderated_message_readers)
+                    || (not first_msg && moderated_comment_readers))),
+       (lazy
+          (!!(role.message_readers_evennotmoderated)
+           >>= fun message_readers_evennotmoderated ->
+           !!(role.comment_readers_evennotmoderated)
+           >>= fun comment_readers_evennotmoderated ->
+           Lwt.return
+             ((first_msg && message_readers_evennotmoderated)
+              || (not first_msg && comment_readers_evennotmoderated)))))
+  in
+  mod_reader >>= fun mod_reader ->
+  if not mod_reader
   then Lwt.return false
   else 
-    if not m.m_moderated
-    then begin
-      !!(role.message_readers_evennotmoderated)
-      >>= fun message_readers_evennotmoderated ->
-      !!(role.comment_readers_evennotmoderated)
-      >>= fun comment_readers_evennotmoderated ->
-      Lwt.return
-        ((first_msg && message_readers_evennotmoderated)
-         || (not first_msg && comment_readers_evennotmoderated))
-    end
-    else Lwt.return true
+    if m.m_moderated
+    then Lwt.return true
+    else !!notmod_reader
 
 
 let get_message ~sp ~message_id =
@@ -148,7 +185,7 @@ let get_message ~sp ~message_id =
   Forum_sql.get_forum ~forum:m.m_forum () >>= fun _ ->
   (* get_forum only to verify that the forum is not deleted? *)
   Forum.get_role sp m.m_forum >>= fun role ->
-  can_read_message m role >>= fun b ->
+  can_read_message ~sp m role >>= fun b ->
   if b
   then Lwt.return m
   else Lwt.fail Ocsimore_common.Permission_denied
@@ -165,10 +202,38 @@ let get_thread ~sp ~message_id =
         (* get_forum only to verify that the forum is not deleted *)
         Forum.get_role sp m.m_forum >>= fun role ->
         let first_msg = m.m_parent_id = None in
-        !!(role.moderated_message_readers) >>= fun moderated_message_readers ->
-        !!(role.moderated_comment_readers) >>= fun moderated_comment_readers ->
-        !!(role.message_readers_evennotmoderated) >>= fun message_readers_evennotmoderated ->
-        !!(role.comment_readers_evennotmoderated) >>= fun comment_readers_evennotmoderated ->
+        !!(m.m_has_special_rights) >>= fun has_special_rights ->
+
+        let (moderated_message_readers, 
+             moderated_comment_readers,
+             message_readers_evennotmoderated, 
+             comment_readers_evennotmoderated) =
+          if has_special_rights
+          then
+            let rm = 
+              lazy (User.in_group
+                      ~sp 
+                      ~group:(Forum.thread_moderated_readers $ m.m_root_id) ())
+            in
+            let rnm =
+              lazy 
+                (User.in_group
+                   ~sp 
+                   ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id)
+                   ())
+            in
+            (rm, rm, rnm,rnm)
+          else
+            (role.moderated_message_readers,
+             role.moderated_comment_readers,
+             role.message_readers_evennotmoderated,
+             role.comment_readers_evennotmoderated)
+        in
+
+        !!moderated_message_readers >>= fun moderated_message_readers ->
+        !!moderated_comment_readers >>= fun moderated_comment_readers ->
+        !!message_readers_evennotmoderated >>= fun message_readers_evennotmoderated ->
+        !!comment_readers_evennotmoderated >>= fun comment_readers_evennotmoderated ->
 
         let comment_filter l =
           let rec aux min = function
@@ -201,6 +266,7 @@ let get_thread ~sp ~message_id =
              else comment_filter th)
         with e -> Lwt.fail e
 
+type raw_message = Forum_sql.Types.raw_message_info
 
 let get_message_list ~sp ~forum ~first ~number () =
   Forum_sql.get_forum ~forum () >>= fun _ ->
@@ -215,3 +281,24 @@ let get_message_list ~sp ~forum ~first ~number () =
     Forum_sql.get_message_list ~forum ~first ~number 
       ~moderated_only:(not message_readers_evennotmoderated) ()
 
+let message_info_of_raw_message ~sp m =
+  let m = Forum_sql.Types.get_message_info m in
+  !!(m.m_has_special_rights) >>= fun has_special_rights ->
+  if not has_special_rights
+  then Lwt.return m
+  else 
+    User.in_group 
+      ~sp ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()
+    >>= fun b ->
+    if b
+    then Lwt.return m
+    else
+      if not m.m_moderated
+      then Lwt.fail Ocsimore_common.Permission_denied
+      else
+        User.in_group 
+          ~sp ~group:(Forum.thread_moderated_readers $ m.m_root_id) ()
+        >>= fun b ->
+        if b
+        then Lwt.return m
+        else Lwt.fail Ocsimore_common.Permission_denied
