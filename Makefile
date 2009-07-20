@@ -34,22 +34,57 @@ TARGETS := ocsimore.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 
+#VVV Faire le tri dans les cmis à installer !!!
 TOINSTALL := files/META \
              _build/ocsimore.cma _build/user_site.cmo _build/ocsisite.cmo \
              _build/wikiperso.cmo \
              _build/announce/announce.cma \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
              _build/forum/forum_site.cmo \
-             _build/user_sql.cmi _build/opaque.cmi _build/wiki_types.cmi \
-             _build/forum/forum_sql.cmi _build/sql.cmi _build/forum/forum.cmi \
-             _build/user.cmi _build/forum/forum_data.cmi \
-             _build/ocsimore_lib.cmi _build/forum/forum_widgets.cmi \
-             _build/wiki_sql.cmi _build/wikicreole.cmi \
-             _build/wiki_widgets_interface.cmi _build/wiki_syntax.cmi \
+             _build/cache.cmi \
+             _build/dyngroups.cmi \
+             _build/language.cmi \
+             _build/ocsimore_common.cmi \
+             _build/ocsimore_lib.cmi \
+             _build/ocsimore_nis.cmi \
+             _build/ocsimore_page.cmi \
+             _build/ocsimore_pam.cmi \
+             _build/ocsisite.cmi \
+             _build/opaque.cmi \
+             _build/parse_config.cmi \
+             _build/sql.cmi \
+             _build/user.cmi \
+             _build/user_data.cmi \
+             _build/user_ext.cmi \
+             _build/user_external_auth.cmi \
+             _build/user_services.cmi \
+             _build/user_site.cmi \
+             _build/user_sql.cmi \
+             _build/user_widgets.cmi \
+             _build/widget.cmi \
+             _build/wiki_client.cmi \
+             _build/wiki.cmi \
+             _build/wikicreole.cmi \
+             _build/wiki_data.cmi \
+             _build/wiki_ext.cmi \
+             _build/wiki_models.cmi \
+             _build/wikiperso.cmi \
              _build/wiki_self_services.cmi \
-             _build/wiki.cmi _build/wiki_models.cmi _build/widget.cmi \
-             _build/ocsimore_common.cmi _build/ocsisite.cmi \
-             _build/ocsimore_page.cmi
+             _build/wiki_services.cmi \
+             _build/wiki_sql.cmi \
+             _build/wiki_syntax.cmi \
+             _build/wiki_types.cmi \
+             _build/wiki_widgets.cmi \
+             _build/wiki_widgets_interface.cmi \
+             _build/xform.cmi \
+             _build/forum/forum_client.cmi \
+             _build/forum/forum.cmi \
+             _build/forum/forum_data.cmi \
+             _build/forum/forum_services.cmi \
+             _build/forum/forum_site.cmi \
+             _build/forum/forum_sql.cmi \
+             _build/forum/forum_widgets.cmi \
+             _build/forum/forum_wikiext.cmi
 
 STATICFILES := static/vm.js static/eliom_obrowser.js \
 	static/ocsimore_client.uue static/ocsiwikistyle.css \
