@@ -112,12 +112,18 @@ let () =
        >>= fun page ->
        wikibox_widget#css_header ~sp ?page:None w
        >>= fun css ->
+       Ocsimore_page.add_admin_pages_header sp;
        Ocsimore_page.html_page ~sp ~css {{ [ page ] }}
     )
 
 (** We register the service that lists all the wikis *)
 let () =  Eliom_duce.Xhtml.register view_wikis
-    (fun sp () () -> wikibox_widget#display_all_wikis sp)
+    (fun sp () () ->
+       wikibox_widget#display_all_wikis sp >>= fun b ->
+       Ocsimore_page.html_page ~sp
+         {{ [ !{: Ocsimore_page.admin_menu ~service:view_wikis sp:}
+              !b ] }}
+    )
 
 
 (** (We create the wiki containing the administration boxes *)
@@ -288,6 +294,10 @@ let staticdir_input ?a staticdir =
   string_input ?a (match staticdir with None -> "" | Some s -> s)
   |> function "" -> None | s -> Some s
 
+let cast_service service sp =
+  Ocsimore_page.admin_menu
+    ~service:(service :> Ocsimore_page.menu_link_service) sp
+
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
       ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~css
       ?err_handler cont =
@@ -296,7 +306,8 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
     Ocsimore_page.html_page ~sp ~title
-      {{ [<h1>(str title)
+      {{ [!{: cast_service service sp :}
+          <h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p>(str err)] }}
               | _ -> {{ [] }}
@@ -382,7 +393,8 @@ let create_wiki =
             and msg = str (Printf.sprintf "You have created wiki %s"
                              (string_of_wiki wid)) in
             Ocsimore_page.html_page ~sp
-              {{ [<h1>title <p>msg !link] }}
+              {{ [ !{: Ocsimore_page.admin_menu ~service:create_wiki sp :}
+                   <h1>title <p>msg !link] }}
          ));
   create_wiki
 
@@ -395,7 +407,8 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
       | Xform.NoError -> "Wiki edition"
       | _ -> "Error" in
     Ocsimore_page.html_page ~sp ~title
-      {{ [<h1>(str title)
+      {{ [!{: cast_service service sp :}
+          <h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p>(str err)] }}
               | _ -> {{ [] }}
@@ -435,7 +448,7 @@ let edit_wiki =
        rights#can_admin_wiki sp wiki >>= function
          | true ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
-               ~service:create_wiki ~arg:() ~sp
+               ~service:view_wikis ~arg:() ~sp
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container
@@ -447,23 +460,18 @@ let edit_wiki =
                     ~staticdir ~container wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
-                  Ocsimore_page.html_page ~sp {{ [<h1>title ] }}
+                  Ocsimore_page.html_page ~sp
+                    {{ [!{: Ocsimore_page.admin_menu ~service:view_wikis sp :}
+                        <h1>title ] }}
                )
          | false ->
              Ocsimore_page.html_page sp
-               {{ [ <h1>"Insufficient permissions"
+               {{ [ !{: Ocsimore_page.admin_menu ~service:view_wikis sp :}
+                    <h1>"Insufficient permissions"
                     <p>"You do not have enough rights to edit this wiki" ] }} );
   edit_wiki
 
 
-(** Administration page *)
-
-let root_page : (Eliom_sessions.server_params -> Xhtmltypes_duce.blocks) ref =
-  ref (fun _sp -> {{ [ <h1>"Ocsimore administration page"] }})
-
-let add_to_root_page (arg : Eliom_sessions.server_params -> Xhtmltypes_duce.blocks) =
-  let old = !root_page in
-  root_page := (fun sp -> {{ {: old sp :} @ (arg sp) }})
 
 
 let admin_root =
@@ -473,110 +481,19 @@ let admin_root =
 
 let () = Eliom_duce.Xhtml.register admin_root
   (fun sp () () ->
-     Ocsimore_page.html_page sp (!root_page sp))
-
-(* Links for users and wikis *)
-let () =
-    add_to_root_page (fun sp ->
-      let link service text =
-        let href = Ocamlduce.Utf8.make
-          (Eliom_duce.Xhtml.make_uri ~sp ~service ())
-        and text = Ocamlduce.Utf8.make text in
-        {{ <a href=href>text }}
-      in
-      let link_login = link User_site.service_login "Login"
-      and link_create_user = match User_site.service_user_creation with
-        | None -> {{ [] }}
-        | Some service -> {{ [ {: link service "Create a new user" :} <br>[]] }}
-      and link_view_groups = link User_site.service_view_groups
-        "View and edit groups or users"
-      and link_create = link create_wiki "Create a new wiki"
-      and link_view_wikis = link view_wikis "View and edit wikis"
-      in
-      {{ [ <h2>"Users"
-           <p>[ link_login <br>[] !link_create_user link_view_groups<br>[] ]
-
-           <h2>"Wikis"
-           <p>[ link_create <br>[] link_view_wikis <br>[] ]
-         ] }})
-
-
-
-(*
-(* Code to migrate from old wikibox ids to uids *)
-let service_update_wikiboxes_uid = Eliom_services.new_service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "update"]
-  ~get_params:Eliom_parameters.unit ()
-
-let () =
-  Eliom_duce.Xhtml.register service_update_wikiboxes_uid
-    (fun sp () () ->
-       let r = ref 0 in
-       let wp = Wiki_models.get_default_wiki_preparser wikicreole_model in
-       Wiki_sql.update
-         (fun wb version content ->
-            Ocsigen_messages.console2 (Printf.sprintf "%d: wb %s, ver %ld%!"
-                                (incr r; !r) (string_of_wikibox wb) version);
-            match content with
-              | None -> Lwt.return None
-              | Some content ->
-                  wp (sp, wb) content >>= fun r -> Lwt.return (Some r)
-         )
-       >>= fun () ->
-       Ocsimore_page.html_page {{ [<p>"Done"] }}
-    )
-
-let () =
-  Wiki_syntax.add_preparser_extension
-    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikibox"
-  (fun (_sp, wb) args c ->
-     Ocsigen_messages.console2 "Wikibox found";
-     (try
-        try
-          Ocsigen_messages.console2 "Changing";
-          let box = Int32.of_string (List.assoc "box" args) in
-          Wiki_sql.wikibox_wiki wb >>= fun wid ->
-          let wid = Wiki_ext.extract_wiki_id args wid in
-          Ocsigen_messages.console2
-            (Printf.sprintf "Changing %ld %s" box (string_of_wiki wid));
-          Wiki_sql.wikibox_new_id wid box >>= fun box' ->
-          Ocsigen_messages.console2
-            (Printf.sprintf "New wikibox %s" (string_of_wikibox box'));
-          let s = (Wiki_syntax.string_of_extension "wikibox"
-                     (("box", string_of_wikibox box') ::
-                        (* We remove the wiki information *)
-                        List.remove_assoc "wiki" (List.remove_assoc "box" args)) c) in
-          Lwt.return (Some s)
-
-        with Not_found ->
-          Ocsigen_messages.console2 "Error?";
-          (* No box, the preparser extension will take care of this
-             case, we do nothing *)
-          Lwt.return None
-      with Failure _ -> Ocsigen_messages.console2 "Error"; Lwt.return None
-        | Not_found -> Ocsigen_messages.console2 "Box not found";
-            Lwt.return None)
+     Ocsimore_page.html_page sp
+       {{ [! {: Ocsimore_page.admin_menu ~service:admin_root sp :}
+          <p>"This is the Ocsimore main admin page. The links above will
+                 help you configure your installation."
+          ]}}
   )
 
+let () = Ocsimore_page.set_root_admin_service admin_root
 
 
-(* Default permissions for the migration to the new permissions system *)
-let _ = Lwt_unix.run
-  (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_title = name} ->
-        User.add_to_group ~user:(basic_user User.anonymous)
-          ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
-        >>= fun () ->
-        User.add_to_group ~user:(basic_user User.anonymous)
-          ~group:(Wiki.wiki_files_readers $ wiki)
-        >>= fun () ->
-        try Scanf.sscanf name "wikiperso for %s"
-          (fun user ->
-             User.get_user_by_name user
-             >>= fun user ->
-             User.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
-          )
-        with Scanf.Scan_failure _ -> Lwt.return ()
+let () = Ocsimore_page.add_to_admin_menu "Wikis" [
+  "Create a new wiki", create_wiki;
+  "View and edit wikis", view_wikis
+]
 
-     ))
-*)
+

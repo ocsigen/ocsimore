@@ -42,10 +42,22 @@ val add_html_header_hook :
   (Eliom_sessions.server_params ->
   {{ [ (Xhtmltypes_duce.link | Xhtmltypes_duce.script)* ] }}) -> unit
 
+(** Simplified version of the function above. The header passed as
+    argument is added when the function returned by [add_html_header_aux]
+    has been called on sp during the session *)
+val add_html_header :
+  (Eliom_sessions.server_params ->
+     {{ [ (Xhtmltypes_duce.link | Xhtmltypes_duce.script)* ] }}) ->
+  (Eliom_sessions.server_params -> unit)
+
 
 (** Function to be called when Obrowser is used inside a page.
     The relevant javascript files will be included *)
 val add_obrowser_header : Eliom_sessions.server_params -> unit
+
+(** Function to be called on admin pages, and which had the
+    relevant css (including for the admin menu) *)
+val add_admin_pages_header : Eliom_sessions.server_params -> unit
 
 
 (** Generic headers for an html page. The arguments [css] is added
@@ -59,3 +71,23 @@ val html_page :
   ?title:string ->
   Xhtmltypes_duce.blocks ->
   Xhtmltypes_duce.html Lwt.t
+
+
+
+type menu_link_service =
+    (Eliom_services.get_service_kind,
+     [ `Registrable ])
+    Eliom_tools_common.one_page
+
+val set_root_admin_service :
+  menu_link_service -> unit
+
+val add_to_admin_menu :
+  name:string ->
+  links:(string * menu_link_service) list ->
+  unit
+
+val admin_menu:
+  ?service:menu_link_service ->
+  Eliom_sessions.server_params ->
+  Xhtmltypes_duce.blocks

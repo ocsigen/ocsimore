@@ -429,7 +429,7 @@ class type virtual interactive_wikibox =
         their properties *)
     method display_all_wikis :
       sp:Eliom_sessions.server_params ->
-      Xhtmltypes_duce.html Lwt.t
+      Xhtmltypes_duce.blocks Lwt.t
 
     (** Display edit form *)
     method draw_edit_form :

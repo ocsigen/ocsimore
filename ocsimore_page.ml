@@ -61,16 +61,28 @@ let add_html_header_hook, headers =
   (fun sp ->
      List.fold_left (fun (head : {{ [ (Xhtmltypes_duce.link | Xhtmltypes_duce.script)* ] }}) f -> {{ head @ {: f sp :} }}) {{ [] }} (List.rev !l))
 
-
-
-(* Functions to add a an header for ocsimore *)
-let add_obrowser_header, must_add_obrowser_header =
+let polytables_aux () =
   let key = Polytables.make_key () in
   (fun sp -> Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
      ~key ~value:true),
   (fun sp ->
      try Polytables.get ~table:(Eliom_sessions.get_request_cache sp) ~key
      with Not_found -> false)
+
+
+let add_obrowser_header, must_add_obrowser_header = polytables_aux ()
+
+let add_html_header header =
+  let f1, f2 = polytables_aux () in
+  add_html_header_hook (fun sp -> if f2 sp then (header sp) else {{ [] }});
+  f1
+
+let add_admin_pages_header = add_html_header
+  (fun sp ->
+     {{ [ {: Eliom_duce.Xhtml.css_link
+             (static_file_uri sp ["ocsiadmin.css"]) () :}
+        ] }})
+
 
 (* Function generating the Ocsimore header *)
 let () =
@@ -110,3 +122,42 @@ let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content
         <body id="body" class={: classes :}>content
       ]
     }}
+
+
+
+
+(** Admin page *)
+
+
+let root_service = ref None
+
+let set_root_admin_service service =
+  root_service := Some service
+
+
+open Eliom_tools_common
+
+type menu_link_service =
+    (Eliom_services.get_service_kind, [ `Registrable ])
+    Eliom_tools_common.one_page
+
+let admin_menu = ref []
+
+let menu_link (text, service) =
+  (Ocamlduce.Utf8.make text, Site_tree (Main_page service, []))
+
+let add_to_admin_menu ~name ~links =
+  admin_menu :=
+    ({{ [ <span class="admin-menu-root">{{ Ocamlduce.Utf8.make name }} ] }},
+     Site_tree (Not_clickable, List.map menu_link links))
+  :: !admin_menu
+
+let admin_menu ?service sp =
+  match !root_service with
+    | None -> failwith "Ocsimore_admin_menu: no root service registered"
+    | Some s ->
+        let menu = Main_page s, !admin_menu in
+        add_admin_pages_header sp;
+        {{ [ !{{ Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
+                  ~whole_tree:true menu ?service ~sp }}
+             <div id="after-admin-menu">[] ] }}

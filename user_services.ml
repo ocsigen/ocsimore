@@ -159,6 +159,11 @@ let services ~external_auth ~force_secure =
     ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
     ~get_params:(Eliom_parameters.unit) ()
 
+  and service_login = Eliom_services.new_service
+    ~https:force_secure
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
+    ~get_params:Eliom_parameters.unit
+    ()
 
   in (
     action_login,
@@ -169,7 +174,8 @@ let services ~external_auth ~force_secure =
     action_add_remove_users_from_group,
     action_add_remove_user_from_groups,
     service_view_group,
-    service_view_groups
+    service_view_groups,
+    service_login
   )
 
 

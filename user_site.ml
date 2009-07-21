@@ -110,7 +110,8 @@ let (
     action_add_remove_users_from_group,
     action_add_remove_user_from_groups,
     service_view_group,
-    service_view_groups
+    service_view_groups,
+    service_login
   as user_services) =
   User_services.services ~external_auth ~force_secure
 
@@ -132,21 +133,27 @@ let user_widget, service_user_creation =
 
         (* We register the services above *)
         Eliom_duce.Xhtml.register ~service:service_create_new_user
-          (fun sp () () -> user_widget_creation#display_user_creation
-             ~err:"" ~sp);
+          (fun sp () () ->
+             user_widget_creation#display_user_creation ~err:"" ~sp
+             >>= fun body ->
+             Ocsimore_page.html_page sp
+               {{ [ !{{ Ocsimore_page.admin_menu
+                        ~service:service_create_new_user sp }}
+                    !body ] }}
+          );
+
         Eliom_duce.Xhtml.register ~service:action_create_new_user
-          user_widget_creation#display_user_creation_done;
+          (fun sp () args ->
+             user_widget_creation#display_user_creation_done sp () args
+             >>= fun body ->
+             Ocsimore_page.html_page sp
+               {{ [ !{{ Ocsimore_page.admin_menu
+                        ~service:service_create_new_user sp }}
+                    !body ] }}
+          );
 
         (user_widget_creation :> User_widgets.user_widget),
         Some service_create_new_user
-
-
-(* This service is provided as a commodity to the admin *)
-let service_login = Eliom_services.new_service
-  ~https:force_secure
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
-  ~get_params:Eliom_parameters.unit
-  ()
 
 
 let () =
@@ -161,18 +168,39 @@ let () =
        user_widget#display_edit_user_data_done sp args);
 
   Eliom_duce.Xhtml.register service_view_group
-    (fun sp g () -> user_widget#display_group ~sp g);
+    (fun sp g () ->
+       user_widget#display_group ~sp g >>= fun body ->
+       Ocsimore_page.html_page sp
+         {{ [ !{: Ocsimore_page.admin_menu ~service:service_view_groups sp :}
+              !body ] }}
+    );
 
   Eliom_duce.Xhtml.register service_view_groups
-    (fun sp () () -> user_widget#display_all_groups ~sp);
+    (fun sp () () ->
+       user_widget#display_all_groups ~sp >>= fun body ->
+       Ocsimore_page.html_page sp
+         {{ [ !{: Ocsimore_page.admin_menu ~service:service_view_groups sp :}
+              !body ] }}
+);
 
   Eliom_duce.Xhtml.register service_login
     (fun sp () () ->
-       user_widget#display_login_widget ~sp () >>= fun lb ->
-       Ocsimore_page.html_page ~sp {{ [ lb ] }}
+       user_widget#display_login_widget ~sp () >>= fun body ->
+       Ocsimore_page.html_page sp
+         {{ [ !{{ Ocsimore_page.admin_menu ~service:service_login sp }}
+              body ] }}
     );
 
   (* We register the syntax extensions *)
   User_ext.register_user_extensions user_widget
 
 
+
+let () = Ocsimore_page.add_to_admin_menu "Users"
+  (["Login", service_login;
+    "View and edit groups or users", service_view_groups
+   ] @
+     (match service_user_creation with
+        | None -> []
+        | Some service -> ["Create a new user", service])
+  )

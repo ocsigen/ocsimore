@@ -1,0 +1,51 @@
+/* Admin menu and pages */
+
+h1, h2, h3, h4 {
+  color: #3860AA;
+}
+
+* {
+  color: #18408A;
+}
+
+#admin_menu li.eliomtools_current > a {
+  color: red;
+}
+
+#admin_menu a, #admin_menu a:visited {
+  color: #3860AA;
+}
+
+#admin_menu > li > ul {
+    padding-top:10px;
+    padding-left: 10px;
+}
+
+span.admin-menu-root {
+    margin-bottom: 20px;
+}
+
+#admin_menu > li {
+  display: block;
+  float: left;
+  margin: 10px;
+  padding: 10px;
+  background-color: #D0D9EB;
+  color: #3860AA;
+  font-weight: bold;
+}
+
+#admin_menu > li > ul > li {
+    list-style: none;
+    font-size: 80%;
+}
+
+
+#admin_menu {
+    padding: 0;
+}
+
+
+#after-admin-menu {
+clear: both;
+}

@@ -48,7 +48,8 @@ class user_widget ~force_secure
     action_add_remove_users_from_group,
     action_add_remove_user_from_groups,
     service_view_group,
-    service_view_groups
+    service_view_groups,
+    service_login
   ) =
 object (self)
 
@@ -221,10 +222,10 @@ object (self)
 
   method display_group ~sp g =
     User.get_user_by_name g  >>= fun group ->
-    (if group = basic_user User.nobody && g <> User.nobody_login then
+    if group = basic_user User.nobody && g <> User.nobody_login then
        let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
        Lwt.return {{ [<p>msg] }}
-     else
+    else
        let error = match Ocsimore_common.get_action_failure sp with
          | None -> {{ [] }}
          | Some e -> (* YYY add error handler somewhere *)
@@ -287,8 +288,6 @@ object (self)
          ~service:action_add_remove_user_from_groups ~sp form ()
        in
        Lwt.return {{ [ !error !head f1 f2 ] }}
-    ) >>= fun body ->
-    Ocsimore_page.html_page sp {{ body }}
 
 
   method display_all_groups ~sp =
@@ -341,11 +340,11 @@ object (self)
     and title2 = Ocamlduce.Utf8.make "Groups"
     and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it \
                     (including its parameter if needed) below" in
-    Ocsimore_page.html_page sp
-      {{ [ <p>[<b>title1]               t2
+    Lwt.return
+      ({{ [ <p>[<b>title1]               t2
            <p>[<b>title2 <br>[] !msg2 ] t1
            f
-         ] }}
+       ] }} : Xhtmltypes_duce.blocks)
 
 end
 
@@ -367,8 +366,8 @@ object (self)
   method display_user_creation ?(err="") ~sp =
     User_data.can_create_user ~sp ~options:user_creation_options >>= function
       | true ->
-          Ocsimore_page.html_page sp
-            {{ [<h1>"Registration form"
+          Lwt.return
+            ({{ [<h1>"Registration form"
                  <p>['Please fill in the following fields.' <br>[]
                      'Be very careful to enter a valid e-mail address, \
                        as the password for logging in will be sent there.']
@@ -393,18 +392,17 @@ object (self)
                               ]]] }})
                     () :}
                  <p>[<strong>{: err :}]]
-             }}
+             }} : Xhtmltypes_duce.blocks)
       | false ->
-          Ocsimore_page.html_page sp {{ [
-                      <h1>"Error"
-                      <p>"Only admin can create new users" ] }}
+          Lwt.return {{ [ <h1>"Error"
+                          <p>"Your are not allowed to create new users" ] }}
 
   method display_user_creation_done sp () (name, (fullname, email)) =
     Lwt.catch
       (fun () ->
          User_data.create_user ~sp ~name ~fullname ~email
            ~options:user_creation_options >>= fun () ->
-         Ocsimore_page.html_page sp
+         Lwt.return
            {{ [<h1>"Registration ok."
                 <p>[!"You\'ll soon receive an e-mail message at the \
                        following address:" <br>[]
@@ -414,8 +412,7 @@ object (self)
       (function
          | Failure err -> self#display_user_creation ~err ~sp
          | Ocsimore_common.Permission_denied ->
-             Ocsimore_page.html_page sp {{ [
-                      <h1>"Error"
-                      <p>"Only admin can create new users" ] }}
+             Lwt.return {{ [ <h1>"Error"
+                             <p>"Only admin can create new users" ] }}
          | e -> Lwt.fail e)
 end
