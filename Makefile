@@ -143,9 +143,11 @@ install:
 	mkdir -p /var/lib/ocsimore
 	chown $(USER):$(GROUP) /var/lib/ocsimore
 	chown $(USER):$(GROUP) /var/log/ocsimore
-	$(OCAMLFIND) install ocsimore $(TOINSTALL)
-	if [ $(PAM) = YES ]; then \
-		$(OCAMLFIND) install ocsimore $(PAMTOINSTALL); fi
+	if [ $(PAM) = YES ] ; then \
+		$(OCAMLFIND) install ocsimore $(TOINSTALL) $(PAMTOINSTALL) ; \
+	else \
+		$(OCAMLFIND) install ocsimore $(TOINSTALL) ; \
+	fi
 	cp -f ocsimore.conf /etc/ocsigen/ocsimore.conf.sample
 	chmod a+r /etc/ocsigen/ocsimore.conf.sample
 	[ -f /etc/ocsigen/ocsimore.conf ] || \
