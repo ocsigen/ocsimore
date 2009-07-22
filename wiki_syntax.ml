@@ -340,15 +340,18 @@ type 'res wikicreole_parser = {
     plugin_hash;
 }
 
+let default_plugin = (fun (name : string) ->
+                        (true,
+                         (fun _ args content ->
+                            Wikicreole.A_content 
+                              (let s = string_of_extension name args content in
+                               Lwt.return {{ {: s :} }}))
+                        )
+                     )
+
 let plugin_function parser name =
   try Hashtbl.find parser.plugin_assoc name
-  with Not_found ->
-    (false,
-     (fun _ _ _ ->
-        Wikicreole.A_content
-          (Lwt.return
-             {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
-                             !{: name :} ] ] ] }})))
+  with Not_found -> default_plugin name
 
 let builder_from_wikicreole_parser parser =
   { parser.builder with
@@ -669,14 +672,7 @@ let table_elem =
 let inline = (fun x -> (x : Xhtmltypes_duce.a_contents Lwt.t
                         :> Xhtmltypes_duce.inlines Lwt.t))
 
-let plugin = (fun (name : string) ->
-                (false,
-                 (fun _ _ _ ->
-                    Wikicreole.A_content 
-                      (Lwt.return
-                         {{ [ <b>[<i>[ 'Wiki error: Unknown extension '
-                                         !{: name :} ] ] ] }})))
-             )
+let plugin = default_plugin
 
 let plugin_action = (fun _ _ _ _ _ _ -> ())
 

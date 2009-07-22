@@ -804,9 +804,8 @@ and parse_extension start name wiki_content args c =
     parse
     | '|' {
         if wiki_content
-        then ((parse_extension_content_wiki start 0 false name "" c lexbuf),
-              args)
-        else ((parse_extension_content_nowiki start name "" c lexbuf), args)
+        then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
+        else ((parse_extension_content_nowiki start "" c lexbuf), args)
       }
     | (">>" | eof) {
         (None, args)
@@ -824,81 +823,91 @@ and parse_extension start name wiki_content args c =
           ((arg_name, arg_value)::args) c lexbuf
       }
     | _ {
-        ignore (if wiki_content
-                then ((parse_extension_content_wiki 
-                         start 0 false name "" c lexbuf), args)
-                else ((parse_extension_content_nowiki
-                         start name "" c lexbuf), args));
+        ignore 
+          (if wiki_content
+           then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
+           else ((parse_extension_content_nowiki start "" c lexbuf), args));
         (Some ("Syntax error in extension "^name), args)
       }
 
-and parse_extension_content_wiki start lev nowiki name beg c =
+and parse_extension_content_wiki start lev nowiki beg c =
     parse
-        '~' (('<' | '>' | '~') as ch) {
+      | '~' (('<' | '>' | '~') as ch) {
           parse_extension_content_wiki
-            start lev nowiki name (beg^"~"^(String.make 1 ch)) c lexbuf
+            start lev nowiki (beg^"~"^(String.make 1 ch)) c lexbuf
         }
-      | "<<" {
+      | "<<" ((not_line_break # white_space) # ['|' '>']) * {
+          let s = Lexing.lexeme lexbuf in
           if nowiki
           then
             parse_extension_content_wiki
-              start lev nowiki name (beg^"<<") c lexbuf
+              start lev nowiki (beg^s) c lexbuf
           else
-            parse_extension_content_wiki
-              start (lev+1) nowiki name (beg^"<<") c lexbuf
+            let l = String.length s in
+            let name = String.sub s 2 (l - 2) in
+            let (wiki_content, _) = c.build.plugin name in
+            if wiki_content
+            then
+              parse_extension_content_wiki
+                start (lev+1) false (beg^s) c lexbuf
+            else
+              let s =
+                match
+                  parse_extension_content_nowiki start (beg^s) c lexbuf
+                with None -> ">>"
+                  | Some s -> s^">>"
+              in 
+              parse_extension_content_wiki start lev false s c lexbuf
         }
       | "{{{" {
           parse_extension_content_wiki
-            start lev true name (beg^"{{{") c lexbuf
+            start lev true (beg^"{{{") c lexbuf
         }
       | "}}}" {
 (*VVV Warning: not quotable! *)
-          parse_extension_content_wiki
-            start lev false name (beg^"}}}") c lexbuf
+          parse_extension_content_wiki start lev false (beg^"}}}") c lexbuf
         }
       | (">>" | eof) {
           if nowiki
           then 
-            parse_extension_content_wiki
-              start lev nowiki name (beg^">>") c lexbuf
+            parse_extension_content_wiki start lev nowiki (beg^">>") c lexbuf
           else
             if lev>0
             then
               parse_extension_content_wiki
-                start (lev-1) nowiki name (beg^">>") c lexbuf
+                start (lev-1) nowiki (beg^">>") c lexbuf
             else Some beg
         }
       | [^ '~' '>' '<' '{' '}' ]+ {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_wiki start lev nowiki name (beg^s) c lexbuf
+          parse_extension_content_wiki start lev nowiki (beg^s) c lexbuf
         }
       | [ '>' '<' '~' '{' '}' ] {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_wiki start lev nowiki name (beg^s) c lexbuf
+          parse_extension_content_wiki start lev nowiki (beg^s) c lexbuf
         }
       | _ {
           Ocsigen_messages.warning
-            ("Wikicreole: Unrecognized char in extension "^
+            ("Wikicreole: Unrecognized char in extension: "^
                (Lexing.lexeme lexbuf)^".");
           raise Unrecognized_char
         }
 
-and parse_extension_content_nowiki start name beg c =
+and parse_extension_content_nowiki start beg c =
     parse
       | ("~>>" | eof) {
-          parse_extension_content_nowiki
-            start name (beg^">>") c lexbuf
+          parse_extension_content_nowiki start (beg^">>") c lexbuf
         }
       | (">>" | eof) {
           Some beg
         }
       | [^ '~' '>' ]+ {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_nowiki start name (beg^s) c lexbuf
+          parse_extension_content_nowiki start (beg^s) c lexbuf
         }
       | [ '>' '~' ] {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_nowiki start name (beg^s) c lexbuf
+          parse_extension_content_nowiki start (beg^s) c lexbuf
         }
       | _ {
           Ocsigen_messages.warning

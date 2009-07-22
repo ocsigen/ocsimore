@@ -38,8 +38,10 @@ type 'res syntax_extension =
 type 'res wikicreole_parser
 
 
-(** Add a syntax extension to an existing syntax parser
-    XXX Document better *)
+(** Add a syntax extension to an existing syntax parser.
+    If [wiki_content] is [true], it means that your extension
+    may contain wikisyntax after "|" (that will be preparsed).
+*)
 val add_extension :
   wp:'res wikicreole_parser ->
   name:string ->
