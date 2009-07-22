@@ -656,8 +656,10 @@ and parse_rem c =
       parse_rem c lexbuf
     }
   | '|' white_space* (line_break | eof) {
-      if not (close_row c) then
-        push_chars c lexbuf;
+      (match c.stack with
+         | Entry _ | Row _ | Table _ -> ()
+             (* we skip ending | if in table row *)
+         | _ -> push_chars c lexbuf);
       parse_bol c lexbuf
     }
   | '|' (("@@" ?) as att) {
