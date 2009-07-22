@@ -187,7 +187,6 @@ object (self)
     and delete = preapply action_delete_wikibox wb
     and edit_wikibox_perm = preapply action_edit_wikibox_permissions wb
     and view = Eliom_services.void_coservice' in
-    Ocsimore_page.add_obrowser_header sp;
     (match special_box with
        | WikiPageBox (w, page) -> (* Edition of the css for page [page] *)
            (Wiki_sql.get_css_wikibox_for_wikipage w page >>= function
@@ -313,11 +312,12 @@ object (self)
     in
     let menudel = 
       if wbdel
-      then
+      then (
+        Ocsimore_page.add_obrowser_header sp;
         let link = Eliom_duce.Xhtml.make_string_uri ~service:delete ~sp () in
         {{ [<a class="jslink"
                onclick={: "caml_run_from_table(main_vm, 777, "
-                        ^Eliom_obrowser.jsmarshal (link, html_id_wikibox)^")" :}>"delete"] }}
+                        ^Eliom_obrowser.jsmarshal (link, html_id_wikibox)^")" :}>"delete"] }})
       else {{[]}}
     in
     let title = Ocamlduce.Utf8.make title in

@@ -274,10 +274,11 @@ let register_wikibox_syntax_extensions
                       ++ atts )>[] ] }})
     );
 
-  let f = (fun _wp _bi args _ ->
+  let f = (fun _wp bi args _ ->
        Wikicreole.A_content
          (let id = Eliom_obrowser.fresh_id () in
           let atts = Wiki_syntax.parse_common_attribs args in
+          Ocsimore_page.add_obrowser_header bi.bi_sp;
           Lwt.return
             {{ [ <span>[<a ({id={: id :} class="shownmenus jslink btmenu"
                    onclick={: "caml_run_from_table(main_vm, 778, "
