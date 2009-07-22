@@ -309,7 +309,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
       {{ [!{: cast_service service sp :}
           <h1>(str title)
           !{: match error with
-              | Xform.ErrorMsg err -> {{[<p>(str err)] }}
+              | Xform.ErrorMsg err -> {{[<p class="errmsg">(str err)] }}
               | _ -> {{ [] }}
           :}
           form] }}
@@ -346,7 +346,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
 let create_wiki =
   let err_handler = function
     | Wiki.Wiki_already_registered_at_path ((_, descr), _) ->
-        Some (Printf.sprintf "The wiki '%s' is already registered at this path"
+        Some (Printf.sprintf "The wiki '%s' is already registered at the given url."
                 descr)
     | Wiki.Wiki_with_same_title _ ->
         Some "A wiki with this title already exists"
@@ -359,43 +359,53 @@ let create_wiki =
       ~get_params:Eliom_parameters.unit () in
   Eliom_duce.Xhtml.register create_wiki
     (fun sp () () ->
-       User.get_user_name sp >>= fun u ->
-       create_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
-         ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true ~staticdir:None
-         ~admins:[u] ~readers:[User.anonymous_login]
-         ~container:Wiki.default_container_page ~css:""
-         ~err_handler
-         (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (css, _button))))))))) sp ->
-            let path = match path with
-              | None -> None
-              | Some p -> Some (Neturl.split_path p)
-            in
-            Wiki_data.create_wiki ~sp ~title ~descr ?path ~boxrights ?staticdir
-              ~admins ~readers ~wiki_css:css ~container_text:container
-              ~model:wikicreole_model ~rights:wiki_rights ()
-            >>= fun wid ->
-            let link = match path with
-              | None -> {{ [] }}
-              | Some path ->
-                  Wiki_services.register_wiki ~rights:wiki_rights
-                    ~sp ~path ~wiki:wid ();
-                  match Wiki_self_services.find_servpage wid with
-                    | None -> (* should never happen, but this is not
-                                 really important *) {{ [] }}
-                    | Some service ->
-                        let link = Eliom_duce.Xhtml.a
-                          ~sp ~service {{ "root page" }} [] in
-                        let msg1 = str "you can go the "
-                        and msg2 = str " of this wiki." in
-                        {{ [<p>[ !msg1 link !msg2 ]] }}
-            in
-            let title = str "Wiki sucessfully created"
-            and msg = str (Printf.sprintf "You have created wiki %s"
-                             (string_of_wiki wid)) in
-            Ocsimore_page.html_page ~sp
-              {{ [ !{: Ocsimore_page.admin_menu ~service:create_wiki sp :}
-                   <h1>title <p>msg !link] }}
-         ));
+       wiki_rights#can_create_wiki ~sp () >>= function
+         | true ->
+             User.get_user_name sp >>= fun u ->
+             create_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
+               ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
+               ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
+               ~container:Wiki.default_container_page ~css:""
+               ~err_handler
+               (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (css, _button))))))))) sp ->
+                  let path = match path with
+                    | None -> None
+                    | Some p -> Some (Neturl.split_path p)
+                  in
+                  Wiki_data.create_wiki ~sp ~title ~descr ?path ~boxrights
+                    ?staticdir ~admins ~readers ~wiki_css:css
+                    ~container_text:container ~model:wikicreole_model
+                    ~rights:wiki_rights ()
+                  >>= fun wid ->
+                  let link = match path with
+                    | None -> {{ [] }}
+                    | Some path ->
+                        Wiki_services.register_wiki ~rights:wiki_rights
+                          ~sp ~path ~wiki:wid ();
+                        match Wiki_self_services.find_servpage wid with
+                          | None -> (* should never happen, but this is not
+                                       really important *) {{ [] }}
+                          | Some service ->
+                              let link = Eliom_duce.Xhtml.a
+                                ~sp ~service {{ "root page" }} [] in
+                              let msg1 = str "you can go the "
+                              and msg2 = str " of this wiki." in
+                              {{ [<p>[ !msg1 link !msg2 ]] }}
+                  in
+                  let title = str "Wiki sucessfully created"
+                  and msg = str (Printf.sprintf "You have created wiki %s"
+                                   (string_of_wiki wid)) in
+                  Ocsimore_page.html_page ~sp
+                    {{ [ !{: Ocsimore_page.admin_menu ~service:create_wiki sp :}
+                         <h1>title <p>msg !link] }}
+               )
+         | false ->
+             Ocsimore_page.html_page ~sp
+               {{ [ !{: Ocsimore_page.admin_menu ~service:create_wiki sp :}
+                    <p>"You are not allowed to create wikis. If you have not \
+                        already done so, try to login."
+                  ] }}
+    );
   create_wiki
 
 
@@ -410,7 +420,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
       {{ [!{: cast_service service sp :}
           <h1>(str title)
           !{: match error with
-              | Xform.ErrorMsg err -> {{[<p>(str err)] }}
+              | Xform.ErrorMsg err -> {{[<p class="errmsg">(str err)] }}
               | _ -> {{ [] }}
           :}
           form] }}

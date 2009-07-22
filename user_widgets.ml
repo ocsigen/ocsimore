@@ -68,7 +68,8 @@ object (self)
       let auth_error = Ocamlduce.Utf8.make auth_error in
       self#login_box_extension ~sp >>= fun ext ->
       Lwt.return (fun (usr, pwd) ->
-        {{ [<table>[
+        {{ [<h1>"Login page"
+               <table>[
                <tr>[<td>user_prompt
                     <td>[{: str_input usr :}]]
                <tr>[<td>pwd_prompt
