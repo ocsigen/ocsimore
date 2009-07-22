@@ -156,7 +156,7 @@ let admin_menu ?service sp =
   match !root_service with
     | None -> failwith "Ocsimore_admin_menu: no root service registered"
     | Some s ->
-        let menu = Main_page s, !admin_menu in
+        let menu = Main_page s, List.rev !admin_menu in
         add_admin_pages_header sp;
         {{ [ !{{ Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
                   ~whole_tree:true menu ?service ~sp }}

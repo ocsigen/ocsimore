@@ -220,6 +220,10 @@ object (self)
        | e -> Lwt.fail e
       )
 
+  method group_link ~sp group =
+    Eliom_duce.Xhtml.a  ~service:service_view_group ~sp
+      {: Ocamlduce.Utf8.make group :}  group
+
 
   method display_group ~sp g =
     User.get_user_by_name g  >>= fun group ->
@@ -235,10 +239,10 @@ object (self)
                    "Unable to perform operation, insufficient rights"
                | Failure s -> s
                | User.UnknownUser u ->
-                   "Unknown user '" ^ u ^ "'"
+                   "Unknown user/group '" ^ u ^ "'"
                | _ -> "Error"
              in
-             {{ [<h2>[<em>{:msg:}]] }}
+             {{ [<p class="errmsg">{:msg:}] }}
        in
 
        User.get_user_data sp >>= fun user ->
