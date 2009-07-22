@@ -805,7 +805,7 @@ and parse_extension start name wiki_content args c =
     | '|' {
         if wiki_content
         then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
-        else ((parse_extension_content_nowiki start "" c lexbuf), args)
+        else ((parse_extension_content_nowiki start true "" c lexbuf), args)
       }
     | (">>" | eof) {
         (None, args)
@@ -826,7 +826,8 @@ and parse_extension start name wiki_content args c =
         ignore 
           (if wiki_content
            then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
-           else ((parse_extension_content_nowiki start "" c lexbuf), args));
+           else 
+             ((parse_extension_content_nowiki start true "" c lexbuf), args));
         (Some ("Syntax error in extension "^name), args)
       }
 
@@ -844,20 +845,18 @@ and parse_extension_content_wiki start lev nowiki beg c =
             let l = String.length s in
             let name = String.sub s 2 (l - 2) in
             let (wiki_content, _) = c.build.plugin name in
-            match
-              if wiki_content
-              then
-                parse_extension_content_wiki
-                  start (lev+1) false (beg^s) c lexbuf
-              else
-                let s =
-                  match
-                    parse_extension_content_nowiki start (beg^s) c lexbuf
-                  with None -> ">>"
-                    | Some s -> s^">>"
-                in 
-                parse_extension_content_wiki start lev false s c lexbuf
-            with None -> Some ">>" | Some s -> Some (s^">>")
+            if wiki_content
+            then
+              parse_extension_content_wiki
+                start (lev+1) false (beg^s) c lexbuf
+            else
+              let s =
+                match
+                  parse_extension_content_nowiki start false (beg^s) c lexbuf
+                with None -> ">>"
+                  | Some s -> s^">>"
+              in 
+              parse_extension_content_wiki start lev false s c lexbuf
         }
       | "{{{" {
           parse_extension_content_wiki
@@ -893,21 +892,22 @@ and parse_extension_content_wiki start lev nowiki beg c =
           raise Unrecognized_char
         }
 
-and parse_extension_content_nowiki start beg c =
+and parse_extension_content_nowiki start unquote beg c =
     parse
-      | ("~>>" | eof) {
-          parse_extension_content_nowiki start (beg^">>") c lexbuf
+      | "~>>" {
+          let s = if unquote then ">>" else "~>>" in
+          parse_extension_content_nowiki start unquote (beg^s) c lexbuf
         }
       | (">>" | eof) {
           Some beg
         }
       | [^ '~' '>' ]+ {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_nowiki start (beg^s) c lexbuf
+          parse_extension_content_nowiki start unquote (beg^s) c lexbuf
         }
       | [ '>' '~' ] {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_nowiki start (beg^s) c lexbuf
+          parse_extension_content_nowiki start unquote (beg^s) c lexbuf
         }
       | _ {
           Ocsigen_messages.warning
