@@ -49,3 +49,8 @@ span.admin-menu-root {
 #after-admin-menu {
 clear: both;
 }
+
+.errmsg {
+    color: red;
+    font-weight: bold;
+}
