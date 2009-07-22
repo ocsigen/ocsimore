@@ -66,6 +66,7 @@ let (
     action_edit_wiki_permissions,
     action_wikibox_history,
     action_css_history,
+    action_css_permissions,
     action_old_wikibox,
     action_old_wikiboxcss,
     action_src_wikibox,

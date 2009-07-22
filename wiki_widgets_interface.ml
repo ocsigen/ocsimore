@@ -63,6 +63,9 @@ type wikibox_override =
   (** History of a css *)
   | CssHistory of css_wikibox
 
+  (** Edition of the permissions of a css *)
+  | CssPermissions of css_wikibox
+
   (** Old version of a wikibox *)
   | CssOldversion of css_wikibox * int32
 
@@ -217,6 +220,7 @@ type menu_item =
   | Menu_History
   | Menu_View
   | Menu_HistoryCss
+  | Menu_PermissionsCss
   | Menu_EditCss
 
 (** Argument passed to the function building the interactive menu on top

@@ -142,6 +142,7 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     action_edit_wiki_permissions,
     action_wikibox_history,
     action_css_history,
+    action_css_permissions,
     action_old_wikibox,
     action_old_wikiboxcss,
     action_src_wikibox,
@@ -192,30 +193,34 @@ object (self)
            (Wiki_sql.get_css_wikibox_for_wikipage w page >>= function
               | None ->
                   (bi.bi_rights#can_create_wikipagecss ~sp (w, page) >>= function
-                     | false -> Lwt.return (None, None, None)
+                     | false -> Lwt.return (None, None, None, None)
                      | true ->
                          let create=preapply action_create_css (w,Some page) in
-                         Lwt.return (None, None,
-                                    Some (create, {{ "create wikipage css" }}))
+                         Lwt.return (None, None, None,
+                                    Some (create, {{ "create wikipagecss" }}))
                   )
               | Some wbcss ->
                   bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
                   bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
+                  bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss
+                  >>= fun cssperm ->
                   let wbcss = ((w, Some page), wbcss) in
-                  Lwt.return
-                    ((if csshist
-                      then
-                        let history = 
-                          preapply action_css_history (wb, wbcss) in
-                        Some (history, {{ "page css history" }})
-                      else None),
-                     (if csswr
-                      then
-                        let edit = 
-                          preapply action_edit_css (wb, (wbcss, None)) in
-                        Some (edit, {{ "edit page css" }})
-                      else None),
-                     None
+                  Lwt.return (
+                    (if csshist then
+                       let history =
+                         preapply action_css_history (wb, wbcss) in
+                       Some (history, {{ "page css history" }})
+                     else None),
+                    (if csswr then
+                       let edit =
+                         preapply action_edit_css (wb, (wbcss, None)) in
+                       Some (edit, {{ "edit page css" }})
+                     else None),
+                    (if cssperm then
+                       let perm = preapply action_css_permissions (wb, wbcss) in
+                       Some (perm, {{ "edit page css permissions" }})
+                     else None),
+                    None
                     )
            )
 
@@ -223,38 +228,41 @@ object (self)
            (Wiki_sql.get_css_wikibox_for_wiki w >>= function
               | None ->
                   (bi.bi_rights#can_create_wikicss ~sp w >>= function
-                     | false -> Lwt.return (None, None, None)
+                     | false -> Lwt.return (None, None, None, None)
                      | true ->
-                         let create = 
-                           preapply action_create_css (w, None) 
-                         in
-                         Lwt.return (None, None,
+                         let create = preapply action_create_css (w, None) in
+                         Lwt.return (None, None, None,
                                      Some (create,
                                            {{ "create wiki css" }}))
                   )
               | Some wbcss ->
                   bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
                   bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
+                  bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss
+                  >>= fun cssperm ->
                   let wbcss = ((w, None), wbcss) in
                   Lwt.return
-                    ((if csshist
-                      then
+                    ((if csshist then
                         let history = preapply action_css_history (wb, wbcss) in
                         Some (history, {{ "wiki css history" }})
                       else None),
-                     (if csswr
-                      then 
-                        let edit = 
+                     (if csswr then
+                        let edit =
                           preapply action_edit_css (wb, (wbcss, None)) in
                         Some (edit, {{ "edit wiki css" }})
+                      else None),
+                     (if cssperm then
+                        let perm = preapply action_css_permissions
+                          (wb, wbcss) in
+                        Some (perm, {{ "edit wiki css permissions" }})
                       else None),
                      None
                     )
            )
 
 
-       | RegularBox -> Lwt.return (None, None, None)
-    ) >>= fun (history_css, edit_css, create_css) ->
+       | RegularBox -> Lwt.return (None, None, None, None)
+    ) >>= fun (history_css, edit_css, permissions_css, create_css) ->
     (match special_box with
        | RegularBox | WikiPageBox _ -> Lwt.return None
        | WikiContainerBox w ->
@@ -284,6 +292,10 @@ object (self)
           (match history_css with
              | Some (history_css, _) -> Some history_css
              | None -> None)
+      | Some Menu_PermissionsCss ->
+          (match permissions_css with
+             | Some (permissions_css, _) -> Some permissions_css
+             | None -> None)
     in
     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
     bi.bi_rights#can_delete_wikiboxes ~sp wiki >>= fun wbdel ->
@@ -307,7 +319,7 @@ object (self)
     in
     let l = Ocsimore_lib.concat_list_opt
       [menuedit; menuperm; menuhist;
-       edit_wiki_perms; edit_css; history_css; create_css] 
+       edit_wiki_perms; edit_css; history_css; permissions_css; create_css] 
       []
     in
     let menudel = 
@@ -538,6 +550,10 @@ object (self)
     let title = Printf.sprintf "Permissions - Wikibox %s"
       (string_of_wikibox wb) in
     self#menu_box_aux ~title ~active_item:Menu_EditWikiboxPerms editform_class wb
+  method private menu_edit_css_perms wb (wiki, page) =
+    let title = Printf.sprintf "CSS Permissions - wiki %s, %s"
+      (string_of_wiki wiki) (self#css_wikibox_text page) in
+    self#menu_box_aux ~title ~active_item:Menu_PermissionsCss editform_class wb
 
   method private menu_edit_wiki_perms wb wiki =
     let title = Printf.sprintf "Permissions - Wiki %s" (string_of_wiki wiki) in
@@ -768,6 +784,19 @@ object (self)
                 >>= fun r ->
                 Lwt.return (r, true)
             | false -> display_error ())
+
+      | CssPermissions ((wiki, wikipage), wbcss) ->
+          (bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss >>= function
+            | true ->
+                error_box#bind_or_display_error
+                  ?exn
+                  (Lwt.return wbcss)
+                  (self#display_edit_wikibox_perm_form ~bi ~classes)
+                  (self#menu_edit_css_perms ~bi ?special_box wb_loc
+                     (wiki, wikipage))
+                >>= fun r ->
+                Lwt.return (r, true)
+          | false -> display_error ())
 
       | Oldversion (wb, version) ->
           (bi.bi_rights#can_view_oldversions ~sp wb >>= function

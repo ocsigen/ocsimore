@@ -236,6 +236,12 @@ let make_services () =
        set_override_wikibox ~sp (wb, CssHistory css);
        Lwt.return ())
 
+  and action_css_permissions = Eliom_predefmod.Action.register_new_coservice'
+    ~name:"css_edit_perm" ~get_params:(eliom_wikibox_args ** eliom_css_args)
+    (fun sp (wb, css) () ->
+       set_override_wikibox ~sp (wb, CssPermissions css);
+       Lwt.return ())
+
   and action_old_wikibox = Eliom_predefmod.Action.register_new_coservice'
     ~name:"wiki_old_version"
     ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
@@ -431,6 +437,7 @@ let make_services () =
     action_edit_wiki_permissions,
     action_wikibox_history,
     action_css_history,
+    action_css_permissions,
     action_old_wikibox,
     action_old_wikiboxcss,
     action_src_wikibox,
