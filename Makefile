@@ -50,7 +50,6 @@ TOINSTALL := files/META \
              _build/ocsimore_lib.cmi \
              _build/ocsimore_nis.cmi \
              _build/ocsimore_page.cmi \
-             _build/ocsimore_pam.cmi \
              _build/ocsisite.cmi \
              _build/opaque.cmi \
              _build/parse_config.cmi \
@@ -87,6 +86,9 @@ TOINSTALL := files/META \
              _build/forum/forum_sql.cmi \
              _build/forum/forum_widgets.cmi \
              _build/forum/forum_wikiext.cmi
+
+PAMTOINSTALL := _build/ocsimore_pam.cmi \
+
 
 STATICFILES := static/vm.js static/eliom_obrowser.js \
 	static/ocsimore_client.uue static/ocsiwikistyle.css \
@@ -142,6 +144,8 @@ install:
 	chown $(USER):$(GROUP) /var/lib/ocsimore
 	chown $(USER):$(GROUP) /var/log/ocsimore
 	$(OCAMLFIND) install ocsimore $(TOINSTALL)
+	if [ $(PAM) = YES ]; then \
+		$(OCAMLFIND) install ocsimore $(PAMTOINSTALL); fi
 	cp -f ocsimore.conf /etc/ocsigen/ocsimore.conf.sample
 	chmod a+r /etc/ocsigen/ocsimore.conf.sample
 	[ -f /etc/ocsigen/ocsimore.conf ] || \
