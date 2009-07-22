@@ -735,7 +735,11 @@ and parse_link beg fragment c attribs =
   | '~' not_line_break {
       let s = Lexing.lexeme lexbuf in
       let char = String.sub s 1 1 in
-(*VVV missing: nbsp ... *)
+      let char =
+        if char = "]" || char = "|" || char = "#" || char = "~"
+        then char
+        else "~"^char
+      in
       (* It amounts to the same to quote a UTF-8 char or its first byte *)
        match fragment with
          | None -> parse_link (beg^char) fragment c attribs lexbuf
