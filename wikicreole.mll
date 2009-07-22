@@ -839,25 +839,25 @@ and parse_extension_content_wiki start lev nowiki beg c =
       | "<<" ((not_line_break # white_space) # ['|' '>']) * {
           let s = Lexing.lexeme lexbuf in
           if nowiki
-          then
-            parse_extension_content_wiki
-              start lev nowiki (beg^s) c lexbuf
+          then parse_extension_content_wiki start lev nowiki (beg^s) c lexbuf
           else
             let l = String.length s in
             let name = String.sub s 2 (l - 2) in
             let (wiki_content, _) = c.build.plugin name in
-            if wiki_content
-            then
-              parse_extension_content_wiki
-                start (lev+1) false (beg^s) c lexbuf
-            else
-              let s =
-                match
-                  parse_extension_content_nowiki start (beg^s) c lexbuf
-                with None -> ">>"
-                  | Some s -> s^">>"
-              in 
-              parse_extension_content_wiki start lev false s c lexbuf
+            match
+              if wiki_content
+              then
+                parse_extension_content_wiki
+                  start (lev+1) false (beg^s) c lexbuf
+              else
+                let s =
+                  match
+                    parse_extension_content_nowiki start (beg^s) c lexbuf
+                  with None -> ">>"
+                    | Some s -> s^">>"
+                in 
+                parse_extension_content_wiki start lev false s c lexbuf
+            with None -> Some ">>" | Some s -> Some (s^">>")
         }
       | "{{{" {
           parse_extension_content_wiki
