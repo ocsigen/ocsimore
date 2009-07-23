@@ -502,18 +502,27 @@ object (self)
       "Check this box if you want permissions specific to the wikibox. \
        Otherwise, permissions are inherited from the wiki"
     and msg2 = Ocamlduce.Utf8.make "Below are the current permissions for the
-      wikibox. Check the box above and add users in the fields to change them"
+      wikibox. Add users in the fields to change them"
     in
     (* XXX we probably need to add sane defaults *)
     form uid >>= fun form ->
     let form (nsr, (narg, args)) = {{ [
               <p>[ !msg1
-                   {: Eliom_duce.Xhtml.bool_checkbox ~checked:sr ~name:nsr():}]
-              <p>[ !msg2 ]
-              <p>[ {: arg uid narg :}
-                   !{: form args :} ]
+                   {: Eliom_duce.Xhtml.bool_checkbox
+                      ~a:{{ { id="checkwikiboxpermissions"
+                              onclick={: "caml_run_from_table(main_vm, 779, "
+                                       ^Eliom_obrowser.jsmarshal ()^")" :}
+                            } }}
+                      ~checked:sr ~name:nsr():}]
+              <div id="wikiboxpermissions" style={: "display: " ^
+                                 if sr then "block" else "none" :} >[
+                <p>[ !msg2 ]
+                <p>[ {: arg uid narg :}
+                     !{: form args :} ]
+              ]
               <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                      {{"Save"}} :} ]
+                        {{"Save"}} :}
+              ]
     ] }} in
     let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
       ~service:action_send_wikibox_permissions ~sp:bi.bi_sp form

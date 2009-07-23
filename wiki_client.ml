@@ -1,3 +1,8 @@
+open Js
+
+let (>>>) = JSOO.(>>>)
+
+
 let delete_widget (href, id) =
   let parent = Js.get_element_by_id id in
   let box =
@@ -54,6 +59,17 @@ let switch_menu (id : string) =
     update_classes_body (class_no_menu :: classes_body)
   )
 
+
+let toggle_wikibox_permissions () =
+  let div = Js.get_element_by_id "wikiboxpermissions"
+  and checkbox = Js.get_element_by_id "checkwikiboxpermissions"
+  in
+  let v = checkbox >>> JSOO.get "checked" >>>
+    JSOO.call_method "toString" [||] >>> JSOO.as_string in
+  div >>> JSOO.get "style" >>> JSOO.set "display"
+    (JSOO.string (if v = "true" then "block" else "none"))
+
+
 let _ =
   Eliom_obrowser_client.register_closure
     778
@@ -61,4 +77,9 @@ let _ =
   Eliom_obrowser_client.register_closure
     777
     delete_widget;
+  Eliom_obrowser_client.register_closure
+    779
+    toggle_wikibox_permissions;
   ()
+
+
