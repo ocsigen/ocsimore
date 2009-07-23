@@ -1,6 +1,5 @@
 touch .depend
 echo "DBUSER=ocsimore" > Makefile.config
-echo "PAM=YES" >> Makefile.config
 echo "PASSWORD=$1" >> Makefile.config
 echo "STATICDIR :=/var/www/ocsimore" >> Makefile.config
 echo "USER := www-data" >> Makefile.config

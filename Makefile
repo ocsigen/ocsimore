@@ -85,9 +85,8 @@ TOINSTALL := files/META \
              _build/forum/forum_site.cmi \
              _build/forum/forum_sql.cmi \
              _build/forum/forum_widgets.cmi \
-             _build/forum/forum_wikiext.cmi
-
-PAMTOINSTALL := _build/ocsimore_pam.cmi \
+             _build/forum/forum_wikiext.cmi \
+             _build/ocsimore_pam.cmi
 
 
 STATICFILES := static/vm.js static/eliom_obrowser.js \
@@ -114,7 +113,6 @@ $(MYOCAMLFIND): myocamlfind.ml
 ocsimore.mllib: ocsimore.mllib.IN
 	echo "# Warning: Generated from ocsimore.mllib.IN" > ocsimore.mllib
 	cat ocsimore.mllib.IN >> ocsimore.mllib
-	if [ $(PAM) = YES ]; then echo Ocsimore_pam >> ocsimore.mllib; fi
 
 static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
 	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
@@ -143,11 +141,7 @@ install:
 	mkdir -p /var/lib/ocsimore
 	chown $(USER):$(GROUP) /var/lib/ocsimore
 	chown $(USER):$(GROUP) /var/log/ocsimore
-	if [ $(PAM) = YES ] ; then \
-		$(OCAMLFIND) install ocsimore $(TOINSTALL) $(PAMTOINSTALL) ; \
-	else \
-		$(OCAMLFIND) install ocsimore $(TOINSTALL) ; \
-	fi
+	$(OCAMLFIND) install ocsimore $(TOINSTALL)
 	cp -f ocsimore.conf /etc/ocsigen/ocsimore.conf.sample
 	chmod a+r /etc/ocsigen/ocsimore.conf.sample
 	[ -f /etc/ocsigen/ocsimore.conf ] || \

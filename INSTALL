@@ -4,15 +4,13 @@
  - ocamlduce
  - ocsigen and eliom with compiled ocamlduce support
  - pgocaml >= 1.2
- - ocamlpam (recommended)
+ - ocamlpam
 
 2. Run 
 
 sh configure <password>
 
    where password is the password for database user ocsimore (see below).
-
-   If you do not have ocamlpam installed, set PAM to NO in Makefile.config
 
 
 3. Create a postgresql user with that name (here ocsimore).
