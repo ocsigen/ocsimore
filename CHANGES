@@ -1,6 +1,9 @@
 ===== Development version =====
   * Forum
   * Now using Obrowser
+  * Ocamlpam is now required
+  * Major overhaul of wikis
+  * Parameterized groups
 
 ===== 0.5
 
