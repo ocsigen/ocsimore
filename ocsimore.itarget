@@ -10,3 +10,14 @@ forum/forum_site.cmo
 forum/forum_client.cmo
 wiki_client.cmo
 
+#ocsimore.cmxa
+#user_site.cmx
+#ocsisite.cmx
+#wikiperso.cmx
+#announce/announce.cmx
+#forum/ocsicreateforum.cmx
+#forum/forum.cmxa
+#forum/forum_site.cmx
+#forum/forum_client.cmx
+#wiki_client.cmx
+

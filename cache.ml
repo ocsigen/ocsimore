@@ -187,7 +187,11 @@ struct
   type t =
       { mutable pointers : A.key Dlist.t;
         mutable table : (A.value * A.key Dlist.node) H.t;
-        finder : A.key -> A.value Lwt.t
+        finder : A.key -> A.value Lwt.t;
+        clear: unit -> unit (* This function clears the cache. It is put inside the
+          cache structure so that it is garbage-collected only when the cache
+          is no longer referenced, as the functions themselves are put inside
+          a weak hash table *)
       }
 
   let clear cache =
@@ -196,12 +200,14 @@ struct
     cache.table <- H.create size
 
   let create f size =
-    let cache = {pointers = Dlist.create size;
+    let rec cache = {pointers = Dlist.create size;
                  table = H.create size;
-                 finder = f
+                 finder = f;
+                 clear = f_clear;
                 }
+    and f_clear = (fun () -> clear cache)
     in
-    Weak.add clear_all (fun () -> clear cache);
+    Weak.add clear_all f_clear;
     cache
 
   let poke r node =
