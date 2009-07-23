@@ -39,11 +39,10 @@ let submit_input value =
 
 (** Widget for user login/logout/edition without addition of new users *)
 class user_widget ~force_secure
-~user_services:(
+  ~user_services:(
     action_login,
     action_logout,
     action_logout_get,
-    service_edit_user_data,
     action_edit_user_data,
     action_add_remove_users_from_group,
     action_add_remove_user_from_groups,
@@ -148,77 +147,6 @@ object (self)
     ) >>= fun f ->
     Lwt.return {{<div class={: xhtml_class :}>[f]}}
 
-  method display_edit_user_data ?(err="") = fun sp userid () ->
-    (match userid with
-      | None -> User.get_user_id sp
-      | Some user -> Lwt.return user
-    ) >>= fun userid ->
-    User_data.can_change_user_data_by_userid sp userid >>= function
-      | true ->
-        User_sql.get_basicuser_data userid >>= fun u ->
-        Ocsimore_page.html_page sp
-          {{ [<h1>"Your account"
-               <p>"Change your personal information:"
-               {: Eliom_duce.Xhtml.post_form ~service:action_edit_user_data ~sp
-                  (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
-                     {{ [<table>[
-                            <tr>[
-                              <td>"login name: "
-                              <td>[<strong>{: u.user_fullname :}]
-                            ]
-                            <tr>[
-                              <td>"real name: "
-                              <td>[{: str_input ~value:u.user_fullname desc :}]
-                            ]
-                            <tr>[
-                              <td>"e-mail address: "
-                              <td>[{: str_input
-                                      ~value:(match u.user_email with
-                                                | None -> ""
-                                                | Some e -> e)
-                                      email :}] ]
-                            <tr>[
-                              <td colspan="2">"Enter a new password twice, or
-                                                leave blank for no changes:"
-                            ]
-                            <tr>[
-                              <td>[{: passwd_input pwd  :}]
-                              <td>[{: passwd_input pwd2 :}]
-                            ]
-                            <tr>[
-                              <td>[{: submit_input "Confirm" :}
-                                     {: Eliom_duce.Xhtml.user_type_input
-                                        string_from_userid
-                                        ~input_type:{: "hidden" :}
-                                        ~name:nuserid ~value:userid () :}]
-                            ]
-                          ]]
-                      }}) None :}
-               !{: if err = "" then [] else
-                   [{{<p>[<strong>{: err :}] }}] :}
-             ] }}
-        | false ->
-            let msg = "You do not have sufficient rights to perform this \
-                      operation" in
-            Ocsimore_page.html_page sp {{ [<p>[<strong>{: msg :}]] }}
-
-  method display_edit_user_data_done sp (userid, (pw,(pw2,(fullname,email)))) =
-    (* The first userid is always ignored, but is needed because we use as
-       fallback a service that takes this argument *)
-    Lwt.catch
-      (fun () ->
-         User_data.change_user_data ~sp ~userid ~pwd:(pw, pw2) ~fullname ~email
-         >>= fun () ->
-         Ocsimore_page.html_page sp {{ [<h1>"Personal information updated"] }}
-      )
-      (function
-       | Failure s ->
-           self#display_edit_user_data ~err:s sp (Some userid) ()
-       | Ocsimore_common.Permission_denied ->
-           self#display_edit_user_data
-            ~err:"ERROR: Insufficient rights" sp (Some userid) ()
-       | e -> Lwt.fail e
-      )
 
   method group_link ~sp group =
     Eliom_duce.Xhtml.a  ~service:service_view_group ~sp
@@ -229,7 +157,7 @@ object (self)
     User.get_user_by_name g  >>= fun group ->
     if group = basic_user User.nobody && g <> User.nobody_login then
        let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
-       Lwt.return {{ [<p>msg] }}
+       Lwt.return {{ [<p class="errmsg">msg] }}
     else
        let error = match Ocsimore_common.get_action_failure sp with
          | None -> {{ [] }}
@@ -248,19 +176,8 @@ object (self)
        User.get_user_data sp >>= fun user ->
        let isadmin = (user.user_id = User.admin) in
 
-       (* Group change *)
-       (User_data.can_change_user_data_by_user sp group >>= function
-          | true ->
-              User_sql.get_user_data group >>= fun dgroup ->
-              Lwt.return {{ [ <p>[ {: Eliom_duce.Xhtml.a
-                                      ~service:service_edit_user_data ~sp
-                                      {: "Edit information" :}
-                                      (Some dgroup.user_id) :}] ] }}
-
-              | false -> Lwt.return {{[]}}
-       ) >>= fun edit ->
-       let head = {{ [ <h1>['User/Group \'' !{: Ocamlduce.Utf8.make g :} '\'']
-                       !edit ] }} in
+       let head =
+         {{ <h1>['User/Group \'' !{: Ocamlduce.Utf8.make g :} '\''] }} in
 
        (* Adding groups to the group *)
        User.GroupsForms.form_edit_group ~show_edit:isadmin ~group ~text:""
@@ -292,7 +209,52 @@ object (self)
        let f2 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
          ~service:action_add_remove_user_from_groups ~sp form ()
        in
-       Lwt.return {{ [ !error !head f1 f2 ] }}
+
+       User_sql.get_user_data group >>= fun g ->
+       User_data.can_change_user_data_by_user sp group >>= fun can_change ->
+       let edit =
+         if can_change &&
+           g.user_pwd <> Connect_forbidden &&
+           g.user_pwd <> External_Auth
+         then
+           {{ [ {: Eliom_duce.Xhtml.post_form
+                   ~service:action_edit_user_data ~sp
+                   (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
+                      {{ [<table>[
+                             <tr>[
+                               <td>"Eeal name: "
+                               <td>[{: str_input ~value:g.user_fullname desc :}]
+                             ]
+                             <tr>[
+                               <td>"e-mail address: "
+                               <td>[{: str_input
+                                       ~value:(match g.user_email with
+                                                 | None -> ""
+                                                 | Some e -> e)
+                                       email :}] ]
+                             <tr>[
+                               <td colspan="2">"Enter a new password twice, or
+                                                leave blank for no changes:"
+                             ]
+                             <tr>[
+                               <td>[{: passwd_input pwd  :}]
+                               <td>[{: passwd_input pwd2 :}]
+                             ]
+                             <tr>[
+                               <td>[{: submit_input "Confirm" :}
+                                      {: Eliom_duce.Xhtml.user_type_input
+                                         string_from_userid
+                                         ~input_type:{: "hidden" :}
+                                         ~name:nuserid ~value:g.user_id () :}]
+                             ]
+                           ]]
+                       }}) () :}
+              ] }}
+         else
+           {{ [ <p>[ !"Real name: " !{: Ocamlduce.Utf8.make g.user_fullname :} ]
+              ] }}
+       in
+       Lwt.return ({{ [ !error head !edit f1 f2 ] }} : Xhtmltypes_duce.blocks)
 
 
   method display_all_groups ~sp =

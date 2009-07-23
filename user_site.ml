@@ -105,7 +105,6 @@ let (
     action_login,
     action_logout,
     action_logout_get,
-    service_edit_user_data,
     action_edit_user_data,
     action_add_remove_users_from_group,
     action_add_remove_user_from_groups,
@@ -159,13 +158,6 @@ let user_widget, service_user_creation =
 let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
-  Eliom_duce.Xhtml.register ~service:service_edit_user_data
-    (user_widget#display_edit_user_data ~err:"");
-  Eliom_duce.Xhtml.register ~service:action_edit_user_data
-    (fun sp _ args ->
-       (* The first userid is always ignored, but is needed because we use as
-          fallback a service that takes this argument *)
-       user_widget#display_edit_user_data_done sp args);
 
   Eliom_duce.Xhtml.register service_view_group
     (fun sp g () ->

@@ -138,8 +138,8 @@ let can_change_user_data_by_user sp user =
 let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
   can_change_user_data_by_userid sp userid >>= function
     | true ->
-        if not (valid_emailaddr email) then
-          Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
+        if email <> "" && valid_emailaddr email = false then
+          Lwt.fail (Failure "ERROR: Ill-formed e-mail address!")
         else if pwd <> pwd2 then
           Lwt.fail (Failure "ERROR: Passwords don't match!")
         else
@@ -150,9 +150,10 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
                                    be logged *) -> None
 
             | External_Auth (* We cannot change this password, we should not
-                               leave the possibility to the user  *) ->
+                               leave the possibility to the user. The
+                               form does not allow this anyhow *) ->
                 failwith
-                     "ERROR: Cannot change NIS or PAM passwords from Ocsimore!"
+                     "ERROR: Cannot change NIS or PAM users from Ocsimore!"
             | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
                 (* We always use crypted passwords, even if the user
                    previously unencrypted ones *)

@@ -89,7 +89,7 @@ let services ~external_auth ~force_secure =
       ~name:"login"
       ~keep_get_na_params:false
       ~post_params:(string "usr" ** string "pwd")
-(fun sp () (name, pwd) ->
+  (fun sp () (name, pwd) ->
     Lwt.catch
       (fun () ->
          User_data.login ~sp ~name ~pwd ~external_auth >>= fun () ->
@@ -116,18 +116,18 @@ let services ~external_auth ~force_secure =
          User_data.logout sp >>= fun () ->
          Lwt.return Eliom_services.void_coservice')
 
-  and service_edit_user_data =
-  (** Edition of an user *)
-    Eliom_services.new_service
-      ~path:([Ocsimore_lib.ocsimore_admin_dir; "edit_user"])
-      ~get_params:(opt eliom_user) ()
-
   in let action_edit_user_data =
-    Eliom_services.new_post_coservice
+    Eliom_predefmod.Any.register_new_post_coservice'
       ~https:force_secure
-      ~fallback:service_edit_user_data
       ~post_params:(eliom_user ** (string "pwd" **
-                      (string "pwd2" ** (string "descr" ** string "email")))) ()
+                      (string "pwd2" ** (string "descr" ** string "email"))))
+      (fun sp () (userid, (pwd, (pwd2, (descr, email)))) ->
+         Ocsimore_common.catch_action_failure sp
+           (fun () ->
+              User_data.change_user_data ~sp ~userid ~pwd:(pwd, pwd2)
+                ~fullname:descr ~email)
+        >>= fun () ->
+        Eliom_predefmod.Action.send ~sp ())
   in
 
   (** Groups-related services *)
@@ -169,7 +169,6 @@ let services ~external_auth ~force_secure =
     action_login,
     action_logout,
     action_logout_get,
-    service_edit_user_data,
     action_edit_user_data,
     action_add_remove_users_from_group,
     action_add_remove_user_from_groups,

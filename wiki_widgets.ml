@@ -528,6 +528,7 @@ object (self)
       ~service:action_send_wikibox_permissions ~sp:bi.bi_sp form
       ()
     in
+    Ocsimore_page.add_obrowser_header bi.bi_sp;
     Lwt.return (classes, {{ [ form ] }})
 
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
