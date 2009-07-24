@@ -60,6 +60,11 @@ val add_obrowser_header : Eliom_sessions.server_params -> unit
 val add_admin_pages_header : Eliom_sessions.server_params -> unit
 
 
+(** Registers the string passed as argument so that it is called
+    when the onload event on the body tag of the page fires. The
+    string must thus be well-formed javascript (without ; at the end) *)
+val add_onload_function: Eliom_sessions.server_params -> string -> unit
+
 (** Generic headers for an html page. The arguments [css] is added
     after the links resulting from the hooks added by the function
     [add_html_header_hook] above. The argument [body_classes] is
@@ -71,6 +76,8 @@ val html_page :
   ?title:string ->
   Xhtmltypes_duce.blocks ->
   Xhtmltypes_duce.html Lwt.t
+
+
 
 
 

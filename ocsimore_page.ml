@@ -83,6 +83,17 @@ let add_admin_pages_header = add_html_header
              (static_file_uri sp ["ocsiadmin.css"]) () :}
         ] }})
 
+let polytable_onload = Polytables.make_key ()
+
+let onload_functions sp =
+  try Polytables.get ~table:(Eliom_sessions.get_request_cache sp)
+    ~key:polytable_onload
+  with Not_found -> []
+
+
+let add_onload_function sp s =
+  Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
+    ~key:polytable_onload ~value:(s :: onload_functions sp)
 
 (* Function generating the Ocsimore header *)
 let () =
@@ -111,15 +122,23 @@ let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content
   let title = Ocamlduce.Utf8.make title
   and links_hooks = headers sp
   and classes = Ocsimore_lib.build_class_attr body_classes
+  and onload_body, onload_script = match onload_functions sp with
+    | [] -> {{ {} }}, {{ [] }}
+    | l -> {{ { onload="bodyOnload()" } }},
+        {{ [ <script type="text/javascript">
+                         {: Printf.sprintf "function bodyOnload() { \n%s;\n}"
+                            (String.concat ";\n" l) :}
+           ] }}
   in
   Lwt.return {{
       <html xmlns="http://www.w3.org/1999/xhtml">[
         <head>[
           <title>title
           !links_hooks
+          !onload_script
           !css
         ]
-        <body id="body" class={: classes :}>content
+        <body ({id="body" class={: classes :} } ++ onload_body)>content
       ]
     }}
 
