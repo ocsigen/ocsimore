@@ -20,38 +20,23 @@
    @author Boris Yakobowski
 *)
 
-let static_services :
+let static_service :
     ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
       [ `One of string list ] Eliom_parameters.param_name, unit,
       [ `Registrable ])
-     Eliom_services.service * _) option ref = ref None
+     Eliom_services.service) option ref = ref None
 
 let set_service_for_static_files service =
-  match !static_services with
-    | None ->
-        let service_uue =
-          Eliom_predefmod.Text.register_new_service
-            ~path:([Ocsimore_lib.ocsimore_admin_dir ; "ocsimore_client.js"])
-            ~get_params:(Eliom_parameters.string "path")
-            (fun _sp s () ->
-               let vm = s ^ "/ocsimore_client.uue" in
-               Lwt.return
-                 (Printf.sprintf
-                    "window.onload = function () { \
-                       main_vm = exec_caml (\"%s\"); \
-                     }" vm,
-                  "text/javascript")
-            )
-        in
-        static_services := Some (service, service_uue)
+  match !static_service with
+    | None -> static_service := Some service
     | Some _ ->
         Ocsigen_messages.errlog "In Ocsimore_common: Static services already \
                     loaded. Ignoring call to set_service_for_static_files"
 
 let static_file_uri ~sp ~path =
-  let service = match !static_services with
+  let service = match !static_service with
     | None -> failwith "No service for static files"
-    | Some (s, _) -> s
+    | Some s -> s
   in
   Eliom_duce.Xhtml.make_uri ~service ~sp path
 
@@ -91,32 +76,30 @@ let onload_functions sp =
   with Not_found -> []
 
 
-let add_onload_function sp s =
+let add_onload_function ?(first = false) sp s =
   Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
-    ~key:polytable_onload ~value:(s :: onload_functions sp)
+    ~key:polytable_onload
+    ~value:(if first then onload_functions sp @ [s]
+            else s :: onload_functions sp)
 
 (* Function generating the Ocsimore header *)
 let () =
   add_html_header_hook
     (fun sp ->
        if must_add_obrowser_header sp then
-         let static_files_services, ocsimore_uue = match !static_services with
-           | None -> failwith "No service for static files"
-           | Some (s1, s2) -> s1, s2
-         in
-         let static_uri path = Eliom_duce.Xhtml.make_uri
-           ~service:static_files_services ~sp [path] in
          let eliom_obrowser = Eliom_duce.Xhtml.js_script
-           ~uri:(static_uri "eliom_obrowser.js") ()
-         and vm = Eliom_duce.Xhtml.js_script ~uri:(static_uri "vm.js") ()
-         and uue =
-           let path = static_uri "."  in
-           Eliom_duce.Xhtml.js_script
-             ~uri:(Eliom_duce.Xhtml.make_uri ~service:ocsimore_uue ~sp path) ()
+           ~uri:(static_file_uri sp ["eliom_obrowser.js"]) ()
+         and vm = Eliom_duce.Xhtml.js_script
+           ~uri:(static_file_uri sp ["vm.js"]) ()
          in
-         {{ [ vm eliom_obrowser uue ] }}
+         add_onload_function ~first:true sp
+           (Printf.sprintf "main_vm = exec_caml ('%s/ocsimore_client.uue')"
+              (static_file_uri sp ["."]));
+         {{ [ vm eliom_obrowser  ] }}
        else {{ [] }}
     )
+
+let add_onload_function = add_onload_function ~first:false
 
 let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
   let title = Ocamlduce.Utf8.make title
@@ -127,7 +110,7 @@ let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content
     | l -> {{ { onload="bodyOnload()" } }},
         {{ [ <script type="text/javascript">
                          {: Printf.sprintf "function bodyOnload() { \n%s;\n}"
-                            (String.concat ";\n" l) :}
+                            (String.concat ";\n" (List.rev l)) :}
            ] }}
   in
   Lwt.return {{
