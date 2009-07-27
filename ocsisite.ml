@@ -245,40 +245,6 @@ let str = Ocamlduce.Utf8.make
 open Xform.XformLwt
 open Ops
 
-let user_from_userlogin user =
-  User.get_user_by_name user >>= fun u ->
-  if u = basic_user User.nobody && user <> User.nobody_login then
-    Lwt.return (Xform.ConvError ("This user does not exists: " ^ user))
-  else
-    Lwt.return (Xform.Converted u)
-
-
-let opaque_int32_input_aux ?a s =
-  convert (string_input ?a s)
-    (fun s ->
-       Lwt.return (
-         try Xform.Converted (Opaque.int32_t (Int32.of_string s))
-         with Failure _ -> Xform.ConvError ("Invalid value " ^ s)
-       ))
-
-let opaque_int32_input ?a (i : 'a Opaque.int32_t) :
-    (Xform.inline, 'a Opaque.int32_t) Xform.XformLwt.t =
-  opaque_int32_input_aux ?a (Int32.to_string (Opaque.t_int32 i))
-
-let opaque_int32_input_opt_aux ?a s =
-  convert (string_input ?a s)
-    (fun s ->
-       Lwt.return (
-         if s = "" then
-           Xform.Converted None
-         else
-           try Xform.Converted (Some (Opaque.int32_t (Int32.of_string s)))
-           with Failure _ -> Xform.ConvError ("Invalid value " ^ s)
-       ))
-
-let opaque_int32_input_opt ?a : 'a Opaque.int32_t option -> (Xform.inline, 'a Opaque.int32_t option) Xform.XformLwt.t = function
-  | None -> opaque_int32_input_opt_aux ?a ""
-  | Some v -> opaque_int32_input_opt_aux ?a (Int32.to_string (Opaque.t_int32 v))
 
 let path_input ?a path =
   string_input ?a
@@ -327,11 +293,11 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
        extensible_list "Add wiki admin" "" admins
          (fun adm ->
             p (text "Admin" @+
-               convert (string_input adm) user_from_userlogin)) @@
+               convert (string_input adm) User.user_from_userlogin_xform)) @@
        extensible_list "Add wiki reader" "" readers
          (fun reader ->
             p (text "Reader" @+
-               convert (string_input reader) user_from_userlogin)) @@
+               convert (string_input reader) User.user_from_userlogin_xform)) @@
        p (text "Container text :" @+ [{{<br>[]}}] @+
           text_area ~cols:80 ~rows:20 container)
        @@
@@ -427,7 +393,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           form] }}
   in
     form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
-      (p (opaque_int32_input ~a:{{ { type="hidden" } }} wiki) @@
+      (p (Opaque.int32_input_xform ~a:{{ { type="hidden" } }} wiki) @@
        p (text "Description: " @+ string_input descr) @@
        p (text "Link this wiki to an url: " @+ path_input path +@
           [{{<br>[]}}] +@
@@ -438,7 +404,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           bool_checkbox boxrights) @@
        p (text "Serve static files from a local directory: " @+
           staticdir_input staticdir) @@
-       p (text "Container wikibox :" @+ opaque_int32_input_opt container)
+       p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container)
        @@
        p (submit_button "Create")
       |> cont)

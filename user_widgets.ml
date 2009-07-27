@@ -36,6 +36,8 @@ let submit_input value =
   Eliom_duce.Xhtml.string_input ~input_type:{:"submit":} ~value ()
 
 
+open Xform.XformLwt
+open Ops
 
 (** Widget for user login/logout/edition without addition of new users *)
 class user_widget ~force_secure

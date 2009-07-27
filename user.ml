@@ -686,3 +686,10 @@ module GroupsForms = struct
     }
 
 end
+
+let user_from_userlogin_xform user =
+  get_user_by_name user >>= fun u ->
+  if u = basic_user nobody && user <> nobody_login then
+    Lwt.return (Xform.ConvError ("This user does not exists: " ^ user))
+  else
+    Lwt.return (Xform.Converted u)

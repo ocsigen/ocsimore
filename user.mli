@@ -234,3 +234,5 @@ module GroupsForms : sig
 
 end
 
+
+val user_from_userlogin_xform: string -> user Xform.convert Lwt.t
