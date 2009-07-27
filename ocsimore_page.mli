@@ -78,22 +78,27 @@ val html_page :
   Xhtmltypes_duce.html Lwt.t
 
 
+(*** Functions related to the administration menu *)
 
-
-
+(** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
     (Eliom_services.get_service_kind,
      [ `Registrable ])
     Eliom_tools_common.one_page
 
+(** Sets the url at which the admin menu resides. Must be called
+    at least once before [admin_menu] is called *)
 val set_root_admin_service :
   menu_link_service -> unit
 
+(** Adds an entire subsection, labelled by [name] to the admin menu *)
 val add_to_admin_menu :
   name:string ->
   links:(string * menu_link_service) list ->
   unit
 
+(** The admin menu itself. The option [service] parameter is the service
+    currently active, which will be displayed in a different way *)
 val admin_menu:
   ?service:menu_link_service ->
   Eliom_sessions.server_params ->
