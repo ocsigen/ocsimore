@@ -104,7 +104,6 @@ let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
     and return its version number. *)
 let update_wikibox_ ~wb ~author ~comment ~content ~content_type =
   let wikibox = sql_of_wikibox wb
-  and content_type = string_of_content_type content_type
   and author = User_sql.Types.sql_from_userid author
   in
   Sql.full_transaction_block
@@ -143,7 +142,7 @@ let get_wikibox_data_ ?version ~wb () =
          | [] -> Lwt.return None
          | (c, a, v, d, t, ver) :: _ ->
              Lwt.return (Some (c, User_sql.Types.userid_from_sql a,
-                               v, d, content_type_of_string t, ver))
+                               v, d, t, ver))
     )
 
 let current_wikibox_version_ ~wb =
@@ -342,7 +341,7 @@ let
                                                User_sql.Types.userid * 
                                                string option *
                                                CalendarLib.Calendar.t *
-                                               content_type *
+                                               string (* content_type *) *
                                                int32
                                             ) option
                              end) 
@@ -352,24 +351,32 @@ let
                                type value = int32 option (* currently wikibox version*)
                              end)
   in
-  let cache = C.create (fun a -> get_wikibox_data_ a ()) 64 in
+  let cache = 
+    C.create 
+      (fun a -> get_wikibox_data_ a ()) 64 
+  in
   let cachewv = C3.create (fun b -> current_wikibox_version_ b) 64 in
   ((fun ?version ~wb () ->
-    match version with
-      | None ->
-          C.find cache wb
-      | Some _ ->
-          get_wikibox_data_ ?version ~wb ()
+      match version with
+        | None -> C.find cache wb
+        | Some _ -> get_wikibox_data_ ?version ~wb ()
    ),
-  (fun ~wb ~author ~comment ~content ->
+  (fun ~wb ~author ~comment ~content ~content_type ->
      C.remove cache wb;
      C3.remove cachewv wb;
-     update_wikibox_ ~wb ~author ~comment ~content),
+     update_wikibox_ ~wb ~author ~comment ~content ~content_type),
   (fun ~wb -> C3.find cachewv wb),
   (fun ~wb v ->
      C.remove cache wb;
      set_wikibox_special_rights_ wb v)
   )
+
+let get_wikibox_data ?version ~wb () =
+  wikibox_data_of_raw (get_wikibox_data ?version ~wb ())
+
+let update_wikibox ~wb ~author ~comment ~content ~content_type =
+  let content_type = string_of_content_type content_type in
+  update_wikibox ~wb ~author ~comment ~content ~content_type
 
 let get_wikipage_info, set_box_for_page =
   let module C = Cache.Make (struct 
@@ -563,3 +570,4 @@ let wikibox_new_id ~wiki ~wb_old_id =
        | [] -> Lwt.fail Not_found
        | uid :: _ -> Lwt.return (wikibox_of_sql uid)
     )
+

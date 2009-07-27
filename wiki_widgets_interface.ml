@@ -181,13 +181,13 @@ object
   method display_wikiboxcontent :
     bi:box_info ->
     classes:classes ->
-    Wiki_types.wikibox_content ->
+    Xhtmltypes_duce.flows Wiki_types.wikibox_content ->
     (classes * Xhtmltypes_duce.flows) Lwt.t
 
   (** Display a wikibox without pretty-printing *)
   method display_raw_wikiboxcontent :
     classes:classes ->
-    Wiki_types.wikibox_content ->
+    Xhtmltypes_duce.flows Wiki_types.wikibox_content ->
     (classes * Xhtmltypes_duce.flows) Lwt.t
 
 end

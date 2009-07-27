@@ -23,8 +23,7 @@
 
 let forum_wiki_rights = new Forum.wiki_rights
 
-let title_syntax = 
-  Wiki_syntax.wikicreole_inline_content_type (fun c -> {{ [ <h1>c ] }})
+let title_syntax = Wiki_syntax.wikicreole_inline_content_type
 
 let wikicreole_forum_model =
   Wiki_models.register_wiki_model

@@ -55,7 +55,7 @@ let register_services () =
             (* We do not require the user to be allowed to read the message ... 
                (Forum_sql.get_message and not Forum_data.get_message) *)
             Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
-            Lwt.return (m.Forum_sql.Types.m_forum, Some parent_id))
+            Lwt.return (m.Forum_types.m_forum, Some parent_id))
        >>= fun (forum, parent_id) ->
 
        Forum.get_role sp forum >>= fun _role -> (* VVV : why is role not used here ? *)

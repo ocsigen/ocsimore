@@ -25,60 +25,7 @@
 
 open User_sql.Types
 
-module Types : sig
-
-  (** Semi-abstract type for a forum *)
-  type forum_arg = [ `Forum ]
-  type forum = forum_arg Opaque.int32_t
-
-  (** Semi-abstract type for a message or comment *)
-  type message_arg = [ `Message ]
-  type message = message_arg Opaque.int32_t
-
-  val sql_of_message : message -> int32
-  val message_of_sql : int32 -> message
-  val sql_of_forum : forum -> int32
-  val forum_of_sql : int32 -> forum
-  val string_of_forum : forum -> string
-  val forum_of_string : string -> forum
-  val string_of_message : message -> string
-  val message_of_string : string -> message
-
-  type forum_info = {
-    f_id: forum;
-    f_title: string;
-    f_descr: string;
-    f_arborescent: bool;
-    f_deleted: bool;
-    f_title_syntax: Wiki_types.content_type;
-    f_messages_wiki: Wiki_types.wiki;
-    f_comments_wiki: Wiki_types.wiki;
-  }
-
-  type message_info = {
-    m_id: message;
-    m_creator_id: User_sql.Types.userid;
-    m_datetime: CalendarLib.Calendar.t;
-    m_parent_id: message option;
-    m_root_id: message;
-    m_forum: forum;
-    m_subject: Wiki_types.wikibox option;
-    m_wikibox: Wiki_types.wikibox;
-    m_moderated: bool;
-    m_sticky: bool;
-    m_has_special_rights: bool Lwt.t Lazy.t;
-    m_tree_min: int32;
-    m_tree_max: int32;
-  }
-
-  type raw_forum_info
-  type raw_message_info
-
-  val get_forum_info : raw_forum_info -> forum_info
-  val get_message_info : raw_message_info -> message_info
-
-end
-open Types
+open Forum_types
 
 (** create a new forum. [?arborescent] is true by default. 
     Setting it to false will prevent to comment comments. *)
@@ -86,7 +33,7 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool ->
-  title_syntax:Wiki_types.content_type ->
+  title_syntax: 'res Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->
@@ -99,7 +46,7 @@ val new_message :
   forum:forum ->
   wiki:Wiki_types.wiki ->
   creator_id:userid ->
-  title_syntax:Wiki_types.content_type ->
+  title_syntax:'res Wiki_types.content_type ->
   ?subject:string ->
   ?parent_id:message ->
   ?moderated:bool ->
@@ -155,7 +102,7 @@ val get_thread :
     - all messages with special rights (without looking at rights)
 *)
 val get_message_list : 
-  forum:Types.forum ->
+  forum:Forum_types.forum ->
   first:int64 ->
   number:int64 ->
   moderated_only:bool ->

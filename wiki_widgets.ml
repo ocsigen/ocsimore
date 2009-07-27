@@ -71,11 +71,11 @@ object (self)
 
   method display_wikiboxcontent ~bi ~classes (wiki_syntax, content, _ver as wb) =
     add_wiki_css_header bi.bi_sp;
-    let wiki_parser = Wiki_models.get_wiki_parser wiki_syntax in
+    let wiki_parser = Wiki_models.get_flows_wiki_parser wiki_syntax in
     match content with
       | Some content ->
-          wiki_parser bi content
-          >>= fun x -> Lwt.return (classes, x)
+          wiki_parser bi content >>= fun x -> 
+          Lwt.return (classes, x)
       | _ -> self#display_raw_wikiboxcontent ~classes wb
 
   method display_raw_wikiboxcontent ~classes (_content_type, content, _ver) =

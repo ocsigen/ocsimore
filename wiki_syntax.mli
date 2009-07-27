@@ -76,27 +76,24 @@ val inline_wikicreole_parser : Xhtmltypes_duce.inlines Lwt.t wikicreole_parser
 
 
 (** the content type for wikicreole boxes: *)
-val wikicreole_content_type : Wiki_types.content_type
+val wikicreole_content_type : Xhtmltypes_duce.flows Wiki_types.content_type
 
 (** the content type for reduced_wikicreole_parser0: *)
-val reduced_wikicreole_content_type0 : Wiki_types.content_type
+val reduced_wikicreole_content_type0 : Xhtmltypes_duce.flows Wiki_types.content_type
 
 (** the content type for reduced_wikicreole_parser1: *)
-val reduced_wikicreole_content_type1 : Wiki_types.content_type
+val reduced_wikicreole_content_type1 : Xhtmltypes_duce.flows Wiki_types.content_type
 
 (** the content type for reduced_wikicreole_parser2: *)
-val reduced_wikicreole_content_type2 : Wiki_types.content_type
+val reduced_wikicreole_content_type2 : Xhtmltypes_duce.flows Wiki_types.content_type
 
 (** the content type for raw text boxes: *)
-val rawtext_content_type : Wiki_types.content_type
+val rawtext_content_type : Xhtmltypes_duce.flows Wiki_types.content_type
 
 (** the content type for wikicreole inline content.
-    It is using [inline_wikicreole_parser].
-    The function is the container to put around the inline content
-    to produce a block sequence. *)
+    It is using [inline_wikicreole_parser]. *)
 val wikicreole_inline_content_type : 
-  (Xhtmltypes_duce.inlines -> Xhtmltypes_duce.flows) ->
-  Wiki_types.content_type
+  Xhtmltypes_duce.inlines Wiki_types.content_type
 
 (** Return a copy of a parser. The calls to [add_extension] on one of the
     copy will not be visible on the other *)

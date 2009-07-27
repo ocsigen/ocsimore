@@ -45,11 +45,13 @@ type wikipage_arg = [ `Wikipage ]
 type wikipage_uid = wikipage_arg Opaque.int32_t
 
 type wiki_model
-type content_type
+type 'a content_type (** The parameter is the type of the content, 
+                         once translated to xhtml
+                         (usually flows or inlines) *)
 val string_of_wiki_model : wiki_model -> string
 val wiki_model_of_string : string -> wiki_model
-val string_of_content_type : content_type -> string
-val content_type_of_string : string -> content_type
+val string_of_content_type : 'a content_type -> string
+val content_type_of_string : string -> 'a content_type
 
 (** Fields for a wiki *)
 type wiki_info = {
@@ -110,4 +112,18 @@ end
 
 (** Content of a wikibox. The second field is the actual content. It is [None]
     if the wikibox has been deleted. The third field is the version id *)
-type wikibox_content = content_type * string option * int32
+type 'a wikibox_content = 'a content_type * string option * int32
+
+(**/**)
+val wikibox_data_of_raw : 
+  (string * userid * string option * CalendarLib.Calendar.t * 
+     string * int32) option Lwt.t ->
+  (string * userid * string option * CalendarLib.Calendar.t * 
+     'a content_type * int32) option Lwt.t
+
+val raw_of_wikibox_data : 
+  (string * userid * string option * CalendarLib.Calendar.t * 
+     'a content_type * int32) option Lwt.t
+    ->
+  (string * userid * string option * CalendarLib.Calendar.t * 
+     string * int32) option Lwt.t

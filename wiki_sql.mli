@@ -49,7 +49,7 @@ val new_wikibox :
   author:userid ->
   comment:string ->
   content:string ->
-  content_type:Wiki_types.content_type ->
+  content_type:'a Wiki_types.content_type ->
   unit ->
   wikibox Lwt.t
 
@@ -108,7 +108,8 @@ val get_wikibox_data :
   ?version:int32 ->
   wb:wikibox ->
   unit ->
-  (string * userid * string option * CalendarLib.Calendar.t * Wiki_types.content_type * int32) option Lwt.t
+  (string * userid * string option * CalendarLib.Calendar.t * 
+     'a Wiki_types.content_type * int32) option Lwt.t
 
 
 (** Does the wikibox have special permission rights *)
@@ -131,7 +132,7 @@ val update_wikibox :
   author:userid ->
   comment:string ->
   content:string option ->
-  content_type:Wiki_types.content_type ->
+  content_type:'a Wiki_types.content_type ->
   int32 Lwt.t
 
 (** Update the information of a wiki. All arguments not passed are left

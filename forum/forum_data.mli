@@ -36,11 +36,11 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
-  title_syntax:Wiki_types.content_type ->
+  title_syntax: Xhtmltypes_duce.inlines Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->
-  Forum_sql.Types.forum Lwt.t
+  Forum_types.forum Lwt.t
 
 (** inserts a message in a forum. 
     [?moderated] and [?sticky] are false by default.
@@ -48,44 +48,44 @@ val new_forum :
  *)
 val new_message :
   sp:Eliom_sessions.server_params ->
-  forum:Forum_sql.Types.forum ->
+  forum:Forum_types.forum ->
   creator_id:User_sql.Types.userid ->
   ?subject:string ->
-  ?parent_id:Forum_sql.Types.message ->
+  ?parent_id:Forum_types.message ->
   ?sticky:bool ->
   text:string ->
   unit ->
-  Forum_sql.Types.message Lwt.t
+  Forum_types.message Lwt.t
 
 (** set ou unset sticky flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val set_sticky :
   sp:Eliom_sessions.server_params ->
-  message_id:Forum_sql.Types.message -> sticky:bool -> unit Lwt.t
+  message_id:Forum_types.message -> sticky:bool -> unit Lwt.t
   
 (** set or unset moderated flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val set_moderated :
   sp:Eliom_sessions.server_params ->
-  message_id:Forum_sql.Types.message -> moderated:bool -> unit Lwt.t
+  message_id:Forum_types.message -> moderated:bool -> unit Lwt.t
   
 (** Get forum information, given its id or title.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val get_forum: 
   sp:Eliom_sessions.server_params ->
-  ?forum:Forum_sql.Types.forum -> 
+  ?forum:Forum_types.forum -> 
   ?title:string -> 
   unit -> 
-  Forum_sql.Types.forum_info Lwt.t
+  Forum_types.forum_info Lwt.t
 
 (** returns the list of forums visible to the user. *)
 val get_forums_list : 
   sp:Eliom_sessions.server_params ->
   unit ->
-  Forum_sql.Types.forum_info list Lwt.t
+  Forum_types.forum_info list Lwt.t
   
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message.
@@ -93,8 +93,8 @@ val get_forums_list :
  *)
 val get_message : 
   sp:Eliom_sessions.server_params ->
-  message_id:Forum_sql.Types.message -> 
-  Forum_sql.Types.message_info Lwt.t
+  message_id:Forum_types.message -> 
+  Forum_types.message_info Lwt.t
   
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
@@ -106,8 +106,8 @@ val get_message :
 *)
 val get_thread : 
   sp:Eliom_sessions.server_params ->
-  message_id:Forum_sql.Types.message -> 
-  Forum_sql.Types.message_info list Lwt.t
+  message_id:Forum_types.message -> 
+  Forum_types.message_info list Lwt.t
   
 type raw_message
 
@@ -118,13 +118,13 @@ type raw_message
 *)
 val get_message_list : 
   sp:Eliom_sessions.server_params ->
-  forum:Forum_sql.Types.forum ->
+  forum:Forum_types.forum ->
   first:int64 ->
   number:int64 ->
   unit ->
   raw_message list Lwt.t
   
-(** translate [raw_message] to [Forum_sql.Types.forum_info],
+(** translate [raw_message] to [Forum_types.forum_info],
     verifying special rights if needed (only for first messages). 
     Raises [Ocsimore_common.Permission_denied] if special rights do not
     allow to read the message.
@@ -132,4 +132,4 @@ val get_message_list :
 val message_info_of_raw_message : 
   sp:Eliom_sessions.server_params ->
   raw_message -> 
-  Forum_sql.Types.message_info Lwt.t 
+  Forum_types.message_info Lwt.t 

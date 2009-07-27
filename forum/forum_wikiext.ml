@@ -39,7 +39,7 @@ let register_wikiext (message_widget, thread_widget, message_list_widget) =
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let message_id =
-              Forum_sql.Types.message_of_string (List.assoc "message" args) 
+              Forum_types.message_of_string (List.assoc "message" args) 
             in
             message_widget#display
               ~sp ?classes
@@ -71,7 +71,7 @@ let register_wikiext (message_widget, thread_widget, message_list_widget) =
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let message_id =
-              Forum_sql.Types.message_of_string (List.assoc "message" args) 
+              Forum_types.message_of_string (List.assoc "message" args) 
             in
             thread_widget#display ?commentable:(Some true) ~sp
               ?rows ?cols ?classes
@@ -118,7 +118,7 @@ let register_wikiext (message_widget, thread_widget, message_list_widget) =
           try
             let sp = bi.Wiki_widgets_interface.bi_sp in
             let forum =
-              Forum_sql.Types.forum_of_string (List.assoc "forum" args) 
+              Forum_types.forum_of_string (List.assoc "forum" args) 
             in
             message_list_widget#display
               ~sp ?rows ?cols ?classes

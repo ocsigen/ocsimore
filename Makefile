@@ -83,6 +83,7 @@ TOINSTALL := files/META \
              _build/forum/forum_data.cmi \
              _build/forum/forum_services.cmi \
              _build/forum/forum_site.cmi \
+             _build/forum/forum_types.cmi \
              _build/forum/forum_sql.cmi \
              _build/forum/forum_widgets.cmi \
              _build/forum/forum_wikiext.cmi \

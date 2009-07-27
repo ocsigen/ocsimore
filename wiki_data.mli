@@ -50,7 +50,7 @@ val create_wiki :
 
 val new_wikitextbox :
  ?db:Sql.db_t ->
- (content_type:Wiki_types.content_type ->
+ (content_type:'res Wiki_types.content_type ->
   wiki:wiki ->
   author:userid ->
   comment:string ->
@@ -58,10 +58,10 @@ val new_wikitextbox :
   unit -> wikibox Lwt.t) rights_sp
 
 
-(** The next three functiosn save a wikibox and returns the new version id of
+(** The next three functions save a wikibox and returns the new version id of
     this wikibox. *)
 val save_wikitextbox :
- (content_type:Wiki_types.content_type ->
+ (content_type:'res Wiki_types.content_type ->
   wb:wikibox ->
   content:string option ->
   int32 Lwt.t) rights_sp
@@ -106,7 +106,7 @@ exception Unknown_box of wikibox * int32 option
 val wikibox_content:
  (?version:int32 ->
   wikibox ->
-  Wiki_types.wikibox_content Lwt.t) rights_sp
+  'res Wiki_types.wikibox_content Lwt.t) rights_sp
 
 val wikibox_content':
  (?version:int32 ->

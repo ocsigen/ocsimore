@@ -33,12 +33,14 @@ exception Wiki_model_does_not_exist of string
 
 val register_wiki_model :
   name:string ->
-  content_type:Wiki_types.content_type ->
+  content_type: Xhtmltypes_duce.flows Wiki_types.content_type ->
   rights:Wiki_types.wiki_rights ->
   widgets:Wiki_widgets_interface.interactive_wikibox -> Wiki_types.wiki_model
 
 val get_rights : Wiki_types.wiki_model -> Wiki_types.wiki_rights
-val get_default_content_type : Wiki_types.wiki_model -> Wiki_types.content_type
+val get_default_content_type : 
+  Wiki_types.wiki_model -> 
+  Xhtmltypes_duce.flows Wiki_types.content_type
 val get_widgets : Wiki_types.wiki_model -> Wiki_widgets_interface.interactive_wikibox
 
 (** Table of wiki syntaxes. *)
@@ -47,23 +49,40 @@ exception Content_type_does_not_exist of string
 type wiki_preparser = 
     Eliom_sessions.server_params * Wiki_types.wikibox -> string -> string Lwt.t
 
-type wiki_parser =
+type 'res wiki_parser =
     Wiki_widgets_interface.box_info -> string -> 
-  Xhtmltypes_duce.flows Lwt.t (* pretty printer *) 
+  'res Lwt.t (* pretty printer *) 
 
-val register_wiki_parser : 
+val register_flows_wiki_parser : 
   name:string -> 
   preparser:wiki_preparser -> 
-  parser:wiki_parser -> Wiki_types.content_type
+  parser:Xhtmltypes_duce.flows wiki_parser -> 
+    Xhtmltypes_duce.flows Wiki_types.content_type
 
-val get_wiki_parser : 
-  Wiki_types.content_type -> wiki_parser
+(** will also register a flows parser by adding a <div> around the result *)
+val register_inlines_wiki_parser : 
+  name:string -> 
+  preparser:wiki_preparser -> 
+  parser:Xhtmltypes_duce.inlines wiki_parser -> 
+    Xhtmltypes_duce.inlines Wiki_types.content_type
 
-val get_wiki_preparser : 
-  Wiki_types.content_type -> wiki_preparser
+val get_flows_wiki_parser : 
+  Xhtmltypes_duce.flows Wiki_types.content_type -> 
+  Xhtmltypes_duce.flows wiki_parser
+
+val get_inlines_wiki_parser : 
+  Xhtmltypes_duce.inlines Wiki_types.content_type -> 
+  Xhtmltypes_duce.inlines wiki_parser
+
+val get_flows_wiki_preparser : 
+  Xhtmltypes_duce.flows Wiki_types.content_type -> wiki_preparser
+
+val get_inlines_wiki_preparser : 
+  Xhtmltypes_duce.inlines Wiki_types.content_type -> wiki_preparser
 
 (** default wikiparser for one wiki model *)
-val get_default_wiki_parser : Wiki_types.wiki_model -> wiki_parser
+val get_default_wiki_parser : 
+  Wiki_types.wiki_model -> Xhtmltypes_duce.flows wiki_parser
 val get_default_wiki_preparser : Wiki_types.wiki_model -> wiki_preparser
 
-val css_content_type : Wiki_types.content_type
+val css_content_type : Xhtmltypes_duce.flows Wiki_types.content_type

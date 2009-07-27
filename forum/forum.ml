@@ -24,7 +24,7 @@
 *)
 
 open User_sql.Types
-open Forum_sql.Types
+open Forum_types
 
 let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
@@ -459,11 +459,11 @@ let get_role ~sp ~forum =
 
 
 module Roles = Map.Make(struct
-                          type t = Forum_sql.Types.forum
+                          type t = Forum_types.forum
                           let compare = compare
                         end)
 
-type forum_sd = Forum_sql.Types.forum -> role Lwt.t
+type forum_sd = Forum_types.forum -> role Lwt.t
 
 let default_forum_sd ~sp =
   let cache = ref Roles.empty in
@@ -496,10 +496,10 @@ let get_role ~sp k =
 
 (** {2 } *)
 type forum_action_info =
-  | Preview of ((Forum_sql.Types.forum * 
-                   Forum_sql.Types.message option (* parent *)) * string)
-  | Msg_creation_not_allowed of (Forum_sql.Types.forum * 
-                                   Forum_sql.Types.message option (* parent *))
+  | Preview of ((Forum_types.forum * 
+                   Forum_types.message option (* parent *)) * string)
+  | Msg_creation_not_allowed of (Forum_types.forum * 
+                                   Forum_types.message option (* parent *))
 
 
 (** {2 Eliom related values} *)

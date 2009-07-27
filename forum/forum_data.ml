@@ -22,7 +22,7 @@
 *)
 
 open Forum
-open Forum_sql.Types
+open Forum_types
 
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
@@ -266,7 +266,7 @@ let get_thread ~sp ~message_id =
              else comment_filter th)
         with e -> Lwt.fail e
 
-type raw_message = Forum_sql.Types.raw_message_info
+type raw_message = Forum_types.raw_message_info
 
 let get_message_list ~sp ~forum ~first ~number () =
   Forum_sql.get_forum ~forum () >>= fun _ ->
@@ -282,7 +282,7 @@ let get_message_list ~sp ~forum ~first ~number () =
       ~moderated_only:(not message_readers_evennotmoderated) ()
 
 let message_info_of_raw_message ~sp m =
-  let m = Forum_sql.Types.get_message_info m in
+  let m = Forum_types.get_message_info m in
   !!(m.m_has_special_rights) >>= fun has_special_rights ->
   if not has_special_rights
   then Lwt.return m

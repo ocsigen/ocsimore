@@ -29,146 +29,7 @@ open Sql
 
 let (>>=) = Lwt.bind
 
-let get_message_raw ~message_id () =
-  Lwt_pool.use Sql.pool 
-    (fun db ->
-       (* tree_min and tree_max are here only for the interface to be 
-          compatible with get_thread *)
-       PGSQL(db) "SELECT id, creator_id, datetime, parent_id, 
-                         root_id, forum_id, subject, wikibox, \
-                         moderated, sticky, special_rights, tree_min, tree_max \
-                  FROM forums_messages \
-                  WHERE forums_messages.id = $message_id")
-  >>= function
-    | [] -> Lwt.fail Not_found
-    | x :: _ -> Lwt.return x
-
-
-module Types = struct
-
-  (** Semi-abstract type for a forum *)
-  type forum_arg = [ `Forum ]
-  type forum = forum_arg Opaque.int32_t
-
-  (** Semi-abstract type for a message or comment *)
-  type message_arg = [ `Message ]
-  type message = message_arg Opaque.int32_t
-
-  type forum_info = {
-    f_id: forum;
-    f_title: string;
-    f_descr: string;
-    f_arborescent: bool;
-    f_deleted: bool;
-    f_title_syntax: Wiki_types.content_type;
-    f_messages_wiki: Wiki_types.wiki;
-    f_comments_wiki: Wiki_types.wiki;
-  }
-
-  let forum_of_sql (u : int32) = (Opaque.int32_t u : forum)
-  let sql_of_forum (u : forum) = Opaque.t_int32 u
-  let message_of_sql (u : int32) = (Opaque.int32_t u : message)
-  let sql_of_message (u : message) = Opaque.t_int32 u
-
-  let forum_of_sql_option (u : int32 option) = 
-    (Opaque.int32_t_option u : forum option)
-  let sql_of_forum_option (u : forum option) = Opaque.t_int32_option u
-  let message_of_sql_option (u : int32 option) = 
-    (Opaque.int32_t_option u : message option)
-  let sql_of_message_option (u : message option) = Opaque.t_int32_option u
-
-  let string_of_forum i = Int32.to_string (sql_of_forum i)
-  let forum_of_string s = (Opaque.int32_t (Int32.of_string s) : forum)
-  let string_of_message i = Int32.to_string (sql_of_message i)
-  let message_of_string s = (Opaque.int32_t (Int32.of_string s) : message)
-
-  type raw_forum_info = (int32 * string * string * bool * bool * string * int32 * int32)
-
-  let get_forum_info
-      (id,
-       title,
-       descr,
-       arborescent,
-       deleted,
-       title_syntax,
-       messages_wiki,
-       comments_wiki)
-      = 
-      {
-        f_id = forum_of_sql id;
-        f_title = title;
-        f_descr = descr;
-        f_arborescent = arborescent;
-        f_deleted = deleted;
-        f_title_syntax = Wiki_types.content_type_of_string title_syntax;
-        f_messages_wiki = Wiki_types.wiki_of_sql messages_wiki;
-        f_comments_wiki = Wiki_types.wiki_of_sql comments_wiki;
-      }
-
-  type message_info = {
-    m_id: message;
-    m_creator_id: User_sql.Types.userid;
-    m_datetime: CalendarLib.Calendar.t;
-    m_parent_id: message option;
-    m_root_id: message;
-    m_forum: forum;
-    m_subject: Wiki_types.wikibox option;
-    m_wikibox: Wiki_types.wikibox;
-    m_moderated: bool;
-    m_sticky: bool;
-    m_has_special_rights: bool Lwt.t Lazy.t;
-    m_tree_min: int32;
-    m_tree_max: int32;
-  }
-
-  type raw_message_info =
-      (int32 * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 option * int32 * bool * bool * bool
-       * int32 * int32)
-
-  let get_message_info
-      (id,
-       creator_id,
-       datetime,
-       parent_id,
-       root_id,
-       forum_id,
-       subject,
-       wikibox,
-       moderated,
-       sticky,
-       has_special_rights,
-       tree_min,
-       tree_max) =
-    {
-      m_id = message_of_sql id;
-      m_creator_id = User_sql.Types.userid_from_sql creator_id;
-      m_datetime = datetime;
-      m_parent_id = message_of_sql_option parent_id;
-      m_root_id = message_of_sql root_id;
-      m_forum = forum_of_sql forum_id;
-      m_subject = (match subject with
-                     | None -> None 
-                     | Some s -> Some (Wiki_types.wikibox_of_sql s));
-      m_wikibox = Wiki_types.wikibox_of_sql wikibox;
-      m_moderated = moderated;
-      m_sticky = sticky;
-      m_has_special_rights = 
-        lazy (if root_id = id (* root *)
-              then Lwt.return has_special_rights
-              else begin
-                get_message_raw ~message_id:root_id ()
-                >>= fun (_, _, _, _, _, _, _, _, _, _,
-                         has_special_rights, _, _) ->
-                Lwt.return has_special_rights
-              end);
-      m_tree_min = tree_min;
-      m_tree_max = tree_max;
-    }
-
-
-end
-open Types
+open Forum_types
 
 let new_forum
     ~title ~descr ?(arborescent = true) ~title_syntax
@@ -316,7 +177,8 @@ let get_forums_list ?(not_deleted_only = true) () =
 
 let get_message ~message_id () =
   let message_id = sql_of_message message_id in
-  get_message_raw ~message_id () >>= fun x -> Lwt.return (get_message_info x)
+  Forum_sql0.get_message_raw ~message_id ()
+  >>= fun x -> Lwt.return (get_message_info x)
     
 
 let get_thread ~message_id () =

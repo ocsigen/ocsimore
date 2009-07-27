@@ -2,7 +2,6 @@ open Js
 
 let (>>>) = JSOO.(>>>)
 
-
 let delete_widget (href, id) =
   let parent = Js.get_element_by_id id in
   let box =

@@ -42,7 +42,7 @@ type wikipage = wiki * string
 type wikipage_arg = [ `Wikipage ]
 type wikipage_uid = wikipage_arg Opaque.int32_t
 
-type content_type = string
+type 'a content_type = string
 type wiki_model = string
 let string_of_wiki_model = Ocsigen_lib.id
 let wiki_model_of_string = Ocsigen_lib.id
@@ -106,5 +106,10 @@ object
 end
 
 
-type wikibox_content =
-    content_type * string option * int32
+type 'a wikibox_content =
+    'a content_type * string option * int32
+
+
+let wikibox_data_of_raw = Ocsigen_lib.id
+
+let raw_of_wikibox_data = Ocsigen_lib.id 

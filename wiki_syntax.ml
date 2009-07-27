@@ -929,35 +929,32 @@ let inline_of_wiki bi s : Xhtmltypes_duce.inlines Lwt.t =
 (* Predefined content types:    *)
 
 let wikicreole_content_type = 
-  Wiki_models.register_wiki_parser "wikicreole" 
+  Wiki_models.register_flows_wiki_parser "wikicreole" 
     (preparse_extension wikicreole_parser)
     (xml_of_wiki wikicreole_parser)
 
 let reduced_wikicreole_content_type0 = 
-  Wiki_models.register_wiki_parser "reduced_wikicreole0" 
+  Wiki_models.register_flows_wiki_parser "reduced_wikicreole0" 
     (preparse_extension reduced_wikicreole_parser0)
     (xml_of_wiki reduced_wikicreole_parser0)
 
 let reduced_wikicreole_content_type1 = 
-  Wiki_models.register_wiki_parser "reduced_wikicreole1" 
+  Wiki_models.register_flows_wiki_parser "reduced_wikicreole1" 
     (preparse_extension reduced_wikicreole_parser1)
     (xml_of_wiki reduced_wikicreole_parser1)
 
 let reduced_wikicreole_content_type2 = 
-  Wiki_models.register_wiki_parser "reduced_wikicreole2" 
+  Wiki_models.register_flows_wiki_parser "reduced_wikicreole2" 
     (preparse_extension reduced_wikicreole_parser2)
     (xml_of_wiki reduced_wikicreole_parser2)
 
-let wikicreole_inline_content_type container = 
-  Wiki_models.register_wiki_parser "inline_wikicreole"
+let wikicreole_inline_content_type = 
+  Wiki_models.register_inlines_wiki_parser "inline_wikicreole"
     (preparse_extension inline_wikicreole_parser)
-    (fun bi s -> 
-       inline_of_wiki bi s >>= fun r ->
-       Lwt.return (container r)
-    )
+    inline_of_wiki
 
 let rawtext_content_type = 
-  Wiki_models.register_wiki_parser "rawtext" 
+  Wiki_models.register_flows_wiki_parser "rawtext" 
     (fun _ s -> Lwt.return s)
     (fun _bi s -> Lwt.return {{ [<p>{: s :}] }})
 

@@ -23,6 +23,8 @@
 
 open Opaque
 
+let (>>=) = Lwt.bind
+
 (** Table of wiki models.
     Each wikis belongs to a "model" describing 
     - the default wikisyntax name
@@ -35,7 +37,7 @@ open Opaque
 exception Wiki_model_does_not_exist of string
 
 type wiki_model =
-    {wm_syntax : Wiki_types.content_type;
+    {wm_syntax : Xhtmltypes_duce.flows Wiki_types.content_type;
      wm_rights : Wiki_types.wiki_rights;
      wm_widgets : Wiki_widgets_interface.interactive_wikibox;
     }
@@ -72,34 +74,72 @@ exception Content_type_does_not_exist of string
 type wiki_preparser = 
     Eliom_sessions.server_params * Wiki_types.wikibox -> string -> string Lwt.t
 
-type wiki_parser =
-    Wiki_widgets_interface.box_info -> string -> Xhtmltypes_duce.flows Lwt.t
+type 'res wiki_parser =
+    Wiki_widgets_interface.box_info -> string -> 'res Lwt.t
       (* pretty printer *) 
 
-let register_wiki_parser, get_wiki_parser, get_wiki_preparser =
+let register_flows_wiki_parser, 
+  get_flows_wiki_parser, 
+  get_flows_wiki_preparser =
   let module H = Hashtbl.Make(struct
-                                type t = Wiki_types.content_type
+                                type t =
+                                    Xhtmltypes_duce.flows
+                                      Wiki_types.content_type
                                 let equal = (=)
                                 let hash = Hashtbl.hash
                               end)
   in
   let t = H.create 10 in
   ((fun ~name:k ~preparser:a ~parser:b -> 
-                                let k = Wiki_types.content_type_of_string k in
-                                H.add t k (a, b); k),
+      let k = Wiki_types.content_type_of_string k in
+      H.add t k (a, b); 
+      k),
    (fun k -> 
       try snd (H.find t k)
-      with Not_found -> raise (Content_type_does_not_exist (Wiki_types.string_of_content_type k))),
+      with Not_found -> raise (Content_type_does_not_exist
+                                 (Wiki_types.string_of_content_type k))),
    (fun k -> 
       try fst (H.find t k)
-      with Not_found -> raise (Content_type_does_not_exist (Wiki_types.string_of_content_type k))))
+      with Not_found -> raise (Content_type_does_not_exist 
+                                 (Wiki_types.string_of_content_type k))))
 
+let register_inlines_wiki_parser, 
+  get_inlines_wiki_parser, 
+  get_inlines_wiki_preparser =
+  let module H = Hashtbl.Make(struct
+                                type t =
+                                    Xhtmltypes_duce.inlines
+                                      Wiki_types.content_type
+                                let equal = (=)
+                                let hash = Hashtbl.hash
+                              end)
+  in
+  let t = H.create 10 in
+  ((fun ~name:k ~preparser:a ~parser:b -> 
+      let k' = Wiki_types.content_type_of_string k in
+      H.add t k' (a, b); 
+      (* we also register a flows parser: *)
+      ignore (register_flows_wiki_parser k a 
+                (fun bi s -> b bi s >>= fun r -> Lwt.return {{ [ <div>r ] }}));
+      k'),
+   (fun k -> 
+      try snd (H.find t k)
+      with Not_found -> raise (Content_type_does_not_exist
+                                 (Wiki_types.string_of_content_type k))),
+   (fun k -> 
+      try fst (H.find t k)
+      with Not_found -> raise (Content_type_does_not_exist 
+                                 (Wiki_types.string_of_content_type k))))
 
-let get_default_wiki_parser s = get_wiki_parser (get_default_content_type s)
-let get_default_wiki_preparser s = get_wiki_preparser (get_default_content_type s)
+let get_default_wiki_parser s = 
+  get_flows_wiki_parser (get_default_content_type s)
+
+let get_default_wiki_preparser s = 
+  get_flows_wiki_preparser (get_default_content_type s)
+
 
 let css_content_type = 
-  register_wiki_parser
+  register_flows_wiki_parser
     ~name:"css"
     ~preparser:(fun _ s -> Lwt.return s)
     ~parser:(fun _bi s -> Lwt.return (Ocamlduce.Utf8.make s))

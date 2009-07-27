@@ -23,7 +23,7 @@
    @author Boris Yakobowski
 *)
 
-open Forum_sql.Types
+open Forum_types
 
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
