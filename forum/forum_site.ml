@@ -36,7 +36,7 @@ let wikicreole_forum_model =
 let _ =
   let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model in
   let wiki_inline_widgets = 
-    new Wiki_widgets.inline_wikibox Ocsisite.error_box Ocsisite.wiki_services 
+    new Wiki_widgets.inline_wikibox Ocsisite.error_box User_site.user_widgets Ocsisite.wiki_services 
   in
   let services = Forum_services.register_services () in
   let widget_err = new Widget.widget_with_error_box in

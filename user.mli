@@ -85,6 +85,8 @@ val add_list_to_group : l:user list -> group:user -> unit Lwt.t
 
 val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
 
+
+val user_list_to_string: user list -> string Lwt.t
 (****)
 
 
@@ -155,13 +157,6 @@ module GroupsForms : sig
       ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
       Eliom_parameters.params_type;
 
-    (** A function creating the controls that permit changing the
-        permissions of the group^*)
-    grp_form_fun:
-      'a Opaque.int32_t ->
-       string ->
-       (two_input_strings -> Xhtmltypes_duce.inlines) Lwt.t;
-
     (** The hidden argument to use inside forms to specify which parameter
         is meant *)
     grp_form_arg:
@@ -191,11 +186,6 @@ module GroupsForms : sig
 
     awr_save: 'a Opaque.int32_t -> six_strings -> unit Lwt.t;
 
-   (** Function creating the form to update the permissions *)
-    awr_form_fun:
-      'a Opaque.int32_t ->
-       (six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t;
-
     awr_form_arg:
       'a Opaque.int32_t ->
       'a opaque_int32_eliom_param ->
@@ -205,20 +195,6 @@ module GroupsForms : sig
   val helpers_admin_writer_reader :
     string -> 'a User_sql.Types.admin_writer_reader -> 'a awr_helper
 
-
-  (** Helper forms to add and remove users from groups. If [show_edit]
-      is false, no controls to edit the permissions are shown *)
-  (** Form to add users to a group *)
-  val form_edit_group:
-    ?show_edit:bool ->
-    group:user -> text:string ->
-    (input_string * input_string -> Xhtmltypes_duce.inlines) Lwt.t
-
-  (** Form to add an user to a group *)
-  val form_edit_user:
-    ?show_edit:bool ->
-    user:user -> text:string ->
-    (input_string * input_string -> Xhtmltypes_duce.inlines) Lwt.t
 
 
   (** Add the space separated groups in [add], and remove the

@@ -82,7 +82,8 @@ let (
   ) as wiki_services
     = Wiki_services.make_services ()
 
-let wikibox_widget = new Wiki_widgets.dynamic_wikibox error_box wiki_services
+let wikibox_widget =
+ new Wiki_widgets.dynamic_wikibox error_box User_site.user_widgets wiki_services
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =

@@ -101,6 +101,8 @@ let external_auth = match auth with
         | None -> raise (Ocsigen_config.Config_file_error
                            "Ocsimore compiled without PAM support")
 
+module Services = struct
+
 let (
     action_login,
     action_logout,
@@ -114,45 +116,53 @@ let (
   as user_services) =
   User_services.services ~external_auth ~force_secure
 
-let user_widget, service_user_creation =
+end
+include Services
+
+let user_widgets, service_user_creation =
+  let module Widget = User_widgets.MakeWidget(Services) in
   match basicusercreation with
     | NoUserCreation ->
-        new User_widgets.user_widget force_secure user_services,
+        new Widget.user_widget force_secure,
         None
 
     | UserCreation user_creation_options ->
         (* We create some services specific to the creation of user *)
-        let (service_create_new_user, action_create_new_user
-               as creation_services) = User_services.services_user_creation ()
-        in
+        let module ServicesCreation = struct
+          let (service_create_new_user, action_create_new_user
+                 as creation_services) = User_services.services_user_creation ()
+        end in
+        let module WidgetCreation =
+          Widget.MakeWidgetCreation(ServicesCreation) in
         let user_widget_creation =
-          new User_widgets.user_widget_user_creation
-            ~force_secure ~user_services
-            ~user_creation_options ~creation_services in
+          new WidgetCreation.user_widget_user_creation
+            ~force_secure ~user_creation_options in
 
         (* We register the services above *)
-        Eliom_duce.Xhtml.register ~service:service_create_new_user
+        Eliom_duce.Xhtml.register
+          ~service:ServicesCreation.service_create_new_user
           (fun sp () () ->
              user_widget_creation#display_user_creation ~err:"" ~sp
              >>= fun body ->
              Ocsimore_page.html_page sp
                {{ [ !{{ Ocsimore_page.admin_menu
-                        ~service:service_create_new_user sp }}
+                        ~service:ServicesCreation.service_create_new_user sp }}
                     !body ] }}
           );
 
-        Eliom_duce.Xhtml.register ~service:action_create_new_user
+        Eliom_duce.Xhtml.register
+          ~service:ServicesCreation.action_create_new_user
           (fun sp () args ->
              user_widget_creation#display_user_creation_done sp () args
              >>= fun body ->
              Ocsimore_page.html_page sp
                {{ [ !{{ Ocsimore_page.admin_menu
-                        ~service:service_create_new_user sp }}
+                        ~service:ServicesCreation.service_create_new_user sp }}
                     !body ] }}
           );
 
-        (user_widget_creation :> User_widgets.user_widget),
-        Some service_create_new_user
+        (user_widget_creation :> Widget.user_widget),
+        Some ServicesCreation.service_create_new_user
 
 
 let () =
@@ -161,7 +171,7 @@ let () =
 
   Eliom_duce.Xhtml.register service_view_group
     (fun sp g () ->
-       user_widget#display_group ~sp g >>= fun body ->
+       user_widgets#display_group ~sp g >>= fun body ->
        Ocsimore_page.html_page sp
          {{ [ !{: Ocsimore_page.admin_menu ~service:service_view_groups sp :}
               !body ] }}
@@ -169,7 +179,7 @@ let () =
 
   Eliom_duce.Xhtml.register service_view_groups
     (fun sp () () ->
-       user_widget#display_all_groups ~sp >>= fun body ->
+       user_widgets#display_all_groups ~sp >>= fun body ->
        Ocsimore_page.html_page sp
          {{ [ !{: Ocsimore_page.admin_menu ~service:service_view_groups sp :}
               !body ] }}
@@ -177,14 +187,14 @@ let () =
 
   Eliom_duce.Xhtml.register service_login
     (fun sp () () ->
-       user_widget#display_login_widget ~sp () >>= fun body ->
+       user_widgets#display_login_widget ~sp () >>= fun body ->
        Ocsimore_page.html_page sp
          {{ [ !{{ Ocsimore_page.admin_menu ~service:service_login sp }}
               body ] }}
     );
 
   (* We register the syntax extensions *)
-  User_ext.register_user_extensions user_widget
+  User_ext.register_user_extensions user_widgets
 
 
 

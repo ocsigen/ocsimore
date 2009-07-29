@@ -28,7 +28,7 @@ open Wiki_widgets_interface
 
 let (>>=) = Lwt.bind
 
-let register_user_extensions (user_widget : User_widgets.user_widget) =
+let register_user_extensions (user_widget : User_widgets.user_widget_class) =
   let add_extension l ~name ~wiki_content f = 
     List.iter (fun wp -> 
                  Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l

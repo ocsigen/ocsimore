@@ -524,11 +524,6 @@ module GroupsForms = struct
       ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
       Eliom_parameters.params_type;
 
-    grp_form_fun:
-      'a Opaque.int32_t ->
-       string ->
-       (two_input_strings -> {{ Xhtmltypes_duce.inlines }}) Lwt.t;
-
     grp_form_arg:
       'a Opaque.int32_t ->
       'a opaque_int32_eliom_param ->
@@ -537,71 +532,6 @@ module GroupsForms = struct
     grp_save:
       'a Opaque.int32_t -> string * string -> unit Lwt.t
   }
-
-  let form_edit_group ?(show_edit=false) ~group ~(text : string) =
-    User_sql.users_in_group ~generic:false ~group
-    >>= fun users ->
-    user_list_to_string users
-    >>= fun members ->
-    let string_input arg =
-      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
-    Lwt.return (fun (iadd, irem) ->
-                  let textadd = "Add users: "
-                  and textrem = "Remove users: "
-                  and textcur = if users = [] then
-                    "No user currently in this group"
-                  else
-                    "Current users in this group:" in
-                  let cur =
-                    {{ [ <b>{: text :} <br>[]
-                         !{: textcur :} !{: members :} <br>[] ] }}
-                  and edit = if show_edit then
-                    {{ [ !{: textadd :}
-                         {: string_input iadd :} <br>[]
-                         !{: if users = [] then
-                             {{ [ {: Eliom_duce.Xhtml.string_input
-                                  ~input_type:{: "hidden" :} ~name:irem ():}]}}
-                           else
-                             {{ [ !{: textrem :}{: string_input irem :}<br>[]]}}
-                         :}
-                       ] }}
-                  else {{ [] }}
-                  in {{ [ !cur !edit] }}
-               )
-
-  let form_edit_user ?(show_edit=false) ~user ~(text : string) =
-    User_sql.groups_of_user ~user
-    >>= fun groups ->
-    user_list_to_string groups
-    >>= fun members ->
-    let string_input arg =
-      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
-    Lwt.return (fun (iadd, irem) ->
-                  let textadd = "Add user to: "
-                  and textrem = "Remove user from: "
-                  and textcur = if groups = [] then
-                    "User is currently in no group"
-                  else
-                    "Groups in which the user is currently: " in
-                  let cur = {{ [
-                       <b>{: text :} <br>[]
-                       !{: textcur :} !{: members :} <br>[]
-                     ] }}
-                  and edit = if show_edit then
-                    {{ [
-                       !{: textadd :} {: string_input iadd :} <br>[]
-                       !{: if groups = [] then
-                           {{ [ {: Eliom_duce.Xhtml.string_input
-                                   ~input_type:{: "hidden" :} ~name:irem ():}]}}
-                         else
-                           {{ [ !{: textrem :} {: string_input irem :} <br>[]]}}
-                             :}
-                       ] }}
-                  else
-                    {{ [] }}
-                  in {{ [ !cur !edit] }}
-               )
-
 
 
   let helpers_group prefix grp =
@@ -615,14 +545,11 @@ module GroupsForms = struct
       Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
                ~input_type:{: "hidden" :} ~name:arg_name ~value ()
 
-    and form arg text = form_edit_group ~group:(grp $ arg) ~text
-
     and update_perms arg (add, rem) =
       add_remove_users_from_group_param add rem grp arg
     in
     {grp_eliom_params = params;
      grp_eliom_arg_param = param_arg;
-     grp_form_fun = form ~show_edit:true;
      grp_form_arg = form_arg;
      grp_save = update_perms}
 
@@ -642,11 +569,6 @@ module GroupsForms = struct
 
     (** Function saving the permissions *)
     awr_save: 'a Opaque.int32_t -> six_strings -> unit Lwt.t;
-
-   (** Function creating the form to update the permissions *)
-    awr_form_fun:
-      'a Opaque.int32_t ->
-       (six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t;
 
     awr_form_arg:
       'a Opaque.int32_t ->
@@ -668,19 +590,9 @@ module GroupsForms = struct
       helpw.grp_save arg (addw, remw) >>= fun () ->
       helpr.grp_save arg (addr, remr)
 
-    and form_fun v =
-      helpa.grp_form_fun v "Current administrators: " >>= fun forma ->
-      helpw.grp_form_fun v "Current writers: "        >>= fun formw ->
-      helpr.grp_form_fun v "Current readers: "        >>= fun formr ->
-      let form (arga, (argw, argr)) =
-        {{ [ !{: formr argr :} !{: formw argw :} !{: forma arga :} ] }}
-      in
-      Lwt.return form
     in
     { awr_eliom_params = params;
       awr_save = save;
-      awr_form_fun = form_fun;
-
       awr_eliom_arg_param = helpa.grp_eliom_arg_param;
       awr_form_arg = helpa.grp_form_arg
     }

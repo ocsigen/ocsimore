@@ -132,6 +132,7 @@ end;;
     as argument all the services needed to save modifications
     or navigate through viewing options *)
 class dynamic_wikibox (error_box : Widget.widget_with_error_box)
+  (user_widgets: User_widgets.user_widget_class)
 (* (* Debugging code, to obtain useful error messages *)
    : Wiki_widgets_interface.interactive_wikibox = let *)
   (
@@ -495,9 +496,9 @@ object (self)
   method display_edit_wikibox_perm_form ~bi ~classes wb =
     Wiki_sql.get_wikibox_info wb
     >>= fun { wikibox_id = uid; wikibox_special_rights = sr } ->
-    let { User.GroupsForms.awr_form_fun = form; awr_form_arg = arg} =
-      Wiki.helpers_wikibox_permissions
-    in
+    let arg = Wiki.helpers_wikibox_permissions.User.GroupsForms.awr_form_arg in
+    user_widgets#form_edit_awr ~sp:bi.bi_sp ~grps:Wiki.wikibox_grps ~arg:wb
+    >>= fun form ->
     let msg1 = Ocamlduce.Utf8.make
       "Check this box if you want permissions specific to the wikibox. \
        Otherwise, permissions are inherited from the wiki"
@@ -505,7 +506,6 @@ object (self)
       wikibox. Add users in the fields to change them"
     in
     (* XXX we probably need to add sane defaults *)
-    form uid >>= fun form ->
     let form (nsr, (narg, args)) = {{ [
               <p>[ !msg1
                    {: Eliom_duce.Xhtml.bool_checkbox
@@ -534,7 +534,47 @@ object (self)
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
   method display_edit_wiki_perm_form ~bi ~classes ~wb wiki =
-    let _, _, form = Wiki.helpers_wiki_permissions in
+    let form wiki =
+      let aux g text = user_widgets#form_edit_group ~sp:bi.bi_sp
+        ~group:(g $ wiki) ~text ~show_edit:true in
+    aux Wiki.wiki_admins "Administer the wiki" >>= fun f1 ->
+    aux Wiki.wiki_subwikiboxes_creators "Create subwikiboxes" >>= fun f2 ->
+    aux Wiki.wiki_wikipages_creators "Create wikipages" >>= fun f3 ->
+    aux Wiki.wiki_wikiboxes_creators "Create wikiboxes" >>= fun f4 ->
+    aux Wiki.wiki_css_creators "Create CSS" >>= fun f5 ->
+    aux Wiki.wiki_wikiboxes_deletors "Delete wikiboxes" >>= fun f6 ->
+    aux Wiki.wiki_files_readers "Read static files" >>= fun f8 ->
+    aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" >>= fun f9 ->
+    aux Wiki.wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" >>= fun f10 ->
+    user_widgets#form_edit_awr ~sp:bi.bi_sp
+      ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki >>= fun f7 ->
+
+    let msg = Ocamlduce.Utf8.make
+      ("Permissions for wiki " ^ string_of_wiki wiki)
+    and msg2 = Ocamlduce.Utf8.make "(inherited permissions are not shown)"
+    and msg_wikiboxes = Ocamlduce.Utf8.make "Global permissions for wikiboxes:"
+    in
+    Lwt.return (
+      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, (n8, (n9, n10)))))))))) ->
+        {{ [
+             <h2>msg
+             <p>[<em>msg2]
+             <p>[ {: Wiki.h_wiki_admins.User.GroupsForms.grp_form_arg wiki narg :}
+                  !{: f1 n1 :} <br>[]
+                  !{: f2 n2 :} <br>[]
+                  !{: f3 n3 :} <br>[]
+                  !{: f4 n4 :} <br>[]
+                  !{: f5 n5 :} <br>[]
+                  !{: f6 n6 :} <br>[]
+                  !{: f8 n8 :} <br>[]
+                  !{: f9 n9 :} <br>[]
+                  !{: f10 n10 :} <br>[]
+                  <b>msg_wikiboxes <br>[]
+                  !{: f7 n7 :}]
+             <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                     {{"Save"}} :} ]
+           ] }})
+    in
     form wiki >>= fun form ->
     let form (wbname, nargs) =
       {{ [ <p>[ {: Ocsimore_common.input_opaque_int32 ~value:wb wbname :} ]
@@ -1030,11 +1070,11 @@ object (self)
 
 end
 
-class inline_wikibox (error_box : Widget.widget_with_error_box) services
+class inline_wikibox (error_box : Widget.widget_with_error_box) (user_widgets: User_widgets.user_widget_class) services
   : Wiki_widgets_interface.interactive_wikibox =
 object (self)
 
-  inherit dynamic_wikibox error_box services
+  inherit dynamic_wikibox error_box user_widgets services
 
   method draw_edit_form ~rows:_ ~cols:_ wb warning1 warning2 curversion content
     previewonly

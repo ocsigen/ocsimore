@@ -180,6 +180,9 @@ let eliom_css_args =
 
 let path_edit_wiki = [Ocsimore_lib.ocsimore_admin_dir;"edit_wiki"]
 
+open Wiki
+open User.GroupsForms
+
 let make_services () =
   let action_edit_css = Eliom_predefmod.Action.register_new_coservice'
     ~name:"css_edit"
@@ -346,14 +349,45 @@ let make_services () =
       )
 
   and action_send_wiki_permissions =
-    let params, f, _ = Wiki.helpers_wiki_permissions in
+    (* !!! must check that the order is the same in wiki_widgets !!! *)
+    let params =
+    h_wiki_admins.grp_eliom_arg_param **
+      (h_wiki_admins.grp_eliom_params **
+         (h_subwikiboxes_creators.grp_eliom_params **
+            (h_wiki_wikipages_creators.grp_eliom_params **
+               (h_wiki_wikiboxes_creators.grp_eliom_params **
+                  (h_wiki_css_creators.grp_eliom_params **
+                     (h_wiki_wikiboxes_deletors.grp_eliom_params **
+                        (h_wiki_wikiboxes_grps.awr_eliom_params **
+                           (h_wiki_files_readers.grp_eliom_params **
+                              (h_wiki_wikiboxes_src_viewers.grp_eliom_params **
+                               h_wiki_wikiboxes_oldversion_viewers.grp_eliom_params)))))))))
+
+  and f_save (rights : Wiki_types.wiki_rights) sp
+      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, (wfr, (wsrc, wold)))))))))) =
+    rights#can_admin_wiki sp wiki >>= function
+      | true ->
+          h_wiki_admins.grp_save wiki adm >>= fun () ->
+          h_subwikiboxes_creators.grp_save wiki subwbcre >>= fun () ->
+          h_wiki_wikipages_creators.grp_save wiki wpcre >>= fun () ->
+          h_wiki_wikiboxes_creators.grp_save wiki wbcre >>= fun () ->
+          h_wiki_css_creators.grp_save wiki csscre >>= fun () ->
+          h_wiki_wikiboxes_deletors.grp_save wiki wbdel >>= fun () ->
+          h_wiki_files_readers.grp_save wiki wfr >>= fun () ->
+          h_wiki_wikiboxes_grps.awr_save wiki wbgrps >>= fun () ->
+          h_wiki_wikiboxes_src_viewers.grp_save wiki wsrc >>= fun () ->
+          h_wiki_wikiboxes_oldversion_viewers.grp_save wiki wold >>= fun () ->
+          Lwt.return ()
+
+      | false -> Lwt.fail Ocsimore_common.Permission_denied
+    in
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"wiki_save_wiki_permissions"
       ~post_params:(eliom_wikibox_args ** params)
       (fun sp () (wb, args) ->
          Wiki_sql.get_wiki_info_by_id (fst args) >>= fun wiki_info ->
          let rights = Wiki_models.get_rights wiki_info.wiki_model in
-         save_then_redirect wb ~sp `SamePage (fun () -> f rights sp args))
+         save_then_redirect wb ~sp `SamePage (fun () -> f_save rights sp args))
 
   (* Below are the services for the css of wikis and wikipages.  The css
      at the level of wikis are registered in Wiki_data.ml *)

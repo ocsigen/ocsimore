@@ -178,7 +178,6 @@ let services ~external_auth ~force_secure =
   )
 
 
-
 let services_user_creation () =
   let service_create_new_user =
     Eliom_services.new_service
@@ -191,3 +190,104 @@ let services_user_creation () =
   in
   (service_create_new_user,
    action_create_new_user)
+
+
+
+
+module type Services = sig
+
+val action_login :
+  (unit, string * string,
+   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
+   unit,
+   [ `One of string ] Eliom_parameters.param_name *
+   [ `One of string ] Eliom_parameters.param_name, [> `Registrable ])
+  Eliom_services.service
+
+val action_logout :
+  (unit, unit, [> `Nonattached of [> `Post ] Eliom_services.na_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val action_logout_get :
+  (unit, unit, [> `Nonattached of [> `Get ] Eliom_services.na_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val action_edit_user_data :
+  (unit, User_sql.Types.userid * (string * (string * (string * string))),
+   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
+   unit,
+   [ `One of User_sql.Types.userid ] Eliom_parameters.param_name *
+   ([ `One of string ] Eliom_parameters.param_name *
+    ([ `One of string ] Eliom_parameters.param_name *
+     ([ `One of string ] Eliom_parameters.param_name *
+      [ `One of string ] Eliom_parameters.param_name))),
+   [> `Registrable ])
+  Eliom_services.service
+
+val action_add_remove_users_from_group :
+  (unit, string * (string * string),
+   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
+   unit,
+   [ `One of string ] Eliom_parameters.param_name *
+   ([ `One of string ] Eliom_parameters.param_name *
+    [ `One of string ] Eliom_parameters.param_name),
+   [> `Registrable ])
+  Eliom_services.service
+
+val action_add_remove_user_from_groups :
+  (unit, string * (string * string),
+   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
+   unit,
+   [ `One of string ] Eliom_parameters.param_name *
+   ([ `One of string ] Eliom_parameters.param_name *
+    [ `One of string ] Eliom_parameters.param_name),
+   [> `Registrable ])
+  Eliom_services.service
+
+val service_view_group :
+  (string, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name, 
+   unit, [> `Registrable ])
+  Eliom_services.service
+
+val service_view_groups :
+  (unit, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val service_login :
+  (unit, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+end
+
+module type ServicesCreationUser = sig
+
+val service_create_new_user :
+  (unit, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val action_create_new_user :
+  (unit, string * (string * string),
+   [> `Attached of
+        [> `Internal of [> `Coservice ] * [> `Post ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit,
+   [ `One of string ] Eliom_parameters.param_name *
+   ([ `One of string ] Eliom_parameters.param_name *
+    [ `One of string ] Eliom_parameters.param_name),
+   [> `Registrable ])
+  Eliom_services.service
+
+end

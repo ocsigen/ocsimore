@@ -28,6 +28,7 @@ open User_sql.Types
 let (>>=) = Lwt.bind
 
 
+
 let str_input ?(value="") name =
   Eliom_duce.Xhtml.string_input ~input_type:{:"text":} ~name ~value ()
 let passwd_input ?(value="") name =
@@ -36,25 +37,212 @@ let submit_input value =
   Eliom_duce.Xhtml.string_input ~input_type:{:"submit":} ~value ()
 
 
+class type user_widget_class = object
+  method display_all_groups :
+    sp:Eliom_sessions.server_params ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+  method display_group :
+    sp:Eliom_sessions.server_params ->
+    Ocamlduce.Utf8.repr -> {{Eliom_duce.Blocks.page}} Lwt.t
+  method display_login_widget :
+    sp:Eliom_sessions.server_params ->
+    ?user_prompt:Ocamlduce.Utf8.repr ->
+    ?pwd_prompt:Ocamlduce.Utf8.repr ->
+    ?auth_error:Ocamlduce.Utf8.repr ->
+    ?switchtohttps:Ocamlduce.Utf8.repr ->
+    unit ->
+    {{<div class=Latin1>[ Eliom_duce.Blocks.form_elt ]}} Lwt.t
+  method private display_logout_box :
+    sp:Eliom_sessions.server_params ->
+    User_sql.Types.userdata ->
+    {{[ <table>[ <tr>[ <td>Latin1 ] <tr>[ <td>[ Eliom_duce.Blocks.input_elt ] ]
+                 <tr>[ <td>[ Eliom_duce.Blocks.a_elt ] ] ] ]}}
+      Lwt.t
+  method display_logout_button :
+    sp:Eliom_sessions.server_params ->
+    Xhtmltypes_duce.flows -> {{Eliom_duce.Blocks.form_elt}} Lwt.t
+  method group_content :
+    sp:Eliom_sessions.server_params ->
+    group:User_sql.Types.user -> (Xhtmltypes_duce.inlines * user list) Lwt.t
+  method logout_uri :
+    sp:Eliom_sessions.server_params -> Eliom_duce.Xhtml.uri
+  method user_link :
+    sp:Eliom_sessions.server_params ->
+    Ocamlduce.Utf8.repr -> {{Eliom_duce.Blocks.a_elt}}
+  method user_list_to_string :
+    Eliom_sessions.server_params ->
+    User_sql.Types.user list -> {{Xhtmltypes_duce.inlines}} Lwt.t
+  method user_membership :
+    sp:Eliom_sessions.server_params ->
+    user:User_sql.Types.user -> (Xhtmltypes_duce.inlines * user list) Lwt.t
+
+  (** Helper forms to add and remove users from groups. If [show_edit]
+      is false, no controls to edit the permissions are shown *)
+  (** Form to add users to a group *)
+  method form_edit_group:
+    sp:Eliom_sessions.server_params ->
+    ?show_edit:bool ->
+    group:user ->
+    text:string ->
+    (User.GroupsForms.input_string * User.GroupsForms.input_string ->
+     Xhtmltypes_duce.inlines) Lwt.t
+
+  (** Form to add an user to a group *)
+  method form_edit_user:
+    sp:Eliom_sessions.server_params ->
+    ?show_edit:bool ->
+    user:User_sql.Types.user ->
+    text:string ->
+    (User.GroupsForms.input_string * User.GroupsForms.input_string ->
+     Xhtmltypes_duce.inlines) Lwt.t
+
+  method form_edit_awr: 'a.
+    sp:Eliom_sessions.server_params ->
+    grps:'a User_sql.Types.admin_writer_reader ->
+    arg:'a Opaque.int32_t ->
+    (User.GroupsForms.six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t
+
+end
+
+class type user_widget_user_creation_class = object
+  inherit user_widget_class
+  method display_user_creation :
+    ?err:string ->
+    sp:Eliom_sessions.server_params ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+  method display_user_creation_done :
+    Eliom_sessions.server_params ->
+    unit ->
+    string * (string * string) ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+end
+
+
+
 open Xform.XformLwt
 open Ops
 
+module MakeWidget(S : User_services.Services) = struct
+
 (** Widget for user login/logout/edition without addition of new users *)
-class user_widget ~force_secure
-  ~user_services:(
-    action_login,
-    action_logout,
-    action_logout_get,
-    action_edit_user_data,
-    action_add_remove_users_from_group,
-    action_add_remove_user_from_groups,
-    service_view_group,
-    service_view_groups,
-    service_login
-  ) =
+class user_widget ~force_secure : user_widget_class =
 object (self)
 
   val xhtml_class = "logbox"
+
+  method form_edit_group ~sp ?(show_edit=false) ~group ~(text : string) =
+    User_sql.users_in_group ~generic:false ~group
+    >>= fun users ->
+    self#user_list_to_string sp users
+    >>= fun members ->
+    let string_input arg =
+      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+    Lwt.return (fun (iadd, irem) ->
+                  let textadd = "Add users: "
+                  and textrem = "Remove users: "
+                  and textcur = if users = [] then
+                    "No user currently in this group"
+                  else
+                    "Current users in this group:" in
+                  let cur =
+                    {{ [ <b>{: text :} <br>[]
+                         !{: textcur :} !{: members :} <br>[] ] }}
+                  and edit = if show_edit then
+                    {{ [ !{: textadd :}
+                         {: string_input iadd :} <br>[]
+                         !{: if users = [] then
+                             {{ [ {: Eliom_duce.Xhtml.string_input
+                                  ~input_type:{: "hidden" :} ~name:irem ():}]}}
+                           else
+                             {{ [ !{: textrem :}{: string_input irem :}<br>[]]}}
+                         :}
+                       ] }}
+                  else {{ [] }}
+                  in ({{ [ !cur !edit] }} : Xhtmltypes_duce.inlines)
+               )
+
+  method form_edit_user ~sp ?(show_edit=false) ~user ~(text : string) =
+    User_sql.groups_of_user ~user
+    >>= fun groups ->
+    self#user_list_to_string sp groups
+    >>= fun members ->
+    let string_input arg =
+      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+    Lwt.return (fun (iadd, irem) ->
+                  let textadd = "Add user to: "
+                  and textrem = "Remove user from: "
+                  and textcur = if groups = [] then
+                    "User is currently in no group"
+                  else
+                    "Groups in which the user is currently: " in
+                  let cur = {{ [
+                       <b>{: text :} <br>[]
+                       !{: textcur :} !{: members :} <br>[]
+                     ] }}
+                  and edit = if show_edit then
+                    {{ [
+                       !{: textadd :} {: string_input iadd :} <br>[]
+                       !{: if groups = [] then
+                           {{ [ {: Eliom_duce.Xhtml.string_input
+                                   ~input_type:{: "hidden" :} ~name:irem ():}]}}
+                         else
+                           {{ [ !{: textrem :} {: string_input irem :} <br>[]]}}
+                             :}
+                       ] }}
+                  else
+                    {{ [] }}
+                  in ({{ [ !cur !edit] }} : Xhtmltypes_duce.inlines)
+               )
+
+  method form_edit_awr : 'a. sp:_ -> grps:'a User_sql.Types.admin_writer_reader -> arg:'a Opaque.int32_t -> _ = fun ~sp ~grps ~arg ->
+    let aux grp text =
+      self#form_edit_group ~sp ~group:(grp $ arg) ~text ~show_edit:true
+    in
+    aux grps.grp_admin  "Current administrators: " >>= fun forma ->
+    aux grps.grp_writer "Current writers: "        >>= fun formw ->
+    aux grps.grp_reader "Current readers: "        >>= fun formr ->
+    Lwt.return (fun (arga, (argw, argr)) ->
+              {{ [ !{: formr argr :} !{: formw argw :} !{: forma arga :} ] }})
+
+
+
+  method group_content ~sp ~group =
+    User_sql.users_in_group ~generic:false ~group
+    >>= fun users ->
+    self#user_list_to_string sp users
+    >>= fun members ->
+    let textcur =
+      if users = [] then
+        "No user currently in this group"
+      else
+        "Current users in this group:"
+    in
+    Lwt.return ({{ [ !{: textcur :} !{: members :} ] }}, users)
+
+  method user_membership ~sp ~user =
+    User_sql.groups_of_user ~user
+    >>= fun groups ->
+    self#user_list_to_string sp groups
+    >>= fun members ->
+    let textcur =
+      if groups = [] then
+        "This user is currently in no group"
+      else
+        "Groups to which this user currently belongs: "
+    in
+    Lwt.return ({{ [ !{: textcur :} !{: members :} ] }}, groups)
+
+
+  method user_list_to_string sp l =
+    List.fold_left
+      (fun s u ->
+         s >>= fun s ->
+         User_sql.user_to_string u >>= fun su ->
+         Lwt.return ({{ [ !s ' ' {{ self#user_link ~sp su }} ] }} :
+                       Xhtmltypes_duce.inlines))
+      (Lwt.return {{ [] }})
+      l
+
 
   method private login_box_aux
     ?(user_prompt= "login:")
@@ -102,14 +290,14 @@ object (self)
 
   method private logout_box_extension ~sp =
     User.get_user_data sp >>= fun ud ->
-    Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a service_view_group sp
+    Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a S.service_view_group sp
                                   {{ "Manage your account" }} ud.user_login :}]]
                   ] }}
 
   method display_logout_button ~sp (content : Xhtmltypes_duce.flows) =
     Lwt.return
       (Eliom_duce.Xhtml.post_form ~a:{{ { class="logoutbutton"} }}
-         ~sp ~service:action_logout
+         ~sp ~service:S.action_logout
          (fun () ->
             {{ [<p>[
                    {: Eliom_duce.Xhtml.button ~button_type:{:"submit":}
@@ -118,7 +306,7 @@ object (self)
                       :}] ] }}) ())
 
   method logout_uri ~sp =
-    Eliom_duce.Xhtml.make_uri ~service:action_logout_get ~sp ()
+    Eliom_duce.Xhtml.make_uri ~service:S.action_logout_get ~sp ()
 
 
   method display_login_widget ~sp
@@ -129,7 +317,7 @@ object (self)
        self#display_logout_box sp u >>= fun f ->
        Lwt.return (
          Eliom_duce.Xhtml.post_form ~a:{{ { class="logbox logged"} }}
-           ~service:action_logout ~sp (fun _ -> f) ())
+           ~service:S.action_logout ~sp (fun _ -> f) ())
 
      else
        let f_login error ~a =
@@ -137,7 +325,7 @@ object (self)
            ?switchtohttps ~sp error
          >>= fun f ->
          Lwt.return
-           (Eliom_duce.Xhtml.post_form ~service:action_login ~sp ~a f ())
+           (Eliom_duce.Xhtml.post_form ~service:S.action_login ~sp ~a f ())
        in
        if List.exists
          (fun e -> e = User.BadPassword || e = User.BadUser)
@@ -150,8 +338,8 @@ object (self)
     Lwt.return {{<div class={: xhtml_class :}>[f]}}
 
 
-  method group_link ~sp group =
-    Eliom_duce.Xhtml.a  ~service:service_view_group ~sp
+  method user_link ~sp group =
+    Eliom_duce.Xhtml.a  ~service:S.service_view_group ~sp
       {: Ocamlduce.Utf8.make group :}  group
 
 
@@ -182,7 +370,7 @@ object (self)
          {{ <h1>['User/Group \'' !{: Ocamlduce.Utf8.make g :} '\''] }} in
 
        (* Adding groups to the group *)
-       User.GroupsForms.form_edit_group ~show_edit:isadmin ~group ~text:""
+       self#form_edit_group ~sp ~show_edit:isadmin ~group ~text:""
        >>= fun form  ->
        let form (n, (n1, n2)) =
          {{ [<p>[{: Eliom_duce.Xhtml.string_input
@@ -194,10 +382,10 @@ object (self)
                      else {{ [] }} :}
                 ]] }} in
        let f1 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
-         ~service:action_add_remove_users_from_group ~sp form () in
+         ~service:S.action_add_remove_users_from_group ~sp form () in
 
        (* Adding the group to groups *)
-       User.GroupsForms.form_edit_user ~show_edit:isadmin ~user:group ~text:""
+       self#form_edit_user ~sp ~show_edit:isadmin ~user:group ~text:""
        >>= fun form  ->
        let form (n, (n1, n2)) =
          {{ [<p>[{: Eliom_duce.Xhtml.string_input
@@ -209,7 +397,7 @@ object (self)
                      else {{ [] }} :}
                 ]] }} in
        let f2 = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"} }}
-         ~service:action_add_remove_user_from_groups ~sp form ()
+         ~service:S.action_add_remove_user_from_groups ~sp form ()
        in
 
        User_sql.get_user_data group >>= fun g ->
@@ -220,11 +408,11 @@ object (self)
            g.user_pwd <> External_Auth
          then
            {{ [ {: Eliom_duce.Xhtml.post_form
-                   ~service:action_edit_user_data ~sp
+                   ~service:S.action_edit_user_data ~sp
                    (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
                       {{ [<table>[
                              <tr>[
-                               <td>"Eeal name: "
+                               <td>"Real name: "
                                <td>[{: str_input ~value:g.user_fullname desc :}]
                              ]
                              <tr>[
@@ -256,7 +444,7 @@ object (self)
            {{ [ <p>[ !"Real name: " !{: Ocamlduce.Utf8.make g.user_fullname :} ]
               ] }}
        in
-       Lwt.return ({{ [ !error head !edit f1 f2 ] }} : Xhtmltypes_duce.blocks)
+       Lwt.return ({{ [ !error head !edit f1 f2] }} : Xhtmltypes_duce.blocks)
 
 
   method display_all_groups ~sp =
@@ -286,7 +474,7 @@ object (self)
     let line2 u =
       let g = Ocamlduce.Utf8.make u.user_login
       and d = Ocamlduce.Utf8.make u.user_fullname
-      and l = {{ [ {: Eliom_duce.Xhtml.a ~service:service_view_group ~sp
+      and l = {{ [ {: Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
                       {: "Edit" :} u.user_login :}] }}
       in
       {{ <tr>[<td>[<b>g ] <td>d <td>l] }}
@@ -302,7 +490,7 @@ object (self)
                          ]] }}
     in
     let f = Eliom_duce.Xhtml.get_form ~a:{{ { accept-charset="utf-8" } }}
-      ~service:service_view_group ~sp form
+      ~service:S.service_view_group ~sp form
     in
 
     let title1 = Ocamlduce.Utf8.make "Standard users"
@@ -318,17 +506,18 @@ object (self)
 end
 
 
+module MakeWidgetCreation(SC : User_services.ServicesCreationUser) = struct
 
-class user_widget_user_creation ~force_secure ~user_services ~user_creation_options ~creation_services:(service_create_new_user, action_create_new_user) =
+class user_widget_user_creation ~force_secure ~user_creation_options : user_widget_user_creation_class =
 object (self)
 
-  inherit user_widget ~force_secure ~user_services
+  inherit user_widget ~force_secure
 
   method private login_box_extension ~sp =
     User_data.can_create_user ~sp ~options:user_creation_options >>= function
       | true -> Lwt.return
           {{ [ <tr>[<td colspan="2">[
-                       {: Eliom_duce.Xhtml.a service_create_new_user
+                       {: Eliom_duce.Xhtml.a SC.service_create_new_user
                           sp {{ "New user? Register now!" }} () :}]] ] }}
       | false -> Lwt.return {{ [] }}
 
@@ -341,7 +530,7 @@ object (self)
                      'Be very careful to enter a valid e-mail address, \
                        as the password for logging in will be sent there.']
                  {: Eliom_duce.Xhtml.post_form ~sp
-                    ~service:action_create_new_user
+                    ~service:SC.action_create_new_user
                     (fun (usr,(desc,email)) ->
                        {{ [<table>[
                               <tr>[
@@ -384,4 +573,8 @@ object (self)
              Lwt.return {{ [ <h1>"Error"
                              <p>"Only admin can create new users" ] }}
          | e -> Lwt.fail e)
+end
+
+end
+
 end
