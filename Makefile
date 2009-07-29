@@ -90,8 +90,11 @@ TOINSTALL := files/META \
              _build/ocsimore_pam.cmi
 
 
-STATICFILES := static/vm.js static/eliom_obrowser.js \
-	static/ocsimore_client.uue static/ocsiwikistyle.css \
+STATICFILES := static/vm.js \
+        static/eliom_obrowser.js \
+	static/ocsimore_client.uue \
+	static/ocsiwikistyle.css \
+	static/ocsiadmin.css \
 	static/creole_cheat_sheet.png
 
 all: $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
