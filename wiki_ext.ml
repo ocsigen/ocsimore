@@ -84,8 +84,9 @@ let register_wikibox_syntax_extensions
                 ?classes:(try Some [List.assoc "class" args; class_box]
                           with Not_found -> Some [class_box])
                 ~bi:{bi with
-                       bi_ancestors = 
-                    Ancestors.add_ancestor box bi.bi_ancestors;
+                       bi_ancestors =Ancestors.add_ancestor box bi.bi_ancestors;
+                       bi_box = box;
+                       bi_wiki = wiki;
                        bi_subbox = fsubbox }
                 box
               >>= fun b ->
