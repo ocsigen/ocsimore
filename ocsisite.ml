@@ -407,7 +407,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           staticdir_input staticdir) @@
        p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container)
        @@
-       p (submit_button "Create")
+       p (submit_button "Save")
       |> cont)
   >>= fun form ->
   page sp arg Xform.NoError form

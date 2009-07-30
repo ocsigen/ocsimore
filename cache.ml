@@ -253,9 +253,11 @@ struct
 
 end
 
+let clear_all_caches () = Weak.iter (fun f -> f ()) clear_all
+
 let () = 
   Ocsigen_extensions.register_command_function ~prefix:"ocsimore"
     (fun _s c -> 
        match c with
-         | ["clearcache"] -> Weak.iter (fun f -> f ()) clear_all
+         | ["clearcache"] -> clear_all_caches ()
          | _ -> raise Ocsigen_extensions.Unknown_command)

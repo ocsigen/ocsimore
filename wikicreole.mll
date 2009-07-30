@@ -81,6 +81,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     inline : 'a_content -> 'inline;
     plugin : string -> bool * ('param, 'flow, 'a_content) plugin;
     plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
+    link_action : string -> string option -> attribs -> int * int -> 'param -> unit;
     error : string -> 'a_content;
   }
 
@@ -586,7 +587,7 @@ and parse_rem c =
       parse_bol c lexbuf
     }
   | "[[" (("@@" ?) as att) 
-      { parse_link "" None c (read_attribs att parse_attribs c lexbuf) lexbuf }
+      { parse_link (Lexing.lexeme_start lexbuf) "" None c (read_attribs att parse_attribs c lexbuf) lexbuf }
   | "]]" {
       begin match c.stack with
         Link (addr, attribs, stack) ->
@@ -693,20 +694,20 @@ and parse_rem c =
       end_paragraph c 0
     }
 
-and parse_link beg fragment c attribs =
+and parse_link beg begaddr fragment c attribs =
     parse 
     (']' ? (not_line_break # [ ']' '|' '~' '#' ])) * 
           { match fragment with
               | None -> 
-                  parse_link (beg^Lexing.lexeme lexbuf) None c attribs lexbuf
+                  parse_link beg (begaddr^Lexing.lexeme lexbuf) None c attribs lexbuf
               | Some f -> 
-                  parse_link beg (Some (f^Lexing.lexeme lexbuf)) c attribs lexbuf
+                  parse_link beg begaddr (Some (f^Lexing.lexeme lexbuf)) c attribs lexbuf
           }
   | "]]" | '|' {
       let lb = Lexing.lexeme lexbuf in
       if c.link then begin
         push_string c "[["; (*VVV We loose attributes *)
-        push_string c beg;
+        push_string c begaddr;
         (match fragment with
           | None -> ()
           | Some f -> 
@@ -715,7 +716,9 @@ and parse_link beg fragment c attribs =
         push_string c lb
       end
       else begin
-        let addr = c.build.make_href c.sp c.param beg fragment in
+        c.build.link_action begaddr fragment attribs
+          (beg+2, Lexing.lexeme_start lexbuf) c.param;
+        let addr = c.build.make_href c.sp c.param begaddr fragment in
         if lb = "|"
         then begin
           c.stack <- Link (addr, attribs, c.stack);
@@ -723,8 +726,8 @@ and parse_link beg fragment c attribs =
         end
         else
           let text = match fragment with
-            | None -> beg
-            | Some f -> beg^"#"^f
+            | None -> begaddr
+            | Some f -> begaddr^"#"^f
           in
           c.inline_mix <-
             c.build.a_elem
@@ -742,16 +745,16 @@ and parse_link beg fragment c attribs =
       in
       (* It amounts to the same to quote a UTF-8 char or its first byte *)
        match fragment with
-         | None -> parse_link (beg^char) fragment c attribs lexbuf
-         | Some f -> parse_link beg (Some (f^char)) c attribs lexbuf
+         | None -> parse_link beg (begaddr^char) fragment c attribs lexbuf
+         | Some f -> parse_link beg begaddr (Some (f^char)) c attribs lexbuf
     }
-  | '#' { let beg = match fragment with
-            | None -> beg
-            | Some f -> beg^"#"^f
-          in parse_link beg (Some "") c attribs lexbuf }
+  | '#' { let begaddr = match fragment with
+            | None -> begaddr
+            | Some f -> begaddr^"#"^f
+          in parse_link beg begaddr (Some "") c attribs lexbuf }
   | "" {
       push_string c "[["; (*VVV We loose attributes *)
-      push_string c beg;
+      push_string c begaddr;
       (match fragment with
          | None -> ()
          | Some f -> 

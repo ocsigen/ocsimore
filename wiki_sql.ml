@@ -540,26 +540,31 @@ let new_wiki ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~author 
 
 
 
-(* Temporary functions, not cache-safe *)
 
-let update f =
-  Sql.full_transaction_block
-    (fun db -> PGSQL(db) "SELECT version, wikibox, content
-                          FROM wikiboxescontent
-                          WHERE content_type='wikicreole'"
-       >>= fun l ->
-       Lwt_util.iter_serial (fun (v, wb, c) ->
-                        f (wikibox_of_sql wb) v c >>= function
-                          | None -> Lwt.return ()
-                          | Some s ->
-                              PGSQL (db)
-                              "UPDATE wikiboxescontent
-                               SET content = $s
-                               WHERE wikibox = $wb AND version = $v"
-                            ) l
-       >>= fun () -> Ocsigen_messages.console2 "Done";
-       Lwt.return ();
-    )
+let update_wikiboxes ?db f =
+  let f db =
+    PGSQL(db) "SELECT version, wikibox, content, content_type
+               FROM wikiboxescontent
+               WHERE content_type='wikicreole'"
+    >>= fun l ->
+    Lwt_util.iter_serial (fun (version, wb, content, ct) ->
+                          f ~wikibox:(wikibox_of_sql wb) ~version ~content
+                            ~content_type:(Wiki_types.content_type_of_string ct)
+                          >>= function
+                            | None -> Lwt.return ()
+                            | Some s ->
+                                PGSQL (db)
+                                  "UPDATE wikiboxescontent
+                                   SET content = $s
+                                   WHERE wikibox = $wb AND version = $version"
+                         ) l
+      >>= fun () -> Ocsigen_messages.console2 "Done";
+      Cache.clear_all_caches ();
+      Lwt.return ()
+  in match db with
+    | None -> full_transaction_block f
+    | Some db -> f db
+
 
 let wikibox_new_id ~wiki ~wb_old_id =
   let wiki = sql_of_wiki wiki in
@@ -571,3 +576,22 @@ let wikibox_new_id ~wiki ~wb_old_id =
        | uid :: _ -> Lwt.return (wikibox_of_sql uid)
     )
 
+let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
+  let oldwiki = sql_of_wiki oldwiki
+  and newwiki = sql_of_wiki newwiki in
+  let f db =
+    PGSQL(db) "SELECT * FROM wikipages WHERE wiki=$oldwiki" >>= fun l ->
+    Lwt_util.iter
+      (fun (_, _wb, page, _, uid) ->
+         match Ocsimore_lib.remove_prefix ~s:page ~prefix:path with
+           | None -> Lwt.return ()
+           | Some prefix ->
+               PGSQL(db) "UPDATE wikipages
+                          SET wiki = $newwiki, pagename= $prefix
+                          WHERE uid=$uid"
+      ) l >>= fun () ->
+      Cache.clear_all_caches ();
+      Lwt.return ()
+  in match db with
+    | None -> full_transaction_block f
+    | Some db -> f db

@@ -312,8 +312,8 @@ let remove_first_slash s =
 
 (* This function is used to translate a sub-tree of a wiki into a new wiki *)
 (* newwikipath is relative to oldwiki's path *)
-let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
-  let currentwiki = bi.Wiki_widgets_interface.bi_wiki in
+let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs (_sp, wb) =
+  Wiki_sql.wikibox_wiki wb >>= fun currentwiki ->
   (* Prefix must end with '/' and start with '/' only if it is "/" : *)
   let newwikipath = match newwikipath with
     | "" -> "/"
@@ -358,7 +358,7 @@ let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
                  | None -> ""
                  | Some true -> "https+"
                  | Some false -> "http+")^
-              "wiki("^(string_of_int newwiki)^":"^s
+              "wiki("^(Opaque.int32_t_to_string newwiki)^"):"^s
           in
           match frag with
             | None -> Some r
@@ -374,7 +374,7 @@ let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
            if w = oldwiki
            then aux s b
            else None
-       | a -> None)
+       | _ -> None)
 
 
 type 'res syntax_extension =
@@ -413,6 +413,13 @@ type 'res wikicreole_parser = {
        string option Lwt.t)
         Wikicreole.plugin_args)
     plugin_hash;
+
+  link_action:
+    (string ->
+     string option ->
+     Wikicreole.attribs ->
+     Eliom_sessions.server_params * Wiki_types.wikibox ->
+       string option Lwt.t) ref
 }
 
 let default_plugin = (fun (name : string) ->
@@ -437,16 +444,18 @@ let copy_parser wp = {
   wp with
     plugin_assoc = Hashtbl.copy wp.plugin_assoc;
     plugin_action_assoc = Hashtbl.copy wp.plugin_action_assoc;
+    link_action = ref !(wp.link_action);
 }
 
 
 let add_preparser_extension ~wp ~name f =
   Hashtbl.add wp.plugin_action_assoc name f
 
+let set_link_extension ~wp f =
+    wp.link_action := f
 
-let preparse_extension
-    wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wikibox)
-    content =
+
+let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wikibox) content =
   let subst = ref [] in
   let plugin_action name start end_ params args content =
     subst := (start,
@@ -455,6 +464,11 @@ let preparse_extension
                  (Hashtbl.find wp.plugin_action_assoc)
                    name params args content
                with Not_found -> Lwt.return None))::!subst
+  and link_action addr fragment attribs (start, end_) params =
+    subst := (start,
+              end_,
+              try !(wp.link_action) addr fragment attribs params
+              with _ -> Lwt.return None) ::!subst
   and nothing _ _ = ()
   and nothing1 _ = ()
   in
@@ -500,6 +514,7 @@ let preparse_extension
            with Not_found -> false
          in (wiki_content, (fun _ _ _ -> Wikicreole.A_content ())));
     plugin_action = plugin_action;
+    link_action = link_action;
     error = nothing1;
   } in
   Wikicreole.from_string sp (sp, wb) preparse_builder content
@@ -751,6 +766,8 @@ let plugin = default_plugin
 
 let plugin_action = (fun _ _ _ _ _ _ -> ())
 
+let link_action = (fun _ _ _ _ _ -> ())
+
 let error = (fun (s : string) -> Lwt.return {{ [ <b>{: s :} ] }})
 
 let span_elem = (fun attribs a ->
@@ -816,6 +833,7 @@ let inline_builder : (Xhtmltypes_duce.inlines Lwt.t,
     inline = inline;
     plugin = plugin;
     plugin_action = plugin_action;
+    link_action = link_action;
     error = error;
   }
 
@@ -853,6 +871,7 @@ let default_builder =
     inline = inline;
     plugin = plugin;
     plugin_action = plugin_action;
+    link_action = link_action;
     error = error;
   }
 
@@ -892,6 +911,7 @@ let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
     inline = inline;
     plugin = plugin;
     plugin_action = plugin_action;
+    link_action = link_action;
     error = error;
   }
 
@@ -936,6 +956,7 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
     inline = inline;
     plugin = plugin;
     plugin_action = plugin_action;
+    link_action = link_action;
     error = error;
   }
 
@@ -944,34 +965,41 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
 (********************************)
 (* Default parsers:             *)
 
+let void_plugin_action = fun _ _ _ _ -> Lwt.return None
+
 let wikicreole_parser = {
   builder = default_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
 }
 
 let reduced_wikicreole_parser0 = {
   builder = default_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
 }
 
 let reduced_wikicreole_parser1 = {
   builder = reduced_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
 }
 
 let reduced_wikicreole_parser2 = {
   builder = reduced_builder2;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
 }
 
 let inline_wikicreole_parser = {
   builder = inline_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
 }
 
 

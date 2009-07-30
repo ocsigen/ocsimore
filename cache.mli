@@ -45,3 +45,6 @@ module Make :
       val size : t -> int
     end
 
+
+(** Clear the contents of all the existing caches *)
+val clear_all_caches : unit -> unit

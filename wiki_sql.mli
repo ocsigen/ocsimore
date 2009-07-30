@@ -154,12 +154,31 @@ val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t
 val get_wikibox_info : ?db:Sql.db_t -> wikibox -> wikibox_info Lwt.t
 
 
+(** This function updates the content of all the wikiboxes stored in
+    the database (including the old versions) according to the function
+    passed as argument, which must return the updated content, or None *)
+val update_wikiboxes :
+  ?db: Sql.db_t ->
+  (wikibox:wikibox ->
+   version:int32 ->
+   content:string option ->
+   content_type:'a content_type ->
+   string option Lwt.t) ->
+  unit Lwt.t
+
+
+val rewrite_wikipages :
+  ?db: Sql.db_t ->
+  oldwiki:wiki ->
+  newwiki:wiki ->
+  path:string ->
+  unit Lwt.t
+
 
 (** / **)
 (* This function can be used to convert from the all wikiboxes ids to
-   the (new) uids. THEY DO NOT RESPECT THE CACHE DISCIPLINE AND ARE THUS
-   UNSAGE FOR GENERAL USE *)
-
-val update : (wikibox -> int32 -> string option -> string option Lwt.t) -> unit Lwt.t
-
+   the (new) uids. *)
 val wikibox_new_id: wiki:wiki -> wb_old_id:int32 -> wikibox Lwt.t
+
+
+

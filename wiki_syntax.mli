@@ -116,6 +116,16 @@ val preparse_extension :
   string -> string Lwt.t
 
 
+(** Sets the extension which will be called on links *)
+val set_link_extension :
+  wp: 'res wikicreole_parser ->
+  (string ->
+   string option ->
+   Wikicreole.attribs ->
+   Eliom_sessions.server_params * Wiki_types.wikibox ->
+   string option Lwt.t) ->
+  unit
+
 
 (** **)
 
@@ -176,3 +186,15 @@ val make_href :
 (** The class to use to denote the fact that the content comes
     from the specified wikibox *)
 val class_wikibox: wikibox -> string
+
+
+
+val translate_link :
+  oldwiki:wiki ->
+  newwiki:wiki ->
+  newwikipath:string ->
+  string ->
+  string option ->
+  Wikicreole.attribs ->
+  Eliom_sessions.server_params * wikibox ->
+  string option Lwt.t

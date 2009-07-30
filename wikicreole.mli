@@ -83,6 +83,7 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
 (** Must display sthg (error message?) if the name does not exist. *)
     plugin : string -> bool * ('param, 'flow, 'a_content) plugin;
     plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
+    link_action : string -> string option -> attribs -> int * int -> 'param -> unit;
     error : string -> 'a_content;
   }
 

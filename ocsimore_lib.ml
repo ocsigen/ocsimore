@@ -143,3 +143,15 @@ module DefaultMap (X : Map.OrderedType) : DefaultMap with type key = X.t
     { map with map = XMap.add k v map.map }
 end
 
+
+
+let remove_prefix ~s ~prefix =
+  let slen = String.length s
+  and preflen = String.length prefix in
+  let preflast = preflen - 1 in
+  let first_diff = Ocsigen_lib.string_first_diff prefix s 0 preflen in
+  if first_diff = preflen
+  then Some (String.sub s preflen (slen - preflen))
+  else if first_diff = preflast && slen = preflast
+  then Some ""
+  else None
