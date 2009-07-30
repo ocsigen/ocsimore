@@ -32,8 +32,7 @@ let class_wikibox wb = Printf.sprintf "wikiboxcontent%s" (string_of_wikibox wb)
 
 let string_of_extension name args content =
   "<<"^name^
-    (List.fold_left
-       (fun beg (n, v) -> beg^" "^n^"='"^v^"'") "" args)^
+    (String.concat " " (List.map (fun (n, v) -> n^"='"^v^"'") args))^
     (match content with
        | None -> "" 
        | Some content -> "|"^content)^">>"
@@ -264,7 +263,8 @@ let inline (x : Xhtmltypes_duce.a_content)
     : Xhtmltypes_duce.inlines
     = {{ {: [ x ] :} }}
 
-let link_regexp = Netstring_pcre.regexp "(http\\+|https\\+)?([a-z|A-Z|0-9]+)(\\((.*)\\))?:(.*)"
+let link_regexp = 
+  Netstring_pcre.regexp "(http\\+|https\\+)?([a-z|A-Z|0-9]+)(\\((.*)\\))?:(.*)"
 
 type force_https = bool option
 
@@ -280,7 +280,7 @@ let link_kind addr =
     | Some result ->
         let forceproto = 
           try
-            if (Netstring_pcre.matched_group result 1 addr) = "https+"
+            if Netstring_pcre.matched_group result 1 addr = "https+"
             then Some true
             else Some false
           with Not_found -> None
@@ -300,6 +300,62 @@ let link_kind addr =
           let page = Netstring_pcre.matched_group result 5 addr in
           Site (page, forceproto)
         else Absolute addr
+
+
+(* This function is used to translate a sub-tree of a wiki into a new wiki *)
+(* newwikipath is relative to oldwiki's path *)
+let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
+  let currentwiki = bi.Wiki_widgets_interface.bi_wiki in
+  let preflen = String.length newwikipath in
+  let preflast = preflen - 1 in
+  let newwikipath, preflen, preflast =
+    if newwikipath.[preflast] = '/'
+    then newwikipath, preflen, preflast
+    else newwikipath^"/", preflen+1, preflen
+  in
+  let remove_prefix s =
+    let slen = String.length s in
+    let first_diff = Ocsigen_lib.string_first_diff newwikipath s 0 preflast in
+    if first_diff = preflen
+    then Some (String.sub s preflen (slen - preflen))
+    else if first_diff = preflast && slen = preflast
+    then Some ""
+    else None
+  in
+  let aux s b =
+    match remove_prefix s with
+      | None -> (* prefix not found *) None
+      | Some s -> 
+          let attrs =
+            match
+              String.concat " " (List.map (fun (n, v) -> n^"='"^v^"'") attribs)
+            with
+              | "" -> ""
+              | s -> "@@"^s^"@@"
+          in
+          let r =
+            attrs^
+            (match b with
+               | None -> ""
+               | Some true -> "https+"
+               | Some false -> "http+")^
+              "wiki("^(string_of_int newwiki)^":"^s
+          in
+          match frag with
+            | None -> Some r
+            | Some f -> Some (r^"#"^f)
+  in
+  Lwt.return
+    (match link_kind addr with
+       | Page (s, b) -> 
+           if currentwiki = oldwiki
+           then aux s b
+           else None
+       | Wiki_page (w, s, b) ->
+           if w = oldwiki
+           then aux s b
+           else None
+       | a -> None)
 
 
 type 'res syntax_extension =
@@ -556,7 +612,7 @@ let a_elem =
            {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }})
 
 let default_make_href = 
-  (fun a b c fragment -> make_href a b (link_kind c) fragment)
+  (fun sp bi c fragment -> make_href sp bi (link_kind c) fragment)
 
 let br_elem = (fun attribs -> 
                  let atts = parse_common_attribs attribs in
