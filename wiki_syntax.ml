@@ -31,7 +31,7 @@ let class_wikibox wb = Printf.sprintf "wikiboxcontent%s" (string_of_wikibox wb)
 
 
 let string_of_extension name args content =
-  "<<"^name^
+  "<<"^name^" "^
     (String.concat " " (List.map (fun (n, v) -> n^"='"^v^"'") args))^
     (match content with
        | None -> "" 
@@ -301,11 +301,25 @@ let link_kind addr =
           Site (page, forceproto)
         else Absolute addr
 
+let remove_first_slash s =
+  let l = String.length s in
+  if l = 0
+  then s
+  else
+    if s.[0] = '/' 
+    then String.sub s 1 (l - 1)
+    else s
 
 (* This function is used to translate a sub-tree of a wiki into a new wiki *)
 (* newwikipath is relative to oldwiki's path *)
 let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
   let currentwiki = bi.Wiki_widgets_interface.bi_wiki in
+  (* Prefix must end with '/' and start with '/' only if it is "/" : *)
+  let newwikipath = match newwikipath with
+    | "" -> "/"
+    | "/" -> newwikipath
+    | _ -> remove_first_slash newwikipath
+  in
   let preflen = String.length newwikipath in
   let preflast = preflen - 1 in
   let newwikipath, preflen, preflast =
@@ -314,13 +328,17 @@ let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
     else newwikipath^"/", preflen+1, preflen
   in
   let remove_prefix s =
-    let slen = String.length s in
-    let first_diff = Ocsigen_lib.string_first_diff newwikipath s 0 preflast in
-    if first_diff = preflen
-    then Some (String.sub s preflen (slen - preflen))
-    else if first_diff = preflast && slen = preflast
-    then Some ""
-    else None
+    let s = remove_first_slash s in
+    if preflen = 1
+    then (* prefix is "/" *) Some s
+    else
+      let slen = String.length s in
+      let first_diff = Ocsigen_lib.string_first_diff newwikipath s 0 preflast in
+      if first_diff = preflen
+      then Some (String.sub s preflen (slen - preflen))
+      else if first_diff = preflast && slen = preflast
+      then Some ""
+      else None
   in
   let aux s b =
     match remove_prefix s with
@@ -328,17 +346,18 @@ let translate_link addr frag attribs (w, bi) oldwiki newwiki newwikipath =
       | Some s -> 
           let attrs =
             match
-              String.concat " " (List.map (fun (n, v) -> n^"='"^v^"'") attribs)
+              String.concat " "
+                (List.map (fun (n, v) -> n^"='"^v^"'") attribs)
             with
               | "" -> ""
               | s -> "@@"^s^"@@"
           in
           let r =
             attrs^
-            (match b with
-               | None -> ""
-               | Some true -> "https+"
-               | Some false -> "http+")^
+              (match b with
+                 | None -> ""
+                 | Some true -> "https+"
+                 | Some false -> "http+")^
               "wiki("^(string_of_int newwiki)^":"^s
           in
           match frag with
