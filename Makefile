@@ -94,6 +94,7 @@ STATICFILES := static/vm.js \
         static/eliom_obrowser.js \
 	static/ocsimore_client.uue \
 	static/ocsiwikistyle.css \
+	static/ocsiforumstyle.css \
 	static/ocsiadmin.css \
 	static/creole_cheat_sheet.png
 

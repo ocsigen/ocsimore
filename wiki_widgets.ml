@@ -920,12 +920,12 @@ object (self)
                            (* encoding? *) :}
                     ]}}
 
-   method private display_container ~sp ~wiki ~menu_style ~page:(page, page_list) ~gen_box =
+   method private display_container
+     ~sp ~wiki ~menu_style ~page:(page, page_list) ~gen_box =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
-     gen_box menu_style
-     >>= fun (wbid, subbox, err_code, title) ->
+     gen_box menu_style >>= fun (wbid, subbox, err_code, title) ->
      Wiki_widgets_interface.set_page_displayable sp err_code;
 
      (* We render the container, if it exists *)
