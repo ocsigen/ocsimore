@@ -20,11 +20,7 @@
    @author Boris Yakobowski
 *)
 
-let static_service :
-    ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
-      [ `One of string list ] Eliom_parameters.param_name, unit,
-      [ `Registrable ])
-     Eliom_services.service) option ref = ref None
+let static_service = ref None
 
 let set_service_for_static_files service =
   match !static_service with
@@ -33,12 +29,14 @@ let set_service_for_static_files service =
         Ocsigen_messages.errlog "In Ocsimore_common: Static services already \
                     loaded. Ignoring call to set_service_for_static_files"
 
-let static_file_uri ~sp ~path =
-  let service = match !static_service with
+let static_service () =
+  match !static_service with
     | None -> failwith "No service for static files"
     | Some s -> s
-  in
-  Eliom_duce.Xhtml.make_uri ~service ~sp path
+
+
+let static_file_uri ~sp ~path =
+  Eliom_duce.Xhtml.make_uri ~service:(static_service ()) ~sp path
 
 let add_html_header_hook, headers =
   let l = ref [] in

@@ -30,6 +30,12 @@ val set_service_for_static_files :
     [ `Registrable ])
    Eliom_services.service) -> unit
 
+val static_service : unit ->
+  ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
+    [ `One of string list ] Eliom_parameters.param_name, unit,
+    [ `Registrable ])
+   Eliom_services.service)
+
 (** Path to a static file, suitable for inclusion in a <a> tag *)
 val static_file_uri :
   sp:Eliom_sessions.server_params -> path:string list -> Eliom_duce.Xhtml.uri
