@@ -444,7 +444,7 @@ let make_services () =
             | e -> Lwt.fail e)
     )
 
-  and action_create_css = Eliom_predefmod.Action.register_new_coservice'
+  and action_create_css = Eliom_predefmod.Any.register_new_coservice'
     ~name:"wiki_create_css"
     ~get_params:(eliom_wiki_args **
                    (Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
@@ -452,7 +452,8 @@ let make_services () =
        (* YYY add error handler *)
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       Wiki_data.create_css ~rights ~sp ~wiki ~page
+       Wiki_data.create_css ~rights ~sp ~wiki ~page >>= fun () ->
+       Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
     )
 
   and edit_wiki = Eliom_services.new_service
