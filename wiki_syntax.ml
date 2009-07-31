@@ -340,36 +340,37 @@ let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs (_sp, wb) =
       then Some ""
       else None
   in
+  let build_link wiki s b =
+    let attrs =
+      match
+        String.concat " " (List.map (fun (n, v) -> n^"='"^v^"'") attribs)
+      with
+        | "" -> ""
+        | s -> "@@"^s^"@@"
+    in
+    let r =
+      attrs^
+        (match b with
+           | None -> ""
+           | Some true -> "https+"
+           | Some false -> "http+")^
+        "wiki("^(Opaque.int32_t_to_string wiki)^"):"^s
+    in
+    match frag with
+      | None -> r
+      | Some f -> r^"#"^f
+  in
   let aux s b =
     match remove_prefix s with
       | None -> (* prefix not found *) None
-      | Some s -> 
-          let attrs =
-            match
-              String.concat " "
-                (List.map (fun (n, v) -> n^"='"^v^"'") attribs)
-            with
-              | "" -> ""
-              | s -> "@@"^s^"@@"
-          in
-          let r =
-            attrs^
-              (match b with
-                 | None -> ""
-                 | Some true -> "https+"
-                 | Some false -> "http+")^
-              "wiki("^(Opaque.int32_t_to_string newwiki)^"):"^s
-          in
-          match frag with
-            | None -> Some r
-            | Some f -> Some (r^"#"^f)
+      | Some s -> Some (build_link newwiki s b)
   in
   Lwt.return
     (match link_kind addr with
-       | Page (s, b) -> 
+       | Page (s, b) ->
            if currentwiki = oldwiki
            then aux s b
-           else None
+           else Some (build_link currentwiki s b)
        | Wiki_page (w, s, b) ->
            if w = oldwiki
            then aux s b
