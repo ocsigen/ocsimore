@@ -942,7 +942,7 @@ object (self)
                 Lwt.return (Some (wbid, subbox))
             in
             let bi = { bi with  bi_subbox = fsubbox;
-                         bi_page = Some page_list;
+                         bi_page = wiki, Some page_list;
                          bi_menu_style = menu_style } in
             self#display_interactive_wikibox ~bi
               ~classes:[Wiki_syntax.class_wikibox wb_container]
@@ -978,7 +978,7 @@ object (self)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
           Wiki.default_bi ~sp ~wikibox:box ~rights >>= fun bi ->
-          let bi = { bi with bi_page = Some page_list;
+          let bi = { bi with bi_page = wiki, Some page_list;
                              bi_menu_style = menu_style } in
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) box

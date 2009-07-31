@@ -121,7 +121,7 @@ type box_info = {
                                        displayed. Using to detect loops *);
   bi_box : wikibox (* Wikibox which is being displayed *);
   bi_wiki : wiki (* wiki of the box displayed *);
-  bi_page : string list option (* page at the origin of the display request *);
+  bi_page : wiki * string list option (* page at the origin of the display request *);
   bi_rights: Wiki_types.wiki_rights;
   bi_menu_style : menu_style;
 }
