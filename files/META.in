@@ -1,6 +1,6 @@
 description = "Ocsimore content management system"
 version = "_VERSION_"
-requires = "ocsigen, ocsigen.ext.eliom, pgocaml"
+requires = "ocsigen, ocsigen.ext.eliom, pgocaml, pam"
 archive(byte) = "ocsimore.cma"
 archive(native,-plugin) = "ocsimore.cmxa"
 archive(native,plugin) = "ocsimore.cmxs"
