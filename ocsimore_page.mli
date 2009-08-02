@@ -41,29 +41,37 @@ val static_file_uri :
   sp:Eliom_sessions.server_params -> path:string list -> Eliom_duce.Xhtml.uri
 
 
-(** Register a function that will be called when generating the
-    html header for a page. The result of the function will be
-    added to this header *)
-val add_html_header_hook :
-  (Eliom_sessions.server_params ->
-  {{ [ (Xhtmltypes_duce.link | Xhtmltypes_duce.script)* ] }}) -> unit
+(** Allows to add HTML headers required by page components *)
+module Header : sig
 
-(** Simplified version of the function above. The header passed as
-    argument is added when the function returned by [add_html_header_aux]
-    has been called on sp during the session *)
-val add_html_header :
-  (Eliom_sessions.server_params ->
-     {{ [ (Xhtmltypes_duce.link | Xhtmltypes_duce.script)* ] }}) ->
-  (Eliom_sessions.server_params -> unit)
+    type header
 
+    (** Define a new header *)
+    val create_header : 
+      (Eliom_sessions.server_params -> {{ [ Xhtmltypes_duce.head_misc* ] }})
+      -> header
+    
+    (** Call this function every time you need a header to be included
+        in the page. If this function is called several times for the same
+        page with the same header, the header will be included only once.
+    *)
+    val require_header : header -> sp:Eliom_sessions.server_params -> unit
+
+    (** This function is called to generate the headers for one page.
+        Only required headers are included.
+    *)
+    val generate_headers : 
+      sp:Eliom_sessions.server_params -> {{ [ Xhtmltypes_duce.head_misc* ] }}
+
+  end
 
 (** Function to be called when Obrowser is used inside a page.
     The relevant javascript files will be included *)
-val add_obrowser_header : Eliom_sessions.server_params -> unit
+val add_obrowser_header : sp:Eliom_sessions.server_params -> unit
 
 (** Function to be called on admin pages, and which had the
     relevant css (including for the admin menu) *)
-val add_admin_pages_header : Eliom_sessions.server_params -> unit
+val add_admin_pages_header : sp:Eliom_sessions.server_params -> unit
 
 
 (** Registers the string passed as argument so that it is called

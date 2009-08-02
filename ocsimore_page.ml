@@ -38,34 +38,75 @@ let static_service () =
 let static_file_uri ~sp ~path =
   Eliom_duce.Xhtml.make_uri ~service:(static_service ()) ~sp path
 
-let add_html_header_hook, headers =
-  let l = ref [] in
-  (fun f -> l := f :: !l),
-  (fun sp ->
-     List.fold_left (fun (head : {{ [ (Xhtmltypes_duce.link | Xhtmltypes_duce.script)* ] }}) f -> {{ head @ {: f sp :} }}) {{ [] }} (List.rev !l))
-
-let polytables_aux () =
-  let key = Polytables.make_key () in
-  (fun sp -> Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
-     ~key ~value:true),
-  (fun sp ->
-     try Polytables.get ~table:(Eliom_sessions.get_request_cache sp) ~key
-     with Not_found -> false)
 
 
-let add_obrowser_header, must_add_obrowser_header = polytables_aux ()
+module Header = (
+  struct
 
-let add_html_header header =
-  let f1, f2 = polytables_aux () in
-  add_html_header_hook (fun sp -> if f2 sp then (header sp) else {{ [] }});
-  f1
+    type header = bool Polytables.key
+    
+    let header_table = ref []
 
-let add_admin_pages_header = add_html_header
-  (fun sp ->
-     {{ [ {: Eliom_duce.Xhtml.css_link
-             (static_file_uri sp ["ocsiadmin.css"]) () :}
-        ] }})
+    let create_header header_content =
+      let k = Polytables.make_key () in
+      header_table := (k, header_content)::!header_table;
+      k
 
+    let require_header header ~sp =
+      Polytables.set
+        ~table:(Eliom_sessions.get_request_cache sp)
+        ~key:header
+        ~value:true
+
+    let generate_headers ~sp =
+      let l =
+        List.fold_left
+          (fun beg (key, header_content) -> 
+             let tobeincluded =
+               try
+                 Polytables.get
+                   ~table:(Eliom_sessions.get_request_cache sp)
+                   ~key
+               with Not_found -> false
+             in
+             if tobeincluded
+             then (header_content sp)::beg
+             else beg)
+          []
+          !header_table
+      in {{ (map {: l :} with i -> i) }}
+        
+  end : sig
+
+    type header
+
+    (** Define a new header *)
+    val create_header : 
+      (Eliom_sessions.server_params -> {{ [ Xhtmltypes_duce.head_misc* ] }})
+      -> header
+    
+    (** Call this function every time you need a header to be included
+        in the page. If this function is called several times for the same
+        page with the same header, the header will be included only once.
+    *)
+    val require_header : header -> sp:Eliom_sessions.server_params -> unit
+
+    (** This function is called to generate the headers for one page.
+        Only required headers are included.
+    *)
+    val generate_headers : 
+      sp:Eliom_sessions.server_params -> {{ [ Xhtmltypes_duce.head_misc* ] }}
+
+  end)
+
+let admin_pages_header = 
+  Header.create_header
+    (fun sp ->
+       {{ [ {: Eliom_duce.Xhtml.css_link
+               (static_file_uri sp ["ocsiadmin.css"]) () :}
+          ] }})
+
+(* special handling for onload functions (?) *)
 let polytable_onload = Polytables.make_key ()
 
 let onload_functions sp =
@@ -73,35 +114,38 @@ let onload_functions sp =
     ~key:polytable_onload
   with Not_found -> []
 
-
 let add_onload_function ?(first = false) sp s =
   Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
     ~key:polytable_onload
     ~value:(if first then onload_functions sp @ [s]
             else s :: onload_functions sp)
 
-(* Function generating the Ocsimore header *)
-let () =
-  add_html_header_hook
+(* Obrowser *)
+let obrowser_header =
+  Header.create_header
     (fun sp ->
-       if must_add_obrowser_header sp then
-         let eliom_obrowser = Eliom_duce.Xhtml.js_script
-           ~uri:(static_file_uri sp ["eliom_obrowser.js"]) ()
-         and vm = Eliom_duce.Xhtml.js_script
-           ~uri:(static_file_uri sp ["vm.js"]) ()
-         in
-         add_onload_function ~first:true sp
-           (Printf.sprintf "main_vm = exec_caml ('%s/ocsimore_client.uue')"
-              (static_file_uri sp ["."]));
-         {{ [ vm eliom_obrowser  ] }}
-       else {{ [] }}
+       let eliom_obrowser = Eliom_duce.Xhtml.js_script
+         ~uri:(static_file_uri sp ["eliom_obrowser.js"]) ()
+       and vm = Eliom_duce.Xhtml.js_script
+         ~uri:(static_file_uri sp ["vm.js"]) ()
+       in
+       add_onload_function ~first:true sp
+         (Printf.sprintf "main_vm = exec_caml ('%s/ocsimore_client.uue')"
+            (static_file_uri sp ["."]));
+       {{ [ vm eliom_obrowser  ] }}
     )
 
 let add_onload_function = add_onload_function ~first:false
 
-let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
+(* shortcuts: *)
+let add_obrowser_header = Header.require_header obrowser_header
+let add_admin_pages_header = Header.require_header admin_pages_header
+
+
+let html_page
+    ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
   let title = Ocamlduce.Utf8.make title
-  and links_hooks = headers sp
+  and headers = Header.generate_headers sp
   and classes = Ocsimore_lib.build_class_attr body_classes
   and onload_body, onload_script = match onload_functions sp with
     | [] -> {{ {} }}, {{ [] }}
@@ -115,7 +159,7 @@ let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content
       <html xmlns="http://www.w3.org/1999/xhtml">[
         <head>[
           <title>title
-          !links_hooks
+          !headers
           !onload_script
           !css
         ]

@@ -28,6 +28,18 @@ open Forum_types
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+let forum_css_header =
+  Ocsimore_page.Header.create_header
+    (fun sp ->
+       {{ [ {: Eliom_duce.Xhtml.css_link
+               (Ocsimore_page.static_file_uri sp ["ocsiforumstyle.css"]) () :}
+          ] }}
+    )
+
+let add_forum_css_header sp = 
+  Ocsimore_page.Header.require_header forum_css_header ~sp
+
+
 class add_message_widget
   (add_message_service, moderate_message_service) =
 object (_self)
@@ -36,6 +48,7 @@ object (_self)
 
   method display
     ~sp ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) () =
+    add_forum_css_header sp;
     let draw_form (actionnamename,
                    ((parentname, forumname), (subjectname, textname))) =
       let num =
@@ -159,6 +172,7 @@ object (self)
          ] }})
 
   method display ~sp ?(classes=[]) ~data:message_id () =
+    add_forum_css_header sp;
     widget_with_error_box#bind_or_display_error
       (self#get_message ~sp ~message_id)
       (self#pretty_print_message ~classes ~sp)
@@ -216,6 +230,7 @@ object (self)
 
 
   method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread =
+    add_forum_css_header sp;
     let rec print_one_message_and_children
         ~role ~arborescent ~commentable thread : 
         (Xhtmltypes_duce.block * 'a list) Lwt.t = 
@@ -264,6 +279,7 @@ object (self)
 
   method display ?(commentable = true) ~sp ?rows ?cols
     ?(classes=[]) ~data:message_id () =
+    add_forum_css_header sp;
     widget_with_error_box#bind_or_display_error
       (self#get_thread ~sp ~message_id)
       (self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols)
@@ -323,6 +339,7 @@ object (self)
 
   method display ~sp ?(rows : int option) ?(cols : int option) ?(classes=[])
     ~forum ~first ~number ?(add_message_form = true) () =
+    add_forum_css_header sp;
     widget_with_error_box#bind_or_display_error
       (self#get_message_list ~sp ~forum ~first ~number)
       (self#pretty_print_message_list

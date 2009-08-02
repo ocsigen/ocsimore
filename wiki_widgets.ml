@@ -30,13 +30,15 @@ open Wiki_types
 let (>>=) = Lwt.bind
 
 
-let add_wiki_css_header =
-  Ocsimore_page.add_html_header
+let wiki_css_header =
+  Ocsimore_page.Header.create_header
     (fun sp ->
        {{ [ {: Eliom_duce.Xhtml.css_link
                (Ocsimore_page.static_file_uri sp ["ocsiwikistyle.css"]) () :}
           ] }})
 
+let add_wiki_css_header sp =
+  Ocsimore_page.Header.require_header wiki_css_header ~sp;
 
 
 class wikibox_error_box =
