@@ -348,8 +348,10 @@ object (self)
         Ocsimore_page.add_obrowser_header sp;
         let link = Eliom_duce.Xhtml.make_string_uri ~service:delete ~sp () in
         {{ [<a class="jslink"
-               onclick={: "caml_run_from_table(main_vm, 777, "
-                        ^Eliom_obrowser.jsmarshal (link, html_id_wikibox)^")" :}>"delete"] }})
+               onclick={: Wiki_client_calls.delete_wikibox
+                            link html_id_wikibox :}>
+               "delete"
+           ] }})
       else {{[]}}
     in
     let title = Ocamlduce.Utf8.make title in
@@ -529,8 +531,7 @@ object (self)
               <p>[ !msg1
                    {: Eliom_duce.Xhtml.bool_checkbox
                       ~a:{{ { id="checkwikiboxpermissions"
-                              onclick={: "caml_run_from_table(main_vm, 779, "
-                                       ^Eliom_obrowser.jsmarshal ()^")" :}
+                              onclick={: Wiki_client_calls.toggle_wikibox_permissions () :}
                             } }}
                       ~checked:sr ~name:nsr():}]
               <div id="wikiboxpermissions" style={: "display: " ^

@@ -33,6 +33,7 @@ MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 OBROWSERDIR := $(shell ocamlfind query obrowser)
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
+PAELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_syntax)
 
 #VVV Faire le tri dans les cmis à installer !!!
 TOINSTALL := files/META \
@@ -42,6 +43,7 @@ TOINSTALL := files/META \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
              _build/forum/forum_site.cmo \
              _build/forum/forum_client.cmo \
+             _build/wiki_client_prologue.cmo \
              _build/wiki_client.cmo \
              _build/cache.cmi \
              _build/dyngroups.cmi \
@@ -63,6 +65,7 @@ TOINSTALL := files/META \
              _build/user_sql.cmi \
              _build/user_widgets.cmi \
              _build/widget.cmi \
+             _build/wiki_client_prologue.cmi \
              _build/wiki_client.cmi \
              _build/wiki.cmi \
              _build/wikicreole.cmi \
@@ -98,7 +101,7 @@ STATICFILES := static/vm.js \
 	static/ocsiadmin.css \
 	static/creole_cheat_sheet.png
 
-all: $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
+all: wiki_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
 	$(MAKE) -C nis_chkpwd
@@ -119,8 +122,10 @@ ocsimore.mllib: ocsimore.mllib.IN
 	echo "# Warning: Generated from ocsimore.mllib.IN" > ocsimore.mllib
 	cat ocsimore.mllib.IN >> ocsimore.mllib
 
-static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
+static/ocsimore_client.uue: wiki_client.ml \
+          _build/wiki_client_prologue.cmo \
+          _build/wiki_client.cmo _build/forum/forum_client.cmo
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client_prologue.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 
 static/vm.js: $(OBROWSERDIR)/vm.js
@@ -139,6 +144,13 @@ files/META: files/META.in VERSION
 
 etc/ocsigen/ocsimorepassword:
 	echo $(PASSWORD) > etc/ocsigen/ocsimorepassword
+
+wiki_client_calls.ml: wiki_client.p.ml
+	camlp4of $(PAELIOMOBROWSERDIR)/pa_eliom_obrowser.cmo $< -o $@ \
+	  -client wiki_client.ml -prologue Wiki_client_prologue
+
+wiki_client.ml: wiki_client_calls.ml
+
 
 install:
 	mkdir -p $(STATICDIR)
@@ -182,7 +194,8 @@ uninstall:
 clean:
 	rm -Rf _build
 	$(MAKE) -C nis_chkpwd clean
+	rm wiki_client.ml wiki_client_calls.ml ocsimore.mllib
 
-.PHONY: all ocamlbuild clean check_db ocsimore.mllib nis_chkpwd_
+.PHONY: all clean check_db nis_chkpwd_
 
 SHELL=bash

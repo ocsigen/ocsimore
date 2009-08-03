@@ -282,8 +282,7 @@ let register_wikibox_syntax_extensions
           Ocsimore_page.add_obrowser_header bi.bi_sp;
           Lwt.return
             {{ [ <span>[<a ({id={: id :} class="shownmenus jslink btmenu"
-                   onclick={: "caml_run_from_table(main_vm, 778, "
-                            ^ Eliom_obrowser.jsmarshal id ^")" :} } ++ atts)
+                   onclick={: Wiki_client_calls.switch_menu id :} } ++ atts)
                            >"Hide menus"] ]
              }} )
     )
