@@ -33,6 +33,11 @@ open Wiki_types
 
 let sql_to_wikipage i : wikipage_uid = Opaque.int32_t i
 
+let wrap db f = match db with
+  | None -> full_transaction_block f
+  | Some db -> f db
+
+
 
 let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
   let f db =
@@ -71,9 +76,7 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
            PGSQL(db) "UPDATE wikis SET boxrights = $boxrights \
                       WHERE id = $wiki"
     )
-  in match db with
-    | None -> full_transaction_block f
-    | Some db -> f db
+  in wrap db f
 
 
 
@@ -189,15 +192,36 @@ let get_box_for_page_ ~wiki ~page =
             wikipage_uid = sql_to_wikipage uid;
           })
 
-(** Sets the box corresponding to a wikipage *)
-let set_box_for_page_ ~wiki ~page ~wb ?title () =
-  let wiki = t_int32 (wiki : wiki)
-  and wb = sql_of_wikibox wb in
-  Sql.full_transaction_block
+
+let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
+  wrap db
     (fun db ->
-       PGSQL(db) "DELETE FROM wikipages WHERE wiki=$wiki AND pagename = $page"
-       >>= fun () ->
-       PGSQL(db) "INSERT INTO wikipages VALUES ($wiki, $wb, $page, $?title)"
+       let wiki = t_int32 (wiki : wiki) in
+       (match title with
+          | None -> Lwt.return ()
+          | Some "" ->
+              PGSQL(db) "UPDATE wikipages SET title = NULL
+                         WHERE wiki = $wiki and pagename = $page"
+          | Some s ->
+              PGSQL(db) "UPDATE wikipages SET title = $s
+                         WHERE wiki = $wiki and pagename = $page"
+       ) >>= fun () ->
+       (match newpage with
+          | None -> Lwt.return ()
+          | Some page ->
+              PGSQL(db) "UPDATE wikipages SET pagename = $page
+                         WHERE wiki = $wiki and pagename = $page"
+       ) >>= fun () ->
+       (match wb with
+          | None -> Lwt.return ()
+          | Some None ->
+              PGSQL(db) "DELETE FROM wikipages
+                         WHERE wiki = $wiki and pagename = $page"
+          | Some (Some wb) ->
+              let wb = sql_of_wikibox wb in
+              PGSQL(db) "UPDATE wikipages SET wikibox = $wb
+                         WHERE wiki = $wiki and pagename = $page"
+       )
     )
 
 
@@ -378,7 +402,7 @@ let update_wikibox ~wb ~author ~comment ~content ~content_type =
   let content_type = string_of_content_type content_type in
   update_wikibox ~wb ~author ~comment ~content ~content_type
 
-let get_wikipage_info, set_box_for_page =
+let get_wikipage_info, set_wikipage_properties =
   let module C = Cache.Make (struct 
                                type key = wikipage
                                type value = wikipage_info
@@ -392,10 +416,10 @@ let get_wikipage_info, set_box_for_page =
       let page = Ocsigen_lib.remove_end_slash page in
       print_cache "cache wikipage ";
       C.find cache (wiki, page)),
-   (fun ~wiki ~page ~wb ?title () ->
+   (fun ?db ~wiki ~page ?title ?newpage ?wb () ->
       let page = Ocsigen_lib.remove_end_slash page in
       C.remove cache (wiki, page);
-      set_box_for_page_ ~wiki ~page ~wb ?title ()
+      set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb ()
    ))
 
 

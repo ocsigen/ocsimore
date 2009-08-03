@@ -54,6 +54,10 @@ type wikibox_override =
      of concurrent edits*)
   | PreviewWikitext of (wikibox * (string * int32))
 
+  (** Edition of the properties of the given wikipage : title, deletion,
+      moving,... *)
+  | EditWikipageProperties of wikipage
+
   (** Edition of a CSS. The first argument is the standard CSS arguments.
      The (string * int32) is the CSS and the time at which the edition
      started (as for PreviewWikitext), or None if we are about to
@@ -222,6 +226,7 @@ type menu_item =
   | Menu_HistoryCss
   | Menu_PermissionsCss
   | Menu_EditCss
+  | Menu_WikipageProperties
 
 (** Argument passed to the function building the interactive menu on top
     of a wikibox. Regular boxes receive no additional treatment. WikiContainer

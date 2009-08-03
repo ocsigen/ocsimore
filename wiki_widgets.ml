@@ -149,6 +149,7 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     action_old_wikibox,
     action_old_wikiboxcss,
     action_src_wikibox,
+    action_edit_wikipage_properties,
     action_send_wikiboxtext,
     action_send_css,
     action_send_wiki_permissions,
@@ -157,7 +158,8 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     action_create_page,
     action_create_css,
     edit_wiki,
-    view_wikis
+    view_wikis,
+    action_send_wikipage_properties
   ) : Wiki_widgets_interface.interactive_wikibox =
   (* = Wiki_services.make_services () in *)
 object (self)
@@ -176,6 +178,7 @@ object (self)
   val box_title_class = "boxtitle"
   val preview_class = "preview"
   val css_class = "editcss"
+  val wikipage_properties_class = "wikipageproperties"
 
 
   method private box_menu
@@ -267,6 +270,16 @@ object (self)
        | RegularBox -> Lwt.return (None, None, None, None)
     ) >>= fun (history_css, edit_css, permissions_css, create_css) ->
     (match special_box with
+       | RegularBox | WikiContainerBox _ -> Lwt.return None
+       | WikiPageBox wp ->
+           bi.bi_rights#can_admin_wikipage sp wp >>= function
+             | true ->
+                 let edit_wp =
+                   preapply action_edit_wikipage_properties (wb, wp) in
+                 Lwt.return (Some (edit_wp, {{ "edit wikipage options" }}))
+             | false -> Lwt.return None
+    ) >>= fun wp_prop ->
+    (match special_box with
        | RegularBox | WikiPageBox _ -> Lwt.return None
        | WikiContainerBox w ->
            bi.bi_rights#can_set_wiki_permissions sp w >>= function
@@ -299,6 +312,10 @@ object (self)
           (match permissions_css with
              | Some (permissions_css, _) -> Some permissions_css
              | None -> None)
+      | Some Menu_WikipageProperties ->
+          (match wp_prop with
+             | Some (s, _) -> Some s
+             | None -> None)
     in
     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
     bi.bi_rights#can_delete_wikiboxes ~sp wiki >>= fun wbdel ->
@@ -321,7 +338,7 @@ object (self)
       else None
     in
     let l = Ocsimore_lib.concat_list_opt
-      [menuedit; menuperm; menuhist;
+      [menuedit; menuperm; menuhist; wp_prop;
        edit_wiki_perms; edit_css; history_css; permissions_css; create_css] 
       []
     in
@@ -620,6 +637,12 @@ object (self)
       (string_of_wiki wiki) (self#css_wikibox_text page) in
     self#menu_box_aux ~title ~active_item:Menu_HistoryCss css_history_class wb
 
+  method private menu_edit_wikipage_properties wb (wiki, page) =
+    let title = Printf.sprintf "Page properties, wiki %s, page %s"
+      (string_of_wiki wiki) page in
+    self#menu_box_aux ~title ~active_item:Menu_WikipageProperties
+      wikipage_properties_class wb
+
   method private menu_view wb =
     let title = Printf.sprintf "Wikibox %s" (string_of_wikibox wb) in
     self#menu_box_aux ~title ~active_item:Menu_View view_class wb
@@ -691,6 +714,52 @@ object (self)
       l
     >>= fun l ->
     Lwt.return (classes, {{ map {: l :} with i -> i }})
+
+   method private display_edit_wikipage_properties ~bi ~classes ~(wb:wikibox) wp =
+     let (wiki, page) = wp in
+     Wiki_sql.get_wikipage_info wiki page >>= fun wp ->
+     Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= fun wbcss ->
+     let draw_form (wbname, ((wikiidname, pagename), (titlename, ((wbidname, cssidname), pathname))))=
+       {{ [<p>[
+              {: Ocsimore_common.input_opaque_int32
+                 ~value:wiki wikiidname :}
+              {: Ocsimore_common.input_opaque_int32
+                 ~value:wb wbname :}
+              {: Eliom_duce.Xhtml.string_input ~name:pagename
+                 ~input_type:{: "hidden" :} ~value:page () :}
+              !"Title of the wikipage: "
+              {: Eliom_duce.Xhtml.string_input ~name:titlename
+                 ~input_type:{: "text" :}
+                 ~value:(match wp.wikipage_title
+                         with None -> "" | Some s -> s) () :}
+              !"(if blank, the title of the wiki will be used" <br>[]
+
+              'Wikibox to which the wikipage points to. Leave blank
+                to delete the wikipage. '
+              {: Ocsimore_common.input_opaque_int32_opt ~hidden:false
+                 ~value:(Some wp.wikipage_wikibox) wbidname :} <br>[]
+
+              !"Css for the wikipage. Leave blank if you does not want a \
+               specific css."
+              {: Ocsimore_common.input_opaque_int32_opt ~hidden:false
+                 ~value:wbcss cssidname :} <br>[]
+
+              !"Path of the wikipage inside the wiki"
+              {: Eliom_duce.Xhtml.string_input ~name:pathname
+                 ~input_type:{: "text" :} ~value:wp.wikipage_page () :}
+              !"Notice that changing this path will "<em>"not"
+              !" update links to this wikipage." <br>[]
+
+              {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                     {{"Save"}} :}
+
+            ]] }}
+     in
+     Lwt.return
+      (classes,
+       {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+              ~service:action_send_wikipage_properties ~sp:bi.bi_sp
+              draw_form () :} ] }})
 
 
   method display_interactive_wikibox_aux
@@ -810,6 +879,19 @@ object (self)
                 >>= fun r ->
                 Lwt.return (r, true)
             | false -> display_error ())
+
+      | EditWikipageProperties wp ->
+          (bi.bi_rights#can_admin_wikipage ~sp wp >>= function
+             | true ->
+                error_box#bind_or_display_error
+                  ?exn
+                  (Lwt.return wp)
+                  (self#display_edit_wikipage_properties ~bi ~classes ~wb:wb_loc)
+                  (self#menu_edit_wikipage_properties ~bi ?special_box wb_loc wp)
+                >>= fun r ->
+                Lwt.return (r, true)
+
+             | false -> display_error ())
 
       | History wb ->
           (bi.bi_rights#can_view_history ~sp wb >>= function
@@ -1032,6 +1114,7 @@ object (self)
           | e -> Lwt.fail e
        )
      )
+
 
    (* Displaying of an entire page. We just pass the proper rendering
    function to [display_container] *)

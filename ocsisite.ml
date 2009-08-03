@@ -70,6 +70,7 @@ let (
     action_old_wikibox,
     action_old_wikiboxcss,
     action_src_wikibox,
+    action_edit_wikipage_properties,
     action_send_wikiboxtext,
     action_send_css,
     action_send_wiki_permissions,
@@ -78,7 +79,8 @@ let (
     action_create_page,
     action_create_css,
     edit_wiki,
-    view_wikis
+    view_wikis,
+    action_send_wikipage_properties
   ) as wiki_services
     = Wiki_services.make_services ()
 
@@ -183,12 +185,14 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
          >>= fun _ -> Lwt.return ()
       )
       (function Not_found ->
-         Wiki_sql.new_wikibox
-           ~wiki:wiki_admin_id ~comment ~content ~content_type
-           ~author:User.admin ()
-         >>= fun box ->
-         Wiki_sql.set_box_for_page ~wiki:wiki_admin_id ~wb:box ~page ()
-
+         Sql.full_transaction_block (fun db ->
+           Wiki_sql.new_wikibox ~db
+             ~wiki:wiki_admin_id ~comment ~content ~content_type
+             ~author:User.admin ()
+           >>= fun box ->
+           Wiki_sql.set_wikipage_properties ~db ~wiki:wiki_admin_id ~page
+             ~wb:(Some box) ()
+           )
        | e -> Lwt.fail e)
   );
   (fun () ->

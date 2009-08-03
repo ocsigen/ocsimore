@@ -143,3 +143,12 @@ val update_wiki :
   ?descr:string ->
   ?boxrights:bool ->
   wiki -> unit Lwt.t) rights_sp
+
+
+val save_wikipage_properties :
+  (?title:string ->
+   ?wb:wikibox option ->
+   ?wbcss:wikibox option ->
+   ?newpage:string ->
+   wikipage ->
+   unit Lwt.t) rights_sp

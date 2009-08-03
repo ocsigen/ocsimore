@@ -63,12 +63,18 @@ val get_history : wb:wikibox ->
 (** return the information for a wikipage *)
 val get_wikipage_info : wiki:wiki -> page:string -> wikipage_info Lwt.t
 
-(** sets the box corresponding to a wikipage. The previous entry is
-    entirely overwritten. If [title] is not supplied, it is set equal
-    to NULL (and the title for the wiki will be used).
-*) (* XXX Preserve previous info*)
-val set_box_for_page :
-  wiki:wiki -> page:string -> wb:wikibox -> ?title:string -> unit -> unit Lwt.t
+(** Sets the info for a wikipage. All parameters not passed are left
+    unchanged. If [title] is [Some ""], it will be set to NULL
+    (just as if it is [None]). If [wb] is [None], the page is deleted.
+*)
+val set_wikipage_properties :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  page:string ->
+  ?title:string ->
+  ?newpage:string ->
+  ?wb:wikibox option ->
+  unit -> unit Lwt.t
 
 
 

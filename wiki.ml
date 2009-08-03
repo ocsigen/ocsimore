@@ -253,6 +253,12 @@ object (self)
     Wiki_sql.wikibox_wiki wb >>= fun w ->
     aux_group wiki_wikiboxes_src_viewers sp w
 
+
+  method can_admin_wikipage ~sp (wiki,_page) =
+    (* XXX create a real group, and some permissions overrides *)
+    self#can_admin_wiki sp wiki
+
+
 end
 
 

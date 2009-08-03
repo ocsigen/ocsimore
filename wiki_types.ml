@@ -102,6 +102,7 @@ object
   method can_view_oldversions_src : wikibox rights_aux
 
   method can_create_wikipagecss : wikipage rights_aux
+  method can_admin_wikipage : wikipage rights_aux
 
 end
 

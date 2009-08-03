@@ -162,12 +162,15 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
                  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                  let content_type = Wiki_models.get_default_content_type
                    wiki_info.wiki_model in
-                 new_wikitextbox ~rights ~content_type ~sp ~wiki ~author:user
-                   ~comment:(Printf.sprintf "wikipage %s in wiki %s"
-                               page (string_of_wiki wiki))
-                   ~content:("== Page "^page^"==") ()
-                 >>= fun wb ->
-                 Wiki_sql.set_box_for_page ~wiki ~wb ~page ()
+                 Sql.full_transaction_block (fun db ->
+                   new_wikitextbox ~rights ~content_type ~sp ~wiki ~author:user
+                     ~comment:(Printf.sprintf "wikipage %s in wiki %s"
+                                 page (string_of_wiki wiki))
+                     ~content:("== Page "^page^"==") ()
+                   >>= fun wb ->
+                   Wiki_sql.set_wikipage_properties ~db ~wiki ~page
+                     ~wb:(Some wb) ()
+                 )
 
              | e -> Lwt.fail e)
     | false ->  Lwt.fail Ocsimore_common.Permission_denied
@@ -205,4 +208,14 @@ let update_wiki ~(rights : Wiki_types.wiki_rights) ~sp ?container ?staticdir ?pa
     | true ->
         Wiki_sql.update_wiki ?container ?staticdir ?path ?descr ?boxrights
           wiki
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
+
+
+let save_wikipage_properties ~(rights : Wiki_types.wiki_rights) ~sp ?title ?wb ?wbcss ?newpage (wiki, page as wp) =
+  rights#can_admin_wikipage ~sp wp >>= function
+    | true ->
+        Sql.full_transaction_block (fun db ->
+           Wiki_sql.set_wikipage_properties ~db ?wiki ~page
+             ?title ?newpage ?wb ()
+           )
     | false -> Lwt.fail Ocsimore_common.Permission_denied

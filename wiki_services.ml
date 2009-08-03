@@ -267,6 +267,13 @@ let make_services () =
        set_override_wikibox ~sp (wb, Src arg);
        Lwt.return ())
 
+  and action_edit_wikipage_properties = Eliom_predefmod.Action.register_new_coservice'
+    ~name:"wikipage_properties"
+    ~get_params:(eliom_wikibox_args ** eliom_wikipage_args)
+    (fun sp (wb, wp) () ->
+       set_override_wikibox ~sp (wb, EditWikipageProperties wp);
+       Lwt.return ())
+
   and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
     ~keep_get_na_params:false ~name:"wiki_save_wikitext"
     ~post_params:
@@ -463,6 +470,24 @@ let make_services () =
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_wikis"]
     ~get_params:Eliom_parameters.unit ()
 
+  and action_send_wikipage_properties =
+    Eliom_predefmod.Any.register_new_post_coservice'
+      ~keep_get_na_params:false ~name:"wikipage_save_properties"
+      ~post_params:
+    (eliom_wikibox_args **
+       (eliom_wikipage_args **
+          (Eliom_parameters.string "title" **
+             ((Ocsimore_common.eliom_opaque_int32_opt "wb" **
+               Ocsimore_common.eliom_opaque_int32_opt "wbcss") **
+                Eliom_parameters.string "newpage"))))
+    (fun sp () (wb, ((wiki, page), (title, ((wbpage, wbcss), newpage)))) ->
+       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       let rights = Wiki_models.get_rights wiki_info.wiki_model in
+       save_then_redirect wb ~sp `BasePage
+         (fun () -> Wiki_data.save_wikipage_properties ~rights ~sp
+            ~title ~wb:wbpage ~wbcss ~newpage (wiki, page))
+    )
+
 
   in (
     action_edit_css,
@@ -476,6 +501,7 @@ let make_services () =
     action_old_wikibox,
     action_old_wikiboxcss,
     action_src_wikibox,
+    action_edit_wikipage_properties,
     action_send_wikiboxtext,
     action_send_css,
     action_send_wiki_permissions,
@@ -484,5 +510,6 @@ let make_services () =
     action_create_page,
     action_create_css,
     edit_wiki,
-    view_wikis
+    view_wikis,
+    action_send_wikipage_properties
   )
