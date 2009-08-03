@@ -34,27 +34,23 @@ let wikicreole_forum_model =
     ~widgets:Ocsisite.wikibox_widget
 
 
-let _ =
-  let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model in
-  let wiki_inline_widgets = 
-    new Wiki_widgets.inline_wikibox Ocsisite.error_box User_site.user_widgets Ocsisite.wiki_services 
-  in
-  let services = Forum_services.register_services () in
-  let widget_err = new Widget.widget_with_error_box in
-  let add_message_widget = new Forum_widgets.add_message_widget services in 
-  let message_widget = 
-    new Forum_widgets.message_widget 
-      widget_err wiki_widgets wiki_inline_widgets services 
-  in 
-  let thread_widget = 
-    new Forum_widgets.thread_widget
-      widget_err message_widget add_message_widget services
-  in
-  let message_list_widget = 
-    new Forum_widgets.message_list_widget
-      widget_err message_widget add_message_widget
-  in
-  Forum_wikiext.register_wikiext
-    (message_widget, thread_widget, message_list_widget)
+let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model
+let wiki_inline_widgets =
+  new Wiki_widgets.inline_wikibox Ocsisite.error_box User_site.user_widgets Ocsisite.wiki_services
+let services = Forum_services.register_services ()
+let widget_err = new Widget.widget_with_error_box
+let add_message_widget = new Forum_widgets.add_message_widget services
+let message_widget =
+  new Forum_widgets.message_widget
+    widget_err wiki_widgets wiki_inline_widgets services
+let thread_widget =
+  new Forum_widgets.thread_widget
+    widget_err message_widget add_message_widget services
+let message_list_widget =
+  new Forum_widgets.message_list_widget
+    widget_err message_widget add_message_widget
+
+let _ = Forum_wikiext.register_wikiext
+  (message_widget, thread_widget, message_list_widget)
 
 
