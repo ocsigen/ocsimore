@@ -135,23 +135,11 @@ let pass_authtype_from_pass pwd = match pwd with
 
 
 let remove_from_group_aux db (u, vu) (g, vg) =
-  match vu, vg with
-    | None, None ->
-        PGSQL(db) "DELETE FROM userrights
-                   WHERE id = $u AND groupid = $g
-                   AND   idarg IS NULL AND groupidarg IS NULL"
-    | Some vu, None ->
-        PGSQL(db) "DELETE FROM userrights
-                   WHERE id = $u AND groupid = $g
-                   AND   idarg = $vu AND groupidarg IS NULL"
-    | Some vu, Some vg ->
-        PGSQL(db) "DELETE FROM userrights
-                   WHERE id = $u AND groupid = $g
-                   AND   idarg = $vu AND groupidarg = $vg"
-    | None, Some vg ->
-        PGSQL(db) "DELETE FROM userrights
-                   WHERE id = $u AND groupid = $g
-                   AND   idarg IS NULL AND groupidarg = $vg"
+  PGSQL(db) "DELETE FROM userrights
+             WHERE id = $u AND groupid = $g
+             AND idarg IS NOT DISTINCT FROM $?vu
+             AND groupidarg IS NOT DISTINCT FROM $?vg"
+
 
 let remove_from_group_ ~user ~group =
   Lwt_pool.use Sql.pool (fun db -> remove_from_group_aux db
