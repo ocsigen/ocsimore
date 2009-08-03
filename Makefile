@@ -43,7 +43,6 @@ TOINSTALL := files/META \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
              _build/forum/forum_site.cmo \
              _build/forum/forum_client.cmo \
-             _build/wiki_client_prologue.cmo \
              _build/wiki_client.cmo \
              _build/cache.cmi \
              _build/dyngroups.cmi \
@@ -65,7 +64,6 @@ TOINSTALL := files/META \
              _build/user_sql.cmi \
              _build/user_widgets.cmi \
              _build/widget.cmi \
-             _build/wiki_client_prologue.cmi \
              _build/wiki_client.cmi \
              _build/wiki.cmi \
              _build/wikicreole.cmi \
@@ -122,9 +120,8 @@ ocsimore.mllib: ocsimore.mllib.IN
 	echo "# Warning: Generated from ocsimore.mllib.IN" > ocsimore.mllib
 	cat ocsimore.mllib.IN >> ocsimore.mllib
 
-static/ocsimore_client.uue: _build/wiki_client_prologue.cmo \
-          _build/wiki_client.cmo _build/forum/forum_client.cmo
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client_prologue.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
+static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 
 static/vm.js: $(OBROWSERDIR)/vm.js
@@ -146,7 +143,7 @@ etc/ocsigen/ocsimorepassword:
 
 wiki_client_calls.ml: wiki_client.p.ml
 	camlp4of $(PAELIOMOBROWSERDIR)/pa_eliom_obrowser.cmo $< -o $@ \
-	  -client wiki_client.ml -prologue Wiki_client_prologue
+	  -client wiki_client.ml # -prologue Wiki_client_prologue
 
 wiki_client.ml: wiki_client_calls.ml
 
