@@ -220,8 +220,7 @@ object (self)
     in
     let rec n1 = {{ <span class={: comment_class :}
                       id={: n1_id :}
-                      onclick={: "caml_run_from_table(main_vm, 1, "
-                               ^Eliom_obrowser.jsmarshal (n1_id, n2_id)^")" :} >
+                      onclick={: Forum_client_calls.switchshow n1_id n2_id :} >
                       {: Ocamlduce.Utf8.make "Comment" :} }}
     and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
     in 

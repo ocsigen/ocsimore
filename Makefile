@@ -101,7 +101,7 @@ STATICFILES := static/vm.js \
 	static/ocsiadmin.css \
 	static/creole_cheat_sheet.png
 
-all: wiki_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
+all: wiki_client.ml forum/forum_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
 	$(MAKE) -C nis_chkpwd
@@ -122,8 +122,7 @@ ocsimore.mllib: ocsimore.mllib.IN
 	echo "# Warning: Generated from ocsimore.mllib.IN" > ocsimore.mllib
 	cat ocsimore.mllib.IN >> ocsimore.mllib
 
-static/ocsimore_client.uue: wiki_client.ml \
-          _build/wiki_client_prologue.cmo \
+static/ocsimore_client.uue: _build/wiki_client_prologue.cmo \
           _build/wiki_client.cmo _build/forum/forum_client.cmo
 	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client_prologue.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
@@ -150,6 +149,12 @@ wiki_client_calls.ml: wiki_client.p.ml
 	  -client wiki_client.ml -prologue Wiki_client_prologue
 
 wiki_client.ml: wiki_client_calls.ml
+
+forum/forum_client_calls.ml: forum/forum_client.p.ml
+	camlp4of $(PAELIOMOBROWSERDIR)/pa_eliom_obrowser.cmo $< -o $@ \
+	  -client forum/forum_client.ml
+
+forum/forum_client.ml: forum/forum_client_calls.ml
 
 
 install:
@@ -194,7 +199,9 @@ uninstall:
 clean:
 	rm -Rf _build
 	$(MAKE) -C nis_chkpwd clean
-	rm wiki_client.ml wiki_client_calls.ml ocsimore.mllib
+	rm ocsimore.mllib
+	rm wiki_client.ml wiki_client_calls.ml
+	rm forum/forum_client_calls.ml forum/forum_client.ml
 
 .PHONY: all clean check_db nis_chkpwd_
 
