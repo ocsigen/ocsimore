@@ -55,6 +55,16 @@ let eliom_opaque_int32 s =
     (fun i -> Int32.to_string (Opaque.t_int32 i)) s
 
 
+let eliom_opaque_int32_opt s =
+  Eliom_parameters.user_type
+    (fun s ->
+       if s = "" then None
+       else Some (Opaque.int32_t (Int32.of_string s)))
+    (fun i -> match i with
+       | None -> ""
+       | Some i -> Int32.to_string (Opaque.t_int32 i)) s
+
+
 let input_opaque_int32 ?value ?(hidden=true) name =
   let f = Eliom_duce.Xhtml.user_type_input
     (fun v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
@@ -63,3 +73,15 @@ let input_opaque_int32 ?value ?(hidden=true) name =
     f ~input_type:{: "hidden" :} ()
   else
     f ~input_type:{: "text" :} ()
+
+let input_opaque_int32_opt ?value ?(hidden=true) name =
+  let f = Eliom_duce.Xhtml.user_type_input
+    (fun v -> match v with
+       | None -> ""
+       | Some v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
+  in
+  if hidden then
+    f ~input_type:{: "hidden" :} ()
+  else
+    f ~input_type:{: "text" :} ()
+
