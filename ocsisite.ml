@@ -190,8 +190,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
              ~wiki:wiki_admin_id ~comment ~content ~content_type
              ~author:User.admin ()
            >>= fun box ->
-           Wiki_sql.set_wikipage_properties ~db ~wiki:wiki_admin_id ~page
-             ~wb:(Some box) ()
+           Wiki_sql.create_wikipage ~db ~wiki:wiki_admin_id ~page ~wb:box
            )
        | e -> Lwt.fail e)
   );

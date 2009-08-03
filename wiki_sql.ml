@@ -193,6 +193,15 @@ let get_box_for_page_ ~wiki ~page =
           })
 
 
+let create_wikipage_ ?db ~wiki ~page ~wb =
+  let wiki = t_int32 (wiki : wiki)
+  and wb = t_int32 (wb : wikibox) in
+  wrap db
+    (fun db ->
+       PGSQL(db) "INSERT INTO wikipages (wiki, wikibox, pagename)
+                  VALUES ($wiki, $wb, $page)"
+    )
+
 let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
   wrap db
     (fun db ->
@@ -218,6 +227,7 @@ let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
               PGSQL(db) "DELETE FROM wikipages
                          WHERE wiki = $wiki and pagename = $page"
           | Some (Some wb) ->
+              Ocsigen_messages.console2 "Bla";
               let wb = sql_of_wikibox wb in
               PGSQL(db) "UPDATE wikipages SET wikibox = $wb
                          WHERE wiki = $wiki and pagename = $page"
@@ -402,7 +412,7 @@ let update_wikibox ~wb ~author ~comment ~content ~content_type =
   let content_type = string_of_content_type content_type in
   update_wikibox ~wb ~author ~comment ~content ~content_type
 
-let get_wikipage_info, set_wikipage_properties =
+let get_wikipage_info, set_wikipage_properties, create_wikipage =
   let module C = Cache.Make (struct 
                                type key = wikipage
                                type value = wikipage_info
@@ -412,7 +422,7 @@ let get_wikipage_info, set_wikipage_properties =
     C.create (fun (wiki, page) ->
                 get_box_for_page_ ~wiki ~page) 64 
   in
-  ((fun ~wiki ~page -> 
+  (fun ~wiki ~page -> 
       let page = Ocsigen_lib.remove_end_slash page in
       print_cache "cache wikipage ";
       C.find cache (wiki, page)),
@@ -420,7 +430,8 @@ let get_wikipage_info, set_wikipage_properties =
       let page = Ocsigen_lib.remove_end_slash page in
       C.remove cache (wiki, page);
       set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb ()
-   ))
+   ),
+   create_wikipage_ (* No problem with cache, as cache miss are not cached *)
 
 
 

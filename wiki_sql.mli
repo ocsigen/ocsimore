@@ -60,6 +60,15 @@ val get_history : wb:wikibox ->
 
 (** Wikipages *)
 
+(** Links the wikibox [wb] to the page [page] of wiki [wiki]. Fails
+    if there already exists a wikibox linked to this wikipage *)
+val create_wikipage :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  page:string ->
+  wb:wikibox ->
+  unit Lwt.t
+
 (** return the information for a wikipage *)
 val get_wikipage_info : wiki:wiki -> page:string -> wikipage_info Lwt.t
 

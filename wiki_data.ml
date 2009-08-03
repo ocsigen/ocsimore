@@ -168,8 +168,7 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
                                  page (string_of_wiki wiki))
                      ~content:("== Page "^page^"==") ()
                    >>= fun wb ->
-                   Wiki_sql.set_wikipage_properties ~db ~wiki ~page
-                     ~wb:(Some wb) ()
+                   Wiki_sql.create_wikipage ~db ~wiki ~page ~wb
                  )
 
              | e -> Lwt.fail e)
