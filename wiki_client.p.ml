@@ -1,4 +1,4 @@
-<:client<
+<:obrowser<
 
 open Js
 
