@@ -302,9 +302,9 @@ class type virtual interactive_wikibox =
         The wikibox argument is the wikibox which is overridden if an error
         occurs *)
     method display_edit_wiki_perm_form :
-      bi:box_info ->
+      sp: Eliom_sessions.server_params ->
       classes:string list ->
-      wb:wikibox ->
+      ?wb:wikibox ->
       wiki ->
       (classes * Xhtmltypes_duce.flows) Lwt.t
 

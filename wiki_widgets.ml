@@ -110,7 +110,7 @@ object (self)
          let exn =
            match Wiki_services.get_wikibox_error ~sp:bi.bi_sp with
              | None -> None
-             | Some (wb', e) -> if wikibox = wb' then Some e else None
+             | Some (wb', e) -> if Some wikibox = wb' then Some e else None
          in
          error_box#bind_or_display_error
            ?exn
@@ -159,7 +159,8 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     action_create_css,
     edit_wiki,
     view_wikis,
-    action_send_wikipage_properties
+    action_send_wikipage_properties,
+    edit_wiki_permissions
   ) : Wiki_widgets_interface.interactive_wikibox =
   (* = Wiki_services.make_services () in *)
 object (self)
@@ -553,9 +554,9 @@ object (self)
 
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
-  method display_edit_wiki_perm_form ~bi ~classes ~wb wiki =
+  method display_edit_wiki_perm_form ~sp ~classes ?wb wiki =
     let form wiki =
-      let aux g text = user_widgets#form_edit_group ~sp:bi.bi_sp
+      let aux g text = user_widgets#form_edit_group ~sp
         ~group:(g $ wiki) ~text ~show_edit:true in
     aux Wiki.wiki_admins "Administer the wiki" >>= fun f1 ->
     aux Wiki.wiki_subwikiboxes_creators "Create subwikiboxes" >>= fun f2 ->
@@ -566,7 +567,7 @@ object (self)
     aux Wiki.wiki_files_readers "Read static files" >>= fun f8 ->
     aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" >>= fun f9 ->
     aux Wiki.wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" >>= fun f10 ->
-    user_widgets#form_edit_awr ~sp:bi.bi_sp
+    user_widgets#form_edit_awr ~sp
       ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki >>= fun f7 ->
 
     let msg = Ocamlduce.Utf8.make
@@ -597,12 +598,15 @@ object (self)
     in
     form wiki >>= fun form ->
     let form (wbname, nargs) =
-      {{ [ <p>[ {: Ocsimore_common.input_opaque_int32 ~value:wb wbname :} ]
-            !{: form nargs :}
+      {{ [ <p>[ !{: match wb with
+                     | None -> []
+                     | Some wb -> [Ocsimore_common.input_opaque_int32
+                                         ~value:wb wbname] :} ]
+                !{: form nargs :}
          ]}}
     in
     let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-      ~service:action_send_wiki_permissions ~sp:bi.bi_sp form
+      ~service:action_send_wiki_permissions ~sp form
       ()
     in
     Lwt.return (classes, {{ [ form ] }})
@@ -770,7 +774,7 @@ object (self)
     let override = Wiki_services.get_override_wikibox ~sp in
     let exn = match Wiki_services.get_wikibox_error ~sp with
       | None -> None
-      | Some (wb', e) -> if wb = wb' then Some e else None
+      | Some (wb', e) -> if Some wb = wb' then Some e else None
     in
     match override with
       | Some (wb', override) when wb = wb' ->
@@ -845,7 +849,8 @@ object (self)
                 error_box#bind_or_display_error
                   ?exn
                   (Lwt.return wiki)
-                  (self#display_edit_wiki_perm_form ~bi ~classes ~wb:wb_loc)
+                  (self#display_edit_wiki_perm_form ~sp:bi.bi_sp ~classes
+                     ~wb:wb_loc)
                   (self#menu_edit_wiki_perms ~bi ?special_box wb_loc wiki)
                 >>= fun r ->
                 Lwt.return (r, true)
@@ -1138,6 +1143,8 @@ object (self)
        and id = Opaque.int32_t_to_string w.wiki_id
        and edit = Eliom_duce.Xhtml.a ~service:edit_wiki ~sp
                       {: "Edit" :} w.wiki_id
+       and edit_perm = Eliom_duce.Xhtml.a ~service:edit_wiki_permissions ~sp
+                      {: "Edit permissions" :} w.wiki_id
        and page =
          match Wiki_self_services.find_servpage w.wiki_id with
            | None -> {{ [] }}
@@ -1145,7 +1152,7 @@ object (self)
                {{ [ {: Eliom_duce.Xhtml.a ~service ~sp
                        {: "View root wikipage" :} [] :} ] }}
        in
-       {{ <tr>[<td>{: id :} <td>t <td>d <td>[edit] <td>page ] }}
+       {{ <tr>[<td>{: id :} <td>t <td>d <td>[edit] <td>[edit_perm] <td>page ] }}
      in
      let l = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
                                 {{ [ !s {: line arg:} ] }}) {{ [] }} l in

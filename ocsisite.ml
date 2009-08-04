@@ -80,7 +80,8 @@ let (
     action_create_css,
     edit_wiki,
     view_wikis,
-    action_send_wikipage_properties
+    action_send_wikipage_properties,
+  edit_wiki_permissions
   ) as wiki_services
     = Wiki_services.make_services ()
 
@@ -470,6 +471,16 @@ let () = Eliom_duce.Xhtml.register admin_root
   )
 
 let () = Ocsimore_page.set_root_admin_service admin_root
+
+let () = Eliom_duce.Xhtml.register edit_wiki_permissions
+  (fun sp wiki () ->
+     wikibox_widget#display_edit_wiki_perm_form ~sp ~classes:[] wiki
+     >>= fun (_, form) ->
+     Ocsimore_page.html_page sp
+       {{ [ !{: Ocsimore_page.admin_menu ~service:admin_root sp :}
+            <div>form
+          ]}}
+  )
 
 
 let () = Ocsimore_page.add_to_admin_menu "Wikis" [

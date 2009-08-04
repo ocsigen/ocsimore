@@ -53,7 +53,7 @@ let set_override_wikibox ~sp v =
     ~value:v
 
 
-let wikibox_error_key : (wikibox * exn) Polytables.key = 
+let wikibox_error_key : (wikibox option * exn) Polytables.key = 
   Polytables.make_key ()
 
 (** The error to display in the wikibox *)
@@ -141,7 +141,7 @@ let register_wiki ~rights ?sp ~path ~wiki () =
 
 
 
-let save_then_redirect overriden_wikibox ~sp redirect_mode f =
+let save_then_redirect ~sp ?(error=(fun _ _ -> ())) redirect_mode f =
   Lwt.catch
     (fun () ->
        f () >>= fun _ ->
@@ -153,9 +153,13 @@ let save_then_redirect overriden_wikibox ~sp redirect_mode f =
              Eliom_predefmod.Action.send ~sp ()
     )
     (fun e ->
-       set_wikibox_error ~sp (overriden_wikibox, e);
+       error sp e;
        Eliom_predefmod.Action.send ~sp ())
 
+let error_handler_wb_opt wb sp e =
+  set_wikibox_error ~sp (wb, e)
+
+let error_handler_wb wb = error_handler_wb_opt (Some wb)
 
 
 
@@ -208,7 +212,7 @@ let make_services () =
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        let content_type =
          Wiki_models.get_default_content_type wiki_info.wiki_model in
-       save_then_redirect wb ~sp `BasePage
+       save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
          (fun () -> Wiki_data.save_wikitextbox ~rights ~content_type ~sp ~wb
             ~content:None)
     )
@@ -296,7 +300,7 @@ let make_services () =
                Wiki_data.wikibox_content rights sp wb
                >>= fun (content_type, _, _) ->
                wp (sp, wb) content >>= fun content ->
-               save_then_redirect wb ~sp `BasePage
+               save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
                  (fun () -> Wiki_data.save_wikitextbox ~rights
                     ~content_type ~sp ~wb ~content:(Some content))
            | Some _ ->
@@ -326,7 +330,7 @@ let make_services () =
                Wiki_sql.wikibox_wiki wbcss >>= fun wiki ->
                Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                let rights = Wiki_models.get_rights wiki_info.wiki_model in
-               save_then_redirect wb ~sp `BasePage
+               save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
                  (fun () -> match page with
                     | None -> Wiki_data.save_wikicssbox ~rights ~sp
                         ~wiki:wikicss ~content:(Some content)
@@ -350,7 +354,7 @@ let make_services () =
          Wiki_sql.wikibox_wiki wb >>= fun wiki ->
          Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
          let rights = Wiki_models.get_rights wiki_info.wiki_model in
-         save_then_redirect wb ~sp `SamePage
+         save_then_redirect ~sp ~error:(error_handler_wb wb) `SamePage
            (fun () -> Wiki_data.set_wikibox_specific_permissions
               ~rights ~sp ~perms ~special_rights ~wb)
       )
@@ -390,11 +394,12 @@ let make_services () =
     in
     Eliom_predefmod.Any.register_new_post_coservice'
       ~name:"wiki_save_wiki_permissions"
-      ~post_params:(eliom_wikibox_args ** params)
+      ~post_params:(Eliom_parameters.opt eliom_wikibox_args ** params)
       (fun sp () (wb, args) ->
          Wiki_sql.get_wiki_info_by_id (fst args) >>= fun wiki_info ->
          let rights = Wiki_models.get_rights wiki_info.wiki_model in
-         save_then_redirect wb ~sp `SamePage (fun () -> f_save rights sp args))
+         save_then_redirect ~sp ~error:(error_handler_wb_opt wb) `SamePage
+           (fun () -> f_save rights sp args))
 
   (* Below are the services for the css of wikis and wikipages.  The css
      at the level of wikis are registered in Wiki_data.ml *)
@@ -438,15 +443,13 @@ let make_services () =
                 (* The page already exists. If possible, we display an error
                    message in the existing wikibox, which should have
                    contained the button leading to the creation of the page. *)
-                set_wikibox_error ~sp  (wb, Wiki_data.Page_already_exists wb);
+                set_wikibox_error ~sp  (Some wb,
+                                        Wiki_data.Page_already_exists wb);
                 Lwt.return ()
 
             | Ocsimore_common.Permission_denied ->
-                (match wb with
-                   | None -> ()
-                   | Some wb -> set_wikibox_error ~sp
-                       (wb, Ocsimore_common.Permission_denied);
-                ); Lwt.return ()
+                set_wikibox_error ~sp (wb, Ocsimore_common.Permission_denied);
+                Lwt.return ()
 
             | e -> Lwt.fail e)
     )
@@ -483,11 +486,14 @@ let make_services () =
     (fun sp () (wb, ((wiki, page), (title, ((wbpage, wbcss), newpage)))) ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       save_then_redirect wb ~sp `BasePage
+       save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
          (fun () -> Wiki_data.save_wikipage_properties ~rights ~sp
             ~title ~wb:wbpage ~wbcss ~newpage (wiki, page))
     )
 
+  and edit_wiki_permissions = Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir;"edit_wikis_permissions"]
+    ~get_params:eliom_wiki_args ()
 
   in (
     action_edit_css,
@@ -511,5 +517,6 @@ let make_services () =
     action_create_css,
     edit_wiki,
     view_wikis,
-    action_send_wikipage_properties
+    action_send_wikipage_properties,
+    edit_wiki_permissions
   )
