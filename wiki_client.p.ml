@@ -107,17 +107,4 @@ let toggle_wikibox_permissions =
   div >=> JSOO.get "style" >=> JSOO.set "display"
     (JSOO.string (if v = "true" then "block" else "none"))
 
-
-let _ =
-  Eliom_obrowser_client.register_closure
-    778
-    switch_menu;
-  Eliom_obrowser_client.register_closure
-    777
-    delete_widget;
-  Eliom_obrowser_client.register_closure
-    779
-    toggle_wikibox_permissions;
-  ()
-
-
+  >>
