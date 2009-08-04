@@ -8,7 +8,6 @@ forum/ocsicreateforum.cmo
 forum/forum.cma
 forum/forum_site.cmo
 forum/forum_client.cmo
-wiki_client_prologue.cmo
 wiki_client.cmo
 
 #ocsimore.cmxa
