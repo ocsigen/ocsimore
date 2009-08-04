@@ -4,6 +4,8 @@ open Js
 
 let (>=>) x f = f x
 
+let a = Lwt.return 3
+
 let split_string s chars =
   let len = String.length s in
   (* pos is the current position in the string,

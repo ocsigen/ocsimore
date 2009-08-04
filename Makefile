@@ -31,6 +31,7 @@ OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
 
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
+LWTDIR := $(shell ocamlfind query lwt)
 OBROWSERDIR := $(shell ocamlfind query obrowser)
 ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
 PAELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_syntax)
@@ -121,7 +122,7 @@ ocsimore.mllib: ocsimore.mllib.IN
 	cat ocsimore.mllib.IN >> ocsimore.mllib
 
 static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cmo _build/wiki_client.cmo _build/forum/forum_client.cmo
+	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(LWTDIR)/lwt_withoutunix.cma $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cma _build/wiki_client.cmo _build/forum/forum_client.cmo
 	uuencode ocsimore_client stdout > static/ocsimore_client.uue
 
 static/vm.js: $(OBROWSERDIR)/vm.js
