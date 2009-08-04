@@ -593,7 +593,7 @@ let update_wikiboxes ?db f =
                                    SET content = $s
                                    WHERE wikibox = $wb AND version = $version"
                          ) l
-      >>= fun () -> Ocsigen_messages.console2 "Done";
+      >>= fun () -> Ocsigen_messages.console2 "Done updatinge wikiboxes content";
       Cache.clear_all_caches ();
       Lwt.return ()
   in match db with
@@ -626,6 +626,7 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
                           WHERE uid=$uid"
       ) l >>= fun () ->
       Cache.clear_all_caches ();
+      Ocsigen_messages.console2 "Done updatinge wikipages";
       Lwt.return ()
   in match db with
     | None -> full_transaction_block f
