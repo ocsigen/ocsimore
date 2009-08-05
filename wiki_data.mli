@@ -142,6 +142,7 @@ val update_wiki :
   ?path:string option ->
   ?descr:string ->
   ?boxrights:bool ->
+  ?css:wikibox option ->
   wiki -> unit Lwt.t) rights_sp
 
 

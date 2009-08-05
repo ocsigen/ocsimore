@@ -202,11 +202,18 @@ let create_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
               )
 
 
-let update_wiki ~(rights : Wiki_types.wiki_rights) ~sp ?container ?staticdir ?path ?descr ?boxrights wiki =
+let update_wiki ~(rights : Wiki_types.wiki_rights) ~sp ?container ?staticdir ?path ?descr ?boxrights ?css wiki =
   rights#can_admin_wiki ~sp wiki >>= function
     | true ->
-        Wiki_sql.update_wiki ?container ?staticdir ?path ?descr ?boxrights
-          wiki
+        Sql.full_transaction_block
+          (fun db ->
+             Wiki_sql.update_wiki ~db ?container ?staticdir ?path ?descr
+               ?boxrights wiki >>= fun () ->
+             (match css with
+                | None -> Lwt.return ()
+                | Some wbcss -> Wiki_sql.set_wikibox_css_wiki ~db ~wiki wbcss
+             )
+          )
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 

@@ -409,7 +409,9 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           bool_checkbox boxrights) @@
        p (text "Serve static files from a local directory: " @+
           staticdir_input staticdir) @@
-       p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container)
+       p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container) 
+       @@
+       p (text "Css wikibox :" @+ Opaque.int32_input_opt_xform container)
        @@
        p (submit_button "Save")
       |> cont)
@@ -435,11 +437,11 @@ let edit_wiki =
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container
                ~err_handler
-               (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, _v)))))) sp ->
+               (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, (css, _v))))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
                   Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
-                    ~staticdir ~container wiki
+                    ~staticdir ~container ~css wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
                   Ocsimore_page.html_page ~sp
