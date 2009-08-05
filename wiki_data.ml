@@ -54,7 +54,7 @@ let wikibox_content ~rights ~sp ?version wb =
   rights#can_read_wikibox ~sp wb >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
-        Wiki_sql.get_wikibox_data ?version ~wb () >>= function
+        Wiki_sql.get_wikibox_content ?version wb >>= function
           | None -> Lwt.fail (Unknown_box (wb, version))
           | Some (_com, _a, cont, _d, ct, ver) ->
               Lwt.return (ct, cont, ver)
@@ -72,8 +72,8 @@ let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
    else rights#can_write_wikibox ~sp wb) >>= function
     | true ->
         User.get_user_id sp >>= fun user ->
-        Wiki_sql.update_wikibox ~wb ~author:user ~comment:""
-          ~content ~content_type
+        Wiki_sql.update_wikibox ~author:user ~comment:""
+          ~content ~content_type wb
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
@@ -97,7 +97,7 @@ let save_wikipagecssbox ~rights ~sp ~wiki ~page ~content =
 
 let wikibox_history ~rights ~sp ~wb =
   rights#can_view_history ~sp wb >>= function
-    | true -> Wiki_sql.get_history wb
+    | true -> Wiki_sql.get_wikibox_history wb
     | false -> Lwt.fail Ocsimore_common.Incorrect_argument
 
 
@@ -215,6 +215,10 @@ let save_wikipage_properties ~(rights : Wiki_types.wiki_rights) ~sp ?title ?wb ?
     | true ->
         Sql.full_transaction_block (fun db ->
            Wiki_sql.set_wikipage_properties ~db ?wiki ~page
-             ?title ?newpage ?wb ()
-           )
+             ?title ?newpage ?wb () >>= fun () ->
+           match wbcss with
+             | None -> Lwt.return ()
+             | Some wbcss ->
+                 Wiki_sql.set_wikibox_css_wikipage ~db ~wiki ~page wbcss
+                                   )
     | false -> Lwt.fail Ocsimore_common.Permission_denied

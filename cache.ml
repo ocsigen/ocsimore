@@ -251,6 +251,17 @@ struct
        add_no_remove cache k r;
        Lwt.return r)
 
+  class cache f size_c =
+    let c = create f size_c in
+  object
+    method clear () = clear c
+    method find = find c
+    method add = add c
+    method size = size c
+    method find_in_cache = find_in_cache c
+    method remove = remove c
+  end
+
 end
 
 let clear_all_caches () = Weak.iter (fun f -> f ()) clear_all

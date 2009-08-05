@@ -194,7 +194,7 @@ let insert_event
   Lwt.return event)
 
 let update_desc author wb content_type comment content =
-  Wiki_sql.update_wikibox ~wb ~author ~comment ~content ~content_type
+  Wiki_sql.update_wikibox ~author ~comment ~content ~content_type wb
 
 let check_no_concurrent_update dbh ev =
   let id = ev.id in

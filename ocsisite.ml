@@ -198,7 +198,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
   (fun () ->
      Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page
      >>= fun { wikipage_wikibox = wb} ->
-     Wiki_sql.get_wikibox_data ~wb ()
+     Wiki_sql.get_wikibox_content wb
      >>= function
      | Some (_, _, Some content, _, _, _) ->
          Lwt.return content

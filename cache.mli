@@ -27,23 +27,25 @@ Keeps the most recently used values in memory.
 module Make :
   functor (A : sig type key type value end) ->
     sig
-      type t
-      val create : (A.key -> A.value Lwt.t) -> int -> t
+
+      class cache : (A.key -> A.value Lwt.t) -> int ->
+      object
 
       (** Find the cached value associated to the key, or binds this
          value in the cache using the function passed as argument
          to [create], and returns this value *)
-      val find : t -> A.key -> A.value Lwt.t
+      method find : A.key -> A.value Lwt.t
 
       (** Find the cached value associated to the key. Raises [Not_found]
          if the key is not present in the cache *)
-      val find_in_cache : t -> A.key -> A.value
+      method find_in_cache : A.key -> A.value
 
-      val remove : t -> A.key -> unit
-      val add : t -> A.key -> A.value -> unit
-      val clear : t -> unit
-      val size : t -> int
+      method remove : A.key -> unit
+      method add : A.key -> A.value -> unit
+      method clear : unit -> unit
+      method size : int
     end
+ end
 
 
 (** Clear the contents of all the existing caches *)

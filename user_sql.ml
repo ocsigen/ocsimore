@@ -382,12 +382,12 @@ module IUserCache = Cache.Make (struct
                           type value = userdata
                         end)
 
-let iusercache = IUserCache.create
+let iusercache = new IUserCache.cache
   (fun id -> find_user_by_id_ id) 64
 
 let get_basicuser_data i =
   print_cache "cache iuser ";
-  IUserCache.find iusercache i
+  iusercache#find i
 
 let get_parameterized_user_data = get_basicuser_data
 
@@ -405,7 +405,7 @@ module NUseridCache = Cache.Make (struct
 
 exception NotBasicUser of userdata
 
-let nuseridcache = NUseridCache.create
+let nuseridcache = new NUseridCache.cache
   (fun name ->
      find_user_by_name_ name
      >>= fun u ->
@@ -417,7 +417,7 @@ let nuseridcache = NUseridCache.create
 
 let get_basicuser_by_login n =
   print_cache "cache nuserid ";
-  NUseridCache.find nuseridcache n
+  nuseridcache#find n
 
 
 (* Find user from string *)
@@ -427,7 +427,7 @@ module NUserCache = Cache.Make (struct
                           type value = user
                         end)
 
-let nusercache = NUserCache.create
+let nusercache = new NUserCache.cache
   (fun s ->
      if String.length s > 0 && s.[0] = '#' then
        try
@@ -457,13 +457,13 @@ let nusercache = NUserCache.create
 
 let get_user_by_name name =
   print_cache "cache nuser ";
-  NUserCache.find nusercache name
+  nusercache#find name
 
 
 
 let update_data ~userid ?password ?fullname ?email ?dyn () =
-  IUserCache.clear iusercache;
-  NUserCache.clear nusercache;
+  iusercache#clear ();
+  nusercache#clear ();
   update_data_ ~userid ?password ?fullname ?email ?dyn ()
 
 
@@ -480,34 +480,34 @@ module UsersGroupCache = Cache.Make (struct
                              type value = user list
                            end)
 
-let group_of_users_cache = GroupUsersCache.create
+let group_of_users_cache = new GroupUsersCache.cache
   (fun u -> groups_of_user_ u) 8777
-let users_in_group_cache = UsersGroupCache.create
+let users_in_group_cache = new UsersGroupCache.cache
   (fun (g, b) -> users_in_group_ ~generic:b ~group:g) 8777
 
 let groups_of_user ~user =
   print_cache "cache groups_of_user ";
-  GroupUsersCache.find group_of_users_cache user
+  group_of_users_cache#find user
 
 let users_in_group ?(generic=true) ~group =
   print_cache "cache users_in_group ";
-  UsersGroupCache.find users_in_group_cache (group, generic)
+  users_in_group_cache#find (group, generic)
 
 let add_to_group ~user ~group =
-  GroupUsersCache.remove group_of_users_cache user;
-  UsersGroupCache.clear users_in_group_cache;
+  group_of_users_cache#remove user;
+  users_in_group_cache#clear ();
   add_to_group_ ~user ~group
 
 let add_generic_inclusion ~subset ~superset =
-  GroupUsersCache.clear group_of_users_cache;
+  group_of_users_cache#clear ();
   add_generic_inclusion_ ~subset ~superset
 
 let add_to_group_generic ~user ~group =
   add_generic_inclusion ~subset:user ~superset:group
 
 let remove_from_group ~user ~group =
-  GroupUsersCache.remove group_of_users_cache user;
-  UsersGroupCache.clear users_in_group_cache;
+  group_of_users_cache#remove user;
+  users_in_group_cache#clear ();
   remove_from_group_ ~user ~group
 
 
@@ -516,11 +516,11 @@ let remove_from_group ~user ~group =
 let delete_user ~userid =
   (* We clear all the caches, as we should iterate over all the
      parameters if [userid] is a parametrized group *)
-  IUserCache.clear iusercache;
-  NUseridCache.clear nuseridcache;
-  NUserCache.clear nusercache;
-  GroupUsersCache.clear group_of_users_cache;
-  UsersGroupCache.clear users_in_group_cache;
+  iusercache#clear ();
+  nuseridcache#clear ();
+  nusercache#clear ();
+  group_of_users_cache#clear ();
+  users_in_group_cache#clear ();
   delete_user_ ~userid
 
 

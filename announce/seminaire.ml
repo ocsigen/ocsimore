@@ -241,7 +241,7 @@ let edit_event =
        let id = Int32.of_string arg in
        Event_sql.find_event id >>= fun ev ->
        Event_sql.find_speakers id >>= fun speakers ->
-       Wiki_sql.get_wikibox_data ~wb:ev.description ()
+       Wiki_sql.get_wikibox_content ev.description
            >>= fun desc ->
        let (desc, comment) = match desc with
          | None | Some (_, _, None , _, _, _) -> ("", "")

@@ -30,6 +30,7 @@ open Wiki_types
     (which is returned along the index of the new wiki). The [author]
     argument is used when creating the wikibox for the container. *)
 val new_wiki :
+  ?db: Sql.db_t ->
   title:string ->
   descr:string ->
   pages:string option ->
@@ -54,7 +55,7 @@ val new_wikibox :
   wikibox Lwt.t
 
 (** return the history of a wikibox. *)
-val get_history : wb:wikibox ->
+val get_wikibox_history : wb:wikibox ->
   (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
 
 
@@ -87,21 +88,45 @@ val set_wikipage_properties :
 
 
 
-(** returns the css of a wikipage or [None] if  the page has no css *)
+(** returns the css of a wikipage or a wiki, or [None] if no CSS is
+    associated to wiki or the wikipage *)
 val get_css_for_wikipage : wiki:wiki -> page:string -> string option Lwt.t
-
-(** Sets the css for a wikipage *)
-val set_css_for_wikipage :
-  wiki:wiki -> page:string -> author:userid -> string option -> unit Lwt.t
-
-
-(** returns the global css of a wiki, or [None] if the wiki has no such css *)
 val get_css_for_wiki : wiki:wiki -> string option Lwt.t
 
-val set_css_for_wiki : wiki:wiki -> author:userid -> string option -> unit Lwt.t
+
+(** Sets the css for a wikipage or a wiki *)
+val set_css_for_wikipage :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  page:string ->
+  author:userid ->
+  string option ->
+  unit Lwt.t
+
+val set_css_for_wiki :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  author:userid ->
+  string option ->
+  unit Lwt.t
+
+(** Sets the wikibox for the CSS of a wikipage or a wiki. If the wikibox
+   argument is [None], the CSS is deleted. (But not the underlying content
+   of the wikibox.) *)
+val set_wikibox_css_wiki :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  wikibox option ->
+  unit Lwt.t
+val set_wikibox_css_wikipage :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  page:string ->
+  wikibox option ->
+  unit Lwt.t
 
 
-(** returns the wikibox for the css of a page or [None] if the page has no css *)
+(** returns the wikibox for the css of a page or [None] if the page has no css*)
 val get_css_wikibox_for_wikipage :
   wiki:wiki -> page:string -> wikibox option Lwt.t
 
@@ -119,35 +144,39 @@ val get_wiki_info_by_name : name:string -> wiki_info Lwt.t
 
 (** looks for a wikibox and returns [Some (comment, author, content, datetime,
     content_type, version)], or [None] if the page doesn't exist. *)
-val get_wikibox_data : 
+val get_wikibox_content :
   ?version:int32 ->
-  wb:wikibox ->
-  unit ->
-  (string * userid * string option * CalendarLib.Calendar.t * 
+  wikibox ->
+  (string * userid * string option * CalendarLib.Calendar.t *
      'a Wiki_types.content_type * int32) option Lwt.t
 
 
 (** Does the wikibox have special permission rights *)
 val set_wikibox_special_rights:
-  wb:wikibox -> bool -> unit Lwt.t
+  ?db: Sql.db_t ->
+  wb:wikibox ->
+  bool ->
+  unit Lwt.t
 
 
 (** Wiki in which the wikibox currently resides *)
-val wikibox_wiki: wb:wikibox -> wiki Lwt.t
+val wikibox_wiki: wikibox -> wiki Lwt.t
 
 
 (** Current revision number of a wikibox *)
-val current_wikibox_version : wb:wikibox -> Int32.t option Lwt.t
+val current_wikibox_version :
+  wikibox -> Int32.t option Lwt.t
 
 
-(** Inserts a new version of an existing wikibox in a wiki 
+(** Inserts a new version of an existing wikibox in a wiki
     and return its version number. *)
 val update_wikibox :
-  wb:wikibox ->
+  ?db: Sql.db_t ->
   author:userid ->
   comment:string ->
   content:string option ->
   content_type:'a Wiki_types.content_type ->
+  wikibox ->
   int32 Lwt.t
 
 (** Update the information of a wiki. All arguments not passed are left
@@ -163,10 +192,13 @@ val update_wiki :
 
 
 (** Iterator on all the wikis  *)
-val iter_wikis : (wiki_info -> unit Lwt.t) -> unit Lwt.t
+val iter_wikis :
+  ?db: Sql.db_t ->
+  (wiki_info -> unit Lwt.t) ->
+  unit Lwt.t
 
 
-val get_wikibox_info : ?db:Sql.db_t -> wikibox -> wikibox_info Lwt.t
+val get_wikibox_info : wikibox -> wikibox_info Lwt.t
 
 
 (** This function updates the content of all the wikiboxes stored in
