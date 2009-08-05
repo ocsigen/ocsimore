@@ -1,10 +1,17 @@
-<:obrowser<
+begin.client
 
 open Js
 
-let (>=>) x f = f x
+let (>>>) x f = f x
 
-let a = Lwt.return 3
+(*
+let rec f () =
+  Js.alert "a";
+  Lwt.bind (Lwt_obrowser.sleep 2.) f
+
+let _ = f ()
+*)
+
 
 let split_string s chars =
   let len = String.length s in
@@ -32,16 +39,16 @@ let split_string s chars =
 (*
 let document = eval "document"
 let css = 
-  document >=> get "styleSheets" >=> get "0"
+  document >>> get "styleSheets" >>> get "0"
 let get_element_by_id id =
-  document >=> call_method "getElementById" [| string id |]
+  document >>> call_method "getElementById" [| string id |]
 
 let highlight_wikibox id =
   let wikibox = get_element_by_id id in
-  css >=> call_method "addRule"
-    [| string "div.wikibox"; string "background-color: #fafafa; color: #e0e0e0" |] >=> ignore ;
-  wikibox >=> get "style" >=> set "background-color" (string "white");
-  wikibox >=> get "style" >=> set "color" (string "black")
+  css >>> call_method "addRule"
+    [| string "div.wikibox"; string "background-color: #fafafa; color: #e0e0e0" |] >>> ignore ;
+  wikibox >>> get "style" >>> set "background-color" (string "white");
+  wikibox >>> get "style" >>> set "color" (string "black")
 
 let _ =
   Eliom_obrowser_client.register_closure
@@ -50,9 +57,9 @@ let _ =
 
 let un_highlight_wikibox id =
   let wikibox = get_element_by_id id in
-  css >=> call_method "addRule"
-    [| string ".wikibox"; string "background-color: #ffffff" |] >=> ignore ;
-  wikibox >=> get "style" >=> set "background-color" (string "white")
+  css >>> call_method "addRule"
+    [| string ".wikibox"; string "background-color: #ffffff" |] >>> ignore ;
+  wikibox >>> get "style" >>> set "background-color" (string "white")
 
 let _ =
   Eliom_obrowser_client.register_closure
@@ -61,11 +68,11 @@ let _ =
 
 *)
 
->>
+end
 
 
 let delete_wikibox =
-  <:obrofun< (href : string) (id : string) -> 
+  fun.client (href : string) (id : string) -> 
   let parent = Js.get_element_by_id id in
   let box =
     Js.Html.div ~attrs:[("class","deletewidget")] 
@@ -76,10 +83,10 @@ let delete_wikibox =
     (Js.Html.a ~onclick:(fun () -> Js.Node.remove parent box)
        [Js.Html.string "Cancel"]);
   Js.Node.append parent box
-  >>
+  
 
 let switch_menu =
-  <:obrofun< (id : string) ->
+  fun.client (id : string) ->
   let link = Js.get_element_by_id id
   and body = Js.get_element_by_id "body"
   and class_no_menu = "nomenu" in
@@ -97,16 +104,13 @@ let switch_menu =
     JSOO.set "innerHTML" (JSOO.string "Show menus") link;
     update_classes_body (class_no_menu :: classes_body)
   )
-    >>
 
 let toggle_wikibox_permissions =
-  <:obrofun< () ->
+  fun.client () ->
   let div = Js.get_element_by_id "wikiboxpermissions"
   and checkbox = Js.get_element_by_id "checkwikiboxpermissions"
   in
-  let v = checkbox >=> JSOO.get "checked" >=>
-    JSOO.call_method "toString" [||] >=> JSOO.as_string in
-  div >=> JSOO.get "style" >=> JSOO.set "display"
+  let v = checkbox >>> JSOO.get "checked" >>>
+    JSOO.call_method "toString" [||] >>> JSOO.as_string in
+  div >>> JSOO.get "style" >>> JSOO.set "display"
     (JSOO.string (if v = "true" then "block" else "none"))
-
-  >>
