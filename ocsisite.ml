@@ -382,7 +382,7 @@ let create_wiki =
 
 
 let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
-      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~(container:wikibox option)
+      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~css
       ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
@@ -411,7 +411,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           staticdir_input staticdir) @@
        p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container) 
        @@
-       p (text "Css wikibox :" @+ Opaque.int32_input_opt_xform container)
+       p (text "Css wikibox :" @+ Opaque.int32_input_opt_xform css)
        @@
        p (submit_button "Save")
       |> cont)
@@ -431,11 +431,12 @@ let edit_wiki =
        let rights = Wiki_models.get_rights info.wiki_model in
        rights#can_admin_wiki sp wiki >>= function
          | true ->
+             Wiki_sql.get_css_wikibox_for_wiki wiki >>= fun csswb ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
                ~service:view_wikis ~arg:() ~sp
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
-               ~container:info.wiki_container
+               ~container:info.wiki_container ~css:csswb
                ~err_handler
                (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, (css, _v))))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
