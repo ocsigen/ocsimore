@@ -670,6 +670,7 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
               match Ocsimore_lib.remove_prefix ~s:page ~prefix:path with
                 | None -> Lwt.return ()
                 | Some prefix ->
+                    let prefix = Ocsimore_lib.remove_begin_slash prefix in
                     PGSQL(db) "UPDATE wikipages
                                SET wiki = $newwiki, pagename= $prefix
                                WHERE uid=$uid"

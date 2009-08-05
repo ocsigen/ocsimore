@@ -155,3 +155,9 @@ let remove_prefix ~s ~prefix =
   else if first_diff = preflast && slen = preflast
   then Some ""
   else None
+
+let remove_begin_slash s =
+  if s = "" then ""
+  else if s.[0] = '/' then
+    String.sub s 1 ((String.length s) - 1)
+  else s
