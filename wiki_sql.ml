@@ -184,7 +184,9 @@ let get_box_for_page_ ~wiki ~page =
              }
     )
 
+(* No need for cache, as the page does not exists yet *)
 let create_wikipage ?db ~wiki ~page ~wb =
+  let page = Ocsigen_lib.remove_end_slash page in
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
@@ -465,11 +467,12 @@ module CWp = Cache.Make (struct
                          end)
 
 let cache_wp = new CWp.cache
-  (fun (wiki, page) -> get_box_for_page_ wiki page) 64
+  (fun (wiki, page) ->
+     let page = Ocsigen_lib.remove_end_slash page in
+     get_box_for_page_ wiki page) 64
 
 
 let get_wikipage_info ~wiki ~page =
-  let page = Ocsigen_lib.remove_end_slash page in
   cache_wp#find (wiki, page)
 
 let set_wikipage_properties ?db ~wiki ~page ?title ?newpage ?wb () =
@@ -546,6 +549,7 @@ let get_css_wikibox_for_wiki ~wiki =
   get_css_wikibox ~wiki ~page:None
 
 let get_css_wikibox_for_wikipage ~wiki ~page =
+  let page = Ocsigen_lib.remove_end_slash page in
   get_css_wikibox ~wiki ~page:(Some page)
 
 let get_css_aux ~wiki ~page =
@@ -559,20 +563,12 @@ let get_css_aux ~wiki ~page =
           | Some (_, _, None, _, _, _) | None -> Lwt.return None
 
 let get_css_for_wikipage ~wiki ~page =
+  let page = Ocsigen_lib.remove_end_slash page in
   get_css_aux ~wiki ~page:(Some page)
 
 let get_css_for_wiki ~wiki =
   get_css_aux ~wiki ~page:None
 
-(*
-let set_css_wikibox_aux ~wiki ~page ~wb =
-  get_css_wikibox ~wiki ~page >>= function
-    | None ->
-        (match wb with
-           | None -> Lwt.return ()
-           | Some wb -> set_css_wikibox_in_cache ~wiki ~page wb)
-    | Some wb' ->
-*)
 
 let set_css_wikibox_aux ?db ~wiki ~page wb =
   wrap db
@@ -594,6 +590,7 @@ let set_wikibox_css_wiki ?db ~wiki wb =
   set_css_wikibox_aux ?db ~wiki ~page:None wb
 
 let set_wikibox_css_wikipage ?db ~wiki ~page wb =
+  let page = Ocsigen_lib.remove_end_slash page in
   set_css_wikibox_aux ?db ~wiki ~page:(Some page) wb
 
 
@@ -622,6 +619,7 @@ let set_css_aux ?db ~wiki ~page ~author content =
     )
 
 let set_css_for_wikipage ?db ~wiki ~page ~author content =
+  let page = Ocsigen_lib.remove_end_slash page in
   set_css_aux ?db ~wiki ~page:(Some page) ~author content
 
 let set_css_for_wiki ?db ~wiki ~author content =
@@ -676,7 +674,7 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
                                WHERE uid=$uid"
            ) l >>= fun () ->
            cache_wp#clear ();
-           Ocsigen_messages.console2 "Done updatinge wikipages";
+           Ocsigen_messages.console2 "Done updating wikipages";
            Lwt.return ()
     )
 
