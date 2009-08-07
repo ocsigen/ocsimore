@@ -156,8 +156,7 @@ let register_wikibox_syntax_extensions
 
   let f = (fun _wp bi args c ->
        Wikicreole.Link_plugin
-         (let sp = bi.bi_sp in
-          let page = Ocsimore_lib.list_assoc_default "page" args "" in
+         (let page = Ocsimore_lib.list_assoc_default "page" args "" in
           let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
           let https = extract_https args in
           let content =
@@ -168,7 +167,7 @@ let register_wikibox_syntax_extensions
           (* class and id attributes will be taken by Wiki_syntax.a_elem *)
           (let wiki = extract_wiki_id args bi.bi_wiki in
            Wiki_syntax.make_href
-             sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
+             bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
           ),
           args,
           content)
@@ -236,15 +235,14 @@ let register_wikibox_syntax_extensions
     ~name:"object" ~wiki_content:true
     (fun _wp bi args _c ->
        Wikicreole.A_content
-         (let sp = bi.bi_sp in
-          let type_ = Ocsimore_lib.list_assoc_default "type" args ""
+         (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
           and page = Ocsimore_lib.list_assoc_default "data" args ""
           and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
           and wiki = extract_wiki_id args bi.bi_wiki
           and https = extract_https args
           and atts = Wiki_syntax.parse_common_attribs args in
           let url = Wiki_syntax.make_href
-            sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
+            bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
           in
           Lwt.return
             {{ [<object
@@ -260,14 +258,13 @@ let register_wikibox_syntax_extensions
     ~name:"img" ~wiki_content:true
     (fun _wp bi args c ->
        Wikicreole.A_content
-         (let sp = bi.bi_sp in
-          let page = Ocsimore_lib.list_assoc_default "name" args ""
+         (let page = Ocsimore_lib.list_assoc_default "name" args ""
           and https = extract_https args
           and wiki = extract_wiki_id args bi.bi_wiki in
           let alt = match c with Some c -> c | None -> page in
           let atts = Wiki_syntax.parse_common_attribs args in
           let url = Wiki_syntax.make_href
-            sp bi (Wiki_syntax.Wiki_page (wiki, page, https)) None
+            bi (Wiki_syntax.Wiki_page (wiki, page, https)) None
           in
           Lwt.return
             {{ [<img ({ src={: Ocamlduce.Utf8.make url :}

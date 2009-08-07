@@ -47,7 +47,7 @@ type ('param, 'flow, 'a_content) plugin =
     ) plugin_args
 
 
-type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
+type ('flow, 'inline, 'a_content, 'param) builder =
   { chars : string -> 'a_content;
     strong_elem : attribs -> 'inline list -> 'a_content;
     em_elem : attribs -> 'inline list -> 'a_content;
@@ -62,8 +62,8 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     nbsp : 'a_content;
     endash : 'a_content;
     emdash : 'a_content;
-    a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
-    make_href : 'sp -> 'param -> string -> string option -> string;
+    a_elem : attribs -> string -> 'a_content list -> 'inline;
+    make_href : 'param -> string -> string option -> string;
     p_elem : attribs -> 'inline list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
     h1_elem : attribs -> 'inline list -> 'flow;
@@ -109,10 +109,9 @@ type ('inline, 'flow) stack =
   | Row of (bool * attribs * 'inline list) list * attribs * ('inline, 'flow) stack
   | Entry of bool * attribs * ('inline, 'flow) stack
 
-type ('flow, 'inline, 'a_content, 'param, 'sp) ctx =
-  { build : ('flow, 'inline, 'a_content, 'param, 'sp) builder;
+type ('flow, 'inline, 'a_content, 'param) ctx =
+  { build : ('flow, 'inline, 'a_content, 'param) builder;
     param : 'param;
-    sp : 'sp;
     mutable italic : bool;
     mutable bold : bool;
     mutable monospace : bool;
@@ -230,7 +229,7 @@ let style_change c style att parse_attribs lexbuf =
 let pop_link c addr attribs stack =
   c.stack <- stack;
   c.inline_mix <-
-    c.build.a_elem attribs c.sp addr (List.rev c.link_content) :: c.inline_mix;
+    c.build.a_elem attribs addr (List.rev c.link_content) :: c.inline_mix;
   c.link_content <- [];
   c.link <- false
 
@@ -604,7 +603,7 @@ and parse_rem c =
       else
         let addr = Lexing.lexeme lexbuf in
         c.inline_mix <-
-          c.build.a_elem [] c.sp addr [c.build.chars addr] :: c.inline_mix;
+          c.build.a_elem [] addr [c.build.chars addr] :: c.inline_mix;
       parse_rem c lexbuf
   }
   | "\\\\" (("@@" ?) as att) {
@@ -718,7 +717,7 @@ and parse_link beg begaddr fragment c attribs =
       else begin
         c.build.link_action begaddr fragment attribs
           (beg+2, Lexing.lexeme_start lexbuf) c.param;
-        let addr = c.build.make_href c.sp c.param begaddr fragment in
+        let addr = c.build.make_href c.param begaddr fragment in
         if lb = "|"
         then begin
           c.stack <- Link (addr, attribs, c.stack);
@@ -731,7 +730,7 @@ and parse_link beg begaddr fragment c attribs =
           in
           c.inline_mix <-
             c.build.a_elem
-            attribs c.sp addr [c.build.chars text] :: c.inline_mix;
+            attribs addr [c.build.chars text] :: c.inline_mix;
       end;
       parse_rem c lexbuf
   }
@@ -769,7 +768,7 @@ and parse_image c attribs =
          ('}' ? (not_line_break # '}')) * "}}" {
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
-      let url = c.build.make_href c.sp c.param (String.sub s 0 i) None in
+      let url = c.build.make_href c.param (String.sub s 0 i) None in
       let alt = String.sub s (i + 1) (String.length s - i - 3) in
       push c (c.build.img_elem attribs url alt);
       parse_rem c lexbuf
@@ -975,10 +974,9 @@ and parse_attribs depth args oldargs c =
 
 {
 
-let context sp param b =
+let context param b =
   { build = b; 
     param = param;
-    sp = sp;
     italic = false; 
     bold = false;
     monospace = false;
@@ -997,16 +995,16 @@ let context sp param b =
     flow = [];
     stack = Paragraph [] }
 
-let from_lexbuf sp param b lexbuf =
+let from_lexbuf param b lexbuf =
   Lwt_preemptive.detach
     (fun () ->
-       let c = context sp param b in
+       let c = context param b in
        parse_bol c lexbuf;
        List.rev c.flow)
     ()
 
-let from_channel sp param b ch = from_lexbuf sp param b (Lexing.from_channel ch)
+let from_channel param b ch = from_lexbuf param b (Lexing.from_channel ch)
 
-let from_string sp param b s = from_lexbuf sp param b (Lexing.from_string s)
+let from_string param b s = from_lexbuf param b (Lexing.from_string s)
 
 }

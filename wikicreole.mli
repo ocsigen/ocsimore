@@ -45,7 +45,7 @@ type ('param, 'flow, 'a_content) plugin =
     ) plugin_args
 
 
-type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
+type ('flow, 'inline, 'a_content, 'param) builder =
   { chars : string -> 'a_content;
     strong_elem : attribs -> 'inline list -> 'a_content;
     em_elem : attribs -> 'inline list -> 'a_content;
@@ -60,8 +60,8 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
     nbsp : 'a_content;
     endash : 'a_content;
     emdash : 'a_content;
-    a_elem : attribs -> 'sp -> string -> 'a_content list -> 'inline;
-    make_href : 'sp -> 'param -> string -> string option -> string;
+    a_elem : attribs -> string -> 'a_content list -> 'inline;
+    make_href : 'param -> string -> string option -> string;
     (** the string option is the fragment part of the URL (#...)*)
     p_elem : attribs -> 'inline list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
@@ -88,17 +88,14 @@ type ('flow, 'inline, 'a_content, 'param, 'sp) builder =
   }
 
 val from_channel :
-  'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> in_channel -> 'flow list Lwt.t
+  ('flow, 'inline, 'a_content, 'param) builder -> in_channel -> 'flow list Lwt.t
 
 val from_string :
-  'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> string -> 'flow list Lwt.t
+  ('flow, 'inline, 'a_content, 'param) builder -> string -> 'flow list Lwt.t
 
 val from_lexbuf :
-  'sp ->
   'param ->
-  ('flow, 'inline, 'a_content, 'param, 'sp) builder -> Lexing.lexbuf -> 'flow list Lwt.t
+  ('flow, 'inline, 'a_content, 'param) builder -> Lexing.lexbuf -> 'flow list Lwt.t
 

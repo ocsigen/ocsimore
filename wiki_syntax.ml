@@ -403,8 +403,7 @@ type 'res wikicreole_parser = {
   builder: ('res,
             Xhtmltypes_duce.inlines Lwt.t,
             {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
-            box_info,
-            Eliom_sessions.server_params)
+            box_info)
     Wikicreole.builder;
 
   plugin_assoc: (bool * 'res syntax_extension) plugin_hash;
@@ -479,8 +478,8 @@ let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wi
     Wikicreole.chars = nothing1;
     strong_elem = nothing;
     em_elem = nothing;
-    a_elem = (fun _ _ _ _ -> ());
-    make_href = (fun _ _ a fragment -> match fragment with 
+    a_elem = (fun _ _ _ -> ());
+    make_href = (fun _ a fragment -> match fragment with 
                    | None -> a
                    | Some f -> a ^"#"^f);
     br_elem = nothing1;
@@ -518,7 +517,7 @@ let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wi
     link_action = link_action;
     error = nothing1;
   } in
-  Wikicreole.from_string sp (sp, wb) preparse_builder content
+  Wikicreole.from_string (sp, wb) preparse_builder content
   >>= fun (_ : unit list) ->
   let buf = Buffer.create 1024 in
   Lwt_util.fold_left
@@ -556,7 +555,8 @@ let site_url_syntax =
     Neturl.url_enable_relative = true;
   }
 
-let make_href sp bi addr fragment =
+let make_href bi addr fragment =
+  let sp = bi.bi_sp in
   let aux ~fragment https wiki page =
     match Wiki_self_services.find_servpage wiki with
       | Some servpage ->
@@ -639,7 +639,7 @@ let superscripted_elem = (fun attribs a ->
                             Lwt.return {{ [<sup (atts)>r] }})
 
 let a_elem =
-  (fun attribs _sp addr 
+  (fun attribs addr 
      (c : {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t list) -> 
        let atts = parse_common_attribs attribs in
        Lwt_util.map_serial (fun x -> x) c >>= fun c ->
@@ -647,7 +647,7 @@ let a_elem =
            {{ [ <a ({href={: Ocamlduce.Utf8.make addr :}}++atts)>{: element2 c :} ] }})
 
 let default_make_href = 
-  (fun sp bi c fragment -> make_href sp bi (link_kind c) fragment)
+  (fun bi c fragment -> make_href bi (link_kind c) fragment)
 
 let br_elem = (fun attribs -> 
                  let atts = parse_common_attribs attribs in
@@ -784,8 +784,7 @@ let span_elem = (fun attribs a ->
 let inline_builder : (Xhtmltypes_duce.inlines Lwt.t,
                       Xhtmltypes_duce.inlines Lwt.t,
                       {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
-                      box_info,
-                      Eliom_sessions.server_params)
+                      box_info)
     Wikicreole.builder = (* no images, no titles, no tables, no lists, 
                         no subwikiboxes, no content, no objects,
                         no paragraph, no pre, ... *)
@@ -1009,21 +1008,18 @@ let inline_wikicreole_parser = {
 (* Default parser functions:    *)
 
 let xml_of_wiki wp bi s =
-  Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
-    (builder_from_wikicreole_parser wp) s
-  >>= fun l ->
+  Wikicreole.from_string bi (builder_from_wikicreole_parser wp) s >>= fun l ->
   Lwt_util.map_serial (fun x -> x) l >>= fun r ->
   Lwt.return {{ (map {: (r : Xhtmltypes_duce.flows list) :} with i -> i) }}
 
 let inline_of_wiki bi s : Xhtmltypes_duce.inlines Lwt.t =
-  Wikicreole.from_string bi.Wiki_widgets_interface.bi_sp bi
+  Wikicreole.from_string bi
     ({inline_builder with
        Wikicreole.plugin = plugin_function inline_wikicreole_parser      
     } : (Xhtmltypes_duce.inlines Lwt.t,
             Xhtmltypes_duce.inlines Lwt.t,
             {{ [ Xhtmltypes_duce.a_content* ] }} Lwt.t,
-            box_info,
-            Eliom_sessions.server_params)
+            box_info)
     Wikicreole.builder) s >>= function
       | [] -> Lwt.return {{ [] }}
       | a::_ -> a
@@ -1264,8 +1260,7 @@ let () =
               Lwt.return {{ <li (classe)>text2}}
             else
               let href = 
-                make_href bi.Wiki_widgets_interface.bi_sp bi 
-                  (link_kind link) None in
+                make_href bi (link_kind link) None in
               let link2 = Ocamlduce.Utf8.make href in
               let classe = match classe with
                 | None -> {{ {} }}

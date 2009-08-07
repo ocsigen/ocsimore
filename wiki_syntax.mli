@@ -178,7 +178,6 @@ type link_kind =
 val link_kind : string -> link_kind
 
 val make_href :
-  Eliom_sessions.server_params ->
   Wiki_widgets_interface.box_info ->
   link_kind -> string option -> string
 
