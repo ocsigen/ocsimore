@@ -694,9 +694,20 @@ and parse_rem c =
     }
 
 and parse_link beg begaddr fragment c attribs =
-    parse 
-    (']' ? (not_line_break # [ ']' '|' '~' '#' ])) * 
-          { match fragment with
+    parse
+  | "" (* Must be before the case ]?(...)* !! *) {
+      push_string c "[["; (*VVV We loose attributes *)
+      push_string c begaddr;
+      (match fragment with
+         | None -> ()
+         | Some f -> 
+             push_string c "#";
+             push_string c f);   
+      parse_rem c lexbuf
+    }
+  | (']' ? (not_line_break # [ ']' '|' '~' '#' ])) * 
+          {       Ocsigen_messages.console2 "eps";
+match fragment with
               | None -> 
                   parse_link beg (begaddr^Lexing.lexeme lexbuf) None c attribs lexbuf
               | Some f -> 
@@ -751,16 +762,7 @@ and parse_link beg begaddr fragment c attribs =
             | None -> begaddr
             | Some f -> begaddr^"#"^f
           in parse_link beg begaddr (Some "") c attribs lexbuf }
-  | "" {
-      push_string c "[["; (*VVV We loose attributes *)
-      push_string c begaddr;
-      (match fragment with
-         | None -> ()
-         | Some f -> 
-             push_string c "#";
-             push_string c f);   
-      parse_rem c lexbuf
-    }
+
 
 and parse_image c attribs =
     parse
