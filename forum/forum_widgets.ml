@@ -190,6 +190,7 @@ object (self)
   val thr_class = "ocsiforum_thread"
   val thr_msg_class = "ocsiforum_thread_msg"
   val comment_class = "ocsiforum_comment_form"
+  val comment_button_class = "ocsiforum_comment_button"
   val main_msg_class = "ocsiforum_main_message"
   val comments_class = "ocsiforum_comments"
 
@@ -229,7 +230,7 @@ object (self)
     let form = 
       add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
     in
-    let rec n1 = {{ <div class={: comment_class :}
+    let rec n1 = {{ <div class={: comment_button_class :}
                       id={: n1_id :}
                       onclick={: Forum_client_calls.switchshow n1_id n2_id :} >
                       {: Ocamlduce.Utf8.make "Comment" :} }}

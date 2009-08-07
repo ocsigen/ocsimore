@@ -2,7 +2,7 @@ div.ocsiforum_comment_form {
   display: none;
 }
 
-span.ocsiforum_comment_form {
+div.ocsiforum_comment_button {
   cursor: pointer;
   font-size: 50%;
 }
