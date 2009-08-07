@@ -36,6 +36,11 @@ end;;
 class widget_with_error_box :
   object
 
+    method error_class : string
+
+    method display_error_message : 
+      ?message:string -> ?exn:exn -> unit -> Xhtmltypes_duce.blocks
+
     (** Takes a threads that gets data (e.g. from a database),
         then a function that transforms this data into something printable
         of type flows,

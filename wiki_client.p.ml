@@ -114,3 +114,4 @@ let toggle_wikibox_permissions =
     JSOO.call_method "toString" [||] >>> JSOO.as_string in
   div >>> JSOO.get "style" >>> JSOO.set "display"
     (JSOO.string (if v = "true" then "block" else "none"))
+

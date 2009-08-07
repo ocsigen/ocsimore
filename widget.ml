@@ -36,7 +36,9 @@ object(self)
 
   val error_class = "errormsg"
 
-  method private display_error_message ?message ?exn () = 
+  method error_class = error_class
+
+  method display_error_message ?message ?exn () = 
     match message, exn with
       | None, None -> {{ [] }}
       | message, exn ->

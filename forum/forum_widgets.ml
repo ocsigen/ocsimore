@@ -190,14 +190,25 @@ object (self)
   val thr_class = "ocsiforum_thread"
   val thr_msg_class = "ocsiforum_thread_msg"
   val comment_class = "ocsiforum_comment_form"
+  val main_msg_class = "ocsiforum_main_message"
+  val comments_class = "ocsiforum_comments"
 
   method get_thread ~sp ~message_id =
     Forum_data.get_thread ~sp ~message_id
     
-  method display_thread ~classes content =
-    let classes = Ocsimore_lib.build_class_attr (thr_class::classes) in
+  method display_thread ~classes ((first : Eliom_duce.Blocks.div_content_elt_list), coms) : Xhtmltypes_duce.block Lwt.t =
+    let classes = 
+      Ocamlduce.Utf8.make (Ocsimore_lib.build_class_attr (thr_class::classes)) 
+    in
     Lwt.return
-      {{ <div class={: classes :}>content }}
+      {{ <div class={: classes :}>[ !first !coms ] }}
+
+  method display_thread_splitted ~classes ((first : Eliom_duce.Blocks.div_content_elt_list), coms) =
+    let classes1 = Ocsimore_lib.build_class_attr (main_msg_class::classes) in
+    let classes2 = Ocsimore_lib.build_class_attr (comments_class::classes) in
+    Lwt.return
+      ({{ <div class={: classes1 :}>[ !first ] }},
+       {{ <div class={: classes2 :}>[ !coms ] }})
 
   method display_comment_line ~sp ~role ?rows ?cols m =
 (*    Lwt.return
@@ -218,7 +229,7 @@ object (self)
     let form = 
       add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
     in
-    let rec n1 = {{ <span class={: comment_class :}
+    let rec n1 = {{ <div class={: comment_class :}
                       id={: n1_id :}
                       onclick={: Forum_client_calls.switchshow n1_id n2_id :} >
                       {: Ocamlduce.Utf8.make "Comment" :} }}
@@ -228,13 +239,14 @@ object (self)
   else Lwt.return {{ [] }}
 
 
-  method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread =
+  method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread :
+    (string list * (Eliom_duce.Blocks.div_content_elt_list * Eliom_duce.Blocks.div_content_elt_list)) Lwt.t =
     add_forum_css_header sp;
     let rec print_one_message_and_children
         ~role ~arborescent ~commentable thread : 
-        (Xhtmltypes_duce.block * 'a list) Lwt.t = 
+        (Eliom_duce.Blocks.div_content_elt_list * Eliom_duce.Blocks.div_content_elt_list * 'a list) Lwt.t = 
       (match thread with
-         | [] -> Lwt.return ({{[]}}, [])
+         | [] -> Lwt.return ({{[]}}, {{[]}}, [])
          | m::l ->
              message_widget#pretty_print_message
                ~classes:[]
@@ -249,22 +261,20 @@ object (self)
              message_widget#display_message ~classes msg_info >>= fun first ->
              print_children ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
-             Lwt.return ({{ [first !comment_line !s] }}, l))
-      >>= fun (s, l) ->
-      Lwt.return ({{ <div class={: thr_msg_class :}>s }}, l)
+             Lwt.return ({{ [first] }}, {{ [ !comment_line !s] }}, l))
     and print_children ~role ~arborescent ~commentable pid = function
       | [] -> Lwt.return ({{ [] }}, [])
       | ((m::_) as th) 
           when m.m_parent_id = Some pid ->
           (print_one_message_and_children ~role ~arborescent ~commentable th
-           >>= fun (b, l) ->
+           >>= fun (b, c, l) ->
            print_children ~role ~arborescent ~commentable pid l
            >>= fun (s, l) ->
-           Lwt.return (({{ [b !s] }} : Xhtmltypes_duce.flows), l))
+           Lwt.return (({{ [!b !c !s] }} : Eliom_duce.Blocks.div_content_elt_list), l))
       | l -> Lwt.return ({{ [] }}, l)
     in
     match thread with
-      | [] -> Lwt.return (classes, {{[]}})
+      | [] -> Lwt.return (classes, ({{[]}}, {{[]}}))
       | m::_l ->
           Forum_sql.get_forum ~forum:m.m_forum () >>= fun forum ->
           Forum.get_role sp m.m_forum >>= fun role ->
@@ -273,16 +283,43 @@ object (self)
             ~role
             ~arborescent:forum.f_arborescent
             ~commentable:(commentable && commentator) thread
-          >>= fun (a, _) -> 
-          Lwt.return (classes, {{[a]}})
+          >>= fun (msg, coms, _) -> 
+          Lwt.return (classes, (msg, coms))
 
   method display ?(commentable = true) ~sp ?rows ?cols
+    ?(classes=[]) ~data:message_id () : Xhtmltypes_duce.block Lwt.t =
+    add_forum_css_header sp;
+    let data = self#get_thread ~sp ~message_id in
+    let transform_data = 
+      self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols
+    in
+    (Lwt.catch
+       (fun () -> data >>= transform_data)
+       (fun exn ->
+          let e : Eliom_duce.Blocks.div_content_elt_list = 
+            {{ [ {{ widget_with_error_box#display_error_box ~exn () }} ] }} 
+          in
+          Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
+    >>= fun (classes, c) ->
+    self#display_thread ~classes c
+
+  method display_splitted ?(commentable = true) ~sp ?rows ?cols
     ?(classes=[]) ~data:message_id () =
     add_forum_css_header sp;
-    widget_with_error_box#bind_or_display_error
-      (self#get_thread ~sp ~message_id)
-      (self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols)
-      (self#display_thread)
+    let data = self#get_thread ~sp ~message_id in
+    let transform_data = 
+      self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols
+    in
+    (Lwt.catch
+       (fun () -> data >>= transform_data)
+       (fun exn ->
+          let e : Eliom_duce.Blocks.div_content_elt_list  = 
+            {{ [ {{ widget_with_error_box#display_error_box ~exn () }} ] }} 
+          in
+          Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
+    >>= fun (classes, c) ->
+    self#display_thread_splitted ~classes c
+
 
 end
 

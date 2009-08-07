@@ -53,9 +53,7 @@ and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
         fun f -> lwt_flatten f
 
 let build_class_attr ~classe =
-  match classe with
-    | [] -> ""
-    | a::l -> List.fold_left (fun s e -> s^" "^e) a l
+  String.concat " " classe
 
 
 let list_assoc_opt a l =

@@ -691,7 +691,8 @@ let _ =
                 assert false
             end >>= fun (title, content) ->
             let p =
-              M.make_full_string_uri events sp (Int32.to_string ev.id) in
+              M.make_string_uri ~absolute:true
+                ~service:events ~sp (Int32.to_string ev.id) in
             let identity =
               { Atom_feed.id = p ^ "#" ^ Int32.to_string ev.major_version;
                 Atom_feed.link = p;
@@ -703,7 +704,7 @@ let _ =
                 Atom_feed.content = content })
          rows
            >>= fun el ->
-       let p = M.make_full_string_uri summary sp category in
+       let p = M.make_string_uri ~absolute:true ~service:summary ~sp category in
        Event_sql.last_update () >>= fun d ->
        let d =
          match d with
@@ -713,7 +714,7 @@ let _ =
        in
        Event_sql.find_category_by_path category >>= fun cat ->
        Lwt.return
-         (M.make_full_string_uri feed sp category,
+         (M.make_string_uri ~absolute:true ~service:feed ~sp category,
           { Atom_feed.id = p; Atom_feed.link = p;
             Atom_feed.updated = d; Atom_feed.title = cat.cat_name }, el))
 
@@ -745,7 +746,8 @@ let _ =
             Event.format_description sp ev.comment >>= fun comment ->
 *)
             let p =
-              M.make_full_string_uri events sp (Int32.to_string ev.id) in
+              M.make_string_uri ~absolute:true ~service:events ~sp
+                (Int32.to_string ev.id) in
             let loc = Event.format_location ev.room ev.location in
             Lwt.return
               { Icalendar.dtstart = Common.utc_time ev.start;
