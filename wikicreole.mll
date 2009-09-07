@@ -706,8 +706,7 @@ and parse_link beg begaddr fragment c attribs =
       parse_rem c lexbuf
     }
   | (']' ? (not_line_break # [ ']' '|' '~' '#' ])) * 
-          {       Ocsigen_messages.console2 "eps";
-match fragment with
+          { match fragment with
               | None -> 
                   parse_link beg (begaddr^Lexing.lexeme lexbuf) None c attribs lexbuf
               | Some f -> 
