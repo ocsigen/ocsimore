@@ -64,6 +64,8 @@ let wiki_box = page_id
 
 let (>>=) = Lwt.bind
 
+(* BY : disabled because of new scheme for css. Probably needs to be reenabled
+   if announce is resurrected
 let _ =
   let wikicss_service =
     Eliom_predefmod.CssText.register_new_service
@@ -74,7 +76,7 @@ let _ =
          | Some css -> Lwt.return css)
   in
   Wiki_self_services.add_servwikicss wiki_id wikicss_service
-
+*)
 
 let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   let page = Ocsigen_lib.string_of_url_path ~encode:false path in

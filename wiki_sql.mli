@@ -25,6 +25,10 @@ open Wiki_types
 
 
 
+(** Exception raised when a CSS does not exists *)
+exception Unknown_Css of wikibox
+
+
 
 (** inserts a new wiki, creating on the fly the container wikibox
     (which is returned along the index of the new wiki). The [author]
@@ -88,52 +92,62 @@ val set_wikipage_properties :
 
 
 
-(** returns the css of a wikipage or a wiki, or [None] if no CSS is
-    associated to wiki or the wikipage *)
-val get_css_for_wikipage : wiki:wiki -> page:string -> string option Lwt.t
-val get_css_for_wiki : wiki:wiki -> string option Lwt.t
+(** returns the lists of css associated to a wikipage or a wiki. The first
+    element is the wikibox containing the css, the second one the css
+    content itself, the third one the media-type *)
+val get_css_for_wikipage : wiki:wiki -> page:string ->
+  (wikibox * string * media_type) list Lwt.t
+val get_css_for_wiki : wiki:wiki ->
+  (wikibox * string * media_type) list Lwt.t
 
+(** Add a new CSS to a wikipage or a wiki. If [wbcss] is supplied,
+    a link to the (supposed existing) CSS is created, and [author]
+    and [content] are ignored. Otherwise, a new wikibox is created.
+    In both cases, the wikibox containing the CSS is returned.
+*)
+val add_css_aux:
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  page:string option ->
+  author:userid ->
+  media:media_type ->
+(*  ?content:string -> *)
+  ?wbcss:wikibox ->
+  unit ->
+  wikibox Lwt.t
 
-(** Sets the css for a wikipage or a wiki *)
-val set_css_for_wikipage :
+val remove_css_wiki :
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  wikibox ->
+  unit Lwt.t
+
+val remove_css_wikipage :
   ?db: Sql.db_t ->
   wiki:wiki ->
   page:string ->
-  author:userid ->
-  string option ->
-  unit Lwt.t
-
-val set_css_for_wiki :
-  ?db: Sql.db_t ->
-  wiki:wiki ->
-  author:userid ->
-  string option ->
-  unit Lwt.t
-
-(** Sets the wikibox for the CSS of a wikipage or a wiki. If the wikibox
-   argument is [None], the CSS is deleted. (But not the underlying content
-   of the wikibox.) *)
-val set_wikibox_css_wiki :
-  ?db: Sql.db_t ->
-  wiki:wiki ->
-  wikibox option ->
-  unit Lwt.t
-val set_wikibox_css_wikipage :
-  ?db: Sql.db_t ->
-  wiki:wiki ->
-  page:string ->
-  wikibox option ->
+  wikibox ->
   unit Lwt.t
 
 
 (** returns the wikibox for the css of a page or [None] if the page has no css*)
 val get_css_wikibox_for_wikipage :
-  wiki:wiki -> page:string -> wikibox option Lwt.t
+  wiki:wiki -> page:string -> (wikibox * media_type) list Lwt.t
 
 (** returns the wikibox for the global css of a wiki, or [None] if the wiki
     has no such css *)
-val get_css_wikibox_for_wiki : wiki:wiki -> wikibox option Lwt.t
+val get_css_wikibox_for_wiki : wiki:wiki -> (wikibox * media_type) list Lwt.t
 
+
+val update_css_wikibox_aux:
+  ?db: Sql.db_t ->
+  wiki:wiki ->
+  page:string option ->
+  oldwb:wikibox ->
+  newwb:wikibox ->
+  media:media_type ->
+  unit ->
+  unit Lwt.t
 
 
 (** Find wiki information for a wiki, given its id *)

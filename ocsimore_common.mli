@@ -68,4 +68,4 @@ val input_opaque_int32_opt :
   ?value:'a Opaque.int32_t option ->
   ?hidden:bool ->
   [< 'a Opaque.int32_t option Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> {{Eliom_duce.Blocks.input_elt}}
+  Eliom_parameters.param_name -> Eliom_duce.Blocks.input_elt

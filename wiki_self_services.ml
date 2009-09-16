@@ -59,13 +59,13 @@ let servpages :
      [ `Registrable ]
     ) Eliom_services.service Servpages.t = Servpages.create 5
 let servwikicss :
-    (unit,
+    (Wiki_types.wikibox,
      unit,
      [ `Attached of
          [ `Internal of [ `Service | `Coservice ] * [ `Get ]
          | `External ] Eliom_services.a_s ],
      [ `WithoutSuffix ],
-     unit,
+     [ `One of Wiki_types.wikibox ] Eliom_parameters.param_name,
      unit,
      [ `Registrable ]
     ) Eliom_services.service Servpages.t = Servpages.create 5

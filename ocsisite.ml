@@ -60,6 +60,7 @@ let wiki_rights = new Wiki.wiki_rights
 (** We are at eliom registration time, we can create the services *)
 let (
     action_edit_css,
+    action_edit_css_list,
     action_edit_wikibox,
     action_delete_wikibox,
     action_edit_wikibox_permissions,
@@ -81,7 +82,8 @@ let (
     edit_wiki,
     view_wikis,
     action_send_wikipage_properties,
-  edit_wiki_permissions
+    edit_wiki_permissions,
+    action_send_css_options
   ) as wiki_services
     = Wiki_services.make_services ()
 
@@ -271,7 +273,7 @@ let cast_service service sp =
     ~service:(service :> Ocsimore_page.menu_link_service) sp
 
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
-      ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~css
+      ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container
       ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
@@ -306,9 +308,6 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
        p (text "Container text :" @+ [{{<br>[]}}] @+
           text_area ~cols:80 ~rows:20 container)
        @@
-       p (text "Css :" @+ [{{<br>[]}}] @+
-          text_area ~cols:80 ~rows:20 css)
-       @@
        p (submit_button "Create")
       |> cont)
   >>= fun form ->
@@ -337,15 +336,15 @@ let create_wiki =
              create_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
-               ~container:Wiki.default_container_page ~css:""
+               ~container:Wiki.default_container_page
                ~err_handler
-               (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (css, _button))))))))) sp ->
+               (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, _button)))))))) sp ->
                   let path = match path with
                     | None -> None
                     | Some p -> Some (Neturl.split_path p)
                   in
                   Wiki_data.create_wiki ~sp ~title ~descr ?path ~boxrights
-                    ?staticdir ~admins ~readers ~wiki_css:css
+                    ?staticdir ~admins ~readers
                     ~container_text:container ~model:wikicreole_model
                     ~rights:wiki_rights ()
                   >>= fun wid ->
@@ -382,7 +381,7 @@ let create_wiki =
 
 
 let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
-      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~css
+      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container
       ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
@@ -411,8 +410,6 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           staticdir_input staticdir) @@
        p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container) 
        @@
-       p (text "Css wikibox :" @+ Opaque.int32_input_opt_xform css)
-       @@
        p (submit_button "Save")
       |> cont)
   >>= fun form ->
@@ -431,18 +428,17 @@ let edit_wiki =
        let rights = Wiki_models.get_rights info.wiki_model in
        rights#can_admin_wiki sp wiki >>= function
          | true ->
-             Wiki_sql.get_css_wikibox_for_wiki wiki >>= fun csswb ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
                ~service:view_wikis ~arg:() ~sp
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
-               ~container:info.wiki_container ~css:csswb
+               ~container:info.wiki_container
                ~err_handler
-               (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, (css, _v))))))) sp ->
+               (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, _v)))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
                   Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
-                    ~staticdir ~container ~css wiki
+                    ~staticdir ~container wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
                   Ocsimore_page.html_page ~sp

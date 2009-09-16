@@ -305,7 +305,7 @@ exception Wiki_with_same_title of wiki
 let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~author
     ?(admins=[basic_user author]) ?(readers = [basic_user User.anonymous])
-    ?wiki_css ?container_text
+    ?container_text
     ~model
     () =
   let path_string = Ocsimore_lib.bind_opt
@@ -347,11 +347,6 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
      ~group:(wiki_wikiboxes_grps.grp_reader $ wiki_id) >>= fun () ->
    User.add_list_to_group ~l:readers
      ~group:(wiki_files_readers $ wiki_id) >>= fun () ->
-
-   (match wiki_css with
-      | None -> Lwt.return ()
-      | Some css -> Wiki_sql.set_css_for_wiki ~wiki:wiki_id ~author (Some css)
-   ) >>= fun () ->
 
    Lwt.return wiki_id
 

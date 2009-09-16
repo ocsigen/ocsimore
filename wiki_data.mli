@@ -40,7 +40,6 @@ val create_wiki :
   ?boxrights:bool ->
   admins:user list ->
   readers: user list ->
-  ?wiki_css:string ->
   ?container_text:string ->
   model:Wiki_types.wiki_model ->
   unit ->
@@ -59,7 +58,8 @@ val new_wikitextbox :
 
 
 (** The next three functions save a wikibox and returns the new version id of
-    this wikibox. *)
+    this wikibox. For the css related functions, we check that the argument
+    is indeed a proper css *)
 val save_wikitextbox :
  (content_type:'res Wiki_types.content_type ->
   wb:wikibox ->
@@ -69,13 +69,16 @@ val save_wikitextbox :
 val save_wikicssbox :
  (wiki:wiki ->
   content:string option ->
+  wb:wikibox ->
   int32 Lwt.t) rights_sp
 
 val save_wikipagecssbox :
  (wiki:wiki ->
   page:string ->
   content:string option ->
+  wb:wikibox ->
   int32 Lwt.t) rights_sp
+
 
 
 val set_wikibox_specific_permissions :
@@ -90,11 +93,26 @@ val create_wikipage:
   page:string ->
   unit Lwt.t) rights_sp
 
-val create_css:
+val add_css:
   (wiki:wiki ->
    page:string option ->
+   media:media_type ->
+   ?wbcss:wikibox ->
+   unit ->
+   wikibox Lwt.t) rights_sp
+
+val delete_css:
+  (wiki:wiki ->
+   page:string option ->
+   wb:wikibox ->
    unit Lwt.t) rights_sp
 
+val update_css:
+  (wiki:wiki ->
+   page:string option ->
+   oldwb:wikibox ->
+   newwb:wikibox ->
+   media:media_type -> unit Lwt.t) rights_sp
 
 (** Raised in case of a non-existing wikibox. The optional [int32]
    argument is the version number *)
@@ -120,17 +138,16 @@ val wikibox_history :
  rights_sp
 
 
-(** Returns the css for the specified wiki. Fail with [Permission_denied]
-    if the user cannot view the css, and [Eliom_common.Eliom_404] if there
-    is no css for this wiki *)
+(** Returns the css for the specified wiki or the wikipage. The CSS are
+    filtered for the ones the user can read *)
 val wiki_css :
  (wiki:wiki ->
-  string Lwt.t) rights_sp
+  (wikibox * (string * media_type)) list Lwt.t) rights_sp
 
 (** Same thing for a wikipage *)
 val wikipage_css :
  (wiki:wiki -> page:string ->
-  string Lwt.t) rights_sp
+  (wikibox * (string * media_type)) list Lwt.t) rights_sp
 
 
 
@@ -142,14 +159,12 @@ val update_wiki :
   ?path:string option ->
   ?descr:string ->
   ?boxrights:bool ->
-  ?css:wikibox option ->
   wiki -> unit Lwt.t) rights_sp
 
 
 val save_wikipage_properties :
   (?title:string ->
    ?wb:wikibox option ->
-   ?wbcss:wikibox option ->
    ?newpage:string ->
    wikipage ->
    unit Lwt.t) rights_sp

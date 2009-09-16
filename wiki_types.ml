@@ -76,6 +76,8 @@ type wikipage_info = {
 (*  wikipage_css_special_rights; *)
 }
 
+type media_type = string list
+
 
 type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
 

@@ -82,6 +82,8 @@ type wikibox_info = {
   wikibox_id : wikibox;
 }
 
+type media_type = string list
+
 type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
 
 class type wiki_rights =

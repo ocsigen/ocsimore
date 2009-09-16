@@ -58,7 +58,13 @@ object
                            | Some v -> Printf.sprintf " with version %ld" v))
             ()
 
-      | Some Wiki_data.Page_already_exists _wb ->
+      | Some (Wiki_sql.Unknown_Css wb) ->
+          error_box#display_error_box ?classes ?exn
+            ~message:(Printf.sprintf
+                        "The CSS %ld does not exist." (sql_of_wikibox wb))
+            ()
+
+    | Some Wiki_data.Page_already_exists _wb ->
           error_box#display_error_box ?classes ?exn
             ~message:("This page has already been created \
                        (reload the page to see it).") ()
@@ -139,6 +145,7 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
    : Wiki_widgets_interface.interactive_wikibox = let *)
   (
     action_edit_css,
+    action_edit_css_list,
     action_edit_wikibox,
     action_delete_wikibox,
     action_edit_wikibox_permissions,
@@ -160,7 +167,8 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     edit_wiki,
     view_wikis,
     action_send_wikipage_properties,
-    edit_wiki_permissions
+    edit_wiki_permissions,
+    action_send_css_options
   ) : Wiki_widgets_interface.interactive_wikibox =
   (* = Wiki_services.make_services () in *)
 object (self)
@@ -182,9 +190,7 @@ object (self)
   val wikipage_properties_class = "wikipageproperties"
 
 
-  method private box_menu
-    ~bi ?(special_box=RegularBox) ?active_item ?(title = "") 
-    html_id_wikibox wb =
+  method private box_menu ~bi ?(special_box=RegularBox) ?active_item ?(title = "") html_id_wikibox wb =
     match bi.bi_menu_style with
       | `None -> Lwt.return {{ [] }}
       | `Pencil | `Linear as menu_style ->
@@ -196,80 +202,14 @@ object (self)
     and edit_wikibox_perm = preapply action_edit_wikibox_permissions wb
     and view = Eliom_services.void_coservice' in
     (match special_box with
-       | WikiPageBox (w, page) -> (* Edition of the css for page [page] *)
-           (Wiki_sql.get_css_wikibox_for_wikipage w page >>= function
-              | None ->
-                  (bi.bi_rights#can_create_wikipagecss ~sp (w, page) >>= function
-                     | false -> Lwt.return (None, None, None, None)
-                     | true ->
-                         let create=preapply action_create_css (w,Some page) in
-                         Lwt.return (None, None, None,
-                                    Some (create, {{ "create wikipagecss" }}))
-                  )
-              | Some wbcss ->
-                  bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
-                  bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
-                  bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss
-                  >>= fun cssperm ->
-                  let wbcss = ((w, Some page), wbcss) in
-                  Lwt.return (
-                    (if csshist then
-                       let history =
-                         preapply action_css_history (wb, wbcss) in
-                       Some (history, {{ "page css history" }})
-                     else None),
-                    (if csswr then
-                       let edit =
-                         preapply action_edit_css (wb, (wbcss, None)) in
-                       Some (edit, {{ "edit page css" }})
-                     else None),
-                    (if cssperm then
-                       let perm = preapply action_css_permissions (wb, wbcss) in
-                       Some (perm, {{ "edit page css permissions" }})
-                     else None),
-                    None
-                    )
-           )
-
-       | WikiContainerBox w -> (* Edition of the global css for [wiki] *)
-           (Wiki_sql.get_css_wikibox_for_wiki w >>= function
-              | None ->
-                  (bi.bi_rights#can_create_wikicss ~sp w >>= function
-                     | false -> Lwt.return (None, None, None, None)
-                     | true ->
-                         let create = preapply action_create_css (w, None) in
-                         Lwt.return (None, None, None,
-                                     Some (create,
-                                           {{ "create wiki css" }}))
-                  )
-              | Some wbcss ->
-                  bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
-                  bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
-                  bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss
-                  >>= fun cssperm ->
-                  let wbcss = ((w, None), wbcss) in
-                  Lwt.return
-                    ((if csshist then
-                        let history = preapply action_css_history (wb, wbcss) in
-                        Some (history, {{ "wiki css history" }})
-                      else None),
-                     (if csswr then
-                        let edit =
-                          preapply action_edit_css (wb, (wbcss, None)) in
-                        Some (edit, {{ "edit wiki css" }})
-                      else None),
-                     (if cssperm then
-                        let perm = preapply action_css_permissions
-                          (wb, wbcss) in
-                        Some (perm, {{ "edit wiki css permissions" }})
-                      else None),
-                     None
-                    )
-           )
-
-
-       | RegularBox -> Lwt.return (None, None, None, None)
-    ) >>= fun (history_css, edit_css, permissions_css, create_css) ->
+       | WikiPageBox (w, page) ->
+           let edit = preapply action_edit_css_list (wb, (w, Some page)) in
+           Lwt.return (Some (edit, {{ "wikipage css" }}))
+       | WikiContainerBox w ->
+           let edit = preapply action_edit_css_list (wb, (w, None)) in
+           Lwt.return (Some (edit, {{ "wiki css" }}))
+       | RegularBox -> Lwt.return None
+    ) >>= fun css ->
     (match special_box with
        | RegularBox | WikiContainerBox _ -> Lwt.return None
        | WikiPageBox wp ->
@@ -301,17 +241,9 @@ object (self)
              | Some (edit_wiki_perms, _) -> Some edit_wiki_perms
              | None -> None)
       | Some Menu_History -> Some history
-      | Some Menu_EditCss ->
-          (match edit_css with
-             | Some (edit_css, _) -> Some edit_css
-             | None -> None)
-      | Some Menu_HistoryCss ->
-          (match history_css with
-             | Some (history_css, _) -> Some history_css
-             | None -> None)
-      | Some Menu_PermissionsCss ->
-          (match permissions_css with
-             | Some (permissions_css, _) -> Some permissions_css
+      | Some Menu_Css ->
+          (match css with
+             | Some (css, _) -> Some css
              | None -> None)
       | Some Menu_WikipageProperties ->
           (match wp_prop with
@@ -339,8 +271,7 @@ object (self)
       else None
     in
     let l = Ocsimore_lib.concat_list_opt
-      [menuedit; menuperm; menuhist; wp_prop;
-       edit_wiki_perms; edit_css; history_css; permissions_css; create_css] 
+      [menuedit; menuperm; menuhist; wp_prop; edit_wiki_perms; css]
       []
     in
     let menudel = 
@@ -358,6 +289,8 @@ object (self)
     let title = Ocamlduce.Utf8.make title in
     match l, wbdel with
       | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
+      | [e], false when Some e = css ->
+          Lwt.return {{[]}} (* just the edition of css => also no menu *)
       | _ ->
           Wiki.wiki_admin_page_link sp ["crayon.png"] >>= fun img ->
           let menu = Eliom_duce_tools.menu ~sp ~classe:["wikiboxmenu"]
@@ -627,7 +560,7 @@ object (self)
   method private menu_edit_css_perms wb (wiki, page) =
     let title = Printf.sprintf "CSS Permissions - wiki %s, %s"
       (string_of_wiki wiki) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~active_item:Menu_PermissionsCss editform_class wb
+    self#menu_box_aux ~title ~active_item:Menu_Css editform_class wb
 
   method private menu_edit_wiki_perms wb wiki =
     let title = Printf.sprintf "Permissions - Wiki %s" (string_of_wiki wiki) in
@@ -640,7 +573,7 @@ object (self)
   method private menu_css_history wb (wiki, page) =
     let title = Printf.sprintf "CSS history, wiki %s, %s"
       (string_of_wiki wiki) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~active_item:Menu_HistoryCss css_history_class wb
+    self#menu_box_aux ~title ~active_item:Menu_Css css_history_class wb
 
   method private menu_edit_wikipage_properties wb (wiki, page) =
     let title = Printf.sprintf "Page properties, wiki %s, page %s"
@@ -670,7 +603,12 @@ object (self)
   method private menu_edit_css wb (wiki, page) =
     let title = Printf.sprintf "CSS for wiki %s, %s"
       (string_of_wiki wiki) (self#css_wikibox_text page) in
-    self#menu_box_aux ~title ~active_item:Menu_EditCss css_class wb
+    self#menu_box_aux ~title ~active_item:Menu_Css css_class wb
+
+  method private menu_edit_css_list wb (wiki, page) =
+    let title = Printf.sprintf "All CSS for wiki %s, %s"
+      (string_of_wiki wiki) (self#css_wikibox_text page) in
+    self#menu_box_aux ~title ~active_item:Menu_Css css_class wb
 
   method private css_wikibox_text = function
     | None -> "global stylesheet"
@@ -723,8 +661,7 @@ object (self)
    method private display_edit_wikipage_properties ~bi ~classes ~(wb:wikibox) wp =
      let (wiki, page) = wp in
      Wiki_sql.get_wikipage_info wiki page >>= fun wp ->
-     Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= fun wbcss ->
-     let draw_form (wbname, ((wikiidname, pagename), (titlename, ((wbidname, cssidname), pathname))))=
+     let draw_form (wbname, ((wikiidname, pagename), (titlename, ((wbidname, pathname))))) =
        {{ [<p>[
               {: Ocsimore_common.input_opaque_int32
                  ~value:wiki wikiidname :}
@@ -744,11 +681,6 @@ object (self)
               {: Ocsimore_common.input_opaque_int32_opt ~hidden:false
                  ~value:(Some wp.wikipage_wikibox) wbidname :} <br>[]
 
-              !"Css for the wikipage. Leave blank if you does not want a \
-               specific css."
-              {: Ocsimore_common.input_opaque_int32_opt ~hidden:false
-                 ~value:wbcss cssidname :} <br>[]
-
               !"Path of the wikipage inside the wiki"
               {: Eliom_duce.Xhtml.string_input ~name:pathname
                  ~input_type:{: "text" :} ~value:wp.wikipage_page () :}
@@ -765,6 +697,136 @@ object (self)
        {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
               ~service:action_send_wikipage_properties ~sp:bi.bi_sp
               draw_form () :} ] }})
+
+  method private display_edit_css_list ~bi ~classes ~(wb:wikibox) wikipage =
+    let wiki, page = wikipage and sp = bi.bi_sp in
+    (match page with
+      | None -> Wiki_sql.get_css_wikibox_for_wiki ~wiki
+      | Some page -> Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page
+    ) >>= fun l ->
+    (match page with
+       | None -> bi.bi_rights#can_create_wikicss sp wiki
+       | Some page -> bi.bi_rights#can_create_wikipagecss sp (wiki, page)
+    ) >>= fun can_create ->
+    let select_media name media =
+      let l = [ "braille"; "embossed"; "handheld"; "print";
+                "projection"; "screen"; "speech"; "tty"; "tv"] in
+      let in_media m = List.mem m media in
+      let l = List.map
+        (fun s -> Eliom_duce.Xhtml.Option ( {{ {} }}, s, None, in_media s)) l
+      in
+      Eliom_duce.Xhtml.string_multiple_select ~name
+        ~a:{{ { style="vertical-align: top" size="5"} }}
+        (Eliom_duce.Xhtml.Option ({{ {} }}, "all",
+                                  Some {{ "all media" }}, in_media "all")) l
+    in
+    let aux (wbcss, media) =
+      bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
+      bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
+      bi.bi_rights#can_set_wikibox_specific_permissions
+        ~sp wbcss >>= fun cssperm ->
+      let wbcss_ = ((wiki, page), wbcss) in
+      let v1 = if csshist then
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:action_css_history
+                  {{ "History" }} (wb, wbcss_) }} ] }}
+      else {{ [] }}
+      and v2 = if csswr then
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:action_edit_css
+                  {{ "Edit" }} (wb, (wbcss_, None)) }} ] }}
+      else {{ [] }}
+      and v3 = if cssperm then
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:action_css_permissions
+                {{ "Permissions" }} (wb, wbcss_)  }} ] }}
+      else {{ [] }}
+      in
+      let fupdate (wbn, ((((wikin, wpn), wbcssn), newwbcssn), median)) =
+        {{ [ <div class="eliom_inline">
+               [{: Ocsimore_common.input_opaque_int32 ~value:wb wbn :}
+                {: Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn :}
+                {: Ocsimore_common.input_opaque_int32 ~value:wiki wikin :}
+                'CSS ' !{: Opaque.int32_t_to_string wbcss :} ' '
+                {: Ocsimore_common.input_opaque_int32 ~value:wbcss newwbcssn :}
+                !{: match page with
+                    | None -> []
+                    | Some page ->
+                        [ Eliom_duce.Xhtml.string_input ~name:wpn
+                            ~input_type:{: "hidden" :} ~value:page () ]
+                           :}
+                {: select_media median media :}
+                ' '
+                {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                   {{ " Update media" }} :}
+                ' '
+               ] ] }}
+      and fdelete (wbn, ((((wikin, wpn), wbcssn), _newwbcssn), _median)) =
+        {{ [ <div class="eliom_inline">
+               [{: Ocsimore_common.input_opaque_int32 ~value:wb wbn :}
+                {: Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn :}
+                {: Ocsimore_common.input_opaque_int32 ~value:wiki wikin :}
+                !{: match page with
+                    | None -> []
+                    | Some page ->
+                        [ Eliom_duce.Xhtml.string_input ~name:wpn
+                            ~input_type:{: "hidden" :} ~value:page () ]
+                           :}
+                {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                   {{ " Remove CSS" }} :}
+               ] ] }}
+      in
+      (* XXXCSS view button *)
+      if can_create then Lwt.return
+        {{ <div>[
+             {{ Eliom_duce.Xhtml.post_form ~keep_get_na_params:true
+                  ~a:{{ { accept-charset="utf-8" class="eliom_inline"} }}
+                  ~service:action_send_css_options ~sp fupdate () }}
+             {{ Eliom_duce.Xhtml.post_form ~keep_get_na_params:true
+                  ~a:{{ { accept-charset="utf-8" class="eliom_inline"} }}
+                  ~service:action_send_css_options ~sp fdelete () }}
+             ' '
+             !v1 ' / ' !v2 ' / ' !v3
+           ] }}
+      else
+        Lwt.return {{ <p>[ !v1 ' / ' !v2 ' / ' !v3 ] }}
+    in
+    (if l = [] then
+      Lwt.return {{ [ 'There are currently no CSS' ] }}
+     else
+       Lwt_util.fold_left
+         (fun (x : Xhtmltypes_duce.flows) e ->
+            aux e >>= fun e ->
+              Lwt.return {{ [ !x <br>[] {: e :} ] }}) {{ [] }} l
+    ) >>= fun forms ->
+    (if can_create then
+       let mform (wbn, ((wikin, wpn), (median, wbcssn))) =
+         {{ [ <p>['Add another CSS: ' <br>[]
+                  {: Ocsimore_common.input_opaque_int32 ~value:wb wbn :}
+                  {: Ocsimore_common.input_opaque_int32 ~value:wiki wikin :}
+                  !{: match page with
+                      | None -> []
+                      | Some page ->
+                          [ Eliom_duce.Xhtml.string_input ~name:wpn
+                              ~input_type:{: "hidden" :} ~value:page () ]
+                            :}
+                  'Media: '{: select_media median ["all"] :} <br>[]
+                  'Id: '
+                  {: Ocsimore_common.input_opaque_int32_opt ~hidden:false
+                     wbcssn :}
+                  'Type an existing CSS id, or leave blank to create a
+                    new CSS' <br>[]
+                  {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                     {{ "Add" }} :}
+                 ] ] }}
+       in Lwt.return
+            {{ [ !forms <br>[]
+                   {: Eliom_duce.Xhtml.post_form ~sp
+                      ~a:{{ { accept-charset="utf-8"} }}
+                      ~service:action_create_css mform () :}
+               ] }}
+     else
+       Lwt.return {{ [] }}
+    ) >>= fun r ->
+    let classes_ = Ocsimore_lib.build_class_attr classes in
+    Lwt.return (classes, {{ [ <div class={: classes_ :}> r ] }})
 
 
   method display_interactive_wikibox_aux
@@ -830,6 +892,15 @@ object (self)
                 >>= fun r ->
                 Lwt.return (r, true)
             | false -> display_error ())
+
+      | EditCssList wikipage ->
+          error_box#bind_or_display_error
+            ?exn
+            (Lwt.return wikipage)
+            (self#display_edit_css_list ~bi ~classes ~wb:wb_loc)
+            (self#menu_edit_css_list ~bi ?special_box wb_loc wikipage)
+          >>= fun r ->
+          Lwt.return (r, true)
 
       | EditWikiboxPerms wb ->
           (bi.bi_rights#can_set_wikibox_specific_permissions ~sp wb >>= function
@@ -987,28 +1058,34 @@ object (self)
 
 
    method css_header ~sp ?page wiki =
-     let css_url_service service args = Eliom_duce.Xhtml.css_link
-       (Eliom_duce.Xhtml.make_uri service sp args) () in
+     let css_url_service service args media =
+       Eliom_duce.Xhtml.css_link
+         ?a:(if media = [] then
+               None
+             else
+               let media = Ocamlduce.Utf8.make (String.concat " " media) in
+               (Some {{ { media } }}))
+         ~uri:(Eliom_duce.Xhtml.make_uri service sp args)
+       ()
+     in
      (match Wiki_self_services.find_servwikicss wiki with
         | None -> Lwt.return {{ [] }}
         | Some wikicss_service ->
-            Wiki_sql.get_css_for_wiki wiki
-            >>= function
-              | Some _ -> Lwt.return (* encoding? *)
-                  {{ [ {: css_url_service wikicss_service ():} ]}}
-              | None -> Lwt.return {{ [] }}
+            Wiki_sql.get_css_for_wiki wiki >>= fun l ->
+            let l' = List.map (fun (wb, _, media) ->
+                                 css_url_service wikicss_service wb media) l
+            in
+            Lwt.return {{ {: l' :} }}
      )
      >>= fun css ->
      match page with
        | None -> Lwt.return css
        | Some page ->
-           Wiki_sql.get_css_for_wikipage ~wiki ~page >>= function
-             | None -> Lwt.return css
-             | Some _ -> Lwt.return
-                 {{ [ !css
-                      {: css_url_service pagecss_service (wiki, page)
-                           (* encoding? *) :}
-                    ]}}
+           Wiki_sql.get_css_for_wikipage ~wiki ~page >>= fun l ->
+           let l' = List.map (fun (wb, _, media) ->
+                    css_url_service pagecss_service ((wiki, page), wb) media) l
+           in
+           Lwt.return {{ [ !css !{: l' :} ] }}
 
    method private display_container
      ~sp ~wiki ~menu_style ~page:(page, page_list) ~gen_box =

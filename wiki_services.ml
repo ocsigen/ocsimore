@@ -133,9 +133,13 @@ let register_wiki ~rights ?sp ~path ~wiki () =
 
   let wikicss_service =
     Eliom_predefmod.CssText.register_new_service ?sp
-      ~path:(path@["__ocsiwikicss"])
-      ~get_params:Eliom_parameters.unit
-      (fun sp () () -> Wiki_data.wiki_css rights sp wiki)
+      ~path:(path@["__wikicss"])
+      ~get_params:(Ocsimore_common.eliom_opaque_int32 "wb")
+      (fun sp wb () ->
+         Wiki_data.wiki_css rights sp wiki >>= fun l ->
+         try Lwt.return (fst (List.assoc wb l))
+         with Not_found -> Lwt.fail Eliom_common.Eliom_404
+      )
   in
   Wiki_self_services.add_servwikicss wiki wikicss_service
 
@@ -148,7 +152,7 @@ let save_then_redirect ~sp ?(error=(fun _ _ -> ())) redirect_mode f =
        (* We do a redirection to prevent repost *)
        match redirect_mode with
          | `BasePage ->
-             Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
+             Eliom_predefmod.Redirection.send ~sp Eliom_services.void_hidden_coservice'
          | `SamePage ->
              Eliom_predefmod.Action.send ~sp ()
     )
@@ -197,6 +201,16 @@ let make_services () =
     (fun sp (wb, args) () ->
        set_override_wikibox ~sp (wb, EditCss args);
        Lwt.return ())
+
+  and action_edit_css_list = Eliom_predefmod.Action.register_new_coservice'
+    ~name:"list_css_edit"
+    ~get_params:(eliom_wikibox_args **
+                   (eliom_wiki_args **
+                      Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
+    (fun sp (wb, args) () ->
+       set_override_wikibox ~sp (wb, EditCssList args);
+       Lwt.return ())
+
 
   and action_edit_wikibox = Eliom_predefmod.Action.register_new_coservice'
     ~name:"wiki_edit" ~get_params:eliom_wikibox_args
@@ -321,9 +335,8 @@ let make_services () =
                                Eliom_parameters.int32 "boxversion")) **
        Eliom_parameters.string "content")
     (fun sp () ((wb, (((wikicss, page), wbcss), boxversion)), content) ->
-       (* We always show a preview before saving. Moreover, we check that the
-          wikibox has not been modified in parallel of our
-          modifications. If this is the case, we also show a warning *)
+       (* As above, we check that the wikibox has not been modified in parallel
+          of our modifications. If this is the case, we also show a warning *)
        Wiki.modified_wikibox wbcss boxversion >>= fun modified ->
          match modified with
            | None ->
@@ -333,9 +346,9 @@ let make_services () =
                save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
                  (fun () -> match page with
                     | None -> Wiki_data.save_wikicssbox ~rights ~sp
-                        ~wiki:wikicss ~content:(Some content)
+                        ~wiki:wikicss ~content:(Some content) ~wb:wbcss
                     | Some page -> Wiki_data.save_wikipagecssbox ~rights ~sp
-                        ~wiki:wikicss ~page ~content:(Some content)
+                        ~wiki:wikicss ~page ~content:(Some content) ~wb:wbcss
                  )
            | Some _ ->
                set_override_wikibox ~sp
@@ -401,34 +414,21 @@ let make_services () =
          save_then_redirect ~sp ~error:(error_handler_wb_opt wb) `SamePage
            (fun () -> f_save rights sp args))
 
-  (* Below are the services for the css of wikis and wikipages.  The css
-     at the level of wikis are registered in Wiki_data.ml *)
-
-  (* do not use this service, but the one below for css <link>s inside page *)
-  and _ = Eliom_predefmod.CssText.register_new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "pagecss"]
-    ~get_params:(Eliom_parameters.suffix eliom_wikipage_args)
-    (fun sp (wiki, page) () ->
-       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-       let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       Wiki_data.wikipage_css rights sp wiki page)
+  (* Below are the service for the css of a wikipahe.  The css
+     at the level of wikis are stored in Wiki_self_services and
+     registered in Wiki_data.ml *)
 
   (* This is a non attached coservice, so that the css is in the same
      directory as the page. Important for relative links inside the css. *)
   and pagecss_service = Eliom_predefmod.CssText.register_new_coservice'
-    ~name:"pagecss" ~get_params:eliom_wikipage_args
-    (fun sp (wiki, page) () ->
+    ~name:"pagecss" ~get_params:(eliom_wikipage_args ** eliom_wikibox_args)
+    (fun sp ((wiki, page), wb) () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       Wiki_data.wikipage_css rights sp wiki page)
-
-  and  _ = Eliom_predefmod.CssText.register_new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "wikicss"]
-    ~get_params:(eliom_wiki "wiki")
-    (fun sp wiki () ->
-       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-       let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       Wiki_data.wiki_css rights sp wiki)
+       Wiki_data.wikipage_css rights sp wiki page >>= fun l ->
+       try Lwt.return (fst (List.assoc wb l))
+       with Not_found -> Lwt.fail Eliom_common.Eliom_404
+    )
 
   and action_create_page = Eliom_predefmod.Action.register_new_post_coservice'
     ~name:"wiki_page_create"
@@ -454,16 +454,37 @@ let make_services () =
             | e -> Lwt.fail e)
     )
 
-  and action_create_css = Eliom_predefmod.Any.register_new_coservice'
-    ~name:"wiki_create_css"
-    ~get_params:(eliom_wiki_args **
-                   (Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
-    (fun sp (wiki, page) () ->
-       (* YYY add error handler *)
+  and action_create_css = Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"wiki_create_css" ~keep_get_na_params:true
+    ~post_params:(eliom_wikibox_args **
+                    ((eliom_wiki_args **
+                       Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
+                     ** (Eliom_parameters.set Eliom_parameters.string "media"
+                         ** Ocsimore_common.eliom_opaque_int32_opt "wbcss")))
+    (fun sp () (wb, ((wiki, page), (media, wbcss))) ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       Wiki_data.create_css ~rights ~sp ~wiki ~page >>= fun () ->
-       Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
+       save_then_redirect ~sp ~error:(error_handler_wb wb) `SamePage
+         (fun () ->
+            Wiki_data.add_css ~rights ~sp ~wiki ~page ~media ?wbcss ())
+    )
+
+  and action_send_css_options = Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"wiki_send_css_options" ~keep_get_na_params:true
+    ~post_params:(eliom_wikibox_args **
+                    ((eliom_css_args ** Eliom_parameters.opt
+                        (eliom_wikibox "newwbcss")) **
+                       Eliom_parameters.set Eliom_parameters.string "media"))
+    (fun sp () (wb, ((((wiki, page), wbcss), newwbcss), media)) ->
+       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       let rights = Wiki_models.get_rights wiki_info.wiki_model in
+       save_then_redirect ~sp ~error:(error_handler_wb wb) `SamePage
+         (fun () ->
+            match newwbcss with
+              | None -> Wiki_data.delete_css ~sp ~rights ~wiki ~page ~wb:wbcss
+              | Some newwb ->
+                  Wiki_data.update_css ~sp ~rights ~wiki ~page ~oldwb:wbcss
+                    ~newwb:newwb ~media)
     )
 
   and edit_wiki = Eliom_services.new_service
@@ -481,14 +502,13 @@ let make_services () =
        (eliom_wikipage_args **
           (Eliom_parameters.string "title" **
              ((Ocsimore_common.eliom_opaque_int32_opt "wb" **
-               Ocsimore_common.eliom_opaque_int32_opt "wbcss") **
-                Eliom_parameters.string "newpage"))))
-    (fun sp () (wb, ((wiki, page), (title, ((wbpage, wbcss), newpage)))) ->
+               Eliom_parameters.string "newpage")))))
+    (fun sp () (wb, ((wiki, page), (title, (wbpage, newpage)))) ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
          (fun () -> Wiki_data.save_wikipage_properties ~rights ~sp
-            ~title ~wb:wbpage ~wbcss ~newpage (wiki, page))
+            ~title ~wb:wbpage ~newpage (wiki, page))
     )
 
   and edit_wiki_permissions = Eliom_services.new_service
@@ -497,6 +517,7 @@ let make_services () =
 
   in (
     action_edit_css,
+    action_edit_css_list,
     action_edit_wikibox,
     action_delete_wikibox,
     action_edit_wikibox_permissions,
@@ -518,5 +539,6 @@ let make_services () =
     edit_wiki,
     view_wikis,
     action_send_wikipage_properties,
-    edit_wiki_permissions
+    edit_wiki_permissions,
+    action_send_css_options
   )

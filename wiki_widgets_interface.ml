@@ -58,6 +58,10 @@ type wikibox_override =
       moving,... *)
   | EditWikipageProperties of wikipage
 
+  (** Edition of the CSSs for a page of a wiki. Presents the list
+      of the CSS, with the possibilities to add or to remove some *)
+  | EditCssList of (wiki * string option)
+
   (** Edition of a CSS. The first argument is the standard CSS arguments.
      The (string * int32) is the CSS and the time at which the edition
      started (as for PreviewWikitext), or None if we are about to
@@ -223,9 +227,7 @@ type menu_item =
   | Menu_EditWikiPerms
   | Menu_History
   | Menu_View
-  | Menu_HistoryCss
-  | Menu_PermissionsCss
-  | Menu_EditCss
+  | Menu_Css
   | Menu_WikipageProperties
 
 (** Argument passed to the function building the interactive menu on top

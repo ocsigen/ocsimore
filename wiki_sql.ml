@@ -351,11 +351,12 @@ let get_css_wikibox_aux_ ?db ~wiki ~page =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
-       PGSQL(db) "SELECT wikibox FROM css \
+       PGSQL(db) "SELECT wikibox, mediatype FROM css \
                   WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page"
-       >>= function
-         | [] -> Lwt.return None
-         | x::_ -> Lwt.return (Some (wikibox_of_sql x))
+       >>= fun l ->
+       Lwt.return (List.map (fun (wb, media) ->
+                               let media = Ocsigen_lib.split ' ' media in
+                               wikibox_of_sql wb, (media : media_type)) l)
     )
 
 
@@ -365,33 +366,36 @@ let get_css_wikibox_for_wikipage_ ?db ~wiki ~page =
 let get_css_wikibox_for_wiki_ ?db ~wiki =
   get_css_wikibox_aux_ ?db ~wiki ~page:None
 
-let add_css_wikibox_aux_ ?db ~wiki ~page wb =
+let add_css_wikibox_aux_ ?db ~wiki ~page ~(media:media_type) wb =
+  let media = String.concat " " media in
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
        and wb = sql_of_wikibox wb in
-       PGSQL(db) "INSERT INTO css (wiki, page, wikibox)
-                  VALUES ($wiki, $?page, $wb)"
+       PGSQL(db) "INSERT INTO css (wiki, page, wikibox, mediatype)
+                  VALUES ($wiki, $?page, $wb, $media)"
     )
 
 let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
   wrap db
     (fun db ->
-       let wiki = t_int32 (wiki : wiki)
-       and wb = sql_of_wikibox wb in
+       let wiki = t_int32 (wiki : wiki) in
+       let wb = sql_of_wikibox wb in
        PGSQL(db) "DELETE FROM css
-                  WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page AND
-                        wikibox = $wb"
+                  WHERE wiki = $wiki
+                  AND page IS NOT DISTINCT FROM $?page
+                  AND wikibox = $wb"
     )
 
-let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb () =
+let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media () =
+  let media = String.concat " " media in
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
        and oldwb = sql_of_wikibox oldwb
        and newwb = sql_of_wikibox newwb in
        PGSQL(db) "UPDATE css
-                  SET wikibox = $newwb
+                  SET wikibox = $newwb, mediatype = $media
                   WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page AND
                         wikibox = $oldwb"
     )
@@ -521,7 +525,7 @@ let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
 let cache_css =
   let module C = Cache.Make (struct
                                type key = (wiki * string option)
-                               type value = wikibox option
+                               type value = (wikibox * media_type) list
                              end)
   in
   new C.cache (fun (wiki, page) -> get_css_wikibox_aux_ wiki page) 64
@@ -530,17 +534,17 @@ let cache_css =
 let get_css_wikibox ~wiki ~page =
   cache_css#find (wiki, page)
 
-let add_css_wikibox_aux ?db ~wiki ~page wb =
+let add_css_wikibox_aux ?db ~wiki ~page ~media wb =
   cache_css#remove (wiki, page);
-  add_css_wikibox_aux_ ?db ~wiki ~page wb
+  add_css_wikibox_aux_ ?db ~wiki ~page ~media wb
 
 let remove_css_wikibox_aux ?db ~wiki ~page wb =
   cache_css#remove (wiki, page);
   remove_css_wikibox_aux_ ?db ~wiki ~page wb
 
-let update_css_wikibox_aux ?db ~wiki ~page ~oldwb ~newwb () =
+let update_css_wikibox_aux ?db ~wiki ~page ~oldwb ~newwb ~media () =
   cache_css#remove (wiki, page);
-  update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ()
+  update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ()
 
 
 (* Derived functions, again for css *)
@@ -553,14 +557,15 @@ let get_css_wikibox_for_wikipage ~wiki ~page =
   get_css_wikibox ~wiki ~page:(Some page)
 
 let get_css_aux ~wiki ~page =
-  get_css_wikibox ~wiki ~page
-  >>= function
-    | None -> Lwt.return None
-    | Some wikibox ->
-        get_wikibox_content wikibox
-        >>= function
-          | Some (_, _, Some content, _, _, _) -> Lwt.return (Some content)
-          | Some (_, _, None, _, _, _) | None -> Lwt.return None
+  get_css_wikibox ~wiki ~page >>= fun l ->
+  Lwt_util.fold_left
+    (fun l (wb, media) ->
+       get_wikibox_content wb
+       >>= function
+         | Some (_, _, Some content, _, _, _) ->
+             Lwt.return ((wb, content, media) :: l)
+         | Some (_, _, None, _, _, _) | None -> Lwt.return l
+    ) [] l
 
 let get_css_for_wikipage ~wiki ~page =
   let page = Ocsigen_lib.remove_end_slash page in
@@ -570,30 +575,40 @@ let get_css_for_wiki ~wiki =
   get_css_aux ~wiki ~page:None
 
 
-let set_css_wikibox_aux ?db ~wiki ~page wb =
+exception Unknown_Css of wikibox
+
+let add_css_aux ?db ~wiki ~page ~author ~media ?wbcss () =
   wrap db
     (fun db ->
-       get_css_wikibox ~wiki ~page >>= function
-         | None ->
-             (match wb with
-                | None -> Lwt.return ()
-                | Some wb -> add_css_wikibox_aux ~db ~wiki ~page wb)
-         | Some oldwb ->
-             (match wb with
-                | None -> remove_css_wikibox_aux ~db ~wiki ~page oldwb
-                | Some newwb -> update_css_wikibox_aux ~db ~wiki ~page
-                    ~newwb ~oldwb ()
-             )
+       (match wbcss with
+          | None ->
+              new_wikibox ~db ~wiki ~author ~content:""
+                ~comment:("CSS for " ^page_opt_to_string wiki page)
+                ~content_type:Wiki_models.css_content_type ()
+          | Some wb ->
+              Lwt.catch
+                (fun () -> get_wikibox_info wb >>= fun _ -> Lwt.return wb)
+                (function
+                   | Not_found -> Lwt.fail (Unknown_Css wb)
+                   | e -> Lwt.fail e
+                )
+       ) >>= fun wikibox ->
+       add_css_wikibox_aux ~db ~wiki ~page ~media wikibox >>= fun () ->
+       Lwt.return wikibox
     )
 
-let set_wikibox_css_wiki ?db ~wiki wb =
-  set_css_wikibox_aux ?db ~wiki ~page:None wb
-
-let set_wikibox_css_wikipage ?db ~wiki ~page wb =
-  let page = Ocsigen_lib.remove_end_slash page in
-  set_css_wikibox_aux ?db ~wiki ~page:(Some page) wb
 
 
+let remove_css_wiki ?db ~wiki =
+  remove_css_wikibox_aux ?db ~wiki ~page:None
+
+let remove_css_wikipage ?db ~wiki ~page =
+  remove_css_wikibox_aux ?db ~wiki ~page:(Some page)
+
+
+
+
+(*
 let set_css_aux ?db ~wiki ~page ~author content =
   wrap db
     (fun db ->
@@ -624,7 +639,7 @@ let set_css_for_wikipage ?db ~wiki ~page ~author content =
 
 let set_css_for_wiki ?db ~wiki ~author content =
   set_css_aux ?db ~wiki ~page:None ~author content
-
+*)
 
 
 
