@@ -529,7 +529,7 @@ let is_creator ~sp wb =
     | Some v -> Lwt.return (u = v)
 
 class wiki_rights : Wiki_types.wiki_rights =
-object (self)
+object (_self)
 
   inherit Wiki.wiki_rights as papa
 
