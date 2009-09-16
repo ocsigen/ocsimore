@@ -1029,8 +1029,7 @@ object (self)
                   ?exn
                   (Wiki_data.wikibox_content ~sp ~version
                      ~rights:bi.bi_rights wbcss)
-                  (self#display_wikiboxcontent ~classes
-                     ~bi:(Wiki_widgets_interface.add_ancestor_bi wbcss bi))
+                  (self#display_raw_wikiboxcontent ~classes)
                   (self#menu_old_css ~bi ?special_box wb_loc (wiki, page))
                 >>= fun r ->
                 Lwt.return (r, true)
