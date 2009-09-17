@@ -1275,11 +1275,9 @@ let () =
             | [a] -> f ~classe:"wikimenu_last" a >>= fun b -> Lwt.return [b]
               | a::ll -> f a >>= fun b -> mapf ll >>= fun l -> Lwt.return (b::l)
           in
-          match
-            List.rev
-              (List.fold_left
-                 (fun beg (n, v) -> if n="item" then v::beg else beg)
-                 [] args)
+          match List.fold_left
+            (fun beg (n, v) -> if n="item" then v::beg else beg)
+            [] args
           with
             | [] -> Lwt.return {: [] :}
             | [a] ->  
