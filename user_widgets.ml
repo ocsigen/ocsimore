@@ -82,8 +82,10 @@ class type user_widget_class = object
   method form_edit_group:
     sp:Eliom_sessions.server_params ->
     ?show_edit:bool ->
+    ?default_add:string ->
     group:user ->
     text:string ->
+    unit ->
     (User.GroupsForms.input_string * User.GroupsForms.input_string ->
      Xhtmltypes_duce.inlines) Lwt.t
 
@@ -100,6 +102,8 @@ class type user_widget_class = object
     sp:Eliom_sessions.server_params ->
     grps:'a User_sql.Types.admin_writer_reader ->
     arg:'a Opaque.int32_t ->
+    ?defaults:string * string * string ->
+    unit ->
     (User.GroupsForms.six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t
 
 end
@@ -130,13 +134,13 @@ object (self)
 
   val xhtml_class = "logbox"
 
-  method form_edit_group ~sp ?(show_edit=false) ~group ~(text : string) =
+  method form_edit_group ~sp ?(show_edit=false) ?(default_add="") ~group ~(text : string) () =
     User_sql.users_in_group ~generic:false ~group
     >>= fun users ->
     self#user_list_to_string sp users
     >>= fun members ->
-    let string_input arg =
-      Eliom_duce.Xhtml.string_input ~input_type:{: "text" :} ~name:arg () in
+    let string_input ?(value="") arg = Eliom_duce.Xhtml.string_input
+      ~a:{{ { size="40" } }} ~value ~input_type:{: "text" :} ~name:arg () in
     Lwt.return (fun (iadd, irem) ->
                   let textadd = "Add users: "
                   and textrem = "Remove users: "
@@ -149,7 +153,7 @@ object (self)
                          !{: textcur :} !{: members :} <br>[] ] }}
                   and edit = if show_edit then
                     {{ [ !{: textadd :}
-                         {: string_input iadd :} <br>[]
+                         {: string_input ~value:default_add iadd :} <br>[]
                          !{: if users = [] then
                              {{ [ {: Eliom_duce.Xhtml.string_input
                                   ~input_type:{: "hidden" :} ~name:irem ():}]}}
@@ -194,13 +198,17 @@ object (self)
                   in ({{ [ !cur !edit] }} : Xhtmltypes_duce.inlines)
                )
 
-  method form_edit_awr : 'a. sp:_ -> grps:'a User_sql.Types.admin_writer_reader -> arg:'a Opaque.int32_t -> _ = fun ~sp ~grps ~arg ->
-    let aux grp text =
-      self#form_edit_group ~sp ~group:(grp $ arg) ~text ~show_edit:true
+  method form_edit_awr : 'a. sp:_ -> grps:'a User_sql.Types.admin_writer_reader -> arg:'a Opaque.int32_t -> ?defaults:_ -> unit -> _ =
+   fun ~sp ~grps ~arg ?defaults () ->
+    let aux grp text default =
+      self#form_edit_group ~sp ~group:(grp $ arg) ~text ~show_edit:true ~default_add:default
+    and d1, d2, d3 = match defaults with
+      | None -> "", "", ""
+      | Some (d1, d2, d3) -> d1, d2, d3
     in
-    aux grps.grp_admin  "Current administrators: " >>= fun forma ->
-    aux grps.grp_writer "Current writers: "        >>= fun formw ->
-    aux grps.grp_reader "Current readers: "        >>= fun formr ->
+    aux grps.grp_admin  "Current administrators: " d1 () >>= fun forma ->
+    aux grps.grp_writer "Current writers: "        d2 () >>= fun formw ->
+    aux grps.grp_reader "Current readers: "        d3 () >>= fun formr ->
     Lwt.return (fun (arga, (argw, argr)) ->
               {{ [ !{: formr argr :} !{: formw argw :} !{: forma arga :} ] }})
 
@@ -370,7 +378,7 @@ object (self)
          {{ <h1>['User/Group \'' !{: Ocamlduce.Utf8.make g :} '\''] }} in
 
        (* Adding groups to the group *)
-       self#form_edit_group ~sp ~show_edit:isadmin ~group ~text:""
+       self#form_edit_group ~sp ~show_edit:isadmin ~group ~text:"" ()
        >>= fun form  ->
        let form (n, (n1, n2)) =
          {{ [<p>[{: Eliom_duce.Xhtml.string_input

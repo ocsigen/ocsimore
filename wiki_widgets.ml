@@ -457,9 +457,20 @@ object (self)
       also suppose that boxrights is set to true for the wiki *)
   method display_edit_wikibox_perm_form ~bi ~classes wb =
     Wiki_sql.get_wikibox_info wb
-    >>= fun { wikibox_id = uid; wikibox_special_rights = sr } ->
+    >>= fun { wikibox_wiki = wiki;
+              wikibox_id = uid; wikibox_special_rights = sr } ->
     let arg = Wiki.helpers_wikibox_permissions.User.GroupsForms.awr_form_arg in
+    let da, dw, dr =
+      let aux it =
+        let g = (it.User.GenericRights.field Wiki.wiki_wikiboxes_grps) $ wiki in
+        User_sql.users_in_group ~generic:true ~group:g >>= fun l ->
+        User.user_list_to_string l
+      in
+      User.GenericRights.can_sthg aux
+    in
+    da >>= fun da -> dw >>= fun dw -> dr >>= fun dr ->
     user_widgets#form_edit_awr ~sp:bi.bi_sp ~grps:Wiki.wikibox_grps ~arg:wb
+      ~defaults:(da, dw, dr) ()
     >>= fun form ->
     let msg1 = Ocamlduce.Utf8.make
       "Check this box if you want permissions specific to the wikibox. \
@@ -498,17 +509,17 @@ object (self)
     let form wiki =
       let aux g text = user_widgets#form_edit_group ~sp
         ~group:(g $ wiki) ~text ~show_edit:true in
-    aux Wiki.wiki_admins "Administer the wiki" >>= fun f1 ->
-    aux Wiki.wiki_subwikiboxes_creators "Create subwikiboxes" >>= fun f2 ->
-    aux Wiki.wiki_wikipages_creators "Create wikipages" >>= fun f3 ->
-    aux Wiki.wiki_wikiboxes_creators "Create wikiboxes" >>= fun f4 ->
-    aux Wiki.wiki_css_creators "Create CSS" >>= fun f5 ->
-    aux Wiki.wiki_wikiboxes_deletors "Delete wikiboxes" >>= fun f6 ->
-    aux Wiki.wiki_files_readers "Read static files" >>= fun f8 ->
-    aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" >>= fun f9 ->
-    aux Wiki.wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" >>= fun f10 ->
+    aux Wiki.wiki_admins "Administer the wiki" () >>= fun f1 ->
+    aux Wiki.wiki_subwikiboxes_creators "Create subwikiboxes" () >>= fun f2 ->
+    aux Wiki.wiki_wikipages_creators "Create wikipages" () >>= fun f3 ->
+    aux Wiki.wiki_wikiboxes_creators "Create wikiboxes" () >>= fun f4 ->
+    aux Wiki.wiki_css_creators "Create CSS" () >>= fun f5 ->
+    aux Wiki.wiki_wikiboxes_deletors "Delete wikiboxes" () >>= fun f6 ->
+    aux Wiki.wiki_files_readers "Read static files" () >>= fun f8 ->
+    aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" () >>= fun f9 ->
+    aux Wiki.wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" () >>= fun f10 ->
     user_widgets#form_edit_awr ~sp
-      ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki >>= fun f7 ->
+      ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki () >>= fun f7 ->
 
     let msg = Ocamlduce.Utf8.make
       ("Permissions for wiki " ^ string_of_wiki wiki)
