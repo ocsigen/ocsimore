@@ -112,7 +112,9 @@ val update_css:
    page:string option ->
    oldwb:wikibox ->
    newwb:wikibox ->
-   media:media_type -> unit Lwt.t) rights_sp
+   media:media_type ->
+   rank:int32 ->
+   unit Lwt.t) rights_sp
 
 (** Raised in case of a non-existing wikibox. The optional [int32]
    argument is the version number *)
@@ -142,12 +144,12 @@ val wikibox_history :
     filtered for the ones the user can read *)
 val wiki_css :
  (wiki:wiki ->
-  (wikibox * (string * media_type)) list Lwt.t) rights_sp
+  (wikibox * (string * media_type * int32)) list Lwt.t) rights_sp
 
 (** Same thing for a wikipage *)
 val wikipage_css :
  (wiki:wiki -> page:string ->
-  (wikibox * (string * media_type)) list Lwt.t) rights_sp
+  (wikibox * (string * media_type * int32)) list Lwt.t) rights_sp
 
 
 

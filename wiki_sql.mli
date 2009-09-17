@@ -96,9 +96,9 @@ val set_wikipage_properties :
     element is the wikibox containing the css, the second one the css
     content itself, the third one the media-type *)
 val get_css_for_wikipage : wiki:wiki -> page:string ->
-  (wikibox * string * media_type) list Lwt.t
+  (wikibox * string * media_type * int32) list Lwt.t
 val get_css_for_wiki : wiki:wiki ->
-  (wikibox * string * media_type) list Lwt.t
+  (wikibox * string * media_type * int32) list Lwt.t
 
 (** Add a new CSS to a wikipage or a wiki. If [wbcss] is supplied,
     a link to the (supposed existing) CSS is created, and [author]
@@ -132,11 +132,11 @@ val remove_css_wikipage :
 
 (** returns the wikibox for the css of a page or [None] if the page has no css*)
 val get_css_wikibox_for_wikipage :
-  wiki:wiki -> page:string -> (wikibox * media_type) list Lwt.t
+  wiki:wiki -> page:string -> (wikibox * media_type * int32) list Lwt.t
 
 (** returns the wikibox for the global css of a wiki, or [None] if the wiki
     has no such css *)
-val get_css_wikibox_for_wiki : wiki:wiki -> (wikibox * media_type) list Lwt.t
+val get_css_wikibox_for_wiki : wiki:wiki -> (wikibox * media_type * int32) list Lwt.t
 
 
 val update_css_wikibox_aux:
@@ -146,6 +146,7 @@ val update_css_wikibox_aux:
   oldwb:wikibox ->
   newwb:wikibox ->
   media:media_type ->
+  rank:int32 ->
   unit ->
   unit Lwt.t
 

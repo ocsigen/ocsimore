@@ -84,7 +84,7 @@ exception BadCssWikibox
 
 let save_wikicss_aux ~rights ~sp ~content ~wb l =
   try
-    ignore (List.find (fun (wb', _) -> wb = wb') l);
+    ignore (List.find (fun (wb', _, _) -> wb = wb') l);
     save_wikibox_aux ~rights ~sp ~wb
       ~content_type:Wiki_models.css_content_type ~content
   with Not_found -> Lwt.fail BadCssWikibox
@@ -121,22 +121,22 @@ let create_wiki ~(rights : Wiki_types.wiki_rights) ~sp
         Lwt.fail Ocsimore_common.Permission_denied
 
 
-let wiki_aux ~(rights : Wiki_types.wiki_rights) ~sp l =
+let css_aux ~(rights : Wiki_types.wiki_rights) ~sp l =
   Lwt_util.fold_left
-    (fun l (wb, media_type) ->
+    (fun l (wb, media_type, rank) ->
        wikibox_content rights sp wb >>= function
-         | (_, Some cont, _) -> Lwt.return ((wb, (cont, media_type)) :: l)
+         | (_, Some cont, _) -> Lwt.return ((wb, (cont, media_type, rank)) :: l)
          | (_, None, _) -> Lwt.return l
     ) [] l
 
 
 let wiki_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki =
   Wiki_sql.get_css_wikibox_for_wiki wiki >>= fun l ->
-  wiki_aux ~rights ~sp l
+  css_aux ~rights ~sp l
 
 let wikipage_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
   Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= fun l ->
-  wiki_aux ~rights ~sp l
+  css_aux ~rights ~sp l
 
 
 
@@ -209,14 +209,14 @@ let delete_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~wb =
               Wiki_sql.remove_css_wikipage ~wiki ~page wb
 
 
-let update_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~oldwb ~newwb ~media =
+let update_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~oldwb ~newwb ~media ~rank =
   (match page with
      | None -> rights#can_create_wikicss sp wiki
      | Some page -> rights#can_create_wikipagecss sp (wiki, page)
   ) >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
-        Wiki_sql.update_css_wikibox_aux ~wiki ~page ~oldwb ~newwb ~media ()
+        Wiki_sql.update_css_wikibox_aux ~wiki ~page ~oldwb ~newwb ~media ~rank ()
 
 
 

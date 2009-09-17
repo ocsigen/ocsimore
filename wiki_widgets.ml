@@ -1,3 +1,4 @@
+
 (* Ocsimore
  * Copyright (C) 2005
  * Laboratoire PPS - Université Paris Diderot - CNRS
@@ -203,11 +204,19 @@ object (self)
     and view = Eliom_services.void_coservice' in
     (match special_box with
        | WikiPageBox (w, page) ->
-           let edit = preapply action_edit_css_list (wb, (w, Some page)) in
-           Lwt.return (Some (edit, {{ "wikipage css" }}))
+           (bi.bi_rights#can_create_wikipagecss sp (w, page) >>= function
+              | true -> let edit =
+                  preapply action_edit_css_list (wb, (w, Some page)) in
+                Lwt.return (Some (edit, {{ "wikipage css" }}))
+              | false -> Lwt.return None
+           )
        | WikiContainerBox w ->
-           let edit = preapply action_edit_css_list (wb, (w, None)) in
-           Lwt.return (Some (edit, {{ "wiki css" }}))
+           (bi.bi_rights#can_create_wikicss sp w >>= function
+              | true ->
+                  let edit = preapply action_edit_css_list (wb, (w, None)) in
+                  Lwt.return (Some (edit, {{ "wiki css" }}))
+              | false -> Lwt.return None
+           )
        | RegularBox -> Lwt.return None
     ) >>= fun css ->
     (match special_box with
@@ -289,8 +298,6 @@ object (self)
     let title = Ocamlduce.Utf8.make title in
     match l, wbdel with
       | [], false -> Lwt.return {{[]}} (* empty list => no menu *)
-      | [e], false when Some e = css ->
-          Lwt.return {{[]}} (* just the edition of css => also no menu *)
       | _ ->
           Wiki.wiki_admin_page_link sp ["crayon.png"] >>= fun img ->
           let menu = Eliom_duce_tools.menu ~sp ~classe:["wikiboxmenu"]
@@ -720,7 +727,7 @@ object (self)
         (Eliom_duce.Xhtml.Option ({{ {} }}, "all",
                                   Some {{ "all media" }}, in_media "all")) l
     in
-    let aux (wbcss, media) =
+    let aux (wbcss, media, rank) =
       bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
       bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
       bi.bi_rights#can_set_wikibox_specific_permissions
@@ -739,12 +746,15 @@ object (self)
                 {{ "Permissions" }} (wb, wbcss_)  }} ] }}
       else {{ [] }}
       in
-      let fupdate (wbn, ((((wikin, wpn), wbcssn), newwbcssn), median)) =
+      let fupdate (wbn, (((((wikin, wpn), wbcssn), newwbcssn), median), rankn))=
         {{ [ <div class="eliom_inline">
                [{: Ocsimore_common.input_opaque_int32 ~value:wb wbn :}
                 {: Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn :}
                 {: Ocsimore_common.input_opaque_int32 ~value:wiki wikin :}
-                'CSS ' !{: Opaque.int32_t_to_string wbcss :} ' '
+                'CSS '
+                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "text" :}
+                   ~a:{{ { size = "2" } }} ~value:rank ~name:rankn () :}
+                '(Id ' !{: Opaque.int32_t_to_string wbcss :} ') '
                 {: Ocsimore_common.input_opaque_int32 ~value:wbcss newwbcssn :}
                 !{: match page with
                     | None -> []
@@ -758,11 +768,13 @@ object (self)
                    {{ " Update media" }} :}
                 ' '
                ] ] }}
-      and fdelete (wbn, ((((wikin, wpn), wbcssn), _newwbcssn), _median)) =
+      and fdelete (wbn, (((((wikin, wpn), wbcssn), _newwbcssn), _median), rankn)) =
         {{ [ <div class="eliom_inline">
                [{: Ocsimore_common.input_opaque_int32 ~value:wb wbn :}
                 {: Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn :}
                 {: Ocsimore_common.input_opaque_int32 ~value:wiki wikin :}
+                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
+                   ~value:rank ~name:rankn () :}
                 !{: match page with
                     | None -> []
                     | Some page ->
@@ -1071,7 +1083,7 @@ object (self)
         | None -> Lwt.return {{ [] }}
         | Some wikicss_service ->
             Wiki_sql.get_css_for_wiki wiki >>= fun l ->
-            let l' = List.map (fun (wb, _, media) ->
+            let l' = List.map (fun (wb, _, media, _) ->
                                  css_url_service wikicss_service wb media) l
             in
             Lwt.return {{ {: l' :} }}
@@ -1081,7 +1093,7 @@ object (self)
        | None -> Lwt.return css
        | Some page ->
            Wiki_sql.get_css_for_wikipage ~wiki ~page >>= fun l ->
-           let l' = List.map (fun (wb, _, media) ->
+           let l' = List.map (fun (wb, _, media, _) ->
                     css_url_service pagecss_service ((wiki, page), wb) media) l
            in
            Lwt.return {{ [ !css !{: l' :} ] }}

@@ -351,12 +351,13 @@ let get_css_wikibox_aux_ ?db ~wiki ~page =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
-       PGSQL(db) "SELECT wikibox, mediatype FROM css \
-                  WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page"
+       PGSQL(db) "SELECT wikibox, mediatype, rank FROM css \
+                  WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page
+                  ORDER BY rank"
        >>= fun l ->
-       Lwt.return (List.map (fun (wb, media) ->
+       Lwt.return (List.map (fun (wb, media, rank) ->
                                let media = Ocsigen_lib.split ' ' media in
-                               wikibox_of_sql wb, (media : media_type)) l)
+                               wikibox_of_sql wb, (media : media_type), rank) l)
     )
 
 
@@ -372,8 +373,11 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~(media:media_type) wb =
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
        and wb = sql_of_wikibox wb in
-       PGSQL(db) "INSERT INTO css (wiki, page, wikibox, mediatype)
-                  VALUES ($wiki, $?page, $wb, $media)"
+       PGSQL(db) "INSERT INTO css (wiki, page, wikibox, mediatype, rank)
+                  VALUES ($wiki, $?page, $wb, $media,
+                   (SELECT COALESCE (max(rank) + 1, 1) from CSS
+                    WHERE wiki=wiki AND page IS NOT DISTINCT FROM $?page)
+                  )"
     )
 
 let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
@@ -387,7 +391,7 @@ let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
                   AND wikibox = $wb"
     )
 
-let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media () =
+let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
   let media = String.concat " " media in
   wrap db
     (fun db ->
@@ -395,7 +399,7 @@ let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media () =
        and oldwb = sql_of_wikibox oldwb
        and newwb = sql_of_wikibox newwb in
        PGSQL(db) "UPDATE css
-                  SET wikibox = $newwb, mediatype = $media
+                  SET wikibox = $newwb, mediatype = $media, rank = $rank
                   WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page AND
                         wikibox = $oldwb"
     )
@@ -525,7 +529,7 @@ let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
 let cache_css =
   let module C = Cache.Make (struct
                                type key = (wiki * string option)
-                               type value = (wikibox * media_type) list
+                               type value = (wikibox * media_type * int32) list
                              end)
   in
   new C.cache (fun (wiki, page) -> get_css_wikibox_aux_ wiki page) 64
@@ -542,9 +546,9 @@ let remove_css_wikibox_aux ?db ~wiki ~page wb =
   cache_css#remove (wiki, page);
   remove_css_wikibox_aux_ ?db ~wiki ~page wb
 
-let update_css_wikibox_aux ?db ~wiki ~page ~oldwb ~newwb ~media () =
+let update_css_wikibox_aux ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
   cache_css#remove (wiki, page);
-  update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ()
+  update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank ()
 
 
 (* Derived functions, again for css *)
@@ -559,11 +563,11 @@ let get_css_wikibox_for_wikipage ~wiki ~page =
 let get_css_aux ~wiki ~page =
   get_css_wikibox ~wiki ~page >>= fun l ->
   Lwt_util.fold_left
-    (fun l (wb, media) ->
+    (fun l (wb, media, rank) ->
        get_wikibox_content wb
        >>= function
          | Some (_, _, Some content, _, _, _) ->
-             Lwt.return ((wb, content, media) :: l)
+             Lwt.return ((wb, content, media, rank) :: l)
          | Some (_, _, None, _, _, _) | None -> Lwt.return l
     ) [] l
 
