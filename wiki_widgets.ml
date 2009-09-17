@@ -765,7 +765,7 @@ object (self)
                 {: select_media median media :}
                 ' '
                 {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                   {{ " Update media" }} :}
+                   {{ " Update media and CSS order" }} :}
                 ' '
                ] ] }}
       and fdelete (wbn, (((((wikin, wpn), wbcssn), _newwbcssn), _median), rankn)) =
