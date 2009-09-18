@@ -719,8 +719,8 @@ object (self)
   method private display_edit_css_list ~bi ~classes ~(wb:wikibox) wikipage =
     let wiki, page = wikipage and sp = bi.bi_sp in
     (match page with
-      | None -> Wiki_sql.get_css_wikibox_for_wiki ~wiki
-      | Some page -> Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page
+      | None -> Wiki_sql.get_css_for_wiki ~wiki
+      | Some page -> Wiki_sql.get_css_for_wikipage ~wiki ~page
     ) >>= fun l ->
     (match page with
        | None -> bi.bi_rights#can_create_wikicss sp wiki
@@ -738,7 +738,7 @@ object (self)
         (Eliom_duce.Xhtml.Option ({{ {} }}, "all",
                                   Some {{ "all media" }}, in_media "all")) l
     in
-    let aux (wbcss, media, rank) =
+    let aux ((wbcss, media, rank), (_, ver)) =
       bi.bi_rights#can_view_history ~sp wbcss >>= fun csshist ->
       bi.bi_rights#can_write_wikibox ~sp wbcss >>= fun csswr ->
       bi.bi_rights#can_set_wikibox_specific_permissions
@@ -756,6 +756,9 @@ object (self)
         {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:action_css_permissions
                 {{ "Permissions" }} (wb, wbcss_)  }} ] }}
       else {{ [] }}
+      and v4 =
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:action_old_wikiboxcss
+                  {{ "View" }} (wb, (wbcss_, ver)) }} ] }}
       in
       let fupdate (wbn, (((((wikin, wpn), wbcssn), newwbcssn), median), rankn))=
         {{ [ <div class="eliom_inline">
@@ -796,7 +799,6 @@ object (self)
                    {{ " Remove CSS" }} :}
                ] ] }}
       in
-      (* XXXCSS view button *)
       if can_create then Lwt.return
         {{ <div>[
              {{ Eliom_duce.Xhtml.post_form ~keep_get_na_params:true
@@ -806,10 +808,10 @@ object (self)
                   ~a:{{ { accept-charset="utf-8" class="eliom_inline"} }}
                   ~service:action_send_css_options ~sp fdelete () }}
              ' '
-             !v1 ' / ' !v2 ' / ' !v3
+             !v4 ' / ' !v1 ' / ' !v2 ' / ' !v3
            ] }}
       else
-        Lwt.return {{ <p>[ !v1 ' / ' !v2 ' / ' !v3 ] }}
+        Lwt.return {{ <p>[ !v4 ' / '!v1 ' / ' !v2 ' / ' !v3 ] }}
     in
     (if l = [] then
       Lwt.return {{ [ 'There are currently no CSS' ] }}
@@ -1093,8 +1095,8 @@ object (self)
      (match Wiki_self_services.find_servwikicss wiki with
         | None -> Lwt.return {{ [] }}
         | Some wikicss_service ->
-            Wiki_sql.get_css_for_wiki wiki >>= fun l ->
-            let l' = List.map (fun (wb, _, media, _) ->
+            Wiki_sql.get_css_wikibox_for_wiki wiki >>= fun l ->
+            let l' = List.map (fun (wb, media, _) ->
                                  css_url_service wikicss_service wb media) l
             in
             Lwt.return {{ {: l' :} }}
@@ -1103,8 +1105,8 @@ object (self)
      match page with
        | None -> Lwt.return css
        | Some page ->
-           Wiki_sql.get_css_for_wikipage ~wiki ~page >>= fun l ->
-           let l' = List.map (fun (wb, _, media, _) ->
+           Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun l ->
+           let l' = List.map (fun (wb, media, _) ->
                     css_url_service pagecss_service ((wiki, page), wb) media) l
            in
            Lwt.return {{ [ !css !{: l' :} ] }}

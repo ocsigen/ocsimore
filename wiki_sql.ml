@@ -563,11 +563,11 @@ let get_css_wikibox_for_wikipage ~wiki ~page =
 let get_css_aux ~wiki ~page =
   get_css_wikibox ~wiki ~page >>= fun l ->
   Lwt_util.fold_left
-    (fun l (wb, media, rank) ->
+    (fun l (wb, _, _ as wbcss) ->
        get_wikibox_content wb
        >>= function
-         | Some (_, _, Some content, _, _, _) ->
-             Lwt.return ((wb, content, media, rank) :: l)
+         | Some (_, _, Some content, _, _, ver) ->
+             Lwt.return ((wbcss, (content, ver)) :: l)
          | Some (_, _, None, _, _, _) | None -> Lwt.return l
     ) [] l
 

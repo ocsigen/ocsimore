@@ -92,13 +92,12 @@ val set_wikipage_properties :
 
 
 
-(** returns the lists of css associated to a wikipage or a wiki. The first
-    element is the wikibox containing the css, the second one the css
-    content itself, the third one the media-type *)
+(** returns the lists of css associated to a wikipage or a wiki, together
+    with the content of the wikibox and the version (as last arguments) *)
 val get_css_for_wikipage : wiki:wiki -> page:string ->
-  (wikibox * string * media_type * int32) list Lwt.t
+  ((wikibox * media_type * int32) * (string * int32)) list Lwt.t
 val get_css_for_wiki : wiki:wiki ->
-  (wikibox * string * media_type * int32) list Lwt.t
+  ((wikibox * media_type * int32) * (string * int32)) list Lwt.t
 
 (** Add a new CSS to a wikipage or a wiki. If [wbcss] is supplied,
     a link to the (supposed existing) CSS is created, and [author]
