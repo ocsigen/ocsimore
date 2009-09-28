@@ -231,6 +231,50 @@ let authenticate ~name ~pwd =
             Lwt.fail BadPassword
 
 
+(** {2 Session data} *)
+
+let user_table: userid Eliom_sessions.persistent_table =
+  Eliom_sessions.create_persistent_table "ocsimore_user_table_v1"
+
+type user_sd = userid Lwt.t
+
+(** The polytable key for retrieving user data inside session data *)
+let user_key : user_sd Polytables.key = Polytables.make_key ()
+
+let get_user_ ~sp =
+  Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
+  >>= function
+    | Eliom_sessions.Data u ->
+        Lwt.catch
+          (fun () -> User_sql.get_basicuser_data u >>= fun _ud -> Lwt.return u)
+          (function
+             | Not_found ->
+                 Eliom_sessions.close_session ~sp () >>= fun () ->
+                 Polytables.clear (Eliom_sessions.get_request_cache sp);
+                 Lwt.return anonymous
+             | e -> Lwt.fail e)
+    | Eliom_sessions.Data_session_expired | Eliom_sessions.No_data ->
+        Lwt.return anonymous
+
+let get_user_sd ~sp =
+  let rc = Eliom_sessions.get_request_cache sp in
+  try
+    Polytables.get ~table:rc ~key:user_key
+  with Not_found ->
+    let ud = get_user_ ~sp in
+    Polytables.set rc user_key ud;
+    ud
+
+let get_user_id ~sp = get_user_sd sp
+
+let get_user_data ~sp =
+  get_user_sd sp >>= fun u ->
+  User_sql.get_basicuser_data u
+
+let get_user_name ~sp =
+  get_user_data sp >>= fun u -> 
+  Lwt.return u.user_login
+
 
 type groups_sd = (user * user, bool) Hashtbl.t
 
@@ -284,24 +328,24 @@ let in_group_ ?sp ~user ~group () =
       | false ->
           match sp with
             | Some sp ->
-                (in_dyn_group group ~sp >>= function
-                  | true -> return user group true
-                  | false ->
-                      fold_dyn_groups
-                        (fun k f b ->
-                           b >>= fun b ->
-                           if b then
-                             Lwt.return true
-                           else
-                             if k <> group
-                             then (f ~sp >>= function
-                                     | false -> Lwt.return false
-                                     | true -> aux k group
-                                  )
-                             else Lwt.return false
-                        ) (Lwt.return false) >>= function r ->
-                        return user group r
-                )
+                get_user_id sp >>= fun user' ->
+                  if user = basic_user user' then
+                    fold_dyn_groups
+                      (fun k f b ->
+                         b >>= function
+                           | true -> Lwt.return true
+                           | false ->
+                               f ~sp >>= function
+                                 | false -> Lwt.return false
+                                 | true ->
+                                     if k = group then
+                                       Lwt.return true
+                                     else
+                                       aux k group
+                      ) (Lwt.return false) >>= function r ->
+                      return user group r
+                  else
+                    return user group false
             | _ -> return user group false
 
 
@@ -362,49 +406,6 @@ let add_user_to_list = iter_user_list add_to_group
 let remove_user_from_list = iter_user_list User_sql.remove_from_group
 
 
-(** {2 Session data} *)
-
-let user_table: userid Eliom_sessions.persistent_table =
-  Eliom_sessions.create_persistent_table "ocsimore_user_table_v1"
-
-type user_sd = userid Lwt.t
-
-(** The polytable key for retrieving user data inside session data *)
-let user_key : user_sd Polytables.key = Polytables.make_key ()
-
-let get_user_ ~sp =
-  Eliom_sessions.get_persistent_session_data ~table:user_table ~sp ()
-  >>= function
-    | Eliom_sessions.Data u ->
-        Lwt.catch
-          (fun () -> User_sql.get_basicuser_data u >>= fun _ud -> Lwt.return u)
-          (function
-             | Not_found ->
-                 Eliom_sessions.close_session ~sp () >>= fun () ->
-                 Polytables.clear (Eliom_sessions.get_request_cache sp);
-                 Lwt.return anonymous
-             | e -> Lwt.fail e)
-    | Eliom_sessions.Data_session_expired | Eliom_sessions.No_data ->
-        Lwt.return anonymous
-
-let get_user_sd ~sp =
-  let rc = Eliom_sessions.get_request_cache sp in
-  try
-    Polytables.get ~table:rc ~key:user_key
-  with Not_found ->
-    let ud = get_user_ ~sp in
-    Polytables.set rc user_key ud;
-    ud
-
-let get_user_id ~sp = get_user_sd sp
-
-let get_user_data ~sp =
-  get_user_sd sp >>= fun u ->
-  User_sql.get_basicuser_data u
-
-let get_user_name ~sp =
-  get_user_data sp >>= fun u -> 
-  Lwt.return u.user_login
 
 let is_logged_on ~sp =
   get_user_sd sp >>= fun u ->
@@ -417,6 +418,19 @@ let authenticated_users =
      >>= fun users ->
      add_to_group ~user:(basic_user users) ~group:anonymous' >>= fun () ->
      Lwt.return users
+)
+
+
+let is_external_user ~sp =
+  get_user_data sp >>= fun u ->
+  Lwt.return (u.user_pwd = External_Auth)
+
+
+let external_users =
+  Lwt_unix.run
+    (create_user ~name:"external_users" ~pwd:User_sql.Types.Connect_forbidden
+       ~fullname:"Users using external authentification"
+       ~test:is_external_user ()
 )
 
 
