@@ -119,7 +119,10 @@ module GenericRights : sig
   val grp_write: admin_writer_reader_access
   val grp_read:  admin_writer_reader_access
 
-  val can_sthg: (admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
+  val can_sthg: (admin_writer_reader_access -> 'a) -> ('a * 'a * 'a)
+  val map_awr: (admin_writer_reader_access -> 'a Lwt.t) -> ('a * 'a * 'a) Lwt.t
+  val iter_awr: (admin_writer_reader_access -> unit Lwt.t) -> unit Lwt.t
+
 
   val create_admin_writer_reader:
     prefix:string -> name:string -> descr:string ->

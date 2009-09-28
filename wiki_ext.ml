@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open User_sql.Types
 open Wiki_types
 open Wiki_widgets_interface
 
@@ -139,8 +140,18 @@ let register_wikibox_syntax_extensions
                     ~content:"**//new wikibox//**" 
                     ~content_type
                     ()
-                    (* XXX Must create some permissions *)
                     >>= fun box ->
+                    (Wiki_sql.get_wikibox_info wb >>= function
+                       | { wikibox_special_rights = true } ->
+                           User.GenericRights.iter_awr
+                           (fun f ->
+                              let g = f.User.GenericRights.field
+                                Wiki.wikibox_grps in
+                              User.add_to_group ~user:(g $ wb) ~group:(g $ box)
+                           )
+                       | { wikibox_special_rights = false } ->
+                           Lwt.return ()
+                    ) >>= fun () ->
                     Lwt.return (("box", string_of_wikibox box) ::
                                 (* We remove the wiki information, which is no
                                    longer useful *) List.remove_assoc "wiki" args)

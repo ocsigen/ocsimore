@@ -451,6 +451,18 @@ module GenericRights = struct
     f grp_write,
     f grp_read
 
+
+  let map_awr f =
+    f grp_admin >>= fun a ->
+    f grp_write >>= fun w ->
+    f grp_read  >>= fun r ->
+    Lwt.return (a, w, r)
+
+  let iter_awr f =
+    f grp_admin >>= fun () ->
+    f grp_write >>= fun () ->
+    f grp_read
+
   let admin_writer_reader_groups grps =
     (fun i -> apply_parameterized_group grps.grp_reader i),
     (fun i -> apply_parameterized_group grps.grp_writer i),
