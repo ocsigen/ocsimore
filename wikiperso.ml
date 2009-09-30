@@ -176,6 +176,31 @@ let find_user user =
       external_user user
 
 
+let can_have_wikiperso =
+  basic_user
+    (Lwt_unix.run
+       (User.create_user ~name:"can_have_wikiperso" ~pwd:Connect_forbidden
+          ~fullname:"Users that can have a wikiperso (unless they are in the group 'cannot_have_wikiperso')"
+          ()
+       ))
+
+let cannot_have_wikiperso =
+  basic_user
+    (Lwt_unix.run
+       (User.create_user ~name:"cannot_have_wikiperso" ~pwd:Connect_forbidden
+          ~fullname:"Users that are forbidden to have a wikiperso"
+          ()
+       ))
+
+let can_have_wikiperso sp user =
+  User.in_group ~sp ~user ~group:can_have_wikiperso () >>= function
+    | true ->
+        User.in_group ~sp ~user ~group:cannot_have_wikiperso () >>= fun b ->
+        Lwt.return (not b)
+    | false -> Lwt.return false
+
+
+
 (** The function that answers for the extension. *)
 let gen sp =
   let ri = Eliom_sessions.get_ri sp in
@@ -189,22 +214,26 @@ let gen sp =
            | None -> Lwt.return ()
            | Some userid ->
                (* If the user for which we must create a wiki
-                  exists, we create this wiki if it does not already exists. *)
+                  exists, we create this wiki if it does not already exists,
+                  and if the user has the right to have a wikiperso *)
                let wiki_title = "wikiperso for " ^ user in
                Lwt.catch
                  (fun () -> Wiki_sql.get_wiki_info_by_name wiki_title
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
-                        let model = Ocsisite.wikicreole_model in
-                        User_sql.get_basicuser_data userid >>= fun userdata ->
-                        create_wikiperso ~model ~wiki_title ~userdata
-                        >>= fun wiki ->
-                        (* We then register the wiki at the correct url *)
-                        Wiki_services.register_wiki ~sp ~wiki:wiki ()
-                          ~rights:Ocsisite.wiki_rights
-                          ~path:(wiki_path userdata.user_login);
-                        Lwt.return ()
+                        can_have_wikiperso sp (basic_user userid) >>= fun can ->
+                        if can then
+                          let model = Ocsisite.wikicreole_model in
+                          User_sql.get_basicuser_data userid >>= fun ud ->
+                          create_wikiperso ~model ~wiki_title ~userdata:ud
+                          >>= fun wiki ->
+                          (* We then register the wiki at the correct url *)
+                          Wiki_services.register_wiki ~sp ~wiki:wiki ()
+                            ~rights:Ocsisite.wiki_rights
+                            ~path:(wiki_path ud.user_login);
+                          Lwt.return ()
+                        else Lwt.return ()
                     | e -> Lwt.fail e)
         )
         >>= fun () ->
