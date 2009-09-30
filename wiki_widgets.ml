@@ -459,18 +459,13 @@ object (self)
     Wiki_sql.get_wikibox_info wb
     >>= fun { wikibox_wiki = wiki;
               wikibox_id = uid; wikibox_special_rights = sr } ->
-    let arg = Wiki.helpers_wikibox_permissions.User.GroupsForms.awr_form_arg in
-    let da, dw, dr =
-      let aux it =
-        let g = (it.User.GenericRights.field Wiki.wiki_wikiboxes_grps) $ wiki in
-        User_sql.users_in_group ~generic:true ~group:g >>= fun l ->
-        User.user_list_to_string l
-      in
-      User.GenericRights.can_sthg aux
-    in
-    da >>= fun da -> dw >>= fun dw -> dr >>= fun dr ->
+    User.GenericRights.map_awr
+      (fun it -> User_sql.user_to_string
+         (it.User.GenericRights.field Wiki.wiki_wikiboxes_grps $ wiki)
+      )
+    >>= fun defaults ->
     user_widgets#form_edit_awr ~sp:bi.bi_sp ~grps:Wiki.wikibox_grps ~arg:wb
-      ~defaults:(da, dw, dr) ()
+      ~defaults ()
     >>= fun form ->
     let msg1 = Ocamlduce.Utf8.make
       "Check this box if you want permissions specific to the wikibox. \
@@ -478,7 +473,6 @@ object (self)
     and msg2 = Ocamlduce.Utf8.make "Below are the current permissions for the
       wikibox. Add users in the fields to change them"
     in
-    (* XXX we probably need to add sane defaults *)
     let form (nsr, (narg, args)) = {{ [
               <p>[ !msg1
                    {: Eliom_duce.Xhtml.bool_checkbox
@@ -489,7 +483,7 @@ object (self)
               <div id="wikiboxpermissions" style={: "display: " ^
                                  if sr then "block" else "none" :} >[
                 <p>[ !msg2 ]
-                <p>[ {: arg uid narg :}
+                <p>[ {: Wiki.helpers_wikibox_permissions.User.GroupsForms.awr_form_arg uid narg :}
                      !{: form args :} ]
               ]
               <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
