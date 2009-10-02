@@ -111,7 +111,7 @@ let register_wiki ~rights ?sp ~path ~wiki () =
     Eliom_predefmod.Any.register_new_service ~path ?sp
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun sp path () ->
-         let page' = Ocsigen_lib.string_of_url_path ~encode:true path in
+         let page' = Ocsigen_lib.string_of_url_path ~encode:false path in
          send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
       )
   in
