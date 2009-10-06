@@ -36,11 +36,11 @@ exception UnknownUser of string
 exception UseAuth of userid
 
 
-(* better: set this in config file *)
+(* better: set this in config file. Beware, needs sp *)
+(*
 let () =
   Eliom_sessions.set_global_persistent_data_session_timeout (Some 604800.)
     (* one week *)
-(* (* Needs sp ?? *)
 let () =
   Eliom_sessions.set_persistent_data_session_cookie_exp_date None
     (* None = when browser is closed *)
