@@ -102,7 +102,7 @@ val get_user_name : sp:Eliom_sessions.server_params -> string Lwt.t
 
 val is_logged_on : sp:Eliom_sessions.server_params -> bool Lwt.t
 
-val set_session_data : sp:Eliom_sessions.server_params -> userid -> unit Lwt.t
+val set_session_data : sp:Eliom_sessions.server_params -> userid * string -> unit Lwt.t
 
 
 

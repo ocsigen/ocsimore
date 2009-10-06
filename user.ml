@@ -434,9 +434,11 @@ let external_users =
 )
 
 
-let set_session_data ~sp user =
-  Polytables.set 
+let set_session_data ~sp (user, username) =
+  Polytables.set
     (Eliom_sessions.get_request_cache sp) user_key (Lwt.return user);
+  Eliom_sessions.set_persistent_data_session_group
+    ~set_max:(Some 2) ~sp username >>= fun () ->
   Eliom_sessions.set_persistent_session_data ~table:user_table ~sp user
 
 

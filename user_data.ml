@@ -221,5 +221,5 @@ let login ~sp ~name ~pwd ~external_auth =
               | e -> Lwt.fail e)
   >>= fun user ->
   Eliom_sessions.clean_request_cache ~sp;
-  User.set_session_data sp user
+  User.set_session_data sp (user, name)
 
