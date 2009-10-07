@@ -637,7 +637,7 @@ object (self)
          Lwt.return
            {{ [ !{: Int32.to_string version :}'. '
                 !{: CalendarLib.Printer.Calendar.to_string date :}' '
-                <em>[ 'by ' !{: author :} ]' '
+                <em>[ 'by ' !{: Ocamlduce.Utf8.make author :} ]' '
                 {:  Eliom_duce.Xhtml.a ~sp ~service:action_old_wikibox
                    {{ "view" }} (wb, version) :}
                 ' ''('
@@ -660,7 +660,7 @@ object (self)
            Lwt.return
              {{ [ !{: Int32.to_string version :}'. '
                   !{: CalendarLib.Printer.Calendar.to_string date :}' '
-                  <em>[ 'by ' !{: author :} ]' '
+                  <em>[ 'by ' !{: Ocamlduce.Utf8.make author :} ]' '
                   {:  Eliom_duce.Xhtml.a ~sp ~service:action_old_wikiboxcss
                      {{ "view" }} (wb, ((wikipage, wbcss), version)) :}
                   <br>[]
