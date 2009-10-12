@@ -190,8 +190,7 @@ let create_user, create_fresh_user =
   let mutex_user = Lwt_mutex.create () in
   let aux already_existing ~name ~pwd ~fullname ?email ?test () =
     Lwt_mutex.lock mutex_user >>= fun () ->
-    get_basicuser_by_login name
-    >>= fun u ->
+    get_basicuser_by_login name >>= fun u ->
     (if (u = nobody) && (name != nobody_login)
      then (* the user does not exist *)
        let dyn = not (test = None) in
@@ -217,18 +216,16 @@ let authenticate ~name ~pwd =
   if (u = nobody)
   then Lwt.fail BadUser
   else
-    User_sql.get_basicuser_data u
-    >>= fun u ->
-      match u.user_pwd with
-        | User_sql.Types.External_Auth -> Lwt.fail (UseAuth u.user_id)
-        | Ocsimore_user_plain p ->
-            if p = pwd then Lwt.return u else Lwt.fail BadPassword
-        | Ocsimore_user_crypt h ->
-            Nis_chkpwd.check_passwd ~passwd:pwd ~hash:h
-            >>= fun ok ->
-            if ok then Lwt.return u else Lwt.fail BadPassword
-        | Connect_forbidden ->
-            Lwt.fail BadPassword
+    User_sql.get_basicuser_data u >>= fun u ->
+    match u.user_pwd with
+      | User_sql.Types.External_Auth -> Lwt.fail (UseAuth u.user_id)
+      | Ocsimore_user_plain p ->
+          if p = pwd then Lwt.return u else Lwt.fail BadPassword
+      | Ocsimore_user_crypt h ->
+          Nis_chkpwd.check_passwd ~passwd:pwd ~hash:h >>= fun ok ->
+          if ok then Lwt.return u else Lwt.fail BadPassword
+      | Connect_forbidden ->
+          Lwt.fail BadPassword
 
 
 (** {2 Session data} *)

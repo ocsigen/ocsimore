@@ -186,7 +186,7 @@ let text_area ?a ~rows ~cols value =
       (fun v' name ->
          return
          ([M.textarea ?a
-              ~rows ~cols ~name ~value:(str (def value v')) ()],
+              ~rows ~cols ~name ~value:(def value v') ()],
          opt_outcome v'));
     params = string_param}
 

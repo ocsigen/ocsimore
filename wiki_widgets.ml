@@ -343,7 +343,7 @@ object (self)
                {: Eliom_duce.Xhtml.textarea
                   ~a:{{ { class="wikitextarea" } }}
                   ~name:contentname ~rows ~cols
-                  ~value:(Ocamlduce.Utf8.make content) () :}
+                  ~value:content () :}
                <br>[]
                !warning2
                {: Eliom_duce.Xhtml.string_button
@@ -438,7 +438,7 @@ object (self)
                {: Eliom_duce.Xhtml.int32_input ~input_type:{: "hidden" :}
                   ~name:versionname ~value:curversion () :}
                {: Eliom_duce.Xhtml.textarea ~name:contentname ~rows ~cols
-                  ~value:(Ocamlduce.Utf8.make content) () :}
+                  ~value:content () :}
                <br>[]
                {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
                   {{ "Save" }} :}
