@@ -5,5 +5,6 @@ echo "STATICDIR :=/var/www/ocsimore" >> Makefile.config
 echo "USER := www-data" >> Makefile.config
 echo "GROUP := www-data" >> Makefile.config
 echo "SRC := "`pwd` >> Makefile.config
+echo "NBCPU := 1" >> Makefile.config
 
 chmod u+x update-db.sh

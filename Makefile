@@ -27,7 +27,7 @@ DESTDIR :=$(shell ocamlfind printconf destdir)
 DISPLAYFLAG := -classic-display
 
 OCAMLFIND := ocamlfind
-OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG)
+OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG) -j $(NBCPU)
 
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
