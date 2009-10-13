@@ -77,6 +77,10 @@ module Types = struct
     | BasicUser u | NonParameterizedGroup u -> u
     | AppliedParameterizedGroup (u, _) -> u
 
+  let is_basic_user = function
+    | BasicUser u -> Some u
+    | _ -> None
+
 
   type 'a admin_writer_reader = {
     grp_admin: 'a parameterized_group;

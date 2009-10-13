@@ -373,18 +373,20 @@ object (self)
 
        User.get_user_data sp >>= fun user ->
        let isadmin = (user.user_id = User.admin) in
+       User_data.can_admin_group ~sp ~user:(basic_user user.user_id) ~group ()
+       >>= fun can_admin_group ->
 
        let head =
          {{ <h1>['User/Group \'' !{: Ocamlduce.Utf8.make g :} '\''] }} in
 
        (* Adding groups to the group *)
-       self#form_edit_group ~sp ~show_edit:isadmin ~group ~text:"" ()
+       self#form_edit_group ~sp ~show_edit:can_admin_group ~group ~text:"" ()
        >>= fun form  ->
        let form (n, (n1, n2)) =
          {{ [<p>[{: Eliom_duce.Xhtml.string_input
                     ~input_type:{: "hidden" :} ~name:n ~value:g () :}
                    !{: form (n1, n2) :}
-                   !{: if isadmin then
+                   !{: if can_admin_group then
                        {{ [ {: Eliom_duce.Xhtml.button
                                ~button_type:{: "submit" :} {{ "Save" }} :} ] }}
                      else {{ [] }} :}

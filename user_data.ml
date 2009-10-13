@@ -167,14 +167,26 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
 
 (** Edition of groups *)
 
+let can_admin_group ~sp ?user ~group () =
+  (match user with
+     | None -> User.get_user_id ~sp >>= fun u ->
+               Lwt.return (basic_user u)
+     | Some u -> Lwt.return u
+  ) >>= fun user ->
+  match is_basic_user group with
+    | None -> Lwt.return (user = basic_user User.admin)
+    | Some group ->
+        User.in_group ~sp ~user
+          ~group:(User.group_can_admin_group $ group) ()
+
+
 let add_remove_users_from_group sp g (add, rem) =
-  User.get_user_id sp >>= fun user ->
-  if user = User.admin then
-    User.get_user_by_name g
-    >>= fun group ->
-    User.GroupsForms.add_remove_users_from_group add rem group
-  else
-    Lwt.fail Ocsimore_common.Permission_denied
+  User.get_user_by_name g >>= fun group ->
+  can_admin_group ~sp ~group () >>= function
+    | true ->
+        User.GroupsForms.add_remove_users_from_group add rem group
+    | false ->
+        Lwt.fail Ocsimore_common.Permission_denied
 
 
 let add_remove_user_from_groups sp u (add, rem) =

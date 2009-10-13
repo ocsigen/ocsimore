@@ -52,6 +52,9 @@ module Types : sig
   val ($) : 'a parameterized_group ->'a Opaque.int32_t -> user
   val basic_user : userid -> user
 
+  (** Converts an user back into an userid, if possible *)
+  val is_basic_user : user -> userid option
+
 
   type 'a admin_writer_reader = {
     grp_admin: 'a parameterized_group;

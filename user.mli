@@ -34,6 +34,13 @@ val nobody_login: string
 val authenticated_users : userid
 
 
+(** The groups of users that can create new groups *)
+val group_can_create_groups : user
+
+(** The group of users that can add or remove people in the given user/group *)
+val group_can_admin_group : [`User] parameterized_group
+
+
 (** Information about a user. Return [nobody] if the user
     does not currently exists, and raises [User_sql.NotBasicUser]
     if the user does not correspond to a basic user. *)

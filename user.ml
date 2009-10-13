@@ -125,6 +125,24 @@ let admin =
 
 let admin' = basic_user admin
 
+let group_can_create_groups =
+  Lwt_unix.run
+    (User_sql.new_nonparameterized_group ~prefix:"users"
+       ~name:"can_create_groups"
+       ~fullname:"Users that are allowed to create new groups"
+    )
+
+let group_can_admin_group : [`User] parameterized_group =
+  Lwt_unix.run
+    (User_sql.new_parameterized_group ~prefix:"users"
+       ~name:"can_admin_group"
+       ~fullname:"Users that can add or remove people in the group"
+    )
+
+
+
+
+
 let get_basicuser_by_login login =
   Lwt.catch
   (fun () -> User_sql.get_basicuser_by_login login)
