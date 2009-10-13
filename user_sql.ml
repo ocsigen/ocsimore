@@ -377,7 +377,7 @@ let print_cache s =
 
 (* Find user info by id *)
 
-module IUserCache = Cache.Make (struct
+module IUserCache = Ocsigen_cache.Make (struct
                           type key = userid
                           type value = userdata
                         end)
@@ -398,7 +398,7 @@ let get_user_data = function
 
 (* Find userid by login *)
 
-module NUseridCache = Cache.Make (struct
+module NUseridCache = Ocsigen_cache.Make (struct
                           type key = string
                           type value = userid
                         end)
@@ -422,7 +422,7 @@ let get_basicuser_by_login n =
 
 (* Find user from string *)
 
-module NUserCache = Cache.Make (struct
+module NUserCache = Ocsigen_cache.Make (struct
                           type key = string
                           type value = user
                         end)
@@ -470,12 +470,12 @@ let update_data ~userid ?password ?fullname ?email ?dyn () =
 
 (* Groups-related functions *)
 
-module GroupUsersCache = Cache.Make (struct
+module GroupUsersCache = Ocsigen_cache.Make (struct
                              type key = user
                              type value = user list
                            end)
 
-module UsersGroupCache = Cache.Make (struct
+module UsersGroupCache = Ocsigen_cache.Make (struct
                              type key = user * bool
                              type value = user list
                            end)

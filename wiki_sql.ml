@@ -412,7 +412,7 @@ let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
 
 (** Wikiboxes, wikiboxescontent table *)
 
-module CWbContent = Cache.Make (struct
+module CWbContent = Ocsigen_cache.Make (struct
                                   type key = wikibox
                                   type value = (string *
                                                 User_sql.Types.userid *
@@ -423,7 +423,7 @@ module CWbContent = Cache.Make (struct
                                                ) option
                                 end)
 
-module CWbVersion = Cache.Make(struct
+module CWbVersion = Ocsigen_cache.Make(struct
                                  type key = wikibox
                                  type value = int32 option
                                end)
@@ -451,7 +451,7 @@ let update_wikibox ?db ~author ~comment ~content ~content_type wb =
 
 (** Wikiboxes, wikiboxesindex table *)
 
-module CWbInfo = Cache.Make(struct type key = wikibox
+module CWbInfo = Ocsigen_cache.Make(struct type key = wikibox
                                    type value = wikibox_info end)
 
 let cache_wb_info = new CWbInfo.cache get_wikibox_info_ 64
@@ -469,7 +469,7 @@ let set_wikibox_special_rights ?db ~wb v =
 
 (** Wikipages *)
 
-module CWp = Cache.Make (struct
+module CWp = Ocsigen_cache.Make (struct
                            type key = wikipage
                            type value = wikipage_info
                          end)
@@ -492,7 +492,7 @@ let set_wikipage_properties ?db ~wiki ~page ?title ?newpage ?wb () =
 
 (** Wikis *)
 
-module CWId = Cache.Make(struct
+module CWId = Ocsigen_cache.Make(struct
                            type key = wiki
                            type value = wiki_info
                          end)
@@ -502,7 +502,7 @@ module CWId = Cache.Make(struct
 let cache_wiki_id = new CWId.cache find_wiki_ 8
 
 let cache_wiki_name =
-  let module CWN = Cache.Make(struct
+  let module CWN = Ocsigen_cache.Make(struct
                                 type key = string
                                 type value = wiki_info
                               end)
@@ -527,7 +527,7 @@ let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
    we only cache the association (wiki, page) -> wikibox *)
 
 let cache_css =
-  let module C = Cache.Make (struct
+  let module C = Ocsigen_cache.Make (struct
                                type key = (wiki * string option)
                                type value = (wikibox * media_type * int32) list
                              end)
