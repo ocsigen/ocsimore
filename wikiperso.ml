@@ -177,20 +177,18 @@ let find_user user =
 
 
 let can_have_wikiperso =
-  basic_user
-    (Lwt_unix.run
-       (User.create_user ~name:"can_have_wikiperso" ~pwd:Connect_forbidden
-          ~fullname:"Users that can have a wikiperso (unless they are in the group 'cannot_have_wikiperso')"
-          ()
-       ))
+  Lwt_unix.run
+    (User_sql.new_nonparameterized_group ~prefix:"wikiperso"
+       ~name:"can_have_wikiperso"
+       ~fullname:"Users that can have a wikiperso (unless they are in the group 'cannot_have_wikiperso')"
+    )
 
 let cannot_have_wikiperso =
-  basic_user
-    (Lwt_unix.run
-       (User.create_user ~name:"cannot_have_wikiperso" ~pwd:Connect_forbidden
-          ~fullname:"Users that are forbidden to have a wikiperso"
-          ()
-       ))
+  Lwt_unix.run
+    (User_sql.new_nonparameterized_group ~prefix:"wikiperso"
+       ~name:"cannot_have_wikiperso"
+       ~fullname:"Users that are forbidden to have a wikiperso"
+    )
 
 let can_have_wikiperso sp user =
   User.in_group ~sp ~user ~group:can_have_wikiperso () >>= function
