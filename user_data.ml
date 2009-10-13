@@ -196,30 +196,48 @@ let logout ~sp =
   Eliom_sessions.clean_request_cache ~sp;
   Lwt.return ()
 
+module Throttle = Lwt_throttle.Make(struct
+                                      type t = string
+                                      let equal (x: string) y = x = y
+                                      let hash = Hashtbl.hash
+                                    end)
+
+
+let th_login = Throttle.create ~rate:1 ~max:1 ~n:10
+let th_ip = Throttle.create ~rate:1 ~max:1 ~n:10
+
+
 let login ~sp ~name ~pwd ~external_auth =
   Eliom_sessions.close_session ~sp () >>= fun () ->
-  Lwt.catch
-    (fun () ->
-       User.authenticate ~name ~pwd >>= fun u ->
-       Lwt.return u.user_id)
-    (fun e ->
-       match external_auth with
-         | None -> Lwt.fail e
-         | Some ea -> match e with
-             | User.UseAuth u ->
-                 (* check external pwd *)
-                 ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
+  (* XXX improve Lwt_throttle *)
+  Throttle.wait th_login name >>= fun b1 ->
+  Throttle.wait th_ip (Eliom_sessions.get_remote_ip sp) >>= fun b2 ->
+  if b1 && b2 then
+    Lwt.catch
+      (fun () ->
+         User.authenticate ~name ~pwd >>= fun u ->
+         Lwt.return u.user_id)
+      (fun e ->
+         match external_auth with
+           | None -> Lwt.fail e
+           | Some ea -> match e with
+               | User.UseAuth u ->
+                   (* check external pwd *)
+                   ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
                    Lwt.return u
-             | User.BadUser ->
-                 (* check external pwd, and create user if ok *)
-                 ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
-                 ea.ext_auth_fullname name >>= fun fullname ->
-                 User.create_user ~pwd:User_sql.Types.External_Auth
-                   ~name ~fullname ()
-                 (* Do we need to actualize the fullname every time
-                    the user connects? *)
-              | e -> Lwt.fail e)
-  >>= fun user ->
-  Eliom_sessions.clean_request_cache ~sp;
-  User.set_session_data sp (user, name)
+               | User.BadUser ->
+                   (* check external pwd, and create user if ok *)
+                   ea.ext_auth_authenticate ~name ~pwd >>= fun () ->
+                   ea.ext_auth_fullname name >>= fun fullname ->
+                   User.create_user ~pwd:User_sql.Types.External_Auth
+                     ~name ~fullname ()
+                   (* Do we need to actualize the fullname every time
+                      the user connects? *)
+               | e -> Lwt.fail e)
+    >>= fun user ->
+    Eliom_sessions.clean_request_cache ~sp;
+    User.set_session_data sp (user, name)
+
+  else
+    Lwt.fail User.ConnectionRefused
 

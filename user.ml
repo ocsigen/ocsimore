@@ -29,7 +29,7 @@ open User_sql.Types
 
 let (>>=) = Lwt.bind
 
-exception NotAllowed
+exception ConnectionRefused
 exception BadPassword
 exception BadUser
 exception UnknownUser of string

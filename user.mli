@@ -11,7 +11,7 @@
 *)
 open User_sql.Types
 
-exception NotAllowed
+exception ConnectionRefused
 exception BadPassword
 exception BadUser
 exception UnknownUser of string
