@@ -45,7 +45,6 @@ TOINSTALL := files/META \
              _build/forum/forum_site.cmo \
              _build/forum/forum_client.cmo \
              _build/wiki_client.cmo \
-             _build/cache.cmi \
              _build/dyngroups.cmi \
              _build/language.cmi \
              _build/ocsimore_common.cmi \
