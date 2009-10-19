@@ -449,12 +449,15 @@ let external_users =
 )
 
 
-let set_session_data ~sp (user, username) =
+let set_session_data ~sp (user_id, username) =
   Polytables.set
-    (Eliom_sessions.get_request_cache sp) user_key (Lwt.return user);
+    (Eliom_sessions.get_request_cache sp) user_key (Lwt.return user_id);
   Eliom_sessions.set_persistent_data_session_group
     ~set_max:(Some 2) ~sp username >>= fun () ->
-  Eliom_sessions.set_persistent_session_data ~table:user_table ~sp user
+  (* We store the user_id inside Eliom. Alternatively, we could
+     just use the session group (and not create a table inside Eliom
+     at all), but we would just obtain a string, not an userid *)
+  Eliom_sessions.set_persistent_session_data ~table:user_table ~sp user_id
 
 
 let in_group ~sp ?user ~group () =
