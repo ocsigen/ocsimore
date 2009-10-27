@@ -202,6 +202,7 @@ val update_wiki :
   ?path:string option ->
   ?descr:string ->
   ?boxrights:bool ->
+  ?model:wiki_model ->
   wiki -> unit Lwt.t
 
 

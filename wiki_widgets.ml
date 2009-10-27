@@ -1246,8 +1246,7 @@ object (self)
                           ~input_type:{: "submit" :} ~value:"Create it!" () :}
                      ]] }}
               in
-              User.in_group ~sp ~group:(Wiki.wiki_wikipages_creators $ wiki) ()
-              >>= fun c ->
+              rights#can_create_wikipages sp wiki >>= fun c ->
               let form =
                 if c then
                   {{ [ {: Eliom_duce.Xhtml.post_form ~service:action_create_page

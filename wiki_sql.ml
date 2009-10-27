@@ -241,7 +241,7 @@ let reencapsulate_wiki (w, t, d, p, br, ci, s, m) =
     wiki_model = Wiki_types.wiki_model_of_string m;
   }
 
-let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
+let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
@@ -277,6 +277,13 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
           | None -> Lwt.return ()
           | Some boxrights ->
               PGSQL(db) "UPDATE wikis SET boxrights = $boxrights \
+                         WHERE id = $wiki"
+       ) >>= fun () ->
+       (match model with
+          | None -> Lwt.return ()
+          | Some model ->
+              let model = string_of_wiki_model model in
+              PGSQL(db) "UPDATE wikis SET model = $model \
                          WHERE id = $wiki"
        )
     )
@@ -513,13 +520,13 @@ let cache_wiki_name =
 let get_wiki_info_by_id ~id = cache_wiki_id#find id
 let get_wiki_info_by_name ~name = cache_wiki_name#find name
 
-let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights wiki =
+let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki =
   cache_wiki_id#remove wiki;
   (* A bit drastic, but search by name (and update_wiki) are rarely
      used anyway. The alternative is to find the the id of the
      wiki, and to remove only this key *)
   cache_wiki_name#clear ();
-  update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights wiki
+  update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki
 
 
 

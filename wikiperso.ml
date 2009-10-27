@@ -199,6 +199,52 @@ let can_have_wikiperso sp user =
 
 
 
+(* We override all the standard wiki rights, so that anonymous
+   has no write or admin rights at all *)
+class wikiperso_rights =
+  let is_not_anonymous sp =
+    User.get_user_id sp >>= fun u -> Lwt.return (u <> User.anonymous) in
+
+  let perm f ~sp arg =
+    is_not_anonymous sp >>= function
+      | false -> Lwt.return false
+      | true -> f ~sp arg
+  in
+object
+  inherit Wiki.wiki_rights as super
+
+  method can_create_wiki = perm super#can_create_wiki
+  method can_admin_wiki = perm super#can_admin_wiki
+  method can_edit_metadata = perm super#can_admin_wiki
+
+  method can_admin_wikibox = perm super#can_admin_wikibox
+  method can_write_wikibox = perm super#can_write_wikibox
+
+  method can_create_wikipages = perm super#can_create_wikipages
+  method can_create_subwikiboxes = perm super#can_create_subwikiboxes
+  method can_create_wikiboxes = perm super#can_create_wikiboxes
+  method can_delete_wikiboxes = perm super#can_delete_wikiboxes
+
+  method can_create_wikicss = perm super#can_create_wikicss
+  method can_create_wikipagecss = perm super#can_create_wikipagecss
+
+  method can_set_wikibox_specific_permissions =
+    perm super#can_set_wikibox_specific_permissions
+
+  method can_admin_wikipage = perm super#can_admin_wikipage
+end
+
+let wikiperso_rights = new wikiperso_rights
+
+
+let wikiperso_model =
+  Wiki_models.register_wiki_model
+    ~name:"wikicreole-wikiperso"
+    ~content_type:Wiki_syntax.wikicreole_content_type
+    ~rights:wikiperso_rights
+    ~widgets:Ocsisite.wikibox_widget
+
+
 (** The function that answers for the extension. *)
 let gen sp =
   let ri = Eliom_sessions.get_ri sp in
@@ -222,7 +268,7 @@ let gen sp =
                     | Not_found ->
                         can_have_wikiperso sp (basic_user userid) >>= fun can ->
                         if can then
-                          let model = Ocsisite.wikicreole_model in
+                          let model = wikiperso_model in
                           User_sql.get_basicuser_data userid >>= fun ud ->
                           create_wikiperso ~model ~wiki_title ~userdata:ud
                           >>= fun wiki ->
@@ -260,6 +306,22 @@ let () =
         Lwt.return ()
      )
   )
+
+(*
+(* Update to correct wikiperso model *)
+let () =
+  let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
+  Lwt_unix.run
+  (Wiki_sql.iter_wikis
+     (fun { wiki_id = wiki; wiki_title = title } ->
+        (match Netstring_pcre.string_match regexp title 0 with
+           | Some _ ->
+               Wiki_sql.update_wiki ~model:wikiperso_model wiki
+           | None -> Lwt.return ()
+        )
+     )
+  )
+*)
 
 
 let _ =

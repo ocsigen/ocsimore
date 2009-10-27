@@ -273,9 +273,13 @@ let cast_service service sp =
   Ocsimore_page.admin_menu
     ~service:(service :> Ocsimore_page.menu_link_service) sp
 
+let model_input ?a model =
+  string_input ?a (Wiki_types.string_of_wiki_model model)
+  |> Wiki_types.wiki_model_of_string
+
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
-      ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container
-      ?err_handler cont =
+    ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
+    ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
       | Xform.NoError -> "Wiki creation"
@@ -307,8 +311,9 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
             p (text "Reader" @+
                convert (string_input reader) User.user_from_userlogin_xform)) @@
        p (text "Container text :" @+ [{{<br>[]}}] @+
-          text_area ~cols:80 ~rows:20 container)
-       @@
+          text_area ~cols:80 ~rows:20 container) @@
+       p (text "Wiki model (for advanced users):" @+ [{{<br>[]}}] @+
+          model_input model) @@
        p (submit_button "Create")
       |> cont)
   >>= fun form ->
@@ -337,17 +342,16 @@ let create_wiki =
              create_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
-               ~container:Wiki.default_container_page
+               ~container:Wiki.default_container_page ~model:wikicreole_model
                ~err_handler
-               (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, _button)))))))) sp ->
+               (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (model, (_ : bool)))))))))) sp ->
                   let path = match path with
                     | None -> None
                     | Some p -> Some (Neturl.split_path p)
                   in
                   Wiki_data.create_wiki ~sp ~title ~descr ?path ~boxrights
                     ?staticdir ~admins ~readers
-                    ~container_text:container ~model:wikicreole_model
-                    ~rights:wiki_rights ()
+                    ~container_text:container ~model ~rights:wiki_rights ()
                   >>= fun wid ->
                   let link = match path with
                     | None -> {{ [] }}
@@ -382,7 +386,7 @@ let create_wiki =
 
 
 let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
-      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container
+      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~model
       ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
@@ -410,6 +414,8 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           bool_checkbox boxrights) @@
        p (text "Serve static files from a local directory: " @+
           staticdir_input staticdir) @@
+       p (text "Wiki model (for rights and wiki syntax): " @+
+          model_input model) @@
        p (submit_button "Save")
       |> cont)
   >>= fun form ->
@@ -432,13 +438,13 @@ let edit_wiki =
                ~service:view_wikis ~arg:() ~sp
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
-               ~container:info.wiki_container
+               ~container:info.wiki_container ~model:info.wiki_model
                ~err_handler
-               (fun (wiki, (descr, (container, (path, (boxrights, (staticdir, _v)))))) sp ->
+               (fun (wiki, (descr, (container, (path, (boxrights, (staticdir, (model, (_ : bool)))))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
                   Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
-                    ~staticdir ~container wiki
+                    ~staticdir ~container ~model wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
                   Ocsimore_page.html_page ~sp
