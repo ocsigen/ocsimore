@@ -222,10 +222,16 @@ let update_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~oldwb ~newwb 
 
 
 let update_wiki ~(rights : Wiki_types.wiki_rights) ~sp ?container ?staticdir ?path ?descr ?boxrights wiki =
-  rights#can_admin_wiki ~sp wiki >>= function
-    | true ->
-        Wiki_sql.update_wiki ?container ?staticdir ?path ?descr ?boxrights wiki
-    | false -> Lwt.fail Ocsimore_common.Permission_denied
+  if staticdir <> None || path <> None || boxrights <> None then
+    rights#can_create_wiki sp () >>= function
+      | true -> Wiki_sql.update_wiki
+          ?container ?staticdir ?path ?descr ?boxrights wiki
+      | false -> Lwt.fail Ocsimore_common.Permission_denied
+  else
+    rights#can_edit_metadata ~sp wiki >>= function
+      | true ->
+          Wiki_sql.update_wiki ?container ?descr wiki
+      | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
 let save_wikipage_properties ~(rights : Wiki_types.wiki_rights) ~sp ?title ?wb ?newpage (wiki, page as wp) =

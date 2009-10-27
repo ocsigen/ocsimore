@@ -127,6 +127,10 @@ let (wiki_wikiboxes_oldversion_viewers, h_wiki_wikiboxes_oldversion_viewers :
        wiki_arg parameterized_group * _) = aux_grp
   "WikiWikiboxesOldversionViewers" "can view an old version of a wikibox"
 
+let (wiki_metadata_editors, h_wiki_metadata_editors :
+       wiki_arg parameterized_group * _) = aux_grp
+  "WikiMetadataEditors" "can modify the metadata for the wiki"
+
 
 (** The following groups take a wikibox as argument. They are used to override
     generic wiki permissions. *)
@@ -144,17 +148,28 @@ let (wikipage_css_creators, _ : wikipage_arg parameterized_group * _)= aux_grp
  wb : parameterized by wikiboxes
  wp : parameterized by wikipages (unused right now)
 
-       -------- WikiAdmin(w)-------------------------------------------------
-      /                 |                 |           |        |    |       |
-WikiboxesAdmins(w)   SubWikiboxes    Wikipages   CssCreators(w)|Wikiboxes   |
-     |               Creators(w)    Creators(w)      /         |Deletors(w) |
-WikiboxesWriters(w)          \            |         /          |            |
-     |                        --    GenWikiboxes  --           |            |
-WikiboxesReaders(w)                  Creators(w)               | FilesReaders(w)
-                                                               |
-                                                 --------------|
-                                                 |             |
-WikiboxAdmin(wb)          WikiboxesOldversionViewers(w)  WikiboxesSrcViewsers(w)
+
+
+       -------- WikiAdmin(w)-----------------------------------------------(1)-<
+      /                 |                 |           |             |
+WikiboxesAdmins(w)   SubWikiboxes    Wikipages   CssCreators(w) Wikiboxes
+     |               Creators(w)    Creators(w)      /          Deletors(w)
+WikiboxesWriters(w)          \            |         /
+     |                        --    GenWikiboxes  --
+WikiboxesReaders(w)                  Creators(w)
+
+
+>-(1)---------------------------------------------------------------------(2)-<
+            |                            |                      |
+   WikiboxesOldversionViewers(w)  WikiboxesSrcViewsers(w)  FilesReaders(w)
+
+
+>-(2)-----
+         |
+    MetaDataWEditors(w)
+
+
+WikiboxAdmin(wb)
    |
 WikiboxWriter(wb)
    |
@@ -174,6 +189,7 @@ let () = Lwt_unix.run (
   add_admin wiki_wikiboxes_grps.grp_admin >>= fun () ->
   add_admin wiki_files_readers            >>= fun () ->
   add_admin wiki_wikiboxes_src_viewers    >>= fun () ->
+  add_admin wiki_metadata_editors         >>= fun () ->
   add_admin wiki_wikiboxes_oldversion_viewers >>= fun () ->
 
   User_sql.add_generic_inclusion
@@ -210,6 +226,7 @@ object (self)
     User.in_group ~sp ~group:wikis_creator ()
 
   method can_admin_wiki = aux_group wiki_admins
+  method can_edit_metadata = aux_group wiki_metadata_editors
   method can_set_wiki_permissions = self#can_admin_wiki (* By construction *)
 
   method can_admin_wikibox = can_adm_wb

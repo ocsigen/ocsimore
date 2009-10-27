@@ -83,7 +83,8 @@ let (
     view_wikis,
     action_send_wikipage_properties,
     edit_wiki_permissions,
-    action_send_css_options
+    action_send_css_options,
+    action_send_wiki_metadata
   ) as wiki_services
     = Wiki_services.make_services ()
 
@@ -399,6 +400,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
     form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
       (p (Opaque.int32_input_xform ~a:{{ { type="hidden" } }} wiki) @@
        p (text "Description: " @+ string_input descr) @@
+       p (text "Container wikibox :" @+Opaque.int32_input_opt_xform container)@@
        p (text "Link this wiki to an url: " @+ path_input path +@
           [{{<br>[]}}] +@
           text "Changing this option will only take effect after the server \
@@ -408,8 +410,6 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           bool_checkbox boxrights) @@
        p (text "Serve static files from a local directory: " @+
           staticdir_input staticdir) @@
-       p (text "Container wikibox :" @+ Opaque.int32_input_opt_xform container) 
-       @@
        p (submit_button "Save")
       |> cont)
   >>= fun form ->
@@ -426,7 +426,7 @@ let edit_wiki =
     (fun sp wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
        let rights = Wiki_models.get_rights info.wiki_model in
-       rights#can_admin_wiki sp wiki >>= function
+       rights#can_create_wiki sp () >>= function
          | true ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
                ~service:view_wikis ~arg:() ~sp
@@ -434,7 +434,7 @@ let edit_wiki =
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container
                ~err_handler
-               (fun (wiki, (descr, (path, (boxrights, (staticdir, (container, _v)))))) sp ->
+               (fun (wiki, (descr, (container, (path, (boxrights, (staticdir, _v)))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
                   Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
@@ -457,7 +457,7 @@ let edit_wiki =
 
 let admin_root =
   Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"root"]
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; ""]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_duce.Xhtml.register admin_root

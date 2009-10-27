@@ -93,6 +93,7 @@ object
   method can_create_wikipages :    wiki rights_aux
   method can_delete_wikiboxes :    wiki rights_aux
   method can_view_static_files :   wiki rights_aux
+  method can_edit_metadata :       wiki rights_aux
 
   method can_admin_wikibox : wikibox rights_aux
   method can_set_wikibox_specific_permissions : wikibox rights_aux

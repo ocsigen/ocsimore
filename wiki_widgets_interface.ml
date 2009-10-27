@@ -80,8 +80,8 @@ type wikibox_override =
   (** Edition of the permissions of a wikibox *)
   | EditWikiboxPerms of wikibox
 
-  (** Edition of the permissions of a wiki *)
-  | EditWikiPerms of wiki
+  (** Edition of the permissions or metadata of a wiki *)
+  | EditWikiOptions of wiki
 
 (** Arguments for the edition of a css. The [wiki] argument is the
 wiki which is concerned. The [string option] argument is [None] if
@@ -224,7 +224,7 @@ end
 type menu_item =
   | Menu_Edit
   | Menu_EditWikiboxPerms
-  | Menu_EditWikiPerms
+  | Menu_EditWikiOptions
   | Menu_History
   | Menu_View
   | Menu_Css

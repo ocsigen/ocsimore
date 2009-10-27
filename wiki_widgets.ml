@@ -150,7 +150,7 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     action_edit_wikibox,
     action_delete_wikibox,
     action_edit_wikibox_permissions,
-    action_edit_wiki_permissions,
+    action_edit_wiki_options,
     action_wikibox_history,
     action_css_history,
     action_css_permissions,
@@ -168,8 +168,9 @@ class dynamic_wikibox (error_box : Widget.widget_with_error_box)
     edit_wiki,
     view_wikis,
     action_send_wikipage_properties,
-    edit_wiki_permissions,
-    action_send_css_options
+    edit_wiki_permissions_ocsisite,
+    action_send_css_options,
+    action_send_wiki_metadata
   ) : Wiki_widgets_interface.interactive_wikibox =
   (* = Wiki_services.make_services () in *)
 object (self)
@@ -232,10 +233,12 @@ object (self)
     (match special_box with
        | RegularBox | WikiPageBox _ -> Lwt.return None
        | WikiContainerBox w ->
-           bi.bi_rights#can_set_wiki_permissions sp w >>= function
+           bi.bi_rights#can_set_wiki_permissions sp w >>= fun b1 ->
+           bi.bi_rights#can_edit_metadata sp w >>= fun b2 ->
+           match b1 || b2 with
              | true ->
-                 let edit_p = preapply action_edit_wiki_permissions (wb, w) in
-                 Lwt.return (Some (edit_p, {{ "edit wiki permissions" }}))
+                 let edit_p = preapply action_edit_wiki_options (wb, w) in
+                 Lwt.return (Some (edit_p, {{ "edit wiki permissions or options" }}))
              | false -> Lwt.return None
     ) >>= fun edit_wiki_perms ->
     (* We choose the button to highlight, which is indicated by the
@@ -245,7 +248,7 @@ object (self)
       | Some Menu_View -> Some view
       | Some Menu_Edit -> Some edit
       | Some Menu_EditWikiboxPerms -> Some edit_wikibox_perm
-      | Some Menu_EditWikiPerms ->
+      | Some Menu_EditWikiOptions ->
           (match edit_wiki_perms with
              | Some (edit_wiki_perms, _) -> Some edit_wiki_perms
              | None -> None)
@@ -497,6 +500,46 @@ object (self)
     Ocsimore_page.add_obrowser_header bi.bi_sp;
     Lwt.return (classes, {{ [ form ] }})
 
+
+  (** Form to edit the description and container of a wiki *)
+  method private display_edit_wiki_metadata ~sp ~classes ?wb wiki =
+    Wiki_sql.get_wiki_info_by_id wiki >>= fun { wiki_descr = descr;
+                                                wiki_container = container } ->
+      let form (wbname, (wikiname, (descrname, containername))) =
+      {{ [ <h2>"Wiki properties"
+           <p>[ {: Ocsimore_common.input_opaque_int32 ~value:wiki wikiname :}
+                  !{: match wb with None -> [] | Some wb ->
+                      [Ocsimore_common.input_opaque_int32 ~value:wb wbname] :}
+                  'Description: '
+                  {: Eliom_duce.Xhtml.string_input ~name:descrname
+                     ~input_type:{: "text" :} ~value:descr () :} <br>[]
+                  'Container wikibox: '
+                  {: Ocsimore_common.input_opaque_int32_opt ~hidden:false
+                     ~value:container containername :}
+                  {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                     {{"Save"}} :}
+              ] ] }}
+      in
+      let form = Eliom_duce.Xhtml.post_form ~sp
+        ~a:{{ { accept-charset="utf-8" } }}
+        ~service:action_send_wiki_metadata form
+        ()
+      in Lwt.return (classes, {{ [form] }})
+
+
+  method private display_edit_wiki_option_form ~sp ~classes ?wb ~options ~perms wiki =
+    (if options then
+       self#display_edit_wiki_metadata ~sp ~classes ?wb wiki
+     else Lwt.return ([], {{ [] }})
+    ) >>= fun (cl1, f1) ->
+    (if perms then
+       self#display_edit_wiki_perm_form ~sp ~classes ?wb wiki
+     else
+       Lwt.return ([], {{ [] }})
+    ) >>= fun (cl2, f2) ->
+    Lwt.return (cl1 @ cl2, {{ [!f1 !f2] }})
+
+
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
   method display_edit_wiki_perm_form ~sp ~classes ?wb wiki =
@@ -512,6 +555,7 @@ object (self)
     aux Wiki.wiki_files_readers "Read static files" () >>= fun f8 ->
     aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" () >>= fun f9 ->
     aux Wiki.wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" () >>= fun f10 ->
+    aux Wiki.wiki_metadata_editors "Edit the metadata of the wiki" () >>= fun f11 ->
     user_widgets#form_edit_awr ~sp
       ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki () >>= fun f7 ->
 
@@ -521,8 +565,8 @@ object (self)
     and msg_wikiboxes = Ocamlduce.Utf8.make "Global permissions for wikiboxes:"
     in
     Lwt.return (
-      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, (n8, (n9, n10)))))))))) ->
-        {{ [
+      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, (n8, (n9, (n10, n11))))))))))) ->
+        ({{ [
              <h2>msg
              <p>[<em>msg2]
              <p>[ {: Wiki.h_wiki_admins.User.GroupsForms.grp_form_arg wiki narg :}
@@ -535,11 +579,12 @@ object (self)
                   !{: f8 n8 :} <br>[]
                   !{: f9 n9 :} <br>[]
                   !{: f10 n10 :} <br>[]
+                  !{: f11 n11 :} <br>[]
                   <b>msg_wikiboxes <br>[]
                   !{: f7 n7 :}]
              <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
                      {{"Save"}} :} ]
-           ] }})
+           ] }} : Eliom_duce.Blocks.form_content_elt_list))
     in
     form wiki >>= fun form ->
     let form (wbname, nargs) =
@@ -574,9 +619,9 @@ object (self)
       (string_of_wiki wiki) (self#css_wikibox_text page) in
     self#menu_box_aux ~title ~active_item:Menu_Css editform_class wb
 
-  method private menu_edit_wiki_perms wb wiki =
-    let title = Printf.sprintf "Permissions - Wiki %s" (string_of_wiki wiki) in
-    self#menu_box_aux ~title ~active_item:Menu_EditWikiPerms editform_class wb
+  method private menu_edit_wiki_options wb wiki =
+    let title = Printf.sprintf "Options - Wiki %s" (string_of_wiki wiki) in
+    self#menu_box_aux ~title ~active_item:Menu_EditWikiOptions editform_class wb
 
   method private menu_wikitext_history wb =
     let title = Printf.sprintf "History - Wikibox %s" (string_of_wikibox wb) in
@@ -794,7 +839,7 @@ object (self)
                ] ] }}
       in
       if can_create then Lwt.return
-        {{ <div>[
+        ({{ <div>[
              {{ Eliom_duce.Xhtml.post_form ~keep_get_na_params:true
                   ~a:{{ { accept-charset="utf-8" class="eliom_inline"} }}
                   ~service:action_send_css_options ~sp fupdate () }}
@@ -803,9 +848,10 @@ object (self)
                   ~service:action_send_css_options ~sp fdelete () }}
              ' '
              !v4 ' / ' !v1 ' / ' !v2 ' / ' !v3
-           ] }}
+           ] }} : Xhtmltypes_duce.block)
       else
-        Lwt.return {{ <p>[ !v4 ' / '!v1 ' / ' !v2 ' / ' !v3 ] }}
+        Lwt.return ({{ <p>[ !v4 ' / '!v1 ' / ' !v2 ' / ' !v3 ] }} :
+                      Xhtmltypes_duce.block)
     in
     (if l = [] then
       Lwt.return {{ [ 'There are currently no CSS' ] }}
@@ -933,15 +979,17 @@ object (self)
                 Lwt.return (r, true)
           | false -> display_error ())
 
-      | EditWikiPerms wiki ->
-          (bi.bi_rights#can_set_wiki_permissions ~sp wiki >>= function
+      | EditWikiOptions wiki ->
+          (bi.bi_rights#can_set_wiki_permissions ~sp wiki >>= fun b1 ->
+           bi.bi_rights#can_edit_metadata ~sp wiki >>= fun b2 ->
+           match b1 || b2 with
             | true ->
                 error_box#bind_or_display_error
                   ?exn
                   (Lwt.return wiki)
-                  (self#display_edit_wiki_perm_form ~sp:bi.bi_sp ~classes
-                     ~wb:wb_loc)
-                  (self#menu_edit_wiki_perms ~bi ?special_box wb_loc wiki)
+                  (self#display_edit_wiki_option_form ~sp:bi.bi_sp ~classes
+                     ~wb:wb_loc ~options:b2 ~perms:b1)
+                  (self#menu_edit_wiki_options ~bi ?special_box wb_loc wiki)
                 >>= fun r ->
                 Lwt.return (r, true)
             | false -> display_error ())
@@ -1238,7 +1286,7 @@ object (self)
        and id = Opaque.int32_t_to_string w.wiki_id
        and edit = Eliom_duce.Xhtml.a ~service:edit_wiki ~sp
                       {: "Edit" :} w.wiki_id
-       and edit_perm = Eliom_duce.Xhtml.a ~service:edit_wiki_permissions ~sp
+       and edit_perm = Eliom_duce.Xhtml.a ~service:edit_wiki_permissions_ocsisite ~sp
                       {: "Edit permissions" :} w.wiki_id
        and page =
          match Wiki_self_services.find_servpage w.wiki_id with

@@ -238,11 +238,12 @@ let make_services () =
          set_override_wikibox ~sp (wb, EditWikiboxPerms wb);
          Lwt.return ())
 
-  and action_edit_wiki_permissions =
+  and action_edit_wiki_options =
     Eliom_predefmod.Action.register_new_coservice'
-      ~name:"wiki_edit_perm" ~get_params:(eliom_wikibox_args ** eliom_wiki_args)
+      ~name:"wiki_edit_options"
+      ~get_params:(eliom_wikibox_args ** eliom_wiki_args)
       (fun sp (wb, wiki) () ->
-         set_override_wikibox ~sp (wb, EditWikiPerms wiki);
+         set_override_wikibox ~sp (wb, EditWikiOptions wiki);
          Lwt.return ())
 
   and action_wikibox_history = Eliom_predefmod.Action.register_new_coservice'
@@ -385,10 +386,11 @@ let make_services () =
                         (h_wiki_wikiboxes_grps.awr_eliom_params **
                            (h_wiki_files_readers.grp_eliom_params **
                               (h_wiki_wikiboxes_src_viewers.grp_eliom_params **
-                               h_wiki_wikiboxes_oldversion_viewers.grp_eliom_params)))))))))
+                                 (h_wiki_wikiboxes_oldversion_viewers.grp_eliom_params **
+                                  h_wiki_metadata_editors.grp_eliom_params))))))))))
 
   and f_save (rights : Wiki_types.wiki_rights) sp
-      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, (wfr, (wsrc, wold)))))))))) =
+      (wiki, (adm, (subwbcre, (wpcre, (wbcre, (csscre, (wbdel, (wbgrps, (wfr, (wsrc, (wold, wmetadata))))))))))) =
     rights#can_admin_wiki sp wiki >>= function
       | true ->
           h_wiki_admins.grp_save wiki adm >>= fun () ->
@@ -401,6 +403,7 @@ let make_services () =
           h_wiki_wikiboxes_grps.awr_save wiki wbgrps >>= fun () ->
           h_wiki_wikiboxes_src_viewers.grp_save wiki wsrc >>= fun () ->
           h_wiki_wikiboxes_oldversion_viewers.grp_save wiki wold >>= fun () ->
+          h_wiki_metadata_editors.grp_save wiki wmetadata >>= fun () ->
           Lwt.return ()
 
       | false -> Lwt.fail Ocsimore_common.Permission_denied
@@ -512,7 +515,22 @@ let make_services () =
             ~title ~wb:wbpage ~newpage (wiki, page))
     )
 
-  and edit_wiki_permissions = Eliom_services.new_service
+  and action_send_wiki_metadata =
+    Eliom_predefmod.Any.register_new_post_coservice'
+      ~keep_get_na_params:false ~name:"wiki_save_metadata"
+      ~post_params:
+    (Eliom_parameters.opt eliom_wikibox_args **
+       (eliom_wiki_args **
+          (Eliom_parameters.string "descr" **
+           Ocsimore_common.eliom_opaque_int32_opt "container")))
+    (fun sp () (wb, (wiki, (descr, container))) ->
+       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       let rights = Wiki_models.get_rights wiki_info.wiki_model in
+       save_then_redirect ~sp ~error:(error_handler_wb_opt wb) `BasePage
+         (fun () -> Wiki_data.update_wiki ~rights ~sp ~container ~descr wiki)
+    )
+
+  and edit_wiki_permissions_ocsisite = Eliom_services.new_service
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"edit_wikis_permissions"]
     ~get_params:eliom_wiki_args ()
 
@@ -522,7 +540,7 @@ let make_services () =
     action_edit_wikibox,
     action_delete_wikibox,
     action_edit_wikibox_permissions,
-    action_edit_wiki_permissions,
+    action_edit_wiki_options,
     action_wikibox_history,
     action_css_history,
     action_css_permissions,
@@ -540,6 +558,7 @@ let make_services () =
     edit_wiki,
     view_wikis,
     action_send_wikipage_properties,
-    edit_wiki_permissions,
-    action_send_css_options
+    edit_wiki_permissions_ocsisite,
+    action_send_css_options,
+    action_send_wiki_metadata
   )
