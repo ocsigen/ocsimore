@@ -34,7 +34,7 @@ let (>>=) = Lwt.bind
 (** Polymorphic keys and subsequent functions to govern the display
     of wikiboxes *)
 
-let override_wikibox_key : (wikibox * wikibox_override) Polytables.key = 
+let override_wikibox_key : (wikibox * wikibox_override) Polytables.key =
   Polytables.make_key ()
 
 (** How to change the display of a wikibox: which wikibox is concerned,
@@ -53,7 +53,7 @@ let set_override_wikibox ~sp v =
     ~value:v
 
 
-let wikibox_error_key : (wikibox option * exn) Polytables.key = 
+let wikibox_error_key : (wikibox option * exn) Polytables.key =
   Polytables.make_key ()
 
 (** The error to display in the wikibox *)
@@ -191,7 +191,265 @@ let path_edit_wiki = [Ocsimore_lib.ocsimore_admin_dir;"edit_wiki"]
 open Wiki
 open User.GroupsForms
 
-let make_services () =
+
+module type WikiServices =
+  sig
+    open Eliom_parameters
+    open Eliom_services
+
+    val action_edit_css :
+      ((Wiki_types.wikibox *
+        (Wiki_widgets_interface.css_wikibox * ((string * int32) option))),
+        unit, [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (((([ | `One of Wiki_types.wiki ] param_name) *
+            ([ | `One of string ] param_name)) *
+           ([ | `One of Wiki_types.wikibox ] param_name)) *
+          (([ | `One of string ] param_name) *
+           ([ | `One of int32 ] param_name)))),
+        unit, [> | `Registrable]) service
+
+    val action_edit_css_list :
+      ((Wiki_types.wikibox * (Wiki_types.wiki * (string option))), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (([ | `One of Wiki_types.wiki ] param_name) *
+          ([ | `One of string ] param_name))),
+        unit, [> | `Registrable]) service
+
+    val action_edit_wikibox :
+      (Wiki_types.wikibox, unit, [> | `Nonattached of [> | `Get] na_s],
+        [ | `WithoutSuffix ], [ | `One of Wiki_types.wikibox ] param_name,
+        unit, [> | `Registrable]) service
+
+    val action_delete_wikibox :
+      (Wiki_types.wikibox, unit, [> | `Nonattached of [> | `Get] na_s],
+        [ | `WithoutSuffix ], [ | `One of Wiki_types.wikibox ] param_name,
+        unit, [> | `Registrable]) service
+
+    val action_edit_wikibox_permissions :
+      (Wiki_types.wikibox, unit, [> | `Nonattached of [> | `Get] na_s],
+        [ | `WithoutSuffix ], [ | `One of Wiki_types.wikibox ] param_name,
+        unit, [> | `Registrable]) service
+
+    val action_edit_wiki_options :
+      ((Wiki_types.wikibox * Wiki_types.wiki), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ([ | `One of Wiki_types.wiki ] param_name)),
+        unit, [> | `Registrable]) service
+
+    val action_wikibox_history :
+      (Wiki_types.wikibox, unit, [> | `Nonattached of [> | `Get] na_s],
+        [ | `WithoutSuffix ], [ | `One of Wiki_types.wikibox ] param_name,
+        unit, [> | `Registrable]) service
+
+    val action_css_history :
+      ((Wiki_types.wikibox * Wiki_widgets_interface.css_wikibox), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ((([ | `One of Wiki_types.wiki ] param_name) *
+           ([ | `One of string ] param_name)) *
+          ([ | `One of Wiki_types.wikibox ] param_name))),
+        unit, [> | `Registrable]) service
+
+    val action_css_permissions :
+      ((Wiki_types.wikibox * Wiki_widgets_interface.css_wikibox), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ((([ | `One of Wiki_types.wiki ] param_name) *
+           ([ | `One of string ] param_name)) *
+          ([ | `One of Wiki_types.wikibox ] param_name))),
+        unit, [> | `Registrable]) service
+
+    val action_old_wikibox :
+      ((Wiki_types.wikibox * int32), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ([ | `One of int32 ] param_name)),
+        unit, [> | `Registrable]) service
+
+    val action_old_wikiboxcss :
+      ((Wiki_types.wikibox * (Wiki_widgets_interface.css_wikibox * int32)),
+        unit, [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (((([ | `One of Wiki_types.wiki ] param_name) *
+            ([ | `One of string ] param_name)) *
+           ([ | `One of Wiki_types.wikibox ] param_name)) *
+          ([ | `One of int32 ] param_name))),
+        unit, [> | `Registrable]) service
+
+    val action_src_wikibox :
+      ((Wiki_types.wikibox * int32), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ([ | `One of int32 ] param_name)),
+        unit, [> | `Registrable]) service
+
+    val action_edit_wikipage_properties :
+      ((Wiki_types.wikibox * Wiki_types.wikipage), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (([ | `One of Wiki_types.wiki ] param_name) *
+          ([ | `One of string ] param_name))),
+        unit, [> | `Registrable]) service
+
+    val action_send_wikiboxtext :
+      (unit, (string * ((Wiki_types.wikibox * Int32.t) * string)),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of string ] param_name) *
+         ((([ | `One of Wiki_types.wikibox ] param_name) *
+           ([ | `One of int32 ] param_name)) *
+          ([ | `One of string ] param_name))),
+        [> | `Registrable]) service
+
+    val action_send_css :
+      (unit,
+        ((Wiki_types.wikibox *
+          (Wiki_widgets_interface.css_wikibox * Int32.t)) *
+         string),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        ((([ | `One of Wiki_types.wikibox ] param_name) *
+          (((([ | `One of Wiki_types.wiki ] param_name) *
+             ([ | `One of string ] param_name)) *
+            ([ | `One of Wiki_types.wikibox ] param_name)) *
+           ([ | `One of int32 ] param_name))) *
+         ([ | `One of string ] param_name)),
+        [> | `Registrable]) service
+
+    val action_send_wikibox_permissions :
+      (unit, (bool * (Wiki_types.wikibox * User.GroupsForms.six_strings)),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of bool ] param_name) *
+         ((Wiki_types.wikibox_arg User.GroupsForms.opaque_int32_eliom_param) *
+          User.GroupsForms.six_input_strings)),
+        [> | `Registrable]) service
+
+    val action_send_wiki_permissions :
+      (unit,
+        ((Wiki_types.wikibox option) *
+         (Wiki_types.wiki *
+          ((string * string) *
+           ((string * string) *
+            ((string * string) *
+             ((string * string) *
+              ((string * string) *
+               ((string * string) *
+                (User.GroupsForms.six_strings *
+                 ((string * string) *
+                  ((string * string) *
+                   ((string * string) * (string * string))))))))))))),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ((Wiki_types.wiki_arg User.GroupsForms.opaque_int32_eliom_param) *
+          (User.GroupsForms.two_input_strings *
+           (User.GroupsForms.two_input_strings *
+            (User.GroupsForms.two_input_strings *
+             (User.GroupsForms.two_input_strings *
+              (User.GroupsForms.two_input_strings *
+               (User.GroupsForms.two_input_strings *
+                (User.GroupsForms.six_input_strings *
+                 (User.GroupsForms.two_input_strings *
+                  (User.GroupsForms.two_input_strings *
+                   (User.GroupsForms.two_input_strings * User.GroupsForms.
+                    two_input_strings)))))))))))),
+        [> | `Registrable]) service
+
+    val pagecss_service :
+      ((Wiki_types.wikipage * Wiki_types.wikibox), unit,
+        [> | `Nonattached of [> | `Get] na_s], [ | `WithoutSuffix ],
+        ((([ | `One of Wiki_types.wiki ] param_name) *
+          ([ | `One of string ] param_name)) *
+         ([ | `One of Wiki_types.wikibox ] param_name)),
+        unit, [> | `Registrable]) service
+
+    val action_create_page :
+      (unit, ((Wiki_types.wikibox option) * Wiki_types.wikipage),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (([ | `One of Wiki_types.wiki ] param_name) *
+          ([ | `One of string ] param_name))),
+        [> | `Registrable]) service
+
+    val action_create_css :
+      (unit,
+        (Wiki_types.wikibox *
+         ((Wiki_types.wiki * (string option)) *
+          (Wiki_types.media_type * (Wiki_types.wikibox option)))),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ((([ | `One of Wiki_types.wiki ] param_name) *
+           ([ | `One of string ] param_name)) *
+          (([ | `Set of string ] param_name) *
+           ([ | `One of Wiki_types.wikibox option ] param_name)))),
+        [> | `Registrable]) service
+
+    val action_send_css_options :
+      (unit,
+        (Wiki_types.wikibox *
+         (((Wiki_widgets_interface.css_wikibox * (Wiki_types.wikibox option)) *
+           Wiki_types.media_type) *
+          int32)),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (((((([ | `One of Wiki_types.wiki ] param_name) *
+              ([ | `One of string ] param_name)) *
+             ([ | `One of Wiki_types.wikibox ] param_name)) *
+            ([ | `One of Wiki_types.wikibox ] param_name)) *
+           ([ | `Set of string ] param_name)) *
+          ([ | `One of int32 ] param_name))),
+        [> | `Registrable]) service
+
+    val edit_wiki :
+      (Wiki_types.wiki, unit,
+        [>
+          | `Attached of [> | `Internal of ([> | `Service] * [> | `Get])] a_s
+        ], [ | `WithoutSuffix ], [ | `One of Wiki_types.wiki ] param_name,
+        unit, [> | `Registrable]) service
+
+    val view_wikis :
+      (unit, unit,
+        [>
+          | `Attached of [> | `Internal of ([> | `Service] * [> | `Get])] a_s
+        ], [ | `WithoutSuffix ], unit, unit, [> | `Registrable]) service
+
+    val action_send_wikipage_properties :
+      (unit,
+        (Wiki_types.wikibox *
+         (Wiki_types.wikipage *
+          (string * ((Wiki_types.wikibox option) * string)))),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         ((([ | `One of Wiki_types.wiki ] param_name) *
+           ([ | `One of string ] param_name)) *
+          (([ | `One of string ] param_name) *
+           (([ | `One of Wiki_types.wikibox option ] param_name) *
+            ([ | `One of string ] param_name))))),
+        [> | `Registrable]) service
+
+    val action_send_wiki_metadata :
+      (unit,
+        ((Wiki_types.wikibox option) *
+         (Wiki_types.wiki * (string * (Wiki_types.wikibox option)))),
+        [> | `Nonattached of [> | `Post] na_s], [ | `WithoutSuffix ], unit,
+        (([ | `One of Wiki_types.wikibox ] param_name) *
+         (([ | `One of Wiki_types.wiki ] param_name) *
+          (([ | `One of string ] param_name) *
+           ([ | `One of Wiki_types.wikibox option ] param_name)))),
+        [> | `Registrable]) service
+
+    val edit_wiki_permissions_ocsisite :
+      (Wiki_types.wiki, unit,
+        [>
+          | `Attached of [> | `Internal of ([> | `Service] * [> | `Get])] a_s
+        ], [ | `WithoutSuffix ], [ | `One of Wiki_types.wiki ] param_name,
+        unit, [> | `Registrable]) service
+
+end
+
+
+module MakeServices (X: sig end) : WikiServices = struct
+
   let action_edit_css = Eliom_predefmod.Action.register_new_coservice'
     ~name:"css_edit"
     ~get_params:(eliom_wikibox_args **
@@ -534,31 +792,4 @@ let make_services () =
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"edit_wikis_permissions"]
     ~get_params:eliom_wiki_args ()
 
-  in (
-    action_edit_css,
-    action_edit_css_list,
-    action_edit_wikibox,
-    action_delete_wikibox,
-    action_edit_wikibox_permissions,
-    action_edit_wiki_options,
-    action_wikibox_history,
-    action_css_history,
-    action_css_permissions,
-    action_old_wikibox,
-    action_old_wikiboxcss,
-    action_src_wikibox,
-    action_edit_wikipage_properties,
-    action_send_wikiboxtext,
-    action_send_css,
-    action_send_wiki_permissions,
-    action_send_wikibox_permissions,
-    pagecss_service,
-    action_create_page,
-    action_create_css,
-    edit_wiki,
-    view_wikis,
-    action_send_wikipage_properties,
-    edit_wiki_permissions_ocsisite,
-    action_send_css_options,
-    action_send_wiki_metadata
-  )
+end

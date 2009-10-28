@@ -58,38 +58,12 @@ let error_box = new Wiki_widgets.wikibox_error_box
 let wiki_rights = new Wiki.wiki_rights
 
 (** We are at eliom registration time, we can create the services *)
-let (
-    action_edit_css,
-    action_edit_css_list,
-    action_edit_wikibox,
-    action_delete_wikibox,
-    action_edit_wikibox_permissions,
-    action_edit_wiki_permissions,
-    action_wikibox_history,
-    action_css_history,
-    action_css_permissions,
-    action_old_wikibox,
-    action_old_wikiboxcss,
-    action_src_wikibox,
-    action_edit_wikipage_properties,
-    action_send_wikiboxtext,
-    action_send_css,
-    action_send_wiki_permissions,
-    action_send_wikibox_permissions,
-    pagecss_service,
-    action_create_page,
-    action_create_css,
-    edit_wiki,
-    view_wikis,
-    action_send_wikipage_properties,
-    edit_wiki_permissions,
-    action_send_css_options,
-    action_send_wiki_metadata
-  ) as wiki_services
-    = Wiki_services.make_services ()
+module WikiServices = Wiki_services.MakeServices(struct end)
+
+module WikiWidgets = Wiki_widgets.MakeWikiWidget(WikiServices)
 
 let wikibox_widget =
- new Wiki_widgets.dynamic_wikibox error_box User_site.user_widgets wiki_services
+ new WikiWidgets.dynamic_wikibox error_box User_site.user_widgets
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =
@@ -125,11 +99,11 @@ let () =
     )
 
 (** We register the service that lists all the wikis *)
-let () =  Eliom_duce.Xhtml.register view_wikis
+let () =  Eliom_duce.Xhtml.register WikiServices.view_wikis
     (fun sp () () ->
        wikibox_widget#display_all_wikis sp >>= fun b ->
        Ocsimore_page.html_page ~sp
-         {{ [ !{: Ocsimore_page.admin_menu ~service:view_wikis sp:}
+         {{ [ !{: Ocsimore_page.admin_menu ~service:WikiServices.view_wikis sp:}
               !b ] }}
     )
 
@@ -428,14 +402,14 @@ let edit_wiki =
         Some "You do not have sufficient permissions to edit wikis"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_duce.Xhtml.register edit_wiki
+  Eliom_duce.Xhtml.register WikiServices.edit_wiki
     (fun sp wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
        let rights = Wiki_models.get_rights info.wiki_model in
        rights#can_create_wiki sp () >>= function
          | true ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
-               ~service:view_wikis ~arg:() ~sp
+               ~service:WikiServices.view_wikis ~arg:() ~sp
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container ~model:info.wiki_model
@@ -448,15 +422,17 @@ let edit_wiki =
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
                   Ocsimore_page.html_page ~sp
-                    {{ [!{: Ocsimore_page.admin_menu ~service:view_wikis sp :}
+                    {{ [!{: Ocsimore_page.admin_menu
+                            ~service:WikiServices.view_wikis sp :}
                         <h1>title ] }}
                )
          | false ->
              Ocsimore_page.html_page sp
-               {{ [ !{: Ocsimore_page.admin_menu ~service:view_wikis sp :}
+               {{ [ !{: Ocsimore_page.admin_menu
+                        ~service:WikiServices.view_wikis sp :}
                     <h1>"Insufficient permissions"
                     <p>"You do not have enough rights to edit this wiki" ] }} );
-  edit_wiki
+  WikiServices.edit_wiki
 
 
 
@@ -477,7 +453,7 @@ let () = Eliom_duce.Xhtml.register admin_root
 
 let () = Ocsimore_page.set_root_admin_service admin_root
 
-let () = Eliom_duce.Xhtml.register edit_wiki_permissions
+let () = Eliom_duce.Xhtml.register WikiServices.edit_wiki_permissions_ocsisite
   (fun sp wiki () ->
      wikibox_widget#display_edit_wiki_perm_form ~sp ~classes:[] wiki
      >>= fun (_, form) ->
@@ -490,7 +466,7 @@ let () = Eliom_duce.Xhtml.register edit_wiki_permissions
 
 let () = Ocsimore_page.add_to_admin_menu "Wikis" [
   "Create a new wiki", create_wiki;
-  "View and edit wikis", view_wikis
+  "View and edit wikis", WikiServices.view_wikis
 ]
 
 
