@@ -1,0 +1,1 @@
+ ALTER TABLE CSS ADD COLUMN mediatype text NOT NULL DEFAULT 'all';
