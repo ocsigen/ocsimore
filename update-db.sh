@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source Makefile.config
+
 
 if [ -e "database-state" ]
 then
@@ -15,7 +17,7 @@ for A in update-????-??-??.sql;
 do
     if [[ $A > $FIRST ]];
     then
-        echo psql -U ocsimore ocsimore -f $A;
+        echo "echo -e '$PASSWORD\n' | psql -U ocsimore ocsimore -f $A --password";
         export UPDATED=1
     fi
 done
