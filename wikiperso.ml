@@ -215,7 +215,7 @@ object
 
   method can_create_wiki = perm super#can_create_wiki
   method can_admin_wiki = perm super#can_admin_wiki
-  method can_edit_metadata = perm super#can_admin_wiki
+  method can_edit_metadata = perm super#can_edit_metadata
 
   method can_admin_wikibox = perm super#can_admin_wikibox
   method can_write_wikibox = perm super#can_write_wikibox
