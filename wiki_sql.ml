@@ -483,11 +483,11 @@ module CWp = Ocsigen_cache.Make (struct
 
 let cache_wp = new CWp.cache
   (fun (wiki, page) ->
-     let page = Ocsigen_lib.remove_end_slash page in
      get_box_for_page_ wiki page) 64
 
 
 let get_wikipage_info ~wiki ~page =
+  let page = Ocsigen_lib.remove_end_slash page in
   cache_wp#find (wiki, page)
 
 let set_wikipage_properties ?db ~wiki ~page ?title ?newpage ?wb () =
