@@ -39,17 +39,17 @@ let messages_french = {
   page_does_not_exist = "Cette page n'existe pas";
 
   wikitext_edition_conflict1 =
-    "Le contenu de cette wikibox a changé depuis que vous avez commencé à la \
-     modifier. L'aperçu et le code ci-dessous montrent vos modifications, \
+    "Le contenu de cette wikibox a changÃ© depuis que vous avez commencÃ© Ã  la \
+     modifier. L'aperÃ§u et le code ci-dessous montrent vos modifications, \
      et non la version actuellement dans le wiki.";
 
   wikitext_edition_conflict2 =
-    "Si vous sauvegardez vos changements, vous écraserez la version de la \
+    "Si vous sauvegardez vos changements, vous Ã©craserez la version de la \
      boite se trouvant actuellement dans le wiki.";
 
   css_edition_conflict =
-    "cette CSS a été éditée depuis que vous avez commencé à la modifier. \
-     Si vous sauvegardez vos changements, vous écraserez la version actuelle \
+    "cette CSS a Ã©tÃ© Ã©ditÃ©e depuis que vous avez commencÃ© Ã  la modifier. \
+     Si vous sauvegardez vos changements, vous Ã©craserez la version actuelle \
      de la CSS.";
 }
 
