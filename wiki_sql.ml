@@ -703,19 +703,3 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
            Ocsigen_messages.console2 "Done updating wikipages";
            Lwt.return ()
     )
-
-
-
-
-
-
-(* Temporary function, used for the migration from old ids to new ones *)
-let wikibox_new_id ~wiki ~wb_old_id =
-  let wiki = sql_of_wiki wiki in
-  Sql.full_transaction_block
-    (fun db -> PGSQL(db) "SELECT uid FROM wikiboxindex
-                          WHERE wiki=$wiki AND id=$wb_old_id"
-     >>= function
-       | [] -> Lwt.fail Not_found
-       | uid :: _ -> Lwt.return (wikibox_of_sql uid)
-    )

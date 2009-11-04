@@ -13,9 +13,46 @@ let is_wiki_syntax ct =
   (ct = cvt Wiki_syntax.reduced_wikicreole_content_type2) ||
   (ct = cvt Wiki_syntax.wikicreole_inline_content_type)
 
-(*
 
-(* Code to migrate from old wikibox ids to uids *)
+
+
+
+(** Code to migrate from old wikibox ids to uids. Although outdated, this
+  code can be used as an example to update all the wikiboxes content *)
+(*
+let () =
+  Wiki_syntax.add_preparser_extension
+    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikibox"
+  (fun (_sp, wb) args c ->
+     Ocsigen_messages.console2 "Wikibox found";
+     (try
+        try
+          Ocsigen_messages.console2 "Changing";
+          let box = Int32.of_string (List.assoc "box" args) in
+          Wiki_sql.wikibox_wiki wb >>= fun wid ->
+          let wid = Wiki_ext.extract_wiki_id args wid in
+          Ocsigen_messages.console2
+            (Printf.sprintf "Changing %ld %s" box (string_of_wiki wid));
+          Wiki_sql.wikibox_new_id wid box >>= fun box' ->
+          Ocsigen_messages.console2
+            (Printf.sprintf "New wikibox %s" (string_of_wikibox box'));
+          let s = (Wiki_syntax.string_of_extension "wikibox"
+                     (("box", string_of_wikibox box') ::
+                        (* We remove the wiki information *)
+                        List.remove_assoc "wiki" (List.remove_assoc "box" args)) c) in
+          Lwt.return (Some s)
+
+        with Not_found ->
+          Ocsigen_messages.console2 "Error?";
+          (* No box, the preparser extension will take care of this
+             case, we do nothing *)
+          Lwt.return None
+      with Failure _ -> Ocsigen_messages.console2 "Error"; Lwt.return None
+        | Not_found -> Ocsigen_messages.console2 "Box not found";
+            Lwt.return None)
+  )
+
+
 let service_update_wikiboxes_uid = Eliom_services.new_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "update"]
   ~get_params:Eliom_parameters.unit ()
@@ -44,11 +81,13 @@ let () =
 *)
 
 
+(** Update all the links in a the content of a wikibox. Previously used for
+    the transition of the <<syntax>> to [[wiki(i):]]. Can be used to migrate
+    an entire wiki somewhere else *)
+(*
 let action_update_links = Eliom_services.new_post_coservice'
   ~name:"update_links_aux"
   ~post_params:(Ocsimore_common.eliom_opaque_int32 "old" ** (Ocsimore_common.eliom_opaque_int32 "new" ** Eliom_parameters.string "path")) ()
-
-
 
 let () =
   Eliom_duce.Xhtml.register action_update_links
@@ -99,60 +138,5 @@ let () =
        Ocsimore_page.html_page sp
          ({{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
                   ~service:action_update_links ~sp draw_form () :} ] }}))
-
-
-(*
-let () =
-  Wiki_syntax.add_preparser_extension
-    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikibox"
-  (fun (_sp, wb) args c ->
-     Ocsigen_messages.console2 "Wikibox found";
-     (try
-        try
-          Ocsigen_messages.console2 "Changing";
-          let box = Int32.of_string (List.assoc "box" args) in
-          Wiki_sql.wikibox_wiki wb >>= fun wid ->
-          let wid = Wiki_ext.extract_wiki_id args wid in
-          Ocsigen_messages.console2
-            (Printf.sprintf "Changing %ld %s" box (string_of_wiki wid));
-          Wiki_sql.wikibox_new_id wid box >>= fun box' ->
-          Ocsigen_messages.console2
-            (Printf.sprintf "New wikibox %s" (string_of_wikibox box'));
-          let s = (Wiki_syntax.string_of_extension "wikibox"
-                     (("box", string_of_wikibox box') ::
-                        (* We remove the wiki information *)
-                        List.remove_assoc "wiki" (List.remove_assoc "box" args)) c) in
-          Lwt.return (Some s)
-
-        with Not_found ->
-          Ocsigen_messages.console2 "Error?";
-          (* No box, the preparser extension will take care of this
-             case, we do nothing *)
-          Lwt.return None
-      with Failure _ -> Ocsigen_messages.console2 "Error"; Lwt.return None
-        | Not_found -> Ocsigen_messages.console2 "Box not found";
-            Lwt.return None)
-  )
-
-
-
-(* Default permissions for the migration to the new permissions system *)
-let _ = Lwt_unix.run
-  (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_title = name} ->
-        User.add_to_group ~user:(basic_user User.anonymous)
-          ~group:(Wiki.wiki_wikiboxes_grps.grp_reader $ wiki)
-        >>= fun () ->
-        User.add_to_group ~user:(basic_user User.anonymous)
-          ~group:(Wiki.wiki_files_readers $ wiki)
-        >>= fun () ->
-        try Scanf.sscanf name "wikiperso for %s"
-          (fun user ->
-             User.get_user_by_name user
-             >>= fun user ->
-             User.add_to_group ~user ~group:(Wiki.wiki_admins $ wiki)
-          )
-        with Scanf.Scan_failure _ -> Lwt.return ()
-
-     ))
 *)
+

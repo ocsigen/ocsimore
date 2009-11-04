@@ -235,12 +235,3 @@ val rewrite_wikipages :
   newwiki:wiki ->
   path:string ->
   unit Lwt.t
-
-
-(** / **)
-(* This function can be used to convert from the all wikiboxes ids to
-   the (new) uids. *)
-val wikibox_new_id: wiki:wiki -> wb_old_id:int32 -> wikibox Lwt.t
-
-
-
