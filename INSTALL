@@ -33,20 +33,11 @@ sudo /etc/init.d/postgresql restart
 sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
 createlang -U ocsimore plpgsql ocsimore
 
-Then do:
+Then populate the database:
 psql -U ocsimore -f createdb.sql ocsimore
-psql -U ocsimore -f user_createdb.sql ocsimore
-psql -U ocsimore -f wiki_createdb.sql ocsimore
-psql -U ocsimore -f forum/forum_createdb.sql ocsimore
-
-Finally, update the database by typing make check_db and following the
-instructions.
-
 
 If something goes wrong, you can delete the database by typing:
-
 sudo -u postgres dropdb ocsimore
-rm -f database-state
 
 
 5. Install pgocaml with lwt support (lwt branch of cvs)

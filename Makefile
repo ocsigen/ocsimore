@@ -99,15 +99,12 @@ STATICFILES := static/vm.js \
 	static/ocsiadmin.css \
 	static/creole_cheat_sheet.png
 
-all: wiki_client.ml forum/forum_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib check_db ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
+all: wiki_client.ml forum/forum_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
 	$(MAKE) -C nis_chkpwd
 	mkdir -p _build
 	cp nis_chkpwd/nis_chkpwd.{cma,cmi} _build
-
-check_db:
-	./update-db.sh
 
 ocamlbuild: $(MYOCAMLFIND)
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
@@ -200,6 +197,6 @@ clean:
 	rm wiki_client.ml wiki_client_calls.ml
 	rm forum/forum_client_calls.ml forum/forum_client.ml
 
-.PHONY: all clean check_db nis_chkpwd_
+.PHONY: all clean nis_chkpwd_
 
 SHELL=bash

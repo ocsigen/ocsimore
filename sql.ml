@@ -74,7 +74,7 @@ let update_version db version =
   PGSQL(db) "UPDATE options SET value = $ver WHERE name = 'dbversion'"
 
 let update version f =
-  if current_version < 2 then
+  if current_version < version then
     full_transaction_block
       (fun db ->
          Ocsigen_messages.warning
