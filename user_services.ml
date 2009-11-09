@@ -52,36 +52,6 @@ let eliom_user : userid Ocsimore_common.eliom_usertype =
   Ocsimore_common.eliom_opaque_int32 "userid"
 
 
-
-(*
-  action_login:
-    (unit,
-     string * string,
-     [`Nonattached of [`Post] na_s],
-     [`WithoutSuffix],
-     unit,
-     [`One of string] param_name * [`One of string] param_name,
-     [`Registrable]) service
-
- action_logout:
-    (unit,
-     unit,
-     [`Nonattached of [`Post] na_s],
-     [`WithoutSuffix],
-     unit,
-     unit,
-     [`Registrable]) service
-
-  action_logout_get:
-    (unit,
-     unit,
-     [`Nonattached of [`Get] na_s],
-     [`WithoutSuffix],
-     unit,
-     unit,
-     [`Registrable]) service
-*)
-
 let services ~external_auth ~force_secure =
   let action_login =
     Eliom_predefmod.Any.register_new_post_coservice'
