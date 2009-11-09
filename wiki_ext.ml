@@ -249,11 +249,9 @@ let register_wikibox_syntax_extensions
          (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
           and page = Ocsimore_lib.list_assoc_default "data" args ""
           and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
-          and wiki = extract_wiki_id args bi.bi_wiki
-          and https = extract_https args
           and atts = Wiki_syntax.parse_common_attribs args in
           let url = Wiki_syntax.make_href
-            bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
+            bi (Wiki_syntax.link_kind page) fragment
           in
           Lwt.return
             {{ [<object
