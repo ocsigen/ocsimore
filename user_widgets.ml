@@ -106,6 +106,10 @@ class type user_widget_class = object
     unit ->
     (User.GroupsForms.six_input_strings -> Xhtmltypes_duce.inlines) Lwt.t
 
+  method status_text:
+    sp:Eliom_sessions.server_params ->
+    Xhtmltypes_duce.flows Lwt.t
+
 end
 
 class type user_widget_user_creation_class = object
@@ -471,28 +475,37 @@ object (self)
       and p =  (if u.user_kind = `ParameterizedGroup then
                   {{ [<em>['(param)']] }}
                 else {{ [] }})
-      and d = Ocamlduce.Utf8.make u.user_fullname in
+      and d = Ocamlduce.Utf8.make u.user_fullname
+      in
       {{ <tr>[<td>[<b>g!p ] <td>d ] }}
     in
     let l1 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
                                {{ [ !s {: line1 arg:} ] }}) {{ [] }} tl1 in
-    let t1 = {{ <table>[{: line1 hd1 :}
+    let t1 = {{ <table class="table_admin">[{: line1 hd1 :}
                           !l1]}} in
 
     (* Standard users *)
-    let hd2, tl2 = List.hd l2, List.tl l2 (* admin always exists*) in
     let line2 u =
       let g = Ocamlduce.Utf8.make u.user_login
       and d = Ocamlduce.Utf8.make u.user_fullname
-      and l = {{ [ {: Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
-                      {: "Edit" :} u.user_login :}] }}
+      and l = Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
+         (Ocsimore_page.icon ~sp ~path:"imgedit.png" ~text:"Edit user")
+         u.user_login
+      and id = Ocamlduce.Utf8.make (string_from_userid u.user_id)
       in
-      {{ <tr>[<td>[<b>g ] <td>d <td>l] }}
+      {{ <tr>[<td class="userid">id
+              <td class="userlogin">[<b>g ]
+              <td class="userdescr">d
+              <td>[l]] }}
     in
     let l2 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
-                               {{ [ !s {: line2 arg:} ] }}) {{ [] }} tl2 in
-    let t2 = {{ <table>[{: line2 hd2 :}
-                          !l2]}} in
+                               {{ [ !s {: line2 arg:} ] }}) {{ [] }} l2 in
+    let t2 = {{ <table class="table_admin">[
+                  <tr>[<th>"Id"
+                       <th>"Login"
+                       <th>"Description"
+                      ]
+                      !l2]}} in
     let form name = {{ [<p>[
            {: Eliom_duce.Xhtml.string_input ~name~input_type:{: "text" :} () :}
            {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
@@ -508,10 +521,21 @@ object (self)
     and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it \
                     (including its parameter if needed) below" in
     Lwt.return
-      ({{ [ <p>[<b>title1]               t2
-           <p>[<b>title2 <br>[] !msg2 ] t1
+      ({{ [ <h1>"Existing users"
+            <h2>title1               t2
+            <h2>title2 <p>msg2 t1
            f
        ] }} : Xhtmltypes_duce.blocks)
+
+  method status_text ~sp =
+    User.get_user_data sp >>= fun u ->
+      if u.user_id <> User.anonymous then
+        let u = Ocamlduce.Utf8.make u.user_login in
+        self#display_logout_button ~sp {{ ['Logout'] }} >>= fun l ->
+        Lwt.return {{ ['You are logged in as ' !u '. ' l ] }}
+      else
+        let l = Eliom_duce.Xhtml.a S.service_login sp {{ "Login" }} () in
+        Lwt.return {{ ['You are not currently logged. ' l]  }}
 
 end
 
@@ -535,7 +559,16 @@ object (self)
     User_data.can_create_user ~sp ~options:user_creation_options >>= function
       | true ->
           Lwt.return
-            ({{ [<h1>"Registration form"
+            ({{ [<h1>"User creation"
+                 <p>['You can use the forms below to create a new Ocsimore user
+                     or group. (A group is a special form of user that is not \
+                     authorized to log in.)'
+                     <br>[]
+                     'Note that users that authenticate through external means \
+                     (NIS or PAM) are added automatically the first time they \
+                     log in inside Ocsimore, and you do not need to create them'
+                    ]
+                 <h2>"Create a new user"
                  <p>['Please fill in the following fields.' <br>[]
                      'Be very careful to enter a valid e-mail address, \
                        as the password for logging in will be sent there.']

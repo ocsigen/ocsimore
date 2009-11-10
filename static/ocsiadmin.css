@@ -17,8 +17,7 @@ h1, h2, h3, h4 {
 }
 
 #admin_menu > li > ul {
-    padding-top:10px;
-    padding-left: 10px;
+    padding:10px 8px 5px;
 }
 
 span.admin-menu-root {
@@ -28,29 +27,98 @@ span.admin-menu-root {
 #admin_menu > li {
   display: block;
   float: left;
-  margin: 10px;
+  margin: 0 5px 20px 5px;
   padding: 10px;
   background-color: #D0D9EB;
   color: #3860AA;
   font-weight: bold;
+  width: 100%;
 }
 
 #admin_menu > li > ul > li {
     list-style: none;
     font-size: 80%;
+    padding: 3px 0;
 }
 
 
 #admin_menu {
+    margin-top: 0;
     padding: 0;
+    position: fixed;
+    width: 190px;
+    margin:0;
 }
 
-
-#after-admin-menu {
-clear: both;
+#admin_body {
+    margin-left: 240px;
+    height: 80%;
+    margin-bottom: 45px;
 }
+
 
 .errmsg {
     color: red;
     font-weight: bold;
+}
+
+
+table.table_admin {
+  border-spacing: 5px 2px;
+}
+
+table.table_admin td.wikiid, table.table_admin td.wikiname, table.table_admin td.wikidescr, table.table_admin td.userid, table.table_admin td.userlogin, table.table_admin td.userdescr {
+  padding: 3px 10px;
+/*  border-collapse: separate; */
+}
+
+table.table_admin td {
+  border-bottom: 1px solid #E0E9FB;
+}
+
+table.table_admin th {
+  background-color: #E0E9FB;
+  padding: 5px;
+}
+
+
+table.table_admin td.wikiname {
+    max-width: 30em;
+}
+
+table.table_admin td.wikiid, table.table_admin td.userid{
+    text-align: center;
+}
+
+table.table_admin img {
+    width: 16px;
+    height: 16px;
+    border: none;
+}
+
+body.admin {
+    font-family: Verdana,sans-serif;
+    
+}
+
+body.admin h1 {
+  background-color: #3860AA;
+  color: white;
+  padding: .5em;
+  margin-left: -10px;
+  margin-bottom: 1.5em
+}
+
+#admin_status {
+  border-top: 1px solid  #3860AA;
+  position:fixed;
+  bottom:0;
+  padding: 5px 15px;
+  width:100%;
+  background-color: white;
+  z-index: 99;
+}
+
+#admin_status form.logoutbutton, #admin_status form.logoutbutton div, #admin_status form.logoutbutton p {
+  display:inline;
 }

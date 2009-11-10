@@ -117,3 +117,24 @@ val admin_menu:
   ?service:menu_link_service ->
   Eliom_sessions.server_params ->
   Xhtmltypes_duce.blocks
+
+
+val admin_page:
+  sp:Eliom_sessions.server_params ->
+  service:menu_link_service ->
+  ?body_classes:string list ->
+  ?css:Xhtmltypes_duce.links ->
+  ?title:string ->
+  Xhtmltypes_duce.blocks ->
+  Xhtmltypes_duce.html Lwt.t
+
+
+val icon:
+  sp:Eliom_sessions.server_params ->
+  path:string ->
+  text:string ->
+  {{ [Xhtmltypes_duce.img*]}}
+
+
+val add_status_function:
+  (sp:Eliom_sessions.server_params -> Xhtmltypes_duce.flows Lwt.t) -> unit

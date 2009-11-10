@@ -1252,28 +1252,34 @@ object (self)
       (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l in
 
      let line w =
+       let img = Ocsimore_page.icon ~sp in
        let t = Ocamlduce.Utf8.make w.wiki_title
        and d = Ocamlduce.Utf8.make w.wiki_descr
        and id = Opaque.int32_t_to_string w.wiki_id
        and edit = Eliom_duce.Xhtml.a ~service:X.edit_wiki ~sp
-                      {: "Edit" :} w.wiki_id
+         (img "imgedit.png" "Edit wiki options") w.wiki_id
        and edit_perm = Eliom_duce.Xhtml.a
          ~service:X.edit_wiki_permissions_ocsisite ~sp
-         {: "Edit permissions" :} w.wiki_id
+         (img "imgeditperms.png" "Edit permissions") w.wiki_id
        and page =
          match Wiki_self_services.find_servpage w.wiki_id with
            | None -> {{ [] }}
            | Some service ->
                {{ [ {: Eliom_duce.Xhtml.a ~service ~sp
-                       {: "View root wikipage" :} [] :} ] }}
+                       (img "imgview.png" "View wiki root wikipage") [] :} ] }}
        in
-       {{ <tr>[<td>{: id :} <td>t <td>d <td>[edit] <td>[edit_perm] <td>page ] }}
+       {{ <tr>[<td class="wikiid">{: id :}
+               <td class="wikiname">[<b>t]
+               <td class="wikidescr">d
+               <td>[edit]
+               <td>[edit_perm]
+               <td>page ] }}
      in
      let l = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
                                 {{ [ !s {: line arg:} ] }}) {{ [] }} l in
      Lwt.return {{ [ <h1>"Existing Ocsimore wikis"
-                     <table>[ <tr>[<th>"Id" <th>"Wiki" <th>"Description" ]
-                              !l]
+                     <table class="table_admin">
+                       [ <tr>[<th>"Id" <th>"Wiki" <th>"Description" ] !l]
                    ] }}
 
 end

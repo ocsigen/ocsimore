@@ -102,9 +102,7 @@ let () =
 let () =  Eliom_duce.Xhtml.register WikiServices.view_wikis
     (fun sp () () ->
        wikibox_widget#display_all_wikis sp >>= fun b ->
-       Ocsimore_page.html_page ~sp
-         {{ [ !{: Ocsimore_page.admin_menu ~service:WikiServices.view_wikis sp:}
-              !b ] }}
+       Ocsimore_page.admin_page ~sp ~service:WikiServices.view_wikis b
     )
 
 
@@ -243,13 +241,13 @@ let staticdir_input ?a staticdir =
   string_input ?a (match staticdir with None -> "" | Some s -> s)
   |> function "" -> None | s -> Some s
 
-let cast_service service sp =
-  Ocsimore_page.admin_menu
-    ~service:(service :> Ocsimore_page.menu_link_service) sp
+let cast_service service =
+    (service :> Ocsimore_page.menu_link_service)
 
 let model_input ?a model =
   string_input ?a (Wiki_types.string_of_wiki_model model)
   |> Wiki_types.wiki_model_of_string
+
 
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
     ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
@@ -258,9 +256,8 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
     let title = match error with
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
-    Ocsimore_page.html_page ~sp ~title
-      {{ [!{: cast_service service sp :}
-          <h1>(str title)
+    Ocsimore_page.admin_page ~sp ~service:(cast_service service) ~title
+      {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p class="errmsg">(str err)] }}
               | _ -> {{ [] }}
@@ -345,14 +342,12 @@ let create_wiki =
                   let title = str "Wiki sucessfully created"
                   and msg = str (Printf.sprintf "You have created wiki %s"
                                    (string_of_wiki wid)) in
-                  Ocsimore_page.html_page ~sp
-                    {{ [ !{: Ocsimore_page.admin_menu ~service:create_wiki sp :}
-                         <h1>title <p>msg !link] }}
+                  Ocsimore_page.admin_page ~sp ~service:create_wiki
+                    {{ [ <h1>title <p>msg !link] }}
                )
          | false ->
-             Ocsimore_page.html_page ~sp
-               {{ [ !{: Ocsimore_page.admin_menu ~service:create_wiki sp :}
-                    <p>"You are not allowed to create wikis. If you have not \
+             Ocsimore_page.admin_page ~sp ~service:create_wiki
+               {{ [ <p>"You are not allowed to create wikis. If you have not \
                         already done so, try to login."
                   ] }}
     );
@@ -366,9 +361,8 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
     let title = match error with
       | Xform.NoError -> "Wiki edition"
       | _ -> "Error" in
-    Ocsimore_page.html_page ~sp ~title
-      {{ [!{: cast_service service sp :}
-          <h1>(str title)
+    Ocsimore_page.admin_page ~sp ~service:(cast_service service) ~title
+      {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p class="errmsg">(str err)] }}
               | _ -> {{ [] }}
@@ -421,16 +415,12 @@ let edit_wiki =
                     ~staticdir ~container ~model wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
-                  Ocsimore_page.html_page ~sp
-                    {{ [!{: Ocsimore_page.admin_menu
-                            ~service:WikiServices.view_wikis sp :}
-                        <h1>title ] }}
+                  Ocsimore_page.admin_page ~sp ~service:WikiServices.view_wikis
+                    {{ [<h1>title ] }}
                )
          | false ->
-             Ocsimore_page.html_page sp
-               {{ [ !{: Ocsimore_page.admin_menu
-                        ~service:WikiServices.view_wikis sp :}
-                    <h1>"Insufficient permissions"
+             Ocsimore_page.admin_page ~sp ~service:WikiServices.view_wikis
+               {{ [ <h1>"Insufficient permissions"
                     <p>"You do not have enough rights to edit this wiki" ] }} );
   WikiServices.edit_wiki
 
@@ -444,11 +434,9 @@ let admin_root =
 
 let () = Eliom_duce.Xhtml.register admin_root
   (fun sp () () ->
-     Ocsimore_page.html_page sp
-       {{ [! {: Ocsimore_page.admin_menu ~service:admin_root sp :}
-          <p>"This is the Ocsimore main admin page. The links above will
-                 help you configure your installation."
-          ]}}
+     Ocsimore_page.admin_page ~sp ~service:admin_root
+       {{ [<p>"This is the Ocsimore main admin page. The links above will
+                 help you configure your installation." ]}}
   )
 
 let () = Ocsimore_page.set_root_admin_service admin_root
@@ -457,10 +445,8 @@ let () = Eliom_duce.Xhtml.register WikiServices.edit_wiki_permissions_ocsisite
   (fun sp wiki () ->
      wikibox_widget#display_edit_wiki_perm_form ~sp ~classes:[] wiki
      >>= fun (_, form) ->
-     Ocsimore_page.html_page sp
-       {{ [ !{: Ocsimore_page.admin_menu ~service:admin_root sp :}
-            <div>form
-          ]}}
+     Ocsimore_page.admin_page ~sp ~service:admin_root
+       {{ [ <div>form ]}}
   )
 
 

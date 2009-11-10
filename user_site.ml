@@ -143,22 +143,16 @@ let user_widgets, service_user_creation =
           ~service:ServicesCreation.service_create_new_user
           (fun sp () () ->
              user_widget_creation#display_user_creation ~err:"" ~sp
-             >>= fun body ->
-             Ocsimore_page.html_page sp
-               {{ [ !{{ Ocsimore_page.admin_menu
-                        ~service:ServicesCreation.service_create_new_user sp }}
-                    !body ] }}
+             >>= (Ocsimore_page.admin_page ~sp
+                    ~service:ServicesCreation.service_create_new_user)
           );
 
         Eliom_duce.Xhtml.register
           ~service:ServicesCreation.action_create_new_user
           (fun sp () args ->
              user_widget_creation#display_user_creation_done sp () args
-             >>= fun body ->
-             Ocsimore_page.html_page sp
-               {{ [ !{{ Ocsimore_page.admin_menu
-                        ~service:ServicesCreation.service_create_new_user sp }}
-                    !body ] }}
+             >>= (Ocsimore_page.admin_page ~sp
+                    ~service:ServicesCreation.service_create_new_user)
           );
 
         (user_widget_creation :> Widget.user_widget),
@@ -172,25 +166,19 @@ let () =
   Eliom_duce.Xhtml.register service_view_group
     (fun sp g () ->
        user_widgets#display_group ~sp g >>= fun body ->
-       Ocsimore_page.html_page sp
-         {{ [ !{: Ocsimore_page.admin_menu ~service:service_view_groups sp :}
-              !body ] }}
+       Ocsimore_page.admin_page ~sp ~service:service_view_groups body
     );
 
   Eliom_duce.Xhtml.register service_view_groups
     (fun sp () () ->
        user_widgets#display_all_groups ~sp >>= fun body ->
-       Ocsimore_page.html_page sp
-         {{ [ !{: Ocsimore_page.admin_menu ~service:service_view_groups sp :}
-              !body ] }}
+       Ocsimore_page.admin_page ~sp ~service:service_view_groups body
 );
 
   Eliom_duce.Xhtml.register service_login
     (fun sp () () ->
        user_widgets#display_login_widget ~sp () >>= fun body ->
-       Ocsimore_page.html_page sp
-         {{ [ !{{ Ocsimore_page.admin_menu ~service:service_login sp }}
-              body ] }}
+       Ocsimore_page.admin_page ~sp ~service:service_login {{ [ body ] }}
     );
 
   (* We register the syntax extensions *)
@@ -200,9 +188,12 @@ let () =
 
 let () = Ocsimore_page.add_to_admin_menu "Users"
   (["Login", service_login;
-    "View and edit groups or users", service_view_groups
+    "Groups edition", service_view_groups
    ] @
      (match service_user_creation with
         | None -> []
-        | Some service -> ["Create a new user", service])
+        | Some service -> ["User creation", service])
   )
+
+
+let () = Ocsimore_page.add_status_function user_widgets#status_text

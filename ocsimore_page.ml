@@ -19,6 +19,7 @@
 (**
    @author Boris Yakobowski
 *)
+open Lwt
 
 let static_service = ref None
 
@@ -142,8 +143,7 @@ let add_obrowser_header = Header.require_header obrowser_header
 let add_admin_pages_header = Header.require_header admin_pages_header
 
 
-let html_page
-    ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
+let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
   let title = Ocamlduce.Utf8.make title
   and headers = Header.generate_headers sp
   and classes = Ocsimore_lib.build_class_attr body_classes
@@ -202,6 +202,35 @@ let admin_menu ?service sp =
     | Some s ->
         let menu = Main_page s, List.rev !admin_menu in
         add_admin_pages_header sp;
-        {{ [ !{{ Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
-                  ~whole_tree:true menu ?service ~sp }}
-             <div id="after-admin-menu">[] ] }}
+        Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
+          ~whole_tree:true menu ?service ~sp
+
+
+let add_status_function, status_text =
+  let l = ref [] in
+  (fun e -> l := e :: !l),
+  (fun sp ->
+     match !l with
+       | [] -> Lwt.return {{ [] }}
+       | hd :: tl ->
+           hd ~sp >>= fun hd ->
+           Lwt_util.fold_left (fun (r : Xhtmltypes_duce.flows) f ->
+                                 f ~sp >>= fun (e : Xhtmltypes_duce.flows) ->
+                                 Lwt.return {{ [ !e ' | ' !r ]}})
+             hd tl
+  )
+
+let admin_page ~sp ~service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
+  let menu = admin_menu ~service sp in
+  status_text sp >>= fun status ->
+  html_page ~sp ~title ~css ~body_classes:("admin" :: body_classes)
+    {{ [!menu
+        <div id="admin_body">content
+        <div id="admin_status">status] }}
+
+
+let icon ~sp ~path ~text =
+  let uri = Ocamlduce.Utf8.make (static_file_uri sp [path])
+  and alt = Ocamlduce.Utf8.make text
+  in
+  ({{ [ <img alt src=uri title=alt>[] ] }} :{{ [Xhtmltypes_duce.img*]}} )
