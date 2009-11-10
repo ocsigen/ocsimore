@@ -18,14 +18,16 @@
 
 (** PostgreSQL database operations via PGOCaml library. *)
 
+open Parse_config (* To force Parse_config to be linked early enough, as it
+                     triggers the reading of the password file *)
+
+
 module PGOCaml =
   PGOCaml_generic.Make (struct include Lwt include Lwt_chan end)
 
 let () = PGOCaml.verbose := 2
 
 open Lwt
-open Ocsimore_lib
-open CalendarLib
 
 
 type db_t = (string, bool) Hashtbl.t PGOCaml.t
@@ -54,45 +56,4 @@ let transaction_block db f =
 let full_transaction_block f =
   Lwt_pool.use pool (fun db -> transaction_block db (fun () -> f db))
 
-
-exception BadVersion
-
-let current_version = Lwt_unix.run
-  (Lwt.catch
-     (fun () ->
-        full_transaction_block
-          (fun db ->
-             PGSQL(db) "SELECT value FROM options WHERE name = 'dbversion'")
-        >>= fun l -> Lwt.return (int_of_string (List.hd l)))
-     (fun _ ->
-        Ocsigen_messages.errlog "Incorrect database version for ocsimore. Correct the key 'dbversion' in the table 'options'";
-        Lwt.fail BadVersion)
-  )
-
-let update_version db version =
-  let ver = string_of_int version in
-  PGSQL(db) "UPDATE options SET value = $ver WHERE name = 'dbversion'"
-
-let update version f =
-  if current_version < version then
-    full_transaction_block
-      (fun db ->
-         Ocsigen_messages.warning
-           (Printf.sprintf "Updating Ocsimore database to version %d" version);
-         f db >>= fun () ->
-         update_version db version)
-  else
-    Lwt.return ()
-
-
-let () = Lwt_unix.run
- begin
-
-   update 2
-     (fun db -> PGSQL(db) "ALTER TABLE options ADD PRIMARY KEY (name)")
-   >>= fun () ->
-
-   Lwt.return ()
-
- end
-
+ 

@@ -166,8 +166,9 @@ object (self)
           !wikiboxsubject
           <span class={: info_class :}>
             {: Ocamlduce.Utf8.make
-                 (Format.sprintf "posted by %s %s" 
-                    author (Ocsimore_lib.sod m.m_datetime)) :}
+                 (Format.sprintf "posted by %s %s" author
+                    (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))
+            :}
           wikibox
          ] }})
 

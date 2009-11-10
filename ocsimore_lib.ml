@@ -1,7 +1,5 @@
 open Lwt
-(* open Eliommod *)
-open Eliom_sessions
-open CalendarLib
+
 
 let ocsimore_admin_dir = "ocsimoreadmin"
 
@@ -19,10 +17,6 @@ let ( ^? ) (cond, x) xs = if cond then x::xs else xs (* right assoc *)
 let ( ^: ) x xs = x :: xs (* right assoc, same precedence of ^? *)
 let ( % ) x y = x,y  (* left assoc, higher precedence *)
 
-    (* some shortnamed functions for conversions *)
-let soL (* "string of Long" *) = Int64.to_string
-let sol (* "string of long" *) = Int32.to_string
-let sod (* "string of date" *) = Printer.CalendarPrinter.to_string
 
 type 'a tree = Node of 'a * ('a tree list);;
 

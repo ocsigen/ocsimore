@@ -1,8 +1,5 @@
 (** Database interface to the Ocsimore database. *)
 
-open Ocsimore_lib
-open CalendarLib
-
 module PGOCaml : PGOCaml_generic.PGOCAML_GENERIC with type 'a monad = 'a Lwt.t
 
 

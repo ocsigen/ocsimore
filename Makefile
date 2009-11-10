@@ -99,23 +99,24 @@ STATICFILES := static/vm.js \
 	static/ocsiadmin.css \
 	static/creole_cheat_sheet.png
 
-all: wiki_client.ml forum/forum_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocsimore.mllib ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
+all: wiki_client.ml forum/forum_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
 	$(MAKE) -C nis_chkpwd
 	mkdir -p _build
 	cp nis_chkpwd/nis_chkpwd.{cma,cmi} _build
 
-ocamlbuild: $(MYOCAMLFIND)
+updatedb: $(MYOCAMLFIND)
+	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
+	$(OCAMLBUILD) updatedb_sql.byte
+	PGPASSWORD=$(PASSWORD) ./updatedb_sql.byte
+
+ocamlbuild: $(MYOCAMLFIND) updatedb
 	PGUSER=$(DBUSER) PGDATABASE=$(DATABASE) PGPASSWORD=$(PASSWORD) \
 	$(OCAMLBUILD) $(TARGETS)
 
 $(MYOCAMLFIND): myocamlfind.ml
 	$(OCAMLBUILD) -no-plugin $(subst _build/,,$@)
-
-ocsimore.mllib: ocsimore.mllib.IN
-	echo "# Warning: Generated from ocsimore.mllib.IN" > ocsimore.mllib
-	cat ocsimore.mllib.IN >> ocsimore.mllib
 
 static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
 	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(OBROWSERDIR)/AXO.cma $(LWTDIR)/lwt.cma $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cma _build/wiki_client.cmo _build/forum/forum_client.cmo
@@ -193,7 +194,6 @@ uninstall:
 clean:
 	rm -Rf _build
 	$(MAKE) -C nis_chkpwd clean
-	rm ocsimore.mllib
 	rm wiki_client.ml wiki_client_calls.ml
 	rm forum/forum_client_calls.ml forum/forum_client.ml
 
