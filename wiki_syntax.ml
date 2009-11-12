@@ -1246,7 +1246,8 @@ let () =
               match wiki_info.Wiki_types.wiki_pages with
                 | Some dir ->
                     Eliom_sessions.get_current_sub_path_string
-                      bi.Wiki_widgets_interface.bi_sp = dir^"/"^link
+                      bi.Wiki_widgets_interface.bi_sp =
+                      Ocsimore_lib.remove_begin_slash (dir^"/"^link)
                 | None -> false
             in
             if b
