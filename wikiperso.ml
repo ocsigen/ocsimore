@@ -52,9 +52,11 @@ open Wiki_types
 
 
 (* Extraction of the configuration options *)
-let username, wikiroot = match Eliom_sessions.get_config () with
+let username, wikiroot, hostid = match Eliom_sessions.get_config () with
   | [Element("options", [("username", u);("wikiroot", w)],[])] ->
-      u, w
+      u, w, None
+  | [Element("options", [("username", u);("wikiroot", w);("hostid",h)],[])] ->
+      u, w, Some h
   | _ -> raise (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside wikiperso config"))
 
@@ -275,7 +277,8 @@ let gen sp =
                           (* We then register the wiki at the correct url *)
                           Wiki_services.register_wiki ~sp ~wiki:wiki ()
                             ~rights:Ocsisite.wiki_rights
-                            ~path:(wiki_path ud.user_login);
+                            ~path:(wiki_path ud.user_login)
+                            ~hostids:(hostid, Ocsisite.hostid);
                           Lwt.return ()
                         else Lwt.return ()
                     | e -> Lwt.fail e)
@@ -295,12 +298,13 @@ let () =
   let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
   Lwt_unix.run
   (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_title = title } ->
+     (fun { wiki_id = wiki; wiki_title = title; wiki_hostid = hostid } ->
         (match Netstring_pcre.string_match regexp title 0 with
            | Some result ->
                let user = Netstring_pcre.matched_group result 1 title in
                Wiki_services.register_wiki ~rights:Ocsisite.wiki_rights
-                 ~path:(wiki_path user) ~wiki:wiki ()
+                 ~path:(wiki_path user) ~wiki:wiki
+                 ~hostids:(hostid, Ocsisite.hostid) ()
            | None -> ()
         );
         Lwt.return ()

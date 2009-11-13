@@ -162,6 +162,7 @@ val update_wiki :
   ?descr:string ->
   ?boxrights:bool ->
   ?model:wiki_model ->
+  ?hostid:string option ->
   wiki -> unit Lwt.t) rights_sp
 
 

@@ -229,7 +229,7 @@ let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
 
 (** Wikis *)
 
-let reencapsulate_wiki (w, t, d, p, br, ci, s, m) =
+let reencapsulate_wiki (w, t, d, p, br, ci, s, m, h) =
   { wiki_id = wiki_of_sql w;
     wiki_title = t;
     wiki_descr = d;
@@ -239,9 +239,10 @@ let reencapsulate_wiki (w, t, d, p, br, ci, s, m) =
       (match ci with None -> None | Some ci -> Some (wikibox_of_sql ci));
     wiki_staticdir = s;
     wiki_model = Wiki_types.wiki_model_of_string m;
+    wiki_hostid = h;
   }
 
-let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki =
+let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hostid wiki =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
@@ -284,6 +285,12 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki =
           | Some model ->
               let model = string_of_wiki_model model in
               PGSQL(db) "UPDATE wikis SET model = $model \
+                         WHERE id = $wiki"
+       ) >>= fun () ->
+       (match hostid with
+          | None -> Lwt.return ()
+          | Some hostid ->
+              PGSQL(db) "UPDATE wikis SET hostid = $?hostid \
                          WHERE id = $wiki"
        )
     )
@@ -520,13 +527,13 @@ let cache_wiki_name =
 let get_wiki_info_by_id ~id = cache_wiki_id#find id
 let get_wiki_info_by_name ~name = cache_wiki_name#find name
 
-let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki =
+let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hostid wiki =
   cache_wiki_id#remove wiki;
   (* A bit drastic, but search by name (and update_wiki) are rarely
      used anyway. The alternative is to find the the id of the
      wiki, and to remove only this key *)
   cache_wiki_name#clear ();
-  update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model wiki
+  update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hostid wiki
 
 
 
