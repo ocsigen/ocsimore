@@ -126,7 +126,7 @@ let register_wiki ~rights ?sp ~path ~wiki ~hostids () =
       (fun sp page () ->
          let path =
            Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page) in
-         let page' = Ocsigen_lib.string_of_url_path ~encode:true path in
+         let page' = Ocsigen_lib.string_of_url_path ~encode:false path in
          send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
       )
   in
