@@ -29,6 +29,10 @@ let (>>=) = Lwt.bind
 
 
 (* Helper functions for the syntax extensions below *)
+let extract args v default =
+  try List.assoc v args
+  with Not_found -> default
+
 let extract_wiki_id args default =
   try wiki_of_string (List.assoc "wiki" args)
   with Failure _ | Not_found -> default
@@ -284,12 +288,15 @@ let register_wikibox_syntax_extensions
   let f = (fun _wp bi args _ ->
        Wikicreole.A_content
          (let id = Eliom_obrowser.fresh_id () in
-          let atts = Wiki_syntax.parse_common_attribs args in
+          let atts = Wiki_syntax.parse_common_attribs args
+          and on = extract args "msgon" "Show menus"
+          and off = extract args "msgoff" "Hide menus"
+          in
           Ocsimore_page.add_obrowser_header bi.bi_sp;
           Lwt.return
             {{ [ <span>[<a ({id={: id :} class="shownmenus jslink btmenu"
-                   onclick={: Wiki_client_calls.switch_menu id :} } ++ atts)
-                           >"Hide menus"] ]
+                   onclick={: Wiki_client_calls.switch_menu id on off :} } ++ atts)
+                           >{: Ocamlduce.Utf8.make off :}] ]
              }} )
     )
   in

@@ -86,7 +86,7 @@ let delete_wikibox =
   
 
 let switch_menu =
-  fun.client (id : string) ->
+  fun.client (id : string) (msgon : string) (msgoff : string) ->
   let link = Js.get_element_by_id id
   and body = Js.get_element_by_id "body"
   and class_no_menu = "nomenu" in
@@ -97,11 +97,11 @@ let switch_menu =
   in
 
   if List.mem class_no_menu classes_body then (
-    JSOO.set "innerHTML" (JSOO.string "Hide menus") link;
+    JSOO.set "innerHTML" (JSOO.string msgoff) link;
     update_classes_body (List.filter ((<>) class_no_menu) classes_body)
   )
   else (
-    JSOO.set "innerHTML" (JSOO.string "Show menus") link;
+    JSOO.set "innerHTML" (JSOO.string msgon) link;
     update_classes_body (class_no_menu :: classes_body)
   )
 
