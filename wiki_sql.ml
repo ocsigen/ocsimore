@@ -239,10 +239,10 @@ let reencapsulate_wiki (w, t, d, p, br, ci, s, m, h) =
       (match ci with None -> None | Some ci -> Some (wikibox_of_sql ci));
     wiki_staticdir = s;
     wiki_model = Wiki_types.wiki_model_of_string m;
-    wiki_hostid = h;
+    wiki_siteid = h;
   }
 
-let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hostid wiki =
+let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
@@ -287,10 +287,10 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hosti
               PGSQL(db) "UPDATE wikis SET model = $model \
                          WHERE id = $wiki"
        ) >>= fun () ->
-       (match hostid with
+       (match siteid with
           | None -> Lwt.return ()
-          | Some hostid ->
-              PGSQL(db) "UPDATE wikis SET hostid = $?hostid \
+          | Some siteid ->
+              PGSQL(db) "UPDATE wikis SET siteid = $?siteid \
                          WHERE id = $wiki"
        )
     )
@@ -527,13 +527,13 @@ let cache_wiki_name =
 let get_wiki_info_by_id ~id = cache_wiki_id#find id
 let get_wiki_info_by_name ~name = cache_wiki_name#find name
 
-let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hostid wiki =
+let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki =
   cache_wiki_id#remove wiki;
   (* A bit drastic, but search by name (and update_wiki) are rarely
      used anyway. The alternative is to find the the id of the
      wiki, and to remove only this key *)
   cache_wiki_name#clear ();
-  update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?hostid wiki
+  update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki
 
 
 

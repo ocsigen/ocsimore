@@ -65,7 +65,7 @@ type wiki_info = {
                                 ocsimore will serve static pages if present,
                                 instead of wiki pages *);
   wiki_model : wiki_model;
-  wiki_hostid: string option;
+  wiki_siteid: string option;
 }
 
 type wikipage_info = {

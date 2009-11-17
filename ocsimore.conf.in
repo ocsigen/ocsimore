@@ -64,9 +64,9 @@
       </eliommodule>
 
       <eliommodule findlib-package="ocsimore.ocsisite">
-        <!-- If you use Ocsimore in more than one host, you can use the hostid
-             tag to separate the various instances -->
-        <!--hostid id="host1" /-->
+        <!-- If you use Ocsimore in more than one host or site, you can use the
+             siteid tag to distinguish between the various instances -->
+        <!--siteid id="host1" /-->
       </eliommodule>
 
 <!-- personal pages: 

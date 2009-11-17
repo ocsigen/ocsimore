@@ -58,7 +58,7 @@ type wiki_info = {
   wiki_container : wikibox option;
   wiki_staticdir : string option;
   wiki_model : wiki_model;
-  wiki_hostid: string option;
+  wiki_siteid: string option;
 }
 
 type wikibox_info = {

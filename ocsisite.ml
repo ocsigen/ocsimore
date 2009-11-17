@@ -30,11 +30,11 @@ let ( ** ) = Eliom_parameters.prod
 
 (** Options for Ocsisite *)
 
-let hostid =
-  let rec find_wikidata (_hostid as data) = function
+let siteid =
+  let rec find_wikidata (_siteid as data) = function
     | [] -> Lwt.return data
 
-    | (Simplexmlparser.Element ("hostid", ["id", id], []))::l ->
+    | (Simplexmlparser.Element ("siteid", ["id", id], []))::l ->
         find_wikidata (Some id) l
 
     | _ ->
@@ -192,19 +192,19 @@ This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax, with a few
 
 
 (** We register the existing wikis of the database, but only those that
-    match the [hostid] option *)
+    match the [siteid] option *)
 let () = Lwt_unix.run
   (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_pages = path; wiki_hostid = h } ->
+     (fun { wiki_id = wiki; wiki_pages = path; wiki_siteid = h } ->
         (match path with
            | None -> ()
            | Some path ->
                let path = Ocsigen_lib.split '/' path in
-               let hostids = (* we always register the admin wiki *)
-                 if wiki = wiki_admin.wiki_id then (h, h) else (hostid, h)
+               let siteids = (* we always register the admin wiki *)
+                 if wiki = wiki_admin.wiki_id then (h, h) else (siteid, h)
                in
                Wiki_services.register_wiki ~rights:wiki_rights ~path ~wiki
-                 ~hostids ()
+                 ~siteids ()
         );
         Lwt.return ()
      )
@@ -244,7 +244,7 @@ let model_input ?a model =
 
 let create_wiki_form ~serv_path:_ ~service ~arg ~sp
     ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
-    ~hostid
+    ~siteid
     ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
@@ -281,7 +281,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
           model_input model) @@
        p (text "Host id (conditional loading of wikis, for advanced users):"
           @+ [{{<br>[]}}] @+
-          string_opt_input hostid) @@
+          string_opt_input siteid) @@
        p (submit_button "Create")
       |> cont)
   >>= fun form ->
@@ -311,7 +311,7 @@ let create_wiki =
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
                ~container:Wiki.default_container_page ~model:wikicreole_model
-               ~hostid ~err_handler
+               ~siteid ~err_handler
                (fun (title, (descr, (path, (boxrights, (staticdir, (admins, (readers, (container, (model, (hid, (_ : bool))))))))))) sp ->
                   let path = match path with
                     | None -> None
@@ -325,7 +325,7 @@ let create_wiki =
                     | None -> {{ [] }}
                     | Some path ->
                         Wiki_services.register_wiki ~rights:wiki_rights
-                          ~sp ~path ~wiki:wid ~hostids:(hostid, hid) ();
+                          ~sp ~path ~wiki:wid ~siteids:(siteid, hid) ();
                         match Wiki_self_services.find_servpage wid with
                           | None -> (* should never happen, but this is not
                                        really important *) {{ [] }}
@@ -352,7 +352,7 @@ let create_wiki =
 
 
 let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
-      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~model ~hostid
+      ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~model ~siteid
       ?err_handler cont =
   let page sp _arg error form =
     let title = match error with
@@ -381,8 +381,8 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           staticdir_input staticdir) @@
        p (text "Wiki model (for rights and wiki syntax): " @+
           model_input model) @@
-       p (text "Host id (for conditional loading of wikis): " @+
-          string_opt_input hostid) @@
+       p (text "Site id (for conditional loading of wikis): " @+
+          string_opt_input siteid) @@
        p (submit_button "Save")
       |> cont)
   >>= fun form ->
@@ -406,13 +406,13 @@ let edit_wiki =
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container ~model:info.wiki_model
-               ~hostid:info.wiki_hostid
+               ~siteid:info.wiki_siteid
                ~err_handler
-               (fun (wiki, (descr, (container, (path, (boxrights, (staticdir, (model, (hostid, (_ : bool))))))))) sp ->
+               (fun (wiki, (descr, (container, (path, (boxrights, (staticdir, (model, (siteid, (_ : bool))))))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
                   Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
-                    ~staticdir ~container ~model ~hostid wiki
+                    ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
                   Page_site.admin_page ~sp ~service:WikiServices.view_wikis

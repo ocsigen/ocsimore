@@ -98,8 +98,8 @@ let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ?(menu_style=`Lin
 
 
 (* Register the services for the wiki [wiki] *)
-let register_wiki ~rights ?sp ~path ~wiki ~hostids () =
-  if fst hostids = snd hostids then (
+let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
+  if fst siteids = snd siteids then (
   Ocsigen_messages.debug
     (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
        (string_of_wiki wiki) (String.concat "/"  path));
