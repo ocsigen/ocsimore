@@ -42,7 +42,10 @@
 
     <host defaulthostname="localhost">
 
-      <static dir="_STATICDIR_" />
+      <eliommodule findlib-package="ocsimore.page" >
+        <admin staticdir="_STATICDIR_" />
+      </eliommodule>
+
 
       <eliommodule findlib-package="ocsimore.users">
         <!-- The following arguments are optional: -->
@@ -61,7 +64,9 @@
       </eliommodule>
 
       <eliommodule findlib-package="ocsimore.ocsisite">
-        <admin staticdir="_STATICDIR_" />
+        <!-- If you use Ocsimore in more than one host, you can use the hostid
+             tag to separate the various instances -->
+        <!--hostid id="host1" /-->
       </eliommodule>
 
 <!-- personal pages: 
