@@ -27,8 +27,10 @@ let current_version = Lwt_unix.run
           (fun db ->
              PGSQL(db) "SELECT value FROM options WHERE name = 'dbversion'")
         >>= fun l -> Lwt.return (int_of_string (List.hd l)))
-     (fun _ ->
-        Lwt.fail (Failure "Incorrect database version for ocsimore. Correct the key 'dbversion' in the table 'options'");
+     (fun e ->
+        Lwt.fail (Failure (Printf.sprintf "Error while reading database version \
+                                           for ocsimore: '%s'"
+                             (Printexc.to_string e)));
      )
   )
 
