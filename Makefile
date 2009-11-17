@@ -51,6 +51,7 @@ TOINSTALL := files/META \
              _build/ocsimore_common.cmi \
              _build/ocsimore_lib.cmi \
              _build/ocsimore_nis.cmi \
+             _build/page_site.cmi \
              _build/ocsimore_page.cmi \
              _build/ocsisite.cmi \
              _build/opaque.cmi \
