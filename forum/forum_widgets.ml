@@ -28,16 +28,19 @@ open Forum_types
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
+
+module Make(P : Ocsimore_page.PageSig) = struct
+
 let forum_css_header =
-  Ocsimore_page.Header.create_header
+  P.Header.create_header
     (fun sp ->
        {{ [ {: Eliom_duce.Xhtml.css_link
-               (Ocsimore_page.static_file_uri sp ["ocsiforumstyle.css"]) () :}
+               (P.static_file_uri sp ["ocsiforumstyle.css"]) () :}
           ] }}
     )
 
 let add_forum_css_header sp = 
-  Ocsimore_page.Header.require_header forum_css_header ~sp
+  P.Header.require_header forum_css_header ~sp
 
 
 class add_message_widget
@@ -386,3 +389,4 @@ object (self)
 
 end
 
+end

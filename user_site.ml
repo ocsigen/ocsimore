@@ -120,7 +120,7 @@ end
 include Services
 
 let user_widgets, service_user_creation =
-  let module Widget = User_widgets.MakeWidget(Services) in
+  let module Widget = User_widgets.MakeWidget(Page_site)(Services) in
   match basicusercreation with
     | NoUserCreation ->
         new Widget.user_widget force_secure,
@@ -143,7 +143,7 @@ let user_widgets, service_user_creation =
           ~service:ServicesCreation.service_create_new_user
           (fun sp () () ->
              user_widget_creation#display_user_creation ~err:"" ~sp
-             >>= (Ocsimore_page.admin_page ~sp
+             >>= (Page_site.admin_page ~sp
                     ~service:ServicesCreation.service_create_new_user)
           );
 
@@ -151,7 +151,7 @@ let user_widgets, service_user_creation =
           ~service:ServicesCreation.action_create_new_user
           (fun sp () args ->
              user_widget_creation#display_user_creation_done sp () args
-             >>= (Ocsimore_page.admin_page ~sp
+             >>= (Page_site.admin_page ~sp
                     ~service:ServicesCreation.service_create_new_user)
           );
 
@@ -166,19 +166,21 @@ let () =
   Eliom_duce.Xhtml.register service_view_group
     (fun sp g () ->
        user_widgets#display_group ~sp g >>= fun body ->
-       Ocsimore_page.admin_page ~sp ~service:service_view_groups body
+       Page_site.admin_page ~sp ~service:service_view_groups body
     );
 
   Eliom_duce.Xhtml.register service_view_groups
     (fun sp () () ->
        user_widgets#display_all_groups ~sp >>= fun body ->
-       Ocsimore_page.admin_page ~sp ~service:service_view_groups body
+       Page_site.admin_page ~sp ~service:service_view_groups body
 );
 
   Eliom_duce.Xhtml.register service_login
     (fun sp () () ->
        user_widgets#display_login_widget ~sp () >>= fun body ->
-       Ocsimore_page.admin_page ~sp ~service:service_login {{ [ body ] }}
+       Page_site.admin_page ~sp ~service:service_login
+         {{ [ <h1>"Login page"
+              body ] }}
     );
 
   (* We register the syntax extensions *)
@@ -186,7 +188,7 @@ let () =
 
 
 
-let () = Ocsimore_page.add_to_admin_menu "Users"
+let () = Page_site.add_to_admin_menu "Users"
   (["Login", service_login;
     "Groups edition", service_view_groups
    ] @
@@ -196,4 +198,4 @@ let () = Ocsimore_page.add_to_admin_menu "Users"
   )
 
 
-let () = Ocsimore_page.add_status_function user_widgets#status_text
+let () = Page_site.add_status_function user_widgets#status_text

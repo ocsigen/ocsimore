@@ -30,30 +30,19 @@ let ( ** ) = Eliom_parameters.prod
 
 (** Options for Ocsisite *)
 
-let admin_staticdir, hostid =
-  let rec find_wikidata ((staticadm, hostid) as data) = function
+let hostid =
+  let rec find_wikidata (_hostid as data) = function
     | [] -> Lwt.return data
 
-    | (Simplexmlparser.Element ("admin", ["staticdir", path], []))::l ->
-        find_wikidata (Some path, hostid) l
-
     | (Simplexmlparser.Element ("hostid", ["id", id], []))::l ->
-        find_wikidata (staticadm, Some id) l
+        find_wikidata (Some id) l
 
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside Ocsisite config"))
   in
   let c = Eliom_sessions.get_config () in
-  Lwt_unix.run (find_wikidata (None, None) c)
-
-exception No_admin_staticdir
-
-let () =
-  match admin_staticdir with
-    | Some _ -> ()
-    | None -> Ocsigen_messages.errlog "Ocsisite: please supply a path for the css and images of the Ocsimore administration wiki.\n  Syntax: <admin staticdir=\"path\" />";
-        raise No_admin_staticdir
+  Lwt_unix.run (find_wikidata None c)
 
 
 
@@ -63,7 +52,7 @@ let wiki_rights = new Wiki.wiki_rights
 (** We are at eliom registration time, we can create the services *)
 module WikiServices = Wiki_services.MakeServices(struct end)
 
-module WikiWidgets = Wiki_widgets.MakeWikiWidget(WikiServices)
+module WikiWidgets = Wiki_widgets.MakeWikiWidget(Page_site)(WikiServices)
 
 let wikibox_widget =
  new WikiWidgets.dynamic_wikibox error_box User_site.user_widgets
@@ -75,6 +64,8 @@ let wikicreole_model =
     ~content_type:Wiki_syntax.wikicreole_content_type
     ~rights:wiki_rights
     ~widgets:wikibox_widget
+
+module Wiki_ext = Wiki_ext.MakeWikiExt(Page_site)
 
 let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
@@ -97,15 +88,15 @@ let () =
        >>= fun page ->
        wikibox_widget#css_header ~sp ?page:None w
        >>= fun css ->
-       Ocsimore_page.add_admin_pages_header sp;
-       Ocsimore_page.html_page ~sp ~css {{ [ page ] }}
+       Page_site.add_admin_pages_header sp;
+       Page_site.html_page ~sp ~css {{ [ page ] }}
     )
 
 (** We register the service that lists all the wikis *)
 let () =  Eliom_duce.Xhtml.register WikiServices.view_wikis
     (fun sp () () ->
        wikibox_widget#display_all_wikis sp >>= fun b ->
-       Ocsimore_page.admin_page ~sp ~service:WikiServices.view_wikis b
+       Page_site.admin_page ~sp ~service:WikiServices.view_wikis b
     )
 
 
@@ -128,6 +119,7 @@ let wiki_admin = Lwt_unix.run
             Wiki_sql.get_wiki_info_by_id wid
         | e -> Lwt.fail e)
    >>= fun id ->
+(*
    (** We update the fields [staticdir] and [pages] for the admin wiki *)
    (match admin_staticdir with
       | None -> Lwt.return ()
@@ -147,6 +139,7 @@ let wiki_admin = Lwt_unix.run
           ~group:(g $ id.wiki_id))
        groups
    ) >>= fun () ->
+*)
    Lwt.return id
   )
 
@@ -217,14 +210,6 @@ let () = Lwt_unix.run
      )
   )
 
-(** We can now register the service for static files *)
-let () =
-  let service = match Wiki_self_services.find_servpage wiki_admin_id with
-    | None -> raise Wiki.No_admin_wiki
-    | Some service -> service
-  in
-  Ocsimore_page.set_service_for_static_files service
-
 
 
 
@@ -265,7 +250,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
     let title = match error with
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
-    Ocsimore_page.admin_page ~sp ~service:(cast_service service) ~title
+    Page_site.admin_page ~sp ~service:(cast_service service) ~title
       {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p class="errmsg">(str err)] }}
@@ -354,11 +339,11 @@ let create_wiki =
                   let title = str "Wiki sucessfully created"
                   and msg = str (Printf.sprintf "You have created wiki %s"
                                    (string_of_wiki wid)) in
-                  Ocsimore_page.admin_page ~sp ~service:create_wiki
+                  Page_site.admin_page ~sp ~service:create_wiki
                     {{ [ <h1>title <p>msg !link] }}
                )
          | false ->
-             Ocsimore_page.admin_page ~sp ~service:create_wiki
+             Page_site.admin_page ~sp ~service:create_wiki
                {{ [ <p>"You are not allowed to create wikis. If you have not \
                         already done so, try to login."
                   ] }}
@@ -373,7 +358,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
     let title = match error with
       | Xform.NoError -> "Wiki edition"
       | _ -> "Error" in
-    Ocsimore_page.admin_page ~sp ~service:(cast_service service) ~title
+    Page_site.admin_page ~sp ~service:(cast_service service) ~title
       {{ [<h1>(str title)
           !{: match error with
               | Xform.ErrorMsg err -> {{[<p class="errmsg">(str err)] }}
@@ -430,42 +415,39 @@ let edit_wiki =
                     ~staticdir ~container ~model ~hostid wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
-                  Ocsimore_page.admin_page ~sp ~service:WikiServices.view_wikis
+                  Page_site.admin_page ~sp ~service:WikiServices.view_wikis
                     {{ [<h1>title ] }}
                )
          | false ->
-             Ocsimore_page.admin_page ~sp ~service:WikiServices.view_wikis
+             Page_site.admin_page ~sp ~service:WikiServices.view_wikis
                {{ [ <h1>"Insufficient permissions"
                     <p>"You do not have enough rights to edit this wiki" ] }} );
   WikiServices.edit_wiki
 
 
 
-
-let admin_root =
+let wiki_root =
   Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; ""]
+    ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikis"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_duce.Xhtml.register admin_root
+let () = Eliom_duce.Xhtml.register wiki_root
   (fun sp () () ->
-     Ocsimore_page.admin_page ~sp ~service:admin_root
-       {{ [<p>"This is the Ocsimore main admin page. The links above will
-                 help you configure your installation." ]}}
+     Page_site.admin_page ~sp ~service:wiki_root
+       {{ [<p>"This is the Ocsimore admin page for the wiki module." ]}}
   )
 
-let () = Ocsimore_page.set_root_admin_service admin_root
+
 
 let () = Eliom_duce.Xhtml.register WikiServices.edit_wiki_permissions_ocsisite
   (fun sp wiki () ->
      wikibox_widget#display_edit_wiki_perm_form ~sp ~classes:[] wiki
      >>= fun (_, form) ->
-     Ocsimore_page.admin_page ~sp ~service:admin_root
+     Page_site.admin_page ~sp ~service:wiki_root
        {{ [ <div>form ]}}
   )
 
-
-let () = Ocsimore_page.add_to_admin_menu "Wikis" [
+let () = Page_site.add_to_admin_menu "Wikis" [
   "Create a new wiki", create_wiki;
   "View and edit wikis", WikiServices.view_wikis
 ]

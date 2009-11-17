@@ -30,17 +30,6 @@ open Wiki_types
 let (>>=) = Lwt.bind
 
 
-let wiki_css_header =
-  Ocsimore_page.Header.create_header
-    (fun sp ->
-       {{ [ {: Eliom_duce.Xhtml.css_link
-               (Ocsimore_page.static_file_uri sp ["ocsiwikistyle.css"]) () :}
-          ] }})
-
-let add_wiki_css_header sp =
-  Ocsimore_page.Header.require_header wiki_css_header ~sp;
-
-
 class wikibox_error_box =
 object
 
@@ -72,6 +61,21 @@ object
       | _ -> error_box#display_error_box ?classes ?message ?exn ()
 
 end
+
+
+module MakeWikiWidget(P : Ocsimore_page.PageSig)(X : Wiki_services.WikiServices) = struct
+
+
+let wiki_css_header =
+  P.Header.create_header
+    (fun sp ->
+       {{ [ {: Eliom_duce.Xhtml.css_link
+               (P.static_file_uri sp ["ocsiwikistyle.css"]) () :}
+          ] }})
+
+let add_wiki_css_header sp =
+  P.Header.require_header wiki_css_header ~sp;
+
 
 class wikibox_aux (error_box : Widget.widget_with_error_box)
   : Wiki_widgets_interface.wikibox_aux =
@@ -134,8 +138,6 @@ object (self)
          | e -> Lwt.fail e)
 end;;
 
-
-module MakeWikiWidget (X : Wiki_services.WikiServices) = struct
 
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
@@ -259,7 +261,7 @@ object (self)
     let menudel = 
       if wbdel
       then (
-        Ocsimore_page.add_obrowser_header sp;
+        P.add_obrowser_header sp;
         let link = Eliom_duce.Xhtml.make_string_uri ~service:delete ~sp () in
         {{ [<a class="jslink"
                onclick={: Wiki_client_calls.delete_wikibox
@@ -467,7 +469,7 @@ object (self)
       ~service:X.action_send_wikibox_permissions ~sp:bi.bi_sp form
       ()
     in
-    Ocsimore_page.add_obrowser_header bi.bi_sp;
+    P.add_obrowser_header bi.bi_sp;
     Lwt.return (classes, {{ [ form ] }})
 
 
@@ -1165,7 +1167,7 @@ object (self)
        | Wiki_widgets_interface.Page_404 -> 404
        | Wiki_widgets_interface.Page_403 -> 403
      in
-     Ocsimore_page.html_page ~sp ~css ~title pagecontent >>= fun r ->
+     P.html_page ~sp ~css ~title pagecontent >>= fun r ->
      Lwt.return (r, code)
 
 
@@ -1252,7 +1254,7 @@ object (self)
       (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l in
 
      let line w =
-       let img = Ocsimore_page.icon ~sp in
+       let img = P.icon ~sp in
        let t = Ocamlduce.Utf8.make w.wiki_title
        and d = Ocamlduce.Utf8.make w.wiki_descr
        and id = Opaque.int32_t_to_string w.wiki_id

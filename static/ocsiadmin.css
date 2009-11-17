@@ -110,6 +110,7 @@ body.admin h1 {
 }
 
 #admin_status {
+  font-size: 80%;
   border-top: 1px solid  #3860AA;
   position:fixed;
   bottom:0;

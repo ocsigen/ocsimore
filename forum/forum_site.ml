@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+module Forum_widgets = Forum_widgets.Make(Page_site)
 
 let forum_wiki_rights = new Forum.wiki_rights
 

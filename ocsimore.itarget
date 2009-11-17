@@ -1,5 +1,6 @@
 ocsimore.cma
 migration.cmo
+page_site.cmo
 user_site.cmo
 ocsisite.cmo
 wikiperso.cmo

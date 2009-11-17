@@ -130,7 +130,7 @@ end
 open Xform.XformLwt
 open Ops
 
-module MakeWidget(S : User_services.Services) = struct
+module MakeWidget(P : Ocsimore_page.PageSig)(S : User_services.Services) = struct
 
 (** Widget for user login/logout/edition without addition of new users *)
 class user_widget ~force_secure : user_widget_class =
@@ -269,8 +269,7 @@ object (self)
       let auth_error = Ocamlduce.Utf8.make auth_error in
       self#login_box_extension ~sp >>= fun ext ->
       Lwt.return (fun (usr, pwd) ->
-        {{ [<h1>"Login page"
-               <table>[
+        {{ [   <table>[
                <tr>[<td>user_prompt
                     <td>[{: str_input usr :}]]
                <tr>[<td>pwd_prompt
@@ -489,7 +488,7 @@ object (self)
       let g = Ocamlduce.Utf8.make u.user_login
       and d = Ocamlduce.Utf8.make u.user_fullname
       and l = Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
-         (Ocsimore_page.icon ~sp ~path:"imgedit.png" ~text:"Edit user")
+         (P.icon ~sp ~path:"imgedit.png" ~text:"Edit user")
          u.user_login
       and id = Ocamlduce.Utf8.make (string_from_userid u.user_id)
       in

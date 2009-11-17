@@ -5,6 +5,15 @@ archive(byte) = "ocsimore.cma"
 archive(native,-plugin) = "ocsimore.cmxa"
 archive(native,plugin) = "ocsimore.cmxs"
 
+package "page" (
+  requires = "ocsimore"
+  version = "[distributed with Ocsimore]"
+  description = "Gestion of users in Ocsimore"
+  archive(byte) = "page_site.cmo"
+  archive(native,-plugin) = "page_site.cmx"
+  archive(native,plugin) = "page_site.cmxs"
+)
+
 package "users" (
   requires = "ocsimore"
   version = "[distributed with Ocsimore]"
