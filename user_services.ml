@@ -129,6 +129,14 @@ let services ~external_auth ~force_secure =
     ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
     ~get_params:(Eliom_parameters.unit) ()
 
+  and service_view_users = Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_users"]
+    ~get_params:(Eliom_parameters.unit) ()
+
+  and service_view_roles = Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_roles"]
+    ~get_params:(Eliom_parameters.unit) ()
+
   and service_login = Eliom_services.new_service
     ~https:force_secure
     ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
@@ -155,6 +163,8 @@ let services ~external_auth ~force_secure =
     action_add_remove_user_from_groups,
     service_view_group,
     service_view_groups,
+    service_view_users,
+    service_view_roles,
     service_login,
     service_create_new_group,
     action_create_new_group
@@ -238,6 +248,20 @@ val service_view_group :
   Eliom_services.service
 
 val service_view_groups :
+  (unit, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val service_view_users :
+  (unit, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val service_view_roles :
   (unit, unit,
    [> `Attached of
         [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],

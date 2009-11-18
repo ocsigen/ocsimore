@@ -38,9 +38,16 @@ let submit_input value =
 
 
 class type user_widget_class = object
-  method display_all_groups :
+  method display_roles :
     sp:Eliom_sessions.server_params ->
     {{Eliom_duce.Blocks.page}} Lwt.t
+  method display_groups :
+    sp:Eliom_sessions.server_params ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+  method display_users :
+    sp:Eliom_sessions.server_params ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+
   method display_group :
     sp:Eliom_sessions.server_params ->
     Ocamlduce.Utf8.repr -> {{Eliom_duce.Blocks.page}} Lwt.t
@@ -471,16 +478,42 @@ object (self)
        Lwt.return ({{ [ !error head !edit f1 f2] }} : Xhtmltypes_duce.blocks)
 
 
-  method display_all_groups ~sp =
-    (* Lists of groups *)
+  method display_users ~sp =
     User_sql.all_groups () >>= fun l ->
-    let l1, l2 = List.partition (fun {user_kind = u} -> u <> `BasicUser) l in
-    let l2 = List.sort
-      (fun u1 u2 -> compare u1.user_fullname u2.user_fullname) l2 in
+    let l = List.filter (fun {user_kind = u; user_pwd = a} ->
+                           u = `BasicUser && a <> Connect_forbidden ) l in
+    let l = List.sort
+      (fun u1 u2 -> compare u1.user_login u2.user_login) l in
 
-    (* Parameterized users *)
-    let hd1, tl1 = List.hd l1, List.tl l1 (* some groups always exist*) in
-    let line1 u =
+    self#display_users_groups ~show_auth:true ~sp ~l >>= fun r ->
+
+    Lwt.return
+      ({{ [ <h1>"Existing users" r
+       ] }} : Xhtmltypes_duce.blocks)
+
+  method display_groups ~sp =
+    User_sql.all_groups () >>= fun l ->
+    let l = List.filter (fun {user_kind = u; user_pwd = a} ->
+                           u = `BasicUser && a = Connect_forbidden ) l in
+    let l = List.sort
+      (fun u1 u2 -> compare u1.user_login u2.user_login) l in
+
+    self#display_users_groups ~show_auth:false ~sp ~l >>= fun r ->
+
+    Lwt.return
+      ({{ [ <h1>"Existing groups" r
+       ] }} : Xhtmltypes_duce.blocks)
+
+
+  (* Parameterized users *)
+  method display_roles ~sp =
+    User_sql.all_groups () >>= fun l ->
+    let l = List.filter (fun {user_kind = u} -> u <> `BasicUser) l in
+    let l = List.sort
+      (fun u1 u2 -> compare u1.user_login u2.user_login) l in
+
+    let hd, tl = List.hd l, List.tl l (* some groups always exist*) in
+    let line u =
       let g = Ocamlduce.Utf8.make u.user_login
       and p =  (if u.user_kind = `ParameterizedGroup then
                   {{ [<em>['(param)']] }}
@@ -490,52 +523,65 @@ object (self)
       {{ <tr>[<td>[<b>g!p ] <td>d ] }}
     in
     let l1 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
-                               {{ [ !s {: line1 arg:} ] }}) {{ [] }} tl1 in
-    let t1 = {{ <table class="table_admin">[{: line1 hd1 :}
+                               {{ [ !s {: line arg:} ] }}) {{ [] }} tl in
+    let t1 = {{ <table class="table_admin">[{: line hd :}
                           !l1]}} in
 
-    (* Standard users *)
-    let line2 u =
-      let g = Ocamlduce.Utf8.make u.user_login
-      and d = Ocamlduce.Utf8.make u.user_fullname
-      and l = Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
-         (P.icon ~sp ~path:"imgedit.png" ~text:"Edit user")
-         u.user_login
-      and id = Ocamlduce.Utf8.make (string_from_userid u.user_id)
-      in
-      {{ <tr>[<td class="userid">id
-              <td class="userlogin">[<b>g ]
-              <td class="userdescr">d
-              <td>[l]] }}
-    in
-    let l2 = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
-                               {{ [ !s {: line2 arg:} ] }}) {{ [] }} l2 in
-    let t2 = {{ <table class="table_admin">[
-                  <tr>[<th>"Id"
-                       <th>"Login"
-                       <th>"Description"
-                      ]
-                      !l2]}} in
     let form name = {{ [<p>[
            {: Eliom_duce.Xhtml.string_input ~name~input_type:{: "text" :} () :}
            {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-              {{ "Edit this user/group" }} :}
+              {{ "Edit this role" }} :}
                          ]] }}
     in
     let f = Eliom_duce.Xhtml.get_form ~a:{{ { accept-charset="utf-8" } }}
       ~service:S.service_view_group ~sp form
-    in
-
-    let title1 = Ocamlduce.Utf8.make "Standard users"
-    and title2 = Ocamlduce.Utf8.make "Groups"
     and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it \
-                    (including its parameter if needed) below" in
+                    (including its parameter if needed) below"
+    in
     Lwt.return
-      ({{ [ <h1>"Existing users"
-            <h2>title1               t2
-            <h2>title2 <p>msg2 t1
-           f
+      ({{ [ <h1>"Roles" t1
+           <p>msg2 f
        ] }} : Xhtmltypes_duce.blocks)
+
+
+  method private display_users_groups ~show_auth ~sp ~l =
+    let line2 u =
+      let g = Ocamlduce.Utf8.make u.user_login
+      and d = Ocamlduce.Utf8.make u.user_fullname
+      and l = Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
+         (P.icon ~sp ~path:"imgedit.png" ~text:"Details")
+         u.user_login
+      and id = Ocamlduce.Utf8.make (string_from_userid u.user_id)
+      and a = if show_auth then
+        {{ [ <td>{{Ocamlduce.Utf8.make
+                     (match u.user_pwd with
+                        | Connect_forbidden -> "group"
+                        | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
+                            "password"
+                        | External_Auth -> "external"
+                     ) }} ] }}
+      else
+        {{ [] }}
+      in
+      {{ <tr>[<td class="userid">id
+              <td class="userlogin">[<b>g ]
+              <td class="userdescr">d
+              !a
+              <td>[l]
+             ] }}
+    in
+    let l = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
+                               {{ [ !s {: line2 arg:} ] }}) {{ [] }} l in
+    Lwt.return ({{ <table class="table_admin">[
+                     <tr>[<th>"Id"
+                           <th>"Login"
+                           <th>"Description"
+                           !{{ if show_auth then
+                                 {{ [ <th>"Authentification" ] }}
+                               else {{ [] }} }}
+                         ]
+                       !l]}} : Xhtmltypes_duce.block )
+
 
   method status_text ~sp =
     User.get_user_data sp >>= fun u ->
@@ -552,7 +598,7 @@ object (self)
       | true ->
           Lwt.return
             ({{ [<h1>"Group creation"
-                 <p>['You can use the forms below to create a new Ocsimore group.
+                 <p>['You can use the form below to create a new Ocsimore group.
                      (A group is a special form of user that is not \
                      authorized to log in.) Once this is done, you will \
                      be able to add users into your group.'
@@ -623,7 +669,7 @@ object (self)
       | true ->
           Lwt.return
             ({{ [<h1>"User creation"
-                 <p>['You can use the forms below to create a new Ocsimore user.'
+                 <p>['You can use the form below to create a new Ocsimore user.'
                      <br>[]
                      'Note that users that authenticate through external means \
                      (NIS or PAM) are added automatically the first time they \

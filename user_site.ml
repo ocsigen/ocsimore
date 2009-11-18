@@ -112,6 +112,8 @@ let (
     action_add_remove_user_from_groups,
     service_view_group,
     service_view_groups,
+    service_view_users,
+    service_view_roles,
     service_login,
     service_create_new_group,
     action_create_new_group
@@ -168,14 +170,26 @@ let () =
   Eliom_duce.Xhtml.register service_view_group
     (fun sp g () ->
        user_widgets#display_group ~sp g >>= fun body ->
-       Page_site.admin_page ~sp ~service:service_view_groups body
+       Page_site.admin_page ~sp ~service:service_view_groups body (* XXX find good service *)
     );
 
   Eliom_duce.Xhtml.register service_view_groups
     (fun sp () () ->
-       user_widgets#display_all_groups ~sp >>= fun body ->
-       Page_site.admin_page ~sp ~service:service_view_groups body
-);
+       user_widgets#display_groups ~sp >>= fun body ->
+         Page_site.admin_page ~sp ~service:service_view_groups body
+    );
+
+  Eliom_duce.Xhtml.register service_view_users
+    (fun sp () () ->
+       user_widgets#display_users ~sp >>= fun body ->
+         Page_site.admin_page ~sp ~service:service_view_users body
+    );
+
+  Eliom_duce.Xhtml.register service_view_roles
+    (fun sp () () ->
+       user_widgets#display_roles ~sp >>= fun body ->
+         Page_site.admin_page ~sp ~service:service_view_roles body
+    );
 
   Eliom_duce.Xhtml.register service_login
     (fun sp () () ->
@@ -209,7 +223,9 @@ let () =
 
 let () = Page_site.add_to_admin_menu "Users"
   (["Login", service_login;
-    "Groups edition", service_view_groups;
+    "View users", service_view_users;
+    "View groups", service_view_groups;
+    "View roles", service_view_roles;
     "Groups creation", service_create_new_group;
    ] @
      (match service_user_creation with
