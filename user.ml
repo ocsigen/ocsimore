@@ -139,6 +139,10 @@ let group_can_admin_group : [`User] parameterized_group =
        ~fullname:"Users that can add or remove people in the group"
     )
 
+let group_can_create_users =
+  Lwt_unix.run
+    (User_sql.new_nonparameterized_group ~prefix:"user" ~name:"GroupsCreators"
+       ~fullname:"Users who can create new Ocsimore users")
 
 
 

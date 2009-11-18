@@ -135,6 +135,17 @@ let services ~external_auth ~force_secure =
     ~get_params:Eliom_parameters.unit
     ()
 
+  and service_create_new_group =
+    Eliom_services.new_service
+      ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_group"])
+      ~get_params:unit ()
+
+  in let action_create_new_group =
+    Eliom_services.new_post_coservice
+      ~fallback:service_create_new_group
+      ~post_params:(string "usr" ** string "descr") ()
+
+
   in (
     action_login,
     action_logout,
@@ -144,7 +155,9 @@ let services ~external_auth ~force_secure =
     action_add_remove_user_from_groups,
     service_view_group,
     service_view_groups,
-    service_login
+    service_login,
+    service_create_new_group,
+    action_create_new_group
   )
 
 
@@ -236,6 +249,24 @@ val service_login :
    [> `Attached of
         [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
    [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+
+val service_create_new_group :
+  (unit, unit,
+   [> `Attached of
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
+  Eliom_services.service
+
+val action_create_new_group :
+  (unit, string * string,
+   [> `Attached of
+        [> `Internal of [> `Coservice ] * [> `Post ] ] Eliom_services.a_s ],
+   [ `WithoutSuffix ], unit,
+   [ `One of string ] Eliom_parameters.param_name *
+   [ `One of string ] Eliom_parameters.param_name,
+   [> `Registrable ])
   Eliom_services.service
 
 end

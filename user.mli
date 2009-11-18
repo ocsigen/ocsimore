@@ -37,8 +37,13 @@ val authenticated_users : userid
 (** The groups of users that can create new groups *)
 val group_can_create_groups : user
 
+(** Same thing with users *)
+val group_can_create_users : user
+
 (** The group of users that can add or remove people in the given user/group *)
 val group_can_admin_group : [`User] parameterized_group
+
+
 
 
 (** Information about a user. Return [nobody] if the user

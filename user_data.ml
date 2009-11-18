@@ -89,8 +89,15 @@ type user_creation = {
 }
 
 let can_create_user ~sp ~options =
-  User.get_user_id sp >>= fun u ->
-  Lwt.return (u = User.admin || options.non_admin_can_create)
+  if options.non_admin_can_create then
+    Lwt.return true
+  else
+    User.in_group ~sp ~group:User.group_can_create_users ()
+
+
+let can_create_group ~sp =
+  User.in_group ~sp ~group:User.group_can_create_groups ()
+
 
 let create_user ~sp ~name ~fullname ~email ~options =
   can_create_user ~sp ~options >>= function
@@ -120,6 +127,22 @@ let create_user ~sp ~name ~fullname ~email ~options =
              | User.BadUser ->
                  Lwt.fail (Failure "ERROR: This login already exists")
              | e -> Lwt.fail e)
+    | false ->
+        Lwt.fail Ocsimore_common.Permission_denied
+
+let create_group ~sp ~name ~descr =
+  can_create_group ~sp >>= function
+    | true ->
+        if not (valid_username name) then
+          Lwt.fail (Failure "ERROR: Bad character(s) in group name!")
+        else
+          User.create_fresh_user ~name ~fullname:descr
+            ~pwd:Connect_forbidden ()
+          >>= fun groupid ->
+          User.get_user_id sp >>= fun userid ->
+          User.add_to_group ~user:(basic_user userid)
+            ~group:(User.group_can_admin_group $ groupid) >>= fun () ->
+          Lwt.return groupid
     | false ->
         Lwt.fail Ocsimore_common.Permission_denied
 

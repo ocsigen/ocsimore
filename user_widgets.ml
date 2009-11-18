@@ -110,6 +110,17 @@ class type user_widget_class = object
     sp:Eliom_sessions.server_params ->
     Xhtmltypes_duce.flows Lwt.t
 
+  method display_group_creation :
+    ?err:string ->
+    sp:Eliom_sessions.server_params ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+
+  method display_group_creation_done :
+    Eliom_sessions.server_params ->
+    unit ->
+    string * string ->
+    {{Eliom_duce.Blocks.page}} Lwt.t
+
 end
 
 class type user_widget_user_creation_class = object
@@ -536,6 +547,59 @@ object (self)
         let l = Eliom_duce.Xhtml.a S.service_login sp {{ "Login" }} () in
         Lwt.return {{ ['You are not currently logged. ' l]  }}
 
+  method display_group_creation ?(err="") ~sp =
+    User_data.can_create_group ~sp >>= function
+      | true ->
+          Lwt.return
+            ({{ [<h1>"Group creation"
+                 <p>['You can use the forms below to create a new Ocsimore group.
+                     (A group is a special form of user that is not \
+                     authorized to log in.) Once this is done, you will \
+                     be able to add users into your group.'
+                    ]
+                 <h2>"Create a new group"
+                 {: Eliom_duce.Xhtml.post_form ~sp
+                    ~service:S.action_create_new_group
+                    (fun (usr,desc) ->
+                       {{ [<table>[
+                              <tr>[
+                                <td>"group name: (letters & digits only)"
+                                <td>[{: str_input usr :}]
+                              ]
+                              <tr>[
+                                <td>"description:"
+                                <td>[{: str_input desc :}]
+                              ]
+                              <tr>[
+                                <td>[{: submit_input "Create" :}]
+                              ]]] }})
+                    () :}
+                 <p>[<strong>{: err :}]]
+             }} : Xhtmltypes_duce.blocks)
+      | false ->
+          Lwt.return {{ [ <h1>"Error"
+                          <p>"Your are not allowed to create new groups" ] }}
+
+  method display_group_creation_done sp () (name, descr) =
+    Lwt.catch
+      (fun () ->
+         User_data.create_group ~sp ~name ~descr >>= fun groupid ->
+         User_sql.get_basicuser_data groupid >>= fun group ->
+         Lwt.return
+           {{ [<h1>"Group created"
+                <p>[!"You can now "
+                    {: Eliom_duce.Xhtml.a ~sp ~service:S.service_view_group
+                       {: "edit" :} group.user_login :}
+                    !" your new group."
+                   ] ] }}
+      )
+      (function
+         | Failure err -> self#display_group_creation ~err ~sp
+         | Ocsimore_common.Permission_denied ->
+             Lwt.return {{ [ <h1>"Error"
+                             <p>"You cannot create new users" ] }}
+         | e -> Lwt.fail e)
+
 end
 
 
@@ -559,9 +623,7 @@ object (self)
       | true ->
           Lwt.return
             ({{ [<h1>"User creation"
-                 <p>['You can use the forms below to create a new Ocsimore user
-                     or group. (A group is a special form of user that is not \
-                     authorized to log in.)'
+                 <p>['You can use the forms below to create a new Ocsimore user.'
                      <br>[]
                      'Note that users that authenticate through external means \
                      (NIS or PAM) are added automatically the first time they \
@@ -613,7 +675,7 @@ object (self)
          | Failure err -> self#display_user_creation ~err ~sp
          | Ocsimore_common.Permission_denied ->
              Lwt.return {{ [ <h1>"Error"
-                             <p>"Only admin can create new users" ] }}
+                             <p>"You cannot create new users" ] }}
          | e -> Lwt.fail e)
 end
 

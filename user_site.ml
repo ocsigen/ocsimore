@@ -112,7 +112,9 @@ let (
     action_add_remove_user_from_groups,
     service_view_group,
     service_view_groups,
-    service_login
+    service_login,
+    service_create_new_group,
+    action_create_new_group
   as user_services) =
   User_services.services ~external_auth ~force_secure
 
@@ -183,6 +185,23 @@ let () =
               body ] }}
     );
 
+  Eliom_duce.Xhtml.register
+    ~service:service_create_new_group
+    (fun sp () () ->
+       user_widgets#display_group_creation ~err:"" ~sp
+       >>= (Page_site.admin_page ~sp
+              ~service:service_create_new_group)
+    );
+
+  Eliom_duce.Xhtml.register
+          ~service:action_create_new_group
+    (fun sp () args ->
+       user_widgets#display_group_creation_done sp () args
+       >>= (Page_site.admin_page ~sp
+              ~service:service_create_new_group)
+    );
+
+
   (* We register the syntax extensions *)
   User_ext.register_user_extensions user_widgets
 
@@ -190,7 +209,8 @@ let () =
 
 let () = Page_site.add_to_admin_menu "Users"
   (["Login", service_login;
-    "Groups edition", service_view_groups
+    "Groups edition", service_view_groups;
+    "Groups creation", service_create_new_group;
    ] @
      (match service_user_creation with
         | None -> []
