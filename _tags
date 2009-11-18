@@ -7,4 +7,4 @@
 <ocsimore.cma> : with_nis_chkpwd, pkg_pam
 <**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, pkg_ocsigen.lwt_obrowser, -pkg_ocsigen
 "widget.ml" : warn_v
-"updatedb_sql.byte": pkg_threads, pkg_lwt, pkg_lwt.preemptive, pkg_pgocaml, pkg_ocsigen.server
+"updatedb_sql.byte": pkg_threads,  pkg_pgocaml, pkg_ocsigen.server
