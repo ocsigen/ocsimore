@@ -86,7 +86,7 @@ let (auth, basicusercreation, force_secure) =
           l
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
-                       ("Unexpected content inside Ocsisite config"))
+                       ("Unexpected content inside User_site config"))
   in
   let c = Eliom_sessions.get_config () in
   Lwt_unix.run (find_data default_data c)
