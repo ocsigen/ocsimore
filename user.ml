@@ -207,26 +207,32 @@ let add_dyn_group, in_dyn_group, fold_dyn_groups =
   )
 
 
+let ok_name name =
+  try ignore (String.index name '#'); false
+  with Not_found -> true
 
 let create_user, create_fresh_user =
   let mutex_user = Lwt_mutex.create () in
   let aux already_existing ~name ~pwd ~fullname ?email ?test () =
-    Lwt_mutex.lock mutex_user >>= fun () ->
-    get_basicuser_by_login name >>= fun u ->
-    (if (u = nobody) && (name != nobody_login)
-     then (* the user does not exist *)
-       let dyn = not (test = None) in
-       User_sql.new_user ~name ~password:pwd ~fullname ~email ~dyn
-       >>= fun (u, _) -> Lwt.return u
-     else
-       already_existing u
-    ) >>= fun u ->
-    (match test with
-       | None -> ()
-       | Some f -> add_dyn_group (basic_user u) f
-    );
-    Lwt_mutex.unlock mutex_user;
-    Lwt.return u
+    if ok_name name = false then
+      Lwt.fail BadUser
+    else
+      Lwt_mutex.lock mutex_user >>= fun () ->
+      get_basicuser_by_login name >>= fun u ->
+      (if (u = nobody) && (name != nobody_login)
+       then (* the user does not exist *)
+         let dyn = not (test = None) in
+         User_sql.new_user ~name ~password:pwd ~fullname ~email ~dyn
+         >>= fun (u, _) -> Lwt.return u
+       else
+         already_existing u
+      ) >>= fun u ->
+      (match test with
+         | None -> ()
+         | Some f -> add_dyn_group (basic_user u) f
+      );
+      Lwt_mutex.unlock mutex_user;
+      Lwt.return u
   in
   aux (fun u -> Lwt.return u),
   aux (fun _ -> raise BadUser) ?test:None
