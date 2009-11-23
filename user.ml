@@ -125,24 +125,37 @@ let admin =
 
 let admin' = basic_user admin
 
+
+let param_user = {
+  User_sql.param_description = "login of the user";
+  find_param_functions =
+    Some ((fun uname ->
+             User_sql.get_basicuser_by_login uname >>= fun u ->
+             Lwt.return (sql_from_userid u)),
+          (fun uid ->
+             User_sql.userid_to_string (userid_from_sql uid))
+         );
+}
+
 let group_can_create_groups =
   Lwt_unix.run
     (User_sql.new_nonparameterized_group ~prefix:"users"
        ~name:"can_create_groups"
-       ~fullname:"Users that are allowed to create new groups"
+       ~descr:"Users that are allowed to create new groups"
     )
 
 let group_can_admin_group : [`User] parameterized_group =
   Lwt_unix.run
     (User_sql.new_parameterized_group ~prefix:"users"
        ~name:"can_admin_group"
-       ~fullname:"Users that can add or remove people in the group"
+       ~descr:"Users that can add or remove people in the group"
+       ~find_param:param_user
     )
 
 let group_can_create_users =
   Lwt_unix.run
     (User_sql.new_nonparameterized_group ~prefix:"user" ~name:"GroupsCreators"
-       ~fullname:"Users who can create new Ocsimore users")
+       ~descr:"Users who can create new Ocsimore users")
 
 
 
@@ -176,16 +189,8 @@ let user_list_of_string s =
          | Not_found -> Lwt.fail (UnknownUser a)
          | e -> Lwt.fail e)
   in
-  let r = Ocsigen_lib.split ' ' s in
+  let r = Ocsigen_lib.split '\n' s in
   List.fold_left f (Lwt.return []) r
-
-let user_list_to_string =
-  List.fold_left
-    (fun s r ->
-       s >>= fun s ->
-       User_sql.user_to_string r
-       >>= fun s2 -> Lwt.return (s^" "^s2))
-    (Lwt.return "")
 
 
 (* dynamic groups: *)
@@ -516,7 +521,7 @@ module GenericRights = struct
 
 
 
-  let create_admin_writer_reader ~prefix ~name ~descr =
+  let create_admin_writer_reader ~prefix ~name ~descr ~find_param =
     let namea, namew, namer =
       (name ^ "Admin",
        name ^ "Writer",
@@ -526,10 +531,11 @@ module GenericRights = struct
        "Can write in " ^ descr,
        "Can read the " ^ descr)
     in
+    let f = User_sql.new_parameterized_group ~prefix ~find_param in
     Lwt_unix.run (
-      User_sql.new_parameterized_group prefix namea descra >>= fun ga ->
-      User_sql.new_parameterized_group prefix namew descrw >>= fun gw ->
-      User_sql.new_parameterized_group prefix namer descrr >>= fun gr ->
+      f namea descra >>= fun ga ->
+      f namew descrw >>= fun gw ->
+      f namer descrr >>= fun gr ->
       User_sql.add_generic_inclusion ~subset:ga ~superset:gw >>= fun() ->
       User_sql.add_generic_inclusion ~subset:gw ~superset:gr >>= fun () ->
 

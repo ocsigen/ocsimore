@@ -30,19 +30,34 @@ let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
 
 
+
+let forum_param = {
+  User_sql.param_description = "id of the forum";
+  find_param_functions = None;
+}
+
+let message_param = {
+  User_sql.param_description = "id of the message";
+  find_param_functions = None;
+}
+
+
+
 (** {2 Forum related groups} *)
 
-let aux_grp name descr =
-  Lwt_unix.run (User_sql.new_parameterized_group "forum" name descr)
+let aux_grp name descr param =
+  Lwt_unix.run (User_sql.new_parameterized_group "forum" name descr param)
 
 let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
+    Wiki.param_wiki
 
 let message_creators_notmod : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_creators
 
 let message_moderators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagemoderators" "Can moderate messages in the forum wiki"
+    Wiki.param_wiki
 
 let message_deletors : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_deletors
@@ -51,68 +66,76 @@ let message_deletors_if_creator :
     Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagedeletorsifcreator" 
     "Can delete messages in the forum wiki if author"
+    Wiki.param_wiki
 
 let message_sticky_makers : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagestickymakers" "Can make messages sticky in the forum wiki"
+    Wiki.param_wiki
 
 let message_readers_evennotmoderated : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_grps.grp_reader
 
 let moderated_message_readers : Wiki_types.wiki_arg parameterized_group =
   aux_grp "moderatedmessagereaders" "Can read moderated messages in the forum wiki"
+    Wiki.param_wiki
 
 let message_modifiers : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_grps.grp_writer
 
 let message_modifiers_if_creator : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagemodifierifcreator" "Can modify their own messages in the forum wiki"
-
+    Wiki.param_wiki
 
 
 let creators : forum_arg parameterized_group =
   aux_grp "creators" "Can create new messages or comments in the forum"
+    forum_param
 
 let creators_notmod : forum_arg parameterized_group =
   aux_grp 
     "creatorsnotmoderated"
     "Can create new messages or comments in the forum without moderation"
+    forum_param
 
 let moderators : forum_arg parameterized_group =
   aux_grp "moderators" "Can moderate messages or comments in the forum"
+    forum_param
 
 let deletors : forum_arg parameterized_group =
   aux_grp "deletors" "Can delete messages or comments in the forum"
+    forum_param
 
 let deletors_if_creator : forum_arg parameterized_group =
   aux_grp "deletorsifauthor" 
-    "Can delete messages or comments in the forum if author"
+    "Can delete messages or comments in the forum if author"  forum_param
 
 let modifiers : forum_arg parameterized_group =
-  aux_grp "modifiers" "Can modify messages or comments in the forum (without moderation)"
+  aux_grp "modifiers" "Can modify messages or comments in the forum (without moderation)"  forum_param
 
 let modifiers_if_creator : forum_arg parameterized_group =
   aux_grp "modifiersifauthor" 
-    "Can modify messages or comments in the forum if author (without moderation)"
+    "Can modify messages or comments in the forum if author (without moderation)" forum_param
 
 let sticky_makers : forum_arg parameterized_group =
   aux_grp "stickymakers" "Can make messages or comments sticky in the forum"
+    forum_param
 
 let readers  : forum_arg parameterized_group =
-  aux_grp "readers" "Can read messages or comments in the forum (even not moderated)"
+  aux_grp "readers" "Can read messages or comments in the forum (even not moderated)" forum_param
 
 let moderated_readers : forum_arg parameterized_group =
-  aux_grp "moderatedreaders" "Can read moderated messages or comments in the forum"
+  aux_grp "moderatedreaders" "Can read moderated messages or comments in the forum"  forum_param
 
 
 let forum_admin : forum_arg parameterized_group =
-  aux_grp "admin" "All rights on the forum"
+  aux_grp "admin" "All rights on the forum"  forum_param
 
 let forum_visible : forum_arg parameterized_group =
-  aux_grp "visible" "Can see the forum"
+  aux_grp "visible" "Can see the forum" forum_param
 
 let forum_creators =
   Lwt_unix.run (User_sql.new_nonparameterized_group ~name:"forum_creators"
-                  ~prefix:"forum" ~fullname:"Can create new forums")
+                  ~prefix:"forum" ~descr:"Can create new forums")
 
 
 
@@ -125,20 +148,24 @@ let forum_creators =
 let thread_readers_evennotmoderated : message_arg parameterized_group =
   aux_grp "threadreadersnotmod"
     "Can read all messages or comments in the thread (even not moderated)"
+    message_param
     (* replaces readers *)
 
 let thread_moderated_readers : message_arg parameterized_group =
   aux_grp "threadreaders"
     "Can read moderated messages or comments in the thread"
+    message_param
     (* replaces moderated_readers *)
 
 let thread_comments_creators : message_arg parameterized_group =
   aux_grp "threadcommentcreators" "Can add comments in the thread"
+    message_param
     (* replaces creators *)
 
 let thread_comments_creators_notmod : message_arg parameterized_group =
   aux_grp "threadcommentcreatorsnotmod" 
     "Can add comments in the thread without moderation"
+    message_param
     (* replaces creators_notmod *)
 
 

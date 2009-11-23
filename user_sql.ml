@@ -207,8 +207,21 @@ let find_userid_by_name_aux_ db name =
     | r :: _ -> Lwt.return (userid_from_sql r)
 
 
-let new_group authtype ~prefix ~name ~fullname =
+type find_param = {
+  param_description: string;
+  find_param_functions:
+    ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
+}
+
+let hash_find_param = Hashtbl.create 17
+
+
+
+let new_group authtype find_param ~prefix ~name ~descr =
   let name = "#" ^ prefix ^ "." ^ name in
+  (match find_param with
+     | None -> ()
+     | Some v -> Hashtbl.add hash_find_param name v);
   Sql.full_transaction_block
     (fun db ->
        Lwt.catch
@@ -216,16 +229,17 @@ let new_group authtype ~prefix ~name ~fullname =
          (function
             | Not_found ->
                 PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
-                           VALUES ($name, $fullname, FALSE, $authtype)"
+                           VALUES ($name, $descr, FALSE, $authtype)"
                 >>= fun () ->
                 serial4 db "users_id_seq"
                 >>= fun id -> Lwt.return (userid_from_sql id)
             | e -> Lwt.fail e
          ))
 
-let new_parameterized_group = new_group "g"
-let new_nonparameterized_group ~prefix ~name ~fullname =
-  new_group "h" ~prefix ~name ~fullname >>= fun id ->
+let new_parameterized_group ~prefix ~name ~descr ~find_param =
+  new_group "g" (Some find_param) ~prefix ~name ~descr
+let new_nonparameterized_group ~prefix ~name ~descr =
+  new_group "h" None ~prefix ~name ~descr >>= fun id ->
   Lwt.return (NonParameterizedGroup id)
 
 let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
@@ -434,26 +448,34 @@ module NUserCache = Ocsigen_cache.Make (struct
 let nusercache = new NUserCache.cache
   (fun s ->
      if String.length s > 0 && s.[0] = '#' then
-       try
-         Scanf.sscanf s "%s@(%ld)"
-           (fun g v ->
-              find_user_by_name_ g
-              >>= fun u ->
-              if u.user_kind = `ParameterizedGroup then
-                Lwt.return (AppliedParameterizedGroup (u.user_id, v))
+       Lwt.catch
+         (fun () -> Scanf.sscanf s "%s@(%s@)"
+            (fun g v ->
+               find_user_by_name_ g >>= fun u ->
+               if u.user_kind = `ParameterizedGroup then
+                 (try Lwt.return (Int32.of_string v)
+                  with _ ->
+                    let param = Hashtbl.find hash_find_param g in
+                    match param.find_param_functions with
+                      | None -> Lwt.fail Not_found
+                      | Some (f1, _f2 ) ->
+                          Lwt.catch (fun () -> f1 v)
+                                    (function _ -> Lwt.fail Not_found)
+                 ) >>= fun v ->
+                 Lwt.return (AppliedParameterizedGroup (u.user_id, v))
               else
                 Lwt.fail Not_found
-           )
-       with _ ->
-         try
-           find_user_by_name_ s
-           >>= fun u ->
-           if u.user_kind = `NonParameterizedGroup then
-             Lwt.return (NonParameterizedGroup u.user_id)
-           else
-             Lwt.fail Not_found
-         with _ -> Lwt.fail Not_found
-
+            )
+         )
+         (function
+            | Scanf.Scan_failure _ ->
+                find_user_by_name_ s
+                >>= fun u ->
+                if u.user_kind = `NonParameterizedGroup then
+                  Lwt.return (NonParameterizedGroup u.user_id)
+                else
+                  Lwt.fail Not_found
+            | e -> Lwt.fail e)
      else
        get_basicuser_by_login s >>= fun u ->
          Lwt.return (basic_user u)
@@ -534,8 +556,19 @@ let userid_to_string u =
   get_basicuser_data u
   >>= fun { user_login = r } -> Lwt.return r
 
-let user_to_string = function
+let user_to_string ?(expand_param=true) = function
   | BasicUser u | NonParameterizedGroup u -> userid_to_string u
   | AppliedParameterizedGroup (u, v) ->
       userid_to_string u >>= fun s ->
-      Lwt.return (Printf.sprintf "%s(%ld)" s v)
+      (if expand_param then
+         Lwt.catch
+           (fun () ->
+              match (Hashtbl.find hash_find_param s).find_param_functions with
+                | None -> Lwt.fail Not_found
+                | Some (_f1, f2) -> f2 v
+           )
+           (function _ -> Lwt.return (Int32.to_string v))
+       else
+         Lwt.return (Int32.to_string v))
+      >>= fun v ->
+      Lwt.return (Printf.sprintf "%s(%s)" s v)

@@ -63,6 +63,14 @@ module Types : sig
   }
 
 end
+
+type find_param = {
+  param_description: string;
+  find_param_functions:
+    ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
+}
+
+
 open Types
 
 
@@ -80,13 +88,14 @@ val new_user:
 val new_parameterized_group:
   prefix:string ->
   name:string ->
-  fullname:string ->
+  descr:string ->
+  find_param:find_param ->
   'a parameterized_group Lwt.t
 
 val new_nonparameterized_group:
   prefix:string ->
   name:string ->
-  fullname:string ->
+  descr:string ->
   user Lwt.t
 
 
@@ -141,8 +150,11 @@ val userid_to_string: userid -> string Lwt.t
 (** Converts an user to a string. Basic users are converted as
     per [userid_to_string]. Groups are written  [#group(val)]
     where [group] is the name used at the creation
-    of the group, and val is the [int32] parameter of the group *)
-val user_to_string: user -> string Lwt.t
+    of the group, and val is the [int32] parameter of the group.
+    If [expand_param] is [true] the function tries to convert [int32] into
+    a string, using the functions passed as arguments when [#group] was
+    defined. *)
+val user_to_string: ?expand_param:bool -> user -> string Lwt.t
 
 (** Returns the user that corresponds to a given string
     (inverse of the function [user_to_string], or raises

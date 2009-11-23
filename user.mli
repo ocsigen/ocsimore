@@ -97,8 +97,6 @@ val add_list_to_group : l:user list -> group:user -> unit Lwt.t
 
 val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
 
-
-val user_list_to_string: user list -> string Lwt.t
 (****)
 
 
@@ -137,7 +135,7 @@ module GenericRights : sig
 
 
   val create_admin_writer_reader:
-    prefix:string -> name:string -> descr:string ->
+    prefix:string -> name:string -> descr:string -> find_param:User_sql.find_param ->
     'a admin_writer_reader
 
   val admin_writer_reader_groups:

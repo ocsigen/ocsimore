@@ -267,7 +267,7 @@ object (self)
     List.fold_left
       (fun s u ->
          s >>= fun s ->
-         User_sql.user_to_string u >>= fun su ->
+         User_sql.user_to_string ~expand_param:true u >>= fun su ->
          Lwt.return ({{ [ !s ' ' {{ self#user_link ~sp su }} ] }} :
                        Xhtmltypes_duce.inlines))
       (Lwt.return {{ [] }})
