@@ -880,14 +880,20 @@ object (self)
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
             ?special_box ~wb_loc:wb ~override ?exn ()
       | _ ->
-          error_box#bind_or_display_error
-            ?exn
-            (Wiki_data.wikibox_content bi.bi_rights sp wb)
-            (self#display_wikiboxcontent ~classes
-               ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
-            (self#menu_view ~bi ?special_box wb)
-          >>= fun r ->
-          Lwt.return (r, true)
+          let f content code =
+            error_box#bind_or_display_error ?exn content
+              (self#display_wikiboxcontent ~classes
+                 ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
+              (self#menu_view ~bi ?special_box wb)
+            >>= fun r ->
+            Lwt.return (r, code)
+          in
+          Lwt.catch
+            (fun () ->
+               Wiki_data.wikibox_content bi.bi_rights sp wb >>= fun c ->
+               Lwt.return (Lwt.return c, true))
+            (fun e -> Lwt.return (Lwt.fail e, false))
+          >>= fun (c, code) -> f c code
 
   method display_overriden_interactive_wikibox
     ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override ?exn () =
