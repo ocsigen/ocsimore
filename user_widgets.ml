@@ -68,9 +68,6 @@ class type user_widget_class = object
   method display_logout_button :
     sp:Eliom_sessions.server_params ->
     Xhtmltypes_duce.flows -> {{Eliom_duce.Blocks.form_elt}} Lwt.t
-  method group_content :
-    sp:Eliom_sessions.server_params ->
-    group:User_sql.Types.user -> (Xhtmltypes_duce.inlines * user list) Lwt.t
   method logout_uri :
     sp:Eliom_sessions.server_params -> Eliom_duce.Xhtml.uri
   method user_link :
@@ -79,9 +76,7 @@ class type user_widget_class = object
   method user_list_to_string :
     Eliom_sessions.server_params ->
     User_sql.Types.user list -> {{Xhtmltypes_duce.inlines}} Lwt.t
-  method user_membership :
-    sp:Eliom_sessions.server_params ->
-    user:User_sql.Types.user -> (Xhtmltypes_duce.inlines * user list) Lwt.t
+
 
   (** Helper forms to add and remove users from groups. If [show_edit]
       is false, no controls to edit the permissions are shown *)
@@ -233,34 +228,6 @@ object (self)
     aux grps.grp_reader "Current readers: "        d3 () >>= fun formr ->
     Lwt.return (fun (arga, (argw, argr)) ->
               {{ [ !{: formr argr :} !{: formw argw :} !{: forma arga :} ] }})
-
-
-
-  method group_content ~sp ~group =
-    User_sql.users_in_group ~generic:false ~group
-    >>= fun users ->
-    self#user_list_to_string sp users
-    >>= fun members ->
-    let textcur =
-      if users = [] then
-        "No user currently in this group"
-      else
-        "Current users in this group:"
-    in
-    Lwt.return ({{ [ !{: textcur :} !{: members :} ] }}, users)
-
-  method user_membership ~sp ~user =
-    User_sql.groups_of_user ~user
-    >>= fun groups ->
-    self#user_list_to_string sp groups
-    >>= fun members ->
-    let textcur =
-      if groups = [] then
-        "This user is currently in no group"
-      else
-        "Groups to which this user currently belongs: "
-    in
-    Lwt.return ({{ [ !{: textcur :} !{: members :} ] }}, groups)
 
 
   method user_list_to_string sp l =
