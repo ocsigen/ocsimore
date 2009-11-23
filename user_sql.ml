@@ -48,9 +48,9 @@ module Types = struct
   type userdata = {
     user_id: userid;
     user_login: string;
-    mutable user_pwd: pwd;
-    mutable user_fullname: string;
-    mutable user_email: string option;
+    user_pwd: pwd;
+    user_fullname: string;
+    user_email: string option;
     user_dyn: bool;
     user_kind: [`BasicUser | `ParameterizedGroup | `NonParameterizedGroup];
   }
