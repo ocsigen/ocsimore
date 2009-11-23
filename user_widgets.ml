@@ -475,7 +475,7 @@ object (self)
            {{ [ <p>[ !"Real name: " !{: Ocamlduce.Utf8.make g.user_fullname :} ]
               ] }}
        in
-       Lwt.return ({{ [ !error head !edit f1 f2] }} : Xhtmltypes_duce.blocks)
+       Lwt.return ({{ [ head !error !edit f1 f2] }} : Xhtmltypes_duce.blocks)
 
 
   method display_users ~sp =
