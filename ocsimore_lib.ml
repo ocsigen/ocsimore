@@ -153,3 +153,16 @@ let remove_begin_slash s =
   else if s.[0] = '/' then
     String.sub s 1 ((String.length s) - 1)
   else s
+
+
+let hidden_bool_input :
+  value:bool ->
+  [< bool Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
+  Eliom_duce.Blocks.input_elt
+ = fun ~value name ->
+   Eliom_duce.Xhtml.user_type_input string_of_bool
+     ~input_type:{: "hidden" :} ~value ~name ()
+
+
+let eliom_bool =
+  Eliom_parameters.user_type ~to_string:string_of_bool ~of_string:bool_of_string

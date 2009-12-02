@@ -306,7 +306,7 @@ object (self)
     Lwt.return
       {{ <div id={: id :} class={: classes :}>[
            !menu
-           <div>content ]}}
+           <div class="boxcontent">content ]}}
 
   method draw_edit_form ~rows ~cols wb warning1 warning2 curversion content
     previewonly
@@ -432,45 +432,41 @@ object (self)
       also suppose that boxrights is set to true for the wiki *)
   method display_edit_wikibox_perm_form ~bi ~classes wb =
     Wiki_sql.get_wikibox_info wb
-    >>= fun { wikibox_wiki = wiki;
-              wikibox_id = uid; wikibox_special_rights = sr } ->
-    User.GenericRights.map_awr
-      (fun it -> User_sql.user_to_string
-         (it.User.GenericRights.field Wiki.wiki_wikiboxes_grps $ wiki)
-      )
-    >>= fun defaults ->
-    user_widgets#form_edit_awr ~sp:bi.bi_sp ~grps:Wiki.wikibox_grps ~arg:wb
-      ~defaults ()
-    >>= fun form ->
-    let msg1 = Ocamlduce.Utf8.make
-      "Check this box if you want permissions specific to the wikibox. \
-       Otherwise, permissions are inherited from the wiki"
-    and msg2 = Ocamlduce.Utf8.make "Below are the current permissions for the
-      wikibox. Add users in the fields to change them"
+    >>= fun { wikibox_special_rights = sr } ->
+    let bt_change value textbt =
+      let mform (wbname, srname) =
+        {{ [ <div>[ {{ Ocsimore_common.input_opaque_int32 ~value:wb wbname }}
+                    {{ Ocsimore_lib.hidden_bool_input ~value srname}}
+                    {{ Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
+                         {{ Ocamlduce.Utf8.make textbt }}  }}
+                  ] ] }}
+      in
+      Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
+        ~service:X.action_set_wikibox_special_permissions ~sp:bi.bi_sp mform ()
     in
-    let form (nsr, (narg, args)) = {{ [
-              <p>[ !msg1
-                   {: Eliom_duce.Xhtml.bool_checkbox
-                      ~a:{{ { id="checkwikiboxpermissions"
-                              onclick={: Wiki_client_calls.toggle_wikibox_permissions () :}
-                            } }}
-                      ~checked:sr ~name:nsr():}]
-              <div id="wikiboxpermissions" style={: "display: " ^
-                                 if sr then "block" else "none" :} >[
-                <p>[ !msg2 ]
-                <p>[ {: Wiki.helpers_wikibox_permissions.User.GroupsForms.awr_form_arg uid narg :}
-                     !{: form args :} ]
-              ]
-              <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                        {{"Save"}} :}
-              ]
-    ] }} in
-    let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-      ~service:X.action_send_wikibox_permissions ~sp:bi.bi_sp form
-      ()
-    in
-    P.add_obrowser_header bi.bi_sp;
-    Lwt.return (classes, {{ [ form ] }})
+    if sr = false then
+      let msg = "The permissions for this wikibox are currently inherited from \
+                 the wiki. Press this button if you want to use special
+                 permissions."
+      and bt = bt_change true "Use specific permissions" in
+      Lwt.return (classes, {{ [ !{{Ocamlduce.Utf8.make msg }} bt ] }})
+    else
+      user_widgets#form_edit_awr ~text_prefix:"Wikibox " ~sp:bi.bi_sp
+        ~grps:Wiki.wikibox_grps ~arg:wb ()
+      >>= fun formedit ->
+      let msg = Ocamlduce.Utf8.make
+        "This wikibox has specific permissions. You can edit them below, or \
+         use the button next to revert to the wiki generic permissions."
+      in
+      let bt = bt_change false "Use generic wiki permissions"
+      and msg2 = {{ <p>[!"If you edit the permissions below, do " <em>"not" !" remove yourself from the admin group, as you will no longer be allowed to edit permissions afterwards." ] }}
+      in
+      Lwt.return (classes, {{ [ !msg bt msg2
+                                <table class="table_admin">
+                                  [<tr>[<th>"Role"
+                                        <th>"Current users in this role"]
+                                    !formedit ] ] }})
+
 
 
   (** Form to edit the description and container of a wiki *)
@@ -515,9 +511,12 @@ object (self)
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
   method display_edit_wiki_perm_form ~sp ~classes ?wb wiki =
-    let form wiki =
-      let aux g text = user_widgets#form_edit_group ~sp
-        ~group:(g $ wiki) ~text ~show_edit:true in
+    let aux g text =
+      user_widgets#form_edit_group ~sp ~group:(g $ wiki)
+        ~text:{{ [ <p class = "eliom_inline">[
+                     <b>{: Ocamlduce.Utf8.make text :}] ]}}
+        ~show_edit:true
+    in
     aux Wiki.wiki_admins "Administer the wiki" () >>= fun f1 ->
     aux Wiki.wiki_subwikiboxes_creators "Create subwikiboxes" () >>= fun f2 ->
     aux Wiki.wiki_wikipages_creators "Create wikipages" () >>= fun f3 ->
@@ -528,7 +527,7 @@ object (self)
     aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" () >>= fun f9 ->
     aux Wiki.wiki_wikiboxes_oldversion_viewers "View wikiboxes old versions" () >>= fun f10 ->
     aux Wiki.wiki_metadata_editors "Edit the metadata of the wiki" () >>= fun f11 ->
-    user_widgets#form_edit_awr ~sp
+    user_widgets#form_edit_awr ~sp ~text_prefix:"Wikiboxes"
       ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki () >>= fun f7 ->
 
     let msg = Ocamlduce.Utf8.make
@@ -536,42 +535,15 @@ object (self)
     and msg2 = Ocamlduce.Utf8.make "(inherited permissions are not shown)"
     and msg_wikiboxes = Ocamlduce.Utf8.make "Global permissions for wikiboxes:"
     in
-    Lwt.return (
-      fun (narg, (n1, (n2, (n3, (n4, (n5, (n6, (n7, (n8, (n9, (n10, n11))))))))))) ->
-        ({{ [
-             <h2>msg
-             <p>[<em>msg2]
-             <p>[ {: Wiki.h_wiki_admins.User.GroupsForms.grp_form_arg wiki narg :}
-                  !{: f1 n1 :} <br>[]
-                  !{: f2 n2 :} <br>[]
-                  !{: f3 n3 :} <br>[]
-                  !{: f4 n4 :} <br>[]
-                  !{: f5 n5 :} <br>[]
-                  !{: f6 n6 :} <br>[]
-                  !{: f8 n8 :} <br>[]
-                  !{: f9 n9 :} <br>[]
-                  !{: f10 n10 :} <br>[]
-                  !{: f11 n11 :} <br>[]
-                  <b>msg_wikiboxes <br>[]
-                  !{: f7 n7 :}]
-             <p>[ {: Eliom_duce.Xhtml.button ~button_type:{: "submit" :}
-                     {{"Save"}} :} ]
-           ] }} : Eliom_duce.Blocks.form_content_elt_list))
+    let form =
+      {{ [ <h2>msg
+           <p>[<em>msg2]
+           <table class="table_admin">
+             [<tr>[<th>"Role" <th>"Current users in the group"]
+              f1 f2 f3 f4 f5 f6 f8 f9 f10 f11 !f7]
+         ] }}
     in
-    form wiki >>= fun form ->
-    let form (wbname, nargs) =
-      {{ [ <p>[ !{: match wb with
-                     | None -> []
-                     | Some wb -> [Ocsimore_common.input_opaque_int32
-                                         ~value:wb wbname] :} ]
-                !{: form nargs :}
-         ]}}
-    in
-    let form = Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-      ~service:X.action_send_wiki_permissions ~sp form
-      ()
-    in
-    Lwt.return (classes, {{ [ form ] }})
+    Lwt.return (classes, form)
 
   (* Auxiliary method to factorize some code *)
   method private menu_box_aux ?title ?active_item cl wb ~bi ~classes ?special_box content =
@@ -878,7 +850,9 @@ object (self)
     match override with
       | Some (wb', override) when wb = wb' ->
           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
-            ?special_box ~wb_loc:wb ~override ?exn ()
+            ?special_box ~wb_loc:wb ~override ?exn () >>= fun (b, c) ->
+          Lwt.return ({{ <div class="overridden">[ b] }}, c)
+
       | _ ->
           let f content code =
             error_box#bind_or_display_error ?exn content

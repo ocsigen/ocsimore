@@ -408,9 +408,14 @@ let add_to_group ~(user:user) ~(group:user) =
             Lwt.return ()
         | false -> User_sql.add_to_group user group
 
+(* XXX Should remove check that we do not remove from a dyn group *)
+let remove_from_group = User_sql.remove_from_group
+
 
 let add_to_groups ~user ~groups =
   Lwt_util.iter_serial (fun group -> add_to_group ~user ~group) groups
+
+
 
 
 let iter_list_group f ~l ~group =
@@ -483,6 +488,14 @@ let in_group ~sp ?user ~group () =
   in_group_ ~sp ?user ~group ()
 
 
+let user_from_userlogin_xform user =
+  get_user_by_name user >>= fun u ->
+  if u = basic_user nobody && user <> nobody_login then
+    Lwt.return (Xform.ConvError ("This user does not exists: " ^ user))
+  else
+    Lwt.return (Xform.Converted u)
+
+
 module GenericRights = struct
 
   (* We need second-order polymorphism for the accessors on
@@ -495,19 +508,19 @@ module GenericRights = struct
   let grp_write = { field = fun grp -> grp.grp_writer }
   let grp_read  = { field = fun grp -> grp.grp_reader }
 
-  let can_sthg f =
+  let map_awr f =
     f grp_admin,
     f grp_write,
     f grp_read
 
 
-  let map_awr f =
+  let map_awr_lwt f =
     f grp_admin >>= fun a ->
     f grp_write >>= fun w ->
     f grp_read  >>= fun r ->
     Lwt.return (a, w, r)
 
-  let iter_awr f =
+  let iter_awr_lwt f =
     f grp_admin >>= fun () ->
     f grp_write >>= fun () ->
     f grp_read
@@ -544,126 +557,3 @@ module GenericRights = struct
 
 end
 
-
-module GroupsForms = struct
-
-  type input_string = [ `One of string ] Eliom_parameters.param_name
-  type two_input_strings = input_string * input_string
-
-  type 'a opaque_int32_eliom_param =
-      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name
-
-
-  let opaque_int32_to_string v = Int32.to_string (Opaque.t_int32 v)
-  let string_to_opaque_int32 s = Opaque.int32_t (Int32.of_string s)
-
-
-  let add_remove_users_from_group ~(add : string) ~(remove : string) ~group =
-    user_list_of_string add >>= fun addl ->
-    user_list_of_string remove >>= fun reml ->
-    add_list_to_group ~l:addl ~group >>= fun () ->
-    remove_list_from_group ~l:reml ~group
-
-  let user_add_remove_from_groups ~user ~(add : string) ~(remove : string) =
-    user_list_of_string add >>= fun addl ->
-    user_list_of_string remove >>= fun reml ->
-    add_user_to_list ~l:addl ~user >>= fun () ->
-    remove_user_from_list ~l:reml ~user
-
-
-  let add_remove_users_from_group_param add rem grp arg =
-    let group = grp $ arg in
-    add_remove_users_from_group add rem group
-
-
-  let ( ** ) = Eliom_parameters.prod
-
-  type 'a grp_helper = {
-    grp_eliom_params : (string * string, [ `WithoutSuffix ], two_input_strings)
-      Eliom_parameters.params_type;
-
-    grp_eliom_arg_param:
-      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
-      Eliom_parameters.params_type;
-
-    grp_form_arg:
-      'a Opaque.int32_t ->
-      'a opaque_int32_eliom_param ->
-      Xhtmltypes_duce.inline_forms;
-
-    grp_save:
-      'a Opaque.int32_t -> string * string -> unit Lwt.t
-  }
-
-
-  let helpers_group prefix grp =
-    let add = "add#" ^ prefix and rem = "rem#" ^ prefix in
-    let params = (Eliom_parameters.string add) ** (Eliom_parameters.string rem)
-
-    and param_arg = Eliom_parameters.user_type
-      string_to_opaque_int32 opaque_int32_to_string "arg"
-
-    and form_arg value arg_name =
-      Eliom_duce.Xhtml.user_type_input opaque_int32_to_string
-               ~input_type:{: "hidden" :} ~name:arg_name ~value ()
-
-    and update_perms arg (add, rem) =
-      add_remove_users_from_group_param add rem grp arg
-    in
-    {grp_eliom_params = params;
-     grp_eliom_arg_param = param_arg;
-     grp_form_arg = form_arg;
-     grp_save = update_perms}
-
-  type six_strings =(string * string) * ((string * string) * (string * string))
-  type six_input_strings =
-      two_input_strings * (two_input_strings * two_input_strings)
-
-  (** Same thing with an admin_writer_reader structure *)
-  type 'a awr_helper = {
-    awr_eliom_arg_param:
-      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
-      Eliom_parameters.params_type;
-
-    (** Arguments for the service to register to update the permissions *)
-    awr_eliom_params: (six_strings, [`WithoutSuffix], six_input_strings)
-      Eliom_parameters.params_type;
-
-    (** Function saving the permissions *)
-    awr_save: 'a Opaque.int32_t -> six_strings -> unit Lwt.t;
-
-    awr_form_arg:
-      'a Opaque.int32_t ->
-      'a opaque_int32_eliom_param ->
-      Xhtmltypes_duce.inline_forms;
-  }
-
-  let helpers_admin_writer_reader prefix groups =
-    let h s = helpers_group (s ^ "#" ^ prefix) in
-    let helpa = h "adm"  groups.grp_admin
-    and helpw = h "wri"  groups.grp_writer
-    and helpr = h "read" groups.grp_reader in
-
-    let params = helpa.grp_eliom_params **
-      (helpw.grp_eliom_params ** helpr.grp_eliom_params)
-
-    and save arg ((adda, rema), ((addw, remw), (addr, remr))) =
-      helpa.grp_save arg (adda, rema) >>= fun () ->
-      helpw.grp_save arg (addw, remw) >>= fun () ->
-      helpr.grp_save arg (addr, remr)
-
-    in
-    { awr_eliom_params = params;
-      awr_save = save;
-      awr_eliom_arg_param = helpa.grp_eliom_arg_param;
-      awr_form_arg = helpa.grp_form_arg
-    }
-
-end
-
-let user_from_userlogin_xform user =
-  get_user_by_name user >>= fun u ->
-  if u = basic_user nobody && user <> nobody_login then
-    Lwt.return (Xform.ConvError ("This user does not exists: " ^ user))
-  else
-    Lwt.return (Xform.Converted u)

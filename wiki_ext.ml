@@ -149,7 +149,7 @@ let register_wikibox_syntax_extensions
                     >>= fun box ->
                     (Wiki_sql.get_wikibox_info wb >>= function
                        | { wikibox_special_rights = true } ->
-                           User.GenericRights.iter_awr
+                           User.GenericRights.iter_awr_lwt
                            (fun f ->
                               let g = f.User.GenericRights.field
                                 Wiki.wikibox_grps in

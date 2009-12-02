@@ -65,6 +65,12 @@ module Types = struct
     | AppliedParameterizedGroup of userid * int32
     | NonParameterizedGroup of userid
 
+  type user_descr = [
+    | `BasicUser of string
+    | `AppliedParameterizedGroup of string * int32
+    | `NonParameterizedGroup of string
+  ]
+
 
   let apply_parameterized_group g v =
     AppliedParameterizedGroup (g, Opaque.t_int32 v)
@@ -80,6 +86,12 @@ module Types = struct
   let is_basic_user = function
     | BasicUser u -> Some u
     | _ -> None
+
+let user_is_applied_parameterized_group ~user ~pgroup =
+  match user with
+    | BasicUser _ | NonParameterizedGroup _ -> None
+    | AppliedParameterizedGroup (g, v) ->
+        if pgroup = g then Some (Opaque.int32_t v) else None
 
 
   type 'a admin_writer_reader = {
@@ -200,10 +212,12 @@ let new_user ~name ~password ~fullname ~email ~dyn =
        Lwt.return (id, pwd)
     )
 
+exception NotAnUser
+
 let find_userid_by_name_aux_ db name =
   PGSQL(db) "SELECT id FROM users WHERE login = $name"
   >>= function
-    | [] -> Lwt.fail Not_found
+    | [] -> Lwt.fail NotAnUser
     | r :: _ -> Lwt.return (userid_from_sql r)
 
 
@@ -265,7 +279,7 @@ let find_user_by_name_ name =
        PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
                   FROM users WHERE login = $name"
        >>= function
-         | [] -> Lwt.fail Not_found
+         | [] -> Lwt.fail NotAnUser
          | r :: _ -> Lwt.return (wrap_userdata r))
 
 let find_userid_by_name_ name =
@@ -279,7 +293,7 @@ let find_user_by_id_ id =
        PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
                   FROM users WHERE id = $id"
        >>= function
-         | [] -> Lwt.fail Not_found
+         | [] -> Lwt.fail NotAnUser
          | r :: _ -> Lwt.return (wrap_userdata r))
 
 let all_groups () =
@@ -457,14 +471,14 @@ let nusercache = new NUserCache.cache
                   with _ ->
                     let param = Hashtbl.find hash_find_param g in
                     match param.find_param_functions with
-                      | None -> Lwt.fail Not_found
+                      | None -> Lwt.fail NotAnUser
                       | Some (f1, _f2 ) ->
                           Lwt.catch (fun () -> f1 v)
-                                    (function _ -> Lwt.fail Not_found)
+                                    (function _ -> Lwt.fail NotAnUser)
                  ) >>= fun v ->
                  Lwt.return (AppliedParameterizedGroup (u.user_id, v))
-              else
-                Lwt.fail Not_found
+               else
+                 Lwt.fail NotAnUser
             )
          )
          (function
@@ -474,7 +488,7 @@ let nusercache = new NUserCache.cache
                 if u.user_kind = `NonParameterizedGroup then
                   Lwt.return (NonParameterizedGroup u.user_id)
                 else
-                  Lwt.fail Not_found
+                  Lwt.fail NotAnUser
             | e -> Lwt.fail e)
      else
        get_basicuser_by_login s >>= fun u ->
@@ -572,3 +586,19 @@ let user_to_string ?(expand_param=true) = function
          Lwt.return (Int32.to_string v))
       >>= fun v ->
       Lwt.return (Printf.sprintf "%s(%s)" s v)
+
+
+(*
+let user_descr = function
+  | BasicUser u ->
+      userid_to_string u >>= fun u ->
+      Lwt.return (`BasicUser u)
+
+  | NonParameterizedGroup u ->
+      userid_to_string u >>= fun u ->
+      Lwt.return (`NonParameterizedGroup u)
+
+  | AppliedParameterizedGroup (u, v) ->
+      userid_to_string u >>= fun u ->
+      Lwt.return (`AppliedParameterizedGroup (u, v))
+*)

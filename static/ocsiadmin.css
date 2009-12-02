@@ -69,7 +69,10 @@ table.table_admin {
 
 table.table_admin td.wikiid, table.table_admin td.wikiname, table.table_admin td.wikidescr, table.table_admin td.userid, table.table_admin td.userlogin, table.table_admin td.userdescr {
   padding: 3px 10px;
-/*  border-collapse: separate; */
+}
+
+table.table_admin td.current_users {
+    padding: 3px 10px 15px;
 }
 
 table.table_admin td {
@@ -81,6 +84,9 @@ table.table_admin th {
   padding: 5px;
 }
 
+table.table_admin td.current_users {
+    text-align:right;
+}
 
 table.table_admin td.wikiname {
     max-width: 30em;
@@ -98,7 +104,6 @@ table.table_admin img {
 
 body.admin {
     font-family: Verdana,sans-serif;
-    
 }
 
 body.admin h1 {
@@ -123,3 +128,12 @@ body.admin h1 {
 #admin_status form.logoutbutton, #admin_status form.logoutbutton div, #admin_status form.logoutbutton p {
   display:inline;
 }
+
+ul.user_list {
+  list-style-type: none;
+}
+
+
+
+
+

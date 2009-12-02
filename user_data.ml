@@ -190,37 +190,68 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
 
 (** Edition of groups *)
 
-let can_admin_group ~sp ?user ~group () =
-  (match user with
-     | None -> User.get_user_id ~sp >>= fun u ->
-               Lwt.return (basic_user u)
-     | Some u -> Lwt.return u
-  ) >>= fun user ->
-  match is_basic_user group with
-    | None -> Lwt.return (user = basic_user User.admin)
-    | Some group ->
-        User.in_group ~sp ~user
-          ~group:(User.group_can_admin_group $ group) ()
+
+let can_admin_group, add_group_admin_function =
+  let hooks_admin = ref [] in
+  (fun ~sp ?user ~group () ->
+     (match user with
+        | None -> User.get_user_id ~sp >>= fun u ->
+            Lwt.return (basic_user u)
+        | Some u -> Lwt.return u
+     ) >>= fun user ->
+     (match is_basic_user group with
+        | None -> Lwt.return (user = basic_user User.admin)
+        | Some group ->
+            User.in_group ~sp ~user
+              ~group:(User.group_can_admin_group $ group) ()
+     ) >>= function
+       | true -> Lwt.return true
+       | false ->
+           let rec aux = function
+             | [] -> Lwt.return false
+             | f :: q ->
+                 f ~sp ~user ~group >>= function
+                   | true -> Lwt.return true
+                   | false -> aux q
+           in aux !hooks_admin
+  ),
+  (fun f -> hooks_admin := f :: !hooks_admin)
 
 
-let add_remove_users_from_group sp g (add, rem) =
-  User.get_user_by_name g >>= fun group ->
+
+let add_remove_users_from_group sp group (add, rem) =
+        Ocsigen_messages.console2 (Printf.sprintf "Adding %s /removing %s from %s" add rem group);
+  User.get_user_by_name group >>= fun group ->
   can_admin_group ~sp ~group () >>= function
     | true ->
-        User.GroupsForms.add_remove_users_from_group add rem group
+        (if add <> "" then
+           User_sql.get_user_by_name add >>= fun add ->
+           User.add_to_group ~user:add ~group
+         else
+           Lwt.return ()
+        ) >>= fun () ->
+        (if rem <> "" then
+           User_sql.get_user_by_name rem >>= fun rem ->
+           User.remove_from_group ~user:rem ~group
+         else
+           Lwt.return ()
+        )
     | false ->
         Lwt.fail Ocsimore_common.Permission_denied
 
-
-let add_remove_user_from_groups sp u (add, rem) =
-  User.get_user_id sp >>= fun user ->
-  if user = User.admin then
-    User.get_user_by_name u
-    >>= fun group ->
-    User.GroupsForms.user_add_remove_from_groups group add rem
+(* (* No longer used; deactivated as the permissions check is a bit coarse *)
+let add_remove_user_from_groups sp user (add, rem) =
+  User.get_user_id sp >>= fun cuser ->
+  if cuser = User.admin then
+    User.get_user_by_name user
+    >>= fun user ->
+    User_sql.get_user_by_name add >>= fun add ->
+    User_sql.get_user_by_name rem >>= fun rem ->
+    User.add_to_group ~user ~group:add >>= fun () ->
+    User.remove_from_group ~user ~group:rem
   else
     Lwt.fail Ocsimore_common.Permission_denied
-
+*)
 
 
 (** Login and logout *)

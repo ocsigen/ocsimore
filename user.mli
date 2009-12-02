@@ -90,19 +90,23 @@ val create_fresh_user:
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
 
+(** Atomic change in one group *)
 val add_to_group : user:user -> group:user -> unit Lwt.t
-val add_to_groups : user:user -> groups:user list -> unit Lwt.t
+val remove_from_group: user:user -> group:user -> unit Lwt.t
 
+(** Multiple operations on groups *)
+val add_to_groups : user:user -> groups:user list -> unit Lwt.t
 val add_list_to_group : l:user list -> group:user -> unit Lwt.t
 
 val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
 
-(****)
 
 
 val in_group :
   sp:Eliom_sessions.server_params ->
   ?user:user -> group:user -> unit -> bool Lwt.t
+
+
 
 (** Informations on the loggued user *)
 
@@ -112,8 +116,11 @@ val get_user_name : sp:Eliom_sessions.server_params -> string Lwt.t
 
 val is_logged_on : sp:Eliom_sessions.server_params -> bool Lwt.t
 
+
 val set_session_data : sp:Eliom_sessions.server_params -> userid * string -> unit Lwt.t
 
+
+val user_from_userlogin_xform: string -> user Xform.convert Lwt.t
 
 
 
@@ -129,9 +136,10 @@ module GenericRights : sig
   val grp_write: admin_writer_reader_access
   val grp_read:  admin_writer_reader_access
 
-  val can_sthg: (admin_writer_reader_access -> 'a) -> ('a * 'a * 'a)
-  val map_awr: (admin_writer_reader_access -> 'a Lwt.t) -> ('a * 'a * 'a) Lwt.t
-  val iter_awr: (admin_writer_reader_access -> unit Lwt.t) -> unit Lwt.t
+  val map_awr: (admin_writer_reader_access -> 'a) -> ('a * 'a * 'a)
+  val map_awr_lwt:
+    (admin_writer_reader_access -> 'a Lwt.t) -> ('a * 'a * 'a) Lwt.t
+  val iter_awr_lwt: (admin_writer_reader_access -> unit Lwt.t) -> unit Lwt.t
 
 
   val create_admin_writer_reader:
@@ -146,82 +154,3 @@ module GenericRights : sig
 
 
 end
-
-
-module GroupsForms : sig
-
-  type input_string = [ `One of string ] Eliom_parameters.param_name
-  type two_input_strings = input_string * input_string
-
-  type 'a opaque_int32_eliom_param =
-      [ `One of 'a Opaque.int32_t ] Eliom_parameters.param_name
-
-  (** Auxiliary records containing all the needed information
-      to define forms and services to edit the permissions of a parameterized
-      group *)
-  type 'a grp_helper = {
-    (** The eliom arguments for the two string corresponding to the
-        groups to add and remove into the parameterized group *)
-    grp_eliom_params : (string * string, [ `WithoutSuffix ], two_input_strings)
-      Eliom_parameters.params_type;
-
-    (** The eliom argument for the 'a parameter *)
-    grp_eliom_arg_param:
-      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
-      Eliom_parameters.params_type;
-
-    (** The hidden argument to use inside forms to specify which parameter
-        is meant *)
-    grp_form_arg:
-      'a Opaque.int32_t ->
-      'a opaque_int32_eliom_param ->
-      Xhtmltypes_duce.inline_forms;
-
-    (** The function saving the new permissions in the database *)
-    grp_save: 'a Opaque.int32_t -> string * string -> unit Lwt.t
-  }
-
-  val helpers_group : string -> 'a parameterized_group -> 'a grp_helper
-
-
-  type six_strings =(string * string) * ((string * string) * (string * string))
-  type six_input_strings =
-      two_input_strings * (two_input_strings * two_input_strings)
-
-  (** Same thing with an admin_writer_reader structure *)
-  type 'a awr_helper = {
-    awr_eliom_arg_param:
-      ('a Opaque.int32_t, [ `WithoutSuffix ], 'a opaque_int32_eliom_param)
-      Eliom_parameters.params_type;
-
-    awr_eliom_params: (six_strings, [`WithoutSuffix], six_input_strings)
-      Eliom_parameters.params_type;
-
-    awr_save: 'a Opaque.int32_t -> six_strings -> unit Lwt.t;
-
-    awr_form_arg:
-      'a Opaque.int32_t ->
-      'a opaque_int32_eliom_param ->
-      Xhtmltypes_duce.inline_forms;
-  }
-
-  val helpers_admin_writer_reader :
-    string -> 'a User_sql.Types.admin_writer_reader -> 'a awr_helper
-
-
-
-  (** Add the space separated groups in [add], and remove the
-      space-separated groups in [remove] from the given [user] *)
-  val add_remove_users_from_group:
-    add:string -> remove:string -> group:user -> unit Lwt.t
-
-  (** Add [user] to the space separated groups in [add], and removes
-      [user] from the space-separated groups in [remove] *)
-  val user_add_remove_from_groups:
-    user:user -> add:string -> remove:string -> unit Lwt.t
-
-
-end
-
-
-val user_from_userlogin_xform: string -> user Xform.convert Lwt.t

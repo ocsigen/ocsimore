@@ -104,14 +104,3 @@ let switch_menu =
     JSOO.set "innerHTML" (JSOO.string msgon) link;
     update_classes_body (class_no_menu :: classes_body)
   )
-
-let toggle_wikibox_permissions =
-  fun.client () ->
-  let div = Js.get_element_by_id "wikiboxpermissions"
-  and checkbox = Js.get_element_by_id "checkwikiboxpermissions"
-  in
-  let v = checkbox >>> JSOO.get "checked" >>>
-    JSOO.call_method "toString" [||] >>> JSOO.as_string in
-  div >>> JSOO.get "style" >>> JSOO.set "display"
-    (JSOO.string (if v = "true" then "block" else "none"))
-

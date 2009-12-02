@@ -101,26 +101,10 @@ let external_auth = match auth with
         | None -> raise (Ocsigen_config.Config_file_error
                            "Ocsimore compiled without PAM support")
 
-module Services = struct
+module Services =
+  User_services.MakeServices(struct let external_auth = external_auth
+                                    let force_secure = force_secure end)
 
-let (
-    action_login,
-    action_logout,
-    action_logout_get,
-    action_edit_user_data,
-    action_add_remove_users_from_group,
-    action_add_remove_user_from_groups,
-    service_view_group,
-    service_view_groups,
-    service_view_users,
-    service_view_roles,
-    service_login,
-    service_create_new_group,
-    action_create_new_group
-  as user_services) =
-  User_services.services ~external_auth ~force_secure
-
-end
 include Services
 
 let user_widgets, service_user_creation =
@@ -132,10 +116,8 @@ let user_widgets, service_user_creation =
 
     | UserCreation user_creation_options ->
         (* We create some services specific to the creation of user *)
-        let module ServicesCreation = struct
-          let (service_create_new_user, action_create_new_user
-                 as creation_services) = User_services.services_user_creation ()
-        end in
+        let module ServicesCreation =
+          User_services.MakeServicesUserCreation(struct end) in
         let module WidgetCreation =
           Widget.MakeWidgetCreation(ServicesCreation) in
         let user_widget_creation =

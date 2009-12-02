@@ -92,9 +92,8 @@ let param_wikipage = {
 }
 
 let aux_grp name descr find_param =
-  let g = Lwt_unix.run
-    (User_sql.new_parameterized_group ~prefix ~name ~descr ~find_param) in
-  g, User.GroupsForms.helpers_group name g
+  Lwt_unix.run
+    (User_sql.new_parameterized_group ~prefix ~name ~descr ~find_param)
 
 let admin_writer_reader_aux ~name ~descr ~find_param =
   User.GenericRights.create_admin_writer_reader ~prefix:"wiki" ~name ~descr ~find_param
@@ -110,51 +109,80 @@ let wikis_creator =
 
 (** Groups taking a wiki as argument *)
 
-let (wiki_admins, h_wiki_admins : wiki_arg parameterized_group * _) = aux_grp
-  "WikiAdmin" "All rights on the wiki" param_wiki
+let aux_grp_wiki name descr =
+  (aux_grp name descr param_wiki : wiki_arg parameterized_group)
 
-let (wiki_subwikiboxes_creators, h_subwikiboxes_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiSubwikiboxesCreator" "Can create subwikiboxes in the wiki" param_wiki
+let wiki_admins =
+  aux_grp_wiki "WikiAdmin" "All rights on the wiki"
 
-let (wiki_wikipages_creators, h_wiki_wikipages_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiWikipagesCreator" "Can create wikipages in the wiki" param_wiki
+let wiki_subwikiboxes_creators = aux_grp_wiki
+  "WikiSubwikiboxesCreator" "Can create subwikiboxes in the wiki"
 
-let (wiki_css_creators, h_wiki_css_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiCssCreator" "Can create css for the wiki" param_wiki
+let wiki_wikipages_creators = aux_grp_wiki
+  "WikiWikipagesCreator" "Can create wikipages in the wiki"
 
-let (wiki_wikiboxes_creators, h_wiki_wikiboxes_creators :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki" param_wiki
+let wiki_css_creators = aux_grp_wiki
+  "WikiCssCreator" "Can create css for the wiki"
 
-let (wiki_wikiboxes_deletors, h_wiki_wikiboxes_deletors :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiWikiboxesDeletor" "Can delete wikiboxes in the wiki" param_wiki
+let wiki_wikiboxes_creators = aux_grp_wiki
+  "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki"
+
+let wiki_wikiboxes_deletors = aux_grp_wiki
+  "WikiWikiboxesDeletor" "Can delete wikiboxes in the wiki"
 
 let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
   admin_writer_reader_aux ~name:"WikiWikiboxes"
     ~descr:"the wikiboxes of the wiki" ~find_param:param_wiki
-let h_wiki_wikiboxes_grps = User.GroupsForms.helpers_admin_writer_reader
-  "WikiWikiboxes" wiki_wikiboxes_grps
 
-let (wiki_files_readers, h_wiki_files_readers :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiFilesReader" "can read the staic files for this wiki" param_wiki
+let wiki_files_readers = aux_grp_wiki
+  "WikiFilesReader" "can read the staic files for this wiki"
 
-let (wiki_wikiboxes_src_viewers, h_wiki_wikiboxes_src_viewers :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiWikiboxesSrcViewers" "can view the source of a wikibox" param_wiki
+let wiki_wikiboxes_src_viewers = aux_grp_wiki
+  "WikiWikiboxesSrcViewers" "can view the source of a wikibox"
 
-let (wiki_wikiboxes_oldversion_viewers, h_wiki_wikiboxes_oldversion_viewers :
-       wiki_arg parameterized_group * _) = aux_grp
+let wiki_wikiboxes_oldversion_viewers = aux_grp_wiki
   "WikiWikiboxesOldversionViewers" "can view an old version of a wikibox"
-  param_wiki
 
-let (wiki_metadata_editors, h_wiki_metadata_editors :
-       wiki_arg parameterized_group * _) = aux_grp
-  "WikiMetadataEditors" "can modify the metadata for the wiki" param_wiki
+let wiki_metadata_editors = aux_grp_wiki
+  "WikiMetadataEditors" "can modify the metadata for the wiki"
+
+let () =
+  let g1, g2, g3 = User.GenericRights.map_awr
+    (fun v -> v.User.GenericRights.field wiki_wikiboxes_grps) in
+  let l1 = [
+    wiki_admins;
+    wiki_subwikiboxes_creators;
+    wiki_wikipages_creators;
+    wiki_css_creators;
+    wiki_wikiboxes_creators;
+    wiki_wikiboxes_deletors;
+    wiki_files_readers;
+    wiki_wikiboxes_src_viewers;
+    wiki_wikiboxes_oldversion_viewers;
+    wiki_metadata_editors;
+  ] and l2 = [
+    g1;
+    g2;
+    g3;
+  ] in
+  User_data.add_group_admin_function
+    (fun ~sp ~user ~group ->
+       let rec ok g_admin = function
+         | [] -> Lwt.return false
+         | pgroup :: q ->
+             match user_is_applied_parameterized_group ~user:group ~pgroup with
+               | None -> ok g_admin q
+               | Some v ->
+                   User.in_group ~sp ~user ~group:(g_admin $ v) () >>= function
+                     | true -> Lwt.return true
+                     | false -> ok g_admin q
+       in
+       ok (User.GenericRights.grp_admin.User.GenericRights.field
+             wiki_wikiboxes_grps) l2 >>= function
+         | true -> Lwt.return true
+         | false -> ok wiki_admins (l2 @ l1)
+    )
+
 
 
 (** The following groups take a wikibox as argument. They are used to override
@@ -164,7 +192,7 @@ let wikibox_grps : wikibox_arg admin_writer_reader = admin_writer_reader_aux
 
 
 (** These groups take a wikipage as argument *)
-let (wikipage_css_creators, _ : wikipage_arg parameterized_group * _)= aux_grp
+let (wikipage_css_creators : wikipage_arg parameterized_group)= aux_grp
   "WikipageCssCreator" "Can create css for the wikipage" param_wikipage
 
 
@@ -245,7 +273,7 @@ let aux_group grp ~sp data =
 
 
 class wiki_rights : Wiki_types.wiki_rights =
-  let can_adm_wb, can_wr_wb, can_re_wb = can_sthg can_sthg_wikibox in
+  let can_adm_wb, can_wr_wb, can_re_wb = map_awr can_sthg_wikibox in
 object (self)
   method can_create_wiki ~sp () =
     User.in_group ~sp ~group:wikis_creator ()
@@ -302,20 +330,6 @@ object (self)
 
 
 end
-
-
-
-
-
-
-
-(** Auxiliary functions and structures to edit rights *)
-
-open User.GroupsForms
-
-let helpers_wikibox_permissions =
-  User.GroupsForms.helpers_admin_writer_reader
-    "edit_wikibox_permissions" wikibox_grps
 
 
 

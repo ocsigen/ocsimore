@@ -140,13 +140,24 @@ let wikipage_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
 
 
 
-let set_wikibox_specific_permissions ~(rights : Wiki_types.wiki_rights) ~sp ~wb  ~perms ~special_rights =
+let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~sp ~wb  ~special_rights =
   rights#can_set_wikibox_specific_permissions sp wb >>= function
     | true ->
-        let { User.GroupsForms.awr_save = save } =
-          Wiki.helpers_wikibox_permissions in
-        save wb perms >>= fun () ->
-        Wiki_sql.set_wikibox_special_rights wb special_rights
+        Sql.full_transaction_block (fun _db -> (*YYY should be made atomic... *)
+          (if special_rights then
+             (* When the wikibox starts using specific permissions, we
+                automatically add the wiki defaults to the wikibox rights *)
+             Wiki_sql.get_wikibox_info wb >>= fun { wikibox_wiki = wiki } ->
+             User.GenericRights.iter_awr_lwt
+               (fun it -> User_sql.add_to_group
+                  ~user:(it.User.GenericRights.field Wiki.wiki_wikiboxes_grps $ wiki)
+                  ~group:(it.User.GenericRights.field Wiki.wikibox_grps $ wb))
+           else
+             Lwt.return ()
+          ) >>= fun () ->
+          Wiki_sql.set_wikibox_special_rights wb special_rights
+        )
+
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 

@@ -188,3 +188,42 @@ div.deletewidget {
 input.wikitextarea {
   width: 100%;
 }
+
+
+/******************************************/
+/* Default style for overridden wikiboxes */
+
+.overridden .boxcontent{
+    background-color: white;
+    color: black;
+    padding: 20px;
+}
+
+
+
+
+
+ul.user_list {
+  list-style-type: none;
+}
+
+table.table_admin {
+  border-spacing: 5px 2px;
+}
+
+table.table_admin td.current_users {
+    padding: 3px 10px 15px;
+}
+
+.table_admin {
+    width: auto;
+}
+
+table.table_admin td {
+  border-bottom: 1px solid #E0E9FB;
+}
+
+table.table_admin th {
+  background-color: #E0E9FB;
+  padding: 5px;
+}

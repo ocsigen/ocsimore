@@ -81,9 +81,8 @@ val save_wikipagecssbox :
 
 
 
-val set_wikibox_specific_permissions :
+val set_wikibox_special_rights :
  (wb:wikibox ->
-  perms:User.GroupsForms.six_strings ->
   special_rights:bool ->
   unit Lwt.t) rights_sp
 

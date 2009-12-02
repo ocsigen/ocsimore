@@ -55,6 +55,10 @@ module Types : sig
   (** Converts an user back into an userid, if possible *)
   val is_basic_user : user -> userid option
 
+  (** Returns [Some v] is [user] is [group $ v], or [None] otherwise *)
+  val user_is_applied_parameterized_group :
+    user:user -> pgroup:'a parameterized_group -> 'a Opaque.int32_t option
+
 
   type 'a admin_writer_reader = {
     grp_admin: 'a parameterized_group;
@@ -64,6 +68,11 @@ module Types : sig
 
 end
 
+(** Exception raised when a string cannot be translated into a real user *)
+exception NotAnUser
+
+
+(** Description of the parameter of a paramaterized group *)
 type find_param = {
   param_description: string;
   find_param_functions:
