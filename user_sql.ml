@@ -241,7 +241,7 @@ let new_group authtype find_param ~prefix ~name ~descr =
        Lwt.catch
          (fun () -> find_userid_by_name_aux_ db name)
          (function
-            | Not_found ->
+            | NotAnUser ->
                 PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
                            VALUES ($name, $descr, FALSE, $authtype)"
                 >>= fun () ->
