@@ -166,7 +166,7 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
         else if pwd <> pwd2 then
           Lwt.fail (Failure "ERROR: Passwords don't match!")
         else
-          User.get_user_data sp >>= fun user ->
+          User_sql.get_basicuser_data userid >>= fun user ->
           Ocsigen_messages.debug2 (Printf.sprintf "Updating user '%s'"fullname);
           let pwd = match user.user_pwd with
             | Connect_forbidden (* Should never happen, the user cannot
@@ -182,7 +182,7 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
                    previously unencrypted ones *)
                 if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
           in
-          User_sql.update_data ~userid:user.user_id ~fullname ~email
+          User_sql.update_data ~userid ~fullname ~email
             ?password:pwd()
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied
