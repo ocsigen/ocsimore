@@ -180,7 +180,7 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
             | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
                 (* We always use crypted passwords, even if the user
                    previously unencrypted ones *)
-                if pwd = "" then None else Some (Ocsimore_user_plain pwd)
+                if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
           in
           User_sql.update_data ~userid:user.user_id ~fullname ~email
             ?password:pwd()
