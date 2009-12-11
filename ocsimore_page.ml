@@ -74,10 +74,13 @@ val html_page :
 (** Functions related to the administration menu *)
 
 
-(** Adds an entire subsection, labelled by [name] to the admin menu *)
+(** Adds an entire subsection, labelled by [name] to the admin menu.
+    The service [root] is used to represent this section.
+*)
 val add_to_admin_menu :
   name:string ->
   links:(string * menu_link_service) list ->
+  root:menu_link_service ->
   unit
 
 (** The admin menu itself. The option [service] parameter is the service

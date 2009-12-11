@@ -8,13 +8,20 @@ h1, h2, h3, h4 {
   color: #18408A;
 }
 
-#admin_menu li.eliomtools_current > a {
-  color: red;
+#admin_menu a {
+  text-decoration: none;
 }
+
 
 #admin_menu a, #admin_menu a:visited {
   color: #3860AA;
 }
+
+#admin_menu > li.eliomtools_current > a *,
+#admin_menu li.eliomtools_current > a {
+    color:#A00;
+}
+
 
 #admin_menu > li > ul {
     padding:10px 8px 5px;
@@ -66,6 +73,15 @@ span.admin-menu-root {
 table.table_admin {
   border-spacing: 5px 2px;
 }
+
+body.admin table td {
+    vertical-align: top;
+}
+
+body.admin table td p, body.admin table td ul {
+    margin: 0;
+}
+
 
 table.table_admin td.wikiid, table.table_admin td.wikiname, table.table_admin td.wikidescr, table.table_admin td.userid, table.table_admin td.userlogin, table.table_admin td.userdescr {
   padding: 3px 10px;
@@ -133,7 +149,6 @@ ul.user_list {
   list-style-type: none;
 }
 
-
-
-
-
+div.user_block {
+    margin-top: 35px;
+}

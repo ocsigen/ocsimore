@@ -205,17 +205,17 @@ let admin_menu = ref []
 let menu_link (text, service) =
   (Ocamlduce.Utf8.make text, Site_tree (Main_page service, []))
 
-let add_to_admin_menu ~name ~links =
+let add_to_admin_menu ~name ~links ~root =
   admin_menu :=
     ({{ [ <span class="admin-menu-root">{{ Ocamlduce.Utf8.make name }} ] }},
-     Site_tree (Not_clickable, List.map menu_link links))
+     Site_tree (Main_page root, List.map menu_link links))
   :: !admin_menu
 
 let admin_menu ?service sp =
   let menu = Main_page admin_root, List.rev !admin_menu in
   add_admin_pages_header sp;
   Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
-    ~whole_tree:true menu ?service ~sp
+    ~whole_tree:false menu ?service ~sp
 
 
 let add_status_function, status_text =
@@ -250,7 +250,8 @@ let icon ~sp ~path ~text =
 
 let () = Eliom_duce.Xhtml.register admin_root
   (fun sp () () ->
-     admin_page ~sp ~service:admin_root
-       {{ [<p>"This is the Ocsimore main admin page. The links above will
+     admin_page ~sp ~service:admin_root ~title:"Ocsimore"
+       {{ [<h1>"Ocsimore"
+           <p>"This is the Ocsimore main admin page. The links on the left will
                  help you configure your installation." ]}}
   )

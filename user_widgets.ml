@@ -408,7 +408,7 @@ object (self)
                    (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
                       {{ [<table>[
                              <tr>[
-                               <td>"Real name: "
+                               <td>[<strong>"Real name: "]
                                <td>[{: str_input ~value:g.user_fullname desc :}]
                              ]
                              <tr>[
@@ -437,10 +437,16 @@ object (self)
                        }}) () :}
               ] }}
          else
-           {{ [ <p>[ !"Real name: " !{: Ocamlduce.Utf8.make g.user_fullname :} ]
+           {{ [ <p>[ <strong>"Real name: " !{: Ocamlduce.Utf8.make g.user_fullname :} ]
               ] }}
        in
-       Lwt.return ({{ [ head !error !edit <table>[f1] !f2] }} : Xhtmltypes_duce.blocks)
+       Lwt.return ({{ [ head
+                        !error
+                        <div class="user_block">edit
+                        <div class="user_block">
+                          [<table class="users_in_group">[f1]]
+                        <div class="user_block">f2
+                      ] }} : Xhtmltypes_duce.blocks)
 
 
   method display_users ~sp =

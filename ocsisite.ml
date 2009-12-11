@@ -433,8 +433,9 @@ let wiki_root =
 
 let () = Eliom_duce.Xhtml.register wiki_root
   (fun sp () () ->
-     Page_site.admin_page ~sp ~service:wiki_root
-       {{ [<p>"This is the Ocsimore admin page for the wiki module." ]}}
+     Page_site.admin_page ~sp ~service:wiki_root ~title:"Ocsimore - Wiki module"
+       {{ [<h1>"Wiki module"
+           <p>"This is the Ocsimore admin page for the wiki module. The links on the right will help you configure your installation." ]}}
   )
 
 
@@ -447,9 +448,10 @@ let () = Eliom_duce.Xhtml.register WikiServices.edit_wiki_permissions_ocsisite
        {{ [ <div>form ]}}
   )
 
-let () = Page_site.add_to_admin_menu "Wikis" [
-  "Create a new wiki", create_wiki;
-  "View and edit wikis", WikiServices.view_wikis
-]
+let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
+  ~links:[
+    "Create a new wiki", create_wiki;
+    "View and edit wikis", WikiServices.view_wikis
+  ]
 
 

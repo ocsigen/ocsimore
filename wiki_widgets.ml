@@ -533,7 +533,6 @@ object (self)
     let msg = Ocamlduce.Utf8.make
       ("Permissions for wiki " ^ string_of_wiki wiki)
     and msg2 = Ocamlduce.Utf8.make "(inherited permissions are not shown)"
-    and msg_wikiboxes = Ocamlduce.Utf8.make "Global permissions for wikiboxes:"
     in
     let form =
       {{ [ <h2>msg

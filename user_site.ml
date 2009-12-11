@@ -202,9 +202,24 @@ let () =
   User_ext.register_user_extensions user_widgets
 
 
+let users_root =
+  Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir;"users"]
+    ~get_params:Eliom_parameters.unit ()
 
-let () = Page_site.add_to_admin_menu "Users"
-  (["Login", service_login;
+let () = Eliom_duce.Xhtml.register users_root
+  (fun sp () () ->
+     Page_site.admin_page ~sp ~service:users_root
+       ~title:"Ocsimore - Users module"
+       {{ [<h1>"Users module"
+           <p>"This is the Ocsimore admin page for the users module." ]}}
+  )
+
+
+
+
+let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
+  ~links:(["Login", service_login;
     "View users", service_view_users;
     "View groups", service_view_groups;
     "View roles", service_view_roles;
