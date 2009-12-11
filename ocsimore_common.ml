@@ -20,6 +20,8 @@
    @author Vincent Balat
 *)
 
+exception Ok
+
 let (>>=) = Lwt.bind
 
 exception Permission_denied

@@ -20,6 +20,8 @@
    @author Vincent Balat
 *)
 
+exception Ok
+
 (** Exception raised by modules when a function tries to read or write
     data in the database without permission.
 *)

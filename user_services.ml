@@ -226,7 +226,11 @@ module MakeServices(X: sig
          Ocsimore_common.catch_action_failure sp
            (fun () ->
               User_data.change_user_data ~sp ~userid ~pwd:(pwd, pwd2)
-                ~fullname:descr ~email)
+                ~fullname:descr ~email >>= fun () ->
+              Polytables.set (Eliom_sessions.get_request_cache sp)
+                Ocsimore_common.action_failure_key Ocsimore_common.Ok;
+              Lwt.return ()
+           )
         >>= fun () ->
         Eliom_predefmod.Action.send ~sp ())
 
@@ -240,7 +244,8 @@ module MakeServices(X: sig
       (fun sp () (g, (add, rem)) ->
          Ocsimore_common.catch_action_failure ~sp
            (fun () -> User_data.add_remove_users_from_group sp g (add, rem))
-         >>= fun () -> Eliom_predefmod.Action.send ~sp ()
+         >>= fun () -> Eliom_predefmod.Redirection.send ~sp
+           Eliom_services.void_coservice'
       )
 
 (*

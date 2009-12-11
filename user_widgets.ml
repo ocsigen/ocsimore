@@ -372,6 +372,8 @@ object (self)
          | None -> {{ [] }}
          | Some e -> (* YYY add error handler somewhere *)
              let msg = match e with
+               | Ocsimore_common.Ok ->
+                   "Operation performed"
                | Ocsimore_common.Permission_denied  ->
                    "Unable to perform operation, insufficient rights"
                | Failure s -> s
