@@ -279,7 +279,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
           text_area ~cols:80 ~rows:20 container) @@
        p (text "Wiki model (for advanced users):" @+ [{{<br>[]}}] @+
           model_input model) @@
-       p (text "Host id (conditional loading of wikis, for advanced users):"
+       p (text "Site id (conditional loading of wikis, for advanced users):"
           @+ [{{<br>[]}}] @+
           string_opt_input siteid) @@
        p (submit_button "Create")
@@ -366,8 +366,11 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
           :}
           form] }}
   in
+    Wiki_sql.get_wiki_info_by_id wiki >>= fun winfo ->
     form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
-      (p (Opaque.int32_input_xform ~a:{{ { type="hidden" } }} wiki) @@
+      (p (strong (text (Printf.sprintf "Wiki '%s'" winfo.wiki_title)) ::
+          text (Printf.sprintf " (id %s)" (Opaque.int32_t_to_string wiki))  @+
+          Opaque.int32_input_xform ~a:{{ { type="hidden" } }} wiki) @@
        p (text "Description: " @+ string_input descr) @@
        p (text "Container wikibox :" @+Opaque.int32_input_opt_xform container)@@
        p (text "Link this wiki to an url: " @+ path_input path +@
@@ -406,8 +409,7 @@ let edit_wiki =
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container ~model:info.wiki_model
-               ~siteid:info.wiki_siteid
-               ~err_handler
+               ~siteid:info.wiki_siteid ~err_handler
                (fun (wiki, (descr, (container, (path, (boxrights, (staticdir, (model, (siteid, (_ : bool))))))))) sp ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in

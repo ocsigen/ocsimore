@@ -24,7 +24,9 @@ type (+'html, +'o) t
 val string_input :
   ?a:Xhtmltypes_duce.input_attrs -> string -> (inline, string) t
 
+(** Maps the empty list to None, and all the others lists to Some *)
 val string_opt_input :
+  ?a:Xhtmltypes_duce.input_attrs ->
   string option -> (inline, string option) t
 
 val int_input :
@@ -53,6 +55,7 @@ val extensible_list :
   ('i -> (Xhtmltypes_duce.form_content, 'o) t) ->
   (Xhtmltypes_duce.form_content, 'o list) t
 
+(* Displays the input control for 'a, and a checkbox to encode Some/None *)
 val opt_input:
   input:('a -> (inline, 'b) t) ->
   default:'a ->
@@ -83,6 +86,7 @@ val day_input : int -> int -> int -> (inline, int * int * int) t
 val date_input : Calendar.t -> (inline, Calendar.t) t
 
 val text : string -> inline list
+val strong : inline list -> inline
 val p : (inline, 'b) t -> (Xhtmltypes_duce.form_content, 'b) t
 
 val form:

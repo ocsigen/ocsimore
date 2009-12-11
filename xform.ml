@@ -48,6 +48,7 @@ type (+'html, +'o) t
 val string_input :
   ?a:Xhtmltypes_duce.input_attrs -> string -> (inline, string) t
 val string_opt_input :
+  ?a:Xhtmltypes_duce.input_attrs ->
   string option -> (inline, string option) t
 val int_input :
   ?a:Xhtmltypes_duce.input_attrs -> ?format:(int -> string) ->
@@ -102,6 +103,7 @@ val day_input : int -> int -> int -> (inline, int * int * int) t
 val date_input : Calendar.t -> (inline, Calendar.t) t
 
 val text : string -> inline list
+val strong : inline list -> inline
 val p : (inline, 'b) t -> (Xhtmltypes_duce.form_content, 'b) t
 
 val form:
@@ -179,6 +181,7 @@ let string_input ?a value =
               ~input_type:{{"text"}} ~name ~value:(def value v') ()],
          opt_outcome v'));
     params = string_param}
+
 
 let text_area ?a ~rows ~cols value =
   pack
@@ -323,6 +326,15 @@ open Ops
 
 (****)
 
+let string_opt_input ?a value =
+  (match value with
+     | None -> string_input ?a ""
+     | Some s -> string_input ?a s
+  ) |> function
+    | "" -> None
+    | s -> Some s
+
+
 let empty_list =
   pack {form = (fun v _name -> return ([], opt_outcome v));
         params = (fun name -> (P.unit, name))}
@@ -397,6 +409,7 @@ let convert f conv =
 (****)
 
 let text : string -> inline list = fun s -> {:{{str s}}:}
+let strong : inline list -> inline = fun l -> {{ <strong>{: l :} }}
 let p (x : (inline, 'b) t) = wrap (fun x -> [{{<p>{:x:}}}]) x
 let hidden (x : (inline, 'b) t) =
   wrap (fun x -> [{{<div style="display:none">{:x:}}}]) x
@@ -482,8 +495,6 @@ let opt_input ~input ~default v =
   bool_checkbox (v <> None) @@
   input (match v with None -> default | Some s -> s)
   |> (fun (checked, s) -> if checked then Some s else None)
-
-let string_opt_input = opt_input ~input:string_input ~default:""
 
 end
 
