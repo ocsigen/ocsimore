@@ -459,40 +459,43 @@ module NUserCache = Ocsigen_cache.Make (struct
                           type value = user
                         end)
 
+let regexp_groups = Netstring_pcre.regexp "^(.*)\\((.*)\\)$"
+
 let nusercache = new NUserCache.cache
   (fun s ->
      if String.length s > 0 && s.[0] = '#' then
-       Lwt.catch
-         (fun () -> Scanf.sscanf s "%s@(%s@)"
-            (fun g v ->
-               find_user_by_name_ g >>= fun u ->
-               if u.user_kind = `ParameterizedGroup then
-                 (try Lwt.return (Int32.of_string v)
-                  with _ ->
-                    let param = Hashtbl.find hash_find_param g in
-                    match param.find_param_functions with
-                      | None -> Lwt.fail NotAnUser
-                      | Some (f1, _f2 ) ->
-                          Lwt.catch (fun () -> f1 v)
-                                    (function _ -> Lwt.fail NotAnUser)
-                 ) >>= fun v ->
-                 Lwt.return (AppliedParameterizedGroup (u.user_id, v))
-               else
-                 Lwt.fail NotAnUser
-            )
-         )
-         (function
-            | Scanf.Scan_failure _ ->
-                find_user_by_name_ s
-                >>= fun u ->
-                if u.user_kind = `NonParameterizedGroup then
-                  Lwt.return (NonParameterizedGroup u.user_id)
-                else
-                  Lwt.fail NotAnUser
-            | e -> Lwt.fail e)
+       match Netstring_pcre.string_match regexp_groups s 0 with
+         | None ->
+             find_user_by_name_ s
+             >>= fun u ->
+             if u.user_kind = `NonParameterizedGroup then
+               Lwt.return (NonParameterizedGroup u.user_id)
+             else
+               Lwt.fail NotAnUser
+
+         | Some rmatch ->
+             let g = Netstring_pcre.matched_group rmatch 1 s
+             and v = Netstring_pcre.matched_group rmatch 2 s in
+             find_user_by_name_ g >>= fun u ->
+             if u.user_kind = `ParameterizedGroup then
+               (try Lwt.return (Int32.of_string v)
+                with _ ->
+                  let param =
+                    try Hashtbl.find hash_find_param g
+                    with Not_found -> raise NotAnUser
+                  in
+                  match param.find_param_functions with
+                    | None -> Lwt.fail NotAnUser
+                    | Some (f1, _f2 ) ->
+                        Lwt.catch (fun () -> f1 v)
+                          (function _ -> Lwt.fail NotAnUser)
+               ) >>= fun v ->
+               Lwt.return (AppliedParameterizedGroup (u.user_id, v))
+             else
+               Lwt.fail NotAnUser
      else
        get_basicuser_by_login s >>= fun u ->
-         Lwt.return (basic_user u)
+       Lwt.return (basic_user u)
   ) 64
 
 let get_user_by_name name =

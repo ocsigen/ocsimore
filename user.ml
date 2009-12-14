@@ -186,7 +186,7 @@ let user_list_of_string s =
          else Lwt.return (v::beg)
       )
       (function
-         | Not_found -> Lwt.fail (UnknownUser a)
+         | User_sql.NotAnUser -> Lwt.fail (UnknownUser a)
          | e -> Lwt.fail e)
   in
   let r = Ocsigen_lib.split '\n' s in

@@ -225,13 +225,13 @@ let add_remove_users_from_group sp group (add, rem) =
   can_admin_group ~sp ~group () >>= function
     | true ->
         (if add <> "" then
-           User_sql.get_user_by_name add >>= fun add ->
+           User.get_user_by_name add >>= fun add ->
            User.add_to_group ~user:add ~group
          else
            Lwt.return ()
         ) >>= fun () ->
         (if rem <> "" then
-           User_sql.get_user_by_name rem >>= fun rem ->
+           User.get_user_by_name rem >>= fun rem ->
            User.remove_from_group ~user:rem ~group
          else
            Lwt.return ()
@@ -245,8 +245,8 @@ let add_remove_user_from_groups sp user (add, rem) =
   if cuser = User.admin then
     User.get_user_by_name user
     >>= fun user ->
-    User_sql.get_user_by_name add >>= fun add ->
-    User_sql.get_user_by_name rem >>= fun rem ->
+    User.get_user_by_name add >>= fun add ->
+    User.get_user_by_name rem >>= fun rem ->
     User.add_to_group ~user ~group:add >>= fun () ->
     User.remove_from_group ~user ~group:rem
   else
