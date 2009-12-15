@@ -252,6 +252,7 @@ let () = Eliom_duce.Xhtml.register admin_root
   (fun sp () () ->
      admin_page ~sp ~service:admin_root ~title:"Ocsimore"
        {{ [<h1>"Ocsimore"
-           <p>"This is the Ocsimore main admin page. The links on the left will
-                 help you configure your installation." ]}}
+           <p>"This is the Ocsimore root admin page. The links on the left will
+                 help you configure the different modules of your Ocsimore
+                 installation." ]}}
   )

@@ -597,7 +597,7 @@ object (self)
              }} : Xhtmltypes_duce.blocks)
       | false ->
           Lwt.return {{ [ <h1>"Error"
-                          <p>"Your are not allowed to create new groups" ] }}
+                          <p>"You're are not allowed to create new groups" ] }}
 
   method display_group_creation_done sp () (name, descr) =
     Lwt.catch
@@ -676,7 +676,7 @@ object (self)
              }} : Xhtmltypes_duce.blocks)
       | false ->
           Lwt.return {{ [ <h1>"Error"
-                          <p>"Your are not allowed to create new users" ] }}
+                          <p>"You're are not allowed to create new users" ] }}
 
   method display_user_creation_done sp () (name, (fullname, email)) =
     Lwt.catch

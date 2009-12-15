@@ -128,7 +128,7 @@ let default_welcome_page =
 If you are an administator of this wiki, you can login to create this page:
 <<loginbox user_prompt='User:' pwd_prompt='Password:' auth_error='Bad user or password'>>
 >>
-<<cond ingroup='users'|Your are connected as <<username>>.
+<<cond ingroup='users'|You are connected as <<username>>.
 <<logoutlink|Logout>>.>>
 "
 let default_wikicss = ""
