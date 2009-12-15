@@ -220,7 +220,6 @@ let can_admin_group, add_group_admin_function =
 
 
 let add_remove_users_from_group sp group (add, rem) =
-        Ocsigen_messages.console2 (Printf.sprintf "Adding %s /removing %s from %s" add rem group);
   User.get_user_by_name group >>= fun group ->
   can_admin_group ~sp ~group () >>= function
     | true ->
