@@ -173,3 +173,6 @@ val get_user_by_name: string -> user Lwt.t
 
 (** Returns a list of all the existing users and groups. *)
 val all_groups : unit -> userdata list Lwt.t
+
+
+val user_type: user -> [ `User | `Group | `Role ] Lwt.t

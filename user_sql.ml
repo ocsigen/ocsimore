@@ -605,3 +605,12 @@ let user_descr = function
       userid_to_string u >>= fun u ->
       Lwt.return (`AppliedParameterizedGroup (u, v))
 *)
+
+
+let user_type = function
+  | BasicUser u ->
+      (get_basicuser_data u >>= function
+         | { user_pwd = Connect_forbidden } -> Lwt.return `Group
+         | _ -> Lwt.return `User
+      )
+  | NonParameterizedGroup _ | AppliedParameterizedGroup _ -> Lwt.return `Role

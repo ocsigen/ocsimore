@@ -51,7 +51,7 @@ class type user_widget_class = object
 
   method display_group :
     sp:Eliom_sessions.server_params ->
-    Ocamlduce.Utf8.repr -> {{Eliom_duce.Blocks.page}} Lwt.t
+    user * string -> {{Eliom_duce.Blocks.page}} Lwt.t
 
   method display_login_widget :
     sp:Eliom_sessions.server_params ->
@@ -362,93 +362,95 @@ object (self)
       {: Ocamlduce.Utf8.make group :}  group
 
 
-  method display_group ~sp g =
-    User.get_user_by_name g  >>= fun group ->
-    if group = basic_user User.nobody && g <> User.nobody_login then
-       let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
-       Lwt.return {{ [<p class="errmsg">msg] }}
-    else
-       let error = match Ocsimore_common.get_action_failure sp with
-         | None -> {{ [] }}
-         | Some e -> (* YYY add error handler somewhere *)
-             let msg = match e with
-               | Ocsimore_common.Ok ->
-                   "Operation performed"
-               | Ocsimore_common.Permission_denied  ->
-                   "Unable to perform operation, insufficient rights"
-               | Failure s -> s
-               | User.UnknownUser u ->
-                   "Unknown user/group '" ^ u ^ "'"
-               | _ -> "Error"
-             in
-             {{ [<p class="errmsg">{:msg:}] }}
-       in
-       let head =
-         {{ <h1>['User/Group \'' !{: Ocamlduce.Utf8.make g :} '\''] }} in
+  method display_group ~sp (group, g) =
+    User_sql.user_type group >>= fun gtype ->
+    let ctext, text, gtypedescr = match gtype with
+      | `Role -> ({: "Role" :}, {: "role" :}, {: "Description" :} :
+                    Ocamlduce.Utf8.t * Ocamlduce.Utf8.t * Ocamlduce.Utf8.t)
+      | `User -> {: "User" :}, {: "user" :}, {: "Name" :}
+      | `Group -> {: "Group" :}, {: "group" :}, {: "Description" :}
+    in
+    let error = match Ocsimore_common.get_action_failure sp with
+      | None -> {{ [] }}
+      | Some e -> (* YYY add error handler somewhere *)
+          let msg = match e with
+            | Ocsimore_common.Ok -> "Operation performed"
+            | Ocsimore_common.Permission_denied  ->
+                "Unable to perform operation, insufficient rights"
+            | Failure s -> s
+            | User.UnknownUser u -> "Unknown user/group '" ^ u ^ "'"
+            | _ -> "Error"
+          in
+            {{ [<p class="errmsg">{:msg:}] }}
+    in
+    let head = {{ <h1>[!ctext ' \'' !{: Ocamlduce.Utf8.make g :} '\''] }} in
 
-       (* Adding groups to the group *)
-       self#form_edit_group ~sp ~show_edit:true ~group
-         ~text:{{[ <p class = "eliom_inline">[
-                     <strong>"Current users in this group: " ] ] }} ()
-       >>= fun f1  ->
+    (* Adding groups to the group *)
+    self#form_edit_group ~sp ~show_edit:true ~group
+      ~text:{{[ <p class = "eliom_inline">[
+                  <strong>[!"Current users/groups in this " !text !": "]
+                ] ] }} ()
+    >>= fun f1  ->
 
-       (* Adding the group to groups *)
-       self#form_edit_user ~sp (* XXX ~show_edit:isadmin *) ~user:group
-         ~text:{{[ <p class = "eliom_inline">[
-                     <strong>"Current groups in which the user is: " ] ] }} ()
-       >>= fun f2  ->
+    (* Adding the group to groups *)
+    self#form_edit_user ~sp (* XXX ~show_edit:isadmin *) ~user:group
+      ~text:{{[ <p class = "eliom_inline">[
+                  <strong>[!"Current groups/roles in which the " !text
+                             ! " is: " ] ] ] }} ()
+    >>= fun f2  ->
 
-       User_sql.get_user_data group >>= fun g ->
-       User_data.can_change_user_data_by_user sp group >>= fun can_change ->
-       let edit =
-         if can_change &&
-           g.user_pwd <> Connect_forbidden &&
-           g.user_pwd <> External_Auth
-         then
-           {{ [ {: Eliom_duce.Xhtml.post_form
-                   ~service:S.action_edit_user_data ~sp
-                   (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
-                      {{ [<table>[
-                             <tr>[
-                               <td>[<strong>"Real name: "]
-                               <td>[{: str_input ~value:g.user_fullname desc :}]
-                             ]
-                             <tr>[
-                               <td>"e-mail address: "
-                               <td>[{: str_input
-                                       ~value:(match g.user_email with
-                                                 | None -> ""
-                                                 | Some e -> e)
-                                       email :}] ]
-                             <tr>[
-                               <td colspan="2">"Enter a new password twice, or
+    User_sql.get_user_data group >>= fun g ->
+    User_data.can_change_user_data_by_user sp group >>= fun can_change ->
+    let edit =
+      if can_change &&
+        g.user_pwd <> Connect_forbidden &&
+        g.user_pwd <> External_Auth
+      then
+        {{ [ {: Eliom_duce.Xhtml.post_form
+                ~service:S.action_edit_user_data ~sp
+                (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
+                   {{ [<table>[
+                          <tr>[
+                            <td>[<strong>[!gtypedescr !": "]]
+                            <td>[{: str_input ~value:g.user_fullname desc :}]
+                          ]
+                          <tr>[
+                            <td>"e-mail address: "
+                            <td>[{: str_input
+                                    ~value:(match g.user_email with
+                                              | None -> ""
+                                              | Some e -> e)
+                                    email :}] ]
+                          <tr>[
+                            <td colspan="2">"Enter a new password twice, or
                                                 leave blank for no changes:"
-                             ]
-                             <tr>[
-                               <td>[{: passwd_input pwd  :}]
-                               <td>[{: passwd_input pwd2 :}]
-                             ]
-                             <tr>[
-                               <td>[{: submit_input "Confirm" :}
-                                      {: Eliom_duce.Xhtml.user_type_input
-                                         string_from_userid
-                                         ~input_type:{: "hidden" :}
-                                         ~name:nuserid ~value:g.user_id () :}]
-                             ]
-                           ]]
-                       }}) () :}
-              ] }}
-         else
-           {{ [ <p>[ <strong>"Real name: " !{: Ocamlduce.Utf8.make g.user_fullname :} ]
-              ] }}
-       in
-       Lwt.return ({{ [ head
-                        !error
-                        <div class="user_block">edit
-                        <div class="user_block">
-                          [<table class="users_in_group">[f1]]
-                        <div class="user_block">f2
-                      ] }} : Xhtmltypes_duce.blocks)
+                          ]
+                          <tr>[
+                            <td>[{: passwd_input pwd  :}]
+                            <td>[{: passwd_input pwd2 :}]
+                          ]
+                          <tr>[
+                            <td>[{: submit_input "Confirm" :}
+                                   {: Eliom_duce.Xhtml.user_type_input
+                                      string_from_userid
+                                      ~input_type:{: "hidden" :}
+                                      ~name:nuserid ~value:g.user_id () :}]
+                          ]
+                        ]]
+                    }}) () :}
+           ] }}
+      else
+        {{ [ <p>[ <strong>[ !gtypedescr ':'] ' '
+                    !{: Ocamlduce.Utf8.make g.user_fullname :} ]
+           ] }}
+    in
+      Lwt.return ({{ [ head
+                       !error
+                       <div class="user_block">edit
+                       <div class="user_block">
+                         [<table class="users_in_group">[f1]]
+                       <div class="user_block">f2
+                     ] }} : Xhtmltypes_duce.blocks)
 
 
   method display_users ~sp =
@@ -458,7 +460,7 @@ object (self)
     let l = List.sort
       (fun u1 u2 -> compare u1.user_login u2.user_login) l in
 
-    self#display_users_groups ~show_auth:true ~sp ~l >>= fun r ->
+    self#display_users_groups ~show_auth:true ~sp ~l ~utype:`User >>= fun r ->
 
     Lwt.return
       ({{ [ <h1>"Existing users" r
@@ -471,7 +473,7 @@ object (self)
     let l = List.sort
       (fun u1 u2 -> compare u1.user_login u2.user_login) l in
 
-    self#display_users_groups ~show_auth:false ~sp ~l >>= fun r ->
+    self#display_users_groups ~show_auth:false ~sp ~l ~utype:`Group >>= fun r ->
 
     Lwt.return
       ({{ [ <h1>"Existing groups" r
@@ -517,14 +519,14 @@ object (self)
        ] }} : Xhtmltypes_duce.blocks)
 
 
-  method private display_users_groups ~show_auth ~sp ~l =
+  method private display_users_groups ~show_auth ~sp ~utype ~l =
     let line2 u =
       let g = Ocamlduce.Utf8.make u.user_login
       and d = Ocamlduce.Utf8.make u.user_fullname
       and l = Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
          (P.icon ~sp ~path:"imgedit.png" ~text:"Details")
          u.user_login
-      and id = Ocamlduce.Utf8.make (string_from_userid u.user_id)
+      (* and id = Ocamlduce.Utf8.make (string_from_userid u.user_id) *)
       and a = if show_auth then
         {{ [ <td>{{Ocamlduce.Utf8.make
                      (match u.user_pwd with
@@ -536,7 +538,7 @@ object (self)
       else
         {{ [] }}
       in
-      {{ <tr>[<td class="userid">id
+      {{ <tr>[(*<td class="userid">id*)
               <td class="userlogin">[<b>g ]
               <td class="userdescr">d
               !a
@@ -546,9 +548,10 @@ object (self)
     let l = List.fold_left (fun (s : {{ [Xhtmltypes_duce.tr*] }}) arg ->
                                {{ [ !s {: line2 arg:} ] }}) {{ [] }} l in
     Lwt.return ({{ <table class="table_admin">[
-                     <tr>[<th>"Id"
+                     <tr>[(*<th>"Id"*)
                            <th>"Login"
-                           <th>"Description"
+                           <th>{: match utype with `User -> "Name"
+                                  | `Group -> "Description" :}
                            !{{ if show_auth then
                                  {{ [ <th>"Authentification" ] }}
                                else {{ [] }} }}

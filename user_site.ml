@@ -151,8 +151,20 @@ let () =
 
   Eliom_duce.Xhtml.register service_view_group
     (fun sp g () ->
-       user_widgets#display_group ~sp g >>= fun body ->
-       Page_site.admin_page ~sp ~service:service_view_groups body (* XXX find good service *)
+       User.get_user_by_name g  >>= fun group ->
+       (if group = basic_user User.nobody && g <> User.nobody_login then
+          let msg = Ocamlduce.Utf8.make ("Unknown group " ^ g) in
+          Lwt.return {{ [<p class="errmsg">msg] }}
+        else
+          user_widgets#display_group ~sp (group, g)
+       ) >>= fun body ->
+       User_sql.user_type group >>= fun gtype ->
+       let service = match gtype with
+         | `Group -> service_view_groups
+         | `User -> service_view_users
+         | `Role -> service_view_roles
+       in
+       Page_site.admin_page ~sp ~service body
     );
 
   Eliom_duce.Xhtml.register service_view_groups
