@@ -53,9 +53,9 @@ package "forum" (
     requires = "ocsimore.forum"
     version = "[distributed with Ocsimore]"
     description = "Eliom module for Ocsimore forums"
-    archive(byte) = "forum_site.cmo"
-    archive(native,-plugin) = "forum_site.cmx"
-    archive(native,plugin) = "forum_site.cmxs"
+    archive(byte) = "ocsi_forum.cma"
+    archive(native,-plugin) = "ocsi_forum.cmx"
+    archive(native,plugin) = "ocsi_forum.cmxs"
   )
 )
 

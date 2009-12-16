@@ -4,7 +4,7 @@ announce/announce.cma
 
 forum/ocsicreateforum.cmo
 forum/forum.cma
-forum/forum_site.cmo
+forum/ocsi_forum.cma
 forum/forum_client.cmo
 
 wiki_client.cmo
