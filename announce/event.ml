@@ -42,7 +42,7 @@ let format_description sp desc =
   Wiki_sql.get_wiki_info_by_id Common.wiki_id >>= fun wiki_info ->
   let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
   Wiki.default_bi ~sp ~wikibox:desc ~rights >>= fun bi ->
-  Ocsisite.wikibox_widget#display_frozen_wikibox bi desc
+  Wiki_site.wikibox_widget#display_frozen_wikibox bi desc
 
 let format_location location room =
   match room, location with

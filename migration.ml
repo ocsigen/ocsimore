@@ -61,7 +61,7 @@ let () =
   Eliom_duce.Xhtml.register service_update_wikiboxes_uid
     (fun sp () () ->
        let r = ref 0 in
-       let wp = Wiki_models.get_default_wiki_preparser Ocsisite.wikicreole_model in
+       let wp = Wiki_models.get_default_wiki_preparser Wiki_site.wikicreole_model in
        Wiki_sql.update_wikiboxes
          (fun ~wikibox:wb ~version ~content ~content_type ->
             if is_wiki_syntax content_type then (

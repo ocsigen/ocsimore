@@ -26,9 +26,6 @@ open Lwt
 open User_sql.Types
 open Wiki_types
 
-let ( ** ) = Eliom_parameters.prod
-
-(** Options for Ocsisite *)
 
 let siteid =
   let rec find_wikidata (_siteid as data) = function
@@ -39,7 +36,7 @@ let siteid =
 
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
-                       ("Unexpected content inside Ocsisite config"))
+                       ("Unexpected content inside Wiki module config"))
   in
   let c = Eliom_sessions.get_config () in
   Lwt_unix.run (find_wikidata None c)
@@ -49,13 +46,9 @@ let siteid =
 let error_box = new Wiki_widgets.wikibox_error_box
 let wiki_rights = new Wiki.wiki_rights
 
-(** We are at eliom registration time, we can create the services *)
-module WikiServices = Wiki_services.MakeServices(struct end)
-
-module WikiWidgets = Wiki_widgets.MakeWikiWidget(Page_site)(WikiServices)
 
 let wikibox_widget =
- new WikiWidgets.dynamic_wikibox error_box User_site.user_widgets
+ new Wiki_widgets.dynamic_wikibox error_box User_site.user_widgets
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =
@@ -65,7 +58,6 @@ let wikicreole_model =
     ~rights:wiki_rights
     ~widgets:wikibox_widget
 
-module Wiki_ext = Wiki_ext.MakeWikiExt(Page_site)
 
 let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
@@ -93,10 +85,10 @@ let () =
     )
 
 (** We register the service that lists all the wikis *)
-let () =  Eliom_duce.Xhtml.register WikiServices.view_wikis
+let () =  Eliom_duce.Xhtml.register Wiki_services.view_wikis
     (fun sp () () ->
        wikibox_widget#display_all_wikis sp >>= fun b ->
-       Page_site.admin_page ~sp ~service:WikiServices.view_wikis b
+       Page_site.admin_page ~sp b
     )
 
 
@@ -235,7 +227,7 @@ let staticdir_input ?a staticdir =
   |> function "" -> None | s -> Some s
 
 let cast_service service =
-    (service :> Ocsimore_page.menu_link_service)
+    (service :> Page_site.menu_link_service)
 
 let model_input ?a model =
   string_input ?a (Wiki_types.string_of_wiki_model model)
@@ -398,14 +390,14 @@ let edit_wiki =
         Some "You do not have sufficient permissions to edit wikis"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_duce.Xhtml.register WikiServices.edit_wiki
+  Eliom_duce.Xhtml.register Wiki_services.edit_wiki
     (fun sp wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
        let rights = Wiki_models.get_rights info.wiki_model in
        rights#can_create_wiki sp () >>= function
          | true ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
-               ~service:WikiServices.view_wikis ~arg:() ~sp
+               ~service:Wiki_services.view_wikis ~arg:() ~sp
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container ~model:info.wiki_model
@@ -417,14 +409,14 @@ let edit_wiki =
                     ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
                   let title = str "Wiki information sucessfully edited" in
-                  Page_site.admin_page ~sp ~service:WikiServices.view_wikis
+                  Page_site.admin_page ~sp ~service:Wiki_services.view_wikis
                     {{ [<h1>title ] }}
                )
          | false ->
-             Page_site.admin_page ~sp ~service:WikiServices.view_wikis
+             Page_site.admin_page ~sp
                {{ [ <h1>"Insufficient permissions"
                     <p>"You do not have enough rights to edit this wiki" ] }} );
-  WikiServices.edit_wiki
+  Wiki_services.edit_wiki
 
 
 
@@ -442,18 +434,18 @@ let () = Eliom_duce.Xhtml.register wiki_root
 
 
 
-let () = Eliom_duce.Xhtml.register WikiServices.edit_wiki_permissions_ocsisite
+let () = Eliom_duce.Xhtml.register Wiki_services.edit_wiki_permissions_admin
   (fun sp wiki () ->
      wikibox_widget#display_edit_wiki_perm_form ~sp ~classes:[] wiki
      >>= fun (_, form) ->
-     Page_site.admin_page ~sp ~service:wiki_root
+     Page_site.admin_page ~sp ~service:Wiki_services.view_wikis
        {{ [ <div>form ]}}
   )
 
 let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
   ~links:[
     "Create a new wiki", create_wiki;
-    "View and edit wikis", WikiServices.view_wikis
+    "View and edit wikis", Wiki_services.view_wikis
   ]
 
 

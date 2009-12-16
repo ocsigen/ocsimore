@@ -91,13 +91,13 @@ let wiki_path user =
 
 (* [external user] returns an ocsimore user (creating it on the fly
    if needed) if [user] is a valid external user. The same authentification
-   method as the one specified in the eliom module ocsisite is used.
+   method as the one specified in the eliom module ocsi_wiki is used.
    Currently, Pam authentification is not supported
 *)
 let external_user user =
-  match User_site.auth with
-    | User_site.NoExternalAuth -> return None
-    | User_site.Nis ->
+  match User_services.auth with
+    | User_services.NoExternalAuth -> return None
+    | User_services.Nis ->
         (Nis_chkpwd.userinfo user
          >>= function
            | None -> return None
@@ -110,7 +110,7 @@ let external_user user =
                >>= fun userdata ->
                  return (Some userdata)
         )
-    | User_site.Pam _ ->
+    | User_services.Pam _ ->
         Ocsigen_messages.warning
           "PAM authentification not supported by wikiperso";
         return None
@@ -136,12 +136,12 @@ let default_wikicss = ""
 let template_container_pagename = "wikiperso-template"
 let template_css_pagename = "wikiperso_css-template"
 
-let template_container = Ocsisite.register_named_wikibox
+let template_container = Wiki_site.register_named_wikibox
   ~page:template_container_pagename ~content:default_welcome_page
   ~content_type:Wiki_syntax.wikicreole_content_type
   ~comment:"Template for wikipersos container pages"
 
-let template_wiki_css = Ocsisite.register_named_wikibox
+let template_wiki_css = Wiki_site.register_named_wikibox
   ~page:template_css_pagename ~content:default_wikicss
   ~content_type:Wiki_models.css_content_type
   ~comment:"Template for wikipersos css"
@@ -244,7 +244,7 @@ let wikiperso_model =
     ~name:"wikicreole-wikiperso"
     ~content_type:Wiki_syntax.wikicreole_content_type
     ~rights:wikiperso_rights
-    ~widgets:Ocsisite.wikibox_widget
+    ~widgets:Wiki_site.wikibox_widget
 
 
 (** The function that answers for the extension. *)
@@ -276,9 +276,9 @@ let gen sp =
                           >>= fun wiki ->
                           (* We then register the wiki at the correct url *)
                           Wiki_services.register_wiki ~sp ~wiki:wiki ()
-                            ~rights:Ocsisite.wiki_rights
+                            ~rights:Wiki_site.wiki_rights
                             ~path:(wiki_path ud.user_login)
-                            ~siteids:(siteid, Ocsisite.siteid);
+                            ~siteids:(siteid, Wiki_site.siteid);
                           Lwt.return ()
                         else Lwt.return ()
                     | e -> Lwt.fail e)
@@ -302,9 +302,9 @@ let () =
         (match Netstring_pcre.string_match regexp title 0 with
            | Some result ->
                let user = Netstring_pcre.matched_group result 1 title in
-               Wiki_services.register_wiki ~rights:Ocsisite.wiki_rights
+               Wiki_services.register_wiki ~rights:Wiki_site.wiki_rights
                  ~path:(wiki_path user) ~wiki:wiki
-                 ~siteids:(siteid, Ocsisite.siteid) ()
+                 ~siteids:(siteid, Wiki_site.siteid) ()
            | None -> ()
         );
         Lwt.return ()

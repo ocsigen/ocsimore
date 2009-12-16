@@ -2,8 +2,8 @@ forum_sql0
 forum_types
 forum_sql
 forum_data
-forum_widgets
+#forum_widgets
 forum
 forum_wikiext
-forum_services
+#forum_services
 forum_client_calls

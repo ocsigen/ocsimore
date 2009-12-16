@@ -87,9 +87,9 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   Wiki.default_bi ~sp ~wikibox:wiki_box ~rights >>= fun bi ->
   let bi = { bi with Wiki_widgets_interface.bi_subbox =
       (fun _ -> Lwt.return (Some (None, subbox))) } in
-  Ocsisite.wikibox_widget#display_interactive_wikibox ~bi wiki_box
+  Wiki_site.wikibox_widget#display_interactive_wikibox ~bi wiki_box
   >>= fun box ->
-  Ocsisite.wikibox_widget#css_header ~sp ~page wiki_id
+  Wiki_site.wikibox_widget#css_header ~sp ~page wiki_id
   >>= fun css ->
   Lwt.return
     ({{ <html xmlns="http://www.w3.org/1999/xhtml">[ <head>[<title>title !css !headers] <body>[box] ] }} :

@@ -63,18 +63,16 @@ object
 end
 
 
-module MakeWikiWidget(P : Ocsimore_page.PageSig)(X : Wiki_services.WikiServices) = struct
-
 
 let wiki_css_header =
-  P.Header.create_header
+  Page_site.Header.create_header
     (fun sp ->
        {{ [ {: Eliom_duce.Xhtml.css_link
-               (P.static_file_uri sp ["ocsiwikistyle.css"]) () :}
+               (Page_site.static_file_uri sp ["ocsiwikistyle.css"]) () :}
           ] }})
 
 let add_wiki_css_header sp =
-  P.Header.require_header wiki_css_header ~sp;
+  Page_site.Header.require_header wiki_css_header ~sp;
 
 
 class wikibox_aux (error_box : Widget.widget_with_error_box)
@@ -170,23 +168,23 @@ object (self)
       | `Pencil | `Linear as menu_style ->
     let sp = bi.bi_sp
     and preapply = Eliom_services.preapply in
-    let history = preapply X.action_wikibox_history wb
-    and edit = preapply X.action_edit_wikibox wb
-    and delete = preapply X.action_delete_wikibox wb
-    and edit_wikibox_perm = preapply X.action_edit_wikibox_permissions wb
+    let history = preapply Wiki_services.action_wikibox_history wb
+    and edit = preapply Wiki_services.action_edit_wikibox wb
+    and delete = preapply Wiki_services.action_delete_wikibox wb
+    and edit_wikibox_perm = preapply Wiki_services.action_edit_wikibox_permissions wb
     and view = Eliom_services.void_coservice' in
     (match special_box with
        | WikiPageBox (w, page) ->
            (bi.bi_rights#can_create_wikipagecss sp (w, page) >>= function
               | true -> let edit =
-                  preapply X.action_edit_css_list (wb, (w, Some page)) in
+                  preapply Wiki_services.action_edit_css_list (wb, (w, Some page)) in
                 Lwt.return (Some (edit, {{ "wikipage css" }}))
               | false -> Lwt.return None
            )
        | WikiContainerBox w ->
            (bi.bi_rights#can_create_wikicss sp w >>= function
               | true ->
-                  let edit = preapply X.action_edit_css_list (wb, (w, None)) in
+                  let edit = preapply Wiki_services.action_edit_css_list (wb, (w, None)) in
                   Lwt.return (Some (edit, {{ "wiki css" }}))
               | false -> Lwt.return None
            )
@@ -198,7 +196,7 @@ object (self)
            bi.bi_rights#can_admin_wikipage sp wp >>= function
              | true ->
                  let edit_wp =
-                   preapply X.action_edit_wikipage_properties (wb, wp) in
+                   preapply Wiki_services.action_edit_wikipage_properties (wb, wp) in
                  Lwt.return (Some (edit_wp, {{ "edit wikipage options" }}))
              | false -> Lwt.return None
     ) >>= fun wp_prop ->
@@ -209,7 +207,7 @@ object (self)
            bi.bi_rights#can_edit_metadata sp w >>= fun b2 ->
            match b1 || b2 with
              | true ->
-                 let edit_p = preapply X.action_edit_wiki_options (wb, w) in
+                 let edit_p = preapply Wiki_services.action_edit_wiki_options (wb, w) in
                  Lwt.return (Some (edit_p, {{ "edit wiki permissions or options" }}))
              | false -> Lwt.return None
     ) >>= fun edit_wiki_perms ->
@@ -261,7 +259,7 @@ object (self)
     let menudel = 
       if wbdel
       then (
-        P.add_obrowser_header sp;
+        Page_site.add_obrowser_header sp;
         let link = Eliom_duce.Xhtml.make_string_uri ~service:delete ~sp () in
         {{ [<a class="jslink"
                onclick={: Wiki_client_calls.delete_wikibox
@@ -359,7 +357,7 @@ object (self)
     Lwt.return
       (classes,
        Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-         ~service:X.action_send_wikiboxtext ~sp 
+         ~service:Wiki_services.action_send_wikiboxtext ~sp 
          (self#draw_edit_form ~rows ~cols wb warning1 warning2 curversion
             content previewonly) ())
 
@@ -422,7 +420,7 @@ object (self)
     Lwt.return
       (classes,
        {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-               ~service:X.action_send_css ~sp draw_form () :} ] }})
+               ~service:Wiki_services.action_send_css ~sp draw_form () :} ] }})
 
 
   (** Edition of the permissions of a wikibox *)
@@ -442,7 +440,7 @@ object (self)
                   ] ] }}
       in
       Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-        ~service:X.action_set_wikibox_special_permissions ~sp:bi.bi_sp mform ()
+        ~service:Wiki_services.action_set_wikibox_special_permissions ~sp:bi.bi_sp mform ()
     in
     if sr = false then
       let msg = "The permissions for this wikibox are currently inherited from \
@@ -490,7 +488,7 @@ object (self)
       in
       let form = Eliom_duce.Xhtml.post_form ~sp
         ~a:{{ { accept-charset="utf-8" } }}
-        ~service:X.action_send_wiki_metadata form
+        ~service:Wiki_services.action_send_wiki_metadata form
         ()
       in Lwt.return (classes, {{ [form] }})
 
@@ -626,10 +624,10 @@ object (self)
            {{ [ !{: Int32.to_string version :}'. '
                 !{: CalendarLib.Printer.Calendar.to_string date :}' '
                 <em>[ 'by ' !{: Ocamlduce.Utf8.make author :} ]' '
-                {:  Eliom_duce.Xhtml.a ~sp ~service:X.action_old_wikibox
+                {:  Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_old_wikibox
                    {{ "view" }} (wb, version) :}
                 ' ''('
-                {: Eliom_duce.Xhtml.a ~sp ~service:X.action_src_wikibox
+                {: Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_src_wikibox
                    {{ "source" }} (wb, version) :}
                 ')'
                 <br>[]
@@ -649,7 +647,7 @@ object (self)
              {{ [ !{: Int32.to_string version :}'. '
                   !{: CalendarLib.Printer.Calendar.to_string date :}' '
                   <em>[ 'by ' !{: Ocamlduce.Utf8.make author :} ]' '
-                  {:  Eliom_duce.Xhtml.a ~sp ~service:X.action_old_wikiboxcss
+                  {:  Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_old_wikiboxcss
                      {{ "view" }} (wb, ((wikipage, wbcss), version)) :}
                   <br>[]
                 ]
@@ -695,7 +693,7 @@ object (self)
      Lwt.return
       (classes,
        {{ [ {: Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8" } }}
-              ~service:X.action_send_wikipage_properties ~sp:bi.bi_sp
+              ~service:Wiki_services.action_send_wikipage_properties ~sp:bi.bi_sp
               draw_form () :} ] }})
 
   method private display_edit_css_list ~bi ~classes ~(wb:wikibox) wikipage =
@@ -727,19 +725,19 @@ object (self)
         ~sp wbcss >>= fun cssperm ->
       let wbcss_ = ((wiki, page), wbcss) in
       let v1 = if csshist then
-        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:X.action_css_history
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_css_history
                   {{ "History" }} (wb, wbcss_) }} ] }}
       else {{ [] }}
       and v2 = if csswr then
-        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:X.action_edit_css
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_edit_css
                   {{ "Edit" }} (wb, (wbcss_, None)) }} ] }}
       else {{ [] }}
       and v3 = if cssperm then
-        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:X.action_css_permissions
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_css_permissions
                 {{ "Permissions" }} (wb, wbcss_)  }} ] }}
       else {{ [] }}
       and v4 =
-        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:X.action_old_wikiboxcss
+        {{ [ {{ Eliom_duce.Xhtml.a ~sp ~service:Wiki_services.action_old_wikiboxcss
                   {{ "View" }} (wb, (wbcss_, ver)) }} ] }}
       in
       let fupdate (wbn, (((((wikin, wpn), wbcssn), newwbcssn), median), rankn))=
@@ -785,10 +783,10 @@ object (self)
         ({{ <div>[
              {{ Eliom_duce.Xhtml.post_form ~keep_get_na_params:true
                   ~a:{{ { accept-charset="utf-8" class="eliom_inline"} }}
-                  ~service:X.action_send_css_options ~sp fupdate () }}
+                  ~service:Wiki_services.action_send_css_options ~sp fupdate () }}
              {{ Eliom_duce.Xhtml.post_form ~keep_get_na_params:true
                   ~a:{{ { accept-charset="utf-8" class="eliom_inline"} }}
-                  ~service:X.action_send_css_options ~sp fdelete () }}
+                  ~service:Wiki_services.action_send_css_options ~sp fdelete () }}
              ' '
              !v4 ' / ' !v1 ' / ' !v2 ' / ' !v3
            ] }} : Xhtmltypes_duce.block)
@@ -828,7 +826,7 @@ object (self)
             {{ [ !forms <br>[]
                    {: Eliom_duce.Xhtml.post_form ~sp
                       ~a:{{ { accept-charset="utf-8"} }}
-                      ~service:X.action_create_css mform () :}
+                      ~service:Wiki_services.action_create_css mform () :}
                ] }}
      else
        Lwt.return {{ [] }}
@@ -1101,7 +1099,7 @@ object (self)
            Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun l ->
            let l' = List.map (fun (wb, media, _) ->
                                 css_url_service
-                                  X.pagecss_service ((wiki, page), wb) media) l
+                                  Wiki_services.pagecss_service ((wiki, page), wb) media) l
            in
            Lwt.return {{ [ !css !{: l' :} ] }}
 
@@ -1146,7 +1144,7 @@ object (self)
        | Wiki_widgets_interface.Page_404 -> 404
        | Wiki_widgets_interface.Page_403 -> 403
      in
-     P.html_page ~sp ~css ~title pagecontent >>= fun r ->
+     Page_site.html_page ~sp ~css ~title pagecontent >>= fun r ->
      Lwt.return (r, code)
 
 
@@ -1202,7 +1200,7 @@ object (self)
               let form =
                 if c then
                   {{ [ {: Eliom_duce.Xhtml.post_form
-                          ~service:X.action_create_page
+                          ~service:Wiki_services.action_create_page
                           ~sp draw_form () :} ] }}
                 else {{ [] }}
               and err_msg = !Language.messages.Language.page_does_not_exist
@@ -1233,14 +1231,14 @@ object (self)
       (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l in
 
      let line w =
-       let img = P.icon ~sp in
+       let img = Page_site.icon ~sp in
        let t = Ocamlduce.Utf8.make w.wiki_title
        and d = Ocamlduce.Utf8.make w.wiki_descr
        and id = Opaque.int32_t_to_string w.wiki_id
-       and edit = Eliom_duce.Xhtml.a ~service:X.edit_wiki ~sp
+       and edit = Eliom_duce.Xhtml.a ~service:Wiki_services.edit_wiki ~sp
          (img "imgedit.png" "Edit wiki options") w.wiki_id
        and edit_perm = Eliom_duce.Xhtml.a
-         ~service:X.edit_wiki_permissions_ocsisite ~sp
+         ~service:Wiki_services.edit_wiki_permissions_admin ~sp
          (img "imgeditperms.png" "Edit permissions") w.wiki_id
        and page =
          match Wiki_self_services.find_servpage w.wiki_id with
@@ -1300,5 +1298,4 @@ object (self)
     Lwt.return (classes, {{ [ f ] }})
 
 
-end
 end

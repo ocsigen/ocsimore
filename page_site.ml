@@ -19,6 +19,15 @@
 (**
    @author Boris Yakobowski
 *)
+
+
+(** An alias for the services that are accepted in the admin menu. *)
+type menu_link_service =
+    (Eliom_services.get_service_kind,
+     [ `Unregistrable | `Registrable ])
+    Eliom_tools_common.one_page
+
+
 open Lwt
 
 let admin_staticdir =
@@ -232,8 +241,8 @@ let add_status_function, status_text =
              hd tl
   )
 
-let admin_page ~sp ~service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
-  let menu = admin_menu ~service sp in
+let admin_page ~sp ?service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
+  let menu = admin_menu ?service sp in
   status_text sp >>= fun status ->
   html_page ~sp ~title ~css ~body_classes:("admin" :: body_classes)
     {{ [!menu

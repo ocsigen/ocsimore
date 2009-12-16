@@ -63,7 +63,7 @@
         <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>
       </eliommodule>
 
-      <eliommodule findlib-package="ocsimore.ocsisite">
+      <eliommodule findlib-package="ocsimore.wiki">
         <!-- If you use Ocsimore in more than one host or site, you can use the
              siteid tag to distinguish between the various instances -->
         <!--siteid id="host1" /-->

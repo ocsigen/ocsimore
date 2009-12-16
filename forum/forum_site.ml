@@ -21,8 +21,6 @@
    @author Boris Yakobowski
 *)
 
-module Forum_widgets = Forum_widgets.Make(Page_site)
-
 let forum_wiki_rights = new Forum.wiki_rights
 
 let title_syntax = Wiki_syntax.wikicreole_inline_content_type
@@ -32,12 +30,12 @@ let wikicreole_forum_model =
     ~name:"wikicreole_forum"
     ~content_type:Wiki_syntax.reduced_wikicreole_content_type0
     ~rights:forum_wiki_rights
-    ~widgets:Ocsisite.wikibox_widget
+    ~widgets:Wiki_site.wikibox_widget
 
 
 let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model
 let wiki_inline_widgets =
-  new Ocsisite.WikiWidgets.inline_wikibox Ocsisite.error_box User_site.user_widgets
+  new Wiki_widgets.inline_wikibox Wiki_site.error_box User_site.user_widgets
 let services = Forum_services.register_services ()
 let widget_err = new Widget.widget_with_error_box
 let add_message_widget = new Forum_widgets.add_message_widget services

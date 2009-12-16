@@ -39,9 +39,10 @@ PAELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_syntax)
 #VVV Faire le tri dans les cmis à installer !!!
 TOINSTALL := files/META \
              _build/ocsimore.cma _build/page_site.cmo \
-             _build/user_site.cmo _build/ocsisite.cmo \
              _build/wikiperso.cmo \
              _build/announce/announce.cma \
+             _build/ocsi_user.cma \
+             _build/ocsi_wiki.cma \
              _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
              _build/forum/forum_site.cmo \
              _build/forum/forum_client.cmo \
@@ -52,8 +53,7 @@ TOINSTALL := files/META \
              _build/ocsimore_lib.cmi \
              _build/ocsimore_nis.cmi \
              _build/page_site.cmi \
-             _build/ocsimore_page.cmi \
-             _build/ocsisite.cmi \
+             _build/wiki_site.cmi \
              _build/opaque.cmi \
              _build/parse_config.cmi \
              _build/sql.cmi \

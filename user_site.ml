@@ -28,128 +28,14 @@ open Lwt
 let ( ** ) = Eliom_parameters.prod
 
 
-type user_creation =
-  | NoUserCreation
-  | UserCreation of User_data.user_creation
-
-type external_auth = NoExternalAuth | Nis | Pam of string option
-
-let default_data = (NoExternalAuth, NoUserCreation, true)
-
-
-let (auth, basicusercreation, force_secure) =
-  let rec find_data ((auth, basicusercreation, secure) as data) = function
-    | [] -> Lwt.return data
-
-    | (Simplexmlparser.Element ("nis", [], []))::l ->
-        find_data (Nis, basicusercreation, secure) l
-
-    | (Simplexmlparser.Element ("pam", ["service", s], []))::l ->
-        find_data (Pam (Some s), basicusercreation, secure) l
-
-    | (Simplexmlparser.Element ("pam", [], []))::l ->
-        find_data (Pam None, basicusercreation, secure) l
-
-    | (Simplexmlparser.Element ("notsecure", [], []))::l ->
-        find_data (auth, basicusercreation, false) l
-
-    | (Simplexmlparser.Element ("basicusercreation", atts, []))::l ->
-        let registration_mail_from =
-          Ocsimore_lib.list_assoc_exn "registration_mail_from" atts
-            (Ocsigen_config.Config_file_error
-               "Missing registration_mail_from attribute inside <basicusercreation>")
-        and registration_mail_addr =
-          Ocsimore_lib.list_assoc_exn "registration_mail_addr" atts
-            (Ocsigen_config.Config_file_error
-               "Missing registration_mail_addr attribute inside <basicusercreation>")
-        and registration_mail_subject =
-          Ocsimore_lib.list_assoc_default "registration_mail_subject" atts
-            "Ocsimore registration"
-        and non_admin =
-          Ocsimore_lib.list_assoc_default "non_admin" atts ""
-        in
-        (try
-          User.user_list_of_string (List.assoc "groups" atts)
-        with Not_found -> Lwt.return [basic_user User.authenticated_users])
-        >>= fun default_groups ->
-        find_data
-          (auth,
-           UserCreation {
-             User_data.mail_from = registration_mail_from;
-             mail_addr = registration_mail_addr;
-             mail_subject = registration_mail_subject;
-             new_user_groups = default_groups;
-             non_admin_can_create = (non_admin = "true");
-           },
-           secure
-          )
-          l
-    | _ ->
-        Lwt.fail (Ocsigen_extensions.Error_in_config_file
-                       ("Unexpected content inside User_site config"))
-  in
-  let c = Eliom_sessions.get_config () in
-  Lwt_unix.run (find_data default_data c)
-
-
-let external_auth = match auth with
-  | NoExternalAuth -> None
-  | Nis -> Some User_external_auth.external_auth_nis
-  | Pam service ->
-      match !User_external_auth.external_auth_pam with
-        | Some pam -> Some (pam ?service ())
-        | None -> raise (Ocsigen_config.Config_file_error
-                           "Ocsimore compiled without PAM support")
-
-module Services =
-  User_services.MakeServices(struct let external_auth = external_auth
-                                    let force_secure = force_secure end)
-
-include Services
-
-let user_widgets, service_user_creation =
-  let module Widget = User_widgets.MakeWidget(Page_site)(Services) in
-  match basicusercreation with
-    | NoUserCreation ->
-        new Widget.user_widget force_secure,
-        None
-
-    | UserCreation user_creation_options ->
-        (* We create some services specific to the creation of user *)
-        let module ServicesCreation =
-          User_services.MakeServicesUserCreation(struct end) in
-        let module WidgetCreation =
-          Widget.MakeWidgetCreation(ServicesCreation) in
-        let user_widget_creation =
-          new WidgetCreation.user_widget_user_creation
-            ~force_secure ~user_creation_options in
-
-        (* We register the services above *)
-        Eliom_duce.Xhtml.register
-          ~service:ServicesCreation.service_create_new_user
-          (fun sp () () ->
-             user_widget_creation#display_user_creation ~err:"" ~sp
-             >>= (Page_site.admin_page ~sp
-                    ~service:ServicesCreation.service_create_new_user)
-          );
-
-        Eliom_duce.Xhtml.register
-          ~service:ServicesCreation.action_create_new_user
-          (fun sp () args ->
-             user_widget_creation#display_user_creation_done sp () args
-             >>= (Page_site.admin_page ~sp
-                    ~service:ServicesCreation.service_create_new_user)
-          );
-
-        (user_widget_creation :> Widget.user_widget),
-        Some ServicesCreation.service_create_new_user
+let user_widgets = new User_widgets.user_widget
 
 
 let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
 
-  Eliom_duce.Xhtml.register service_view_group
+  Eliom_duce.Xhtml.register User_services.service_view_group
     (fun sp g () ->
        User.get_user_by_name g  >>= fun group ->
        (if group = basic_user User.nobody && g <> User.nobody_login then
@@ -160,59 +46,92 @@ let () =
        ) >>= fun body ->
        User_sql.user_type group >>= fun gtype ->
        let service = match gtype with
-         | `Group -> service_view_groups
-         | `User -> service_view_users
-         | `Role -> service_view_roles
+         | `Group -> User_services.service_view_groups
+         | `User -> User_services.service_view_users
+         | `Role -> User_services.service_view_roles
        in
        Page_site.admin_page ~sp ~service body
     );
 
-  Eliom_duce.Xhtml.register service_view_groups
+  Eliom_duce.Xhtml.register User_services.service_view_groups
     (fun sp () () ->
        user_widgets#display_groups ~sp >>= fun body ->
-         Page_site.admin_page ~sp ~service:service_view_groups body
+       Page_site.admin_page ~sp body
     );
 
-  Eliom_duce.Xhtml.register service_view_users
+  Eliom_duce.Xhtml.register User_services.service_view_users
     (fun sp () () ->
        user_widgets#display_users ~sp >>= fun body ->
-         Page_site.admin_page ~sp ~service:service_view_users body
+       Page_site.admin_page ~sp body
     );
 
-  Eliom_duce.Xhtml.register service_view_roles
+  Eliom_duce.Xhtml.register User_services.service_view_roles
     (fun sp () () ->
        user_widgets#display_roles ~sp >>= fun body ->
-         Page_site.admin_page ~sp ~service:service_view_roles body
+       Page_site.admin_page ~sp body
     );
 
-  Eliom_duce.Xhtml.register service_login
+  Eliom_duce.Xhtml.register User_services.service_login
     (fun sp () () ->
        user_widgets#display_login_widget ~sp () >>= fun body ->
-       Page_site.admin_page ~sp ~service:service_login
-         {{ [ <h1>"Login page"
-              body ] }}
+       Page_site.admin_page ~sp {{ [ <h1>"Login page" body ] }}
     );
 
-  Eliom_duce.Xhtml.register
-    ~service:service_create_new_group
+  Eliom_duce.Xhtml.register ~service:User_services.service_create_new_group
     (fun sp () () ->
        user_widgets#display_group_creation ~err:"" ~sp
-       >>= (Page_site.admin_page ~sp
-              ~service:service_create_new_group)
+       >>= (Page_site.admin_page ~sp)
     );
 
-  Eliom_duce.Xhtml.register
-          ~service:action_create_new_group
+  Eliom_duce.Xhtml.register ~service:User_services.action_create_new_group
     (fun sp () args ->
        user_widgets#display_group_creation_done sp () args
        >>= (Page_site.admin_page ~sp
-              ~service:service_create_new_group)
+              ~service:User_services.service_create_new_group)
     );
 
 
   (* We register the syntax extensions *)
   User_ext.register_user_extensions user_widgets
 
+
+
+let user_creation_widgets = match User_services.basicusercreation with
+  | User_services.UserCreation user_creation_options ->
+      let user_widget_creation = new User_widgets.user_widget_user_creation
+        user_creation_options in
+
+        (* We register the user creation services *)
+        Eliom_duce.Xhtml.register ~service:User_services.service_create_new_user
+          (fun sp () () ->
+             user_widget_creation#display_user_creation ~err:"" ~sp
+             >>= (Page_site.admin_page ~sp)
+          );
+
+        Eliom_duce.Xhtml.register ~service:User_services.action_create_new_user
+          (fun sp () (name, (fullname, email)) ->
+             user_widget_creation#display_user_creation_done ~sp
+               ~name ~fullname ~email
+             >>= (Page_site.admin_page ~sp
+                    ~service:User_services.service_create_new_user)
+          );
+
+        Some user_widget_creation
+
+    | _ ->
+
+        Eliom_duce.Xhtml.register ~service:User_services.service_create_new_user
+          (fun sp () () ->
+             Page_site.admin_page ~sp
+               {{ [ <h1>"Error" <p>"User creation is disabled" ] }}
+          );
+
+None
+
+
+
+
+(* We create the admin menu for the extension *)
 
 let users_root =
   Eliom_services.new_service
@@ -221,7 +140,7 @@ let users_root =
 
 let () = Eliom_duce.Xhtml.register users_root
   (fun sp () () ->
-     Page_site.admin_page ~sp ~service:users_root
+     Page_site.admin_page ~sp
        ~title:"Ocsimore - Users module"
        {{ [<h1>"Users module"
            <p>"This is the Ocsimore admin page for the users module." ]}}
@@ -231,16 +150,17 @@ let () = Eliom_duce.Xhtml.register users_root
 
 
 let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
-  ~links:(["Login", service_login;
-    "View users", service_view_users;
-    "View groups", service_view_groups;
-    "View roles", service_view_roles;
-    "Groups creation", service_create_new_group;
+  ~links:(["Login", User_services.service_login;
+    "View users", User_services.service_view_users;
+    "View groups", User_services.service_view_groups;
+    "View roles", User_services.service_view_roles;
+    "Groups creation", User_services.service_create_new_group;
    ] @
-     (match service_user_creation with
-        | None -> []
-        | Some service -> ["User creation", service])
+     (match User_services.service_create_new_user with
+(*        | None -> []
+        | Some*) service -> ["User creation", service])
   )
 
 
 let () = Page_site.add_status_function user_widgets#status_text
+

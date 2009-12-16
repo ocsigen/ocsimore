@@ -426,7 +426,7 @@ let summary_contents category sp =
   Wiki_sql.get_wiki_info_by_id Common.wiki_id >>= fun wiki_info ->
   let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
   Wiki.default_bi ~sp ~wikibox ~rights >>= fun bi ->
-  Ocsisite.wikibox_widget#display_interactive_wikibox wikibox ~bi
+  Wiki_site.wikibox_widget#display_interactive_wikibox wikibox ~bi
   >>= fun desc ->
   let show_all = true in (*XXXX*)
   Seminaire_sql.find_in_interval (site_filter show_all) category start finish

@@ -1,24 +1,17 @@
 ocsimore.cma
-migration.cmo
-page_site.cmo
-user_site.cmo
-ocsisite.cmo
-wikiperso.cmo
+
 announce/announce.cma
+
 forum/ocsicreateforum.cmo
 forum/forum.cma
 forum/forum_site.cmo
 forum/forum_client.cmo
+
 wiki_client.cmo
 
-#ocsimore.cmxa
-#user_site.cmx
-#ocsisite.cmx
-#wikiperso.cmx
-#announce/announce.cmx
-#forum/ocsicreateforum.cmx
-#forum/forum.cmxa
-#forum/forum_site.cmx
-#forum/forum_client.cmx
-#wiki_client.cmx
+page_site.cmo
+ocsi_user.cma
+ocsi_wiki.cma
+wikiperso.cmo
 
+migration.cmo

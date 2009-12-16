@@ -131,15 +131,15 @@ class type user_widget_class = object
 end
 
 class type user_widget_user_creation_class = object
-  inherit user_widget_class
   method display_user_creation :
     ?err:string ->
     sp:Eliom_sessions.server_params ->
     {{Eliom_duce.Blocks.page}} Lwt.t
   method display_user_creation_done :
-    Eliom_sessions.server_params ->
-    unit ->
-    string * (string * string) ->
+    sp:Eliom_sessions.server_params ->
+    name:string ->
+    fullname:string ->
+    email:string ->
     {{Eliom_duce.Blocks.page}} Lwt.t
 end
 
@@ -148,10 +148,9 @@ end
 open Xform.XformLwt
 open Ops
 
-module MakeWidget(P : Ocsimore_page.PageSig)(S : User_services.Services) = struct
 
 (** Widget for user login/logout/edition without addition of new users *)
-class user_widget ~force_secure : user_widget_class =
+class user_widget : user_widget_class =
 object (self)
 
   val xhtml_class = "logbox"
@@ -222,7 +221,7 @@ object (self)
     in
     Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"
                                        class = "eliom_inline"} }}
-      ~service:S.action_add_remove_users_from_group ~sp mform ()
+      ~service:User_services.action_add_remove_users_from_group ~sp mform ()
 
   method private form_add_user_to_group ~sp ~group ?(default_add="") ?(text="Add") () =
     let str_input' = str_input ~visible:false in
@@ -237,7 +236,7 @@ object (self)
     in
     Eliom_duce.Xhtml.post_form ~a:{{ { accept-charset="utf-8"
                                        class = "eliom_inline" } }}
-      ~service:S.action_add_remove_users_from_group ~sp mform ()
+      ~service:User_services.action_add_remove_users_from_group ~sp mform ()
 
   method user_list_to_xhtml ~sp ?hook l =
     match l with
@@ -270,7 +269,7 @@ object (self)
     ?(auth_error= "Wrong login or password")
     ?(switchtohttps= "Click here to switch to https and login")
     ~sp error =
-    if (Eliom_sessions.get_ssl sp) || not force_secure
+    if (Eliom_sessions.get_ssl sp) || not User_services.force_secure
     then begin
       let user_prompt = Ocamlduce.Utf8.make user_prompt in
       let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
@@ -309,14 +308,15 @@ object (self)
 
   method private logout_box_extension ~sp =
     User.get_user_data sp >>= fun ud ->
-    Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a S.service_view_group sp
+    Lwt.return {{ [  <tr>[<td>[{: Eliom_duce.Xhtml.a
+                                  User_services.service_view_group sp
                                   {{ "Manage your account" }} ud.user_login :}]]
                   ] }}
 
   method display_logout_button ~sp (content : Xhtmltypes_duce.flows) =
     Lwt.return
       (Eliom_duce.Xhtml.post_form ~a:{{ { class="logoutbutton"} }}
-         ~sp ~service:S.action_logout
+         ~sp ~service:User_services.action_logout
          (fun () ->
             {{ [<p>[
                    {: Eliom_duce.Xhtml.button ~button_type:{:"submit":}
@@ -325,7 +325,7 @@ object (self)
                       :}] ] }}) ())
 
   method logout_uri ~sp =
-    Eliom_duce.Xhtml.make_uri ~service:S.action_logout_get ~sp ()
+    Eliom_duce.Xhtml.make_uri ~service:User_services.action_logout_get ~sp ()
 
 
   method display_login_widget ~sp
@@ -336,7 +336,7 @@ object (self)
        self#display_logout_box sp u >>= fun f ->
        Lwt.return (
          Eliom_duce.Xhtml.post_form ~a:{{ { class="logbox logged"} }}
-           ~service:S.action_logout ~sp (fun _ -> f) ())
+           ~service:User_services.action_logout ~sp (fun _ -> f) ())
 
      else
        let f_login error ~a =
@@ -344,11 +344,11 @@ object (self)
            ?switchtohttps ~sp error
          >>= fun f ->
          Lwt.return
-           (Eliom_duce.Xhtml.post_form ~service:S.action_login ~sp ~a f ())
+           (Eliom_duce.Xhtml.post_form ~service:User_services.action_login ~sp ~a f ())
        in
        if List.exists
          (fun e -> e = User.BadPassword || e = User.BadUser)
-         (User_services.get_login_error ~sp)
+         (User_data.get_login_error ~sp)
        then (* unsuccessful attempt *)
          f_login true ~a:{{ {class="logbox error"} }}
        else (* no login attempt yet *)
@@ -358,7 +358,7 @@ object (self)
 
 
   method user_link ~sp group =
-    Eliom_duce.Xhtml.a  ~service:S.service_view_group ~sp
+    Eliom_duce.Xhtml.a  ~service:User_services.service_view_group ~sp
       {: Ocamlduce.Utf8.make group :}  group
 
 
@@ -407,7 +407,7 @@ object (self)
         g.user_pwd <> External_Auth
       then
         {{ [ {: Eliom_duce.Xhtml.post_form
-                ~service:S.action_edit_user_data ~sp
+                ~service:User_services.action_edit_user_data ~sp
                 (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
                    {{ [<table>[
                           <tr>[
@@ -509,7 +509,7 @@ object (self)
                          ]] }}
     in
     let f = Eliom_duce.Xhtml.get_form ~a:{{ { accept-charset="utf-8" } }}
-      ~service:S.service_view_group ~sp form
+      ~service:User_services.service_view_group ~sp form
     and msg2 = Ocamlduce.Utf8.make "Choose one group, and enter it \
                     (including its parameter if needed) below"
     in
@@ -523,8 +523,8 @@ object (self)
     let line2 u =
       let g = Ocamlduce.Utf8.make u.user_login
       and d = Ocamlduce.Utf8.make u.user_fullname
-      and l = Eliom_duce.Xhtml.a ~service:S.service_view_group ~sp
-         (P.icon ~sp ~path:"imgedit.png" ~text:"Details")
+      and l = Eliom_duce.Xhtml.a ~service:User_services.service_view_group ~sp
+         (Page_site.icon ~sp ~path:"imgedit.png" ~text:"Details")
          u.user_login
       (* and id = Ocamlduce.Utf8.make (string_from_userid u.user_id) *)
       and a = if show_auth then
@@ -566,7 +566,7 @@ object (self)
         self#display_logout_button ~sp {{ ['Logout'] }} >>= fun l ->
         Lwt.return {{ ['You are logged in as ' !u '. ' l ] }}
       else
-        let l = Eliom_duce.Xhtml.a S.service_login sp {{ "Login" }} () in
+        let l = Eliom_duce.Xhtml.a User_services.service_login sp {{ "Login" }} () in
         Lwt.return {{ ['You are not currently logged. ' l]  }}
 
   method display_group_creation ?(err="") ~sp =
@@ -581,7 +581,7 @@ object (self)
                     ]
                  <h2>"Create a new group"
                  {: Eliom_duce.Xhtml.post_form ~sp
-                    ~service:S.action_create_new_group
+                    ~service:User_services.action_create_new_group
                     (fun (usr,desc) ->
                        {{ [<table>[
                               <tr>[
@@ -610,7 +610,8 @@ object (self)
          Lwt.return
            {{ [<h1>"Group created"
                 <p>[!"You can now "
-                    {: Eliom_duce.Xhtml.a ~sp ~service:S.service_view_group
+                    {: Eliom_duce.Xhtml.a ~sp
+                       ~service:User_services.service_view_group
                        {: "edit" :} group.user_login :}
                     !" your new group."
                    ] ] }}
@@ -625,18 +626,16 @@ object (self)
 end
 
 
-module MakeWidgetCreation(SC : User_services.ServicesCreationUser) = struct
-
-class user_widget_user_creation ~force_secure ~user_creation_options : user_widget_user_creation_class =
+(* The [services] argument should be changed from a tuple into a first-class
+   module as soon as this is available in Caml *)
+class user_widget_user_creation user_creation_options : user_widget_user_creation_class =
 object (self)
-
-  inherit user_widget ~force_secure
 
   method private login_box_extension ~sp =
     User_data.can_create_user ~sp ~options:user_creation_options >>= function
       | true -> Lwt.return
           {{ [ <tr>[<td colspan="2">[
-                       {: Eliom_duce.Xhtml.a SC.service_create_new_user
+                       {: Eliom_duce.Xhtml.a User_services.service_create_new_user
                           sp {{ "New user? Register now!" }} () :}]] ] }}
       | false -> Lwt.return {{ [] }}
 
@@ -656,7 +655,7 @@ object (self)
                      'Be very careful to enter a valid e-mail address, \
                        as the password for logging in will be sent there.']
                  {: Eliom_duce.Xhtml.post_form ~sp
-                    ~service:SC.action_create_new_user
+                    ~service:User_services.action_create_new_user
                     (fun (usr,(desc,email)) ->
                        {{ [<table>[
                               <tr>[
@@ -681,7 +680,7 @@ object (self)
           Lwt.return {{ [ <h1>"Error"
                           <p>"You're are not allowed to create new users" ] }}
 
-  method display_user_creation_done sp () (name, (fullname, email)) =
+  method display_user_creation_done ~sp ~name  ~fullname ~email =
     Lwt.catch
       (fun () ->
          User_data.create_user ~sp ~name ~fullname ~email
@@ -699,8 +698,4 @@ object (self)
              Lwt.return {{ [ <h1>"Error"
                              <p>"You cannot create new users" ] }}
          | e -> Lwt.fail e)
-end
-
-end
-
 end

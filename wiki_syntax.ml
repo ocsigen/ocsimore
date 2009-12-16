@@ -1309,7 +1309,7 @@ let () =
                  Lwt.return
                    (List.exists
                       (fun e -> e = User.BadPassword || e = User.BadUser)
-                      (User_services.get_login_error ~sp))
+                      (User_data.get_login_error ~sp))
              | ("ingroup", g) ->
                  Lwt.catch
                    (fun () ->

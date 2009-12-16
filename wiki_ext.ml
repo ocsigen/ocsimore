@@ -43,7 +43,6 @@ and extract_https args =
     | _ -> None
   with Not_found -> None
 
-module MakeWikiExt(P : Ocsimore_page.PageSig) = struct
 
 let register_wikibox_syntax_extensions
     (error_box : Widget.widget_with_error_box) =
@@ -294,7 +293,7 @@ let register_wikibox_syntax_extensions
           and on = extract args "msgon" "Show menus"
           and off = extract args "msgoff" "Hide menus"
           in
-          P.add_obrowser_header bi.bi_sp;
+          Page_site.add_obrowser_header bi.bi_sp;
           Lwt.return
             {{ [ <span>[<a ({id={: id :} class="shownmenus jslink btmenu"
                    onclick={: Wiki_client_calls.switch_menu id on off :} } ++ atts)
@@ -309,4 +308,3 @@ let register_wikibox_syntax_extensions
   Wiki_syntax.add_extension ~wp:inline_wikicreole_parser
     ~name:"switchmenu" ~wiki_content:true (f inline_wikicreole_parser)
 
-end

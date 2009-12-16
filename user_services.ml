@@ -27,130 +27,212 @@ open Lwt
 open User_sql.Types
 
 
+type user_creation =
+  | NoUserCreation
+  | UserCreation of User_data.user_creation
+
+type external_auth = NoExternalAuth | Nis | Pam of string option
+
+let default_data = (NoExternalAuth, NoUserCreation, true)
 
 
-let login_error_key = Polytables.make_key ()
+let (auth, basicusercreation, force_secure) =
+  let rec find_data ((auth, basicusercreation, secure) as data) = function
+    | [] -> Lwt.return data
 
-let get_login_error ~sp =
-  try
-    Polytables.get
-      ~table:(Eliom_sessions.get_request_cache ~sp)
-      ~key:login_error_key
-  with Not_found -> []
+    | (Simplexmlparser.Element ("nis", [], []))::l ->
+        find_data (Nis, basicusercreation, secure) l
+
+    | (Simplexmlparser.Element ("pam", ["service", s], []))::l ->
+        find_data (Pam (Some s), basicusercreation, secure) l
+
+    | (Simplexmlparser.Element ("pam", [], []))::l ->
+        find_data (Pam None, basicusercreation, secure) l
+
+    | (Simplexmlparser.Element ("notsecure", [], []))::l ->
+        find_data (auth, basicusercreation, false) l
+
+    | (Simplexmlparser.Element ("basicusercreation", atts, []))::l ->
+        let registration_mail_from =
+          Ocsimore_lib.list_assoc_exn "registration_mail_from" atts
+            (Ocsigen_config.Config_file_error
+               "Missing registration_mail_from attribute inside <basicusercreation>")
+        and registration_mail_addr =
+          Ocsimore_lib.list_assoc_exn "registration_mail_addr" atts
+            (Ocsigen_config.Config_file_error
+               "Missing registration_mail_addr attribute inside <basicusercreation>")
+        and registration_mail_subject =
+          Ocsimore_lib.list_assoc_default "registration_mail_subject" atts
+            "Ocsimore registration"
+        and non_admin =
+          Ocsimore_lib.list_assoc_default "non_admin" atts ""
+        in
+        (try
+          User.user_list_of_string (List.assoc "groups" atts)
+        with Not_found -> Lwt.return [basic_user User.authenticated_users])
+        >>= fun default_groups ->
+        find_data
+          (auth,
+           UserCreation {
+             User_data.mail_from = registration_mail_from;
+             mail_addr = registration_mail_addr;
+             mail_subject = registration_mail_subject;
+             new_user_groups = default_groups;
+             non_admin_can_create = (non_admin = "true");
+           },
+           secure
+          )
+          l
+    | _ ->
+        Lwt.fail (Ocsigen_extensions.Error_in_config_file
+                       ("Unexpected content inside User_site config"))
+  in
+  let c = Eliom_sessions.get_config () in
+  Lwt_unix.run (find_data default_data c)
+
+
+let external_auth = match auth with
+  | NoExternalAuth -> None
+  | Nis -> Some User_external_auth.external_auth_nis
+  | Pam service ->
+      match !User_external_auth.external_auth_pam with
+        | Some pam -> Some (pam ?service ())
+        | None -> raise (Ocsigen_config.Config_file_error
+                           "Ocsimore compiled without PAM support")
+
+
 
 
 let eliom_user : userid Ocsimore_common.eliom_usertype =
   Ocsimore_common.eliom_opaque_int32 "userid"
 
 
-module type Services = sig
 
-val action_login :
-  (unit, string * string,
-   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
-   unit,
-   [ `One of string ] Eliom_parameters.param_name *
-   [ `One of string ] Eliom_parameters.param_name, [> `Registrable ])
-  Eliom_services.service
+let action_login =
+  Eliom_predefmod.Any.register_new_post_coservice'  ~https:force_secure
+    ~name:"login"  ~keep_get_na_params:false
+    ~post_params:(string "usr" ** string "pwd")
+    (fun sp () (name, pwd) ->
+       Lwt.catch
+         (fun () ->
+            User_data.login ~sp ~name ~pwd ~external_auth >>= fun () ->
+            Eliom_predefmod.Redirection.send ~sp 
+              Eliom_services.void_hidden_coservice')
+         (fun e ->
+            Polytables.set (Eliom_sessions.get_request_cache sp)
+              User_data.login_error_key [e];
+            Eliom_predefmod.Action.send ~sp ()))
 
-val action_logout :
-  (unit, unit, [> `Nonattached of [> `Post ] Eliom_services.na_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+and action_logout =
+  Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"logoutpost" ~post_params:unit
+    ~keep_get_na_params:false
+    (fun sp () () ->
+       User_data.logout sp >>= fun () ->
+       Eliom_predefmod.Redirection.send ~sp
+         Eliom_services.void_hidden_coservice'
+    )
 
-val action_logout_get :
-  (unit, unit, [> `Nonattached of [> `Get ] Eliom_services.na_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+and action_logout_get =
+  Eliom_predefmod.Redirection.register_new_coservice'
+    ~name:"logout" ~get_params:unit
+    (fun sp () () ->
+       User_data.logout sp >>= fun () ->
+       Lwt.return Eliom_services.void_coservice')
 
-val action_edit_user_data :
-  (unit, User_sql.Types.userid * (string * (string * (string * string))),
-   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
-   unit,
-   [ `One of User_sql.Types.userid ] Eliom_parameters.param_name *
-   ([ `One of string ] Eliom_parameters.param_name *
-    ([ `One of string ] Eliom_parameters.param_name *
-     ([ `One of string ] Eliom_parameters.param_name *
-      [ `One of string ] Eliom_parameters.param_name))),
-   [> `Registrable ])
-  Eliom_services.service
+and action_edit_user_data =
+  Eliom_predefmod.Any.register_new_post_coservice'
+    ~https:force_secure
+    ~post_params:(eliom_user ** (string "pwd" **
+                                   (string "pwd2" **
+                                      (string "descr" ** string "email"))))
+    (fun sp () (userid, (pwd, (pwd2, (descr, email)))) ->
+       Ocsimore_common.catch_action_failure sp
+         (fun () ->
+            User_data.change_user_data ~sp ~userid ~pwd:(pwd, pwd2)
+              ~fullname:descr ~email >>= fun () ->
+            Polytables.set (Eliom_sessions.get_request_cache sp)
+              Ocsimore_common.action_failure_key Ocsimore_common.Ok;
+            Lwt.return ()
+         )
+       >>= fun () ->
+       Eliom_predefmod.Action.send ~sp ())
 
-val action_add_remove_users_from_group :
-  (unit, string * (string * string),
-   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
-   unit,
-   [ `One of string ] Eliom_parameters.param_name *
-   ([ `One of string ] Eliom_parameters.param_name *
-    [ `One of string ] Eliom_parameters.param_name),
-   [> `Registrable ])
-  Eliom_services.service
+(** Groups-related services *)
 
-(*val action_add_remove_user_from_groups :
-  (unit, string * (string * string),
-   [> `Nonattached of [> `Post ] Eliom_services.na_s ], [ `WithoutSuffix ],
-   unit,
-   [ `One of string ] Eliom_parameters.param_name *
-   ([ `One of string ] Eliom_parameters.param_name *
-    [ `One of string ] Eliom_parameters.param_name),
-   [> `Registrable ])
-  Eliom_services.service*)
+and action_add_remove_users_from_group =
+  Eliom_predefmod.Any.register_new_post_coservice'
+    ~name:"add_remove_users_from_group"
+    ~post_params:(Eliom_parameters.string "group" **
+                    (Eliom_parameters.string "add" **
+                       Eliom_parameters.string "rem"))
+    (fun sp () (g, (add, rem)) ->
+       Ocsimore_common.catch_action_failure ~sp
+         (fun () -> User_data.add_remove_users_from_group sp g (add, rem))
+       >>= fun () -> Eliom_predefmod.Redirection.send ~sp
+       Eliom_services.void_coservice'
+    )
 
-val service_view_group :
-  (string, unit,
-   [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], [ `One of string ] Eliom_parameters.param_name, 
-   unit, [> `Registrable ])
-  Eliom_services.service
+(*
+  and action_add_remove_user_from_groups =
+    Eliom_predefmod.Any.register_new_post_coservice'
+      ~name:"add_remove_user_from_groups" ~post_params:params_groups
+      (fun sp () (u, (add, rem)) ->
+         Ocsimore_common.catch_action_failure ~sp
+           (fun () -> User_data.add_remove_user_from_groups sp u (add, rem))
+         >>= fun () -> Eliom_predefmod.Action.send ~sp ()
+      )
+*)
 
-val service_view_groups :
-  (unit, unit,
-   [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+and service_view_group = Eliom_services.new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_group"]
+  ~get_params:(Eliom_parameters.string "group") ()
 
-val service_view_users :
-  (unit, unit,
-   [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+and service_view_groups = Eliom_services.new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
+  ~get_params:(Eliom_parameters.unit) ()
 
-val service_view_roles :
-  (unit, unit,
-   [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+and service_view_users = Eliom_services.new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_users"]
+  ~get_params:(Eliom_parameters.unit) ()
 
-val service_login :
-  (unit, unit,
-   [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+and service_view_roles = Eliom_services.new_service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_roles"]
+  ~get_params:(Eliom_parameters.unit) ()
+
+and service_login = Eliom_services.new_service
+  ~https:force_secure
+  ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
+  ~get_params:Eliom_parameters.unit
+  ()
+
+and service_create_new_group =
+  Eliom_services.new_service
+    ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_group"])
+    ~get_params:unit ()
+
+let action_create_new_group =
+  Eliom_services.new_post_coservice
+    ~fallback:service_create_new_group
+    ~post_params:(string "usr" ** string "descr") ()
 
 
-val service_create_new_group :
-  (unit, unit,
-   [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+(** User creation. *)
+(* Ideally, those services should not be created if user creation is disabled.
+   To be done when Ocaml has first-class modules, by returning a module
+   option *)
 
-val action_create_new_group :
-  (unit, string * string,
-   [> `Attached of
-        [> `Internal of [> `Coservice ] * [> `Post ] ] Eliom_services.a_s ],
-   [ `WithoutSuffix ], unit,
-   [ `One of string ] Eliom_parameters.param_name *
-   [ `One of string ] Eliom_parameters.param_name,
-   [> `Registrable ])
-  Eliom_services.service
+let service_create_new_user = Eliom_services.new_service
+  ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_user"])
+  ~get_params:unit ()
 
-end
+let action_create_new_user =
+  Eliom_services.new_post_coservice ~fallback:service_create_new_user
+    ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
 
+
+
+(*
 
 module type ServicesCreationUser = sig
 
@@ -173,136 +255,4 @@ val action_create_new_user :
   Eliom_services.service
 
 end
-
-
-
-
-module MakeServices(X: sig
-                      val external_auth:User_external_auth.external_auth option
-                      val force_secure: bool
-                    end) : Services
-= struct
-  open X
-
-  let action_login =
-    Eliom_predefmod.Any.register_new_post_coservice'
-      ~https:force_secure
-      ~name:"login"
-      ~keep_get_na_params:false
-      ~post_params:(string "usr" ** string "pwd")
-  (fun sp () (name, pwd) ->
-    Lwt.catch
-      (fun () ->
-         User_data.login ~sp ~name ~pwd ~external_auth >>= fun () ->
-         Eliom_predefmod.Redirection.send ~sp
-           Eliom_services.void_hidden_coservice')
-      (fun e ->
-         Polytables.set (Eliom_sessions.get_request_cache sp)
-           login_error_key [e];
-         Eliom_predefmod.Action.send ~sp ()))
-  and action_logout =
-    Eliom_predefmod.Any.register_new_post_coservice'
-      ~name:"logoutpost" ~post_params:unit
-      ~keep_get_na_params:false
-      (fun sp () () ->
-          User_data.logout sp >>= fun () ->
-          Eliom_predefmod.Redirection.send ~sp
-            Eliom_services.void_hidden_coservice'
-      )
-
-  and action_logout_get =
-    Eliom_predefmod.Redirection.register_new_coservice'
-      ~name:"logout" ~get_params:unit
-      (fun sp () () ->
-         User_data.logout sp >>= fun () ->
-         Lwt.return Eliom_services.void_coservice')
-
-  and action_edit_user_data =
-    Eliom_predefmod.Any.register_new_post_coservice'
-      ~https:force_secure
-      ~post_params:(eliom_user ** (string "pwd" **
-                      (string "pwd2" ** (string "descr" ** string "email"))))
-      (fun sp () (userid, (pwd, (pwd2, (descr, email)))) ->
-         Ocsimore_common.catch_action_failure sp
-           (fun () ->
-              User_data.change_user_data ~sp ~userid ~pwd:(pwd, pwd2)
-                ~fullname:descr ~email >>= fun () ->
-              Polytables.set (Eliom_sessions.get_request_cache sp)
-                Ocsimore_common.action_failure_key Ocsimore_common.Ok;
-              Lwt.return ()
-           )
-        >>= fun () ->
-        Eliom_predefmod.Action.send ~sp ())
-
-  (** Groups-related services *)
-
-  and action_add_remove_users_from_group =
-    Eliom_predefmod.Any.register_new_post_coservice'
-      ~name:"add_remove_users_from_group"
-      ~post_params:(Eliom_parameters.string "group" **
-               (Eliom_parameters.string "add" ** Eliom_parameters.string "rem"))
-      (fun sp () (g, (add, rem)) ->
-         Ocsimore_common.catch_action_failure ~sp
-           (fun () -> User_data.add_remove_users_from_group sp g (add, rem))
-         >>= fun () -> Eliom_predefmod.Redirection.send ~sp
-           Eliom_services.void_coservice'
-      )
-
-(*
-  and action_add_remove_user_from_groups =
-    Eliom_predefmod.Any.register_new_post_coservice'
-      ~name:"add_remove_user_from_groups" ~post_params:params_groups
-      (fun sp () (u, (add, rem)) ->
-         Ocsimore_common.catch_action_failure ~sp
-           (fun () -> User_data.add_remove_user_from_groups sp u (add, rem))
-         >>= fun () -> Eliom_predefmod.Action.send ~sp ()
-      )
 *)
-
-  and service_view_group = Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_group"]
-    ~get_params:(Eliom_parameters.string "group") ()
-
-  and service_view_groups = Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
-    ~get_params:(Eliom_parameters.unit) ()
-
-  and service_view_users = Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_users"]
-    ~get_params:(Eliom_parameters.unit) ()
-
-  and service_view_roles = Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_roles"]
-    ~get_params:(Eliom_parameters.unit) ()
-
-  and service_login = Eliom_services.new_service
-    ~https:force_secure
-    ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
-    ~get_params:Eliom_parameters.unit
-    ()
-
-  and service_create_new_group =
-    Eliom_services.new_service
-      ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_group"])
-      ~get_params:unit ()
-
-  let action_create_new_group =
-    Eliom_services.new_post_coservice
-      ~fallback:service_create_new_group
-      ~post_params:(string "usr" ** string "descr") ()
-
-end
-
-module MakeServicesUserCreation (X : sig end) : ServicesCreationUser = struct
-
-  let service_create_new_user =
-    Eliom_services.new_service
-      ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_user"])
-      ~get_params:unit ()
-
-  let action_create_new_user =
-    Eliom_services.new_post_coservice
-      ~fallback:service_create_new_user
-      ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
-
-end

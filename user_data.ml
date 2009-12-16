@@ -306,3 +306,15 @@ let login ~sp ~name ~pwd ~external_auth =
   else
     Lwt.fail User.ConnectionRefused
 
+
+
+(* Used to store the fact that a login error has occurred, so that
+   pages can display an appropriate message *)
+let login_error_key : exn list Polytables.key = Polytables.make_key ()
+
+let get_login_error ~sp =
+  try
+    Polytables.get
+      ~table:(Eliom_sessions.get_request_cache ~sp)
+      ~key:login_error_key
+  with Not_found -> []
