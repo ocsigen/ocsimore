@@ -23,7 +23,7 @@
 
 let (>>=) = Lwt.bind
 
-let register_wikiext (message_widget, thread_widget, message_list_widget) =
+let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_widget, message_list_widget) =
   let add_extension l ~name ~wiki_content f =
     List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l 
   in

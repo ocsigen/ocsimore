@@ -64,23 +64,14 @@ object(self)
     {{ <p class={:classe:}>message }}
 
   method bind_or_display_error : 'a.
-    ?error: string ->
-    ?exn: exn ->
     'a Lwt.t ->
-    ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) ->
-    (classes:string list ->
-      Xhtmltypes_duce.flows ->
-      Xhtmltypes_duce.block Lwt.t) ->
-    Xhtmltypes_duce.block Lwt.t
-    = fun ?error ?exn data transform_data display_box  ->
+    ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) -> _
+    = fun data transform_data ->
       (Lwt.catch
          (fun () -> data >>= transform_data)
          (fun exn ->
             Lwt.return ([error_class],
                         {{ [ {{ self#display_error_box ~exn () }} ] }}) ))
-      >>= fun (classes, content) ->
-      let err = self#display_error_message ?message:error ?exn () in
-      display_box ~classes {{ [ !err !content ] }}
 
 end
 

@@ -170,7 +170,7 @@ and action_add_remove_users_from_group =
        Ocsimore_common.catch_action_failure ~sp
          (fun () -> User_data.add_remove_users_from_group sp g (add, rem))
        >>= fun () -> Eliom_predefmod.Redirection.send ~sp
-       Eliom_services.void_coservice'
+       Eliom_services.void_hidden_coservice'
     )
 
 (*

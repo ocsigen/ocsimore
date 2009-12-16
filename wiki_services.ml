@@ -153,10 +153,10 @@ let save_then_redirect ~sp ?(error=(fun _ _ -> ())) redirect_mode f =
        f () >>= fun _ ->
        (* We do a redirection to prevent repost *)
        match redirect_mode with
-         | `BasePage ->
-             Eliom_predefmod.Redirection.send ~sp Eliom_services.void_coservice'
-         | `SamePage ->
-             Eliom_predefmod.Action.send ~sp ()
+         | `BasePage -> Eliom_predefmod.Redirection.send ~sp
+             Eliom_services.void_coservice'
+         | `SamePage -> Eliom_predefmod.Redirection.send ~sp
+             Eliom_services.void_hidden_coservice'
     )
     (fun e ->
        error sp e;

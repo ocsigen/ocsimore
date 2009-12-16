@@ -181,8 +181,7 @@ object
 
   (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
-    classes:classes ->
-    Xhtmltypes_duce.flows ->
+    classes * Xhtmltypes_duce.flows ->
     Xhtmltypes_duce.block Lwt.t
 
   (** Pretty-print the content of a wikibox *)
@@ -197,6 +196,15 @@ object
     classes:classes ->
     Xhtmltypes_duce.flows Wiki_types.wikibox_content ->
     (classes * Xhtmltypes_duce.flows) Lwt.t
+
+  (** If an error has is supposed to be displayed for the wikibox [wb],
+      displays this error and wraps it together with the xml argument in a
+      div tag. Otherwise, displays only the xml argument *)
+  method wrap_error :
+    sp:Eliom_sessions.server_params ->
+    wb:wikibox ->
+    Xhtmltypes_duce.block ->
+    Xhtmltypes_duce.block
 
 end
 
@@ -392,7 +400,6 @@ class type virtual interactive_wikibox =
       ?special_box:special_box ->
       wb_loc:wikibox ->
       override:wikibox_override ->
-      ?exn:exn ->
       unit ->
       (Xhtmltypes_duce.block * bool) Lwt.t
 

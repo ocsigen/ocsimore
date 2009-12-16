@@ -103,7 +103,7 @@ let save_wikipagecssbox ~rights ~sp ~wiki ~page ~content ~wb =
 let wikibox_history ~rights ~sp ~wb =
   rights#can_view_history ~sp wb >>= function
     | true -> Wiki_sql.get_wikibox_history wb
-    | false -> Lwt.fail Ocsimore_common.Incorrect_argument
+    | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
 

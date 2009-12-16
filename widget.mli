@@ -46,18 +46,13 @@ class widget_with_error_box :
         of type flows,
         then a function that will build the box with the result, and/or
         possibly also error messages if something went wrong during
-        data retrieval, or if an error parameter is given.
+        data retrieval.
     *)
     method bind_or_display_error :
       'a.
-      ?error: string ->
-      ?exn:exn ->
-      'a Lwt.t -> 
+      'a Lwt.t ->
       ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) -> 
-      (classes:string list -> 
-        Xhtmltypes_duce.flows -> 
-        Xhtmltypes_duce.block Lwt.t) -> 
-      Xhtmltypes_duce.block Lwt.t
+      (string list * Xhtmltypes_duce.flows) Lwt.t
 
     method display_error_box :
       ?classes:string list ->

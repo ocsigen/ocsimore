@@ -1,5 +1,8 @@
 TODO
 
+- bi_rights in bi. Dangerous, as it is not always clear we update bi when
+  we change wiki (for example when displaying subwikiboxes)
+
  - nobody vs. NoSuchUser. The current behavior (never raise NoSuchUser
   when we do a get_user_by_name is misleading when we want to take
   care of nobody explicitly, and makes it easy to forget that the

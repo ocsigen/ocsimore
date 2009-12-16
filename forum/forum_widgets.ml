@@ -105,7 +105,7 @@ object (self)
   method display_message ~classes content =
     let classes = Ocsimore_lib.build_class_attr (msg_class::classes) in
     Lwt.return
-      {{ <div class={: classes :}>content }}
+      ({{ <div class={: classes :}>content }} : Xhtmltypes_duce.block)
 
   method display_admin_line ~sp ~role m =
 
@@ -178,7 +178,7 @@ object (self)
     widget_with_error_box#bind_or_display_error
       (self#get_message ~sp ~message_id)
       (self#pretty_print_message ~classes ~sp)
-      (self#display_message)
+    >>= fun (classes, r) -> self#display_message ~classes r
 
 end
 
@@ -204,7 +204,7 @@ object (self)
       Ocamlduce.Utf8.make (Ocsimore_lib.build_class_attr (thr_class::classes)) 
     in
     Lwt.return
-      {{ <div class={: classes :}>[ !first !coms ] }}
+      ({{ <div class={: classes :}>[ !first !coms ] }} : Xhtmltypes_duce.block)
 
   method display_thread_splitted ~classes ((first : Eliom_duce.Blocks.div_content_elt_list), coms) =
     let classes1 = Ocsimore_lib.build_class_attr (main_msg_class::classes) in
@@ -341,7 +341,7 @@ object (self)
   method display_message_list ~classes content =
     let classes = Ocsimore_lib.build_class_attr (ml_class::classes) in
     Lwt.return
-      {{ <div class={: classes :}>content }}
+      ({{ <div class={: classes :}>content }} : Xhtmltypes_duce.block)
 
   method pretty_print_message_list ~forum ?rows ?cols ~classes ~sp 
     ~add_message_form list =
@@ -383,6 +383,6 @@ object (self)
       (self#get_message_list ~sp ~forum ~first ~number)
       (self#pretty_print_message_list
          ~forum ?rows ?cols ~classes ~sp ?add_message_form)
-      (self#display_message_list)
+    >>= fun (classes, r) ->  self#display_message_list ~classes r
 
 end
