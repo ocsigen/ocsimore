@@ -62,48 +62,50 @@ let register_wikibox_syntax_extensions
     ~name:"wikibox" ~wiki_content:true
     (fun wp bi args c ->
        Wikicreole.Block
-         (try
-            let box = wikibox_of_sql (Int32.of_string (List.assoc "box" args)) in
-            if Ancestors.in_ancestors box bi.bi_ancestors
-          then
-            Lwt.return
-              {{ [ {: error_box#display_error_box
-                      ~message:"Wiki error: loop of wikiboxes" () :} ] }}
-            else
-              let fsubbox menu_style =
-                match c with
-                  | None -> Lwt.return None
-                  | Some c ->
-                      Wiki_syntax.xml_of_wiki wp
-                        { bi with bi_menu_style = menu_style } c >>= fun r -> 
-                      Lwt.return (Some (Some bi.bi_box, r))
-              in
-              Wiki_sql.wikibox_wiki box >>= fun wiki ->
-              Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-              let widget = Wiki_models.get_widgets wiki_info.wiki_model in
-              let class_box = Wiki_syntax.class_wikibox box in
-              widget#display_interactive_wikibox
-                ?rows:(Ocsimore_lib.int_of_string_opt
-                         (Ocsimore_lib.list_assoc_opt "rows" args))
-                ?cols:(Ocsimore_lib.int_of_string_opt
-                         (Ocsimore_lib.list_assoc_opt "cols" args))
-                ?classes:(try Some [List.assoc "class" args; class_box]
-                          with Not_found -> Some [class_box])
-                ~bi:{bi with
-                       bi_ancestors =Ancestors.add_ancestor box bi.bi_ancestors;
-                       bi_box = box;
-                       bi_wiki = wiki;
-                       bi_subbox = fsubbox }
-                box
-              >>= fun b ->
-              Lwt.return {{ [ b ] }}
-          with
-            | Not_found ->
-                Lwt.return {{ [ <code>"<<wikibox>>" ] }}
-            | Failure _ ->
-                Lwt.return {{ [ {: error_box#display_error_box
-                                   ~message:"Wiki error: error in wikibox \
-                                             extension" () :} ] }}
+         (Lwt.catch
+            (fun () ->
+               let box = wikibox_of_sql(Int32.of_string (List.assoc "box" args))
+               in
+               if Ancestors.in_ancestors box bi.bi_ancestors then
+                 Lwt.return
+                   {{ [ {: error_box#display_error_box
+                           ~message:"Wiki error: loop of wikiboxes" () :} ] }}
+               else
+                 let fsubbox menu_style =
+                   match c with
+                     | None -> Lwt.return None
+                     | Some c ->
+                         Wiki_syntax.xml_of_wiki wp
+                           { bi with bi_menu_style = menu_style } c
+                         >>= fun r ->
+                         Lwt.return (Some (Some bi.bi_box, r))
+                 in
+                   Wiki_sql.wikibox_wiki box >>= fun wiki ->
+                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+                   let widget = Wiki_models.get_widgets wiki_info.wiki_model in
+                   let class_box = Wiki_syntax.class_wikibox box in
+                   widget#display_interactive_wikibox
+                     ?rows:(Ocsimore_lib.int_of_string_opt
+                              (Ocsimore_lib.list_assoc_opt "rows" args))
+                     ?cols:(Ocsimore_lib.int_of_string_opt
+                              (Ocsimore_lib.list_assoc_opt "cols" args))
+                     ?classes:(try Some [List.assoc "class" args; class_box]
+                               with Not_found -> Some [class_box])
+                     ~bi:{bi with
+                            bi_ancestors =
+                         Ancestors.add_ancestor box bi.bi_ancestors;
+                            bi_box = box;
+                            bi_wiki = wiki;
+                            bi_subbox = fsubbox }
+                     box >>= fun b ->
+                   Lwt.return {{ [ b ] }}
+            )
+            (function
+               | Not_found -> Lwt.return {{ [ <code>"<<wikibox>>" ] }}
+               | _ ->
+                   Lwt.return {{ [ {: error_box#display_error_box
+                                      ~message:"Wiki error: error in wikibox \
+                                             extension" () :} ] }})
          ));
 
   (* add_extension "wikibox" above has already added a preparser for wikibox,
