@@ -9,9 +9,6 @@ TODO
  toto may be a directory or a page! That's probably a problem?
  (in Eliom that's not possible)
 
- - wikipages : allow to register redirections instead of pages
- (http redirections or several URLs for same page)
-
  - Log the connection of users!
 
  - replace Actions by redirections to avoid the problem of reposting POST data
@@ -31,7 +28,7 @@ TODO
 
  - internationalisation
 
- - warning: if we load ocsisite several times in the same site, it will fail.
+ - warning: if we load Wiki_site several times in the same site, it will fail.
  Is it a problem? Can we write a better error message?
 
 How to make sure that:
@@ -42,14 +39,8 @@ How to make sure that:
  Wrap all db result in a kind of exception monad?
 
 Wiki:
- - Allow to specify manually the wikibox number associated to a page
- (to have several pages with the same box)
- (ask the user to specify either the wikibox number or another page name)
- + same for page/wiki css (if I want the same css for several wikis for ex)
  + allow to register some kind of redirection (like wikipedia)
  (basically the same, but with something that shows that it is a redirection)
- - Make a button to hide/show the View/Edit/History bars if we are connected and
- do not want to be editor
  - Revoir le changement des droits. Quels droits ? Qui peut les changer ?
  Faut-il sauver les droits pour chaque version ???
  - Hierarchical menu box (as in Eliom_tools)
@@ -70,23 +61,12 @@ Wiki:
  - Add a detailed wikisyntax help (with all extensions).
  May be as a static wikicreole file, that would be loaded dynamically?
 
- - Give rights to an user that does not exist does nothing, even if it
- is a valid pam user... Create the pam user automatically???
-
 Users:
- - IMPORTANT: (SECURITÉ !!!) Il faut empêcher un utilisateur ou IP
-  qui vient d'essayer de se connecter de recommencer avant 2s!!!!! 
-  quelle que soit la méthode d'authentification
-  cf lwt_lib
  - Impossible to give rights to users who do not exist for now (if using
  external authentication, the user is created the first time she logs in ...)
  May be create the user automatically if she exists on the system when we
  we to give rights.
  - PAM or LDAP: not really clean
- Use "plugable" authentication methods
- (to avoid Session_manager.sessionmanager_nis _pam etc.)
- modularize (use objects?)
- make this configurable from config file,
  implement LDAP.
 
 User widgets:
@@ -98,13 +78,6 @@ User widgets:
 (and create an account) only when necessary, for example if the users 
 want to perform an action that is not possible without beeing connected. 
 Avoid a large registration form to fill before beeing able to do anything ...
- - there is a version of the class login_widget with registration of
- users, called login_widget_basic_user_creation. Make possible to choose
- which one we want from config file of ocsisite.
-
-Session manager:
- - clean everything
- - probably merge into user_widgets? or users? or not ...
 
 Problems due to Postgresql:
  - Errors are just strings => only one exception
