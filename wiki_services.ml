@@ -377,7 +377,8 @@ and action_set_wikibox_special_permissions =
        Wiki_sql.wikibox_wiki wb >>= fun wiki ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       save_then_redirect ~sp ~error:(error_handler_wb wb) `SamePage
+       save_then_redirect ~sp ~error:(error_handler_wb wb)
+         (if special_rights then `SamePage else `BasePage)
          (fun () -> Wiki_data.set_wikibox_special_rights
             ~rights ~sp ~special_rights ~wb)
     )
