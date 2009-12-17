@@ -64,6 +64,10 @@ let () = Lwt_unix.run
      (fun db -> PGSQL(db) "ALTER TABLE wikis RENAME COLUMN hostid TO siteid")
    >>= fun () ->
 
+   update 5
+     (fun db -> PGSQL(db) "ALTER TABLE wikiboxescontent ADD COLUMN ip text")
+   >>= fun () ->
+
    Lwt.return ()
 
  end

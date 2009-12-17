@@ -73,7 +73,7 @@ let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
     | true ->
         User.get_user_id sp >>= fun user ->
         Wiki_sql.update_wikibox ~author:user ~comment:""
-          ~content ~content_type wb
+          ~content ~content_type ~ip:(Eliom_sessions.get_remote_ip sp) wb
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 

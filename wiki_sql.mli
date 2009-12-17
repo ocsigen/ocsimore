@@ -190,6 +190,7 @@ val update_wikibox :
   comment:string ->
   content:string option ->
   content_type:'a Wiki_types.content_type ->
+  ?ip:string ->
   wikibox ->
   int32 Lwt.t
 

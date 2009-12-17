@@ -66,7 +66,7 @@ let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
 
 (** Inserts a new version of an existing wikibox in a wiki
     and return its version number. *)
-let update_wikibox_ ?db ~author ~comment ~content ~content_type wb =
+let update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb =
   let content_type = string_of_content_type content_type in
   wrap db
     (fun db ->
@@ -74,8 +74,8 @@ let update_wikibox_ ?db ~author ~comment ~content ~content_type wb =
        and author = User_sql.Types.sql_from_userid author
        in
        PGSQL(db) "INSERT INTO wikiboxescontent
-                    (wikibox, author, comment, content, content_type)
-                 VALUES ($wikibox, $author, $comment, $?content, $content_type)"
+                    (wikibox, author, comment, content, content_type, ip)
+                 VALUES ($wikibox, $author, $comment, $?content, $content_type, $?ip)"
        >>= fun () ->
        serial4 db "wikiboxes_version_seq"
     )
@@ -456,10 +456,10 @@ let get_wikibox_content ?version wb =
 
 let current_wikibox_version = cache_wb_version#find
 
-let update_wikibox ?db ~author ~comment ~content ~content_type wb =
+let update_wikibox ?db ~author ~comment ~content ~content_type ?ip wb =
   cache_wb_content#remove wb;
   cache_wb_version#remove wb;
-  update_wikibox_ ?db ~author ~comment ~content ~content_type wb
+  update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb
 
 
 
