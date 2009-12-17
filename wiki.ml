@@ -151,6 +151,18 @@ let wiki_wikiboxes_oldversion_viewers = aux_grp_wiki
 let wiki_metadata_editors = aux_grp_wiki
   "WikiMetadataEditors" "can modify the metadata for the wiki"
 
+
+let rec ok sp g_admin user group = function
+  | [] -> Lwt.return false
+  | pgroup :: q ->
+      match user_is_applied_parameterized_group ~user:group ~pgroup with
+        | None -> ok sp g_admin user group q
+        | Some v ->
+            User.in_group ~sp ~user ~group:(g_admin $ v) () >>= function
+              | true -> Lwt.return true
+              | false -> ok sp g_admin user group q
+
+
 let () =
   let g1, g2, g3 = User.GenericRights.map_awr
     (fun v -> v.User.GenericRights.field wiki_wikiboxes_grps) in
@@ -172,20 +184,10 @@ let () =
   ] in
   User_data.add_group_admin_function
     (fun ~sp ~user ~group ->
-       let rec ok g_admin = function
-         | [] -> Lwt.return false
-         | pgroup :: q ->
-             match user_is_applied_parameterized_group ~user:group ~pgroup with
-               | None -> ok g_admin q
-               | Some v ->
-                   User.in_group ~sp ~user ~group:(g_admin $ v) () >>= function
-                     | true -> Lwt.return true
-                     | false -> ok g_admin q
-       in
-       ok (User.GenericRights.grp_admin.User.GenericRights.field
-             wiki_wikiboxes_grps) l2 >>= function
+       ok sp (User.GenericRights.grp_admin.User.GenericRights.field
+                wiki_wikiboxes_grps) user group l2 >>= function
          | true -> Lwt.return true
-         | false -> ok wiki_admins (l2 @ l1)
+         | false -> ok sp wiki_admins user group (l2 @ l1)
     )
 
 
@@ -194,6 +196,21 @@ let () =
     generic wiki permissions. *)
 let wikibox_grps : wikibox_arg admin_writer_reader = admin_writer_reader_aux
   ~name:"Wikibox" ~descr:"the wikibox" ~find_param:param_wikibox
+
+let () =
+  let g1, g2, g3 = User.GenericRights.map_awr
+    (fun v -> v.User.GenericRights.field wikibox_grps) in
+  let l = [
+    g1;
+    g2;
+    g3;
+  ] in
+  User_data.add_group_admin_function
+    (fun ~sp ~user ~group ->
+       ok sp (User.GenericRights.grp_admin.User.GenericRights.field
+                wikibox_grps) user group l
+    )
+
 
 
 (** These groups take a wikipage as argument *)
