@@ -490,9 +490,14 @@ object (self)
     let hd, tl = List.hd l, List.tl l (* some groups always exist*) in
     let line u =
       let g = Ocamlduce.Utf8.make u.user_login
-      and p =  (if u.user_kind = `ParameterizedGroup then
-                  {{ [<em>['(param)']] }}
-                else {{ [] }})
+      and p =  (match u.user_kind with
+                  | `ParameterizedGroup param ->
+                      let p = match param with
+                        | Some { param_description = param } -> param
+                        | None -> "param"
+                      in
+                      {{ [<em>['(' !{{ Ocamlduce.Utf8.make p }} ')']] }}
+                  | _ -> {{ [] }})
       and d = Ocamlduce.Utf8.make u.user_fullname
       in
       {{ <tr>[<td>[<b>g!p ] <td>d ] }}

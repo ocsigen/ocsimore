@@ -45,6 +45,17 @@ module Types = struct
     | Ocsimore_user_crypt of string
     | External_Auth
 
+
+  type find_param = {
+    param_description: string;
+    param_display: (int32 -> string Lwt.t) option;
+    find_param_functions:
+      ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
+  }
+
+  let hash_find_param : (string, find_param) Hashtbl.t = Hashtbl.create 17
+
+
   type userdata = {
     user_id: userid;
     user_login: string;
@@ -52,7 +63,9 @@ module Types = struct
     user_fullname: string;
     user_email: string option;
     user_dyn: bool;
-    user_kind: [`BasicUser | `ParameterizedGroup | `NonParameterizedGroup];
+    user_kind: [ `BasicUser
+               | `ParameterizedGroup of find_param option
+               | `NonParameterizedGroup];
   }
 
 
@@ -221,16 +234,6 @@ let find_userid_by_name_aux_ db name =
     | r :: _ -> Lwt.return (userid_from_sql r)
 
 
-type find_param = {
-  param_description: string;
-  find_param_functions:
-    ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
-}
-
-let hash_find_param = Hashtbl.create 17
-
-
-
 let new_group authtype find_param ~prefix ~name ~descr =
   let name = "#" ^ prefix ^ "." ^ name in
   (match find_param with
@@ -239,7 +242,11 @@ let new_group authtype find_param ~prefix ~name ~descr =
   Sql.full_transaction_block
     (fun db ->
        Lwt.catch
-         (fun () -> find_userid_by_name_aux_ db name)
+         (fun () -> find_userid_by_name_aux_ db name >>= fun user ->
+                    let u = sql_from_userid user in
+                    PGSQL(db) "UPDATE users
+                               SET fullname=$descr WHERE id = $u" >>=
+                    fun () -> Lwt.return user)
          (function
             | NotAnUser ->
                 PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
@@ -269,6 +276,8 @@ let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
     user_kind =
       match authtype with
         | "g" -> `ParameterizedGroup
+            (try Some (Hashtbl.find hash_find_param login)
+             with Not_found -> None)
         | "h" -> `NonParameterizedGroup
         | _ -> `BasicUser}
 
@@ -424,8 +433,22 @@ let get_basicuser_data i =
 let get_parameterized_user_data = get_basicuser_data
 
 let get_user_data = function
-  | AppliedParameterizedGroup (i, _) | BasicUser i | NonParameterizedGroup i ->
-      get_basicuser_data i
+  | BasicUser i | NonParameterizedGroup i -> get_basicuser_data i
+  | AppliedParameterizedGroup (i, v) ->
+      get_basicuser_data i >>= fun ud ->
+      match ud.user_kind with
+        | `ParameterizedGroup param ->
+            (match param with
+               | Some { param_display = Some f } ->
+                   Lwt.catch
+                     (fun () -> f v)
+                     (fun _ -> Lwt.return (Int32.to_string v))
+               | _ -> Lwt.return (Int32.to_string v))
+            >>= fun arg ->
+            Lwt.return { ud with user_fullname =
+                Printf.sprintf "%s %s" ud.user_fullname arg }
+        | _ (* impossible cases *) ->
+            Lwt.return ud
 
 
 (* Find userid by login *)
@@ -477,22 +500,19 @@ let nusercache = new NUserCache.cache
              let g = Netstring_pcre.matched_group rmatch 1 s
              and v = Netstring_pcre.matched_group rmatch 2 s in
              find_user_by_name_ g >>= fun u ->
-             if u.user_kind = `ParameterizedGroup then
-               (try Lwt.return (Int32.of_string v)
-                with _ ->
-                  let param =
-                    try Hashtbl.find hash_find_param g
-                    with Not_found -> raise NotAnUser
-                  in
-                  match param.find_param_functions with
-                    | None -> Lwt.fail NotAnUser
-                    | Some (f1, _f2 ) ->
-                        Lwt.catch (fun () -> f1 v)
-                          (function _ -> Lwt.fail NotAnUser)
-               ) >>= fun v ->
-               Lwt.return (AppliedParameterizedGroup (u.user_id, v))
-             else
-               Lwt.fail NotAnUser
+             match u.user_kind with
+               | `ParameterizedGroup param ->
+                   (try Lwt.return (Int32.of_string v)
+                    with _ ->
+                      match param with
+                        | Some { find_param_functions = Some (f1, _) } ->
+                            Lwt.catch (fun () -> f1 v)
+                              (function _ -> Lwt.fail NotAnUser)
+                        | _ -> raise NotAnUser
+                   ) >>= fun v ->
+                   Lwt.return (AppliedParameterizedGroup (u.user_id, v))
+
+               | _ -> Lwt.fail NotAnUser
      else
        get_basicuser_by_login s >>= fun u ->
        Lwt.return (basic_user u)

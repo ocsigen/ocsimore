@@ -29,8 +29,6 @@ open Wiki_types
 
 
 let (>>=) = Lwt.bind
-let ( ** ) = Eliom_parameters.prod
-
 
 
 (** Name of the administration wiki. This is the name that must
@@ -68,7 +66,12 @@ let wiki_admin_page_link sp page =
 let prefix = "wiki"
 
 let param_wiki = {
-  User_sql.param_description = "name of the wiki";
+  param_description = "name of the wiki";
+  param_display = Some (
+    (fun wid ->
+       Wiki_sql.get_wiki_info_by_id (wiki_of_sql wid) >>= fun wiki ->
+       Lwt.return (Printf.sprintf "'%s' (%s)" wiki.wiki_title wiki.wiki_descr)
+    ));
   find_param_functions =
     Some ((fun wname ->
              Wiki_sql.get_wiki_info_by_name wname >>= fun wiki ->
@@ -79,7 +82,8 @@ let param_wiki = {
 }
 
 let param_wikibox = {
-  User_sql.param_description = "id of the wikibox";
+  param_description = "id of the wikibox";
+  param_display = None;
   find_param_functions = Some
     ((fun s -> Scanf.sscanf s "wikibox %ld" (fun v -> Lwt.return v)),
      (fun v -> Lwt.return (
@@ -87,7 +91,8 @@ let param_wikibox = {
 }
 
 let param_wikipage = {
-  User_sql.param_description = "if of the wikipage";
+  param_description = "id of the wikipage";
+  param_display = None; (* XXX Show name and wiki *)
   find_param_functions = None;
 }
 
@@ -104,7 +109,7 @@ let admin_writer_reader_aux ~name ~descr ~find_param =
 let wikis_creator =
   Lwt_unix.run
     (User_sql.new_nonparameterized_group ~prefix ~name:"WikisCreators"
-       ~descr:"Users who can create new wikis")
+       ~descr:"can create new wikis")
 
 
 (** Groups taking a wiki as argument *)
@@ -113,29 +118,29 @@ let aux_grp_wiki name descr =
   (aux_grp name descr param_wiki : wiki_arg parameterized_group)
 
 let wiki_admins =
-  aux_grp_wiki "WikiAdmin" "All rights on the wiki"
+  aux_grp_wiki "WikiAdmin" "can change all permissions of the wiki"
 
 let wiki_subwikiboxes_creators = aux_grp_wiki
-  "WikiSubwikiboxesCreator" "Can create subwikiboxes in the wiki"
+  "WikiSubwikiboxesCreator" "can create subwikiboxes in the wiki"
 
 let wiki_wikipages_creators = aux_grp_wiki
-  "WikiWikipagesCreator" "Can create wikipages in the wiki"
+  "WikiWikipagesCreator" "can create wikipages in the wiki"
 
 let wiki_css_creators = aux_grp_wiki
-  "WikiCssCreator" "Can create css for the wiki"
+  "WikiCssCreator" "can create css for the wiki"
 
 let wiki_wikiboxes_creators = aux_grp_wiki
-  "WikiGenWikiboxesCreator" "Can create wikiboxes in the wiki"
+  "WikiGenWikiboxesCreator" "can create wikiboxes in the wiki"
 
 let wiki_wikiboxes_deletors = aux_grp_wiki
-  "WikiWikiboxesDeletor" "Can delete wikiboxes in the wiki"
+  "WikiWikiboxesDeletor" "can delete wikiboxes in the wiki"
 
 let wiki_wikiboxes_grps : wiki_arg admin_writer_reader =
   admin_writer_reader_aux ~name:"WikiWikiboxes"
     ~descr:"the wikiboxes of the wiki" ~find_param:param_wiki
 
 let wiki_files_readers = aux_grp_wiki
-  "WikiFilesReader" "can read the staic files for this wiki"
+  "WikiFilesReader" "can read the static files for this wiki"
 
 let wiki_wikiboxes_src_viewers = aux_grp_wiki
   "WikiWikiboxesSrcViewers" "can view the source of a wikibox"
@@ -193,7 +198,7 @@ let wikibox_grps : wikibox_arg admin_writer_reader = admin_writer_reader_aux
 
 (** These groups take a wikipage as argument *)
 let (wikipage_css_creators : wikipage_arg parameterized_group)= aux_grp
-  "WikipageCssCreator" "Can create css for the wikipage" param_wikipage
+  "WikipageCssCreator" "can create css for the wikipage" param_wikipage
 
 
 (* Hierarchy of wiki groups :

@@ -127,7 +127,11 @@ let admin' = basic_user admin
 
 
 let param_user = {
-  User_sql.param_description = "login of the user";
+  param_description = "login of the user";
+  param_display = Some
+    (fun uid ->
+       User_sql.get_basicuser_data (userid_from_sql uid) >>= fun r ->
+       Lwt.return (Printf.sprintf "'%s' (%s)" r.user_login r.user_fullname));
   find_param_functions =
     Some ((fun uname ->
              User_sql.get_basicuser_by_login uname >>= fun u ->
@@ -141,21 +145,21 @@ let group_can_create_groups =
   Lwt_unix.run
     (User_sql.new_nonparameterized_group ~prefix:"users"
        ~name:"can_create_groups"
-       ~descr:"Users that are allowed to create new groups"
+       ~descr:"can create new groups"
     )
 
 let group_can_admin_group : [`User] parameterized_group =
   Lwt_unix.run
     (User_sql.new_parameterized_group ~prefix:"users"
        ~name:"can_admin_group"
-       ~descr:"Users that can add or remove people in the group"
+       ~descr:"can add or remove people in the group"
        ~find_param:param_user
     )
 
 let group_can_create_users =
   Lwt_unix.run
-    (User_sql.new_nonparameterized_group ~prefix:"user" ~name:"GroupsCreators"
-       ~descr:"Users who can create new Ocsimore users")
+    (User_sql.new_nonparameterized_group ~prefix:"users" ~name:"GroupsCreators"
+       ~descr:"can create new Ocsimore users")
 
 
 
@@ -540,9 +544,9 @@ module GenericRights = struct
        name ^ "Writer",
        name ^ "Reader")
     and descra, descrw, descrr =
-      ("All rights on " ^ descr,
-       "Can write in " ^ descr,
-       "Can read the " ^ descr)
+      ("can admin " ^ descr,
+       "can write in " ^ descr,
+       "can read " ^ descr)
     in
     let f = User_sql.new_parameterized_group ~prefix ~find_param in
     Lwt_unix.run (

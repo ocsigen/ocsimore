@@ -32,12 +32,14 @@ let ($) = User_sql.Types.apply_parameterized_group
 
 
 let forum_param = {
-  User_sql.param_description = "id of the forum";
+  param_description = "id of the forum";
+  param_display = None;
   find_param_functions = None;
 }
 
 let message_param = {
-  User_sql.param_description = "id of the message";
+  param_description = "id of the message";
+  param_display = None;
   find_param_functions = None;
 }
 

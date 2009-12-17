@@ -182,14 +182,14 @@ let can_have_wikiperso =
   Lwt_unix.run
     (User_sql.new_nonparameterized_group ~prefix:"wikiperso"
        ~name:"can_have_wikiperso"
-       ~descr:"Users that can have a wikiperso (unless they are in the group 'cannot_have_wikiperso')"
+       ~descr:"can have a wikiperso (unless they are in the group 'cannot_have_wikiperso')"
     )
 
 let cannot_have_wikiperso =
   Lwt_unix.run
     (User_sql.new_nonparameterized_group ~prefix:"wikiperso"
        ~name:"cannot_have_wikiperso"
-       ~descr:"Users that are forbidden to have a wikiperso"
+       ~descr:"are forbidden to have a wikiperso"
     )
 
 let can_have_wikiperso sp user =

@@ -32,6 +32,26 @@ module Types : sig
     | Ocsimore_user_crypt of string
     | External_Auth
 
+
+  (** Description of the parameter of a paramaterized group *)
+  type find_param = {
+    (** Description of what the user is expected to type between the
+        parentheses to give the name of the role, e.g. 'Name of the wiki' *)
+    param_description: string;
+
+    (** How to display the parameter when printing the description
+        of the role, e.g. transforming the wiki id into the real name
+        of the wiki *)
+    param_display: (int32 -> string Lwt.t) option;
+
+    (** Conversion functions to parse and unparse the content of the
+        parentheses in the name of the group. Must obviously correspond
+        to param_description *)
+    find_param_functions:
+      ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
+  }
+
+
   type userdata = {
     user_id: userid;
     user_login: string;
@@ -39,7 +59,9 @@ module Types : sig
     user_fullname: string;
     user_email: string option;
     user_dyn: bool;
-    user_kind: [`BasicUser | `ParameterizedGroup | `NonParameterizedGroup];
+    user_kind: [ `BasicUser
+               | `ParameterizedGroup of find_param option
+               | `NonParameterizedGroup];
   }
 
 
@@ -70,14 +92,6 @@ end
 
 (** Exception raised when a string cannot be translated into a real user *)
 exception NotAnUser
-
-
-(** Description of the parameter of a paramaterized group *)
-type find_param = {
-  param_description: string;
-  find_param_functions:
-    ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
-}
 
 
 open Types

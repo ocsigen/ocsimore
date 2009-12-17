@@ -143,7 +143,7 @@ module GenericRights : sig
 
 
   val create_admin_writer_reader:
-    prefix:string -> name:string -> descr:string -> find_param:User_sql.find_param ->
+    prefix:string -> name:string -> descr:string -> find_param:find_param ->
     'a admin_writer_reader
 
   val admin_writer_reader_groups:
