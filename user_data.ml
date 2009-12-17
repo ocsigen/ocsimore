@@ -39,35 +39,6 @@ let valid_emailaddr email =
 
 
 
-let mail_password ~name ~password ~from_name ~from_addr ~subject =
-  Lwt.catch
-    (fun () ->
-       User.get_basicuser_by_login name
-       >>= fun u ->
-       User_sql.get_basicuser_data u
-       >>= fun user ->
-       Lwt_preemptive.detach
-         (fun () ->
-            match user.user_email with
-              | Some email ->
-                  ignore(Netaddress.parse email);
-                  Netsendmail.sendmail
-                    ~mailer:"/usr/sbin/sendmail"
-                    (Netsendmail.compose
-                       ~from_addr:(from_name, from_addr)
-                       ~to_addrs:[(user.user_fullname, email)]
-                       ~subject
-                       ("This is an auto-generated message. "
-                        ^ "Please do not reply to it.\n"
-                        ^ "\n"
-                        ^ "Your account is:\n"
-                        ^ "\tUsername:\t" ^ name ^ "\n"
-                        ^ "\tPassword:\t" ^ password ^ "\n"));
-                  true
-              | None -> false) ())
-    (function _ -> Lwt.return false)
-
-
 let generate_password () =
   let chars = "0123456789"^
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"^
@@ -98,37 +69,6 @@ let can_create_user ~sp ~options =
 let can_create_group ~sp =
   User.in_group ~sp ~group:User.group_can_create_groups ()
 
-
-let create_user ~sp ~name ~fullname ~email ~options =
-  can_create_user ~sp ~options >>= function
-    | true ->
-        if not (valid_username name) then
-          Lwt.fail (Failure "ERROR: Bad character(s) in login name!")
-        else if not (valid_emailaddr email) then
-          Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
-        else
-          let pwd = generate_password () in
-          Lwt.catch (fun () ->
-              User.create_fresh_user ~name ~fullname ~email
-                ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
-              >>= fun userid ->
-              User.add_to_groups (basic_user userid) options.new_user_groups
-              >>= fun () ->
-              mail_password ~name ~password:pwd ~subject:options.mail_subject
-                ~from_name:options.mail_from ~from_addr:options.mail_addr
-              >>= function
-                | true -> Lwt.return ()
-                | false ->
-                    User_sql.delete_user ~userid:userid >>= fun () ->
-                    Lwt.fail (Failure
-                          "Registration failed: cannot send confirmation email")
-          )
-          (function
-             | User.BadUser ->
-                 Lwt.fail (Failure "ERROR: This login already exists")
-             | e -> Lwt.fail e)
-    | false ->
-        Lwt.fail Ocsimore_common.Permission_denied
 
 let create_group ~sp ~name ~descr =
   can_create_group ~sp >>= function

@@ -228,7 +228,10 @@ let service_create_new_user = Eliom_services.new_service
 
 let action_create_new_user =
   Eliom_services.new_post_coservice ~fallback:service_create_new_user
-    ~post_params:(string "usr" ** (string "descr" ** string "email")) ()
+    ~https:force_secure
+    ~post_params:(string "usr" ** (string "descr" **
+                                     (string "email" **
+                                        string "pass1" ** string "pass2"))) ()
 
 
 
@@ -256,3 +259,81 @@ val action_create_new_user :
 
 end
 *)
+
+
+(* In this module instead of user_data because we use service_create_new_user
+   as fallback... *)
+
+let mail_user_creation ~name ~email ~from_name ~from_addr ~subject ~uri =
+  Lwt.catch
+    (fun () ->
+       Lwt_preemptive.detach
+         (fun () ->
+            ignore(Netaddress.parse email);
+            Netsendmail.sendmail
+              ~mailer:"/usr/sbin/sendmail"
+              (Netsendmail.compose
+                 ~from_addr:(from_name, from_addr)
+                 ~to_addrs:[(name, email)]
+                 ~subject
+                 ("This is an auto-generated message. "
+                  ^ "Please do not reply to it.\n"
+                  ^ "\n"
+                  ^ "To activate your Ocsimore account, please visit the \
+                     following link: " ^ uri));
+            true
+         ) ())
+    (function _ -> Lwt.return false)
+
+
+let create_user ~sp ~name ~fullname ~email ?pwd ~options () =
+  User_data.can_create_user ~sp ~options >>= function
+    | true ->
+        if not (User_data.valid_username name) then
+          Lwt.fail (Failure "ERROR: Bad character(s) in login name!")
+        else if not (User_data.valid_emailaddr email) then
+          Lwt.fail (Failure "ERROR: Bad formed e-mail address!")
+        else
+          let pwd = match pwd with
+            | None -> User_data.generate_password ()
+            | Some pwd -> pwd
+          in
+          let service = Eliom_services.new_coservice ~max_use:1
+            ~fallback:service_create_new_user
+            ~get_params:Eliom_parameters.unit ()
+          in
+          Eliom_duce.Xhtml.register_for_session ~sp ~service
+            (fun _sp () () ->
+               User.create_fresh_user ~name ~fullname ~email
+                 ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
+               >>= fun userid ->
+               User.add_to_groups (basic_user userid)
+                 options.User_data.new_user_groups
+               >>= fun () ->
+               Page_site.admin_page ~sp
+                 ~title:"Ocsimore - User creation"
+                 {{ [<h1>"User created"
+                      <p>[!"Your account has been created, and you can now "
+                          {{ Eliom_duce.Xhtml.a ~sp ~service:service_login
+                               {{ "login" }} () }}
+                         ]
+                    ] }}
+            );
+          let uri = Eliom_duce.Xhtml.make_uri ~service ~absolute:true ~sp () in
+          Lwt.catch (fun () ->
+              mail_user_creation ~name ~email ~uri
+                ~subject:options.User_data.mail_subject
+                ~from_name:options.User_data.mail_from
+                ~from_addr:options.User_data.mail_addr
+              >>= function
+                | true -> Lwt.return ()
+                | false ->
+                    Lwt.fail (Failure
+                          "Registration failed: cannot send confirmation email")
+          )
+          (function
+             | User.BadUser ->
+                 Lwt.fail (Failure "ERROR: This login already exists")
+             | e -> Lwt.fail e)
+    | false ->
+        Lwt.fail Ocsimore_common.Permission_denied

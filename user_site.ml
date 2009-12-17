@@ -109,9 +109,9 @@ let user_creation_widgets = match User_services.basicusercreation with
           );
 
         Eliom_duce.Xhtml.register ~service:User_services.action_create_new_user
-          (fun sp () (name, (fullname, email)) ->
+          (fun sp () (name, (fullname, (email, pwd))) ->
              user_widget_creation#display_user_creation_done ~sp
-               ~name ~fullname ~email
+               ~name ~fullname ~email ~pwd
              >>= (Page_site.admin_page ~sp
                     ~service:User_services.service_create_new_user)
           );

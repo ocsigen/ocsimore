@@ -140,6 +140,7 @@ class type user_widget_user_creation_class = object
     name:string ->
     fullname:string ->
     email:string ->
+    pwd:string*string ->
     {{Eliom_duce.Blocks.page}} Lwt.t
 end
 
@@ -660,10 +661,10 @@ object (self)
                  <h2>"Create a new user"
                  <p>['Please fill in the following fields.' <br>[]
                      'Be very careful to enter a valid e-mail address, \
-                       as the password for logging in will be sent there.']
+                       as the confirmation url will be sent there.']
                  {: Eliom_duce.Xhtml.post_form ~sp
                     ~service:User_services.action_create_new_user
-                    (fun (usr,(desc,email)) ->
+                    (fun (usr,(desc,(email, (pass1, pass2)))) ->
                        {{ [<table>[
                               <tr>[
                                 <td>"login name: (letters & digits only)"
@@ -678,6 +679,10 @@ object (self)
                                 <td>[{: str_input email :}]
                               ]
                               <tr>[
+                                <td>"password:"
+                                <td>[{: passwd_input pass1 :} {{ passwd_input pass2 }} ]
+                              ]
+                              <tr>[
                                 <td>[{: submit_input "Register" :}]
                               ]]] }})
                     () :}
@@ -687,17 +692,21 @@ object (self)
           Lwt.return {{ [ <h1>"Error"
                           <p>"You're are not allowed to create new users" ] }}
 
-  method display_user_creation_done ~sp ~name  ~fullname ~email =
+  method display_user_creation_done ~sp ~name  ~fullname ~email ~pwd =
     Lwt.catch
       (fun () ->
-         User_data.create_user ~sp ~name ~fullname ~email
-           ~options:user_creation_options >>= fun () ->
-         Lwt.return
-           {{ [<h1>"Registration ok."
-                <p>[!"You\'ll soon receive an e-mail message at the \
+         if fst pwd <> snd pwd then
+           Lwt.fail (Failure "You must enter the same password twice")
+         else
+           User_services.create_user ~sp ~name ~fullname ~email ~pwd:(fst pwd)
+             ~options:user_creation_options () >>= fun () ->
+           Lwt.return
+             {{ [<h1>"User creation ok."
+                  <p>[!"You\'ll soon receive an e-mail message at the \
                        following address:" <br>[]
-                     !{: email :} <br>[]
-                     !"with your password."] ] }}
+                      <em>{: email :} <br>[]
+                      !"containing a link to visit to activate your account."
+                     ] ] }}
       )
       (function
          | Failure err -> self#display_user_creation ~err ~sp
