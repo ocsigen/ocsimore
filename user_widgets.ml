@@ -183,6 +183,8 @@ object (self)
                        <td class="current_users">[!members !add]] }}
 
   method form_edit_user ~sp ~user ~text () =
+    (* YYY put back edition buttons if the user has enough rights, or if
+       it is admin *)
     User_sql.groups_of_user ~user
     >>= fun groups ->
     self#user_list_to_xhtml ~sp groups
@@ -393,7 +395,7 @@ object (self)
     >>= fun f1  ->
 
     (* Adding the group to groups *)
-    self#form_edit_user ~sp (* XXX ~show_edit:isadmin *) ~user:group
+    self#form_edit_user ~sp ~user:group
       ~text:{{[ <p class = "eliom_inline">[
                   <strong>[!"Current groups/roles in which the " !text
                              ! " is: " ] ] ] }} ()
