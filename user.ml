@@ -36,16 +36,9 @@ exception UnknownUser of string
 exception UseAuth of userid
 
 
-(* better: set this in config file. Beware, needs sp *)
-(*
-let () =
-  Eliom_sessions.set_global_persistent_data_session_timeout (Some 604800.)
-    (* one week *)
-let () =
-  Eliom_sessions.set_persistent_data_session_cookie_exp_date None
-    (* None = when browser is closed *)
-*)
-
+(* YYY not really sure that all User_sql functions that transforms a
+   string/id into a user properly return NotAnUser when they fail.
+   Thus we still catch Not_found, just in case... *)
 
 
 (* We might want to simply overwrite incorrect values by the correct ones *)
@@ -54,7 +47,7 @@ let possibly_create ~login ~fullname ?email ?pwd () =
     Lwt.catch
       (fun () -> User_sql.get_basicuser_by_login login)
       (function
-         | Not_found ->
+         | User_sql.NotAnUser | Not_found ->
              let email = match email with
                | None -> None
                | Some f -> f ()
@@ -168,14 +161,14 @@ let get_basicuser_by_login login =
   Lwt.catch
   (fun () -> User_sql.get_basicuser_by_login login)
   (function
-     | Not_found -> Lwt.return nobody
+     | Not_found | User_sql.NotAnUser -> Lwt.return nobody
      | e -> Lwt.fail e)
 
 let get_user_by_name name =
   Lwt.catch
     (fun () -> User_sql.get_user_by_name name)
     (function
-       | Not_found -> Lwt.return nobody'
+       | Not_found | User_sql.NotAnUser -> Lwt.return nobody'
        | e -> Lwt.fail e)
 
 
@@ -282,7 +275,7 @@ let get_user_ ~sp =
         Lwt.catch
           (fun () -> User_sql.get_basicuser_data u >>= fun _ud -> Lwt.return u)
           (function
-             | Not_found ->
+             | User_sql.NotAnUser | Not_found ->
                  Eliom_sessions.close_session ~sp () >>= fun () ->
                  Polytables.clear (Eliom_sessions.get_request_cache sp);
                  Lwt.return anonymous
@@ -450,6 +443,11 @@ let is_logged_on ~sp =
   get_user_sd sp >>= fun u ->
   Lwt.return (not ((u = anonymous) || (u = nobody)))
 
+
+(* This is a dynamic group that contains the currently logged user.
+   It is almost entirely equivalent to a group that contains all the users,
+   as only the users that are effectively able to logging
+*)
 let authenticated_users =
   Lwt_unix.run
     (create_user ~name:"users" ~pwd:User_sql.Types.Connect_forbidden
