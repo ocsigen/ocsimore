@@ -150,7 +150,7 @@ let () = Eliom_duce.Xhtml.register users_root
 
 
 let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
-  ~links:(["Login", User_services.service_login;
+  ~links:([
     "View users", User_services.service_view_users;
     "View groups", User_services.service_view_groups;
     "View roles", User_services.service_view_roles;

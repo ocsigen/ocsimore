@@ -152,3 +152,12 @@ ul.user_list {
 div.user_block {
     margin-top: 35px;
 }
+
+#admin_status .login_box tr, #admin_status .login_box td {
+    display: inline;
+    margin-left: 2px;
+}
+
+#admin_status .login_box td {
+    padding: 0;
+}

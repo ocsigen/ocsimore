@@ -59,11 +59,13 @@ class type user_widget_class = object
     ?pwd_prompt:Ocamlduce.Utf8.repr ->
     ?auth_error:Ocamlduce.Utf8.repr ->
     ?switchtohttps:Ocamlduce.Utf8.repr ->
+    ?show_ext:bool ->
     unit ->
     Xhtmltypes_duce.form_content Lwt.t
 
   method private display_logout_box :
     sp:Eliom_sessions.server_params ->
+    ?show_ext:bool ->
     User_sql.Types.userdata ->
     Xhtmltypes_duce.form_contents Lwt.t
   method display_logout_button :
@@ -271,15 +273,17 @@ object (self)
     ?(pwd_prompt= "password:")
     ?(auth_error= "Wrong login or password")
     ?(switchtohttps= "Click here to switch to https and login")
+    ?(show_ext=true)
     ~sp error =
     if (Eliom_sessions.get_ssl sp) || not User_services.force_secure
     then begin
       let user_prompt = Ocamlduce.Utf8.make user_prompt in
       let pwd_prompt = Ocamlduce.Utf8.make pwd_prompt in
       let auth_error = Ocamlduce.Utf8.make auth_error in
-      self#login_box_extension ~sp >>= fun ext ->
+      (if show_ext then self#login_box_extension ~sp else Lwt.return {{ [] }})
+      >>= fun ext ->
       Lwt.return (fun (usr, pwd) ->
-        {{ [   <table>[
+        {{ [   <table class="login_box">[
                <tr>[<td>user_prompt
                     <td>[{: str_input usr :}]]
                <tr>[<td>pwd_prompt
@@ -299,10 +303,12 @@ object (self)
                     Eliom_services.https_void_coservice'
                     sp switchtohttps () :} ] ] }})
 
-  method private display_logout_box ~sp u =
-    self#logout_box_extension ~sp >>= fun ext ->
-    Lwt.return {{ [<table>[
-                      <tr>[<td>{: Printf.sprintf "Hi %s!" u.user_fullname :}]
+  method private display_logout_box ~sp ?(show_ext=true) u =
+    (if show_ext then self#logout_box_extension ~sp else
+       Lwt.return {{ [] }}) >>= fun ext ->
+    Lwt.return {{ [<table class="login_box">[
+                      <tr>[<td>{: Printf.sprintf "You are logged as %s"
+                                  u.user_fullname :}]
                       <tr>[<td>[{: submit_input "logout" :}]]
                       !ext
                     ]] }}
@@ -331,12 +337,11 @@ object (self)
     Eliom_duce.Xhtml.make_uri ~service:User_services.action_logout_get ~sp ()
 
 
-  method display_login_widget ~sp
-    ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () =
+  method display_login_widget ~sp ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ?(show_ext=true) () =
     User.get_user_data sp >>= fun u ->
     User.is_logged_on sp >>= fun logged ->
     (if logged then
-       self#display_logout_box sp u >>= fun f ->
+       self#display_logout_box ~sp ~show_ext u >>= fun f ->
        Lwt.return (
          Eliom_duce.Xhtml.post_form ~a:{{ { class="logbox logged"} }}
            ~service:User_services.action_logout ~sp (fun _ -> f) ())
@@ -344,7 +349,7 @@ object (self)
      else
        let f_login error ~a =
          self#login_box_aux ?user_prompt ?pwd_prompt ?auth_error
-           ?switchtohttps ~sp error
+           ?switchtohttps ~sp ~show_ext error
          >>= fun f ->
          Lwt.return
            (Eliom_duce.Xhtml.post_form ~service:User_services.action_login ~sp ~a f ())
@@ -568,6 +573,11 @@ object (self)
 
 
   method status_text ~sp =
+    self#display_login_widget ~sp
+      ~user_prompt:"You are not currently logged in. Login:"
+      ~pwd_prompt:"Password:"
+      ~show_ext:false () >>= fun r ->
+    Lwt.return {{ [r] }} (*
     User.get_user_data sp >>= fun u ->
       if u.user_id <> User.anonymous then
         let u = Ocamlduce.Utf8.make u.user_login in
@@ -575,7 +585,7 @@ object (self)
         Lwt.return {{ ['You are logged in as ' !u '. ' l ] }}
       else
         let l = Eliom_duce.Xhtml.a User_services.service_login sp {{ "Login" }} () in
-        Lwt.return {{ ['You are not currently logged. ' l]  }}
+        Lwt.return {{ ['You are not currently logged. ' l]  }} *)
 
   method display_group_creation ?(err="") ~sp =
     User_data.can_create_group ~sp >>= function
