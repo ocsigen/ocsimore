@@ -192,7 +192,7 @@ let cannot_have_wikiperso =
        ~descr:"are forbidden to have a wikiperso"
     )
 
-let can_have_wikiperso sp user =
+let f_can_have_wikiperso sp user =
   User.in_group ~sp ~user ~group:can_have_wikiperso () >>= function
     | true ->
         User.in_group ~sp ~user ~group:cannot_have_wikiperso () >>= fun b ->
@@ -268,19 +268,19 @@ let gen sp =
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
-                        can_have_wikiperso sp (basic_user userid) >>= fun can ->
-                        if can then
-                          let model = wikiperso_model in
-                          User_sql.get_basicuser_data userid >>= fun ud ->
-                          create_wikiperso ~model ~wiki_title ~userdata:ud
-                          >>= fun wiki ->
-                          (* We then register the wiki at the correct url *)
-                          Wiki_services.register_wiki ~sp ~wiki:wiki ()
-                            ~rights:Wiki_site.wiki_rights
-                            ~path:(wiki_path ud.user_login)
-                            ~siteids:(siteid, Wiki_site.siteid);
-                          Lwt.return ()
-                        else Lwt.return ()
+                        (f_can_have_wikiperso sp (basic_user userid) >>=function
+                           | true ->
+                               let model = wikiperso_model in
+                               User_sql.get_basicuser_data userid >>= fun ud ->
+                               create_wikiperso ~model ~wiki_title ~userdata:ud
+                               >>= fun wiki ->
+                               (* We then register the wiki at the correct url*)
+                               Wiki_services.register_wiki ~sp ~wiki:wiki ()
+                                 ~rights:Wiki_site.wiki_rights
+                                 ~path:(wiki_path ud.user_login)
+                                 ~siteids:(siteid, Wiki_site.siteid);
+                               Lwt.return ()
+                           | false -> Lwt.return ())
                     | e -> Lwt.fail e)
         )
         >>= fun () ->
@@ -326,6 +326,37 @@ let () =
      )
   )
 *)
+
+let users_root =
+  Eliom_services.new_service
+    ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikiperso"]
+    ~get_params:Eliom_parameters.unit ()
+
+let () = Eliom_duce.Xhtml.register users_root
+  (fun sp () () ->
+     User_sql.user_to_string can_have_wikiperso >>= fun s1 ->
+     User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->
+     Page_site.admin_page ~sp
+       ~title:"Ocsimore - Wikiperso module"
+       {{ [<h1>"Wikiperso module"
+           <p>[!"This is the Ocsimore admin page for the wikiperso module. Wikipersos are wikis that are automatically created for each Ocsimore user, and
+on which the user has write access."
+                 <br>[]  <br>[]
+               !"Most of the configuration is done through the Ocsigen configuration file. You can however choose which users can have wikipersos by adding users or groups inside the following roles:"
+                 {: Eliom_duce.Xhtml.a ~service:User_services.service_view_group
+                    ~sp {: "users that can have a wikiperso" :} s1 :}
+                 !" and "
+                 {: Eliom_duce.Xhtml.a ~service:User_services.service_view_group
+                    ~sp {: "users that cannot have a wikiperso" :} s2 :}
+                 '.'
+
+              ]
+          ]}}
+  )
+
+
+let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Wikiperso" ~links:[]
+
 
 
 let _ =
