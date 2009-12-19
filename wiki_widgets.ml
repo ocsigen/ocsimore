@@ -1204,7 +1204,7 @@ object (self)
          (img "imgedit.png" "Edit wiki options") w.wiki_id
        and edit_perm = Eliom_duce.Xhtml.a
          ~service:Wiki_services.edit_wiki_permissions_admin ~sp
-         (img "imgeditperms.png" "Edit permissions") w.wiki_id
+         (img "imgeditperms.png" "View permissions") w.wiki_id
        and page =
          match Wiki_self_services.find_servpage w.wiki_id with
            | None -> {{ [] }}

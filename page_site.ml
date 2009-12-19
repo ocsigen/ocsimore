@@ -211,20 +211,40 @@ open Eliom_tools_common
 
 let admin_menu = ref []
 
-let menu_link (text, service) =
-  (Ocamlduce.Utf8.make text, Site_tree (Main_page service, []))
+(*
+let menu_link sp (text, service, f) =
+  f sp >>= function
+    | true -> Lwt.return
+        (Some (Ocamlduce.Utf8.make text, Site_tree (Main_page service, [])))
+    | false -> Lwt.return None
+*)
+
+let menu_link sp (text, service, f) =
+  f sp >>= function
+    | true -> Lwt.return
+        (Some (Ocamlduce.Utf8.make text, Site_tree (Main_page service, [])))
+    | false -> Lwt.return None
 
 let add_to_admin_menu ~name ~links ~root =
-  admin_menu :=
-    ({{ [ <span class="admin-menu-root">{{ Ocamlduce.Utf8.make name }} ] }},
-     Site_tree (Main_page root, List.map menu_link links))
-  :: !admin_menu
+  admin_menu := (name, links, root) :: !admin_menu
 
 let admin_menu ?service sp =
-  let menu = Main_page admin_root, List.rev !admin_menu in
+  Lwt_util.map
+    (fun (name, links, root) ->
+       Lwt_util.fold_left (fun r me -> menu_link sp me >>= function
+                             | None -> Lwt.return r
+                             | Some me -> Lwt.return (me :: r))
+         [] links
+       >>= fun links ->
+       Lwt.return
+         ({{ [<span class="admin-menu-root">{{ Ocamlduce.Utf8.make name }} ] }},
+         Site_tree (Main_page root, List.rev links)))
+    !admin_menu
+  >>= fun admin_menu ->
+  let menu = Main_page admin_root, List.rev admin_menu in
   add_admin_pages_header sp;
-  Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
-    ~whole_tree:false menu ?service ~sp
+  Lwt.return (Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
+                ~whole_tree:false menu ?service ~sp)
 
 
 let add_status_function, status_text =
@@ -242,7 +262,7 @@ let add_status_function, status_text =
   )
 
 let admin_page ~sp ?service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") ?(allow_unlogged=false) content =
-  let menu = admin_menu ?service sp in
+  admin_menu ?service sp >>= fun menu ->
   status_text sp >>= fun status ->
   User.get_user_id ~sp >>= fun u ->
   let content = if u <> User.anonymous || allow_unlogged  then

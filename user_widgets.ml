@@ -638,7 +638,7 @@ object (self)
          | Failure err -> self#display_group_creation ~err ~sp
          | Ocsimore_common.Permission_denied ->
              Lwt.return {{ [ <h1>"Error"
-                             <p>"You cannot create new users" ] }}
+                             <p>"You cannot create new groups" ] }}
          | e -> Lwt.fail e)
 
 end

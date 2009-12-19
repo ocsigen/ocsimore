@@ -95,22 +95,30 @@ val html_page :
 
 
 (** Adds an entire subsection, labelled by [name] to the admin menu.
-    The service [root] is used to represent this section.
+    The service [root] is used to represent this section. For the
+    list of links, if the function returns [false], the link is
+    not displayed.
 *)
 val add_to_admin_menu :
   name:string ->
-  links:(string * menu_link_service) list ->
+  links:(string *
+         menu_link_service *
+         (Eliom_sessions.server_params -> bool Lwt.t)) list ->
   root:menu_link_service ->
   unit
 
+(* No need to export thisn
 (** The admin menu itself. The option [service] parameter is the service
     currently active, which will be displayed in a different way *)
 val admin_menu:
   ?service:menu_link_service ->
   Eliom_sessions.server_params ->
-  Xhtmltypes_duce.blocks
+  Xhtmltypes_duce.blocks Lwt.t
+*)
 
-
+(** Displays a complete admin page, with the admin menu and the status bar.
+    If [allow_unlogged] is false, users that have not logged-in will not
+    be able to see the page *)
 val admin_page:
   sp:Eliom_sessions.server_params ->
   ?service:menu_link_service ->

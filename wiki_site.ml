@@ -444,8 +444,10 @@ let () = Eliom_duce.Xhtml.register Wiki_services.edit_wiki_permissions_admin
 
 let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
   ~links:[
-    "Create a new wiki", create_wiki;
-    "View and edit wikis", Wiki_services.view_wikis
+    "View all wikis", Wiki_services.view_wikis, (fun _ -> Lwt.return true);
+    "Create a new wiki", create_wiki, (fun sp ->
+                                         wiki_rights#can_create_wiki sp ());
+
   ]
 
 

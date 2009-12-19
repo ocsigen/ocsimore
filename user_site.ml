@@ -119,7 +119,7 @@ let user_creation_widgets = match User_services.basicusercreation with
 
         Some user_widget_creation
 
-    | _ ->
+    | User_services.NoUserCreation ->
 
         Eliom_duce.Xhtml.register ~service:User_services.service_create_new_user
           (fun sp () () ->
@@ -152,14 +152,17 @@ let () = Eliom_duce.Xhtml.register users_root
 
 let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
   ~links:([
-    "View users", User_services.service_view_users;
-    "View groups", User_services.service_view_groups;
-    "View roles", User_services.service_view_roles;
-    "Groups creation", User_services.service_create_new_group;
-   ] @
-     (match User_services.service_create_new_user with
-(*        | None -> []
-        | Some*) service -> ["User creation", service])
+    "View users", User_services.service_view_users, (fun _ -> Lwt.return true);
+    "View groups", User_services.service_view_groups,(fun _ -> Lwt.return true);
+    "View roles", User_services.service_view_roles, (fun _ -> Lwt.return true);
+    "Users creation", User_services.service_create_new_user,
+            (fun sp -> match User_services.basicusercreation with
+               | User_services.UserCreation options ->
+                   User_data.can_create_user ~sp ~options
+               | User_services.NoUserCreation -> Lwt.return false);
+    "Groups creation", User_services.service_create_new_group,
+            (fun sp -> User_data.can_create_group sp);
+          ]
   )
 
 
