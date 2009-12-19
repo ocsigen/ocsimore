@@ -68,6 +68,13 @@ let () = Lwt_unix.run
      (fun db -> PGSQL(db) "ALTER TABLE wikiboxescontent ADD COLUMN ip text")
    >>= fun () ->
 
+   update 6
+     (fun db -> PGSQL(db) "ALTER TABLE wikis DROP CONSTRAINT wikis_title_key"
+                >>= fun () ->
+                PGSQL(db) "ALTER TABLE wikis ADD CONSTRAINT wikis_title_unique
+                                             UNIQUE (title,siteid)")
+   >>= fun () ->
+
    Lwt.return ()
 
  end
