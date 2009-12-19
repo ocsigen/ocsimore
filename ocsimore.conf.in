@@ -60,7 +60,8 @@
         <nis />
 
         <!-- To create Ocsimore users: -->
-        <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups="users"/>
+        <basicusercreation registration_mail_from="Ocsimore" registration_mail_addr="ocsimore@somewhere.nowhere.com" registration_mail_subject="Ocsimore registration" groups=""/><!-- The "groups" field can contain groups in which the new
+user will be automatically added" -->
       </eliommodule>
 
       <eliommodule findlib-package="ocsimore.wiki">

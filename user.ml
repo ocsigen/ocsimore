@@ -446,7 +446,7 @@ let is_logged_on ~sp =
 
 (* This is a dynamic group that contains the currently logged user.
    It is almost entirely equivalent to a group that contains all the users,
-   as only the users that are effectively able to logging
+   as only the users that are effectively able to logging can be inside.
 *)
 let authenticated_users =
   Lwt_unix.run
