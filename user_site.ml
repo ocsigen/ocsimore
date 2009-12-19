@@ -74,7 +74,8 @@ let () =
   Eliom_duce.Xhtml.register User_services.service_login
     (fun sp () () ->
        user_widgets#display_login_widget ~sp () >>= fun body ->
-       Page_site.admin_page ~sp {{ [ <h1>"Login page" body ] }}
+       Page_site.admin_page ~sp ~allow_unlogged:true
+         {{ [ <h1>"Login page" body ] }}
     );
 
   Eliom_duce.Xhtml.register ~service:User_services.service_create_new_group

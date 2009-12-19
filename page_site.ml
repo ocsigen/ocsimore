@@ -241,9 +241,16 @@ let add_status_function, status_text =
              hd tl
   )
 
-let admin_page ~sp ?service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
+let admin_page ~sp ?service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") ?(allow_unlogged=false) content =
   let menu = admin_menu ?service sp in
   status_text sp >>= fun status ->
+  User.get_user_id ~sp >>= fun u ->
+  let content = if u <> User.anonymous || allow_unlogged  then
+    content
+  else
+    {{ [ <h1>"Access denied"
+         !"You are not allowed to view this page. Please login below first."] }}
+  in
   html_page ~sp ~title ~css ~body_classes:("admin" :: body_classes)
     {{ [!menu
         <div id="admin_body">content

@@ -117,6 +117,7 @@ val admin_page:
   ?body_classes:string list ->
   ?css:Xhtmltypes_duce.links ->
   ?title:string ->
+  ?allow_unlogged:bool ->
   Xhtmltypes_duce.blocks ->
   Xhtmltypes_duce.html Lwt.t
 
