@@ -142,8 +142,8 @@ let register_wikibox_syntax_extensions
                     ~rights ~sp
                     ~wiki:wid
                     ~author:userid
-                    ~comment:(Printf.sprintf "Subbox of wikibox %s, wiki %s"
-                                (string_of_wiki wid) (string_of_wikibox wb))
+                    ~comment:(Printf.sprintf "Subbox of wikibox %s (from wiki %s)"
+                                (string_of_wikibox wb) (string_of_wiki wid))
                     ~content:"**//new wikibox//**" 
                     ~content_type
                     ()
