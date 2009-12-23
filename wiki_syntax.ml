@@ -801,8 +801,7 @@ let inline_builder : (Xhtmltypes_duce.inlines Lwt.t,
     br_elem = 
       (fun _ -> 
          Lwt.return {{ [<em>"Line breaks not enabled in this syntax"] }});
-    img_elem = 
-      (fun _ _ _ -> Lwt.return {{ [<em>"Images not enabled in this syntax"] }});
+    img_elem = img_elem;
     tt_elem = tt_elem;
     nbsp = nbsp;
     endash = endash;
