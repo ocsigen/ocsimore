@@ -302,7 +302,7 @@ let create_user ~sp ~name ~fullname ~email ?pwd ~options () =
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameters.unit ()
           in
-          Eliom_duce.Xhtml.register_for_session ~sp ~service
+          Eliom_duce.Xhtml.register ~sp ~service
             (fun _sp () () ->
                User.create_fresh_user ~name ~fullname ~email
                  ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
