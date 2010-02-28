@@ -875,7 +875,7 @@ and parse_extension_content_wiki start lev nowiki beg c =
 (*VVV Warning: not quotable! *)
           parse_extension_content_wiki start lev false (beg^"}}}") c lexbuf
         }
-      | (">>" | eof) {
+      | ">>" {
           if nowiki
           then 
             parse_extension_content_wiki start lev nowiki (beg^">>") c lexbuf
@@ -885,6 +885,9 @@ and parse_extension_content_wiki start lev nowiki beg c =
               parse_extension_content_wiki
                 start (lev-1) nowiki (beg^">>") c lexbuf
             else Some beg
+        }
+      | eof {
+          Some (beg^" syntax error in wikisyntax") (* or error ?? *)
         }
       | [^ '~' '>' '<' '{' '}' ]+ {
           let s = Lexing.lexeme lexbuf in
