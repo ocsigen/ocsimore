@@ -45,7 +45,7 @@ type wikipage_arg = [ `Wikipage ]
 type wikipage_uid = wikipage_arg Opaque.int32_t
 
 type wiki_model
-type 'a content_type (** The parameter is the type of the content, 
+type 'a content_type (** The parameter is the type of the content,
                          once translated to xhtml
                          (usually flows or inlines) *)
 val string_of_wiki_model : wiki_model -> string
@@ -83,7 +83,23 @@ type wikibox_info = {
   wikibox_id : wikibox;
 }
 
-type media_type = string list
+type media_type_elem =
+    [ `All
+    | `Aural
+    | `Braille
+    | `Embossed
+    | `Handheld
+    | `Print
+    | `Projection
+    | `Screen
+    | `Speech
+    | `TTY
+    | `TV ]
+type media_type = media_type_elem list (*Xhtmltypes.mediadesc*)
+val media_type_elem_of_string : string -> media_type_elem option
+val string_of_media_type_elem : media_type_elem -> string
+val media_type_of_string : string -> media_type
+val string_of_media_type : media_type -> string
 
 type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
 
@@ -120,15 +136,15 @@ end
 type 'a wikibox_content = 'a content_type * string option * int32
 
 (**/**)
-val wikibox_data_of_raw : 
-  (string * userid * string option * CalendarLib.Calendar.t * 
+val wikibox_data_of_raw :
+  (string * userid * string option * CalendarLib.Calendar.t *
      string * int32) option Lwt.t ->
-  (string * userid * string option * CalendarLib.Calendar.t * 
+  (string * userid * string option * CalendarLib.Calendar.t *
      'a content_type * int32) option Lwt.t
 
-val raw_of_wikibox_data : 
-  (string * userid * string option * CalendarLib.Calendar.t * 
+val raw_of_wikibox_data :
+  (string * userid * string option * CalendarLib.Calendar.t *
      'a content_type * int32) option Lwt.t
     ->
-  (string * userid * string option * CalendarLib.Calendar.t * 
+  (string * userid * string option * CalendarLib.Calendar.t *
      string * int32) option Lwt.t

@@ -46,9 +46,6 @@ and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
         Lwt_util.map lwt_tree_flatten forest >>=
         fun f -> lwt_flatten f
 
-let build_class_attr ~classe =
-  String.concat " " classe
-
 
 let list_assoc_opt a l =
   try
@@ -158,10 +155,10 @@ let remove_begin_slash s =
 let hidden_bool_input :
   value:bool ->
   [< bool Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  Eliom_duce.Blocks.input_elt
+  [>Xhtmltypes.input] XHTML.M.elt
  = fun ~value name ->
-   Eliom_duce.Xhtml.user_type_input string_of_bool
-     ~input_type:{: "hidden" :} ~value ~name ()
+   Eliom_predefmod.Xhtml.user_type_input string_of_bool
+     ~input_type:`Hidden ~value ~name ()
 
 
 let eliom_bool =

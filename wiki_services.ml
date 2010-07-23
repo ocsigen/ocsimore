@@ -29,6 +29,11 @@ open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
 let (>>=) = Lwt.bind
+let (>|=) = Lwt.(>|=)
+
+let unopt_media_type = function
+  | Some x -> x
+  | None -> raise (Invalid_argument "media_type_elem_of_string")
 
 
 (** Polymorphic keys and subsequent functions to govern the display
@@ -74,27 +79,34 @@ let set_wikibox_error ~sp v =
 
 
 
-let send_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ?(menu_style=`Linear) ~page () =
+let send_wikipage
+  ~(rights : Wiki_types.wiki_rights)
+  ~sp
+  ~wiki
+  ?(menu_style=`Linear)
+  ~page
+  () =
+
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
   (* if there is a static page, and should we send it ? *)
   Lwt.catch
-    (fun () ->
-       match wiki_info.wiki_staticdir with
-         | Some dir ->
-                Eliom_predefmod.Files.send ~sp (dir ^"/"^ fst page) >>= fun r ->
-                  (rights#can_view_static_files sp wiki >>= function
-                     | true -> Lwt.return r
-                     | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
-             )
-         | None -> Lwt.fail Eliom_common.Eliom_404)
+    (fun () -> match wiki_info.wiki_staticdir with
+       | Some dir ->
+           Eliom_predefmod.Files.send ~sp (dir ^"/"^ fst page) >>= fun r ->
+           (rights#can_view_static_files sp wiki >>= function (*RRR: This should be generalized and exported *)
+              | true -> Lwt.return r
+              | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
+           )
+       | None -> Lwt.fail Eliom_common.Eliom_404)
     (function
        | Eliom_common.Eliom_404 ->
-           Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+           Wiki_sql.get_wiki_info_by_id wiki             >>= fun wiki_info ->
            let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
            widgets#display_wikipage ~sp ~wiki ~menu_style ~page
-           >>= fun (html, code) ->
-           Eliom_duce.Xhtml.send ~sp ~code html
-       | e -> Lwt.fail e)
+                                                         >>= fun (html, code) ->
+           Eliom_predefmod.Xhtml.send ~sp ~code html
+       | e -> Lwt.fail e
+    )
 
 
 (* Register the services for the wiki [wiki] *)
@@ -125,7 +137,8 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
       ~get_params:(Eliom_parameters.string "page")
       (fun sp page () ->
          let path =
-           Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page) in
+           Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
+         in
          let page' = Ocsigen_lib.string_of_url_path ~encode:false path in
          send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
       )
@@ -429,7 +442,15 @@ and action_create_css = Eliom_predefmod.Any.register_new_post_coservice'
   ~post_params:(eliom_wikibox_args **
                   ((eliom_wiki_args **
                       Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
-                   ** (Eliom_parameters.set Eliom_parameters.string "media"
+                   ** (Eliom_parameters.set
+                         (Eliom_parameters.user_type
+                            ~of_string:(fun x ->
+                              unopt_media_type
+                                (Wiki_types.media_type_elem_of_string x)
+                            )
+                            ~to_string:Wiki_types.string_of_media_type_elem
+                         )
+                         "media"
                        ** Ocsimore_common.eliom_opaque_int32_opt "wbcss")))
   (fun sp () (wb, ((wiki, page), (media, wbcss))) ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
@@ -442,10 +463,18 @@ and action_create_css = Eliom_predefmod.Any.register_new_post_coservice'
 and action_send_css_options = Eliom_predefmod.Any.register_new_post_coservice'
   ~name:"wiki_send_css_options" ~keep_get_na_params:true
   ~post_params:(eliom_wikibox_args **
-                  (((eliom_css_args ** Eliom_parameters.opt
-                       (eliom_wikibox "newwbcss")) **
-                      Eliom_parameters.set Eliom_parameters.string "media")
-                   ** Eliom_parameters.int32 "rank"))
+                (((eliom_css_args ** Eliom_parameters.opt
+                                       (eliom_wikibox "newwbcss")) **
+                  (Eliom_parameters.set
+                     (Eliom_parameters.user_type
+                         ~of_string:(fun x ->
+                              unopt_media_type
+                                (Wiki_types.media_type_elem_of_string x)
+                            )
+                         ~to_string:Wiki_types.string_of_media_type_elem
+                     )
+                     "media"))
+                ** Eliom_parameters.int32 "rank"))
   (fun sp () (wb, (((((wiki, page), wbcss), newwbcss), media), rank)) ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in

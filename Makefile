@@ -32,21 +32,17 @@ OCAMLBUILD := ocamlbuild -X nis_chkpwd $(DISPLAYFLAG) -j $(NBCPU)
 MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 LWTDIR := $(shell ocamlfind query lwt)
-OBROWSERDIR := $(shell ocamlfind query obrowser)
-ELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_client)
-PAELIOMOBROWSERDIR := $(shell ocamlfind query ocsigen.eliom_obrowser_syntax)
+JSOFOCAMLDIR := $(shell ocamlfind query js_of_ocaml)
+ELIOMCLIENTDIR := $(shell ocamlfind query ocsigen.eliom_client)
+PAELIOMCLIENTSYNTAX := $(shell ocamlfind query ocsigen.eliom_client_syntax)
 
 #VVV Faire le tri dans les cmis à installer !!!
 TOINSTALL := files/META \
              _build/ocsimore.cma _build/page_site.cmo \
              _build/wikiperso.cmo \
-             _build/announce/announce.cma \
              _build/ocsi_user.cma \
              _build/ocsi_wiki.cma \
-             _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
-             _build/forum/ocsi_forum.cma \
-             _build/forum/forum_client.cmo \
-             _build/wiki_client.cmo \
+             _build/wiki_client.js \
              _build/dyngroups.cmi \
              _build/language.cmi \
              _build/ocsimore_common.cmi \
@@ -80,28 +76,32 @@ TOINSTALL := files/META \
              _build/wiki_types.cmi \
              _build/wiki_widgets.cmi \
              _build/wiki_widgets_interface.cmi \
-             _build/xform.cmi \
-             _build/forum/forum_client.cmi \
-             _build/forum/forum.cmi \
-             _build/forum/forum_data.cmi \
-             _build/forum/forum_services.cmi \
-             _build/forum/forum_site.cmi \
-             _build/forum/forum_types.cmi \
-             _build/forum/forum_sql.cmi \
-             _build/forum/forum_widgets.cmi \
-             _build/forum/forum_wikiext.cmi \
-             _build/ocsimore_pam.cmi
+             _build/xform.cmi
+#             _build/forum/forum_client.js \
+#             _build/forum/forum.cmi \
+#             _build/forum/forum_data.cmi \
+#             _build/forum/forum_services.cmi \
+#             _build/forum/forum_site.cmi \
+#             _build/forum/forum_types.cmi \
+#             _build/forum/forum_sql.cmi \
+#             _build/forum/forum_widgets.cmi \
+#             _build/forum/forum_wikiext.cmi \
+#             _build/ocsimore_pam.cmi
+#             _build/announce/announce.cma \
+#             _build/forum/ocsicreateforum.cmo _build/forum/forum.cma \
+#             _build/forum/ocsi_forum.cma \
+#             _build/forum/forum_client.cmo \
 
 
-STATICFILES := static/vm.js \
-        static/eliom_obrowser.js \
-	static/ocsimore_client.uue \
+STATICFILES := static/creole_cheat_sheet.png \
 	static/ocsiwikistyle.css \
 	static/ocsiforumstyle.css \
-	static/ocsiadmin.css \
-	static/creole_cheat_sheet.png
+	static/ocsiadmin.css
+#	static/vm.js \
+#	static/eliom_obrowser.js \
+#	static/ocsimore_client.uue \
 
-all: wiki_client.ml forum/forum_client.ml $(MYOCAMLFIND) nis_chkpwd_ ocamlbuild static/ocsimore_client.uue static/vm.js static/eliom_obrowser.js files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
+all: $(MYOCAMLFIND) nis_chkpwd_ ocamlbuild files/META files/META.ocsimore ocsimore.conf ocsimore.conf.local etc/ocsigen/ocsimorepassword
 
 nis_chkpwd_:
 	$(MAKE) -C nis_chkpwd
@@ -120,16 +120,6 @@ ocamlbuild: $(MYOCAMLFIND) updatedb
 $(MYOCAMLFIND): myocamlfind.ml
 	$(OCAMLBUILD) -no-plugin $(subst _build/,,$@)
 
-static/ocsimore_client.uue: _build/wiki_client.cmo _build/forum/forum_client.cmo
-	CAMLLIB=$(OBROWSERDIR) ocamlc -o ocsimore_client $(OBROWSERDIR)/AXO.cma $(LWTDIR)/lwt.cma $(ELIOMOBROWSERDIR)/eliom_obrowser_client.cma _build/wiki_client.cmo _build/forum/forum_client.cmo
-	uuencode ocsimore_client stdout > static/ocsimore_client.uue
-
-static/vm.js: $(OBROWSERDIR)/vm.js
-	cp -f $(OBROWSERDIR)/vm.js static
-
-static/eliom_obrowser.js: $(ELIOMOBROWSERDIR)/eliom_obrowser.js
-	cp -f $(ELIOMOBROWSERDIR)/eliom_obrowser.js static
-
 files/META.ocsimore: files/META.in VERSION
 	echo directory = \"$(SRC)/_build\" > $@
 	sed "s/_VERSION_/$(VERSION)/" < $< | \
@@ -141,18 +131,9 @@ files/META: files/META.in VERSION
 etc/ocsigen/ocsimorepassword:
 	echo $(PASSWORD) > etc/ocsigen/ocsimorepassword
 
-wiki_client_calls.ml: wiki_client.p.ml
-	camlp4of $(PAELIOMOBROWSERDIR)/pa_eliom_obrowser.cmo $< -o $@ \
-	  -client wiki_client.ml # -prologue Wiki_client_prologue
+wiki_client.js: wiki.cmo
 
-wiki_client.ml: wiki_client_calls.ml
-
-forum/forum_client_calls.ml: forum/forum_client.p.ml
-	camlp4of $(PAELIOMOBROWSERDIR)/pa_eliom_obrowser.cmo $< -o $@ \
-	  -client forum/forum_client.ml
-
-forum/forum_client.ml: forum/forum_client_calls.ml
-
+#forum_client.js: forum.cmo
 
 install:
 	mkdir -p $(STATICDIR)
@@ -196,8 +177,8 @@ uninstall:
 clean:
 	rm -Rf _build
 	$(MAKE) -C nis_chkpwd clean
-	rm wiki_client.ml wiki_client_calls.ml
-	rm forum/forum_client_calls.ml forum/forum_client.ml
+	rm -rf wiki_client.ml
+	rm -rf forum/forum_client.ml
 
 .PHONY: all clean nis_chkpwd_
 

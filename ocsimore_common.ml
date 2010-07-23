@@ -28,12 +28,12 @@ exception Permission_denied
 
 let action_failure_key = Polytables.make_key ()
 
-let catch_action_failure ~sp ?(f_exn=fun exn -> exn) f =
+let catch_action_failure ~sp ?(f_exc=fun exn -> exn) f =
   Lwt.catch
     f
-    (fun exn ->
+    (fun exc ->
        Polytables.set (Eliom_sessions.get_request_cache sp)
-         action_failure_key (f_exn exn);
+         action_failure_key (f_exc exc);
        Lwt.return ())
 
 let get_action_failure ~sp =
@@ -68,22 +68,22 @@ let eliom_opaque_int32_opt s =
 
 
 let input_opaque_int32 ?value ?(hidden=true) name =
-  let f = Eliom_duce.Xhtml.user_type_input
+  let f = Eliom_predefmod.Xhtml.user_type_input
     (fun v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
   in
   if hidden then
-    f ~input_type:{: "hidden" :} ()
+    f ~input_type:`Hidden ()
   else
-    f ~input_type:{: "text" :} ()
+    f ~input_type:`Text ()
 
 let input_opaque_int32_opt ?value ?(hidden=true) name =
-  let f = Eliom_duce.Xhtml.user_type_input
+  let f = Eliom_predefmod.Xhtml.user_type_input
     (fun v -> match v with
        | None -> ""
        | Some v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
   in
   if hidden then
-    f ~input_type:{: "hidden" :} ()
+    f ~input_type:`Hidden ()
   else
-    f ~input_type:{: "text" :} ()
+    f ~input_type:`Text ()
 

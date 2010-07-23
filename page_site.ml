@@ -21,6 +21,8 @@
 *)
 
 
+
+
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
     (Eliom_services.get_service_kind,
@@ -28,7 +30,8 @@ type menu_link_service =
     Eliom_tools_common.one_page
 
 
-open Lwt
+let (>>=) = Lwt.(>>=)
+let (>|=) = Lwt.(>|=)
 
 let admin_staticdir =
   let rec find_wikidata (_staticadm  as data) = function
@@ -49,7 +52,10 @@ exception No_admin_staticdir
 let admin_staticdir =
   match admin_staticdir with
     | Some s -> s
-    | None -> Ocsigen_messages.errlog "Page_site: please supply the local path for Ocsimore's static files\n  Syntax: <admin staticdir=\"path\" />";
+    | None ->
+        Ocsigen_messages.errlog
+         "Page_site: please supply the local path for Ocsimore's static files\n\
+          Syntax: <admin staticdir=\"path\" />";
         raise No_admin_staticdir
 
 
@@ -64,7 +70,7 @@ let static_service = Eliom_predefmod.Any.register_new_service
 
 
 let static_file_uri ~sp ~path =
-  Eliom_duce.Xhtml.make_uri ~service:static_service ~sp path
+  Eliom_predefmod.Xhtml.make_uri ~service:static_service ~sp path
 
 
 
@@ -72,7 +78,7 @@ module Header = (
   struct
 
     type header = bool Polytables.key
-    
+
     let header_table = ref []
 
     let create_header header_content =
@@ -87,9 +93,9 @@ module Header = (
         ~value:true
 
     let generate_headers ~sp =
-      let l =
-        List.fold_left
-          (fun beg (key, header_content) -> 
+      List.flatten
+        (List.fold_left
+          (fun beg (key, header_content) ->
              let tobeincluded =
                try
                  Polytables.get
@@ -102,17 +108,18 @@ module Header = (
              else beg)
           []
           !header_table
-      in {{ (map {: l :} with i -> i) }}
-        
+        )
+
   end : sig
 
     type header
 
     (** Define a new header *)
-    val create_header : 
-      (Eliom_sessions.server_params -> {{ [ Xhtmltypes_duce.head_misc* ] }})
+    val create_header :
+         (   Eliom_sessions.server_params
+          -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
       -> header
-    
+
     (** Call this function every time you need a header to be included
         in the page. If this function is called several times for the same
         page with the same header, the header will be included only once.
@@ -122,17 +129,19 @@ module Header = (
     (** This function is called to generate the headers for one page.
         Only required headers are included.
     *)
-    val generate_headers : 
-      sp:Eliom_sessions.server_params -> {{ [ Xhtmltypes_duce.head_misc* ] }}
+    val generate_headers :
+         sp:Eliom_sessions.server_params
+      -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list
 
   end)
 
-let admin_pages_header = 
+let admin_pages_header =
   Header.create_header
     (fun sp ->
-       {{ [ {: Eliom_duce.Xhtml.css_link
-               (static_file_uri sp ["ocsiadmin.css"]) () :}
-          ] }})
+       [Eliom_predefmod.Xhtml.css_link
+          (static_file_uri sp ["ocsiadmin.css"]) ()
+       ]
+    )
 
 (* special handling for onload functions (?) *)
 let polytable_onload = Polytables.make_key ()
@@ -148,6 +157,7 @@ let add_onload_function ?(first = false) sp s =
     ~value:(if first then onload_functions sp @ [s]
             else s :: onload_functions sp)
 
+(*
 (* Obrowser *)
 let obrowser_header =
   Header.create_header
@@ -162,19 +172,24 @@ let obrowser_header =
             (static_file_uri sp ["."]));
        {{ [ vm eliom_obrowser  ] }}
     )
+ *)
 
 let add_onload_function = add_onload_function ~first:false
 
 (* shortcuts: *)
+(*
 let add_obrowser_header = Header.require_header obrowser_header
+ *)
 let add_admin_pages_header = Header.require_header admin_pages_header
 
 
-let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content =
-  let title = Ocamlduce.Utf8.make title
-  and headers = Header.generate_headers sp
-  and classes = Ocsimore_lib.build_class_attr body_classes
-  and onload_body, onload_script = match onload_functions sp with
+let html_page ~sp ?body_classes ?(css=[]) ?(title="Ocsimore") content =
+  let headers = Header.generate_headers sp in
+  let body_attrs = match body_classes with
+    | None -> [XHTML.M.a_id "body"]
+    | Some l -> [XHTML.M.a_id "body"; XHTML.M.a_class l]
+  in
+(*  and onload_body, onload_script = match onload_functions sp with
     | [] -> {{ {} }}, {{ [] }}
     | l -> {{ { onload="bodyOnload()" } }},
         {{ [ <script type="text/javascript">
@@ -182,18 +197,17 @@ let html_page ~sp ?(body_classes=[]) ?(css={{ [] }}) ?(title="Ocsimore") content
                             (String.concat ";\n" (List.rev l)) :}
            ] }}
   in
-  Lwt.return {{
-      <html xmlns="http://www.w3.org/1999/xhtml">[
-        <head>[
-          <title>title
-          !headers
-          !onload_script
-          !css
-        ]
-        <body ({id="body" class={: classes :} } ++ onload_body)>content
-      ]
-    }}
-
+ *)
+  Lwt.return
+    (XHTML.M.html
+       (XHTML.M.head
+          (XHTML.M.title (XHTML.M.pcdata title))
+          ((css
+            :Xhtmltypes.link XHTML.M.elt list
+            :> [ `Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
+          @ headers))
+       (XHTML.M.body ~a:body_attrs content)
+    )
 
 
 
@@ -220,75 +234,89 @@ let menu_link sp (text, service, f) =
 *)
 
 let menu_link sp (text, service, f) =
-  f sp >>= function
-    | true -> Lwt.return
-        (Some (Ocamlduce.Utf8.make text, Site_tree (Main_page service, [])))
-    | false -> Lwt.return None
+  f sp >|= function
+  | true -> Some ([XHTML.M.pcdata text], Site_tree (Main_page service, []))
+  | false -> None
 
 let add_to_admin_menu ~name ~links ~root =
   admin_menu := (name, links, root) :: !admin_menu
 
 let admin_menu ?service sp =
-  Lwt_util.map
+  Lwt_list.map_s
     (fun (name, links, root) ->
-       Lwt_util.fold_left (fun r me -> menu_link sp me >>= function
-                             | None -> Lwt.return r
-                             | Some me -> Lwt.return (me :: r))
-         [] links
-       >>= fun links ->
-       Lwt.return
-         ({{ [<span class="admin-menu-root">{{ Ocamlduce.Utf8.make name }} ] }},
-         Site_tree (Main_page root, List.rev links)))
-    !admin_menu
-  >>= fun admin_menu ->
-  let menu = Main_page admin_root, List.rev admin_menu in
-  add_admin_pages_header sp;
-  Lwt.return (Eliom_duce_tools.hierarchical_menu_depth_first ~id:"admin_menu"
-                ~whole_tree:false menu ?service ~sp)
+       Lwt_list.fold_left_s
+         (fun r me ->
+            menu_link sp me >|= function | None -> r | Some me -> me::r
+         )
+         [] links >|= fun links ->
+         ([XHTML.M.span
+             ~a:[XHTML.M.a_class ["admin-menu-root"]]
+             [XHTML.M.pcdata name]],
+         Site_tree (Main_page root, List.rev links)
+         )
+    )
+    !admin_menu >|= List.rev                               >>= fun admin_menu ->
+  Lwt.return (Main_page admin_root, admin_menu)            >>= fun menu ->
+  Lwt.return (add_admin_pages_header sp)                   >|= fun () ->
+  Eliom_tools.Xhtml.hierarchical_menu_depth_first
+     ~id:"admin_menu"
+     ~whole_tree:false
+     menu
+     ?service
+     ~sp
 
 
 let add_status_function, status_text =
   let l = ref [] in
   (fun e -> l := e :: !l),
-  (fun sp ->
-     match !l with
-       | [] -> Lwt.return {{ [] }}
-       | hd :: tl ->
-           hd ~sp >>= fun hd ->
-           Lwt_util.fold_left (fun (r : Xhtmltypes_duce.flows) f ->
-                                 f ~sp >>= fun (e : Xhtmltypes_duce.flows) ->
-                                 Lwt.return {{ [ !e ' | ' !r ]}})
-             hd tl
-  )
+  (fun sp -> Lwt_list.map_s (fun x -> x ~sp) !l)
 
-let admin_page ~sp ?service ?(body_classes =[]) ?(css={{ [] }}) ?(title="Ocsimore") ?(allow_unlogged=false) content =
-  admin_menu ?service sp >>= fun menu ->
-  status_text sp >>= fun status ->
-  User.get_user_id ~sp >>= fun u ->
-  let content = if u <> User.anonymous || allow_unlogged  then
-    content
-  else
-    {{ [ <h1>"Access denied"
-         !"You are not allowed to view this page. Please login below first."] }}
+(*TODO: find a better place for [access_denied]'s definition and make customizable *)
+let access_denied =
+  [
+    XHTML.M.h1 [XHTML.M.pcdata "Access denied"];
+    XHTML.M.pcdata "You are not allowed to access this content. Please login.";
+  ]
+
+let admin_page ~sp
+      ?service
+      ?(body_classes =[]) ?(css=[]) ?(title="Ocsimore")
+      ?(allow_unlogged=false)
+      content =
+  admin_menu ?service sp                  >>= fun menu ->
+  status_text sp                          >>= fun status ->
+  User.get_user_id ~sp                    >>= fun usr_id ->
+  let content =
+    if usr_id <> User.anonymous || allow_unlogged
+    then content
+    else access_denied
   in
   html_page ~sp ~title ~css ~body_classes:("admin" :: body_classes)
-    {{ [!menu
-        <div id="admin_body">content
-        <div id="admin_status">status] }}
+    (  menu
+     @ [XHTML.M.div ~a:[XHTML.M.a_id "admin_body"] content;
+        XHTML.M.div ~a:[XHTML.M.a_id "admin_status"] status;
+       ]
+    )
 
 
 let icon ~sp ~path ~text =
-  let uri = Ocamlduce.Utf8.make (static_file_uri sp [path])
-  and alt = Ocamlduce.Utf8.make text
-  in
-  ({{ [ <img alt src=uri title=alt>[] ] }} :{{ [Xhtmltypes_duce.img*]}} )
+  let src = static_file_uri sp [path] in
+  XHTML.M.img ~src ~alt:text ~a:[XHTML.M.a_title text] ()
 
 
-let () = Eliom_duce.Xhtml.register admin_root
+let ocsimore_admin_greetings =
+  [
+    XHTML.M.h1 [XHTML.M.pcdata "Ocsimore"];
+    XHTML.M.p
+      [XHTML.M.pcdata
+         "This is the Ocsimore root admin page. The links on the left will \
+          help you configure the different modules of your Ocsimore \
+          installation."
+      ];
+  ]
+
+let () = Eliom_predefmod.Xhtml.register admin_root
   (fun sp () () ->
      admin_page ~sp ~service:admin_root ~title:"Ocsimore"
-       {{ [<h1>"Ocsimore"
-           <p>"This is the Ocsimore root admin page. The links on the left will
-                 help you configure the different modules of your Ocsimore
-                 installation." ]}}
+       ocsimore_admin_greetings
   )

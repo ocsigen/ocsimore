@@ -26,14 +26,14 @@
 
 type attribs = (string * string) list
 
-type ('a, 'b, 'c) ext_kind = 
+type ('a, 'b, 'c) ext_kind =
   | Block of 'a
   | A_content of 'b
   | Link_plugin of 'c
 
 
 (** Arguments for the extension mechanisme, after '<<' *)
-type ('param, 'a) plugin_args = 
+type ('param, 'a) plugin_args =
     'param ->
     attribs -> (** Xml-like attributes for the extension (eg val='foo') *)
     string option -> (** content for the extension, after the '|' *)

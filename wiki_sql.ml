@@ -368,10 +368,11 @@ let get_css_wikibox_aux_ ?db ~wiki ~page =
        PGSQL(db) "SELECT wikibox, mediatype, rank FROM css \
                   WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page
                   ORDER BY rank"
-       >>= fun l ->
-       Lwt.return (List.map (fun (wb, media, rank) ->
-                               let media = Ocsigen_lib.split ' ' media in
-                               wikibox_of_sql wb, (media : media_type), rank) l)
+       >|=
+       List.map
+         (fun (wb, media, rank) ->
+            let media = media_type_of_string media in
+              wikibox_of_sql wb, media, rank)
     )
 
 
@@ -381,8 +382,8 @@ let get_css_wikibox_for_wikipage_ ?db ~wiki ~page =
 let get_css_wikibox_for_wiki_ ?db ~wiki =
   get_css_wikibox_aux_ ?db ~wiki ~page:None
 
-let add_css_wikibox_aux_ ?db ~wiki ~page ~(media:media_type) wb =
-  let media = String.concat " " media in
+let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
+  let media = string_of_media_type media in
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
@@ -406,7 +407,7 @@ let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
     )
 
 let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
-  let media = String.concat " " media in
+  let media = string_of_media_type media in
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
@@ -605,14 +606,14 @@ let add_css_aux ?db ~wiki ~page ~author ~media ?wbcss () =
                 ~content_type:Wiki_models.css_content_type ()
           | Some wb ->
               Lwt.catch
-                (fun () -> get_wikibox_info wb >>= fun _ -> Lwt.return wb)
+                (fun () -> get_wikibox_info wb >|= fun _ -> wb)
                 (function
                    | Not_found -> Lwt.fail (Unknown_Css wb)
                    | e -> Lwt.fail e
                 )
        ) >>= fun wikibox ->
-       add_css_wikibox_aux ~db ~wiki ~page ~media wikibox >>= fun () ->
-       Lwt.return wikibox
+       add_css_wikibox_aux ~db ~wiki ~page ~media wikibox >|= fun () ->
+       wikibox
     )
 
 

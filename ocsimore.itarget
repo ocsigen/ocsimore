@@ -1,17 +1,7 @@
 ocsimore.cma
 
-announce/announce.cma
-
-forum/ocsicreateforum.cmo
-forum/forum.cma
-forum/ocsi_forum.cma
-forum/forum_client.cmo
-
-wiki_client.cmo
-
 page_site.cmo
 ocsi_user.cma
 ocsi_wiki.cma
 wikiperso.cmo
 
-migration.cmo

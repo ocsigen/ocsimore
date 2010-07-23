@@ -7,4 +7,3 @@ echo "GROUP=www-data" >> Makefile.config
 echo "SRC="`pwd` >> Makefile.config
 echo "NBCPU=1" >> Makefile.config
 
-chmod u+x update-db.sh

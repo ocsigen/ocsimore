@@ -1,6 +1,6 @@
 "nis_chkpwd" : include
 <myocamlfind.*> : use_unix
-<**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_calendar, dtypes, warn_Y, warn_Z
+<**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_calendar, pkg_ocsigen.ext.eliom, pkg_ocsigen.xhtml, dtypes, warn_Y, warn_Z, notocamlduce
 <**/*_sql*.ml*>: pkg_pgocaml, pkg_pgocaml.syntax, syntax_camlp4o, notocamlduce
 <sql.ml*> : pkg_pgocaml
 <ocsimore_pam.ml*> : pkg_pam

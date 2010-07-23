@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+
+
 open Wiki_types
 
 (** This file define some tables that contain the services that are
@@ -47,7 +49,8 @@ let naservpages :
      [ `WithoutSuffix ],
      [ `One of string ] Eliom_parameters.param_name,
      unit,
-     [`Registrable ]
+     [`Registrable ],
+     Eliom_predefmod.Any.return
     ) Eliom_services.service Servpages.t = Servpages.create 5
 let servpages :
     (string list,
@@ -56,18 +59,20 @@ let servpages :
      [ `WithSuffix ],
      [ `One of string list ] Eliom_parameters.param_name,
      unit,
-     [ `Registrable ]
+     [ `Registrable ],
+     Eliom_predefmod.Any.return
     ) Eliom_services.service Servpages.t = Servpages.create 5
 let servwikicss :
     (Wiki_types.wikibox,
      unit,
      [ `Attached of
-         [ `Internal of [ `Service | `Coservice ] * [ `Get ]
-         | `External ] Eliom_services.a_s ],
+         ([ `Internal of [ `Service | `Coservice ] | `External ],
+          [`Get]) Eliom_services.a_s ],
      [ `WithoutSuffix ],
      [ `One of Wiki_types.wikibox ] Eliom_parameters.param_name,
      unit,
-     [ `Registrable ]
+     [ `Registrable ],
+     Eliom_predefmod.CssText.return
     ) Eliom_services.service Servpages.t = Servpages.create 5
 
 let add_naservpage = Servpages.add naservpages

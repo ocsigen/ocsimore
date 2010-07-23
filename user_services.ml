@@ -22,6 +22,8 @@
    @author Boris Yakobowski
 *)
 
+
+
 open Eliom_parameters
 open Lwt
 open User_sql.Types
@@ -302,7 +304,7 @@ let create_user ~sp ~name ~fullname ~email ?pwd ~options () =
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameters.unit ()
           in
-          Eliom_duce.Xhtml.register ~sp ~service
+          Eliom_predefmod.Xhtml.register ~sp ~service
             (fun _sp () () ->
                User.create_fresh_user ~name ~fullname ~email
                  ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
@@ -312,14 +314,20 @@ let create_user ~sp ~name ~fullname ~email ?pwd ~options () =
                >>= fun () ->
                Page_site.admin_page ~sp
                  ~title:"Ocsimore - User creation"
-                 {{ [<h1>"User created"
-                      <p>[!"Your account has been created, and you can now "
-                          {{ Eliom_duce.Xhtml.a ~sp ~service:service_login
-                               {{ "login" }} () }}
-                         ]
-                    ] }}
+                 [ XHTML.M.h1 [XHTML.M.pcdata "User created"];
+                   XHTML.M.p [
+                     XHTML.M.pcdata "Your account has been created, and you \
+                                     can now ";
+                     Eliom_predefmod.Xhtml.a
+                       ~sp
+                       ~service:service_login
+                       [XHTML.M.pcdata "login"] ();
+                   ];
+                 ]
             );
-          let uri = Eliom_duce.Xhtml.make_uri ~service ~absolute:true ~sp () in
+          let uri =
+            Eliom_predefmod.Xhtml.make_string_uri ~service ~absolute:true ~sp ()
+          in
           Lwt.catch (fun () ->
               mail_user_creation ~name ~email ~uri
                 ~subject:options.User_data.mail_subject

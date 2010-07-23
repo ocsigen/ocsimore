@@ -1,13 +1,10 @@
-(*-*-coding: utf-8;-*-*)
 
-open Lwt
+let (>>=) = Lwt.(>>=)
+let (>|=) = Lwt.(>|=)
 open CalendarLib
 module P = Eliom_parameters
-module M = Eliom_duce.Xhtml
+module M = Eliom_predefmod.Xhtml
 let ( ** ) = P.( ** )
-let str = Ocamlduce.Utf8.make
-type inline =
-  {{ (Char | Xhtmltypes_duce.inline | Xhtmltypes_duce.misc_inline) }}
 
 let def d v = match v with None -> d | Some v -> v
 let opt_map f v = match v with None -> None | Some v -> Some (f v)
@@ -46,38 +43,44 @@ type (+'html, +'o) t
 
 
 val string_input :
-  ?a:Xhtmltypes_duce.input_attrs -> string -> (inline, string) t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list -> string -> (Xhtmltypes.inlinemix XHTML.M.elt, string) t
 val string_opt_input :
-  ?a:Xhtmltypes_duce.input_attrs ->
-  string option -> (inline, string option) t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
+  string option -> (Xhtmltypes.inlinemix XHTML.M.elt, string option) t
 val int_input :
-  ?a:Xhtmltypes_duce.input_attrs -> ?format:(int -> string) ->
-  int -> (inline, int) t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list -> ?format:(int -> string) ->
+  int -> (Xhtmltypes.inlinemix XHTML.M.elt, int) t
 val bounded_int_input :
-  ?format:(int -> string) -> int -> int -> int -> (inline, int) t
+  ?format:(int -> string) -> int -> int -> int -> (Xhtmltypes.inlinemix XHTML.M.elt, int) t
 val bool_checkbox :
-  ?a:Xhtmltypes_duce.input_attrs -> bool -> (inline, bool) t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list -> bool -> (Xhtmltypes.inlinemix XHTML.M.elt, bool) t
 val text_area :
-  ?a:Eliom_duce.Xhtml.textarea_attrib_t ->
-  rows:int -> cols:int -> string -> (inline, string) t
-val submit_button : string -> (inline, bool) t
-val select_single : (string * string) list -> string -> (inline, string) t
-(*val select_single : (string * 'a) list -> 'a -> (inline, 'a) t*)
+  ?a:Xhtmltypes.textarea_attrib XHTML.M.attrib list ->
+  rows:int -> cols:int -> string -> (Xhtmltypes.inlinemix XHTML.M.elt, string) t
+val submit_button : string -> (Xhtmltypes.inlinemix XHTML.M.elt, bool) t
+val select_single : (string * string) list -> string -> (Xhtmltypes.inlinemix XHTML.M.elt, string) t
+(*val select_single : (string * 'a) list -> 'a -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t*)
 (*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
-val list : 'i list -> ('i -> (Xhtmltypes_duce.form_content, 'o) t) -> (Xhtmltypes_duce.form_content, 'o list) t
+val list :
+     'i list
+  -> ('i -> (Xhtmltypes.form_content XHTML.M.elt, 'o) t)
+  -> (Xhtmltypes.form_content XHTML.M.elt, 'o list) t
 
-val list' : int -> (Xhtmltypes_duce.form_content, 'o) t -> (Xhtmltypes_duce.form_content, 'o list) t
+val list' :
+     int
+  -> (Xhtmltypes.form_content XHTML.M.elt, 'o) t
+  -> (Xhtmltypes.form_content XHTML.M.elt, 'o list) t
 
 val extensible_list :
   string -> 'i -> 'i list ->
-  ('i -> (Xhtmltypes_duce.form_content, 'o) t) ->
-  (Xhtmltypes_duce.form_content, 'o list) t
+  ('i -> (Xhtmltypes.form_content XHTML.M.elt, 'o) t) ->
+  (Xhtmltypes.form_content XHTML.M.elt, 'o list) t
 
 val opt_input:
-  input:('a -> (inline, 'b) t) ->
+  input:('a -> (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t) ->
   default:'a ->
   'a option ->
-  (inline, 'b option) t
+  (Xhtmltypes.inlinemix XHTML.M.elt, 'b option) t
 
 
 module Ops : sig
@@ -93,34 +96,34 @@ end
 val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
 val check :
-  (inline, 'a) t -> ('a -> string option) -> (inline, 'a) t
+  (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t -> ('a -> string option) -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t
 
 val convert :
-  (inline, 'a) t -> ('a -> 'b convert monad) -> (inline, 'b) t
+  (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t -> ('a -> 'b convert monad) -> (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t
 
-val hour_input : int -> int -> (inline, int * int) t
-val day_input : int -> int -> int -> (inline, int * int * int) t
-val date_input : Calendar.t -> (inline, Calendar.t) t
+val hour_input : int -> int -> (Xhtmltypes.inlinemix XHTML.M.elt, int * int) t
+val day_input : int -> int -> int -> (Xhtmltypes.inlinemix XHTML.M.elt, int * int * int) t
+val date_input : Calendar.t -> (Xhtmltypes.inlinemix XHTML.M.elt, Calendar.t) t
 
-val text : string -> inline list
-val strong : inline list -> inline
-val p : (inline, 'b) t -> (Xhtmltypes_duce.form_content, 'b) t
+val text : string -> Xhtmltypes.inlinemix XHTML.M.elt list
+val strong : Xhtmltypes.inlinemix XHTML.M.elt list -> Xhtmltypes.inlinemix XHTML.M.elt
+val p : (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t -> (Xhtmltypes.form_content XHTML.M.elt, 'b) t
 
 val form:
   fallback:('a, unit,
    [ `Attached of
-       [ `Internal of [< `Coservice | `Service ] * [ `Get ] ]
+       ([ `Internal of [< `Coservice | `Service ]], [ `Get ])
        Eliom_services.a_s ],
-   [< Eliom_services.suff ], 'b, unit, [< `Registrable ])
+   [< Eliom_services.suff ], 'b, unit, [< `Registrable ], M.return)
   Eliom_services.service ->
   get_args:'a ->
   page:(Eliom_sessions.server_params -> 'a -> error ->
-        Xhtmltypes_duce.form -> Xhtmltypes_duce.html Lwt.t) ->
+        [>Xhtmltypes.form] XHTML.M.elt -> XHTML.M.html Lwt.t) ->
   sp:Eliom_sessions.server_params ->
   ?err_handler:(exn -> string option) ->
-  (Eliom_duce.Xhtml.form_content_elt,
-   Eliom_sessions.server_params -> Eliom_duce.Xhtml.page Lwt.t) t ->
-  Xhtmltypes_duce.form monad
+  (Xhtmltypes.form_content XHTML.M.elt,
+   Eliom_sessions.server_params -> Eliom_predefmod.Xhtml.page Lwt.t) t ->
+   [> Xhtmltypes.form] XHTML.M.elt monad
 
 
 end
@@ -178,7 +181,8 @@ let string_input ?a value =
       (fun v' name ->
          return
          ([M.string_input ?a
-              ~input_type:{{"text"}} ~name ~value:(def value v') ()],
+             ~input_type:`Text
+             ~name ~value:(def value v') ()],
          opt_outcome v'));
     params = string_param}
 
@@ -208,7 +212,7 @@ let submit_button_int value =
   {form =
      (fun v' name ->
         return
-        ([M.string_input ~input_type:{{"submit"}} ~name ~value ()],
+        ([M.string_input ~input_type:`Submit ~name ~value ()],
          opt_outcome (opt_map (fun v' -> v' <> None) v')));
    params =
      (fun name -> (P.opt (P.string (Name.to_string name)), Name.next name))}
@@ -226,7 +230,10 @@ let select_single lst value =
          let sel = def value v' in
          let lst =
            List.map
-             (fun (l, v) -> M.Option ({{ {} }}, v, Some (str l), v = sel)) lst
+             (fun (l, v) ->
+                M.Option ([], v, Some (XHTML.M.pcdata l), v = sel)
+             )
+             lst
          in
          return
          (begin match lst with
@@ -375,7 +382,7 @@ let list' n f =
 
 (****)
 
-let error s = [{{<span class="errmsg">{:str s:} }} ]
+let error s = [XHTML.M.span ~a:[XHTML.M.a_class ["errmsg"]] [XHTML.M.pcdata s]]
 
 let check f tst =
   unpack f {f = fun f ->
@@ -408,11 +415,16 @@ let convert f conv =
 
 (****)
 
-let text : string -> inline list = fun s -> {:{{str s}}:}
-let strong : inline list -> inline = fun l -> {{ <strong>{: l :} }}
-let p (x : (inline, 'b) t) = wrap (fun x -> [{{<p>{:x:}}}]) x
-let hidden (x : (inline, 'b) t) =
-  wrap (fun x -> [{{<div style="display:none">{:x:}}}]) x
+let text
+  : string -> Xhtmltypes.inlinemix XHTML.M.elt list
+  = fun s -> [XHTML.M.pcdata s]
+let strong
+  : Xhtmltypes.inlinemix XHTML.M.elt list -> Xhtmltypes.inlinemix XHTML.M.elt
+  = fun l -> XHTML.M.strong l
+let p (x : (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t) =
+  wrap (fun x -> [XHTML.M.p x]) x
+let hidden (x : (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t) =
+  wrap (fun x -> [XHTML.M.div ~a:[XHTML.M.a_style "display:none"] x]) x
 
 (****)
 
@@ -425,10 +437,9 @@ let int_input ?a ?(format = string_of_int) i =
 
 let bounded_int_input ?format a b i =
   let l =
-    string_of_int
-      (max (String.length (string_of_int a)) (String.length (string_of_int b)))
+      max (String.length (string_of_int a)) (String.length (string_of_int b))
   in
-  check (int_input ?format ~a:{{ {maxlength = {:l:}; size = {:l:}} }} i)
+  check (int_input ?format ~a:[XHTML.M.a_maxlength l; XHTML.M.a_size l] i)
   (fun i ->
    if i < a || i > b then
      Some (Format.sprintf "doit être entre %i et %i" a b)
@@ -440,7 +451,7 @@ let bounded_int_input ?format a b i =
 let extensible_list txt default l f =
   (list l f @@
    let button =
-     wrap_int (fun x -> [{{<p>{:x:}}}]) (submit_button_int txt) in
+     wrap_int (fun x -> [XHTML.M.p x]) (submit_button_int txt) in
    unpack (f default) {f = fun f ->
    pack
      {form =
@@ -533,17 +544,17 @@ let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
                         | None -> Lwt.fail e
                         | Some err ->
                             let form = M.post_form ~service ~sp
-                              (fun _ -> {{ {:x:} }}) get_args in
+                              (fun _ -> x) get_args in
                             page sp get_args (ErrorMsg err) form
                    )
-             | ((x : Eliom_duce.Xhtml.form_content_elt list),
+             | ((x : Xhtmltypes.form_content XHTML.M.elt list),
                 (Error | Redisplay as err))     ->
                   let form =
-                    M.post_form ~service ~sp (fun _ -> {{ {:x:} }}) get_args in
+                    M.post_form ~service ~sp (fun _ -> x) get_args in
                   let error = if err = Error then ErrorNoMsg else NoError in
                   page sp get_args error form
           );
-    let r, _ = f.form None names in {{ {:r:}}})
+    let r, _ = f.form None names in r)
     get_args}
 
 end
@@ -576,17 +587,17 @@ let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
                         | None -> Lwt.fail e
                         | Some err ->
                             let form = M.post_form ~service ~sp
-                              (fun _ -> {{ {:x:} }}) get_args in
+                              (fun _ -> x) get_args in
                             page sp get_args (ErrorMsg err) form
                    )
-             | ((x : Eliom_duce.Xhtml.form_content_elt list),
+             | ((x : Xhtmltypes.form_content XHTML.M.elt list),
                 (Error | Redisplay as err))     ->
                   let form =
-                    M.post_form ~service ~sp (fun _ -> {{ {:x:} }}) get_args in
+                    M.post_form ~service ~sp (fun _ -> x) get_args in
                   let error = if err = Error then ErrorNoMsg else NoError in
                   page sp get_args error form
           );
-    f.form None names >>= fun (r, _) -> Lwt.return {{ {:r:}}})
+    f.form None names >|= fst)
     get_args}
 
 end

@@ -77,7 +77,57 @@ type wikipage_info = {
 (*  wikipage_css_special_rights; *)
 }
 
-type media_type = string list
+type media_type_elem =
+    [ `All
+    | `Aural
+    | `Braille
+    | `Embossed
+    | `Handheld
+    | `Print
+    | `Projection
+    | `Screen
+    | `Speech
+    | `TTY
+    | `TV ]
+type media_type = Xhtmltypes.mediadesc
+let string_of_media_type_elem = function
+  | `All -> "All"
+  | `Aural -> "Aural"
+  | `Braille -> "Braille"
+  | `Embossed -> "Embossed"
+  | `Handheld -> "Handheld"
+  | `Print -> "Print"
+  | `Projection -> "Projection"
+  | `Screen -> "Screen"
+  | `Speech -> "Speech"
+  | `TTY -> "TTY"
+  | `TV -> "TV"
+let media_type_elem_of_string = function
+  |  "All"        | "all"        -> Some `All
+  |  "Aural"      | "aural"      -> Some `Aural
+  |  "Braille"    | "braille"    -> Some `Braille
+  |  "Embossed"   | "embossed"   -> Some `Embossed
+  |  "Handheld"   | "handheld"   -> Some `Handheld
+  |  "Print"      | "print"      -> Some `Print
+  |  "Projection" | "projection" -> Some `Projection
+  |  "Screen"     | "screen"     -> Some `Screen
+  |  "Speech"     | "speech"     -> Some `Speech
+  |  "TTY" | "Tty" | "tty"       -> Some `TTY
+  |  "TV"  | "Tv"  | "tv"        -> Some `TV
+  | _ -> None
+
+let string_of_media_type mts =
+  String.concat " " (List.map string_of_media_type_elem mts)
+let filter_map f xs =
+  let rec aux ys = function
+    | [] -> List.rev ys
+    | x::xs -> match f x with
+       | None -> aux ys xs
+       | Some y -> aux (y::ys) xs
+  in
+    aux [] xs
+let media_type_of_string s =
+  filter_map media_type_elem_of_string (Ocsigen_lib.split ' ' s)
 
 
 type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t

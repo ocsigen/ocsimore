@@ -56,7 +56,7 @@ let wiki_admin_servpage () =
 
 let wiki_admin_page_link sp page =
   wiki_admin_servpage () >>= fun service ->
-  Lwt.return (Eliom_duce.Xhtml.make_uri ~service ~sp page)
+  Lwt.return (Eliom_predefmod.Xhtml.make_uri ~service ~sp page)
 
 
 

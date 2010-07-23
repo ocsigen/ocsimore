@@ -21,15 +21,14 @@
 @author Jaap Boender
 @author Vincent Balat
 *)
-open Lwt
+let (>>=) = Lwt.(>>=)
+let (>|=) = Lwt.(>|=)
 open Eliommod
-open Eliom_duce.Xhtml
+open Eliom_predefmod.Xhtml
 open Eliom_sessions
 open Ocsimore_lib
 
-class widget =
-object
-end
+class widget = object end
 
 class widget_with_error_box =
 object(self)
@@ -38,40 +37,47 @@ object(self)
 
   method error_class = error_class
 
-  method display_error_message ?message ?exn () = 
-    match message, exn with
-      | None, None -> {{ [] }}
-      | message, exn ->
-          {{ [ {{ self#display_error_box ?message ?exn () }} ] }}
+  method display_error_message ?message ?exc () =
+    match message, exc with
+      | None, None -> []
+      | message, exc -> [self#display_error_box ?message ?exc ()]
 
-  method display_error_box ?(classes=[]) ?(message = "Error") ?exn () =
-    let classe = Ocsimore_lib.build_class_attr (error_class::classes) in
-    let message =
-      match exn with
-        | None -> {{ [<strong>{: message :}] }}
-        | Some Ocsimore_common.Permission_denied ->
-            {{ [<strong>"You are not allowed to see this content" ] }}
-        | Some exn ->
-            if Ocsigen_config.get_debugmode ()
-            then {{ [<strong>{: message :}
-                     <br>[]
-                     !{: Printexc.to_string exn :}
-                     <br>[]
-                     <em>[ '(Ocsigen running in debug mode)' ]
-                    ] }}
-            else {{ [<strong>{: message :} ] }}
+  method display_error_box ?(classes=[]) ?(message = "Error") ?exc () =
+    let classes = error_class::classes in
+    let message = match exc with
+      | None -> XHTML.M.strong [XHTML.M.pcdata message]
+      | Some Ocsimore_common.Permission_denied ->
+          XHTML.M.strong
+            [XHTML.M.pcdata "You are not allowed to see this content"]
+      | Some exc ->
+          if Ocsigen_config.get_debugmode ()
+          then
+            XHTML.M.strong
+              [
+                XHTML.M.pcdata message;
+                XHTML.M.br ();
+                XHTML.M.pcdata (Printexc.to_string exc);
+                XHTML.M.br ();
+                XHTML.M.em [XHTML.M.pcdata "Ocisgen running in debug mode"];
+              ]
+          else
+            XHTML.M.strong [XHTML.M.pcdata message]
     in
-    {{ <p class={:classe:}>message }}
+    (XHTML.M.p ~a:[XHTML.M.a_class classes] [message]
+       : Xhtmltypes.block XHTML.M.elt)
 
   method bind_or_display_error : 'a.
     'a Lwt.t ->
-    ('a -> (string list * Xhtmltypes_duce.flows) Lwt.t) -> _
+    ('a -> (string list * Xhtmltypes.div_content XHTML.M.elt list) Lwt.t) -> _
     = fun data transform_data ->
-      (Lwt.catch
-         (fun () -> data >>= transform_data)
-         (fun exn ->
-            Lwt.return ([error_class],
-                        {{ [ {{ self#display_error_box ~exn () }} ] }}) ))
+      Lwt.catch
+        (fun () -> data >>= transform_data)
+        (fun exc ->
+           Lwt.return
+             ([error_class],
+              [(self#display_error_box ~exc ()
+                 : Xhtmltypes.block XHTML.M.elt :> Xhtmltypes.div_content XHTML.M.elt)]
+             ))
 
 end
 
@@ -104,14 +110,14 @@ end
 
 class virtual ['param, 'data] parametrized_div_widget =
 object
-  inherit ['param, 'data, Xhtmltypes_duce._div Lwt.t] parametrized_widget
+  inherit ['param, 'data, [`Div] XHTML.M.elt Lwt.t] parametrized_widget
 
   val xhtml_class = "parametrized_div_widget"
 
 end
 
 class type ['param, 'data] parametrized_div_widget_t =
-    ['param, 'data, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
+    ['param, 'data, [`Div] XHTML.M.elt Lwt.t] parametrized_widget_t
 
 class virtual ['param, 'result] parametrized_unit_widget =
 object
@@ -129,7 +135,7 @@ class type ['param, 'result] parametrized_unit_widget_t =
 class virtual ['param] parametrized_unit_div_widget =
 object
   inherit ['param, unit] parametrized_div_widget
-  inherit ['param, Xhtmltypes_duce._div Lwt.t] parametrized_unit_widget
+  inherit ['param, [`Div] XHTML.M.elt Lwt.t] parametrized_unit_widget
 
   val xhtml_class = "parametrized_unit_div_widget"
 
@@ -138,7 +144,7 @@ object
 end
 
 class type ['param] parametrized_unit_div_widget_t =
-          ['param, unit, Xhtmltypes_duce._div Lwt.t] parametrized_widget_t
+          ['param, unit, [`Div] XHTML.M.elt Lwt.t] parametrized_widget_t
 
 
 
@@ -148,11 +154,8 @@ object
 
   val xhtml_class = "list"
 
-  method display ~sp:(_ : server_params) : Xhtmltypes_duce._div Lwt.t =
-    return
-      {{
-         <div class={: xhtml_class :}>[]
-       }}
+  method display ~sp:(_ : server_params) : [`Div] XHTML.M.elt Lwt.t =
+    Lwt.return (XHTML.M.div ~a:[XHTML.M.a_class [xhtml_class]] [])
 
 end
 

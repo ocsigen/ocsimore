@@ -22,16 +22,18 @@
    @author Vincent Balat
 *)
 
+
+
 open Eliom_parameters
 open User_sql.Types
 open Wiki_widgets_interface
 
 let (>>=) = Lwt.bind
+let (>|=) = Lwt.(>|=)
 
 let register_user_extensions (user_widget : User_widgets.user_widget_class) =
-  let add_extension l ~name ~wiki_content f = 
-    List.iter (fun wp -> 
-                 Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
+  let add_extension l ~name ~wiki_content f =
+    List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
   in
   let wikicreole_parser = Wiki_syntax.wikicreole_parser in
   let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0 in
@@ -50,9 +52,8 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
           let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args
           in
           (user_widget#display_login_widget ~sp:bi.bi_sp
-            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ())
-          >>= fun b ->
-          Lwt.return {{ [ b ] }}));
+            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ()) >|= fun b ->
+          [(b: Xhtmltypes.form_content XHTML.M.elt :> Xhtmltypes.div_content XHTML.M.elt)]));
 
   add_extension
     [wikicreole_parser]
@@ -63,21 +64,22 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
             | Some c -> c
             | None -> "logout"
           in
-          Wiki_syntax.xml_of_wiki wikicreole_parser (* !!! *) bi content
+          Wiki_syntax.xml_of_wiki
+            Wiki_syntax.reduced_wikicreole_parser_button_content bi content
           >>= fun content ->
-          user_widget#display_logout_button bi.bi_sp content >>= fun f ->
-          Lwt.return {{ [ {: f :} ] }}
+          user_widget#display_logout_button bi.bi_sp content >|= fun f ->
+          [(f: Xhtmltypes.form XHTML.M.elt :> Xhtmltypes.div_content XHTML.M.elt)]
          )
     );
 
   let f = (fun bi _args _c ->
              Wikicreole.A_content
-               (User.get_user_data ~sp:bi.bi_sp >>= fun ud ->
-                Lwt.return (Ocamlduce.Utf8.make ud.user_fullname))
+               (User.get_user_data ~sp:bi.bi_sp >|= fun ud ->
+                [XHTML.M.pcdata ud.user_fullname])
           )
   in
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0; 
+    [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"username" ~wiki_content:true f;
   Wiki_syntax.add_extension
@@ -90,9 +92,9 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
        Wikicreole.Link_plugin
          (let content = match c with
             | Some c -> Wiki_syntax.a_content_of_wiki bi c
-            | None -> Lwt.return (Ocamlduce.Utf8.make "logout")
+            | None -> Lwt.return [XHTML.M.pcdata "logout"]
           in
-          (user_widget#logout_uri bi.bi_sp,
+          (XHTML.M.string_of_uri (user_widget#logout_uri bi.bi_sp),
            args,
            content)
          )

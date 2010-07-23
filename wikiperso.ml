@@ -160,7 +160,7 @@ let create_wikiperso ~model ~wiki_title ~userdata =
     ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
               userdata.user_fullname)
     ~admins:gid ~author ~container_text:container () >>= fun wiki ->
-  Wiki_sql.add_css_aux ~wiki ~page:None ~author ~media:["all"] ()
+  Wiki_sql.add_css_aux ~wiki ~page:None ~author ~media:[`All] ()
   >>= fun wikibox ->
   Wiki_sql.update_wikibox ~author ~comment:"" ~content:(Some css)
     ~content_type:Wiki_models.css_content_type wikibox >>= fun _ ->
@@ -332,26 +332,30 @@ let users_root =
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikiperso"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_duce.Xhtml.register users_root
+let () = Eliom_predefmod.Xhtml.register users_root
   (fun sp () () ->
      User_sql.user_to_string can_have_wikiperso >>= fun s1 ->
      User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->
      Page_site.admin_page ~sp
        ~title:"Ocsimore - Wikiperso module"
-       {{ [<h1>"Wikiperso module"
-           <p>[!"This is the Ocsimore admin page for the wikiperso module. Wikipersos are wikis that are automatically created for each Ocsimore user, and
-on which the user has write access."
-                 <br>[]  <br>[]
-               !"Most of the configuration is done through the Ocsigen configuration file. You can however choose which users can have wikipersos by adding users or groups inside the following roles:"
-                 {: Eliom_duce.Xhtml.a ~service:User_services.service_view_group
-                    ~sp {: "users that can have a wikiperso" :} s1 :}
-                 !" and "
-                 {: Eliom_duce.Xhtml.a ~service:User_services.service_view_group
-                    ~sp {: "users that cannot have a wikiperso" :} s2 :}
-                 '.'
-
-              ]
-          ]}}
+       [XHTML.M.h1 [XHTML.M.pcdata "Wikiperso module"];
+        XHTML.M.p [XHTML.M.pcdata "This is the Ocsimore admin page for the \
+                                   wikiperso module. Wikipersos are wikis that \
+                                   are automatically created for each Ocsimore \
+                                   user, and on which the user has write \
+                                   access."];
+        XHTML.M.br (); XHTML.M.br ();
+        XHTML.M.pcdata "Most of the configuration is done through the Ocsigen \
+                        configuration file. You can however choose which users \
+                        can have wikipersos by adding users or groups inside \
+                        the following roles:";
+        Eliom_predefmod.Xhtml.a ~service:User_services.service_view_group
+          ~sp [XHTML.M.pcdata "users that can have a wikiperso"] s1;
+        XHTML.M.pcdata " and ";
+        Eliom_predefmod.Xhtml.a ~service:User_services.service_view_group
+          ~sp [XHTML.M.pcdata "users that cannot have a wikiperso"] s2;
+        XHTML.M.pcdata ".";
+       ]
   )
 
 
@@ -359,5 +363,4 @@ let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Wikiperso" ~links:[
 
 
 
-let _ =
-  Eliom_extensions.register_eliom_extension gen
+let _ = Eliom_extensions.register_eliom_extension gen

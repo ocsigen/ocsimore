@@ -74,21 +74,21 @@ val int32_t_to_string : 'a int32_t -> string
 
 (** Xform inputs *)
 val int32_input_aux_xform :
-  ?a:Xhtmltypes_duce.input_attrs ->
-  string -> (Xform.inline, 'a int32_t) Xform.XformLwt.t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
+  string -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_xform :
-  ?a:Xhtmltypes_duce.input_attrs ->
-  'a int32_t -> (Xform.inline, 'a int32_t) Xform.XformLwt.t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
+  'a int32_t -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_opt_aux_xform :
-  ?a:Xhtmltypes_duce.input_attrs ->
-  string -> (Xform.inline, 'a int32_t option) Xform.XformLwt.t
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
+  string -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
 
 val int32_input_opt_xform :
-  ?a:Xhtmltypes_duce.input_attrs ->
+  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
   'a int32_t option ->
-  (Xform.inline, 'a int32_t option) Xform.XformLwt.t
+  (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
 
 
 (** {6 Opaque [string]s } *)

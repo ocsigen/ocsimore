@@ -1,4 +1,5 @@
-open Lwt
+
+let (>>=) = Lwt.(>>=)
 open User_sql.Types
 open Wiki_types
 
