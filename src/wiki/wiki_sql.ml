@@ -347,6 +347,17 @@ let find_wiki_by_name_ ?db name =
          | _ -> assert false (* Impossible, there is a UNIQUE constraint on the title field *)
     )
 
+let find_wiki_by_pages_ ?db page =
+  wrap db
+    (fun db ->
+       PGSQL(db) "SELECT * FROM wikis
+                  WHERE pages = $page"
+       >>= function
+         | [c] -> Lwt.return (reencapsulate_wiki c)
+         | [] -> Lwt.fail Not_found
+         | _ -> assert false (* Impossible, there is a UNIQUE constraint on the title field *)
+    )
+
 let iter_wikis ?db f =
   wrap db
     (fun db ->
@@ -525,9 +536,18 @@ let cache_wiki_name =
   in
   new CWN.cache find_wiki_by_name_ 8
 
+let cache_wiki_pages =
+  let module CWN = Ocsigen_cache.Make(struct
+                                type key = string
+                                type value = wiki_info
+                              end)
+  in
+  new CWN.cache find_wiki_by_pages_ 8
+
 
 let get_wiki_info_by_id ~id = cache_wiki_id#find id
 let get_wiki_info_by_name ~name = cache_wiki_name#find name
+let get_wiki_info_by_pages ~pages = cache_wiki_pages#find pages
 
 let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki =
   cache_wiki_id#remove wiki;

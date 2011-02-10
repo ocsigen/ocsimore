@@ -156,6 +156,9 @@ val get_wiki_info_by_id : id:wiki -> wiki_info Lwt.t
 (** Find wiki information for a wiki, given its name *)
 val get_wiki_info_by_name : name:string -> wiki_info Lwt.t
 
+(** Find wiki information for a wiki, given its pages *)
+val get_wiki_info_by_pages : pages:string -> wiki_info Lwt.t
+
 (** looks for a wikibox and returns [Some (comment, author, content, datetime,
     content_type, version)], or [None] if the page doesn't exist. *)
 val get_wikibox_content :
