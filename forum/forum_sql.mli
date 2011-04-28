@@ -42,7 +42,6 @@ val new_forum :
 (** inserts a message in a forum. 
     [?moderated] and [?sticky] are false by default. *)
 val new_message :
-  sp:Eliom_sessions.server_params ->
   forum:forum ->
   wiki:Wiki_types.wiki ->
   creator_id:userid ->

@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open Opaque
 
 let (>>=) = Lwt.bind
@@ -38,7 +39,7 @@ let (>|=) = Lwt.(>|=)
 exception Wiki_model_does_not_exist of string
 
 type wiki_model =
-    {wm_syntax : Xhtmltypes.div_content XHTML.M.elt list Wiki_types.content_type;
+    {wm_syntax : XHTML_types.div_content XHTML.M.elt list Wiki_types.content_type;
      wm_rights : Wiki_types.wiki_rights;
      wm_widgets : Wiki_widgets_interface.interactive_wikibox;
     }
@@ -76,7 +77,7 @@ let register_wiki_model, get_rights, get_default_content_type, get_widgets =
 exception Content_type_does_not_exist of string
 
 type wiki_preparser =
-    Eliom_sessions.server_params * Wiki_types.wikibox -> string -> string Lwt.t
+    Wiki_types.wikibox -> string -> string Lwt.t
 
 type 'res wiki_parser =
     Wiki_widgets_interface.box_info -> string -> 'res Lwt.t
@@ -87,13 +88,13 @@ let register_flows_wiki_parser,
   get_flows_wiki_preparser =
   let module H =
     Hashtbl.Make(struct
-                   type t = Xhtmltypes.div_content XHTML.M.elt list Wiki_types.content_type
+                   type t = XHTML_types.div_content XHTML.M.elt list Wiki_types.content_type
                    let equal = (=)
                    let hash = Hashtbl.hash
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser:(b: Xhtmltypes.div_content XHTML.M.elt list wiki_parser) ->
+  ((fun ~name:k ~preparser:a ~parser:(b: XHTML_types.div_content XHTML.M.elt list wiki_parser) ->
       let k = Wiki_types.content_type_of_string k in
       H.add t k (a, b);
       k),
@@ -111,7 +112,7 @@ let register_inlines_wiki_parser,
   get_inlines_wiki_preparser =
   let module H =
     Hashtbl.Make(struct
-                   type t = Xhtmltypes.inlinemix XHTML.M.elt list Wiki_types.content_type
+                   type t = XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type
                    let equal = (=)
                    let hash = Hashtbl.hash
                  end)

@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open Opaque
 type wiki_arg = [ `Wiki ]
 type wiki = [`Wiki] int32_t
@@ -44,10 +45,10 @@ type wikipage_uid = wikipage_arg Opaque.int32_t
 
 type 'a content_type = string
 type wiki_model = string
-let string_of_wiki_model = Ocsigen_lib.id
-let wiki_model_of_string = Ocsigen_lib.id
-let string_of_content_type = Ocsigen_lib.id
-let content_type_of_string = Ocsigen_lib.id
+let string_of_wiki_model = id
+let wiki_model_of_string = id
+let string_of_content_type = id
+let content_type_of_string = id
 
 type wiki_info = {
   wiki_id : wiki;
@@ -89,7 +90,7 @@ type media_type_elem =
     | `Speech
     | `TTY
     | `TV ]
-type media_type = Xhtmltypes.mediadesc
+type media_type = XHTML_types.mediadesc
 let string_of_media_type_elem = function
   | `All -> "All"
   | `Aural -> "Aural"
@@ -127,10 +128,10 @@ let filter_map f xs =
   in
     aux [] xs
 let media_type_of_string s =
-  filter_map media_type_elem_of_string (Ocsigen_lib.split ' ' s)
+  filter_map media_type_elem_of_string (String.split ' ' s)
 
 
-type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
+type 'a rights_aux = 'a -> bool Lwt.t
 
 class type wiki_rights =
 object
@@ -165,6 +166,6 @@ type 'a wikibox_content =
     'a content_type * string option * int32
 
 
-let wikibox_data_of_raw = Ocsigen_lib.id
+let wikibox_data_of_raw = id
 
-let raw_of_wikibox_data = Ocsigen_lib.id 
+let raw_of_wikibox_data = id

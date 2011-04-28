@@ -17,10 +17,8 @@
  *)
 
 
-
+open Eliom_pervasives
 open Lwt
-open Eliommod
-open Eliom_sessions
 
 (**
 This module contains general-use widgets for Ocsimore.
@@ -40,7 +38,7 @@ class widget_with_error_box :
     method error_class : string
 
     method display_error_message :
-      ?message:string -> ?exc:exn -> unit -> Xhtmltypes.block XHTML.M.elt list
+      ?message:string -> ?exc:exn -> unit -> XHTML_types.block XHTML.M.elt list
 
     (** Takes a threads that gets data (e.g. from a database),
         then a function that transforms this data into something printable
@@ -52,15 +50,15 @@ class widget_with_error_box :
     method bind_or_display_error :
       'a.
       'a Lwt.t ->
-      ('a -> (string list * Xhtmltypes.div_content XHTML.M.elt list) Lwt.t) ->
-      (string list * Xhtmltypes.div_content XHTML.M.elt list) Lwt.t
+      ('a -> (string list * XHTML_types.div_content XHTML.M.elt list) Lwt.t) ->
+      (string list * XHTML_types.div_content XHTML.M.elt list) Lwt.t
 
     method display_error_box :
       ?classes:string list ->
       ?message:string ->
       ?exc:exn ->
       unit ->
-      Xhtmltypes.block XHTML.M.elt
+      XHTML_types.block XHTML.M.elt
 
   end
 
@@ -76,11 +74,9 @@ object
      overridden in order to use another type of storage.
   *)
   method virtual private retrieve_data :
-    sp:Eliom_sessions.server_params ->
     'param_type -> 'data_type Lwt.t
 
   method virtual apply :
-    sp:server_params ->
     data:'param_type -> 'result_type
 end
 
@@ -88,10 +84,8 @@ class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
 object
   inherit widget
   method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
     'param_type -> 'data_type Lwt.t
   method apply:
-    sp:server_params ->
     data:'param_type -> 'result_type
 end
 
@@ -108,7 +102,6 @@ class virtual ['param_type, 'result_type] parametrized_unit_widget :
 object
   inherit ['param_type, unit, 'result_type] parametrized_widget
   method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
     'a -> unit Lwt.t
 end
 
@@ -120,14 +113,13 @@ object
   inherit ['param_type, unit] parametrized_div_widget
   inherit ['param_type, [`Div] XHTML.M.elt Lwt.t] parametrized_unit_widget
   method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
     'a -> unit Lwt.t
 end
 
 class type ['param_type] parametrized_unit_div_widget_t =
           ['param_type, unit, [`Div] XHTML.M.elt Lwt.t] parametrized_widget_t
 
-
+(*
 (** The base parametrized_widget list class *)
 class ['child_type] list_widget :
 object
@@ -138,7 +130,8 @@ object
      Calls the display procedure for every item of the
      contents in turn.
   *)
-  method display : sp:server_params -> [`Div] XHTML.M.elt Lwt.t
+  method display : [`Div] XHTML.M.elt Lwt.t
 
 
 end;;
+*)

@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open Forum_types
 
 let (>>=) = Lwt.bind
@@ -31,14 +32,14 @@ let (!!) = Lazy.force
 
 let forum_css_header =
   Page_site.Header.create_header
-    (fun sp ->
-       {{ [ {: Eliom_duce.Xhtml.css_link
-               (Page_site.static_file_uri sp ["ocsiforumstyle.css"]) () :}
-          ] }}
+    (fun () ->
+       [Eliom_output.Xhtml.css_link
+          (Page_site.static_file_uri ["ocsiforumstyle.css"]) ()
+       ]
     )
 
-let add_forum_css_header sp = 
-  Page_site.Header.require_header forum_css_header ~sp
+let add_forum_css_header () =
+  Page_site.Header.require_header forum_css_header
 
 
 class add_message_widget
@@ -48,48 +49,47 @@ object (_self)
   val add_msg_class = "ocsiforum_add_message_form"
 
   method display
-    ~sp ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) () =
-    add_forum_css_header sp;
+    ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) ()
+    : XHTML_types.form Eliom_pervasives.XHTML.M.elt =
+    add_forum_css_header ();
     let draw_form (actionnamename,
                    ((parentname, forumname), (subjectname, textname))) =
       let num =
         match parent, forum with
           | Some p, _ ->
-              Forum.eliom_message_input ~input_type:{: "hidden" :}
+              Forum.eliom_message_input ~input_type:`Hidden
                 ~name:parentname ~value:p ()
           | None, Some forum ->
-              Forum.eliom_forum_input ~input_type:{: "hidden" :}
+              Forum.eliom_forum_input ~input_type:`Hidden
                 ~name:forumname ~value:forum ()
           | _ -> failwith "Forum_widgets.add_message_widget"
       in
-      let title = 
+      let title =
         if title
         then
-          {{ [ 'Title:'
-                 {: Eliom_duce.Xhtml.string_input ~input_type:{: "text" :}
-                    ~name:subjectname () :}
-               <br>[]
-             ] }}
-        else {{ [] }}
+          [ XHTML.M.pcdata "Title:";
+            Eliom_output.Xhtml.string_input ~input_type:`Text
+              ~name:subjectname ();
+            XHTML.M.br () ]
+        else []
       in
-      {{ [<p>[ num
-             !title
-             {: Eliom_duce.Xhtml.textarea ~name:textname ~rows ~cols () :}
-           ]
-           <p>[{: Eliom_duce.Xhtml.string_button ~name:actionnamename
-                  ~value:"save" {{ "Send" }} :} ]
-         ]
-       }}
+      [ XHTML.M.p
+	  ( num ::
+              (title @
+		 [ Eliom_output.Xhtml.textarea ~name:textname ~rows ~cols () ]) );
+        XHTML.M.p[ Eliom_output.Xhtml.string_button ~name:actionnamename
+                     ~value:"save" [XHTML.M.pcdata "Send"] ]
+      ]
     in
-    Eliom_duce.Xhtml.post_form
-      ~a:{{ { accept-charset="utf-8" } }}
+    Eliom_output.Xhtml.post_form
+      ~a:[XHTML.M.a_accept_charset "utf-8"]
       ~service:add_message_service
-      ~sp draw_form ()
+      draw_form ()
 
 end
 
 class message_widget
-  (widget_with_error_box : Widget.widget_with_error_box) 
+  (widget_with_error_box : Widget.widget_with_error_box)
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
   (wiki_inline_widgets : Wiki_widgets_interface.interactive_wikibox)
   (add_message_service, moderate_message_service) =
@@ -99,92 +99,89 @@ object (self)
   val info_class = "ocsiforum_msg_info"
   val not_moderated_class = "ocsiforum_not_moderated"
 
-  method get_message ~sp ~message_id =
-    Forum_data.get_message ~sp ~message_id
-    
-  method display_message ~classes content =
-    let classes = Ocsimore_lib.build_class_attr (msg_class::classes) in
-    Lwt.return
-      ({{ <div class={: classes :}>content }} : Xhtmltypes_duce.block)
+  method get_message ~message_id =
+    Forum_data.get_message ~message_id
 
-  method display_admin_line ~sp ~role m =
+  method display_message ~classes content =
+    let classes = msg_class::classes in
+    Lwt.return
+      (XHTML.M.div ~a:[XHTML.M.a_class classes] content)
+
+  method display_admin_line ~role m =
 
     let draw_moderate_form name =
-         {{ [<p>[{: Forum.eliom_message_button ~name:name
-                    ~value:m.m_id {{ "Accept message" }} :} ]
-            ]
-          }}
+      [XHTML.M.p [Forum.eliom_message_button ~name:name
+                     ~value:m.m_id [XHTML.M.pcdata "Accept message"]]]
     in
 
     let first_msg = m.m_parent_id = None in
     (if not m.m_moderated
     then begin
-      (if first_msg 
+      (if first_msg
        then !!(role.Forum.message_moderators)
        else !!(role.Forum.comment_moderators)) >>= fun moderator ->
-      let s = Ocamlduce.Utf8.make
-        "This message has not been accepted by moderators yet." 
+      let s = "This message has not been accepted by moderators yet."
       in
       if moderator
       then
-        let form = Eliom_duce.Xhtml.post_form
+        let form = Eliom_output.Xhtml.post_form
           ~service:moderate_message_service
-          ~sp draw_moderate_form () 
+          draw_moderate_form ()
         in
-        Lwt.return {{ [ !s form ] }}
-      else Lwt.return s
+        Lwt.return [ XHTML.M.pcdata s; form ]
+      else Lwt.return [ XHTML.M.pcdata s ]
     end
-    else Lwt.return {{ [] }}) >>= fun moderation_line ->
+    else Lwt.return []) >>= fun moderation_line ->
     Lwt.return moderation_line
 
-  method pretty_print_message ~classes ~sp m =
+  method pretty_print_message ~classes m =
     User_sql.get_basicuser_data m.m_creator_id >>= fun ud ->
     let author = ud.User_sql.Types.user_fullname in
-    Forum.get_role sp m.m_forum >>= fun role ->
-    self#display_admin_line ~sp ~role m >>= fun admin_line ->
-    let classes = 
-      if m.m_moderated then classes else not_moderated_class::classes 
+    Forum.get_role m.m_forum >>= fun role ->
+    self#display_admin_line ~role m >>= fun admin_line ->
+    let classes =
+      if m.m_moderated then classes else not_moderated_class::classes
     in
     Wiki_sql.wikibox_wiki m.m_wikibox >>= fun wiki ->
     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
     let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
-    Wiki.default_bi ~sp ~wikibox:m.m_wikibox ~rights >>= fun bi ->
+    Wiki.default_bi ~wikibox:m.m_wikibox ~rights >>= fun bi ->
     (match m.m_subject with
-       | None -> Lwt.return {{ [] }}
+       | None -> Lwt.return []
        | Some s ->
-           Wiki.default_bi ~sp ~wikibox:s ~rights >>= fun bi ->
-           let bi = { bi with Wiki_widgets_interface.bi_menu_style = `Pencil } 
+           Wiki.default_bi ~wikibox:s ~rights >>= fun bi ->
+           let bi = { bi with Wiki_widgets_interface.bi_menu_style = `Pencil }
            in
-           wiki_inline_widgets#display_interactive_wikibox ~bi s >>= fun r ->
-           Lwt.return {{ [ r ] }})
+           wiki_inline_widgets#display_interactive_wikibox ~bi s)
     >>= fun wikiboxsubject ->
     let bi = { bi with Wiki_widgets_interface.bi_menu_style = `Pencil } in
     wiki_widgets#display_interactive_wikibox ~bi m.m_wikibox >>= fun wikibox ->
     Lwt.return
       (classes,
-       {{ [
-          !admin_line
-          !wikiboxsubject
-          <span class={: info_class :}>
-            {: Ocamlduce.Utf8.make
-                 (Format.sprintf "posted by %s %s" author
-                    (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))
-            :}
-          wikibox
-         ] }})
+       List.flatten
+	 [ admin_line;
+	   (wikiboxsubject :> XHTML_types.div_content
+	      XHTML.M.elt list);
+	   [ XHTML.M.span ~a:[XHTML.M.a_class ["info_class"]]
+               [ XHTML.M.pcdata
+		   (Format.sprintf "posted by %s %s" author
+		      (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))]];
+	   (wikibox :> XHTML_types.div_content XHTML.M.elt list) ]
+      )
 
-  method display ~sp ?(classes=[]) ~data:message_id () =
-    add_forum_css_header sp;
+  method display ?(classes=[]) ~data:message_id ()
+    : XHTML_types.div XHTML.M.elt Lwt.t =
+    add_forum_css_header ();
     widget_with_error_box#bind_or_display_error
-      (self#get_message ~sp ~message_id)
-      (self#pretty_print_message ~classes ~sp)
+      (self#get_message ~message_id)
+      (self#pretty_print_message ~classes)
     >>= fun (classes, r) -> self#display_message ~classes r
 
 end
 
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
-  (message_widget : message_widget) 
+  (message_widget : message_widget)
   (add_message_widget : add_message_widget)
   (add_message_service, moderate_message_service) =
 object (self)
@@ -196,24 +193,22 @@ object (self)
   val main_msg_class = "ocsiforum_main_message"
   val comments_class = "ocsiforum_comments"
 
-  method get_thread ~sp ~message_id =
-    Forum_data.get_thread ~sp ~message_id
-    
-  method display_thread ~classes ((first : Eliom_duce.Blocks.div_content_elt_list), coms) : Xhtmltypes_duce.block Lwt.t =
-    let classes = 
-      Ocamlduce.Utf8.make (Ocsimore_lib.build_class_attr (thr_class::classes)) 
-    in
-    Lwt.return
-      ({{ <div class={: classes :}>[ !first !coms ] }} : Xhtmltypes_duce.block)
+  method get_thread ~message_id =
+    Forum_data.get_thread ~message_id
 
-  method display_thread_splitted ~classes ((first : Eliom_duce.Blocks.div_content_elt_list), coms) =
-    let classes1 = Ocsimore_lib.build_class_attr (main_msg_class::classes) in
-    let classes2 = Ocsimore_lib.build_class_attr (comments_class::classes) in
+  method display_thread ~classes ((first : XHTML_types.div_content XHTML.M.elt list), coms) : 'a Lwt.t =
+    let classes = thr_class::classes in
     Lwt.return
-      ({{ <div class={: classes1 :}>[ !first ] }},
-       {{ <div class={: classes2 :}>[ !coms ] }})
+      (XHTML.M.div ~a:[XHTML.M.a_class classes] ( first @ coms ))
 
-  method display_comment_line ~sp ~role ?rows ?cols m =
+  method display_thread_splitted ~classes ((first : XHTML_types.div_content XHTML.M.elt list ), coms) =
+    let classes1 = (main_msg_class::classes) in
+    let classes2 = (comments_class::classes) in
+    Lwt.return
+      (XHTML.M.div ~a:[XHTML.M.a_class classes1] first,
+       XHTML.M.div ~a:[XHTML.M.a_class classes2] coms)
+
+  method display_comment_line ~role ?rows ?cols m =
 (*    Lwt.return
        {{ [
          <span class={: comment_class :}>
@@ -227,97 +222,118 @@ object (self)
   !!(role.Forum.comment_creators) >>= fun comment_creators ->
   if comment_creators
   then
+    (* TODO obrowser -> js_of_ocaml
     let n1_id = Eliom_obrowser.fresh_id () in
     let n2_id = Eliom_obrowser.fresh_id () in
-    let form = 
-      add_message_widget#display ~sp ~parent:m.m_id ~title:false ?rows ?cols () 
+    *)
+    let form =
+      add_message_widget#display ~parent:m.m_id ~title:false ?rows ?cols ()
     in
-    let rec n1 = {{ <div class={: comment_button_class :}
-                      id={: n1_id :}
-                      onclick={: Forum_client_calls.switchshow n1_id n2_id :} >
-                      {: Ocamlduce.Utf8.make "Comment" :} }}
-    and n2 = {{ <div id={: n2_id :} class={: comment_class :} >[ form ] }}
-    in 
-    Lwt.return {{ [ n1 n2 ] }}
-  else Lwt.return {{ [] }}
+    let rec n1 =
+      XHTML.M.div
+	~a:[XHTML.M.a_class [comment_button_class];
+            (* TODO obrowser -> js_of_ocaml
+	      XHTML.M.a_id n1_id;
+              XHTML.M.a_onclick (Forum_client_calls.switchshow n1_id n2_id)
+	    *)
+	   ]
+	[XHTML.M.pcdata "Comment" ]
+    and n2 =
+      XHTML.M.div
+	~a:[XHTML.M.a_class [comment_class];
+	    XHTML.M.a_style "display:block";
+	   (* TODO obrowser -> js_of_ocaml
+              XHTML.M.a_id n2_id
+	   *)
+	   ]
+	[ form ]
+    in
+    Lwt.return [ n1; n2 ]
+  else Lwt.return []
 
 
-  method pretty_print_thread ~classes ~commentable ~sp ?rows ?cols thread :
-    (string list * (Eliom_duce.Blocks.div_content_elt_list * Eliom_duce.Blocks.div_content_elt_list)) Lwt.t =
-    add_forum_css_header sp;
+  method pretty_print_thread ~classes ~commentable ?rows ?cols thread :
+    (string list * (XHTML_types.div_content XHTML.M.elt list * XHTML_types.div_content XHTML.M.elt list)) Lwt.t =
+    add_forum_css_header ();
     let rec print_one_message_and_children
-        ~role ~arborescent ~commentable thread : 
-        (Eliom_duce.Blocks.div_content_elt_list * Eliom_duce.Blocks.div_content_elt_list * 'a list) Lwt.t = 
+        ~role ~arborescent ~commentable thread :
+        (XHTML_types.div_content XHTML.M.elt list * XHTML_types.div_content XHTML.M.elt list * Forum_types.message_info list) Lwt.t =
       (match thread with
-         | [] -> Lwt.return ({{[]}}, {{[]}}, [])
+         | [] -> Lwt.return ([], [], [])
          | m::l ->
              message_widget#pretty_print_message
                ~classes:[]
-               ~sp m
+               m
              >>= fun (classes, msg_info) ->
              let draw_comment_form =
                (commentable && (arborescent || (m.m_id = m.m_root_id)))
              in
              (if draw_comment_form
-              then self#display_comment_line ~sp ~role ?rows ?cols m
-              else Lwt.return {{[]}}) >>= fun comment_line ->
+              then self#display_comment_line ~role ?rows ?cols m
+              else Lwt.return []) >>= fun comment_line ->
              message_widget#display_message ~classes msg_info >>= fun first ->
              print_children ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
-             Lwt.return ({{ [first] }}, {{ [ !comment_line !s] }}, l))
+             Lwt.return ([(first:>XHTML_types.div_content XHTML.M.elt)],
+			 (comment_line @ s :> XHTML_types.div_content XHTML.M.elt list), l))
     and print_children ~role ~arborescent ~commentable pid = function
-      | [] -> Lwt.return ({{ [] }}, [])
-      | ((m::_) as th) 
+      | [] -> Lwt.return ([], [])
+      | ((m::_) as th)
           when m.m_parent_id = Some pid ->
           (print_one_message_and_children ~role ~arborescent ~commentable th
            >>= fun (b, c, l) ->
            print_children ~role ~arborescent ~commentable pid l
            >>= fun (s, l) ->
-           Lwt.return (({{ [!b !c !s] }} : Eliom_duce.Blocks.div_content_elt_list), l))
-      | l -> Lwt.return ({{ [] }}, l)
+           Lwt.return (( (b @ c @ s)  : XHTML_types.div_content XHTML.M.elt list), l))
+      | l -> Lwt.return ([], l)
     in
     match thread with
-      | [] -> Lwt.return (classes, ({{[]}}, {{[]}}))
+      | [] -> Lwt.return (classes, ([], []))
       | m::_l ->
           Forum_sql.get_forum ~forum:m.m_forum () >>= fun forum ->
-          Forum.get_role sp m.m_forum >>= fun role ->
+          Forum.get_role m.m_forum >>= fun role ->
           !!(role.Forum.comment_creators) >>= fun commentator ->
           print_one_message_and_children
             ~role
             ~arborescent:forum.f_arborescent
             ~commentable:(commentable && commentator) thread
-          >>= fun (msg, coms, _) -> 
+          >>= fun (msg, coms, _) ->
           Lwt.return (classes, (msg, coms))
 
-  method display ?(commentable = true) ~sp ?rows ?cols
-    ?(classes=[]) ~data:message_id () : Xhtmltypes_duce.block Lwt.t =
-    add_forum_css_header sp;
-    let data = self#get_thread ~sp ~message_id in
-    let transform_data = 
-      self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols
+  method display ?(commentable = true) ?rows ?cols
+    ?(classes=[]) ~data:message_id () : XHTML_types.div_content XHTML.M.elt Lwt.t =
+    add_forum_css_header ();
+    let data = self#get_thread ~message_id in
+    let transform_data =
+      self#pretty_print_thread ~classes ~commentable ?rows ?cols
     in
     (Lwt.catch
        (fun () -> data >>= transform_data)
-       (fun exn ->
-          let e : Eliom_duce.Blocks.div_content_elt_list = 
-            {{ [ {{ widget_with_error_box#display_error_box ~exn () }} ] }} 
+       (fun exc ->
+          let e =
+            ( [ widget_with_error_box#display_error_box ~exc () ] :> XHTML_types.div_content XHTML.M.elt list )
           in
           Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
     >>= fun (classes, c) ->
     self#display_thread ~classes c
 
-  method display_splitted ?(commentable = true) ~sp ?rows ?cols
-    ?(classes=[]) ~data:message_id () =
-    add_forum_css_header sp;
-    let data = self#get_thread ~sp ~message_id in
-    let transform_data = 
-      self#pretty_print_thread ~classes ~commentable ~sp ?rows ?cols
+  method display_splitted ?(commentable = true) ?rows ?cols
+    ?(classes=[]) ~data:message_id () :
+    ( XHTML_types.div Eliom_pervasives.XHTML.M.elt *
+        XHTML_types.div Eliom_pervasives.XHTML.M.elt )
+    Lwt.t
+    =
+    add_forum_css_header ();
+    let data = self#get_thread ~message_id in
+    let transform_data =
+      self#pretty_print_thread ~classes ~commentable ?rows ?cols
     in
     (Lwt.catch
        (fun () -> data >>= transform_data)
-       (fun exn ->
-          let e : Eliom_duce.Blocks.div_content_elt_list  = 
-            {{ [ {{ widget_with_error_box#display_error_box ~exn () }} ] }} 
+       (fun exc ->
+          let e =
+            ( [ widget_with_error_box#display_error_box ~exc () ]
+	      :> XHTML_types.div_content XHTML.M.elt list )
           in
           Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
     >>= fun (classes, c) ->
@@ -328,61 +344,62 @@ end
 
 class message_list_widget
   (widget_with_error_box : Widget.widget_with_error_box)
-  (message_widget : message_widget) 
-  (add_message_widget : add_message_widget) 
+  (message_widget : message_widget)
+  (add_message_widget : add_message_widget)
   =
 object (self)
 
   val ml_class = "ocsiforum_message_list"
 
-  method get_message_list ~sp ~forum ~first ~number =
-    Forum_data.get_message_list ~sp ~forum ~first ~number ()
-    
-  method display_message_list ~classes content =
-    let classes = Ocsimore_lib.build_class_attr (ml_class::classes) in
-    Lwt.return
-      ({{ <div class={: classes :}>content }} : Xhtmltypes_duce.block)
+  method get_message_list ~forum ~first ~number =
+    Forum_data.get_message_list ~forum ~first ~number ()
 
-  method pretty_print_message_list ~forum ?rows ?cols ~classes ~sp 
+  method display_message_list ~classes content =
+    let classes = (ml_class::classes) in
+    Lwt.return
+      (XHTML.M.div ~a:[XHTML.M.a_class classes] content : XHTML_types.div_content XHTML.M.elt)
+
+  method pretty_print_message_list ~forum ?rows ?cols ~classes
     ~add_message_form list =
     Lwt_util.map
       (fun raw_msg_info ->
          Lwt.catch
          (fun() ->
-            Forum_data.message_info_of_raw_message ~sp raw_msg_info
-            >>= fun m -> 
-            message_widget#pretty_print_message ~classes:[] ~sp m
+            Forum_data.message_info_of_raw_message raw_msg_info
+            >>= fun m ->
+            message_widget#pretty_print_message ~classes:[] m
             >>= fun (classes, content) ->
             message_widget#display_message ~classes content >>= fun m ->
-            Lwt.return {{ [ m ] }}
+            Lwt.return [ m ]
          )
-         (function 
+         (function
             | Ocsimore_common.Permission_denied ->
-                Lwt.return {{ [] }}
+                Lwt.return []
             | e -> Lwt.fail e))
       list
     >>= fun l ->
     (if add_message_form
      then
-       Forum.get_role sp forum >>= fun role ->
+       Forum.get_role forum >>= fun role ->
        !!(role.Forum.message_creators) >>= fun message_creators ->
        Lwt.return
          (if message_creators
           then
-            {{ [ {: add_message_widget#display ~sp ~forum ?rows ?cols () :} ] }}
-          else {{ [] }})
-     else Lwt.return {{ [] }})
+            [ add_message_widget#display ~forum ?rows ?cols () ]
+          else [])
+     else Lwt.return [])
     >>= fun form ->
-    let l = {{ map {: l :} with i -> i }} in 
-    Lwt.return (classes, {{ [ !{: l :} !form ] }})
+    Lwt.return (classes,
+		(List.flatten l :> XHTML_types.div_content XHTML.M.elt list)
+		@ ( form :> XHTML_types.div_content XHTML.M.elt list) )
 
-  method display ~sp ?(rows : int option) ?(cols : int option) ?(classes=[])
+  method display ?(rows : int option) ?(cols : int option) ?(classes=[])
     ~forum ~first ~number ?(add_message_form = true) () =
-    add_forum_css_header sp;
+    add_forum_css_header ();
     widget_with_error_box#bind_or_display_error
-      (self#get_message_list ~sp ~forum ~first ~number)
+      (self#get_message_list ~forum ~first ~number)
       (self#pretty_print_message_list
-         ~forum ?rows ?cols ~classes ~sp ?add_message_form)
+         ~forum ?rows ?cols ~classes ?add_message_form)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
 
 end

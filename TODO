@@ -1,12 +1,12 @@
 TODO
 
-- bi_rights in bi. Dangerous, as it is not always clear we update bi when
-  we change wiki (for example when displaying subwikiboxes)
+* bi_rights in bi. Dangerous, as it is not always clear we update bi when
+   we change wiki (for example when displaying subwikiboxes)
 
- - nobody vs. NoSuchUser. The current behavior (never raise NoSuchUser
-  when we do a get_user_by_name is misleading when we want to take
-  care of nobody explicitly, and makes it easy to forget that the
-  function might have failed.
+* nobody vs. NoSuchUser. The current behavior (never raise NoSuchUser
+   when we do a get_user_by_name is misleading when we want to take
+   care of nobody explicitly, and makes it easy to forget that the
+   function might have failed.
 
  - Wiki (serious??): it is possible to create a page toto and toto/titi
  toto may be a directory or a page! That's probably a problem?
@@ -64,13 +64,15 @@ Wiki:
  - Add a detailed wikisyntax help (with all extensions).
  May be as a static wikicreole file, that would be loaded dynamically?
 
-Users:
- - Impossible to give rights to users who do not exist for now (if using
- external authentication, the user is created the first time she logs in ...)
- May be create the user automatically if she exists on the system when we
- we to give rights.
- - PAM or LDAP: not really clean
- implement LDAP.
+* Users:
+   - Impossible to give rights to users who do not exist for now (if using
+      external authentication, the user is created the first time she logs in ...)
+      May be create the user automatically if she exists on the system when we
+      we to give rights.
+   - PAM or LDAP: not really clean
+      implement LDAP.
+   - Implement PAM as DBM: no need for threads
+      ( or Lwt_unix jobs )
 
 User widgets:
  - clean everything

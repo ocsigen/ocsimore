@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 
   (** Semi-abstract type for a forum *)
@@ -50,7 +51,7 @@ open User_sql.Types
     f_descr: string;
     f_arborescent: bool;
     f_deleted: bool;
-    f_title_syntax: Xhtmltypes_duce.inlines Wiki_types.content_type;
+    f_title_syntax: XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type;
     f_messages_wiki: Wiki_types.wiki;
     f_comments_wiki: Wiki_types.wiki;
   }

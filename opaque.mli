@@ -2,8 +2,8 @@
 This module provides a convenient way to convert [int] or [string] types
 to abstract types.
 
-Motivation: type [int] may be used for representing several kinds of 
-data. Confusion is easy, so we often need to make it abstract, 
+Motivation: type [int] may be used for representing several kinds of
+data. Confusion is easy, so we often need to make it abstract,
 while keeping:
 - the functions that used to work with type [int]
 - efficiency
@@ -15,12 +15,14 @@ use a type parameter to define
 the specialized version of [int] or [string].
 We will write the type declarations as
 [type port = [`Port] int_t] or [type date = [`Date] int_t].
-Data is converted with the [int_t] and [t_int] polymorphic 
+Data is converted with the [int_t] and [t_int] polymorphic
 functions as in [let port : port = int_t 0].
 
 @author Martin Jambon *)
 
 (** {6 Opaque [int]s } *)
+
+open Eliom_pervasives
 
 type 'a int_t
 (** data of type ['a int_t] has the same internal representation
@@ -74,21 +76,21 @@ val int32_t_to_string : 'a int32_t -> string
 
 (** Xform inputs *)
 val int32_input_aux_xform :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
-  string -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  string -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_xform :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
-  'a int32_t -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  'a int32_t -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_opt_aux_xform :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
-  string -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  string -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
 
 val int32_input_opt_xform :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
   'a int32_t option ->
-  (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
+  (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
 
 
 (** {6 Opaque [string]s } *)
@@ -106,7 +108,7 @@ val any_string : 'a string_t -> 'b string_t
 
 val concat : 'a string_t -> 'a string_t -> 'a string_t
 val concat_list : string -> 'a string_t list -> 'a string_t
-(** [concat] and [concat_list] are equivalents of [( ^ )] 
+(** [concat] and [concat_list] are equivalents of [( ^ )]
 and [String.concat]. *)
 
 val print_string_t : 'a string_t -> unit

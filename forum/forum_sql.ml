@@ -47,7 +47,7 @@ let new_forum
        Lwt.return (forum_of_sql s)
     )
 
-let new_message ~sp ~forum ~wiki ~creator_id ~title_syntax
+let new_message ~forum ~wiki ~creator_id ~title_syntax
     ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
   let creator_id' = sql_from_userid creator_id in
   let parent_id = sql_of_message_option parent_id in
@@ -60,13 +60,13 @@ let new_message ~sp ~forum ~wiki ~creator_id ~title_syntax
   Sql.full_transaction_block
     (fun db ->
        Wiki_data.new_wikitextbox
-         ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
+         ~rights ~db ~wiki ~author:creator_id ~comment:""
          ~content:text ~content_type () >>= fun wikibox ->
        (match subject with
           | None -> Lwt.return None
           | Some subject ->
               Wiki_data.new_wikitextbox
-                ~sp ~rights ~db ~wiki ~author:creator_id ~comment:""
+                ~rights ~db ~wiki ~author:creator_id ~comment:""
                 ~content:subject ~content_type:title_syntax ()
               >>= fun subject ->
               Lwt.return (Some (Wiki_types.sql_of_wikibox subject)))

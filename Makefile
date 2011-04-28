@@ -33,8 +33,8 @@ MYOCAMLFIND := _build/myocamlfind.byte
 TARGETS := ocsimore.otarget
 LWTDIR := $(shell ocamlfind query lwt)
 JSOFOCAMLDIR := $(shell ocamlfind query js_of_ocaml)
-ELIOMCLIENTDIR := $(shell ocamlfind query ocsigen.eliom_client)
-PAELIOMCLIENTSYNTAX := $(shell ocamlfind query ocsigen.eliom_client_syntax)
+ELIOMCLIENTDIR := $(shell ocamlfind query eliom.client)
+#PAELIOMCLIENTSYNTAX := $(shell ocamlfind query eliom_client_syntax)
 
 #VVV Faire le tri dans les cmis à installer !!!
 TOINSTALL := files/META \

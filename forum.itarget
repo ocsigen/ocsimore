@@ -1,0 +1,5 @@
+forum.cma
+forum.cmxa
+forum/forum_site.cmo
+forum/ocsicreateforum.cmo
+forum/forum_widgets.cmo

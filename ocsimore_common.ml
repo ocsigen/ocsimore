@@ -20,6 +20,8 @@
    @author Vincent Balat
 *)
 
+open Eliom_pervasives
+
 exception Ok
 
 let (>>=) = Lwt.bind
@@ -28,17 +30,17 @@ exception Permission_denied
 
 let action_failure_key = Polytables.make_key ()
 
-let catch_action_failure ~sp ?(f_exc=fun exn -> exn) f =
+let catch_action_failure ?(f_exc=fun exn -> exn) f =
   Lwt.catch
     f
     (fun exc ->
-       Polytables.set (Eliom_sessions.get_request_cache sp)
+       Polytables.set (Eliom_request_info.get_request_cache ())
          action_failure_key (f_exc exc);
        Lwt.return ())
 
-let get_action_failure ~sp =
+let get_action_failure () =
   try
-    Some (Polytables.get ~table:(Eliom_sessions.get_request_cache sp)
+    Some (Polytables.get ~table:(Eliom_request_info.get_request_cache ())
             ~key:action_failure_key)
   with Not_found -> None
 
@@ -68,7 +70,7 @@ let eliom_opaque_int32_opt s =
 
 
 let input_opaque_int32 ?value ?(hidden=true) name =
-  let f = Eliom_predefmod.Xhtml.user_type_input
+  let f = Eliom_output.Xhtml.user_type_input
     (fun v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
   in
   if hidden then
@@ -77,7 +79,7 @@ let input_opaque_int32 ?value ?(hidden=true) name =
     f ~input_type:`Text ()
 
 let input_opaque_int32_opt ?value ?(hidden=true) name =
-  let f = Eliom_predefmod.Xhtml.user_type_input
+  let f = Eliom_output.Xhtml.user_type_input
     (fun v -> match v with
        | None -> ""
        | Some v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value

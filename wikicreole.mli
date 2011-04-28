@@ -87,15 +87,18 @@ type ('flow, 'inline, 'a_content, 'param) builder =
     error : string -> 'a_content;
   }
 
+(*
 val from_channel :
   'param ->
   ('flow, 'inline, 'a_content, 'param) builder -> in_channel -> 'flow list Lwt.t
+*)
 
 val from_string :
   'param ->
   ('flow, 'inline, 'a_content, 'param) builder -> string -> 'flow list Lwt.t
 
+(*
 val from_lexbuf :
   'param ->
   ('flow, 'inline, 'a_content, 'param) builder -> Lexing.lexbuf -> 'flow list Lwt.t
-
+*)

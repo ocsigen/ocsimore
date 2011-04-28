@@ -22,6 +22,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open Wiki_types
 open Wiki_widgets_interface
 let (>>=) = Lwt.(>>=)
@@ -177,9 +178,9 @@ let parse_table_cell_attribs attribs =
   and at7 =
     try Some (XHTML.M.a_rowspan ( int_of_string (List.assoc "rowspan" attribs)))
     with Not_found | Failure _ -> None
-  and at8 = parse_valign_attrib attribs
+(*  and at8 = parse_valign_attrib attribs
   and at9 = parse_align_attrib attribs
-  and at10 = parse_scope_attrib attribs in
+  and at10 = parse_scope_attrib attribs *) in
   atts @ filter_raw [at1; at2; at3; at4; at5; at6; at7]
 
 let list_builder = function
@@ -189,7 +190,7 @@ let list_builder = function
         let a = opt_list (parse_common_attribs attribs) in
         element c >|= List.flatten   >>= fun r ->
         unopt ~def:(Lwt.return []) l >|= fun l ->
-        XHTML.M.li ?a ((r : Xhtmltypes.inlinemix XHTML.M.elt list :> Xhtmltypes.div_content XHTML.M.elt list) @ l)
+        XHTML.M.li ?a ((r : XHTML_types.inlinemix XHTML.M.elt list :> XHTML_types.div_content XHTML.M.elt list) @ l)
       in
       f x                   >>= fun y ->
       Lwt_list.map_s f xs   >|= fun ys ->
@@ -209,7 +210,7 @@ let descr_builder = function
       Lwt_list.map_s f xs  >|= fun ys ->
       (y, ys)
 
-let inline (x : Xhtmltypes.inlinemix XHTML.M.elt list) : Xhtmltypes.inlinemix XHTML.M.elt list =
+let inline (x : XHTML_types.inlinemix XHTML.M.elt list) : XHTML_types.inlinemix XHTML.M.elt list =
   [XHTML.M.span x]
 
 let link_regexp =
@@ -261,7 +262,7 @@ let remove_first_slash s =
 
 (* This function is used to translate a sub-tree of a wiki into a new wiki *)
 (* newwikipath is relative to oldwiki's path *)
-let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs (_sp, wb) =
+let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs wb =
   Wiki_sql.wikibox_wiki wb >>= fun currentwiki ->
   (* Prefix must end with '/' and start with '/' only if it is "/" : *)
   let newwikipath = match newwikipath with
@@ -282,7 +283,7 @@ let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs (_sp, wb) =
     then (* prefix is "/" *) Some s
     else
       let slen = String.length s in
-      let first_diff = Ocsigen_lib.string_first_diff newwikipath s 0 preflast in
+      let first_diff = String.first_diff newwikipath s 0 preflast in
       if first_diff = preflen
       then Some (String.sub s preflen (slen - preflen))
       else if first_diff = preflast && slen = preflast
@@ -351,7 +352,7 @@ type ('res, 'inline, 'a_content) wikicreole_parser = {
   plugin_assoc: (bool * ('res, 'a_content) syntax_extension) plugin_hash;
 
   plugin_action_assoc:
-     ((Eliom_sessions.server_params * Wiki_types.wikibox,
+     ((Wiki_types.wikibox,
        string option Lwt.t)
         Wikicreole.plugin_args)
     plugin_hash;
@@ -360,7 +361,7 @@ type ('res, 'inline, 'a_content) wikicreole_parser = {
     (string ->
      string option ->
      Wikicreole.attribs ->
-     Eliom_sessions.server_params * Wiki_types.wikibox ->
+     Wiki_types.wikibox ->
        string option Lwt.t) ref
 }
 
@@ -398,7 +399,7 @@ let set_link_extension ~wp f =
     wp.link_action := f
 
 
-let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wikibox) content =
+let preparse_extension wp (wb : Wiki_types.wikibox) content =
   let subst = ref [] in
   let plugin_action name start end_ params args content =
     subst := (start,
@@ -460,7 +461,7 @@ let preparse_extension wp (sp, wb : Eliom_sessions.server_params * Wiki_types.wi
     link_action = link_action;
     error = nothing1;
   } in
-  Wikicreole.from_string (sp, wb) preparse_builder content
+  Wikicreole.from_string wb preparse_builder content
   >>= fun (_ : unit list) ->
   let buf = Buffer.create 1024 in
   Lwt_list.fold_left_s
@@ -499,16 +500,15 @@ let site_url_syntax =
   }
 
 let make_href bi addr fragment =
-  let sp = bi.bi_sp in
   let aux ~fragment https wiki page =
     match Wiki_self_services.find_servpage wiki with
       | Some servpage ->
           let addr =
-            Ocsigen_lib.remove_slash_at_beginning
+            Url.remove_slash_at_beginning
               (Neturl.split_path page)
           in
-          Eliom_predefmod.Xhtml.make_string_uri ?https
-            ?fragment ~service:servpage ~sp addr
+          Eliom_output.Xhtml.make_string_uri ?https
+            ?fragment ~service:servpage addr
       | None -> "malformed link" (*VVV ??? *)
   in
   match addr with
@@ -524,19 +524,19 @@ let make_href bi addr fragment =
           let url = Neturl.url_of_string site_url_syntax href in
           let path = Neturl.url_path url in
           let path =
-            (Eliom_sessions.get_site_dir sp) @
-              (Ocsigen_lib.remove_slash_at_beginning path)
+            (Eliom_request_info.get_site_dir ()) @
+              (Url.remove_slash_at_beginning path)
           in
           match forceproto with
             | None ->
                 let path =
                   Eliom_uri.reconstruct_relative_url_path
-                    (Eliom_sessions.get_original_full_path ~sp)
+                    (Eliom_request_info.get_original_full_path ())
                     path
                 in
                 Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
             | Some https ->
-                (Eliom_predefmod.Xhtml.make_proto_prefix ~sp https)^
+                (Eliom_output.Xhtml.make_proto_prefix https)^
                   (Neturl.string_of_url (Neturl.modify_url ?fragment ~path url))
         with Neturl.Malformed_URL ->
           "malformed link"
@@ -595,10 +595,10 @@ let superscripted_elem =
 
 let a_elem =
   (fun attribs addr
-    (c : Xhtmltypes.a_content XHTML.M.elt list Lwt.t list) ->
+    (c : XHTML_types.a_content XHTML.M.elt list Lwt.t list) ->
        let a = parse_common_attribs attribs in
        Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
-       [(XHTML.M.a ~a:(XHTML.M.a_href (XHTML.M.uri_of_string addr) :: a) c
+       [(XHTML.M.a ~a:(XHTML.M.a_href (Uri.uri_of_string addr) :: a) c
         : [>`A] XHTML.M.elt)])
 
 let default_make_href =
@@ -613,7 +613,7 @@ let img_elem =
   (fun attribs addr alt ->
      let a = opt_list (parse_common_attribs attribs) in
      Lwt.return
-       [(XHTML.M.img ~src:(XHTML.M.uri_of_string addr) ~alt:alt ?a ()
+       [(XHTML.M.img ~src:(Uri.uri_of_string addr) ~alt:alt ?a ()
         : [>`Img] XHTML.M.elt)]
   )
 
@@ -730,8 +730,8 @@ let table_elem =
 let inline =
   (fun x ->
     (x
-     : Xhtmltypes.a_content XHTML.M.elt list Lwt.t
-     :> Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t)
+     : XHTML_types.a_content XHTML.M.elt list Lwt.t
+     :> XHTML_types.inlinemix XHTML.M.elt list Lwt.t)
   )
 
 let plugin = default_plugin
@@ -756,9 +756,9 @@ let span_elem =
 (* Predefined builders.         *)
 
 let inline_builder :
-  (Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t,
-   Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t,
-   Xhtmltypes.a_content XHTML.M.elt list Lwt.t,
+  (XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
+   XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
+   XHTML_types.a_content XHTML.M.elt list Lwt.t,
    box_info)
      Wikicreole.builder = (* no images, no titles, no tables, no lists,
                              no subwikiboxes, no content, no objects,
@@ -825,9 +825,9 @@ let inline_builder :
 
 
 let default_builder :
-  (Xhtmltypes.div_content XHTML.M.elt list Lwt.t,
-   Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t,
-   Xhtmltypes.a_content XHTML.M.elt list Lwt.t,
+  (XHTML_types.div_content XHTML.M.elt list Lwt.t,
+   XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
+   XHTML_types.a_content XHTML.M.elt list Lwt.t,
    box_info
   ) Wikicreole.builder =
 
@@ -961,14 +961,14 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
   }
 
 let reduced_builder_button :
-  ([Xhtmltypes.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
-   [Xhtmltypes.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
-   [Xhtmltypes.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
+  ([XHTML_types.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
+   [XHTML_types.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
+   [XHTML_types.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
    box_info
   ) Wikicreole.builder =
   let forbid0 s =
     Lwt.return [(XHTML.M.em [XHTML.M.pcdata (s ^" not enabled in buttons")]
-                : [Xhtmltypes.button_content | `PCDATA] XHTML.M.elt)]
+                : [XHTML_types.button_content | `PCDATA] XHTML.M.elt)]
   in
   let forbid1 s _ = forbid0 s in
   let forbid2 s _ _ = forbid0 s in
@@ -1070,14 +1070,14 @@ let xml_of_wiki wp bi s =
   >>= Lwt_list.map_s (fun x -> x)
   >|= List.flatten
 
-let inline_of_wiki bi s : Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t =
+let inline_of_wiki bi s : XHTML_types.inlinemix XHTML.M.elt list Lwt.t =
   Wikicreole.from_string
     bi
     ({inline_builder with
        Wikicreole.plugin = plugin_function inline_wikicreole_parser
-     } : (Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t,
-          Xhtmltypes.inlinemix XHTML.M.elt list Lwt.t,
-          Xhtmltypes.a_content XHTML.M.elt list Lwt.t,
+     } : (XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
+          XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
+          XHTML_types.a_content XHTML.M.elt list Lwt.t,
           box_info
          ) Wikicreole.builder
     )
@@ -1124,7 +1124,7 @@ let a_content_of_wiki bi s =
   Lwt.fail (Failure "TODO: how to safely pattern match on XHTML.M values")
 (*  Lwt.return
     {{ map r with
-         |  <a (Xhtmltypes_duce.a_attrs)>l -> l
+         |  <a (XHTML_types_duce.a_attrs)>l -> l
          | p -> [p] }}*)
 
 
@@ -1137,10 +1137,10 @@ let add_extension ~wp ~name ?(wiki_content=true) f =
   Hashtbl.add wp.plugin_assoc name (wiki_content, f);
   if wiki_content then
     Hashtbl.add wp.plugin_action_assoc name
-      (fun (sp, wb) args -> function
+      (fun wb args -> function
          | None -> Lwt.return None
          | Some c ->
-             preparse_extension wp (sp, wb) c >>= fun c ->
+             preparse_extension wp wb c >>= fun c ->
              Lwt.return (Some (string_of_extension name args (Some c)))
       )
 
@@ -1292,7 +1292,7 @@ let () =
           let a = Some (classe :: (filter_raw [id])) in
           let f ?classe s =
             let link, text =
-              try Ocsigen_lib.sep '|' s
+              try String.sep '|' s
               with Not_found -> s, s
             in
             Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
@@ -1300,9 +1300,8 @@ let () =
             let b =
               match wiki_info.Wiki_types.wiki_pages with
                 | Some dir ->
-                    Eliom_sessions.get_current_sub_path_string
-                      bi.Wiki_widgets_interface.bi_sp =
-                      Ocsimore_lib.remove_begin_slash (dir^"/"^link)
+                    Eliom_request_info.get_current_sub_path_string ()
+                  = Ocsimore_lib.remove_begin_slash (dir^"/"^link)
                 | None -> false
             in
             if b
@@ -1315,7 +1314,7 @@ let () =
             else
               let href =
                 XHTML.M.a_href
-                  (XHTML.M.uri_of_string
+                  (Uri.uri_of_string
                      (make_href bi (link_kind link) None)
                   )
               in
@@ -1352,28 +1351,27 @@ let () =
     ~name:"cond" ~wiki_content:true
     (fun bi args c ->
        Wikicreole.Block
-         (let sp = bi.Wiki_widgets_interface.bi_sp in
-          let content = unopt_string c in
+         (let content = unopt_string c in
           let rec eval_cond = function
             | ("error", "autherror") ->
                 Lwt_list.exists_s
                   (fun e ->
                     Lwt.return (e = User.BadPassword || e = User.BadUser))
-                  (User_data.get_login_error ~sp)
+                  (User_data.get_login_error ())
             | ("ingroup", g) ->
                 Lwt.catch
                   (fun () ->
                      User.get_user_by_name g >>= fun group ->
-                     User.in_group ~sp ~group ())
+                     User.in_group ~group ())
                   (function _ -> Lwt.return false)
             | ("http_code", "404") ->
-                Lwt.return (Wiki_widgets_interface.page_displayable sp =
+                Lwt.return (Wiki_widgets_interface.page_displayable () =
                     Wiki_widgets_interface.Page_404)
             | ("http_code", "403") ->
-                Lwt.return (Wiki_widgets_interface.page_displayable sp =
+                Lwt.return (Wiki_widgets_interface.page_displayable () =
                     Wiki_widgets_interface.Page_403)
             | ("http_code", "40?") ->
-                Lwt.return (Wiki_widgets_interface.page_displayable sp <>
+                Lwt.return (Wiki_widgets_interface.page_displayable () <>
                               Wiki_widgets_interface.Page_displayable)
             | (err, value) when String.length err >= 3 &&
                 String.sub err 0 3 = "not" ->

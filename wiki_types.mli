@@ -95,13 +95,13 @@ type media_type_elem =
     | `Speech
     | `TTY
     | `TV ]
-type media_type = media_type_elem list (*Xhtmltypes.mediadesc*)
+type media_type = media_type_elem list (*XHTML_types.mediadesc*)
 val media_type_elem_of_string : string -> media_type_elem option
 val string_of_media_type_elem : media_type_elem -> string
 val media_type_of_string : string -> media_type
 val string_of_media_type : media_type -> string
 
-type 'a rights_aux = sp:Eliom_sessions.server_params -> 'a -> bool Lwt.t
+type 'a rights_aux = 'a -> bool Lwt.t
 
 class type wiki_rights =
 object

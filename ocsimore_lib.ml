@@ -1,3 +1,4 @@
+open Eliom_pervasives
 open Lwt
 
 
@@ -6,10 +7,10 @@ let ocsimore_admin_dir = "ocsimoreadmin"
       (* USEFUL STUFF *)
 
       (* these operators allow to write something like this:
-         list_item_1 ^:  
-         false % list_item_2 ^?  
-         true % list_item_3 ^?  
-         false % list_item_4 ^?  
+         list_item_1 ^:
+         false % list_item_2 ^?
+         true % list_item_3 ^?
+         false % list_item_4 ^?
          list_item_5 ^:
          []
          which evaluates to [list_item_1; list_item_3; list_item_5]. *)
@@ -69,7 +70,7 @@ let lwt_bind_opt o f = match o with
   | None -> Lwt.return None
   | Some s -> f s >>= fun r -> Lwt.return (Some r)
 
-let int_of_string_opt s = 
+let int_of_string_opt s =
   bind_opt s int_of_string
 
 let string_of_string_opt = function
@@ -78,7 +79,7 @@ let string_of_string_opt = function
 
 let rec lwt_filter f = function
   | [] -> Lwt.return []
-  | a::l -> 
+  | a::l ->
       let llt = lwt_filter f l in
       f a >>= fun b ->
       llt >>= fun ll ->
@@ -138,7 +139,7 @@ let remove_prefix ~s ~prefix =
   let slen = String.length s
   and preflen = String.length prefix in
   let preflast = preflen - 1 in
-  let first_diff = Ocsigen_lib.string_first_diff prefix s 0 preflen in
+  let first_diff = Eliom_pervasives.String.first_diff prefix s 0 preflen in
   if first_diff = preflen
   then Some (String.sub s preflen (slen - preflen))
   else if first_diff = preflast && slen = preflast
@@ -155,9 +156,9 @@ let remove_begin_slash s =
 let hidden_bool_input :
   value:bool ->
   [< bool Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  [>Xhtmltypes.input] XHTML.M.elt
+  [>XHTML_types.input] XHTML.M.elt
  = fun ~value name ->
-   Eliom_predefmod.Xhtml.user_type_input string_of_bool
+   Eliom_output.Xhtml.user_type_input string_of_bool
      ~input_type:`Hidden ~value ~name ()
 
 

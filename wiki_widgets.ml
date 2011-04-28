@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
@@ -66,14 +67,14 @@ end
 let wiki_css_header =
   Page_site.Header.create_header
     (fun sp ->
-       [Eliom_predefmod.Xhtml.css_link
-          (Page_site.static_file_uri sp ["ocsiwikistyle.css"])
+       [Eliom_output.Xhtml.css_link
+          (Page_site.static_file_uri ["ocsiwikistyle.css"])
           ()
        ]
     )
 
-let add_wiki_css_header sp =
-  Page_site.Header.require_header wiki_css_header ~sp;
+let add_wiki_css_header () =
+  Page_site.Header.require_header wiki_css_header;
 
 
 class wikibox_aux (error_box : Widget.widget_with_error_box)
@@ -81,7 +82,7 @@ class wikibox_aux (error_box : Widget.widget_with_error_box)
 object (self)
 
   method display_wikiboxcontent ~bi ~classes (wiki_syntax, content, _ver as wb)=
-    add_wiki_css_header bi.bi_sp;
+    add_wiki_css_header ();
     let wiki_parser = Wiki_models.get_flows_wiki_parser wiki_syntax in
     match content with
       | Some content ->
@@ -103,10 +104,10 @@ object (self)
   method display_basic_box (classes, content) =
     Lwt.return
       (XHTML.M.div ~a:[XHTML.M.a_class classes] content
-       : [`Div] XHTML.M.elt :> Xhtmltypes.block XHTML.M.elt)
+       : [`Div] XHTML.M.elt :> XHTML_types.block XHTML.M.elt)
 
-  method wrap_error ~sp ~wb r =
-    match Wiki_services.get_wikibox_error ~sp with
+  method wrap_error ~wb r =
+    match Wiki_services.get_wikibox_error () with
       | Some (wb', exc) when Some wb = wb' ->
           let err_msg = error_box#display_error_box ~exc () in
           [XHTML.M.div (err_msg :: r)]
@@ -127,10 +128,10 @@ object (self)
     Lwt.catch
       (fun () ->
          error_box#bind_or_display_error
-           (Wiki_data.wikibox_content bi.bi_rights bi.bi_sp wikibox)
+           (Wiki_data.wikibox_content bi.bi_rights wikibox)
            (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
          >>= self#display_basic_box >|= fun r ->
-         self#wrap_error ~sp:bi.bi_sp ~wb:wikibox [r]
+         self#wrap_error ~wb:wikibox [r]
       )
       (function
          | Ocsimore_common.Permission_denied ->
@@ -176,7 +177,6 @@ object (self)
     wb =
 
     let preapply = Eliom_services.preapply in
-    let sp = bi.bi_sp in
 
     match bi.bi_menu_style with
       | `None -> Lwt.return []
@@ -184,14 +184,16 @@ object (self)
 
     let history  = preapply Wiki_services.action_wikibox_history wb in
     let edit     = preapply Wiki_services.action_edit_wikibox wb in
-    let delete   = preapply Wiki_services.action_delete_wikibox wb in
+    (* UNUSED
+       let delete   = preapply Wiki_services.action_delete_wikibox wb in
+    *)
     let view     = Eliom_services.void_coservice' in
     let edit_wikibox_perm =
       preapply Wiki_services.action_edit_wikibox_permissions wb
     in
     (match special_box with
        | WikiPageBox (w, page) ->
-           (bi.bi_rights#can_create_wikipagecss sp (w, page) >|= function
+           (bi.bi_rights#can_create_wikipagecss (w, page) >|= function
               | true ->
                   let edit =
                     preapply
@@ -202,7 +204,7 @@ object (self)
               | false -> None
            )
        | WikiContainerBox w ->
-           (bi.bi_rights#can_create_wikicss sp w >|= function
+           (bi.bi_rights#can_create_wikicss w >|= function
               | true ->
                   let edit =
                     preapply
@@ -217,7 +219,7 @@ object (self)
     (match special_box with
        | RegularBox | WikiContainerBox _ -> Lwt.return None
        | WikiPageBox wp ->
-           bi.bi_rights#can_admin_wikipage sp wp >|= function
+           bi.bi_rights#can_admin_wikipage wp >|= function
              | true ->
                  let edit_wp =
                    preapply
@@ -230,8 +232,8 @@ object (self)
     (match special_box with
        | RegularBox | WikiPageBox _ -> Lwt.return None
        | WikiContainerBox w ->
-           bi.bi_rights#can_set_wiki_permissions sp w >>= fun b1 ->
-           bi.bi_rights#can_edit_metadata sp w        >>= fun b2 ->
+           bi.bi_rights#can_set_wiki_permissions w >>= fun b1 ->
+           bi.bi_rights#can_edit_metadata w        >>= fun b2 ->
            match b1 || b2 with
              | true ->
                  let edit_p =
@@ -268,10 +270,10 @@ object (self)
              | None -> None)
     in
     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-    bi.bi_rights#can_delete_wikiboxes ~sp wiki >>= fun wbdel ->
-    bi.bi_rights#can_write_wikibox ~sp wb >>= fun wbwr ->
-    bi.bi_rights#can_view_history ~sp wb >>= fun wbhist ->
-    bi.bi_rights#can_set_wikibox_specific_permissions ~sp wb >>= fun  wbperm ->
+    bi.bi_rights#can_delete_wikiboxes wiki >>= fun wbdel ->
+    bi.bi_rights#can_write_wikibox wb >>= fun wbwr ->
+    bi.bi_rights#can_view_history wb >>= fun wbhist ->
+    bi.bi_rights#can_set_wikibox_specific_permissions wb >>= fun  wbperm ->
     let menuedit =
       if wbwr
       then Some (edit, [XHTML.M.pcdata "edit"])
@@ -291,13 +293,16 @@ object (self)
       [menuedit; menuperm; menuhist; wp_prop; edit_wiki_perms; css]
       []
     in
+    (* UNUSED
     let menudel =
       if wbdel
       then (
 (* Failure "TODO: replace obrowser for deletion" *)
-        let link =
-          Eliom_predefmod.Xhtml.make_string_uri ~service:delete ~sp ()
+     (* UNUSED
+       let link =
+          Eliom_output.Xhtml.make_string_uri ~service:delete ~sp ()
         in
+     *)
         [XHTML.M.a
            ~a:[XHTML.M.a_class ["jslink"]]
            [XHTML.M.pcdata "delete"]
@@ -305,14 +310,15 @@ object (self)
       )
       else []
     in
+    *)
     match l, wbdel with
       | [], false -> Lwt.return [] (* empty list => no menu *)
       | _ ->
-          Wiki.wiki_admin_page_link sp ["crayon.png"] >>= fun img ->
+          Wiki.wiki_admin_page_link ["crayon.png"] >>= fun img ->
           let menu = Eliom_tools.Xhtml.menu
                        ~classe:["wikiboxmenu"]
                        (view, [XHTML.M.pcdata "view"]) l
-                       ?service ~sp
+                       ?service ()
           in
           (* Failure "TODO: generalize menus so that a function call can be used" *)
           (*
@@ -377,20 +383,20 @@ object (self)
     [XHTML.M.p
        (   warning1
         @ (Ocsimore_common.input_opaque_int32 ~value:wb wbname
-        :: Eliom_predefmod.Xhtml.int32_input ~input_type:`Hidden
+        :: Eliom_output.Xhtml.int32_input ~input_type:`Hidden
              ~name:versionname ~value:curversion ()
-        :: Eliom_predefmod.Xhtml.textarea
+        :: Eliom_output.Xhtml.textarea
               ~a:[XHTML.M.a_class ["wikitextarea"]]
               ~name:contentname ~rows ~cols
               ~value:content ()
         :: [XHTML.M.br ()])
         @  warning2
-        @ (Eliom_predefmod.Xhtml.string_button
+        @ (Eliom_output.Xhtml.string_button
              ~name:actionname ~value:"preview"
              [XHTML.M.pcdata "Preview"]
         :: (if previewonly
             then []
-            else [Eliom_predefmod.Xhtml.string_button
+            else [Eliom_output.Xhtml.string_button
                     ~name:actionname ~value:"save"
                     [XHTML.M.pcdata "Save"]
                  ]
@@ -405,7 +411,7 @@ object (self)
     let content = match content with
       | None -> "<<|  Deleted >>"
       | Some content -> content
-    and sp = bi.bi_sp in
+    in
     Wiki.modified_wikibox wb version >>=
     (function
        | Some curversion -> Lwt.return
@@ -429,9 +435,9 @@ object (self)
     ) >>= fun (curversion, warning1, warning2)  ->
     Lwt.return
       (classes,
-       Eliom_predefmod.Xhtml.post_form
+       Eliom_output.Xhtml.post_form
          ~a:[XHTML.M.a_accept_charset "utf-8"]
-         ~service:Wiki_services.action_send_wikiboxtext ~sp
+         ~service:Wiki_services.action_send_wikiboxtext
          (self#draw_edit_form ~rows ~cols wb warning1 warning2 curversion
             content previewonly) ())
 
@@ -448,7 +454,7 @@ object (self)
       ~page:Wiki_widgets_interface.wikisyntax_help_name
                                   >>= fun { wikipage_wikibox = wb_help } ->
     error_box#bind_or_display_error
-      (Wiki_data.wikibox_content bi.bi_rights bi.bi_sp wb_help)
+      (Wiki_data.wikibox_content bi.bi_rights wb_help)
       (self#display_wikiboxcontent ~bi ~classes:["wikihelp"])
     >>= self#display_basic_box                                 >>= fun b ->
     self#display_wikitext_edit_form ~bi ~classes:[] ?rows ?cols
@@ -466,7 +472,7 @@ object (self)
     let content = match content with
       | None -> "/* Deleted CSS */"
       | Some content -> content
-    and sp = bi.bi_sp in
+    in
     Wiki.modified_wikibox wbcss boxversion >>=
     (function
        | Some curversion -> Lwt.return
@@ -494,15 +500,15 @@ object (self)
              (match snd wikipage with
                 | None -> []
                 | Some page ->
-                    [Eliom_predefmod.Xhtml.string_input
+                    [Eliom_output.Xhtml.string_input
                        ~name:wikipagename ~input_type:`Hidden ~value:page ()
                     ]);
-             [Eliom_predefmod.Xhtml.int32_input
+             [Eliom_output.Xhtml.int32_input
                 ~input_type:`Hidden ~name:versionname ~value:curversion ();
-              Eliom_predefmod.Xhtml.textarea
+              Eliom_output.Xhtml.textarea
                 ~name:contentname ~rows ~cols ~value:content ();
               XHTML.M.br ();
-              Eliom_predefmod.Xhtml.button
+              Eliom_output.Xhtml.button
                 ~button_type:`Submit [XHTML.M.pcdata"Save"];
              ];
             ]
@@ -511,9 +517,9 @@ object (self)
     in
     Lwt.return
       (classes,
-       [Eliom_predefmod.Xhtml.post_form
+       [Eliom_output.Xhtml.post_form
           ~a:[XHTML.M.a_accept_charset "utf-8"]
-          ~service:Wiki_services.action_send_css ~sp draw_form ()]
+          ~service:Wiki_services.action_send_css draw_form ()]
       )
 
 
@@ -529,15 +535,15 @@ object (self)
         [XHTML.M.div
            [Ocsimore_common.input_opaque_int32 ~value:wb wbname;
             Ocsimore_lib.hidden_bool_input ~value srname;
-            Eliom_predefmod.Xhtml.button
+            Eliom_output.Xhtml.button
               ~button_type:`Submit [XHTML.M.pcdata textbt];
            ]
         ]
       in
-      Eliom_predefmod.Xhtml.post_form
+      Eliom_output.Xhtml.post_form
         ~a:[XHTML.M.a_accept_charset "utf-8"]
         ~service:Wiki_services.action_set_wikibox_special_permissions
-        ~sp:bi.bi_sp mform ()
+        mform ()
     in
     if sr = false then
       let msg = "The permissions for this wikibox are currently inherited from \
@@ -547,7 +553,7 @@ object (self)
       in
       Lwt.return (classes, [XHTML.M.pcdata msg; bt])
     else
-      user_widgets#form_edit_awr ~text_prefix:"Wikibox " ~sp:bi.bi_sp
+      user_widgets#form_edit_awr ~text_prefix:"Wikibox "
         ~grps:Wiki.wikibox_grps ~arg:wb ()
       >>= fun (formedit_hd, formedit_tl) ->
       let msg =
@@ -582,7 +588,7 @@ object (self)
 
 
   (** Form to edit the description and container of a wiki *)
-  method private display_edit_wiki_metadata ~sp ~classes ?wb wiki =
+  method private display_edit_wiki_metadata ~classes ?wb wiki =
     Wiki_sql.get_wiki_info_by_id wiki
         >>= fun { wiki_descr = descr; wiki_container = container } ->
     let form (wbname, (wikiname, (descrname, containername))) =
@@ -595,20 +601,20 @@ object (self)
                 | Some wb ->
                     [Ocsimore_common.input_opaque_int32 ~value:wb wbname]);
              [XHTML.M.pcdata "Description: ";
-              Eliom_predefmod.Xhtml.string_input ~name:descrname
+              Eliom_output.Xhtml.string_input ~name:descrname
                 ~input_type:`Text ~value:descr ();
               XHTML.M.br ();
               XHTML.M.pcdata "Container wikibox: ";
               Ocsimore_common.input_opaque_int32_opt ~hidden:false
                 ~value:container containername;
-              Eliom_predefmod.Xhtml.button ~button_type:`Submit
+              Eliom_output.Xhtml.button ~button_type:`Submit
                    [XHTML.M.pcdata "Save"];
              ];
             ]
          );
       ]
     in
-    let form = Eliom_predefmod.Xhtml.post_form ~sp
+    let form = Eliom_output.Xhtml.post_form
       ~a:[XHTML.M.a_accept_charset "utf-8"]
       ~service:Wiki_services.action_send_wiki_metadata form
       ()
@@ -616,16 +622,15 @@ object (self)
 
 
   method private display_edit_wiki_option_form
-         ~sp
          ~classes ?wb
          ~options ~perms
          wiki =
     (if options then
-       self#display_edit_wiki_metadata ~sp ~classes ?wb wiki
+       self#display_edit_wiki_metadata ~classes ?wb wiki
      else Lwt.return ([], [])
     ) >>= fun (cl1, f1) ->
     (if perms then
-       self#display_edit_wiki_perm_form ~sp ~classes ?wb wiki
+       self#display_edit_wiki_perm_form ~classes ?wb wiki
      else
        Lwt.return ([], [])
     ) >>= fun (cl2, f2) ->
@@ -634,9 +639,9 @@ object (self)
 
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
-  method display_edit_wiki_perm_form ~sp ~classes ?wb wiki =
+  method display_edit_wiki_perm_form ~classes ?wb wiki =
     let aux g text =
-      user_widgets#form_edit_group ~sp ~group:(g $ wiki)
+      user_widgets#form_edit_group ~group:(g $ wiki)
         ~text:[XHTML.M.p
                  ~a:[XHTML.M.a_class ["eliom_inline"]]
                  [XHTML.M.strong [XHTML.M.pcdata text]]
@@ -649,7 +654,7 @@ object (self)
     aux Wiki.wiki_wikiboxes_creators "Create wikiboxes" ()         >>= fun f4 ->
     aux Wiki.wiki_css_creators "Create CSS" ()                     >>= fun f5 ->
     aux Wiki.wiki_wikiboxes_deletors "Delete wikiboxes" ()         >>= fun f6 ->
-    user_widgets#form_edit_awr ~sp ~text_prefix:"Wikiboxes"
+    user_widgets#form_edit_awr ~text_prefix:"Wikiboxes"
       ~grps:Wiki.wiki_wikiboxes_grps ~arg:wiki ()      >>= fun (f7_hd, f7_tl) ->
     aux Wiki.wiki_files_readers "Read static files" ()             >>= fun f8 ->
     aux Wiki.wiki_wikiboxes_src_viewers "View wikiboxes source" () >>= fun f9 ->
@@ -763,7 +768,6 @@ object (self)
 
 
   method display_wikitext_history ~bi ~classes ~wb l =
-    let sp = bi.bi_sp in
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
@@ -774,10 +778,10 @@ object (self)
           XHTML.M.pcdata " ";
           XHTML.M.em [XHTML.M.pcdata " by "; XHTML.M.pcdata author];
           XHTML.M.pcdata " ";
-          Eliom_predefmod.Xhtml.a ~sp ~service:Wiki_services.action_old_wikibox
+          Eliom_output.Xhtml.a ~service:Wiki_services.action_old_wikibox
             [XHTML.M.pcdata "view"] (wb, version);
           XHTML.M.pcdata " (";
-          Eliom_predefmod.Xhtml.a ~sp ~service:Wiki_services.action_src_wikibox
+          Eliom_output.Xhtml.a ~service:Wiki_services.action_src_wikibox
             [XHTML.M.pcdata "source"] (wb, version);
           XHTML.M.pcdata ")";
           XHTML.M.br ();
@@ -788,7 +792,6 @@ object (self)
     >|= fun l -> (classes, l)
 
   method display_css_history ~bi ~classes ~wb ~wbcss ~wikipage l =
-    let sp = bi.bi_sp in
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
@@ -798,7 +801,7 @@ object (self)
           XHTML.M.pcdata (CalendarLib.Printer.Calendar.to_string date);
           XHTML.M.pcdata " ";
           XHTML.M.em [XHTML.M.pcdata "by "; XHTML.M.pcdata author];
-          Eliom_predefmod.Xhtml.a ~sp
+          Eliom_output.Xhtml.a
             ~service:Wiki_services.action_old_wikiboxcss
             [XHTML.M.pcdata "view"](wb, ((wikipage, wbcss), version));
           XHTML.M.br ();
@@ -821,10 +824,10 @@ object (self)
        [XHTML.M.p
          [Ocsimore_common.input_opaque_int32 ~value:wiki wikiidname;
           Ocsimore_common.input_opaque_int32 ~value:wb wbname;
-          Eliom_predefmod.Xhtml.string_input
+          Eliom_output.Xhtml.string_input
             ~name:pagename ~input_type:`Hidden ~value:page ();
           XHTML.M.pcdata "Title of the wikipage: ";
-          Eliom_predefmod.Xhtml.string_input ~name:titlename
+          Eliom_output.Xhtml.string_input ~name:titlename
             ~input_type:`Text
             ~value:(match wp.wikipage_title with None -> "" | Some s -> s)
             ();
@@ -838,35 +841,35 @@ object (self)
           XHTML.M.br ();
 
           XHTML.M.pcdata "Path of the wikipage inside the wiki";
-          Eliom_predefmod.Xhtml.string_input ~name:pathname
+          Eliom_output.Xhtml.string_input ~name:pathname
                  ~input_type:`Text ~value:wp.wikipage_page ();
           XHTML.M.pcdata "Notice that changing this path will ";
           XHTML.M.em [XHTML.M.pcdata "not"];
           XHTML.M.pcdata " update links to this wikipage.";
           XHTML.M.br ();
 
-          Eliom_predefmod.Xhtml.button
+          Eliom_output.Xhtml.button
             ~button_type:`Submit [XHTML.M.pcdata "Save"];
          ]
        ]
      in
      Lwt.return
       (classes,
-       [Eliom_predefmod.Xhtml.post_form
+       [Eliom_output.Xhtml.post_form
           ~a:[XHTML.M.a_accept_charset "utf-8"]
-          ~service:Wiki_services.action_send_wikipage_properties ~sp:bi.bi_sp
+          ~service:Wiki_services.action_send_wikipage_properties
           draw_form ()]
       )
 
   method private display_edit_css_list ~bi ~classes ~(wb:wikibox) wikipage =
-    let wiki, page = wikipage and sp = bi.bi_sp in
+    let wiki, page = wikipage in
     (match page with
       | None -> Wiki_sql.get_css_for_wiki ~wiki
       | Some page -> Wiki_sql.get_css_for_wikipage ~wiki ~page
     ) >>= fun l ->
     (match page with
-       | None -> bi.bi_rights#can_create_wikicss sp wiki
-       | Some page -> bi.bi_rights#can_create_wikipagecss sp (wiki, page)
+       | None -> bi.bi_rights#can_create_wikicss wiki
+       | Some page -> bi.bi_rights#can_create_wikipagecss (wiki, page)
     ) >>= fun can_create ->
     let select_media name media =
       let l = [ `Braille; `Embossed; `Handheld; `Print;
@@ -875,14 +878,14 @@ object (self)
       let in_media m = List.mem m media in
       let l =
         List.map
-          (fun s -> Eliom_predefmod.Xhtml.Option ([], s, None, in_media s))
+          (fun s -> Eliom_output.Xhtml.Option ([], s, None, in_media s))
           l
       in
-      Eliom_predefmod.Xhtml.user_type_multiple_select
+      Eliom_output.Xhtml.user_type_multiple_select
         (fun x -> Wiki_types.string_of_media_type [x])
         ~name
         ~a:[XHTML.M.a_style "vertical-align: top"; XHTML.M.a_size 5]
-        (Eliom_predefmod.Xhtml.Option ([],
+        (Eliom_output.Xhtml.Option ([],
                                        `All,
                                        Some (XHTML.M.pcdata "all media"),
                                        in_media `All)
@@ -890,29 +893,29 @@ object (self)
         l
     in
     let aux ((wbcss, media, rank), (_, ver)) =
-      bi.bi_rights#can_view_history ~sp wbcss                 >>= fun csshist ->
-      bi.bi_rights#can_write_wikibox ~sp wbcss                >>= fun csswr ->
-      bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss
+      bi.bi_rights#can_view_history wbcss                 >>= fun csshist ->
+      bi.bi_rights#can_write_wikibox wbcss                >>= fun csswr ->
+      bi.bi_rights#can_set_wikibox_specific_permissions wbcss
                                                               >>= fun cssperm ->
       let wbcss_ = ((wiki, page), wbcss) in
       let v1 = if csshist then
-        [Eliom_predefmod.Xhtml.a ~sp ~service:Wiki_services.action_css_history
+        [Eliom_output.Xhtml.a ~service:Wiki_services.action_css_history
            [XHTML.M.pcdata "History"] (wb, wbcss_)
         ]
       else []
       and v2 = if csswr then
-        [Eliom_predefmod.Xhtml.a ~sp ~service:Wiki_services.action_edit_css
+        [Eliom_output.Xhtml.a ~service:Wiki_services.action_edit_css
            [XHTML.M.pcdata "Edit"] (wb, (wbcss_, None))
         ]
       else []
       and v3 = if cssperm then
-        [Eliom_predefmod.Xhtml.a ~sp
+        [Eliom_output.Xhtml.a
            ~service:Wiki_services.action_css_permissions
            [XHTML.M.pcdata "Permissions"] (wb, wbcss_)
         ]
       else []
       and v4 =
-        [Eliom_predefmod.Xhtml.a ~sp
+        [Eliom_output.Xhtml.a
            ~service:Wiki_services.action_old_wikiboxcss
            [XHTML.M.pcdata "View"] (wb, (wbcss_, ver))
         ]
@@ -925,7 +928,7 @@ object (self)
                 Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn;
                 Ocsimore_common.input_opaque_int32 ~value:wiki wikin;
                 XHTML.M.pcdata "CSS ";
-                Eliom_predefmod.Xhtml.int32_input ~input_type:`Text
+                Eliom_output.Xhtml.int32_input ~input_type:`Text
                    ~a:[XHTML.M.a_size 2] ~value:rank ~name:rankn ();
                 XHTML.M.pcdata "(Id ";
                 XHTML.M.pcdata (Opaque.int32_t_to_string wbcss);
@@ -934,13 +937,13 @@ object (self)
                (match page with
                   | None -> []
                   | Some page ->
-                      [Eliom_predefmod.Xhtml.string_input ~name:wpn
+                      [Eliom_output.Xhtml.string_input ~name:wpn
                            ~input_type:`Hidden ~value:page ()
                       ]
                );
                [select_media median media;
                 XHTML.M.pcdata " ";
-                Eliom_predefmod.Xhtml.button ~button_type:`Submit
+                Eliom_output.Xhtml.button ~button_type:`Submit
                    [XHTML.M.pcdata " Update media and CSS order"];
                 XHTML.M.pcdata " "];
               ]
@@ -959,16 +962,16 @@ object (self)
               [[Ocsimore_common.input_opaque_int32 ~value:wb wbn;
                 Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn;
                 Ocsimore_common.input_opaque_int32 ~value:wiki wikin;
-                Eliom_predefmod.Xhtml.int32_input ~input_type:`Hidden
+                Eliom_output.Xhtml.int32_input ~input_type:`Hidden
                    ~value:rank ~name:rankn ()];
                (match page with
                   | None -> []
                   | Some page ->
-                      [Eliom_predefmod.Xhtml.string_input ~name:wpn
+                      [Eliom_output.Xhtml.string_input ~name:wpn
                            ~input_type:`Hidden ~value:page ()
                       ]
                );
-               [Eliom_predefmod.Xhtml.button ~button_type:`Submit
+               [Eliom_output.Xhtml.button ~button_type:`Submit
                    [XHTML.M.pcdata " Remove CSS"];
                ];
               ]
@@ -978,14 +981,14 @@ object (self)
       if can_create then Lwt.return
         [XHTML.M.div
            (List.flatten
-              [[Eliom_predefmod.Xhtml.post_form ~keep_get_na_params:true
+              [[Eliom_output.Xhtml.post_form ~keep_get_na_params:true
                   ~a:[XHTML.M.a_accept_charset "utf-8";
                       XHTML.M.a_class ["eliom_inline"]]
-                  ~service:Wiki_services.action_send_css_options ~sp fupdate ();
-                Eliom_predefmod.Xhtml.post_form ~keep_get_na_params:true
+                  ~service:Wiki_services.action_send_css_options fupdate ();
+                Eliom_output.Xhtml.post_form ~keep_get_na_params:true
                   ~a:[XHTML.M.a_accept_charset "utf-8";
                       XHTML.M.a_class ["eliom_inline"]]
-                  ~service:Wiki_services.action_send_css_options ~sp fdelete ();
+                  ~service:Wiki_services.action_send_css_options fdelete ();
                 XHTML.M.pcdata " "];
                v4;
                [XHTML.M.pcdata " / "];
@@ -1015,7 +1018,7 @@ object (self)
       Lwt.return [XHTML.M.pcdata "There are currently no CSS"]
      else
        Lwt_list.fold_left_s
-         (fun (x : Xhtmltypes.div_content XHTML.M.elt list) e ->
+         (fun (x : XHTML_types.div_content XHTML.M.elt list) e ->
             aux e >|= fun e -> x @ (XHTML.M.br () :: e)
          )
          []
@@ -1032,7 +1035,7 @@ object (self)
               (match page with
                  | None -> []
                  | Some page ->
-                     [Eliom_predefmod.Xhtml.string_input ~name:wpn
+                     [Eliom_output.Xhtml.string_input ~name:wpn
                         ~input_type:`Hidden ~value:page ()
                      ]
               );
@@ -1044,7 +1047,7 @@ object (self)
                XHTML.M.pcdata
                  "Type an existing CSS id, or leave blank to create a new CSS";
                XHTML.M.br ();
-               Eliom_predefmod.Xhtml.button ~button_type:`Submit
+               Eliom_output.Xhtml.button ~button_type:`Submit
                  [XHTML.M.pcdata "Add"]];
              ]
            )
@@ -1052,7 +1055,7 @@ object (self)
        in Lwt.return
             (   forms
              @ [XHTML.M.br ();
-                Eliom_predefmod.Xhtml.post_form ~sp
+                Eliom_output.Xhtml.post_form
                   ~a:[XHTML.M.a_accept_charset "utf-8"]
                   ~service:Wiki_services.action_create_css mform ();
                ]
@@ -1069,8 +1072,7 @@ object (self)
       ?special_box wb =
 
     let classes = wikibox_class::classes in
-    let sp = bi.bi_sp in
-    let override = Wiki_services.get_override_wikibox ~sp in
+    let override = Wiki_services.get_override_wikibox () in
     (match override with
        | Some (wb', override) when wb = wb' ->
            self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
@@ -1080,7 +1082,7 @@ object (self)
        | _ ->
            Lwt.catch
              (fun () ->
-                Wiki_data.wikibox_content bi.bi_rights sp wb >|= fun c ->
+                Wiki_data.wikibox_content bi.bi_rights wb >|= fun c ->
                 (Lwt.return c, true)
              )
              (fun e -> Lwt.return (Lwt.fail e, false)) >>= fun (c, code) ->
@@ -1090,11 +1092,10 @@ object (self)
            >>= (self#menu_view ~bi ?special_box wb) >|= fun r ->
            (r, code)
     ) >|= fun (r, code) ->
-    (self#wrap_error ~sp ~wb r, code)
+    (self#wrap_error ~wb r, code)
 
   method display_overriden_interactive_wikibox
     ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override () =
-    let sp = bi.bi_sp in
     let display_error () =
       Lwt.return
         ([error_box#display_error_box
@@ -1104,17 +1105,19 @@ object (self)
          false)
     and ok r = Lwt.return (r, true)
     in
+    (* UNUSED
     let place_second_in_list (x,y) = Lwt.return (x,[y]) in
+    *)
     match override with
       | EditWikitext wb ->
-          (bi.bi_rights#can_write_wikibox ~sp wb >>= function
+          (bi.bi_rights#can_write_wikibox wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_content' bi.bi_rights bi.bi_sp wb)
+                  (Wiki_data.wikibox_content' bi.bi_rights wb)
                   (fun x ->
                      self#display_wikitext_edit_form_help ~bi ?cols ?rows
                        ~previewonly:true ~wb ~classes x >|= fun (s,b) ->
-                     (s, (b :Xhtmltypes.block XHTML.M.elt list :> Xhtmltypes.div_content XHTML.M.elt list))
+                     (s, (b :XHTML_types.block XHTML.M.elt list :> XHTML_types.div_content XHTML.M.elt list))
                   )
                 >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
                 >>= ok
@@ -1122,11 +1125,11 @@ object (self)
           )
 
       | EditCss ((wikipage, wbcss), css) ->
-          (bi.bi_rights#can_write_wikibox ~sp wbcss >>= function
+          (bi.bi_rights#can_write_wikibox wbcss >>= function
             | true ->
                 error_box#bind_or_display_error
                   (match css with
-                     | None -> Wiki_data.wikibox_content' bi.bi_rights sp wbcss
+                     | None -> Wiki_data.wikibox_content' bi.bi_rights wbcss
                      | Some (content, version) ->
                      Lwt.return (Some content, version)
                   )
@@ -1143,7 +1146,7 @@ object (self)
           >>= ok
 
       | EditWikiboxPerms wb ->
-          (bi.bi_rights#can_set_wikibox_specific_permissions ~sp wb >>= function
+          (bi.bi_rights#can_set_wikibox_specific_permissions wb >>= function
             | true ->
                 self#display_edit_wikibox_perm_form ~bi ~classes wb
                 >>=  (self#menu_edit_wikibox_perms ~bi ?special_box wb_loc)
@@ -1152,11 +1155,11 @@ object (self)
           )
 
       | EditWikiOptions wiki ->
-          (bi.bi_rights#can_set_wiki_permissions ~sp wiki >>= fun b1 ->
-           bi.bi_rights#can_edit_metadata ~sp wiki        >>= fun b2 ->
+          (bi.bi_rights#can_set_wiki_permissions wiki >>= fun b1 ->
+           bi.bi_rights#can_edit_metadata wiki        >>= fun b2 ->
            match b1 || b2 with
             | true ->
-                (self#display_edit_wiki_option_form ~sp:bi.bi_sp ~classes
+                (self#display_edit_wiki_option_form ~classes
                    ~wb:wb_loc ~options:b2 ~perms:b1 wiki)
                 >>= (self#menu_edit_wiki_options ~bi ?special_box wb_loc wiki)
                 >>= ok
@@ -1164,10 +1167,10 @@ object (self)
           )
 
       | PreviewWikitext (wb, (content, version)) ->
-          (bi.bi_rights#can_write_wikibox ~sp wb >>= function
+          (bi.bi_rights#can_write_wikibox wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_content ~sp ~version~rights:bi.bi_rights wb
+                  (Wiki_data.wikibox_content ~version~rights:bi.bi_rights wb
                    >|= fun (syntax, _, _) -> (syntax, (Some content, version)))
                   (fun (syntax, (content, version as cv)) ->
                      let bi' =
@@ -1188,8 +1191,8 @@ object (self)
                              [XHTML.M.pcdata "Preview"]
                         :: prev
                         :: form)
-                       : Xhtmltypes.block XHTML.M.elt list
-                       :> Xhtmltypes.div_content XHTML.M.elt list)
+                       : XHTML_types.block XHTML.M.elt list
+                       :> XHTML_types.div_content XHTML.M.elt list)
                      )
                   )
                 >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
@@ -1198,7 +1201,7 @@ object (self)
           )
 
       | EditWikipageProperties wp ->
-          (bi.bi_rights#can_admin_wikipage ~sp wp >>= function
+          (bi.bi_rights#can_admin_wikipage wp >>= function
              | true ->
                 self#display_edit_wikipage_properties ~bi ~classes ~wb:wb_loc wp
                 >>= (self#menu_edit_wikipage_properties ~bi ?special_box
@@ -1208,10 +1211,10 @@ object (self)
           )
 
       | History wb ->
-          (bi.bi_rights#can_view_history ~sp wb >>= function
+          (bi.bi_rights#can_view_history wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_history bi.bi_rights sp wb)
+                  (Wiki_data.wikibox_history bi.bi_rights wb)
                   (self#display_wikitext_history ~bi ~classes ~wb)
                 >>= (self#menu_wikitext_history ~bi ?special_box wb_loc)
                 >>= ok
@@ -1219,10 +1222,10 @@ object (self)
           )
 
       | CssHistory ((wiki, wikipage), wbcss) ->
-          (bi.bi_rights#can_view_history ~sp wbcss >>= function
+          (bi.bi_rights#can_view_history wbcss >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_history bi.bi_rights sp wbcss)
+                  (Wiki_data.wikibox_history bi.bi_rights wbcss)
                   (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss
                      ~wikipage:(wiki,wikipage))
                 >>= (self#menu_css_history ~bi ?special_box wb_loc
@@ -1232,7 +1235,7 @@ object (self)
           )
 
       | CssPermissions ((wiki, wikipage), wbcss) ->
-          (bi.bi_rights#can_set_wikibox_specific_permissions ~sp wbcss
+          (bi.bi_rights#can_set_wikibox_specific_permissions wbcss
                                                                    >>= function
             | true ->
                 (self#display_edit_wikibox_perm_form ~bi ~classes wbcss)
@@ -1243,10 +1246,10 @@ object (self)
           )
 
       | Oldversion (wb, version) ->
-          (bi.bi_rights#can_view_oldversions ~sp wb >>= function
+          (bi.bi_rights#can_view_oldversions wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_content ~sp ~version ~rights:bi.bi_rights wb)
+                  (Wiki_data.wikibox_content ~version ~rights:bi.bi_rights wb)
                   (self#display_wikiboxcontent ~classes
                      ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
                 >>= (self#menu_old_wikitext ~bi ?special_box wb_loc version)
@@ -1255,10 +1258,10 @@ object (self)
           )
 
       | CssOldversion (((wiki, page), wbcss), version) ->
-          (bi.bi_rights#can_view_oldversions ~sp wbcss >>= function
+          (bi.bi_rights#can_view_oldversions wbcss >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_content ~sp ~version
+                  (Wiki_data.wikibox_content ~version
                      ~rights:bi.bi_rights wbcss)
                   (self#display_raw_wikiboxcontent ~classes)
                 >>= (self#menu_old_css ~bi ?special_box wb_loc (wiki, page))
@@ -1267,10 +1270,10 @@ object (self)
           )
 
       | Src (wb, version)->
-          (bi.bi_rights#can_view_oldversions_src ~sp wb >>= function
+          (bi.bi_rights#can_view_oldversions_src wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_content ~sp
+                  (Wiki_data.wikibox_content
                      ~version ~rights:bi.bi_rights wb)
                   (self#display_raw_wikiboxcontent ~classes)
                 >>= (self#menu_src_wikitext ~bi ?special_box wb_loc version)
@@ -1281,19 +1284,19 @@ object (self)
 
    method display_interactive_wikibox
      ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
-     add_wiki_css_header bi.bi_sp;
+     add_wiki_css_header ();
      self#display_interactive_wikibox_aux
        ~bi ?rows ?cols ~classes ?special_box wb
      >|= fst (*fun (r, _allowed) -> Lwt.return r*)
 
 
-   method css_header ~sp ?page wiki =
+   method css_header ?page wiki =
      let css_url_service service args media =
-       Eliom_predefmod.Xhtml.css_link
+       Eliom_output.Xhtml.css_link
          ?a:(if media = []
              then None
              else Some [XHTML.M.a_media media])
-         ~uri:(Eliom_predefmod.Xhtml.make_uri ~service ~sp args)
+         ~uri:(Eliom_output.Xhtml.make_uri ~service args)
        ()
      in
      (match Wiki_self_services.find_servwikicss wiki with
@@ -1321,19 +1324,19 @@ object (self)
            Lwt.return (css @ ll)
 
    method private display_container
-     ~sp ~wiki ~menu_style ~page:(page, page_list) ~gen_box =
+     ~wiki ~menu_style ~page:(page, page_list) ~gen_box =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
      gen_box menu_style >>= fun (wbid, subbox, err_code, title) ->
-     Wiki_widgets_interface.set_page_displayable sp err_code;
+     Wiki_widgets_interface.set_page_displayable err_code;
 
      (* We render the container, if it exists *)
      (match wb_container with
         | None -> Lwt.return [XHTML.M.div subbox]
 
         | Some wb_container ->
-            Wiki.default_bi ~sp ~rights ~wikibox:wb_container >>= fun bi ->
+            Wiki.default_bi ~rights ~wikibox:wb_container >>= fun bi ->
             let fsubbox ms =
               if ms = menu_style then
                 Lwt.return (Some (wbid, subbox))
@@ -1350,7 +1353,7 @@ object (self)
 
      ) >>= fun pagecontent ->
 
-     self#css_header ~sp ~page wiki >>= fun css ->
+     self#css_header ~page wiki >>= fun css ->
 
      let title = (match title with
                     | Some title -> title
@@ -1360,13 +1363,13 @@ object (self)
        | Wiki_widgets_interface.Page_404 -> 404
        | Wiki_widgets_interface.Page_403 -> 403
      in
-     Page_site.html_page ~sp ~css ~title pagecontent >>= fun r ->
+     Page_site.html_page ~css ~title pagecontent >>= fun r ->
      Lwt.return (r, code)
 
 
    (* Displays the wikibox corresponding to a wikipage. This function, properly
       applied, is suitable for use with [display_container]. *)
-   method private display_wikipage_wikibox ~sp ~wiki ~page:(page, page_list) =
+   method private display_wikipage_wikibox ~wiki ~page:(page, page_list) =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
@@ -1376,7 +1379,7 @@ object (self)
           (* We render the wikibox for the page *)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
-          Wiki.default_bi ~sp ~wikibox:box ~rights >>= fun bi ->
+          Wiki.default_bi ~wikibox:box ~rights >>= fun bi ->
           let bi = { bi with bi_page = wiki, Some page_list;
                              bi_menu_style = menu_style } in
           self#display_interactive_wikibox_aux ~bi
@@ -1407,19 +1410,19 @@ object (self)
                              [Ocsimore_common.input_opaque_int32
                                    ~value:container wbname]
                       );
-                      [Eliom_predefmod.Xhtml.string_input ~name:pagename
+                      [Eliom_output.Xhtml.string_input ~name:pagename
                          ~input_type:`Hidden ~value:page ();
-                       Eliom_predefmod.Xhtml.string_input
+                       Eliom_output.Xhtml.string_input
                          ~input_type:`Submit ~value:"Create it!" ();
                       ];
                      ]
                   )
                 ]
               in
-              rights#can_create_wikipages sp wiki >>= fun c ->
+              rights#can_create_wikipages wiki >>= fun c ->
               let form =
                 if c then
-                  [Eliom_predefmod.Xhtml.post_form ~sp
+                  [Eliom_output.Xhtml.post_form
                      ~service:Wiki_services.action_create_page draw_form ()
                   ]
                 else []
@@ -1437,23 +1440,23 @@ object (self)
 
    (* Displaying of an entire page. We just pass the proper rendering
    function to [display_container] *)
-   method display_wikipage ~sp ~wiki ~menu_style ~page =
-     self#display_wikipage_wikibox ~sp ~wiki ~page >>= fun g ->
-     self#display_container ~sp ~wiki ~menu_style ~page
+   method display_wikipage ~wiki ~menu_style ~page =
+     self#display_wikipage_wikibox ~wiki ~page >>= fun g ->
+     self#display_container ~wiki ~menu_style ~page
        ~gen_box:(fun x ->
                    (g x : (Wiki_types.wikibox option *
-                           Xhtmltypes.block XHTML.M.elt list *
+                           XHTML_types.block XHTML.M.elt list *
                            Wiki_widgets_interface.page_displayable *
                            string option) Lwt.t
                         :> (Wiki_types.wikibox option *
-                            Xhtmltypes.div_content XHTML.M.elt list *
+                            XHTML_types.div_content XHTML.M.elt list *
                             Wiki_widgets_interface.page_displayable *
                             string option) Lwt.t
                    )
                 )
 
 
-   method display_all_wikis ~sp =
+   method display_all_wikis =
      (* Lists of all wikis *)
      let l = ref [] in
      Wiki_sql.iter_wikis (fun w -> Lwt.return (l := w :: !l)) >>= fun () ->
@@ -1462,14 +1465,14 @@ object (self)
      in
 
      let line w =
-       let img path text = [Page_site.icon ~sp ~path ~text] in
+       let img path text = [Page_site.icon ~path ~text] in
        let id = Opaque.int32_t_to_string w.wiki_id in
        let edit =
-         Eliom_predefmod.Xhtml.a ~service:Wiki_services.edit_wiki ~sp
+         Eliom_output.Xhtml.a ~service:Wiki_services.edit_wiki
            (img "imgedit.png" "Edit wiki options") w.wiki_id
        in
        let edit_perm =
-         Eliom_predefmod.Xhtml.a ~sp
+         Eliom_output.Xhtml.a
            ~service:Wiki_services.edit_wiki_permissions_admin
            (img "imgeditperms.png" "View permissions") w.wiki_id
        in
@@ -1477,7 +1480,7 @@ object (self)
          match Wiki_self_services.find_servpage w.wiki_id with
            | None -> []
            | Some service ->
-               [Eliom_predefmod.Xhtml.a ~service ~sp
+               [Eliom_output.Xhtml.a ~service
                   (img "imgview.png" "View wiki root wikipage") []
                ]
        in
@@ -1525,18 +1528,18 @@ object (self)
        (List.flatten
           [warning1;
            [Ocsimore_common.input_opaque_int32 ~value:wb wbname;
-            Eliom_predefmod.Xhtml.int32_input ~input_type:`Hidden
+            Eliom_output.Xhtml.int32_input ~input_type:`Hidden
               ~name:versionname ~value:curversion ();
-            Eliom_predefmod.Xhtml.string_input
+            Eliom_output.Xhtml.string_input
               ~a:[XHTML.M.a_class ["wikitextarea"]]
               ~input_type:`Text ~name:contentname ~value:content ();
             XHTML.M.br ()];
            warning2;
-           [Eliom_predefmod.Xhtml.string_button
+           [Eliom_output.Xhtml.string_button
               ~name:actionname ~value:"preview" [XHTML.M.pcdata "Preview"]];
            (if previewonly
             then []
-            else [Eliom_predefmod.Xhtml.string_button ~name:actionname
+            else [Eliom_output.Xhtml.string_button ~name:actionname
                     ~value:"save" [XHTML.M.pcdata "Save"] ]);
           ]
        )

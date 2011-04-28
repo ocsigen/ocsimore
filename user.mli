@@ -71,7 +71,7 @@ val create_user:
   pwd:pwd ->
   fullname:string ->
   ?email:string ->
-  ?test:(sp:Eliom_sessions.server_params -> bool Lwt.t) ->
+  ?test:(unit -> bool Lwt.t) ->
   unit ->
   userid Lwt.t
 
@@ -103,21 +103,20 @@ val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
 
 
 val in_group :
-  sp:Eliom_sessions.server_params ->
   ?user:user -> group:user -> unit -> bool Lwt.t
 
 
 
 (** Informations on the loggued user *)
 
-val get_user_data : sp:Eliom_sessions.server_params -> userdata Lwt.t
-val get_user_id : sp:Eliom_sessions.server_params -> userid Lwt.t
-val get_user_name : sp:Eliom_sessions.server_params -> string Lwt.t
+val get_user_data : unit -> userdata Lwt.t
+val get_user_id : unit -> userid Lwt.t
+val get_user_name : unit -> string Lwt.t
 
-val is_logged_on : sp:Eliom_sessions.server_params -> bool Lwt.t
+val is_logged_on : unit -> bool Lwt.t
 
 
-val set_session_data : sp:Eliom_sessions.server_params -> userid * string -> unit Lwt.t
+val set_session_data : userid * string -> unit Lwt.t
 
 
 val user_from_userlogin_xform: string -> user Xform.convert Lwt.t

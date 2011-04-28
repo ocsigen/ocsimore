@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Forum_types
 
@@ -62,18 +63,18 @@ val thread_readers_evennotmoderated  : message_arg parameterized_group
 
 (** Creates a new forum or returns its id without modification
     if it already exists. *)
-val create_forum : 
+val create_forum :
   wiki_model:Wiki_types.wiki_model ->
-  title_syntax:Xhtmltypes_duce.inlines Wiki_types.content_type ->
-  title:string -> 
-  descr:string -> 
-  ?arborescent:bool -> 
+  title_syntax:XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type ->
+  title:string ->
+  descr:string ->
+  ?arborescent:bool ->
   unit ->
   Forum_types.forum_info Lwt.t
 
 (** {2 Session data} *)
 
-type role = 
+type role =
     {
       message_creators : bool Lwt.t Lazy.t;
       message_creators_notmod : bool Lwt.t Lazy.t;
@@ -113,7 +114,6 @@ type role =
 
 
 val get_role : 
-  sp:Eliom_sessions.server_params ->
   Forum_types.forum -> role Lwt.t
 
 
@@ -138,25 +138,25 @@ val eliom_message :
 
 (** Eliom input field for forums *)
 val eliom_forum_input : 
-  ?a:Eliom_duce.Xhtml.input_attrib_t ->
-  input_type: Eliom_duce.Xhtml.input_type_t ->
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  input_type:[< Eliom_output.Xhtml.basic_input_type ] ->
   ?name:[< Forum_types.forum Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  ?value:Forum_types.forum -> unit -> Eliom_duce.Xhtml.input_elt
+  ?value:Forum_types.forum -> unit -> [> XHTML_types.input ] XHTML.M.elt
 
 (** Eliom input field for messages *)
 val eliom_message_input : 
-  ?a:Eliom_duce.Xhtml.input_attrib_t ->
-  input_type: Eliom_duce.Xhtml.input_type_t ->
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  input_type:[< Eliom_output.Xhtml.basic_input_type ] ->
   ?name:[< Forum_types.message Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  ?value:Forum_types.message -> unit -> Eliom_duce.Xhtml.input_elt
+  ?value:Forum_types.message -> unit -> [> XHTML_types.input ] XHTML.M.elt
 
 (** Eliom button for messages *)
 val eliom_message_button :
-  ?a:Eliom_duce.Xhtml.button_attrib_t ->
+  ?a:XHTML_types.button_attrib XHTML.M.attrib list ->
   name:[< Forum_types.message Eliom_parameters.setone ] Eliom_parameters.param_name ->
   value:Forum_types.message ->
-  {{ [ Xhtmltypes_duce.button_content* ] }} ->
-  Xhtmltypes_duce.button
+  XHTML_types.button_content XHTML.M.elt list ->
+  [> XHTML_types.button ] XHTML.M.elt
 
 
 (** {2 } *)

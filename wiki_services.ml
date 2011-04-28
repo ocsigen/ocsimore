@@ -25,6 +25,7 @@ These are all the services related to wikis
 
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
@@ -44,16 +45,16 @@ let override_wikibox_key : (wikibox * wikibox_override) Polytables.key =
 
 (** How to change the display of a wikibox: which wikibox is concerned,
    and what should be displayed instead *)
-let get_override_wikibox ~sp =
+let get_override_wikibox () =
   try
     Some (Polytables.get
-            ~table:(Eliom_sessions.get_request_cache ~sp)
+            ~table:(Eliom_request_info.get_request_cache ())
             ~key:override_wikibox_key)
   with Not_found -> None
 
-let set_override_wikibox ~sp v =
+let set_override_wikibox v =
   Polytables.set
-    ~table:(Eliom_sessions.get_request_cache ~sp)
+    ~table:(Eliom_request_info.get_request_cache ())
     ~key:override_wikibox_key
     ~value:v
 
@@ -62,16 +63,16 @@ let wikibox_error_key : (wikibox option * exn) Polytables.key =
   Polytables.make_key ()
 
 (** The error to display in the wikibox *)
-let get_wikibox_error ~sp =
+let get_wikibox_error () =
   try
     Some (Polytables.get
-            ~table:(Eliom_sessions.get_request_cache ~sp)
+            ~table:(Eliom_request_info.get_request_cache ())
             ~key:wikibox_error_key)
   with Not_found -> None
 
-let set_wikibox_error ~sp v =
+let set_wikibox_error v =
   Polytables.set
-    ~table:(Eliom_sessions.get_request_cache ~sp)
+    ~table:(Eliom_request_info.get_request_cache ())
     ~key:wikibox_error_key
     ~value:v
 
@@ -81,7 +82,6 @@ let set_wikibox_error ~sp v =
 
 let send_wikipage
   ~(rights : Wiki_types.wiki_rights)
-  ~sp
   ~wiki
   ?(menu_style=`Linear)
   ~page
@@ -92,8 +92,8 @@ let send_wikipage
   Lwt.catch
     (fun () -> match wiki_info.wiki_staticdir with
        | Some dir ->
-           Eliom_predefmod.Files.send ~sp (dir ^"/"^ fst page) >>= fun r ->
-           (rights#can_view_static_files sp wiki >>= function (*RRR: This should be generalized and exported *)
+           Eliom_output.Files.send (dir ^"/"^ fst page) >>= fun r ->
+           (rights#can_view_static_files wiki >>= function (*RRR: This should be generalized and exported *)
               | true -> Lwt.return r
               | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
            )
@@ -102,9 +102,9 @@ let send_wikipage
        | Eliom_common.Eliom_404 ->
            Wiki_sql.get_wiki_info_by_id wiki             >>= fun wiki_info ->
            let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
-           widgets#display_wikipage ~sp ~wiki ~menu_style ~page
+           widgets#display_wikipage ~wiki ~menu_style ~page
                                                          >>= fun (html, code) ->
-           Eliom_predefmod.Xhtml.send ~sp ~code html
+           Eliom_output.Xhtml.send ~code html
        | e -> Lwt.fail e
     )
 
@@ -121,36 +121,36 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
      at URL / and another one at URL /wiki and it works,
      whatever be the order of registration *)
   let servpage =
-    Eliom_predefmod.Any.register_new_service ~path ?sp
+    Eliom_output.Any.register_service ~path
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
-      (fun sp path () ->
-         let page' = Ocsigen_lib.string_of_url_path ~encode:false path in
-         send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
+      (fun path () ->
+         let page' = Url.string_of_url_path ~encode:false path in
+         send_wikipage ~rights ~wiki ~page:(page', path) ()
       )
   in
   Wiki_self_services.add_servpage wiki servpage;
 
   (* the same, but non attached: *)
   let naservpage =
-    Eliom_predefmod.Any.register_new_coservice' ?sp
+    Eliom_output.Any.register_coservice'
       ~name:("display"^string_of_wiki wiki)
       ~get_params:(Eliom_parameters.string "page")
-      (fun sp page () ->
+      (fun page () ->
          let path =
-           Ocsigen_lib.remove_slash_at_beginning (Neturl.split_path page)
+           Url.remove_slash_at_beginning (Neturl.split_path page)
          in
-         let page' = Ocsigen_lib.string_of_url_path ~encode:false path in
-         send_wikipage ~rights ~sp ~wiki ~page:(page', path) ()
+         let page' = Url.string_of_url_path ~encode:false path in
+         send_wikipage ~rights ~wiki ~page:(page', path) ()
       )
   in
   Wiki_self_services.add_naservpage wiki naservpage;
 
   let wikicss_service =
-    Eliom_predefmod.CssText.register_new_service ?sp
+    Eliom_output.CssText.register_service
       ~path:(path@["__wikicss"])
       ~get_params:(Ocsimore_common.eliom_opaque_int32 "wb")
-      (fun sp wb () ->
-         Wiki_data.wiki_css rights sp wiki >>= fun l ->
+      (fun wb () ->
+         Wiki_data.wiki_css rights wiki >>= fun l ->
          try Lwt.return (let (v, _, _) = List.assoc wb l in v)
          with Not_found -> Lwt.fail Eliom_common.Eliom_404
       )
@@ -160,23 +160,23 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
 
 
 
-let save_then_redirect ~sp ?(error=(fun _ _ -> ())) redirect_mode f =
+let save_then_redirect ?(error=(fun _ -> ())) redirect_mode f =
   Lwt.catch
     (fun () ->
        f () >>= fun _ ->
        (* We do a redirection to prevent repost *)
        match redirect_mode with
-         | `BasePage -> Eliom_predefmod.Redirection.send ~sp
+         | `BasePage -> Eliom_output.Redirection.send
              Eliom_services.void_coservice'
-         | `SamePage -> Eliom_predefmod.Redirection.send ~sp
+         | `SamePage -> Eliom_output.Redirection.send
              Eliom_services.void_hidden_coservice'
     )
     (fun e ->
-       error sp e;
-       Eliom_predefmod.Action.send ~sp ())
+       error e;
+       Eliom_output.Action.send ())
 
-let error_handler_wb_opt wb sp e =
-  set_wikibox_error ~sp (wb, e)
+let error_handler_wb_opt wb e =
+  set_wikibox_error (wb, e)
 
 let error_handler_wb wb = error_handler_wb_opt (Some wb)
 
@@ -216,114 +216,114 @@ open Wiki
 
 
 
-let action_edit_css = Eliom_predefmod.Action.register_new_coservice'
+let action_edit_css = Eliom_output.Action.register_coservice'
   ~name:"css_edit"
   ~get_params:(eliom_wikibox_args **
                  (eliom_css_args **
                     (Eliom_parameters.opt(Eliom_parameters.string "css" **
                                             Eliom_parameters.int32 "version"))))
-  (fun sp (wb, args) () ->
-     set_override_wikibox ~sp (wb, EditCss args);
+  (fun (wb, args) () ->
+     set_override_wikibox (wb, EditCss args);
      Lwt.return ())
 
-and action_edit_css_list = Eliom_predefmod.Action.register_new_coservice'
+and action_edit_css_list = Eliom_output.Action.register_coservice'
   ~name:"list_css_edit"
   ~get_params:(eliom_wikibox_args **
                  (eliom_wiki_args **
                     Eliom_parameters.opt (Eliom_parameters.string "pagecss")))
-  (fun sp (wb, args) () ->
-     set_override_wikibox ~sp (wb, EditCssList args);
+  (fun (wb, args) () ->
+     set_override_wikibox (wb, EditCssList args);
      Lwt.return ())
 
 
-and action_edit_wikibox = Eliom_predefmod.Action.register_new_coservice'
+and action_edit_wikibox = Eliom_output.Action.register_coservice'
   ~name:"wiki_edit" ~get_params:eliom_wikibox_args
-  (fun sp wb () ->
-     set_override_wikibox ~sp (wb, EditWikitext wb);
+  (fun wb () ->
+     set_override_wikibox (wb, EditWikitext wb);
      Lwt.return ())
 
-and action_delete_wikibox = Eliom_predefmod.Any.register_new_coservice'
+and action_delete_wikibox = Eliom_output.Any.register_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
-  (fun sp wb () ->
+  (fun wb () ->
      Wiki_sql.wikibox_wiki wb >>= fun wiki ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
      let content_type =
        Wiki_models.get_default_content_type wiki_info.wiki_model in
-     save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
-       (fun () -> Wiki_data.save_wikitextbox ~rights ~content_type ~sp ~wb
+     save_then_redirect ~error:(error_handler_wb wb) `BasePage
+       (fun () -> Wiki_data.save_wikitextbox ~rights ~content_type ~wb
           ~content:None)
   )
 
 and action_edit_wikibox_permissions =
-  Eliom_predefmod.Action.register_new_coservice'
+  Eliom_output.Action.register_coservice'
     ~name:"wikibox_edit_perm" ~get_params:eliom_wikibox_args
-    (fun sp wb () ->
-       set_override_wikibox ~sp (wb, EditWikiboxPerms wb);
+    (fun wb () ->
+       set_override_wikibox (wb, EditWikiboxPerms wb);
        Lwt.return ())
 
 and action_edit_wiki_options =
-  Eliom_predefmod.Action.register_new_coservice'
+  Eliom_output.Action.register_coservice'
     ~name:"wiki_edit_options"
     ~get_params:(eliom_wikibox_args ** eliom_wiki_args)
-    (fun sp (wb, wiki) () ->
-       set_override_wikibox ~sp (wb, EditWikiOptions wiki);
+    (fun (wb, wiki) () ->
+       set_override_wikibox (wb, EditWikiOptions wiki);
        Lwt.return ())
 
-and action_wikibox_history = Eliom_predefmod.Action.register_new_coservice'
+and action_wikibox_history = Eliom_output.Action.register_coservice'
   ~name:"wikibox_history" ~get_params:eliom_wikibox_args
-  (fun sp wb () ->
-     set_override_wikibox ~sp (wb, History wb);
+  (fun wb () ->
+     set_override_wikibox (wb, History wb);
      Lwt.return ())
 
-and action_css_history = Eliom_predefmod.Action.register_new_coservice'
+and action_css_history = Eliom_output.Action.register_coservice'
   ~name:"css_history" ~get_params:(eliom_wikibox_args ** eliom_css_args)
-  (fun sp (wb, css) () ->
-     set_override_wikibox ~sp (wb, CssHistory css);
+  (fun (wb, css) () ->
+     set_override_wikibox (wb, CssHistory css);
      Lwt.return ())
 
-and action_css_permissions = Eliom_predefmod.Action.register_new_coservice'
+and action_css_permissions = Eliom_output.Action.register_coservice'
   ~name:"css_edit_perm" ~get_params:(eliom_wikibox_args ** eliom_css_args)
-  (fun sp (wb, css) () ->
-     set_override_wikibox ~sp (wb, CssPermissions css);
+  (fun (wb, css) () ->
+     set_override_wikibox (wb, CssPermissions css);
      Lwt.return ())
 
-and action_old_wikibox = Eliom_predefmod.Action.register_new_coservice'
+and action_old_wikibox = Eliom_output.Action.register_coservice'
   ~name:"wiki_old_version"
   ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
-  (fun sp (wb, _ver as arg) () ->
-     set_override_wikibox ~sp (wb, Oldversion arg);
+  (fun (wb, _ver as arg) () ->
+     set_override_wikibox (wb, Oldversion arg);
      Lwt.return ())
 
-and action_old_wikiboxcss = Eliom_predefmod.Action.register_new_coservice'
+and action_old_wikiboxcss = Eliom_output.Action.register_coservice'
   ~name:"css_old_version"
   ~get_params:(eliom_wikibox_args **
                  (eliom_css_args ** (Eliom_parameters.int32 "version")))
-  (fun sp (wb, (wbcss, version)) () ->
-     set_override_wikibox ~sp (wb, CssOldversion (wbcss, version));
+  (fun (wb, (wbcss, version)) () ->
+     set_override_wikibox (wb, CssOldversion (wbcss, version));
      Lwt.return ())
 
-and action_src_wikibox = Eliom_predefmod.Action.register_new_coservice'
+and action_src_wikibox = Eliom_output.Action.register_coservice'
   ~name:"wiki_src"
   ~get_params:(eliom_wikibox_args ** (Eliom_parameters.int32 "version"))
-  (fun sp (wb, _ver as arg) () ->
-     set_override_wikibox ~sp (wb, Src arg);
+  (fun (wb, _ver as arg) () ->
+     set_override_wikibox (wb, Src arg);
      Lwt.return ())
 
-and action_edit_wikipage_properties = Eliom_predefmod.Action.register_new_coservice'
+and action_edit_wikipage_properties = Eliom_output.Action.register_coservice'
   ~name:"wikipage_properties"
   ~get_params:(eliom_wikibox_args ** eliom_wikipage_args)
-  (fun sp (wb, wp) () ->
-     set_override_wikibox ~sp (wb, EditWikipageProperties wp);
+  (fun (wb, wp) () ->
+     set_override_wikibox (wb, EditWikipageProperties wp);
      Lwt.return ())
 
-and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
+and action_send_wikiboxtext = Eliom_output.Any.register_post_coservice'
   ~keep_get_na_params:false ~name:"wiki_save_wikitext"
   ~post_params:
   (Eliom_parameters.string "actionname" **
      ((eliom_wikibox_args ** Eliom_parameters.int32 "boxversion") **
         Eliom_parameters.string "content"))
-  (fun sp () (actionname, ((wb, boxversion), content)) ->
+  (fun () (actionname, ((wb, boxversion), content)) ->
      (* We always show a preview before saving. Moreover, we check that the
         wikibox that the wikibox has not been modified in parallel of our
         modifications. If this is the case, we also show a warning *)
@@ -336,30 +336,30 @@ and action_send_wikiboxtext = Eliom_predefmod.Any.register_new_post_coservice'
              let rights = Wiki_models.get_rights wiki_info.wiki_model in
              let wp = Wiki_models.get_default_wiki_preparser
                wiki_info.wiki_model in
-             Wiki_data.wikibox_content rights sp wb
+             Wiki_data.wikibox_content rights wb
              >>= fun (content_type, _, _) ->
-             wp (sp, wb) content >>= fun content ->
-             save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
+             wp wb content >>= fun content ->
+             save_then_redirect ~error:(error_handler_wb wb) `BasePage
                (fun () -> Wiki_data.save_wikitextbox ~rights
-                  ~content_type ~sp ~wb ~content:(Some content))
+                  ~content_type ~wb ~content:(Some content))
          | Some _ ->
-             set_override_wikibox ~sp
+             set_override_wikibox
                (wb, PreviewWikitext (wb, (content, boxversion)));
-             Eliom_predefmod.Action.send ~sp ()
+             Eliom_output.Action.send ()
      else begin
-       set_override_wikibox ~sp
+       set_override_wikibox
          (wb, PreviewWikitext (wb, (content, boxversion)));
-       Eliom_predefmod.Action.send ~sp ()
+       Eliom_output.Action.send ()
      end
   )
 
-and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
+and action_send_css = Eliom_output.Any.register_post_coservice'
   ~keep_get_na_params:false ~name:"wiki_save_css"
   ~post_params:
   ((eliom_wikibox_args ** (eliom_css_args **
                              Eliom_parameters.int32 "boxversion")) **
      Eliom_parameters.string "content")
-  (fun sp () ((wb, (((wikicss, page), wbcss), boxversion)), content) ->
+  (fun () ((wb, (((wikicss, page), wbcss), boxversion)), content) ->
      (* As above, we check that the wikibox has not been modified in parallel
         of our modifications. If this is the case, we also show a warning *)
      Wiki.modified_wikibox wbcss boxversion >>= fun modified ->
@@ -368,32 +368,32 @@ and action_send_css = Eliom_predefmod.Any.register_new_post_coservice'
              Wiki_sql.wikibox_wiki wbcss >>= fun wiki ->
              Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
              let rights = Wiki_models.get_rights wiki_info.wiki_model in
-             save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
+             save_then_redirect ~error:(error_handler_wb wb) `BasePage
                (fun () -> match page with
-                  | None -> Wiki_data.save_wikicssbox ~rights ~sp
+                  | None -> Wiki_data.save_wikicssbox ~rights
                       ~wiki:wikicss ~content:(Some content) ~wb:wbcss
-                  | Some page -> Wiki_data.save_wikipagecssbox ~rights ~sp
+                  | Some page -> Wiki_data.save_wikipagecssbox ~rights
                       ~wiki:wikicss ~page ~content:(Some content) ~wb:wbcss
                )
          | Some _ ->
-             set_override_wikibox ~sp
+             set_override_wikibox
                (wb, EditCss (((wikicss, page), wbcss),
                              Some (content, boxversion)));
-             Eliom_predefmod.Action.send ~sp ()
+             Eliom_output.Action.send ()
   )
 
 and action_set_wikibox_special_permissions =
-  Eliom_predefmod.Any.register_new_post_coservice'
+  Eliom_output.Any.register_post_coservice'
     ~name:"wiki_set_wikibox_special_permissions"
     ~post_params:(eliom_wikibox_args ** Ocsimore_lib.eliom_bool "special")
-    (fun sp () (wb, special_rights) ->
+    (fun () (wb, special_rights) ->
        Wiki_sql.wikibox_wiki wb >>= fun wiki ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       save_then_redirect ~sp ~error:(error_handler_wb wb)
+       save_then_redirect ~error:(error_handler_wb wb)
          (if special_rights then `SamePage else `BasePage)
          (fun () -> Wiki_data.set_wikibox_special_rights
-            ~rights ~sp ~special_rights ~wb)
+            ~rights ~special_rights ~wb)
     )
 
 
@@ -403,41 +403,41 @@ and action_set_wikibox_special_permissions =
 
 (* This is a non attached coservice, so that the css is in the same
    directory as the page. Important for relative links inside the css. *)
-and pagecss_service = Eliom_predefmod.CssText.register_new_coservice'
+and pagecss_service = Eliom_output.CssText.register_coservice'
   ~name:"pagecss" ~get_params:(eliom_wikipage_args ** eliom_wikibox_args)
-  (fun sp ((wiki, page), wb) () ->
+  (fun ((wiki, page), wb) () ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
-     Wiki_data.wikipage_css rights sp wiki page >>= fun l ->
+     Wiki_data.wikipage_css rights wiki page >>= fun l ->
      try Lwt.return (let v, _, _ = List.assoc wb l in v)
      with Not_found -> Lwt.fail Eliom_common.Eliom_404
   )
 
-and action_create_page = Eliom_predefmod.Action.register_new_post_coservice'
+and action_create_page = Eliom_output.Action.register_post_coservice'
   ~name:"wiki_page_create"
   ~post_params:(Eliom_parameters.opt eliom_wikibox_args **eliom_wikipage_args)
-  (fun sp () (wb, (wiki, page)) ->
+  (fun () (wb, (wiki, page)) ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
      Lwt.catch
-       (fun () -> Wiki_data.create_wikipage ~rights ~sp ~wiki ~page)
+       (fun () -> Wiki_data.create_wikipage ~rights ~wiki ~page)
        (function
           | Wiki_data.Page_already_exists wb ->
               (* The page already exists. If possible, we display an error
                  message in the existing wikibox, which should have
                  contained the button leading to the creation of the page. *)
-              set_wikibox_error ~sp  (Some wb,
+              set_wikibox_error  (Some wb,
                                       Wiki_data.Page_already_exists wb);
               Lwt.return ()
 
           | Ocsimore_common.Permission_denied ->
-              set_wikibox_error ~sp (wb, Ocsimore_common.Permission_denied);
+              set_wikibox_error (wb, Ocsimore_common.Permission_denied);
               Lwt.return ()
 
           | e -> Lwt.fail e)
   )
 
-and action_create_css = Eliom_predefmod.Any.register_new_post_coservice'
+and action_create_css = Eliom_output.Any.register_post_coservice'
   ~name:"wiki_create_css" ~keep_get_na_params:true
   ~post_params:(eliom_wikibox_args **
                   ((eliom_wiki_args **
@@ -452,15 +452,15 @@ and action_create_css = Eliom_predefmod.Any.register_new_post_coservice'
                          )
                          "media"
                        ** Ocsimore_common.eliom_opaque_int32_opt "wbcss")))
-  (fun sp () (wb, ((wiki, page), (media, wbcss))) ->
+  (fun () (wb, ((wiki, page), (media, wbcss))) ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
-     save_then_redirect ~sp ~error:(error_handler_wb wb) `SamePage
+     save_then_redirect ~error:(error_handler_wb wb) `SamePage
        (fun () ->
-          Wiki_data.add_css ~rights ~sp ~wiki ~page ~media ?wbcss ())
+          Wiki_data.add_css ~rights ~wiki ~page ~media ?wbcss ())
   )
 
-and action_send_css_options = Eliom_predefmod.Any.register_new_post_coservice'
+and action_send_css_options = Eliom_output.Any.register_post_coservice'
   ~name:"wiki_send_css_options" ~keep_get_na_params:true
   ~post_params:(eliom_wikibox_args **
                 (((eliom_css_args ** Eliom_parameters.opt
@@ -475,27 +475,27 @@ and action_send_css_options = Eliom_predefmod.Any.register_new_post_coservice'
                      )
                      "media"))
                 ** Eliom_parameters.int32 "rank"))
-  (fun sp () (wb, (((((wiki, page), wbcss), newwbcss), media), rank)) ->
+  (fun () (wb, (((((wiki, page), wbcss), newwbcss), media), rank)) ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
-     save_then_redirect ~sp ~error:(error_handler_wb wb) `SamePage
+     save_then_redirect ~error:(error_handler_wb wb) `SamePage
        (fun () ->
           match newwbcss with
-            | None -> Wiki_data.delete_css ~sp ~rights ~wiki ~page ~wb:wbcss
+            | None -> Wiki_data.delete_css ~rights ~wiki ~page ~wb:wbcss
             | Some newwb ->
-                Wiki_data.update_css ~sp ~rights ~wiki ~page ~oldwb:wbcss
+                Wiki_data.update_css ~rights ~wiki ~page ~oldwb:wbcss
                   ~newwb:newwb ~media ~rank)
   )
 
-and edit_wiki = Eliom_services.new_service
+and edit_wiki = Eliom_services.service
   ~path:path_edit_wiki ~get_params:eliom_wiki_args ()
 
-and view_wikis = Eliom_services.new_service
+and view_wikis = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_wikis"]
   ~get_params:Eliom_parameters.unit ()
 
 and action_send_wikipage_properties =
-  Eliom_predefmod.Any.register_new_post_coservice'
+  Eliom_output.Any.register_post_coservice'
     ~keep_get_na_params:false ~name:"wikipage_save_properties"
     ~post_params:
     (eliom_wikibox_args **
@@ -503,28 +503,28 @@ and action_send_wikipage_properties =
           (Eliom_parameters.string "title" **
              ((Ocsimore_common.eliom_opaque_int32_opt "wb" **
                  Eliom_parameters.string "newpage")))))
-    (fun sp () (wb, ((wiki, page), (title, (wbpage, newpage)))) ->
+    (fun () (wb, ((wiki, page), (title, (wbpage, newpage)))) ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       save_then_redirect ~sp ~error:(error_handler_wb wb) `BasePage
-         (fun () -> Wiki_data.save_wikipage_properties ~rights ~sp
+       save_then_redirect ~error:(error_handler_wb wb) `BasePage
+         (fun () -> Wiki_data.save_wikipage_properties ~rights
             ~title ~wb:wbpage ~newpage (wiki, page))
     )
 
-and action_send_wiki_metadata = Eliom_predefmod.Any.register_new_post_coservice'
+and action_send_wiki_metadata = Eliom_output.Any.register_post_coservice'
   ~keep_get_na_params:false ~name:"wiki_save_metadata"
   ~post_params:
   (Eliom_parameters.opt eliom_wikibox_args **
      (eliom_wiki_args **
         (Eliom_parameters.string "descr" **
            Ocsimore_common.eliom_opaque_int32_opt "container")))
-  (fun sp () (wb, (wiki, (descr, container))) ->
+  (fun () (wb, (wiki, (descr, container))) ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
-     save_then_redirect ~sp ~error:(error_handler_wb_opt wb) `BasePage
-       (fun () -> Wiki_data.update_wiki ~rights ~sp ~container ~descr wiki)
+     save_then_redirect ~error:(error_handler_wb_opt wb) `BasePage
+       (fun () -> Wiki_data.update_wiki ~rights ~container ~descr wiki)
   )
 
-and edit_wiki_permissions_admin = Eliom_services.new_service
+and edit_wiki_permissions_admin = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir;"edit_wikis_permissions"]
   ~get_params:eliom_wiki_args ()

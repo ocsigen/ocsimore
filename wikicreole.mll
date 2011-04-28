@@ -999,6 +999,7 @@ let context param b =
     flow = [];
     stack = Paragraph [] }
 
+(*
 let from_lexbuf param b lexbuf =
   Lwt_preemptive.detach
     (fun () ->
@@ -1008,7 +1009,13 @@ let from_lexbuf param b lexbuf =
     ()
 
 let from_channel param b ch = from_lexbuf param b (Lexing.from_channel ch)
+*)
 
-let from_string param b s = from_lexbuf param b (Lexing.from_string s)
+let from_lexbuf_no_preempt param b lexbuf =
+  let c = context param b in
+  parse_bol c lexbuf;
+  Lwt.return (List.rev c.flow)
+
+let from_string param b s = from_lexbuf_no_preempt param b (Lexing.from_string s)
 
 }

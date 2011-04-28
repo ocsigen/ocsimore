@@ -23,7 +23,7 @@
 *)
 
 
-
+open Eliom_pervasives
 open Eliom_parameters
 open User_sql.Types
 open Wiki_widgets_interface
@@ -51,9 +51,9 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
           let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
           let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args
           in
-          (user_widget#display_login_widget ~sp:bi.bi_sp
+          (user_widget#display_login_widget
             ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ()) >|= fun b ->
-          [(b: Xhtmltypes.form_content XHTML.M.elt :> Xhtmltypes.div_content XHTML.M.elt)]));
+          [(b: XHTML_types.form_content XHTML.M.elt :> XHTML_types.div_content XHTML.M.elt)]));
 
   add_extension
     [wikicreole_parser]
@@ -67,14 +67,14 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
           Wiki_syntax.xml_of_wiki
             Wiki_syntax.reduced_wikicreole_parser_button_content bi content
           >>= fun content ->
-          user_widget#display_logout_button bi.bi_sp content >|= fun f ->
-          [(f: Xhtmltypes.form XHTML.M.elt :> Xhtmltypes.div_content XHTML.M.elt)]
+          user_widget#display_logout_button content >|= fun f ->
+          [(f: XHTML_types.form XHTML.M.elt :> XHTML_types.div_content XHTML.M.elt)]
          )
     );
 
   let f = (fun bi _args _c ->
              Wikicreole.A_content
-               (User.get_user_data ~sp:bi.bi_sp >|= fun ud ->
+               (User.get_user_data () >|= fun ud ->
                 [XHTML.M.pcdata ud.user_fullname])
           )
   in
@@ -94,7 +94,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
             | Some c -> Wiki_syntax.a_content_of_wiki bi c
             | None -> Lwt.return [XHTML.M.pcdata "logout"]
           in
-          (XHTML.M.string_of_uri (user_widget#logout_uri bi.bi_sp),
+          (Uri.string_of_uri (user_widget#logout_uri),
            args,
            content)
          )

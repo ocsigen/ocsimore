@@ -25,29 +25,32 @@ let (>>=) = Lwt.bind
 let mutex = Lwt_mutex.create ()
 
 let pam_auth ?(service = "") ~name ~pwd =
-  Lwt_mutex.lock mutex >>= fun () ->
+(*  Lwt_mutex.lock mutex >>= fun () ->
   Lwt.finalize
     (fun () ->
        Lwt_preemptive.detach
-         (fun () ->
+         (fun () -> *)
             try
 
               let pam = Pam.pam_start service ~user:name (fun _ _ -> pwd) in
               Pam.pam_set_item pam Pam.pam_item_fail_delay;
               Pam.pam_authenticate pam [] ~silent:true;
-              ignore (Pam.pam_end pam)
-            with (Pam.Pam_Error _) as e -> 
+              ignore (Pam.pam_end pam);
+	      Lwt.return ()
+            with (Pam.Pam_Error _) as e ->
               Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
                                         Printexc.to_string e);
-              raise User.BadPassword
-              | e -> 
+              Lwt.fail User.BadPassword
+              | e ->
                   Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
                                             Printexc.to_string e);
-                  raise e
+                  Lwt.fail e
+(*
          )
          ()
     )
     (fun () -> Lwt_mutex.unlock mutex; Lwt.return ())
+*)
 
 let _ =
   User_external_auth.external_auth_pam := Some

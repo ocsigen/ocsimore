@@ -21,11 +21,8 @@
 @author Jaap Boender
 @author Vincent Balat
 *)
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
-open Eliommod
-open Eliom_predefmod.Xhtml
-open Eliom_sessions
+open Eliom_pervasives
+open Eliom_output.Xhtml
 open Ocsimore_lib
 
 class widget = object end
@@ -64,11 +61,11 @@ object(self)
             XHTML.M.strong [XHTML.M.pcdata message]
     in
     (XHTML.M.p ~a:[XHTML.M.a_class classes] [message]
-       : Xhtmltypes.block XHTML.M.elt)
+       : XHTML_types.block XHTML.M.elt)
 
   method bind_or_display_error : 'a.
     'a Lwt.t ->
-    ('a -> (string list * Xhtmltypes.div_content XHTML.M.elt list) Lwt.t) -> _
+    ('a -> (string list * XHTML_types.div_content XHTML.M.elt list) Lwt.t) -> _
     = fun data transform_data ->
       Lwt.catch
         (fun () -> data >>= transform_data)
@@ -76,7 +73,7 @@ object(self)
            Lwt.return
              ([error_class],
               [(self#display_error_box ~exc ()
-                 : Xhtmltypes.block XHTML.M.elt :> Xhtmltypes.div_content XHTML.M.elt)]
+                 : XHTML_types.block XHTML.M.elt :> XHTML_types.div_content XHTML.M.elt)]
              ))
 
 end
@@ -88,11 +85,9 @@ object
   val xhtml_class = "parametrized_widget"
 
   method virtual private retrieve_data :
-    sp:Eliom_sessions.server_params ->
     'param -> 'data Lwt.t
 
   method virtual apply :
-    sp:server_params ->
     data:'param -> 'result
 
 end
@@ -101,10 +96,8 @@ class type ['param, 'data, 'result] parametrized_widget_t =
 object
   inherit widget
   method private retrieve_data :
-    sp:Eliom_sessions.server_params ->
     'param -> 'data Lwt.t
   method apply :
-    sp:Eliom_sessions.server_params ->
     data:'param -> 'result
 end
 
@@ -125,7 +118,7 @@ object
 
   val xhtml_class = "parametrized_unit_widget"
 
-  method private retrieve_data ~sp:_ _ = Lwt.return ()
+  method private retrieve_data _ = Lwt.return ()
 
 end
 
@@ -139,7 +132,7 @@ object
 
   val xhtml_class = "parametrized_unit_div_widget"
 
-  method private retrieve_data ~sp:_ _ = Lwt.return ()
+  method private retrieve_data _ = Lwt.return ()
 
 end
 
@@ -147,15 +140,15 @@ class type ['param] parametrized_unit_div_widget_t =
           ['param, unit, [`Div] XHTML.M.elt Lwt.t] parametrized_widget_t
 
 
-
+(*
 class ['child] list_widget =
 object
   inherit widget
 
   val xhtml_class = "list"
 
-  method display ~sp:(_ : server_params) : [`Div] XHTML.M.elt Lwt.t =
+  method display : [`Div] XHTML.M.elt Lwt.t =
     Lwt.return (XHTML.M.div ~a:[XHTML.M.a_class [xhtml_class]] [])
 
 end
-
+*)

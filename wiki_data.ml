@@ -32,14 +32,13 @@ open User_sql.Types
 
 let (>>=) = Lwt.bind
 
-type 'a rights_sp =
+type 'a rights =
   rights:Wiki_types.wiki_rights ->
-  sp: Eliom_sessions.server_params ->
   'a
 
 
-let new_wikitextbox ?db ~rights ~sp ~content_type ~wiki ~author ~comment ~content () =
-  rights#can_create_wikiboxes ~sp wiki
+let new_wikitextbox ?db ~rights ~content_type ~wiki ~author ~comment ~content () =
+  rights#can_create_wikiboxes wiki
   >>= function
     | true -> Wiki_sql.new_wikibox ?db ~wiki ~author ~comment ~content
         ~content_type ()
@@ -50,8 +49,8 @@ let new_wikitextbox ?db ~rights ~sp ~content_type ~wiki ~author ~comment ~conten
 (** Exception raised when the content of a wikibox cannot be found *)
 exception Unknown_box of wikibox * int32 option
 
-let wikibox_content ~rights ~sp ?version wb =
-  rights#can_read_wikibox ~sp wb >>= function
+let wikibox_content ~rights ?version wb =
+  rights#can_read_wikibox wb >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
         Wiki_sql.get_wikibox_content ?version wb >>= function
@@ -59,60 +58,60 @@ let wikibox_content ~rights ~sp ?version wb =
           | Some (_com, _a, cont, _d, ct, ver) ->
               Lwt.return (ct, cont, ver)
 
-let wikibox_content' ~rights ~sp ?version wikibox =
-  wikibox_content ~rights ~sp ?version wikibox >>= fun (_, cont, ver) ->
+let wikibox_content' ~rights ?version wikibox =
+  wikibox_content ~rights ?version wikibox >>= fun (_, cont, ver) ->
   Lwt.return (cont, ver)
 
 
-let save_wikibox_aux ~rights ~sp ~wb ~content ~content_type =
+let save_wikibox_aux ~rights ~wb ~content ~content_type =
   (if content = None
    then
      Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-     rights#can_delete_wikiboxes ~sp wiki
-   else rights#can_write_wikibox ~sp wb) >>= function
+     rights#can_delete_wikiboxes wiki
+   else rights#can_write_wikibox wb) >>= function
     | true ->
-        User.get_user_id sp >>= fun user ->
+        User.get_user_id () >>= fun user ->
         Wiki_sql.update_wikibox ~author:user ~comment:""
-          ~content ~content_type ~ip:(Eliom_sessions.get_remote_ip sp) wb
+          ~content ~content_type ~ip:(Eliom_request_info.get_remote_ip ()) wb
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikitextbox ~rights ~sp ~content_type ~wb ~content =
-  save_wikibox_aux ~rights ~sp ~wb ~content_type ~content
+let save_wikitextbox ~rights ~content_type ~wb ~content =
+  save_wikibox_aux ~rights ~wb ~content_type ~content
 
 exception BadCssWikibox
 
-let save_wikicss_aux ~rights ~sp ~content ~wb l =
+let save_wikicss_aux ~rights ~content ~wb l =
   try
     ignore (List.find (fun (wb', _, _) -> wb = wb') l);
-    save_wikibox_aux ~rights ~sp ~wb
+    save_wikibox_aux ~rights ~wb
       ~content_type:Wiki_models.css_content_type ~content
   with Not_found -> Lwt.fail BadCssWikibox
 
-let save_wikicssbox ~rights ~sp ~wiki ~content ~wb =
+let save_wikicssbox ~rights ~wiki ~content ~wb =
   Wiki_sql.get_css_wikibox_for_wiki ~wiki >>= fun l ->
-  save_wikicss_aux ~rights ~sp ~content ~wb l
+  save_wikicss_aux ~rights ~content ~wb l
 
 
-let save_wikipagecssbox ~rights ~sp ~wiki ~page ~content ~wb =
+let save_wikipagecssbox ~rights ~wiki ~page ~content ~wb =
   Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun l ->
-  save_wikicss_aux ~rights ~sp ~content ~wb l
+  save_wikicss_aux ~rights ~content ~wb l
 
 
 
-let wikibox_history ~rights ~sp ~wb =
-  rights#can_view_history ~sp wb >>= function
+let wikibox_history ~rights ~wb =
+  rights#can_view_history wb >>= function
     | true -> Wiki_sql.get_wikibox_history wb
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
 
 
-let create_wiki ~(rights : Wiki_types.wiki_rights) ~sp
+let create_wiki ~(rights : Wiki_types.wiki_rights)
     ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~admins ~readers ?container_text ~model () =
-  User.get_user_id sp >>= fun u ->
-  rights#can_create_wiki sp () >>= function
+  User.get_user_id () >>= fun u ->
+  rights#can_create_wiki () >>= function
     | true ->
         Wiki.create_wiki ~title ~descr ?path ?staticdir ~boxrights
           ~author:u ~admins ~readers
@@ -121,27 +120,27 @@ let create_wiki ~(rights : Wiki_types.wiki_rights) ~sp
         Lwt.fail Ocsimore_common.Permission_denied
 
 
-let css_aux ~(rights : Wiki_types.wiki_rights) ~sp l =
+let css_aux ~(rights : Wiki_types.wiki_rights) l =
   Lwt_util.fold_left
     (fun l (wb, media_type, rank) ->
-       wikibox_content rights sp wb >>= function
+       wikibox_content rights wb >>= function
          | (_, Some cont, _) -> Lwt.return ((wb, (cont, media_type, rank)) :: l)
          | (_, None, _) -> Lwt.return l
     ) [] l
 
 
-let wiki_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki =
+let wiki_css ~(rights : Wiki_types.wiki_rights) ~wiki =
   Wiki_sql.get_css_wikibox_for_wiki wiki >>= fun l ->
-  css_aux ~rights ~sp l
+  css_aux ~rights l
 
-let wikipage_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
+let wikipage_css ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
   Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= fun l ->
-  css_aux ~rights ~sp l
+  css_aux ~rights l
 
 
 
-let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~sp ~wb  ~special_rights =
-  rights#can_set_wikibox_specific_permissions sp wb >>= function
+let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~wb  ~special_rights =
+  rights#can_set_wikibox_specific_permissions wb >>= function
     | true ->
         Sql.full_transaction_block (fun _db -> (*YYY should be made atomic... *)
           (if special_rights then
@@ -164,8 +163,8 @@ let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~sp ~wb  ~spec
 
 exception Page_already_exists of wikibox
 
-let create_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
-  rights#can_create_wikipages ~sp wiki >>= function
+let create_wikipage ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
+  rights#can_create_wikipages wiki >>= function
     | true ->
         Lwt.catch
           (fun () ->
@@ -175,12 +174,12 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
           )
           (function
              | Not_found ->
-                 User.get_user_id ~sp >>= fun user ->
+                 User.get_user_id () >>= fun user ->
                  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                  let content_type = Wiki_models.get_default_content_type
                    wiki_info.wiki_model in
                  Sql.full_transaction_block (fun db ->
-                   new_wikitextbox ~rights ~content_type ~sp ~wiki ~author:user
+                   new_wikitextbox ~rights ~content_type ~wiki ~author:user
                      ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                  page (string_of_wiki wiki))
                      ~content:("== Page "^page^"==") ()
@@ -195,20 +194,20 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page =
 exception Css_already_exists
 
 
-let add_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~media ?wbcss ()=
+let add_css ~(rights : Wiki_types.wiki_rights) ~wiki ~page ~media ?wbcss ()=
   (match page with
-     | None -> rights#can_create_wikicss sp wiki
-     | Some page -> rights#can_create_wikipagecss sp (wiki, page)
+     | None -> rights#can_create_wikicss wiki
+     | Some page -> rights#can_create_wikipagecss (wiki, page)
   ) >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
-        User.get_user_id ~sp >>= fun user ->
+        User.get_user_id () >>= fun user ->
         Wiki_sql.add_css_aux ~wiki ~page ~author:user ~media ?wbcss ()
 
-let delete_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~wb =
+let delete_css ~(rights : Wiki_types.wiki_rights) ~wiki ~page ~wb =
   (match page with
-     | None -> rights#can_create_wikicss sp wiki
-     | Some page -> rights#can_create_wikipagecss sp (wiki, page)
+     | None -> rights#can_create_wikicss wiki
+     | Some page -> rights#can_create_wikipagecss (wiki, page)
   ) >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
@@ -220,10 +219,10 @@ let delete_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~wb =
               Wiki_sql.remove_css_wikipage ~wiki ~page wb
 
 
-let update_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~oldwb ~newwb ~media ~rank =
+let update_css ~(rights : Wiki_types.wiki_rights) ~wiki ~page ~oldwb ~newwb ~media ~rank =
   (match page with
-     | None -> rights#can_create_wikicss sp wiki
-     | Some page -> rights#can_create_wikipagecss sp (wiki, page)
+     | None -> rights#can_create_wikicss wiki
+     | Some page -> rights#can_create_wikipagecss (wiki, page)
   ) >>= function
     | false -> Lwt.fail Ocsimore_common.Permission_denied
     | true ->
@@ -232,21 +231,21 @@ let update_css ~(rights : Wiki_types.wiki_rights) ~sp ~wiki ~page ~oldwb ~newwb 
 
 
 
-let update_wiki ~(rights : Wiki_types.wiki_rights) ~sp ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki =
+let update_wiki ~(rights : Wiki_types.wiki_rights) ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki =
   if staticdir <> None || path <> None || boxrights <> None || model <> None || siteid <> None then
-    rights#can_create_wiki sp () >>= function
+    rights#can_create_wiki () >>= function
       | true -> Wiki_sql.update_wiki
           ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki
       | false -> Lwt.fail Ocsimore_common.Permission_denied
   else
-    rights#can_edit_metadata ~sp wiki >>= function
+    rights#can_edit_metadata wiki >>= function
       | true ->
           Wiki_sql.update_wiki ?container ?descr wiki
       | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikipage_properties ~(rights : Wiki_types.wiki_rights) ~sp ?title ?wb ?newpage (wiki, page as wp) =
-  rights#can_admin_wikipage ~sp wp >>= function
+let save_wikipage_properties ~(rights : Wiki_types.wiki_rights) ?title ?wb ?newpage (wiki, page as wp) =
+  rights#can_admin_wikipage wp >>= function
     | true ->
         Wiki_sql.set_wikipage_properties ?wiki ~page ?title ?newpage ?wb ()
     | false -> Lwt.fail Ocsimore_common.Permission_denied

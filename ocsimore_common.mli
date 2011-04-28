@@ -20,6 +20,8 @@
    @author Vincent Balat
 *)
 
+open Eliom_pervasives
+
 exception Ok
 
 (** Exception raised by modules when a function tries to read or write
@@ -32,13 +34,12 @@ exception Permission_denied
 val action_failure_key : exn Polytables.key
 
 val catch_action_failure :
-  sp:Eliom_sessions.server_params ->
   ?f_exc:(exn -> exn) ->
   (unit -> unit Lwt.t) ->
   unit Lwt.t
 
 val get_action_failure :
-  sp:Eliom_sessions.server_params ->
+  unit ->
   exn option
 
 
@@ -64,10 +65,10 @@ val input_opaque_int32 :
   ?value:'a Opaque.int32_t ->
   ?hidden:bool ->
   [< 'a Opaque.int32_t Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> [>Xhtmltypes.input] XHTML.M.elt
+  Eliom_parameters.param_name -> [>XHTML_types.input] XHTML.M.elt
 
 val input_opaque_int32_opt :
   ?value:'a Opaque.int32_t option ->
   ?hidden:bool ->
   [< 'a Opaque.int32_t option Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> [>Xhtmltypes.input] XHTML.M.elt
+  Eliom_parameters.param_name -> [>XHTML_types.input] XHTML.M.elt

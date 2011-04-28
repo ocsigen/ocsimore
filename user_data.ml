@@ -59,19 +59,19 @@ type user_creation = {
   new_user_groups: User_sql.Types.user list;
 }
 
-let can_create_user ~sp ~options =
+let can_create_user ~options =
   if options.non_admin_can_create then
     Lwt.return true
   else
-    User.in_group ~sp ~group:User.group_can_create_users ()
+    User.in_group ~group:User.group_can_create_users ()
 
 
-let can_create_group ~sp =
-  User.in_group ~sp ~group:User.group_can_create_groups ()
+let can_create_group () =
+  User.in_group ~group:User.group_can_create_groups ()
 
 
-let create_group ~sp ~name ~descr =
-  can_create_group ~sp >>= function
+let create_group ~name ~descr =
+  can_create_group () >>= function
     | true ->
         if not (valid_username name) then
           Lwt.fail (Failure "ERROR: Bad character(s) in group name!")
@@ -79,7 +79,7 @@ let create_group ~sp ~name ~descr =
           User.create_fresh_user ~name ~fullname:descr
             ~pwd:Connect_forbidden ()
           >>= fun groupid ->
-          User.get_user_id sp >>= fun userid ->
+          User.get_user_id () >>= fun userid ->
           User.add_to_group ~user:(basic_user userid)
             ~group:(User.group_can_admin_group $ groupid) >>= fun () ->
           Lwt.return groupid
@@ -89,17 +89,17 @@ let create_group ~sp ~name ~descr =
 
 (** Change user information *)
 
-let can_change_user_data_by_userid sp userid =
-  User.get_user_id sp >>= fun lu ->
+let can_change_user_data_by_userid userid =
+  User.get_user_id () >>= fun lu ->
   Lwt.return ((lu = userid && lu <> User.nobody) || lu = User.admin)
 
-let can_change_user_data_by_user sp user =
+let can_change_user_data_by_user user =
   User_sql.get_user_data user >>= fun ud ->
-  can_change_user_data_by_userid sp ud.user_id
+  can_change_user_data_by_userid ud.user_id
 
 
-let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
-  can_change_user_data_by_userid sp userid >>= function
+let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
+  can_change_user_data_by_userid userid >>= function
     | true ->
         if email <> "" && valid_emailaddr email = false then
           Lwt.fail (Failure "ERROR: Ill-formed e-mail address!")
@@ -133,16 +133,16 @@ let change_user_data ~sp ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
 
 let can_admin_group, add_group_admin_function =
   let hooks_admin = ref [] in
-  (fun ~sp ?user ~group () ->
+  (fun ?user ~group () ->
      (match user with
-        | None -> User.get_user_id ~sp >>= fun u ->
+        | None -> User.get_user_id () >>= fun u ->
             Lwt.return (basic_user u)
         | Some u -> Lwt.return u
      ) >>= fun user ->
      (match is_basic_user group with
         | None -> Lwt.return (user = basic_user User.admin)
         | Some group ->
-            User.in_group ~sp ~user
+            User.in_group ~user
               ~group:(User.group_can_admin_group $ group) ()
      ) >>= function
        | true -> Lwt.return true
@@ -150,7 +150,7 @@ let can_admin_group, add_group_admin_function =
            let rec aux = function
              | [] -> Lwt.return false
              | f :: q ->
-                 f ~sp ~user ~group >>= function
+                 f ~user ~group >>= function
                    | true -> Lwt.return true
                    | false -> aux q
            in aux !hooks_admin
@@ -159,9 +159,9 @@ let can_admin_group, add_group_admin_function =
 
 
 
-let add_remove_users_from_group sp group (add, rem) =
+let add_remove_users_from_group group (add, rem) =
   User.get_user_by_name group >>= fun group ->
-  can_admin_group ~sp ~group () >>= function
+  can_admin_group ~group () >>= function
     | true ->
         (if add <> "" then
            User.get_user_by_name add >>= fun add ->
@@ -196,9 +196,9 @@ let add_remove_user_from_groups sp user (add, rem) =
 (** Login and logout *)
 open User_external_auth
 
-let logout ~sp =
-  Eliom_sessions.close_session ~sp () >>= fun () ->
-  Eliom_sessions.clean_request_cache ~sp;
+let logout () =
+  Eliom_state.close_session () >>= fun () ->
+  Eliom_request_info.clean_request_cache ();
   Lwt.return ()
 
 module Throttle = Lwt_throttle.Make(struct
@@ -212,11 +212,11 @@ let th_login = Throttle.create ~rate:1 ~max:1 ~n:10
 let th_ip = Throttle.create ~rate:1 ~max:1 ~n:10
 
 
-let login ~sp ~name ~pwd ~external_auth =
-  Eliom_sessions.close_session ~sp () >>= fun () ->
+let login ~name ~pwd ~external_auth =
+  Eliom_state.close_session () >>= fun () ->
   (* XXX improve Lwt_throttle *)
   Throttle.wait th_login name >>= fun b1 ->
-  Throttle.wait th_ip (Eliom_sessions.get_remote_ip sp) >>= fun b2 ->
+  Throttle.wait th_ip (Eliom_request_info.get_remote_ip ()) >>= fun b2 ->
   if b1 && b2 then
     Lwt.catch
       (fun () ->
@@ -240,8 +240,8 @@ let login ~sp ~name ~pwd ~external_auth =
                       the user connects? *)
                | e -> Lwt.fail e)
     >>= fun user ->
-    Eliom_sessions.clean_request_cache ~sp;
-    User.set_session_data sp (user, name)
+    Eliom_request_info.clean_request_cache ();
+    User.set_session_data (user, name)
 
   else
     Lwt.fail User.ConnectionRefused
@@ -252,9 +252,9 @@ let login ~sp ~name ~pwd ~external_auth =
    pages can display an appropriate message *)
 let login_error_key : exn list Polytables.key = Polytables.make_key ()
 
-let get_login_error ~sp =
+let get_login_error () =
   try
     Polytables.get
-      ~table:(Eliom_sessions.get_request_cache ~sp)
+      ~table:(Eliom_request_info.get_request_cache ())
       ~key:login_error_key
   with Not_found -> []

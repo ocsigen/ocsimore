@@ -40,10 +40,8 @@ let forum_data =
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside Ocsicreateforum config"))
   in
-  let c = Eliom_sessions.get_config () in
+  let c = Eliom_config.get_config () in
   Lwt_unix.run (find_forum_data default_forum_data c)
-
-let forum_name_duce = Ocamlduce.Utf8.make forum_data.title
 
 let _ =
   Lwt_unix.run (

@@ -1,0 +1,16 @@
+ocsimore.cma
+ocsi_user.cma
+ocsi_wiki.cma
+nis_chkpwd/nis.cma
+
+page_site.cmo
+wiki_ext.cmo
+
+# ocsimore.cmxa
+# ocsi_user.cmxa
+# ocsi_wiki.cmxa
+# nis_chkpwd/nis.cmxa
+# ocsimore.cmxs
+# ocsi_user.cmxs
+# ocsi_wiki.cmxs
+# nis_chkpwd/nis.cmxs

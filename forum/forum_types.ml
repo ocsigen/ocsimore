@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Forum_sql0
 
@@ -44,7 +45,7 @@ let (>>=) = Lwt.bind
     f_descr: string;
     f_arborescent: bool;
     f_deleted: bool;
-    f_title_syntax: Xhtmltypes_duce.inlines Wiki_types.content_type;
+    f_title_syntax: XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type;
     f_messages_wiki: Wiki_types.wiki;
     f_comments_wiki: Wiki_types.wiki;
   }
@@ -54,10 +55,10 @@ let (>>=) = Lwt.bind
   let message_of_sql (u : int32) = (Opaque.int32_t u : message)
   let sql_of_message (u : message) = Opaque.t_int32 u
 
-  let forum_of_sql_option (u : int32 option) = 
+  let forum_of_sql_option (u : int32 option) =
     (Opaque.int32_t_option u : forum option)
   let sql_of_forum_option (u : forum option) = Opaque.t_int32_option u
-  let message_of_sql_option (u : int32 option) = 
+  let message_of_sql_option (u : int32 option) =
     (Opaque.int32_t_option u : message option)
   let sql_of_message_option (u : message option) = Opaque.t_int32_option u
 
@@ -77,7 +78,7 @@ let (>>=) = Lwt.bind
        title_syntax,
        messages_wiki,
        comments_wiki)
-      = 
+      =
       {
         f_id = forum_of_sql id;
         f_title = title;
@@ -132,12 +133,12 @@ let (>>=) = Lwt.bind
       m_root_id = message_of_sql root_id;
       m_forum = forum_of_sql forum_id;
       m_subject = (match subject with
-                     | None -> None 
+                     | None -> None
                      | Some s -> Some (Wiki_types.wikibox_of_sql s));
       m_wikibox = Wiki_types.wikibox_of_sql wikibox;
       m_moderated = moderated;
       m_sticky = sticky;
-      m_has_special_rights = 
+      m_has_special_rights =
         lazy (if root_id = id (* root *)
               then Lwt.return has_special_rights
               else begin

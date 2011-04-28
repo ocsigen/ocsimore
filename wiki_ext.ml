@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Wiki_types
 open Wiki_widgets_interface
@@ -73,8 +74,8 @@ let register_wikibox_syntax_extensions
                Lwt.return
                  [(error_box#display_error_box
                      ~message:"Wiki error: loop of wikiboxes" ()
-                   : Xhtmltypes.block XHTML.M.elt
-                   :> [>Xhtmltypes.block | `Code] XHTML.M.elt)]
+                   : XHTML_types.block XHTML.M.elt
+                   :> [>XHTML_types.block | `Code] XHTML.M.elt)]
              else
                let fsubbox menu_style = match c with
                  | None -> Lwt.return None
@@ -100,21 +101,21 @@ let register_wikibox_syntax_extensions
                         bi_wiki = wiki;
                         bi_subbox = fsubbox }
                  box >|= fun b ->
-                 (b : Xhtmltypes.block XHTML.M.elt list
-                    :> [>Xhtmltypes.block | `Code] XHTML.M.elt list)
+                 (b : XHTML_types.block XHTML.M.elt list
+                    :> [>XHTML_types.block | `Code] XHTML.M.elt list)
            )
            (function
              | Not_found ->
                  Lwt.return
                    [(XHTML.M.code [XHTML.M.pcdata "<<wikibox>>" ]
                     : [>`Code] XHTML.M.elt
-                    :> [>Xhtmltypes.block | `Code] XHTML.M.elt)]
+                    :> [>XHTML_types.block | `Code] XHTML.M.elt)]
              | _ ->
                  Lwt.return
                    [(error_box#display_error_box
                        ~message:"Wiki error: error in wikibox extension" ()
-                    : Xhtmltypes.block XHTML.M.elt
-                    :> [>Xhtmltypes.block | `Code] XHTML.M.elt)]
+                    : XHTML_types.block XHTML.M.elt
+                    :> [>XHTML_types.block | `Code] XHTML.M.elt)]
            )
          )
     );
@@ -122,7 +123,7 @@ let register_wikibox_syntax_extensions
   (* add_extension "wikibox" above has already added a preparser for wikibox,
      which recursively parses the argument of the wikibox. We override it
      below, but do the same thing at the beginning of our preparser *)
-  let preparse_wikibox = (fun wp (sp, wb) args c ->
+  let preparse_wikibox = (fun wp wb args c ->
     (* There are two parts in the extension : we try to create boxes if the
        box='' argument of wikibox is missing. We also recursively parse the
        content c of the extension *)
@@ -130,7 +131,7 @@ let register_wikibox_syntax_extensions
     (match c with
       | None -> Lwt.return None
       | Some c ->
-          Wiki_syntax.preparse_extension wp (sp, wb) c >|= fun c -> Some c
+          Wiki_syntax.preparse_extension wp wb c >|= fun c -> Some c
     ) >>= fun c ->
     (* Adding the 'box=' argument *)
     (try
@@ -145,11 +146,11 @@ let register_wikibox_syntax_extensions
        try (* If a wikibox is already specified, there is nothing to change *)
          ignore (List.assoc "box" args); Lwt.return args
        with Not_found ->
-         User.get_user_id ~sp >>= fun userid ->
-         rights#can_create_subwikiboxes ~sp wid >>= function
+         User.get_user_id () >>= fun userid ->
+         rights#can_create_subwikiboxes wid >>= function
            | true ->
                Wiki_data.new_wikitextbox
-                 ~rights ~sp
+                 ~rights
                  ~wiki:wid
                  ~author:userid
                  ~comment:(Printf.sprintf "Subbox of wikibox %s (from wiki %s)"
@@ -211,8 +212,7 @@ let register_wikibox_syntax_extensions
 
   let f = (fun _wp bi args c ->
        Wikicreole.Link_plugin
-         (let sp = bi.bi_sp in
-          let href = Ocsimore_lib.list_assoc_default "page" args ""
+         (let href = Ocsimore_lib.list_assoc_default "page" args ""
           and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
           and https = extract_https args in
           let content =
@@ -221,9 +221,9 @@ let register_wikibox_syntax_extensions
               | None -> Lwt.return [XHTML.M.pcdata href]
           in
           let wiki_id = extract_wiki_id args bi.bi_wiki in
-          (XHTML.M.string_of_uri
-             (Eliom_predefmod.Xhtml.make_uri ?https ?fragment
-                ~service:(Wiki_self_services.find_naservpage wiki_id) ~sp href),
+          (Uri.string_of_uri
+             (Eliom_output.Xhtml.make_uri ?https ?fragment
+                ~service:(Wiki_self_services.find_naservpage wiki_id) href),
            args,
            content)
          )
@@ -243,10 +243,9 @@ let register_wikibox_syntax_extensions
          | Some c -> Wiki_syntax.a_content_of_wiki bi c
          | None -> Lwt.return [XHTML.M.pcdata "Cancel"]
        in
-       (XHTML.M.string_of_uri
-          (Eliom_predefmod.Xhtml.make_uri
-             ~service:Eliom_services.void_coservice'
-             ~sp:bi.bi_sp ()),
+       (Uri.string_of_uri
+          (Eliom_output.Xhtml.make_uri
+             ~service:Eliom_services.void_coservice' ()),
         args,
         content)
       )
@@ -274,13 +273,13 @@ let register_wikibox_syntax_extensions
           in
           Lwt.return
             [XHTML.M.object_
-               ~a:(   (XHTML.M.a_data (XHTML.M.uri_of_string url)
-                       : [>Xhtmltypes.core | `Data | `Type] XHTML.M.attrib)
+               ~a:(   (XHTML.M.a_data (Uri.uri_of_string url)
+                       : [>XHTML_types.core | `Data | `Type] XHTML.M.attrib)
                    :: (XHTML.M.a_type type_
-                       : [>Xhtmltypes.core | `Data | `Type] XHTML.M.attrib)
+                       : [>XHTML_types.core | `Data | `Type] XHTML.M.attrib)
                    :: (atts
-                       : Xhtmltypes.core XHTML.M.attrib list
-                       :> [>Xhtmltypes.core | `Data | `Type] XHTML.M.attrib list)
+                       : XHTML_types.core XHTML.M.attrib list
+                       :> [>XHTML_types.core | `Data | `Type] XHTML.M.attrib list)
                )
                []
             ]
@@ -303,14 +302,16 @@ let register_wikibox_syntax_extensions
             bi (Wiki_syntax.Wiki_page (wiki, page, https)) None
           in
           Lwt.return
-            [XHTML.M.img ~src:(XHTML.M.uri_of_string url) ~alt ~a:atts ()]
+            [XHTML.M.img ~src:(Uri.uri_of_string url) ~alt ~a:atts ()]
          )
     );
 
   let f = (fun _wp bi args _ ->
        Wikicreole.A_content
          (let atts = Wiki_syntax.parse_common_attribs args
-          and on = extract args "msgon" "Show menus"
+	  (* UNUSED
+	    and on = extract args "msgon" "Show menus"
+	  *)
           and off = extract args "msgoff" "Hide menus"
           in
           Lwt.return

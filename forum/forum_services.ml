@@ -31,7 +31,7 @@ let forum_action_key : Forum.forum_action_info Polytables.key =
 
 let register_services () =
   let add_message_service =
-    Eliom_services.new_post_coservice'
+    Eliom_services.post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_add"
       ~post_params:
@@ -44,9 +44,9 @@ let register_services () =
       ()
   in
 
-  Eliom_predefmod.Any.register 
+  Eliom_output.Any.register 
     ~service:add_message_service
-    (fun sp () (actionname, (parent, (subject, text))) ->
+    (fun () (actionname, (parent, (subject, text))) ->
 
      (match parent with
         | Eliom_parameters.Inj2 forum -> (* new messages *)
@@ -58,52 +58,52 @@ let register_services () =
             Lwt.return (m.Forum_types.m_forum, Some parent_id))
        >>= fun (forum, parent_id) ->
 
-       Forum.get_role sp forum >>= fun _role -> (* VVV : why is role not used here ? *)
+       Forum.get_role forum >>= fun _role -> (* VVV : why is role not used here ? *)
 
        if actionname = "save" 
        then
          (Lwt.catch
             (fun () ->
-               User.get_user_data sp >>= fun u ->
-               Forum_data.new_message ~sp ~forum 
+               User.get_user_data () >>= fun u ->
+               Forum_data.new_message ~forum 
                  ~creator_id:u.user_id ?subject ?parent_id ~text ()
                >>= fun _ ->
-               Eliom_predefmod.Redirection.send ~sp 
+               Eliom_output.Redirection.send
                  Eliom_services.void_hidden_coservice'
             )
             (function
                | Ocsimore_common.Permission_denied ->
                    Polytables.set
-                     (Eliom_sessions.get_request_cache sp)
+                     (Eliom_request_info.get_request_cache ())
                      forum_action_key
                      (Forum.Msg_creation_not_allowed (forum, parent_id))
                    ;
-                   Eliom_predefmod.Action.send ~sp ()
+                   Eliom_output.Action.send ()
                | e -> Lwt.fail e)
          )
        else begin (* preview *)
          Polytables.set
-           (Eliom_sessions.get_request_cache sp)
+           (Eliom_request_info.get_request_cache ())
            forum_action_key
            (Forum.Preview ((forum, parent_id), text));
-         Eliom_predefmod.Action.send ~sp ()
+         Eliom_output.Action.send ()
        end
     );
 
 
   (* Moderation *)
   let moderate_message_service =
-    Eliom_services.new_post_coservice'
+    Eliom_services.post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_moderate"
       ~post_params:(Forum.eliom_message "msg")
       ()
   in
 
-  Eliom_predefmod.Action.register 
+  Eliom_output.Action.register 
     ~service:moderate_message_service
-    (fun sp () msg ->
-       Forum_data.set_moderated ~sp ~message_id:msg ~moderated:true
+    (fun () msg ->
+       Forum_data.set_moderated ~message_id:msg ~moderated:true
     );
 
 (* AEFF

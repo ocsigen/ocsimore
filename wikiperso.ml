@@ -52,7 +52,7 @@ open Wiki_types
 
 
 (* Extraction of the configuration options *)
-let username, wikiroot, siteid = match Eliom_sessions.get_config () with
+let username, wikiroot, siteid = match Eliom_config.get_config () with
   | [Element("options", [("username", u);("wikiroot", w)],[])] ->
       u, w, None
   | [Element("options", [("username", u);("wikiroot", w);("siteid",h)],[])] ->
@@ -332,7 +332,7 @@ let users_root =
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikiperso"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_predefmod.Xhtml.register users_root
+let () = Eliom_output.Xhtml.register users_root
   (fun sp () () ->
      User_sql.user_to_string can_have_wikiperso >>= fun s1 ->
      User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->
@@ -349,10 +349,10 @@ let () = Eliom_predefmod.Xhtml.register users_root
                         configuration file. You can however choose which users \
                         can have wikipersos by adding users or groups inside \
                         the following roles:";
-        Eliom_predefmod.Xhtml.a ~service:User_services.service_view_group
+        Eliom_output.Xhtml.a ~service:User_services.service_view_group
           ~sp [XHTML.M.pcdata "users that can have a wikiperso"] s1;
         XHTML.M.pcdata " and ";
-        Eliom_predefmod.Xhtml.a ~service:User_services.service_view_group
+        Eliom_output.Xhtml.a ~service:User_services.service_view_group
           ~sp [XHTML.M.pcdata "users that cannot have a wikiperso"] s2;
         XHTML.M.pcdata ".";
        ]

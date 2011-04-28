@@ -24,6 +24,7 @@
     a default implemenetation of a [Wiki_types.Wiki_rights] structure,
     and a few other misc definitions *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Wiki_types
 
@@ -54,9 +55,9 @@ let wiki_admin_servpage () =
                 | Some service -> service)
 
 
-let wiki_admin_page_link sp page =
+let wiki_admin_page_link page =
   wiki_admin_servpage () >>= fun service ->
-  Lwt.return (Eliom_predefmod.Xhtml.make_uri ~service ~sp page)
+  Lwt.return (Eliom_output.Xhtml.make_uri ~service page)
 
 
 
@@ -152,15 +153,15 @@ let wiki_metadata_editors = aux_grp_wiki
   "WikiMetadataEditors" "can modify the metadata for the wiki"
 
 
-let rec ok sp g_admin user group = function
+let rec ok g_admin user group = function
   | [] -> Lwt.return false
   | pgroup :: q ->
       match user_is_applied_parameterized_group ~user:group ~pgroup with
-        | None -> ok sp g_admin user group q
+        | None -> ok g_admin user group q
         | Some v ->
-            User.in_group ~sp ~user ~group:(g_admin $ v) () >>= function
+            User.in_group ~user ~group:(g_admin $ v) () >>= function
               | true -> Lwt.return true
-              | false -> ok sp g_admin user group q
+              | false -> ok g_admin user group q
 
 
 let () =
@@ -183,11 +184,11 @@ let () =
     g3;
   ] in
   User_data.add_group_admin_function
-    (fun ~sp ~user ~group ->
-       ok sp (User.GenericRights.grp_admin.User.GenericRights.field
+    (fun ~user ~group ->
+       ok (User.GenericRights.grp_admin.User.GenericRights.field
                 wiki_wikiboxes_grps) user group l2 >>= function
          | true -> Lwt.return true
-         | false -> ok sp wiki_admins user group (l2 @ l1)
+         | false -> ok wiki_admins user group (l2 @ l1)
     )
 
 
@@ -206,8 +207,8 @@ let () =
     g3;
   ] in
   User_data.add_group_admin_function
-    (fun ~sp ~user ~group ->
-       ok sp (User.GenericRights.grp_admin.User.GenericRights.field
+    (fun ~user ~group ->
+       ok (User.GenericRights.grp_admin.User.GenericRights.field
                 wikibox_grps) user group l
     )
 
@@ -280,7 +281,7 @@ let () = Lwt_unix.run (
 
 open User.GenericRights
 
-let can_sthg_wikibox f ~sp wb =
+let can_sthg_wikibox f wb =
   Wiki_sql.get_wikibox_info wb
   >>= fun { wikibox_special_rights = special_rights ; wikibox_wiki = wiki}->
   let g = if special_rights then
@@ -288,17 +289,17 @@ let can_sthg_wikibox f ~sp wb =
   else
     (f.field wiki_wikiboxes_grps) $ wiki
   in
-  User.in_group ~sp ~group:g ()
+  User.in_group ~group:g ()
 
-let aux_group grp ~sp data =
-  User.in_group ~sp ~group:(grp $ data) ()
+let aux_group grp data =
+  User.in_group ~group:(grp $ data) ()
 
 
 class wiki_rights : Wiki_types.wiki_rights =
   let can_adm_wb, can_wr_wb, can_re_wb = map_awr can_sthg_wikibox in
 object (self)
-  method can_create_wiki ~sp () =
-    User.in_group ~sp ~group:wikis_creator ()
+  method can_create_wiki () =
+    User.in_group ~group:wikis_creator ()
 
   method can_admin_wiki = aux_group wiki_admins
   method can_edit_metadata = aux_group wiki_metadata_editors
@@ -316,39 +317,39 @@ object (self)
   method can_delete_wikiboxes = aux_group wiki_wikiboxes_deletors
 
   method can_create_wikicss = aux_group wiki_css_creators
-  method can_create_wikipagecss ~sp (wiki, _page : wikipage) =
+  method can_create_wikipagecss (wiki, _page : wikipage) =
   (* XXX add a field to override by wikipage and use wikipage_css_creators *)
-  User.in_group ~sp ~group:(wiki_css_creators $ wiki) ()
+  User.in_group ~group:(wiki_css_creators $ wiki) ()
 
-  method can_set_wikibox_specific_permissions ~sp wb =
+  method can_set_wikibox_specific_permissions wb =
     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
     Wiki_sql.get_wiki_info_by_id wiki
     >>= fun { wiki_boxrights = boxrights } ->
       if boxrights then
-        self#can_admin_wikibox ~sp wb
+        self#can_admin_wikibox wb
       else
         Lwt.return false
 
   (* YYY We might want to introduce overrides at the level of wikiboxes *)
-  method can_view_oldversions ~sp wb =
+  method can_view_oldversions wb =
     Wiki_sql.wikibox_wiki wb >>= fun w ->
-    aux_group wiki_wikiboxes_oldversion_viewers sp w
+    aux_group wiki_wikiboxes_oldversion_viewers w
 
   method can_view_history = self#can_view_oldversions
 
-  method can_view_oldversions_src ~sp wb =
-    self#can_view_oldversions ~sp wb >>= function
+  method can_view_oldversions_src wb =
+    self#can_view_oldversions wb >>= function
       | false -> Lwt.return false
-      | true -> self#can_view_src ~sp wb
+      | true -> self#can_view_src wb
 
-  method can_view_src ~sp wb =
+  method can_view_src wb =
     Wiki_sql.wikibox_wiki wb >>= fun w ->
-    aux_group wiki_wikiboxes_src_viewers sp w
+    aux_group wiki_wikiboxes_src_viewers w
 
 
-  method can_admin_wikipage ~sp (wiki,_page) =
+  method can_admin_wikipage (wiki,_page) =
     (* XXX create a real group, and some permissions overrides *)
-    self#can_admin_wiki sp wiki
+    self#can_admin_wiki wiki
 
 
 end
@@ -387,7 +388,7 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
     ~model
     () =
   let path_string = Ocsimore_lib.bind_opt
-    path (Ocsigen_lib.string_of_url_path ~encode:true)
+    path (Url.string_of_url_path ~encode:true)
   in
   (* We check that no wiki of the same name or already registered at the same
      path exists. There are some race conditions in this code, but
@@ -444,11 +445,10 @@ let modified_wikibox ~wikibox ~boxversion =
           Lwt.return None
 
 
-let default_bi ~sp ~wikibox ~rights =
+let default_bi ~wikibox ~rights =
   Wiki_sql.wikibox_wiki wikibox >>= fun wiki ->
   Lwt.return {
-    Wiki_widgets_interface.bi_sp = sp;
-    bi_ancestors = Wiki_widgets_interface.Ancestors.no_ancestors;
+    Wiki_widgets_interface.bi_ancestors = Wiki_widgets_interface.Ancestors.no_ancestors;
     bi_subbox = (fun _ -> Lwt.return None);
     bi_box = wikibox;
     bi_wiki = wiki;

@@ -1,3 +1,4 @@
+open Eliom_pervasives
 external identity : 'a -> 'a = "%identity"
 
 type 'a int_t = int
@@ -58,7 +59,7 @@ let int32_input_aux_xform ?a s =
        ))
 
 let int32_input_xform ?a (i : 'a int32_t) :
-    (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t =
+    (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t =
   int32_input_aux_xform ?a (Int32.to_string i)
 
 let int32_input_opt_aux_xform ?a s =
@@ -72,6 +73,6 @@ let int32_input_opt_aux_xform ?a s =
            with Failure _ -> Xform.ConvError ("Invalid value " ^ s)
        ))
 
-let int32_input_opt_xform ?a : 'a int32_t option -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t = function
+let int32_input_opt_xform ?a : 'a int32_t option -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t = function
   | None -> int32_input_opt_aux_xform ?a ""
   | Some v -> int32_input_opt_aux_xform ?a (Int32.to_string  v)

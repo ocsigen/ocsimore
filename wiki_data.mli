@@ -17,9 +17,8 @@ exception Css_already_exists
 
 
 
-type 'a rights_sp =
+type 'a rights =
   rights:Wiki_types.wiki_rights ->
-  sp: Eliom_sessions.server_params ->
   'a
 
 
@@ -43,7 +42,7 @@ val create_wiki :
   ?container_text:string ->
   model:Wiki_types.wiki_model ->
   unit ->
-  wiki Lwt.t) rights_sp
+  wiki Lwt.t) rights
 
 
 
@@ -54,7 +53,7 @@ val new_wikitextbox :
   author:userid ->
   comment:string ->
   content:string ->
-  unit -> wikibox Lwt.t) rights_sp
+  unit -> wikibox Lwt.t) rights
 
 
 (** The next three functions save a wikibox and returns the new version id of
@@ -64,33 +63,33 @@ val save_wikitextbox :
  (content_type:'res Wiki_types.content_type ->
   wb:wikibox ->
   content:string option ->
-  int32 Lwt.t) rights_sp
+  int32 Lwt.t) rights
 
 val save_wikicssbox :
  (wiki:wiki ->
   content:string option ->
   wb:wikibox ->
-  int32 Lwt.t) rights_sp
+  int32 Lwt.t) rights
 
 val save_wikipagecssbox :
  (wiki:wiki ->
   page:string ->
   content:string option ->
   wb:wikibox ->
-  int32 Lwt.t) rights_sp
+  int32 Lwt.t) rights
 
 
 
 val set_wikibox_special_rights :
  (wb:wikibox ->
   special_rights:bool ->
-  unit Lwt.t) rights_sp
+  unit Lwt.t) rights
 
 
 val create_wikipage:
  (wiki:wiki ->
   page:string ->
-  unit Lwt.t) rights_sp
+  unit Lwt.t) rights
 
 val add_css:
   (wiki:wiki ->
@@ -98,13 +97,13 @@ val add_css:
    media:media_type ->
    ?wbcss:wikibox ->
    unit ->
-   wikibox Lwt.t) rights_sp
+   wikibox Lwt.t) rights
 
 val delete_css:
   (wiki:wiki ->
    page:string option ->
    wb:wikibox ->
-   unit Lwt.t) rights_sp
+   unit Lwt.t) rights
 
 val update_css:
   (wiki:wiki ->
@@ -113,7 +112,7 @@ val update_css:
    newwb:wikibox ->
    media:media_type ->
    rank:int32 ->
-   unit Lwt.t) rights_sp
+   unit Lwt.t) rights
 
 (** Raised in case of a non-existing wikibox. The optional [int32]
    argument is the version number *)
@@ -125,30 +124,30 @@ exception Unknown_box of wikibox * int32 option
 val wikibox_content:
  (?version:int32 ->
   wikibox ->
-  'res Wiki_types.wikibox_content Lwt.t) rights_sp
+  'res Wiki_types.wikibox_content Lwt.t) rights
 
 val wikibox_content':
  (?version:int32 ->
   wikibox ->
-  (string option * int32) Lwt.t) rights_sp
+  (string option * int32) Lwt.t) rights
 
 
 val wikibox_history :
  (wb:wikibox ->
   (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t)
- rights_sp
+ rights
 
 
 (** Returns the css for the specified wiki or the wikipage. The CSS are
     filtered for the ones the user can read *)
 val wiki_css :
  (wiki:wiki ->
-  (wikibox * (string * media_type * int32)) list Lwt.t) rights_sp
+  (wikibox * (string * media_type * int32)) list Lwt.t) rights
 
 (** Same thing for a wikipage *)
 val wikipage_css :
  (wiki:wiki -> page:string ->
-  (wikibox * (string * media_type * int32)) list Lwt.t) rights_sp
+  (wikibox * (string * media_type * int32)) list Lwt.t) rights
 
 
 
@@ -162,7 +161,7 @@ val update_wiki :
   ?boxrights:bool ->
   ?model:wiki_model ->
   ?siteid:string option ->
-  wiki -> unit Lwt.t) rights_sp
+  wiki -> unit Lwt.t) rights
 
 
 val save_wikipage_properties :
@@ -170,4 +169,4 @@ val save_wikipage_properties :
    ?wb:wikibox option ->
    ?newpage:string ->
    wikipage ->
-   unit Lwt.t) rights_sp
+   unit Lwt.t) rights

@@ -21,33 +21,33 @@
    @author Boris Yakobowski
 *)
 
-let (>>=) = Lwt.bind
+open Eliom_pervasives
 
 let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_widget, message_list_widget) =
   let add_extension l ~name ~wiki_content f =
-    List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l 
+    List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
   in
   add_extension
     [Wiki_syntax.wikicreole_parser]
     ~name:"forum_message" ~wiki_content:true
     (fun bi args content ->
        Wikicreole.Block
-         (let classes = 
+         (let classes =
             try Some [List.assoc "class" args]
             with Not_found -> None
           in
           try
-            let sp = bi.Wiki_widgets_interface.bi_sp in
             let message_id =
-              Forum_types.message_of_string (List.assoc "message" args) 
+              Forum_types.message_of_string (List.assoc "message" args)
             in
-            message_widget#display
-              ~sp ?classes
-              ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
-            Lwt.return {{ [ {: b :} ] }}
-          with Not_found | Failure _ -> 
+            lwt c = message_widget#display
+		?classes
+		~data:message_id ()
+	    in
+	    ( Lwt.return [c] :> XHTML_types.div_content XHTML.M.elt list Lwt.t )
+          with Not_found | Failure _ ->
             let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return {{ [ <b>{: s :} ] }}
+            Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]
          )
     );
 
@@ -56,30 +56,29 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
     ~name:"forum_thread" ~wiki_content:true
     (fun bi args content ->
        Wikicreole.Block
-         (let classes = 
+         (let classes =
             try Some [List.assoc "class" args]
             with Not_found -> None
           in
-          let rows = 
+          let rows =
             try Some (int_of_string (List.assoc "rows" args))
             with Not_found | Failure _ -> None
           in
-          let cols = 
+          let cols =
             try Some (int_of_string (List.assoc "cols" args))
             with Not_found | Failure _ -> None
           in
           try
-            let sp = bi.Wiki_widgets_interface.bi_sp in
             let message_id =
-              Forum_types.message_of_string (List.assoc "message" args) 
+              Forum_types.message_of_string (List.assoc "message" args)
             in
-            thread_widget#display ?commentable:(Some true) ~sp
-              ?rows ?cols ?classes
-              ~data:message_id () >>= fun (b : Xhtmltypes_duce.block) ->
-            Lwt.return {{ [ {: b :} ] }}
-          with Not_found | Failure _ -> 
+            lwt c = thread_widget#display ?commentable:(Some true)
+		?rows ?cols ?classes
+		~data:message_id () in
+	    Lwt.return [c]
+          with Not_found | Failure _ ->
             let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return {{ [ <b>{: s :} ] }}
+            Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]
          )
     );
 
@@ -88,27 +87,27 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
     ~name:"forum_message_list" ~wiki_content:true
     (fun bi args content ->
        Wikicreole.Block
-         (let classes = 
+         (let classes =
             try Some [List.assoc "class" args]
             with Not_found -> None
           in
-          let rows = 
+          let rows =
             try Some (int_of_string (List.assoc "rows" args))
             with Not_found | Failure _ -> None
           in
-          let cols = 
+          let cols =
             try Some (int_of_string (List.assoc "cols" args))
             with Not_found | Failure _ -> None
           in
-          let first = 
+          let first =
             try Int64.of_string (List.assoc "first" args)
             with Not_found | Failure _ -> 1L
           in
-          let number = 
+          let number =
             try Int64.of_string (List.assoc "number" args)
             with Not_found | Failure _ -> 1000L
           in
-          let add_message_form = 
+          let add_message_form =
             Some
               (try match List.assoc "addform" args with
                  | "false" -> false
@@ -116,18 +115,17 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
                with Not_found -> true)
           in
           try
-            let sp = bi.Wiki_widgets_interface.bi_sp in
             let forum =
-              Forum_types.forum_of_string (List.assoc "forum" args) 
+              Forum_types.forum_of_string (List.assoc "forum" args)
             in
-            message_list_widget#display
-              ~sp ?rows ?cols ?classes
-              ~forum  ~first ~number
-              ?add_message_form () >>= fun (b : Xhtmltypes_duce.block) ->
-            Lwt.return {{ [ {: b :} ] }}
-          with Not_found | Failure _ -> 
+            lwt c = message_list_widget#display
+		?rows ?cols ?classes
+		~forum  ~first ~number
+		?add_message_form () in
+	    Lwt.return [c]
+          with Not_found | Failure _ ->
             let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return {{ [ <b>{: s :} ] }}
+            Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]
          )
     );
 

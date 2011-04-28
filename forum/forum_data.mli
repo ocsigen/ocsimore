@@ -31,12 +31,11 @@
     Setting it to false will prevent to comment comments.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
-val new_forum : 
-  sp:Eliom_sessions.server_params ->
+val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
-  title_syntax: Xhtmltypes_duce.inlines Wiki_types.content_type ->
+  title_syntax: XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->
@@ -47,7 +46,6 @@ val new_forum :
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val new_message :
-  sp:Eliom_sessions.server_params ->
   forum:Forum_types.forum ->
   creator_id:User_sql.Types.userid ->
   ?subject:string ->
@@ -61,21 +59,18 @@ val new_message :
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val set_sticky :
-  sp:Eliom_sessions.server_params ->
   message_id:Forum_types.message -> sticky:bool -> unit Lwt.t
   
 (** set or unset moderated flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val set_moderated :
-  sp:Eliom_sessions.server_params ->
   message_id:Forum_types.message -> moderated:bool -> unit Lwt.t
   
 (** Get forum information, given its id or title.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val get_forum: 
-  sp:Eliom_sessions.server_params ->
   ?forum:Forum_types.forum -> 
   ?title:string -> 
   unit -> 
@@ -83,7 +78,6 @@ val get_forum:
 
 (** returns the list of forums visible to the user. *)
 val get_forums_list : 
-  sp:Eliom_sessions.server_params ->
   unit ->
   Forum_types.forum_info list Lwt.t
   
@@ -92,7 +86,6 @@ val get_forums_list :
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val get_message : 
-  sp:Eliom_sessions.server_params ->
   message_id:Forum_types.message -> 
   Forum_types.message_info Lwt.t
   
@@ -105,7 +98,6 @@ val get_message :
     or [Not_found].
 *)
 val get_thread : 
-  sp:Eliom_sessions.server_params ->
   message_id:Forum_types.message -> 
   Forum_types.message_info list Lwt.t
   
@@ -117,7 +109,6 @@ type raw_message
     (must be filtered afterwards!!!) are returned.
 *)
 val get_message_list : 
-  sp:Eliom_sessions.server_params ->
   forum:Forum_types.forum ->
   first:int64 ->
   number:int64 ->
@@ -130,6 +121,5 @@ val get_message_list :
     allow to read the message.
 *)
 val message_info_of_raw_message : 
-  sp:Eliom_sessions.server_params ->
   raw_message -> 
   Forum_types.message_info Lwt.t 

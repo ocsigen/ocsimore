@@ -23,7 +23,7 @@
 *)
 
 
-
+open Eliom_pervasives
 open User_sql.Types
 
 let (>>=) = Lwt.(>>=)
@@ -36,126 +36,108 @@ let unopt_str = function | None -> "" | Some s -> s
 
 
 let str_input ?(value="") ?(visible=true) name =
-  Eliom_predefmod.Xhtml.string_input ~name ~value
+  Eliom_output.Xhtml.string_input ~name ~value
     ~input_type:(if visible then `Text else `Hidden)
     ()
 let passwd_input ?(value="") name =
-  Eliom_predefmod.Xhtml.string_input
+  Eliom_output.Xhtml.string_input
     ~input_type:`Password
     ~name
     ~value ()
 let submit_input value =
-  Eliom_predefmod.Xhtml.string_input ~input_type:`Submit ~value ()
+  Eliom_output.Xhtml.string_input ~input_type:`Submit ~value ()
 
 
 class type user_widget_class = object
   method display_roles :
-    sp:Eliom_sessions.server_params ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    Eliom_output.Blocks.page Lwt.t
   method display_groups :
-    sp:Eliom_sessions.server_params ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    Eliom_output.Blocks.page Lwt.t
   method display_users :
-    sp:Eliom_sessions.server_params ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    Eliom_output.Blocks.page Lwt.t
 
   method display_group :
-    sp:Eliom_sessions.server_params ->
-    user * string -> Eliom_predefmod.Blocks.page Lwt.t
+    user * string -> Eliom_output.Blocks.page Lwt.t
 
   method display_login_widget :
-    sp:Eliom_sessions.server_params ->
     ?user_prompt:string ->
     ?pwd_prompt:string ->
     ?auth_error:string ->
     ?switchtohttps:string ->
     ?show_ext:bool ->
     unit ->
-    Xhtmltypes.form_content XHTML.M.elt Lwt.t
+    XHTML_types.form_content XHTML.M.elt Lwt.t
 
   method private display_logout_box :
-    sp:Eliom_sessions.server_params ->
     ?show_ext:bool ->
     User_sql.Types.userdata ->
-    Xhtmltypes.form_content XHTML.M.elt list Lwt.t
+    XHTML_types.form_content XHTML.M.elt list Lwt.t
   method display_logout_button :
-    sp:Eliom_sessions.server_params ->
-    Xhtmltypes.button_content XHTML.M.elt list ->
-    Xhtmltypes.form XHTML.M.elt Lwt.t
-  method logout_uri :
-    sp:Eliom_sessions.server_params -> XHTML.M.uri
+    XHTML_types.button_content XHTML.M.elt list ->
+    XHTML_types.form XHTML.M.elt Lwt.t
+  method logout_uri : XHTML.M.uri
 
   method user_link :
-    sp:Eliom_sessions.server_params ->
     string -> [`A | `Form] XHTML.M.elt
 
   method user_list_to_xhtml :
-    sp:Eliom_sessions.server_params ->
-    ?hook:(sp:Eliom_sessions.server_params ->
-          user:string ->
+    ?hook:(user:string ->
           [`A | `Form] XHTML.M.elt list Lwt.t) ->
-    User_sql.Types.user list -> Xhtmltypes.block XHTML.M.elt Lwt.t
+    User_sql.Types.user list -> XHTML_types.block XHTML.M.elt Lwt.t
 
 
   (** Helper forms to add and remove users from groups. If [show_edit]
       is false, no controls to edit the permissions are shown *)
   (** Form to add users to a group *)
   method form_edit_group:
-    sp:Eliom_sessions.server_params ->
     ?show_edit:bool ->
     ?default_add:string ->
     group:user ->
-    text:Xhtmltypes.block XHTML.M.elt list ->
+    text:XHTML_types.block XHTML.M.elt list ->
     unit ->
-    Xhtmltypes.tbody_content XHTML.M.elt Lwt.t
+    XHTML_types.tbody_content XHTML.M.elt Lwt.t
 
   (** Form to add an user to a group *)
   method form_edit_user:
-    sp:Eliom_sessions.server_params ->
     user:User_sql.Types.user ->
-    text:Xhtmltypes.block XHTML.M.elt list ->
+    text:XHTML_types.block XHTML.M.elt list ->
     unit ->
-    Xhtmltypes.block XHTML.M.elt list Lwt.t
+    XHTML_types.block XHTML.M.elt list Lwt.t
 
   method form_edit_awr: 'a.
-    sp:Eliom_sessions.server_params ->
     text_prefix:string ->
     grps:'a User_sql.Types.admin_writer_reader ->
     arg:'a Opaque.int32_t ->
     ?defaults:string * string * string ->
     unit ->
-    (  Xhtmltypes.tbody_content XHTML.M.elt
-     * Xhtmltypes.tbody_content XHTML.M.elt list) Lwt.t
+    (  XHTML_types.tbody_content XHTML.M.elt
+     * XHTML_types.tbody_content XHTML.M.elt list) Lwt.t
 
   method status_text:
-    sp:Eliom_sessions.server_params ->
-    Xhtmltypes.form_content XHTML.M.elt list Lwt.t
+    XHTML_types.form_content XHTML.M.elt list Lwt.t
 
   method display_group_creation :
-    ?err:string ->
-    sp:Eliom_sessions.server_params ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    ?err:string -> unit ->
+    Eliom_output.Blocks.page Lwt.t
 
   method display_group_creation_done :
-    Eliom_sessions.server_params ->
     unit ->
     string * string ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    Eliom_output.Blocks.page Lwt.t
 
 end
 
 class type user_widget_user_creation_class = object
   method display_user_creation :
     ?err:string ->
-    sp:Eliom_sessions.server_params ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    unit ->
+    Eliom_output.Blocks.page Lwt.t
   method display_user_creation_done :
-    sp:Eliom_sessions.server_params ->
     name:string ->
     fullname:string ->
     email:string ->
     pwd:string*string ->
-    Eliom_predefmod.Blocks.page Lwt.t
+    Eliom_output.Blocks.page Lwt.t
 end
 
 
@@ -170,28 +152,28 @@ object (self)
 
   val xhtml_class = "logbox"
 
-  method form_edit_group ~sp ?(show_edit=false) ?(default_add="") ~group ~text () =
+  method form_edit_group ?(show_edit=false) ?(default_add="") ~group ~text () =
     (if show_edit then
-       User.get_user_data sp                      >>= fun u ->
+       User.get_user_data ()                      >>= fun u ->
        let user = basic_user u.user_id in
-       User_data.can_admin_group ~sp ~user ~group () >>= function
+       User_data.can_admin_group ~user ~group () >>= function
          | true ->
              User_sql.user_to_string group        >>= fun group ->
              Lwt.return
-               ((fun ~sp ~user ->
+               ((fun ~user ->
                    Lwt.return
-                     (self#bt_remove_user_from_group ~sp ~group ~user ())
+                     (self#bt_remove_user_from_group ~group ~user ())
                 ),
-                (self#form_add_user_to_group ~sp ~default_add ~group ())
+                (self#form_add_user_to_group ~default_add ~group ())
                )
          | false ->
-             Lwt.return ((fun ~sp:_ ~user:_ -> Lwt.return []), [])
+             Lwt.return ((fun ~user:_ -> Lwt.return []), [])
      else
-       Lwt.return ((fun ~sp:_ ~user:_ -> Lwt.return []), [])
+       Lwt.return ((fun ~user:_ -> Lwt.return []), [])
     )                                             >>= fun (hook, add) ->
 
     User_sql.users_in_group ~generic:false ~group >>= fun users ->
-    self#user_list_to_xhtml ~sp ~hook users       >>= fun members ->
+    self#user_list_to_xhtml ~hook users       >>= fun members ->
     Lwt.return
       (XHTML.M.tr
          (XHTML.M.td ~a:[XHTML.M.a_class ["role"]] text)
@@ -199,29 +181,27 @@ object (self)
       )
 
 
-  method form_edit_user ~sp ~user ~text () =
+  method form_edit_user ~user ~text () =
     (* YYY put back edition buttons if the user has enough rights, or if
        it is admin *)
-    User_sql.groups_of_user ~user >>=
-    self#user_list_to_xhtml ~sp   >>= fun members ->
+    lwt groups = User_sql.groups_of_user ~user in
+    lwt members = self#user_list_to_xhtml groups in
     Lwt.return (text @ [members])
 
   method form_edit_awr : 'a.
-       sp:_
-    -> text_prefix:_
+      text_prefix:_
     -> grps:'a User_sql.Types.admin_writer_reader
     -> arg:'a Opaque.int32_t
     -> ?defaults:_
     -> unit
     -> _ = fun
-       ~sp
        ~text_prefix
        ~grps
        ~arg
        ?defaults
        () ->
     let aux grp text default =
-      self#form_edit_group ~sp ~group:(grp $ arg) ~text
+      self#form_edit_group ~group:(grp $ arg) ~text
         ~show_edit:true ~default_add:default
     and d1, d2, d3 = match defaults with
       | None -> "", "", ""
@@ -238,50 +218,50 @@ object (self)
                                                                >>= fun formr ->
     Lwt.return (formr, [formw; forma;])
 
-  method private bt_remove_user_from_group ~sp ~group ~user ?(text="Remove") () =
+  method private bt_remove_user_from_group ~group ~user ?(text="Remove") () =
     let str_input = str_input ~visible:false in
     let mform (gname, (addname, remname)) =
       [ XHTML.M.div ~a:[eliom_inline_class]
           [ str_input ~value:group gname;
             str_input ~value:user remname;
             str_input addname;
-            Eliom_predefmod.Xhtml.button ~button_type:`Submit
+            Eliom_output.Xhtml.button ~button_type:`Submit
               [XHTML.M.pcdata text];
           ]
       ]
     in
-    [Eliom_predefmod.Xhtml.post_form
+    [Eliom_output.Xhtml.post_form
        ~a:[eliom_inline_class; accept_charset_utf8 ]
-       ~service:User_services.action_add_remove_users_from_group ~sp mform ()]
+       ~service:User_services.action_add_remove_users_from_group mform ()]
 
-  method private form_add_user_to_group ~sp ~group ?(default_add="") ?(text="Add") () =
+  method private form_add_user_to_group ~group ?(default_add="") ?(text="Add") () =
     let str_input' = str_input ~visible:false in
     let mform (gname, (addname, remname)) =
       [XHTML.M.div ~a:[eliom_inline_class]
          [str_input' ~value:group gname;
           str_input' remname;
           str_input ~value:default_add addname ;
-          Eliom_predefmod.Xhtml.button ~button_type:`Submit
+          Eliom_output.Xhtml.button ~button_type:`Submit
             [XHTML.M.pcdata text];
          ]
       ]
     in
-    [Eliom_predefmod.Xhtml.post_form
+    [Eliom_output.Xhtml.post_form
        ~a:[eliom_inline_class; accept_charset_utf8]
-      ~service:User_services.action_add_remove_users_from_group ~sp mform ()]
+      ~service:User_services.action_add_remove_users_from_group mform ()]
 
-  method user_list_to_xhtml ~sp ?hook l = match l with
+  method user_list_to_xhtml ?hook l = match l with
     | [] -> Lwt.return
               (XHTML.M.p [XHTML.M.em [XHTML.M.pcdata "(currently no user)"]])
     | e :: es ->
         let hook = match hook with
           | None -> (fun _ -> Lwt.return [])
-          | Some h -> (fun user -> h ~sp ~user)
+          | Some h -> (fun user -> h ~user)
         in
         let convert u =
           User_sql.user_to_string ~expand_param:true u >>= fun user ->
           hook user                                    >|= fun hooked ->
-          XHTML.M.li ((self#user_link ~sp user) :: hooked)
+          XHTML.M.li ((self#user_link user) :: hooked)
         in
         convert e >>= fun e ->
         Lwt_list.fold_left_s
@@ -298,11 +278,11 @@ object (self)
     ?(auth_error= "Wrong login or password")
     ?(switchtohttps= "Click here to switch to https and login")
     ?(show_ext=true)
-    ~sp error =
-    if (Eliom_sessions.get_ssl sp) || not User_services.force_secure
+    error =
+    if (Eliom_request_info.get_ssl ()) || not User_services.force_secure
     then begin
       (if show_ext
-       then self#login_box_extension ~sp
+       then self#login_box_extension
        else Lwt.return ([]: [`Tr] XHTML.M.elt list)
       ) >>= fun ext ->
       Lwt.return (fun (usr, pwd) ->
@@ -330,15 +310,15 @@ object (self)
     else
       Lwt.return (fun _ ->
         [XHTML.M.p
-           [Eliom_predefmod.Xhtml.a Eliom_services.https_void_coservice'
-              sp [XHTML.M.pcdata switchtohttps] ()
+           [Eliom_output.Xhtml.a Eliom_services.https_void_coservice'
+              [XHTML.M.pcdata switchtohttps] ()
            ]
         ]
       )
 
-  method private display_logout_box ~sp ?(show_ext=true) u =
+  method private display_logout_box ?(show_ext=true) u =
     (if show_ext
-     then self#logout_box_extension ~sp
+     then self#logout_box_extension
      else Lwt.return []) >>= fun ext ->
     Lwt.return [XHTML.M.table ~a:[XHTML.M.a_class["login_box"]]
                   (XHTML.M.tr
@@ -353,27 +333,27 @@ object (self)
                    :: ext)
     ]
 
-  method private login_box_extension ~sp:_ = Lwt.return []
+  method private login_box_extension = Lwt.return []
 
-  method private logout_box_extension ~sp =
-    User.get_user_data sp >|= fun ud ->
+  method private logout_box_extension =
+    User.get_user_data () >|= fun ud ->
     [XHTML.M.tr
        (XHTML.M.td
-          [Eliom_predefmod.Xhtml.a
-             User_services.service_view_group sp
+          [Eliom_output.Xhtml.a
+             User_services.service_view_group
              [XHTML.M.pcdata "Manage your account"] ud.user_login
           ]
        )
        []
     ]
 
-  method display_logout_button ~sp content =
+  method display_logout_button content =
     Lwt.return
-      (Eliom_predefmod.Xhtml.post_form ~a:[XHTML.M.a_class ["logoutbutton"]]
-         ~sp ~service:User_services.action_logout
+      (Eliom_output.Xhtml.post_form ~a:[XHTML.M.a_class ["logoutbutton"]]
+         ~service:User_services.action_logout
          (fun () ->
             [XHTML.M.p
-               [Eliom_predefmod.Xhtml.button ~button_type:`Submit content]
+               [Eliom_output.Xhtml.button ~button_type:`Submit content]
             ]
          ) ()
       )
@@ -385,35 +365,34 @@ object (self)
                       :}] ] }}) ())
                *)
 
-  method logout_uri ~sp =
-    Eliom_predefmod.Xhtml.make_uri
+  method logout_uri =
+    Eliom_output.Xhtml.make_uri
       ~service:User_services.action_logout_get
-      ~sp
       ()
 
 
-  method display_login_widget ~sp ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ?(show_ext=true) () =
-    User.get_user_data sp >>= fun u ->
-    User.is_logged_on sp >>= fun logged ->
+  method display_login_widget ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ?(show_ext=true) () =
+    User.get_user_data () >>= fun u ->
+    User.is_logged_on () >>= fun logged ->
     (if logged then
-       self#display_logout_box ~sp ~show_ext u >>= fun f ->
+       self#display_logout_box ~show_ext u >>= fun f ->
        Lwt.return (
-         Eliom_predefmod.Xhtml.post_form
+         Eliom_output.Xhtml.post_form
            ~a:[XHTML.M.a_class ["logbox"; "logged"]]
-           ~service:User_services.action_logout ~sp (fun _ -> f) ())
+           ~service:User_services.action_logout (fun _ -> f) ())
 
      else
        let f_login error ~a =
          self#login_box_aux ?user_prompt ?pwd_prompt ?auth_error
-           ?switchtohttps ~sp ~show_ext error
+           ?switchtohttps ~show_ext error
          >>= fun f ->
          Lwt.return
-           (Eliom_predefmod.Xhtml.post_form
-              ~service:User_services.action_login ~sp ~a f ())
+           (Eliom_output.Xhtml.post_form
+              ~service:User_services.action_login ~a f ())
        in
        if List.exists
           (fun e -> e = User.BadPassword || e = User.BadUser)
-          (User_data.get_login_error ~sp)
+          (User_data.get_login_error ())
        then (* unsuccessful attempt *)
          f_login true ~a:[XHTML.M.a_class ["logbox"; "error"]]
        else (* no login attempt yet *)
@@ -422,19 +401,19 @@ object (self)
     Lwt.return (XHTML.M.div ~a:[XHTML.M.a_class [xhtml_class]] [f])
 
 
-  method user_link ~sp group =
-    Eliom_predefmod.Xhtml.a ~service:User_services.service_view_group ~sp
+  method user_link group =
+    Eliom_output.Xhtml.a ~service:User_services.service_view_group
       [XHTML.M.pcdata group] group
 
 
-  method display_group ~sp (group, g) =
+  method display_group (group, g) =
     User_sql.user_type group >>= fun gtype ->
     let ctext, text, gtypedescr = match gtype with
       | `Role  -> ("Role",  "role",  "Description")
       | `User  -> ("User",  "user",  "Name"       )
       | `Group -> ("Group", "group", "Description")
     in
-    let error = match Ocsimore_common.get_action_failure sp with
+    let error = match Ocsimore_common.get_action_failure () with
       | None -> []
       | Some e -> (* YYY add error handler somewhere *)
           let msg = match e with
@@ -455,7 +434,7 @@ object (self)
     in
 
     (* Adding groups to the group *)
-    self#form_edit_group ~sp ~show_edit:true ~group
+    self#form_edit_group ~show_edit:true ~group
       ~text:[XHTML.M.p ~a:[eliom_inline_class]
                [XHTML.M.strong
                   [XHTML.M.pcdata ("Current users/groups in this "^ text ^": ")]
@@ -464,7 +443,7 @@ object (self)
     >>= fun f1  ->
 
     (* Adding the group to groups *)
-    self#form_edit_user ~sp ~user:group
+    self#form_edit_user ~user:group
       ~text:[XHTML.M.p ~a:[XHTML.M.a_class ["eliom_inline"]]
                [XHTML.M.strong
                   [XHTML.M.pcdata ("Current groups/roles in which the " ^ text ^
@@ -476,14 +455,14 @@ object (self)
     >>= fun f2  ->
 
     User_sql.get_user_data group >>= fun g ->
-    User_data.can_change_user_data_by_user sp group >>= fun can_change ->
+    User_data.can_change_user_data_by_user group >>= fun can_change ->
     let edit =
       if can_change &&
         g.user_pwd <> Connect_forbidden &&
         g.user_pwd <> External_Auth
       then
-        [Eliom_predefmod.Xhtml.post_form
-           ~service:User_services.action_edit_user_data ~sp
+        [Eliom_output.Xhtml.post_form
+           ~service:User_services.action_edit_user_data
            (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
               [XHTML.M.table
                  (XHTML.M.tr
@@ -500,7 +479,7 @@ object (self)
                     [XHTML.M.td [passwd_input pwd2]];
                   XHTML.M.tr
                     (XHTML.M.td [submit_input "Confirm";
-                                 Eliom_predefmod.Xhtml.user_type_input
+                                 Eliom_output.Xhtml.user_type_input
                                    string_from_userid
                                    ~input_type:`Hidden
                                    ~name:nuserid
@@ -527,18 +506,18 @@ object (self)
         ])
 
 
-  method display_users ~sp =
+  method display_users =
     User_sql.all_groups () >>= fun l ->
     let l = List.filter (fun {user_kind = u; user_pwd = a} ->
                            u = `BasicUser && a <> Connect_forbidden ) l in
     let l = List.sort
       (fun u1 u2 -> compare u1.user_login u2.user_login) l in
 
-    self#display_users_groups ~show_auth:true ~sp ~l ~utype:`User >>= fun r ->
+    self#display_users_groups ~show_auth:true ~l ~utype:`User >>= fun r ->
 
     Lwt.return [XHTML.M.h1 [XHTML.M.pcdata "Existing users"]; r]
 
-  method display_groups ~sp =
+  method display_groups =
     User_sql.all_groups () >>= fun l ->
     let l =
       List.filter
@@ -552,13 +531,13 @@ object (self)
         l
     in
 
-    self#display_users_groups ~show_auth:false ~sp ~l ~utype:`Group >>= fun r ->
+    self#display_users_groups ~show_auth:false ~l ~utype:`Group >>= fun r ->
 
     Lwt.return [XHTML.M.h1 [XHTML.M.pcdata "Existing groups"]; r]
 
 
   (* Parameterized users *)
-  method display_roles ~sp =
+  method display_roles =
     User_sql.all_groups () >>= fun l ->
     let l = List.filter (fun {user_kind = u} -> u <> `BasicUser) l in
     let l = List.sort (fun u1 u2 -> compare u1.user_login u2.user_login) l in
@@ -586,15 +565,15 @@ object (self)
 
     let form name =
       [XHTML.M.p
-         [Eliom_predefmod.Xhtml.string_input ~name ~input_type:`Text ();
-          Eliom_predefmod.Xhtml.button ~button_type:`Submit
+         [Eliom_output.Xhtml.string_input ~name ~input_type:`Text ();
+          Eliom_output.Xhtml.button ~button_type:`Submit
             [XHTML.M.pcdata "Edit this role"];
          ]
       ]
     in
     let f =
-      Eliom_predefmod.Xhtml.get_form ~a:[accept_charset_utf8]
-        ~service:User_services.service_view_group ~sp form
+      Eliom_output.Xhtml.get_form ~a:[accept_charset_utf8]
+        ~service:User_services.service_view_group form
     in
     let msg2 =
       "Choose one group, and enter it (including its parameter if needed) below"
@@ -606,11 +585,11 @@ object (self)
        f
       ]
 
-  method private display_users_groups ~show_auth ~sp ~utype ~l =
+  method private display_users_groups ~show_auth ~utype ~l =
     let line2 u =
       let l =
-        Eliom_predefmod.Xhtml.a ~service:User_services.service_view_group ~sp
-          [Page_site.icon ~sp ~path:"imgedit.png" ~text:"Details"]
+        Eliom_output.Xhtml.a ~service:User_services.service_view_group
+          [Page_site.icon ~path:"imgedit.png" ~text:"Details"]
           u.user_login
       in
       let aa =
@@ -657,8 +636,8 @@ object (self)
       )
 
 
-  method status_text ~sp =
-    self#display_login_widget ~sp
+  method status_text =
+    self#display_login_widget
       ~user_prompt:"You are not currently logged in. Login:"
       ~pwd_prompt:"Password:"
       ~show_ext:false () >>= fun r ->
@@ -673,8 +652,8 @@ object (self)
         Lwt.return {{ ['You are not currently logged. ' l]  }} *)
 
 
-  method display_group_creation ?(err="") ~sp =
-    User_data.can_create_group ~sp >|= function
+  method display_group_creation ?(err="") () =
+    User_data.can_create_group () >|= function
       | true ->
           [XHTML.M.h1 [XHTML.M.pcdata "Group creation"];
            XHTML.M.p [XHTML.M.pcdata
@@ -683,7 +662,7 @@ object (self)
                          authorized to log in.) Once this is done, you will \
                          be able to add users into your group."];
            XHTML.M.h2 [XHTML.M.pcdata "Create a new group"];
-           Eliom_predefmod.Xhtml.post_form ~sp
+           Eliom_output.Xhtml.post_form
              ~service:User_services.action_create_new_group
              (fun (usr, desc) ->
                 [XHTML.M.table
@@ -708,15 +687,15 @@ object (self)
            XHTML.M.p [XHTML.M.pcdata "You are not allowed to create new groups"]
           ]
 
-  method display_group_creation_done sp () (name, descr) =
+  method display_group_creation_done () (name, descr) =
     Lwt.catch
       (fun () ->
-         User_data.create_group ~sp ~name ~descr >>= fun groupid ->
+         User_data.create_group ~name ~descr >>= fun groupid ->
          User_sql.get_basicuser_data groupid >>= fun group ->
          Lwt.return
            [XHTML.M.h1 [XHTML.M.pcdata "Group created"];
             XHTML.M.p [XHTML.M.pcdata "You can now ";
-                       Eliom_predefmod.Xhtml.a ~sp
+                       Eliom_output.Xhtml.a
                          ~service:User_services.service_view_group
                          [XHTML.M.pcdata "edit"] group.user_login;
                        XHTML.M.pcdata " your new group."
@@ -724,7 +703,7 @@ object (self)
            ]
       )
       (function
-         | Failure err -> self#display_group_creation ~err ~sp
+         | Failure err -> self#display_group_creation ~err ()
          | Ocsimore_common.Permission_denied ->
              Lwt.return
                [XHTML.M.h1 [XHTML.M.pcdata "Error"];
@@ -740,22 +719,22 @@ end
 class user_widget_user_creation user_creation_options : user_widget_user_creation_class =
 object (self)
 
-  method private login_box_extension ~sp =
-    User_data.can_create_user ~sp ~options:user_creation_options >|= function
+  method private login_box_extension =
+    User_data.can_create_user ~options:user_creation_options >|= function
       | true ->
           [XHTML.M.tr
              (XHTML.M.td ~a:[XHTML.M.a_colspan 2]
-                [Eliom_predefmod.Xhtml.a
+                [Eliom_output.Xhtml.a
                    User_services.service_create_new_user
-                   sp [XHTML.M.pcdata "New user? Register now!" ] ()
+                   [XHTML.M.pcdata "New user? Register now!" ] ()
                 ]
              )
              []
           ]
       | false -> []
 
-  method display_user_creation ?(err="") ~sp =
-    User_data.can_create_user ~sp ~options:user_creation_options >|= function
+  method display_user_creation ?(err="") () =
+    User_data.can_create_user ~options:user_creation_options >|= function
       | true ->
           [XHTML.M.h1 [XHTML.M.pcdata "User creation"];
            XHTML.M.p [XHTML.M.pcdata "Use the form below to create a new \
@@ -774,7 +753,7 @@ object (self)
                                       address, as the confirmation url will be \
                                       sent there.";
                      ];
-           Eliom_predefmod.Xhtml.post_form ~sp
+           Eliom_output.Xhtml.post_form
              ~service:User_services.action_create_new_user
              (fun (usr,(desc,(email, (pass1, pass2)))) ->
                 [XHTML.M.table
@@ -803,13 +782,13 @@ object (self)
            XHTML.M.p [XHTML.M.pcdata "You are not allowed to create new users"];
           ]
 
-  method display_user_creation_done ~sp ~name  ~fullname ~email ~pwd =
+  method display_user_creation_done ~name  ~fullname ~email ~pwd =
     Lwt.catch
       (fun () ->
          if fst pwd <> snd pwd then
            Lwt.fail (Failure "You must enter the same password twice")
          else
-           User_services.create_user ~sp ~name ~fullname ~email ~pwd:(fst pwd)
+           User_services.create_user ~name ~fullname ~email ~pwd:(fst pwd)
              ~options:user_creation_options () >|= fun () ->
            [XHTML.M.h1 [XHTML.M.pcdata "User creation successful"];
             XHTML.M.p [XHTML.M.pcdata "You will receive an activation e-mail \
@@ -820,7 +799,7 @@ object (self)
            ]
       )
       (function
-         | Failure err -> self#display_user_creation ~err ~sp
+         | Failure err -> self#display_user_creation ~err ()
          | Ocsimore_common.Permission_denied ->
              Lwt.return
                [XHTML.M.h1 [XHTML.M.pcdata "Error"];

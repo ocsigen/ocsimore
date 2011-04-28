@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Forum_types
 
@@ -381,15 +382,15 @@ type role =
       forum_admin : bool Lwt.t Lazy.t;
     }
 
-let get_role ~sp ~forum =
-  User.get_user_id sp >>= fun u ->
-  let aux g id = User.in_group ~sp
+let get_role ~forum =
+  User.get_user_id () >>= fun u ->
+  let aux g id = User.in_group
     ~user:(User_sql.Types.basic_user u) ~group:(g $ id) () 
   in
   let noright = lazy (Lwt.return false) in
 
   Forum_sql.get_forum ~forum () >>= fun forum_info ->
-  User.in_group ~sp ~group:(forum_visible $ forum_info.f_id) () >>= fun b ->
+  User.in_group ~group:(forum_visible $ forum_info.f_id) () >>= fun b ->
   if b
   then Lwt.return
     {
@@ -494,31 +495,31 @@ module Roles = Map.Make(struct
 
 type forum_sd = Forum_types.forum -> role Lwt.t
 
-let default_forum_sd ~sp =
+let default_forum_sd () =
   let cache = ref Roles.empty in
   (* We cache the values to retrieve them only once *)
   fun k -> 
     try 
       Lwt.return (Roles.find k !cache)
     with Not_found -> 
-      get_role ~sp ~forum:k >>= fun v ->
+      get_role ~forum:k >>= fun v ->
       cache := Roles.add k v !cache;
       Lwt.return v
 
 (** The polytable key for retrieving forum data inside session data *)
 let forum_key : forum_sd Polytables.key = Polytables.make_key ()
 
-let get_forum_sd ~sp =
-  let rc = Eliom_sessions.get_request_cache sp in
+let get_forum_sd () =
+  let rc = Eliom_request_info.get_request_cache () in
   try
     Polytables.get ~table:rc ~key:forum_key
   with Not_found -> 
-    let fsd = default_forum_sd ~sp in
+    let fsd = default_forum_sd () in
     Polytables.set rc forum_key fsd;
     fsd
 
-let get_role ~sp k =
-  let forum_sd = get_forum_sd ~sp in
+let get_role k =
+  let forum_sd = get_forum_sd () in
   forum_sd k
 
 
@@ -542,17 +543,17 @@ let eliom_message =
     ~of_string:message_of_string ~to_string:string_of_message 
 
 let eliom_forum_input ?a ~input_type ?name ?value () = 
-  Eliom_duce.Xhtml.user_type_input string_of_forum ?a ~input_type ?name ?value ()
+  Eliom_output.Xhtml.user_type_input string_of_forum ?a ~input_type ?name ?value ()
 let eliom_message_input ?a ~input_type ?name ?value () = 
-  Eliom_duce.Xhtml.user_type_input string_of_message ?a ~input_type ?name ?value ()
+  Eliom_output.Xhtml.user_type_input string_of_message ?a ~input_type ?name ?value ()
 let eliom_message_button ?a ~name ~value v =
-  Eliom_duce.Xhtml.user_type_button string_of_message ?a ~name ~value v
+  Eliom_output.Xhtml.user_type_button string_of_message ?a ~name ~value v
 
 
 (** {2 Right model for forum's wikis} *)
 
-let is_creator ~sp wb =
-  User.get_user_id ~sp >>= fun u ->
+let is_creator wb =
+  User.get_user_id () >>= fun u ->
   Forum_sql.get_wikibox_creator ~wb >>= function
     | None -> Lwt.return false
     | Some v -> Lwt.return (u = v)
@@ -562,26 +563,26 @@ object (_self)
 
   inherit Wiki.wiki_rights as papa
 
-  method can_write_wikibox ~sp wb = 
-    papa#can_write_wikibox ~sp wb >>= fun b ->
+  method can_write_wikibox wb = 
+    papa#can_write_wikibox wb >>= fun b ->
     if b 
     then Lwt.return true
     else begin
       Wiki_sql.get_wikibox_info wb >>= fun { Wiki_types.wikibox_wiki = wiki} ->
-      User.in_group ~sp ~group:(message_modifiers_if_creator $ wiki) ()
+      User.in_group ~group:(message_modifiers_if_creator $ wiki) ()
       >>= fun b ->
       if b
-      then is_creator ~sp wb
+      then is_creator wb
       else Lwt.return false
     end
 
-  method can_read_wikibox ~sp wb = 
-    papa#can_read_wikibox ~sp wb >>= fun b ->
+  method can_read_wikibox wb = 
+    papa#can_read_wikibox wb >>= fun b ->
     if b 
     then Lwt.return true
     else begin
       Wiki_sql.get_wikibox_info wb >>= fun { Wiki_types.wikibox_wiki = wiki} ->
-      User.in_group ~sp ~group:(moderated_message_readers $ wiki) ()
+      User.in_group ~group:(moderated_message_readers $ wiki) ()
       >>= fun b ->
       if b
       then Forum_sql.wikibox_is_moderated ~wb

@@ -1,9 +1,8 @@
 
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
+open Eliom_pervasives
 open CalendarLib
 module P = Eliom_parameters
-module M = Eliom_predefmod.Xhtml
+module M = Eliom_output.Xhtml
 let ( ** ) = P.( ** )
 
 let def d v = match v with None -> d | Some v -> v
@@ -43,44 +42,44 @@ type (+'html, +'o) t
 
 
 val string_input :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list -> string -> (Xhtmltypes.inlinemix XHTML.M.elt, string) t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list -> string -> (XHTML_types.inlinemix XHTML.M.elt, string) t
 val string_opt_input :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list ->
-  string option -> (Xhtmltypes.inlinemix XHTML.M.elt, string option) t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  string option -> (XHTML_types.inlinemix XHTML.M.elt, string option) t
 val int_input :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list -> ?format:(int -> string) ->
-  int -> (Xhtmltypes.inlinemix XHTML.M.elt, int) t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list -> ?format:(int -> string) ->
+  int -> (XHTML_types.inlinemix XHTML.M.elt, int) t
 val bounded_int_input :
-  ?format:(int -> string) -> int -> int -> int -> (Xhtmltypes.inlinemix XHTML.M.elt, int) t
+  ?format:(int -> string) -> int -> int -> int -> (XHTML_types.inlinemix XHTML.M.elt, int) t
 val bool_checkbox :
-  ?a:Xhtmltypes.input_attrib XHTML.M.attrib list -> bool -> (Xhtmltypes.inlinemix XHTML.M.elt, bool) t
+  ?a:XHTML_types.input_attrib XHTML.M.attrib list -> bool -> (XHTML_types.inlinemix XHTML.M.elt, bool) t
 val text_area :
-  ?a:Xhtmltypes.textarea_attrib XHTML.M.attrib list ->
-  rows:int -> cols:int -> string -> (Xhtmltypes.inlinemix XHTML.M.elt, string) t
-val submit_button : string -> (Xhtmltypes.inlinemix XHTML.M.elt, bool) t
-val select_single : (string * string) list -> string -> (Xhtmltypes.inlinemix XHTML.M.elt, string) t
-(*val select_single : (string * 'a) list -> 'a -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t*)
+  ?a:XHTML_types.textarea_attrib XHTML.M.attrib list ->
+  rows:int -> cols:int -> string -> (XHTML_types.inlinemix XHTML.M.elt, string) t
+val submit_button : string -> (XHTML_types.inlinemix XHTML.M.elt, bool) t
+val select_single : (string * string) list -> string -> (XHTML_types.inlinemix XHTML.M.elt, string) t
+(*val select_single : (string * 'a) list -> 'a -> (XHTML_types.inlinemix XHTML.M.elt, 'a) t*)
 (*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
 val list :
      'i list
-  -> ('i -> (Xhtmltypes.form_content XHTML.M.elt, 'o) t)
-  -> (Xhtmltypes.form_content XHTML.M.elt, 'o list) t
+  -> ('i -> (XHTML_types.form_content XHTML.M.elt, 'o) t)
+  -> (XHTML_types.form_content XHTML.M.elt, 'o list) t
 
 val list' :
      int
-  -> (Xhtmltypes.form_content XHTML.M.elt, 'o) t
-  -> (Xhtmltypes.form_content XHTML.M.elt, 'o list) t
+  -> (XHTML_types.form_content XHTML.M.elt, 'o) t
+  -> (XHTML_types.form_content XHTML.M.elt, 'o list) t
 
 val extensible_list :
   string -> 'i -> 'i list ->
-  ('i -> (Xhtmltypes.form_content XHTML.M.elt, 'o) t) ->
-  (Xhtmltypes.form_content XHTML.M.elt, 'o list) t
+  ('i -> (XHTML_types.form_content XHTML.M.elt, 'o) t) ->
+  (XHTML_types.form_content XHTML.M.elt, 'o list) t
 
 val opt_input:
-  input:('a -> (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t) ->
+  input:('a -> (XHTML_types.inlinemix XHTML.M.elt, 'b) t) ->
   default:'a ->
   'a option ->
-  (Xhtmltypes.inlinemix XHTML.M.elt, 'b option) t
+  (XHTML_types.inlinemix XHTML.M.elt, 'b option) t
 
 
 module Ops : sig
@@ -96,18 +95,18 @@ end
 val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
 val check :
-  (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t -> ('a -> string option) -> (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t
+  (XHTML_types.inlinemix XHTML.M.elt, 'a) t -> ('a -> string option) -> (XHTML_types.inlinemix XHTML.M.elt, 'a) t
 
 val convert :
-  (Xhtmltypes.inlinemix XHTML.M.elt, 'a) t -> ('a -> 'b convert monad) -> (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t
+  (XHTML_types.inlinemix XHTML.M.elt, 'a) t -> ('a -> 'b convert monad) -> (XHTML_types.inlinemix XHTML.M.elt, 'b) t
 
-val hour_input : int -> int -> (Xhtmltypes.inlinemix XHTML.M.elt, int * int) t
-val day_input : int -> int -> int -> (Xhtmltypes.inlinemix XHTML.M.elt, int * int * int) t
-val date_input : Calendar.t -> (Xhtmltypes.inlinemix XHTML.M.elt, Calendar.t) t
+val hour_input : int -> int -> (XHTML_types.inlinemix XHTML.M.elt, int * int) t
+val day_input : int -> int -> int -> (XHTML_types.inlinemix XHTML.M.elt, int * int * int) t
+val date_input : Calendar.t -> (XHTML_types.inlinemix XHTML.M.elt, Calendar.t) t
 
-val text : string -> Xhtmltypes.inlinemix XHTML.M.elt list
-val strong : Xhtmltypes.inlinemix XHTML.M.elt list -> Xhtmltypes.inlinemix XHTML.M.elt
-val p : (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t -> (Xhtmltypes.form_content XHTML.M.elt, 'b) t
+val text : string -> XHTML_types.inlinemix XHTML.M.elt list
+val strong : XHTML_types.inlinemix XHTML.M.elt list -> XHTML_types.inlinemix XHTML.M.elt
+val p : (XHTML_types.inlinemix XHTML.M.elt, 'b) t -> (XHTML_types.form_content XHTML.M.elt, 'b) t
 
 val form:
   fallback:('a, unit,
@@ -117,13 +116,12 @@ val form:
    [< Eliom_services.suff ], 'b, unit, [< `Registrable ], M.return)
   Eliom_services.service ->
   get_args:'a ->
-  page:(Eliom_sessions.server_params -> 'a -> error ->
-        [>Xhtmltypes.form] XHTML.M.elt -> XHTML.M.html Lwt.t) ->
-  sp:Eliom_sessions.server_params ->
+  page:('a -> error ->
+        [>XHTML_types.form] XHTML.M.elt -> XHTML.M.html Lwt.t) ->
   ?err_handler:(exn -> string option) ->
-  (Xhtmltypes.form_content XHTML.M.elt,
-   Eliom_sessions.server_params -> Eliom_predefmod.Xhtml.page Lwt.t) t ->
-   [> Xhtmltypes.form] XHTML.M.elt monad
+  (XHTML_types.form_content XHTML.M.elt,
+   unit -> Eliom_output.Xhtml.page Lwt.t) t ->
+   [> XHTML_types.form] XHTML.M.elt monad
 
 
 end
@@ -416,14 +414,14 @@ let convert f conv =
 (****)
 
 let text
-  : string -> Xhtmltypes.inlinemix XHTML.M.elt list
+  : string -> XHTML_types.inlinemix XHTML.M.elt list
   = fun s -> [XHTML.M.pcdata s]
 let strong
-  : Xhtmltypes.inlinemix XHTML.M.elt list -> Xhtmltypes.inlinemix XHTML.M.elt
+  : XHTML_types.inlinemix XHTML.M.elt list -> XHTML_types.inlinemix XHTML.M.elt
   = fun l -> XHTML.M.strong l
-let p (x : (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t) =
+let p (x : (XHTML_types.inlinemix XHTML.M.elt, 'b) t) =
   wrap (fun x -> [XHTML.M.p x]) x
-let hidden (x : (Xhtmltypes.inlinemix XHTML.M.elt, 'b) t) =
+let hidden (x : (XHTML_types.inlinemix XHTML.M.elt, 'b) t) =
   wrap (fun x -> [XHTML.M.div ~a:[XHTML.M.a_style "display:none"] x]) x
 
 (****)
@@ -524,35 +522,35 @@ open Ops
    as the code is typable only for (>>=)  = Lwt.bind or (>>=) = id,
    and this cannot be expressed in the signature of the functor [Make] *)
 
-let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
+let form ~fallback ~get_args ~page ?(err_handler = fun _ -> None) f =
   (* Hidden button, present to catch a press on the enter key *)
   let f = hidden (submit_button "Submit") @@ f |> snd in
   unpack f {f = fun f ->
   let (params, _) = f.params Name.first in
-  let service = Eliom_services.new_post_coservice ~timeout:600. ~fallback
+  let service = Eliom_services.post_coservice ~timeout:600. ~fallback
     ~post_params:params ()
   in
-  M.post_form ~service ~sp (fun names ->
-    M.register_for_session ~sp ~service
-          (fun sp get_args v ->
+  M.post_form ~service (fun names ->
+    M.register ~scope:`Session ~service
+          (fun get_args v ->
              match f.form (Some v) names with
              | (x, Success act) ->
                  Lwt.catch
-                   (fun () -> act sp)
+                   act
                    (fun e ->
                       match err_handler e with
                         | None -> Lwt.fail e
                         | Some err ->
-                            let form = M.post_form ~service ~sp
+                            let form = M.post_form ~service
                               (fun _ -> x) get_args in
-                            page sp get_args (ErrorMsg err) form
+                            page get_args (ErrorMsg err) form
                    )
-             | ((x : Xhtmltypes.form_content XHTML.M.elt list),
+             | ((x : XHTML_types.form_content XHTML.M.elt list),
                 (Error | Redisplay as err))     ->
                   let form =
-                    M.post_form ~service ~sp (fun _ -> x) get_args in
+                    M.post_form ~service (fun _ -> x) get_args in
                   let error = if err = Error then ErrorNoMsg else NoError in
-                  page sp get_args error form
+                  page get_args error form
           );
     let r, _ = f.form None names in r)
     get_args}
@@ -568,34 +566,34 @@ module XformLwt = struct
                end)
   open Ops
 
-let form ~fallback ~get_args ~page ~sp ?(err_handler = fun _ -> None) f =
+let form ~fallback ~get_args ~page ?(err_handler = fun _ -> None) f =
   let f = hidden (submit_button "Submit") @@ f |> snd in
   unpack f {f = fun f ->
   let (params, _) = f.params Name.first in
-  let service = Eliom_services.new_post_coservice ~timeout:600. ~fallback
+  let service = Eliom_services.post_coservice ~timeout:600. ~fallback
     ~post_params:params ()
   in
-  M.lwt_post_form ~service ~sp (fun names ->
-    M.register_for_session ~sp ~service
-          (fun sp get_args v ->
+  M.lwt_post_form ~service (fun names ->
+    M.register ~scope:`Session ~service
+          (fun get_args v ->
              f.form (Some v) names >>= function
              | (x, Success act) ->
                  Lwt.catch
-                   (fun () -> act sp)
+                   (fun () -> act ())
                    (fun e ->
                       match err_handler e with
                         | None -> Lwt.fail e
                         | Some err ->
-                            let form = M.post_form ~service ~sp
+                            let form = M.post_form ~service
                               (fun _ -> x) get_args in
-                            page sp get_args (ErrorMsg err) form
+                            page get_args (ErrorMsg err) form
                    )
-             | ((x : Xhtmltypes.form_content XHTML.M.elt list),
+             | ((x : XHTML_types.form_content XHTML.M.elt list),
                 (Error | Redisplay as err))     ->
                   let form =
-                    M.post_form ~service ~sp (fun _ -> x) get_args in
+                    M.post_form ~service (fun _ -> x) get_args in
                   let error = if err = Error then ErrorNoMsg else NoError in
-                  page sp get_args error form
+                  page get_args error form
           );
     f.form None names >|= fst)
     get_args}

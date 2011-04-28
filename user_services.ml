@@ -23,7 +23,7 @@
 *)
 
 
-
+open Eliom_pervasives
 open Eliom_parameters
 open Lwt
 open User_sql.Types
@@ -89,7 +89,7 @@ let (auth, basicusercreation, force_secure) =
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside User_site config"))
   in
-  let c = Eliom_sessions.get_config () in
+  let c = Eliom_config.get_config () in
   Lwt_unix.run (find_data default_data c)
 
 
@@ -111,110 +111,110 @@ let eliom_user : userid Ocsimore_common.eliom_usertype =
 
 
 let action_login =
-  Eliom_predefmod.Any.register_new_post_coservice'  ~https:force_secure
+  Eliom_output.Any.register_post_coservice'  ~https:force_secure
     ~name:"login"  ~keep_get_na_params:false
     ~post_params:(string "usr" ** string "pwd")
-    (fun sp () (name, pwd) ->
+    (fun () (name, pwd) ->
        Lwt.catch
          (fun () ->
-            User_data.login ~sp ~name ~pwd ~external_auth >>= fun () ->
-            Eliom_predefmod.Redirection.send ~sp 
+            User_data.login ~name ~pwd ~external_auth >>= fun () ->
+            Eliom_output.Redirection.send
               Eliom_services.void_hidden_coservice')
          (fun e ->
-            Polytables.set (Eliom_sessions.get_request_cache sp)
+            Polytables.set (Eliom_request_info.get_request_cache ())
               User_data.login_error_key [e];
-            Eliom_predefmod.Action.send ~sp ()))
+            Eliom_output.Action.send ()))
 
 and action_logout =
-  Eliom_predefmod.Any.register_new_post_coservice'
+  Eliom_output.Any.register_post_coservice'
     ~name:"logoutpost" ~post_params:unit
     ~keep_get_na_params:false
-    (fun sp () () ->
-       User_data.logout sp >>= fun () ->
-       Eliom_predefmod.Redirection.send ~sp
+    (fun () () ->
+       User_data.logout () >>= fun () ->
+       Eliom_output.Redirection.send
          Eliom_services.void_hidden_coservice'
     )
 
 and action_logout_get =
-  Eliom_predefmod.Redirection.register_new_coservice'
+  Eliom_output.Redirection.register_coservice'
     ~name:"logout" ~get_params:unit
-    (fun sp () () ->
-       User_data.logout sp >>= fun () ->
+    (fun () () ->
+       User_data.logout () >>= fun () ->
        Lwt.return Eliom_services.void_coservice')
 
 and action_edit_user_data =
-  Eliom_predefmod.Any.register_new_post_coservice'
+  Eliom_output.Any.register_post_coservice'
     ~https:force_secure
     ~post_params:(eliom_user ** (string "pwd" **
                                    (string "pwd2" **
                                       (string "descr" ** string "email"))))
-    (fun sp () (userid, (pwd, (pwd2, (descr, email)))) ->
-       Ocsimore_common.catch_action_failure sp
+    (fun () (userid, (pwd, (pwd2, (descr, email)))) ->
+       Ocsimore_common.catch_action_failure
          (fun () ->
-            User_data.change_user_data ~sp ~userid ~pwd:(pwd, pwd2)
+            User_data.change_user_data ~userid ~pwd:(pwd, pwd2)
               ~fullname:descr ~email >>= fun () ->
-            Polytables.set (Eliom_sessions.get_request_cache sp)
+            Polytables.set (Eliom_request_info.get_request_cache ())
               Ocsimore_common.action_failure_key Ocsimore_common.Ok;
             Lwt.return ()
          )
        >>= fun () ->
-       Eliom_predefmod.Action.send ~sp ())
+       Eliom_output.Action.send ())
 
 (** Groups-related services *)
 
 and action_add_remove_users_from_group =
-  Eliom_predefmod.Any.register_new_post_coservice'
+  Eliom_output.Any.register_post_coservice'
     ~name:"add_remove_users_from_group"
     ~post_params:(Eliom_parameters.string "group" **
                     (Eliom_parameters.string "add" **
                        Eliom_parameters.string "rem"))
-    (fun sp () (g, (add, rem)) ->
-       Ocsimore_common.catch_action_failure ~sp
-         (fun () -> User_data.add_remove_users_from_group sp g (add, rem))
-       >>= fun () -> Eliom_predefmod.Redirection.send ~sp
+    (fun () (g, (add, rem)) ->
+       Ocsimore_common.catch_action_failure
+         (fun () -> User_data.add_remove_users_from_group g (add, rem))
+       >>= fun () -> Eliom_output.Redirection.send
        Eliom_services.void_hidden_coservice'
     )
 
 (*
   and action_add_remove_user_from_groups =
-    Eliom_predefmod.Any.register_new_post_coservice'
+    Eliom_output.Any.register_new_post_coservice'
       ~name:"add_remove_user_from_groups" ~post_params:params_groups
       (fun sp () (u, (add, rem)) ->
          Ocsimore_common.catch_action_failure ~sp
            (fun () -> User_data.add_remove_user_from_groups sp u (add, rem))
-         >>= fun () -> Eliom_predefmod.Action.send ~sp ()
+         >>= fun () -> Eliom_output.Action.send ~sp ()
       )
 *)
 
-and service_view_group = Eliom_services.new_service
+and service_view_group = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_group"]
   ~get_params:(Eliom_parameters.string "group") ()
 
-and service_view_groups = Eliom_services.new_service
+and service_view_groups = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
   ~get_params:(Eliom_parameters.unit) ()
 
-and service_view_users = Eliom_services.new_service
+and service_view_users = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_users"]
   ~get_params:(Eliom_parameters.unit) ()
 
-and service_view_roles = Eliom_services.new_service
+and service_view_roles = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_roles"]
   ~get_params:(Eliom_parameters.unit) ()
 
-and service_login = Eliom_services.new_service
+and service_login = Eliom_services.service
   ~https:force_secure
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
   ~get_params:Eliom_parameters.unit
   ()
 
 and service_create_new_group =
-  Eliom_services.new_service
+  Eliom_services.service
     ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_group"])
     ~get_params:unit ()
 
 let action_create_new_group =
-  Eliom_services.new_post_coservice
+  Eliom_services.post_coservice
     ~fallback:service_create_new_group
     ~post_params:(string "usr" ** string "descr") ()
 
@@ -224,12 +224,12 @@ let action_create_new_group =
    To be done when Ocaml has first-class modules, by returning a module
    option *)
 
-let service_create_new_user = Eliom_services.new_service
+let service_create_new_user = Eliom_services.service
   ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_user"])
   ~get_params:unit ()
 
 let action_create_new_user =
-  Eliom_services.new_post_coservice ~fallback:service_create_new_user
+  Eliom_services.post_coservice ~fallback:service_create_new_user
     ~https:force_secure
     ~post_params:(string "usr" ** (string "descr" **
                                      (string "email" **
@@ -267,10 +267,11 @@ end
    as fallback... *)
 
 let mail_user_creation ~name ~email ~from_name ~from_addr ~subject ~uri =
+  (* TODO with fork ou mieux en utilisant l'event loop de ocamlnet *)
   Lwt.catch
     (fun () ->
-       Lwt_preemptive.detach
-         (fun () ->
+(*       Lwt_preemptive.detach
+         (fun () -> *)
             ignore(Netaddress.parse email);
             Netsendmail.sendmail
               ~mailer:"/usr/sbin/sendmail"
@@ -283,13 +284,13 @@ let mail_user_creation ~name ~email ~from_name ~from_addr ~subject ~uri =
                   ^ "\n"
                   ^ "To activate your Ocsimore account, please visit the \
                      following link: " ^ uri));
-            true
-         ) ())
+            Lwt.return true
+    ) (* ()) *)
     (function _ -> Lwt.return false)
 
 
-let create_user ~sp ~name ~fullname ~email ?pwd ~options () =
-  User_data.can_create_user ~sp ~options >>= function
+let create_user ~name ~fullname ~email ?pwd ~options () =
+  User_data.can_create_user ~options >>= function
     | true ->
         if not (User_data.valid_username name) then
           Lwt.fail (Failure "ERROR: Bad character(s) in login name!")
@@ -300,33 +301,32 @@ let create_user ~sp ~name ~fullname ~email ?pwd ~options () =
             | None -> User_data.generate_password ()
             | Some pwd -> pwd
           in
-          let service = Eliom_services.new_coservice ~max_use:1
+          let service = Eliom_services.coservice ~max_use:1
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameters.unit ()
           in
-          Eliom_predefmod.Xhtml.register ~sp ~service
-            (fun _sp () () ->
+          Eliom_output.Xhtml.register ~service
+            (fun () () ->
                User.create_fresh_user ~name ~fullname ~email
                  ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
                >>= fun userid ->
                User.add_to_groups (basic_user userid)
                  options.User_data.new_user_groups
                >>= fun () ->
-               Page_site.admin_page ~sp
+               Page_site.admin_page
                  ~title:"Ocsimore - User creation"
                  [ XHTML.M.h1 [XHTML.M.pcdata "User created"];
                    XHTML.M.p [
                      XHTML.M.pcdata "Your account has been created, and you \
                                      can now ";
-                     Eliom_predefmod.Xhtml.a
-                       ~sp
+                     Eliom_output.Xhtml.a
                        ~service:service_login
                        [XHTML.M.pcdata "login"] ();
                    ];
                  ]
             );
           let uri =
-            Eliom_predefmod.Xhtml.make_string_uri ~service ~absolute:true ~sp ()
+            Eliom_output.Xhtml.make_string_uri ~service ~absolute:true ()
           in
           Lwt.catch (fun () ->
               mail_user_creation ~name ~email ~uri

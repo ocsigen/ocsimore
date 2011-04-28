@@ -22,6 +22,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open User_sql.Types
 open Lwt
 
@@ -31,16 +32,16 @@ let ( ** ) = Eliom_parameters.prod
 let user_widgets = new User_widgets.user_widget
 
 let body_to_div x =
-  (x : Xhtmltypes.body_content XHTML.M.elt list
-     :> Xhtmltypes.div_content XHTML.M.elt list
+  (x : XHTML_types.body_content XHTML.M.elt list
+     :> XHTML_types.div_content XHTML.M.elt list
   )
 
 let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
 
-  Eliom_predefmod.Xhtml.register User_services.service_view_group
-    (fun sp g () ->
+  Eliom_output.Xhtml.register User_services.service_view_group
+    (fun g () ->
        User.get_user_by_name g  >>= fun group ->
        (if group = basic_user User.nobody && g <> User.nobody_login then
           Lwt.return
@@ -49,7 +50,7 @@ let () =
                [XHTML.M.pcdata ("Unknown group " ^ g)]
             ]
         else
-          user_widgets#display_group ~sp (group, g)
+          user_widgets#display_group (group, g)
        ) >>= fun body ->
        User_sql.user_type group >>= fun gtype ->
        let service = match gtype with
@@ -57,47 +58,47 @@ let () =
          | `User -> User_services.service_view_users
          | `Role -> User_services.service_view_roles
        in
-       Page_site.admin_page ~sp ~service (body_to_div body)
+       Page_site.admin_page ~service (body_to_div body)
     );
 
-  Eliom_predefmod.Xhtml.register User_services.service_view_groups
-    (fun sp () () ->
-       user_widgets#display_groups ~sp >|= body_to_div
-       >>= (Page_site.admin_page ~sp)
+  Eliom_output.Xhtml.register User_services.service_view_groups
+    (fun () () ->
+       user_widgets#display_groups >|= body_to_div
+       >>= Page_site.admin_page
     );
 
-  Eliom_predefmod.Xhtml.register User_services.service_view_users
-    (fun sp () () ->
-       user_widgets#display_users ~sp >|= body_to_div
-       >>= (Page_site.admin_page ~sp)
+  Eliom_output.Xhtml.register User_services.service_view_users
+    (fun () () ->
+       user_widgets#display_users >|= body_to_div
+       >>= Page_site.admin_page
     );
 
-  Eliom_predefmod.Xhtml.register User_services.service_view_roles
-    (fun sp () () ->
-       user_widgets#display_roles ~sp >|= body_to_div
-       >>= (Page_site.admin_page ~sp)
+  Eliom_output.Xhtml.register User_services.service_view_roles
+    (fun () () ->
+       user_widgets#display_roles >|= body_to_div
+       >>= Page_site.admin_page
     );
 
-  Eliom_predefmod.Xhtml.register User_services.service_login
-    (fun sp () () ->
-       user_widgets#display_login_widget ~sp () >>= fun body ->
-       Page_site.admin_page ~sp ~allow_unlogged:true
+  Eliom_output.Xhtml.register User_services.service_login
+    (fun () () ->
+       user_widgets#display_login_widget () >>= fun body ->
+       Page_site.admin_page ~allow_unlogged:true
          [XHTML.M.h1 [XHTML.M.pcdata "Login page"];
-          (body: Xhtmltypes.form_content XHTML.M.elt
-               :> Xhtmltypes.div_content XHTML.M.elt)
+          (body: XHTML_types.form_content XHTML.M.elt
+               :> XHTML_types.div_content XHTML.M.elt)
          ]
     );
 
-  Eliom_predefmod.Xhtml.register ~service:User_services.service_create_new_group
-    (fun sp () () ->
-       user_widgets#display_group_creation ~err:"" ~sp >|= body_to_div
-       >>= (Page_site.admin_page ~sp)
+  Eliom_output.Xhtml.register ~service:User_services.service_create_new_group
+    (fun () () ->
+       user_widgets#display_group_creation ~err:"" () >|= body_to_div
+       >>= Page_site.admin_page
     );
 
-  Eliom_predefmod.Xhtml.register ~service:User_services.action_create_new_group
-    (fun sp () args ->
-       user_widgets#display_group_creation_done sp () args >|= body_to_div
-       >>= (Page_site.admin_page ~sp
+  Eliom_output.Xhtml.register ~service:User_services.action_create_new_group
+    (fun () args ->
+       user_widgets#display_group_creation_done () args >|= body_to_div
+       >>= (Page_site.admin_page
               ~service:User_services.service_create_new_group)
     );
 
@@ -113,17 +114,17 @@ let user_creation_widgets = match User_services.basicusercreation with
         user_creation_options in
 
         (* We register the user creation services *)
-        Eliom_predefmod.Xhtml.register ~service:User_services.service_create_new_user
-          (fun sp () () ->
-             user_widget_creation#display_user_creation ~err:"" ~sp >|= body_to_div
-             >>= (Page_site.admin_page ~sp)
+        Eliom_output.Xhtml.register ~service:User_services.service_create_new_user
+          (fun () () ->
+             user_widget_creation#display_user_creation ~err:"" () >|= body_to_div
+             >>= Page_site.admin_page
           );
 
-        Eliom_predefmod.Xhtml.register ~service:User_services.action_create_new_user
-          (fun sp () (name, (fullname, (email, pwd))) ->
-             user_widget_creation#display_user_creation_done ~sp
+        Eliom_output.Xhtml.register ~service:User_services.action_create_new_user
+          (fun () (name, (fullname, (email, pwd))) ->
+             user_widget_creation#display_user_creation_done
                ~name ~fullname ~email ~pwd >|= body_to_div
-             >>= (Page_site.admin_page ~sp
+             >>= (Page_site.admin_page
                     ~service:User_services.service_create_new_user)
           );
 
@@ -131,9 +132,9 @@ let user_creation_widgets = match User_services.basicusercreation with
 
     | User_services.NoUserCreation ->
 
-        Eliom_predefmod.Xhtml.register ~service:User_services.service_create_new_user
-          (fun sp () () ->
-             Page_site.admin_page ~sp
+        Eliom_output.Xhtml.register ~service:User_services.service_create_new_user
+          (fun () () ->
+             Page_site.admin_page
                [XHTML.M.h1 [XHTML.M.pcdata "Error"];
                 XHTML.M.p [XHTML.M.pcdata "User creation is disabled"];
                ]
@@ -147,13 +148,13 @@ None
 (* We create the admin menu for the extension *)
 
 let users_root =
-  Eliom_services.new_service
+  Eliom_services.service
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"users"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_predefmod.Xhtml.register users_root
-  (fun sp () () ->
-     Page_site.admin_page ~sp
+let () = Eliom_output.Xhtml.register users_root
+  (fun () () ->
+     Page_site.admin_page
        ~title:"Ocsimore - Users module"
        [XHTML.M.h1 [XHTML.M.pcdata "Users module"];
         XHTML.M.p [XHTML.M.pcdata "This is the Ocsimore admin page for the \
@@ -170,20 +171,20 @@ let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
     "View groups", User_services.service_view_groups,(fun _ -> Lwt.return true);
     "View roles", User_services.service_view_roles, (fun _ -> Lwt.return true);
     "Users creation", User_services.service_create_new_user,
-            (fun sp -> match User_services.basicusercreation with
+            (fun _ -> match User_services.basicusercreation with
                | User_services.UserCreation options ->
-                   User_data.can_create_user ~sp ~options
+                   User_data.can_create_user ~options
                | User_services.NoUserCreation -> Lwt.return false);
     "Groups creation", User_services.service_create_new_group,
-            (fun sp -> User_data.can_create_group sp);
+            (fun _ -> User_data.can_create_group ());
           ]
   )
 
 
 let () =
   Page_site.add_status_function
-    (fun ~sp ->
-       user_widgets#status_text ~sp >|= fun f ->
+    (fun () ->
+       user_widgets#status_text >|= fun f ->
        XHTML.M.div f
     )
 

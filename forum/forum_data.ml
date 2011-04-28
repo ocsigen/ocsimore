@@ -32,15 +32,15 @@ let ($) = User_sql.Types.apply_parameterized_group
 (** {2 Database access with verification of permissions} *)
 
 let new_forum
-    ~sp ~title ~descr ?arborescent ~title_syntax
+    ~title ~descr ?arborescent ~title_syntax
     ~messages_wiki ~comments_wiki () =
-  User.in_group ~sp ~group:forum_creators () >>= fun b ->
+  User.in_group ~group:forum_creators () >>= fun b ->
   if b
   then Forum_sql.new_forum
     ~title ~descr ?arborescent ~title_syntax ~messages_wiki ~comments_wiki ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let can_create_message ~sp ~parent_id f role =
+let can_create_message ~parent_id f role =
   (* returns (wiki * bool (* moderated *)) or fails with Permission_denied *)
   let first_msg = parent_id = None in
   (match parent_id with
@@ -60,9 +60,8 @@ let can_create_message ~sp ~parent_id f role =
     match special_rights with
       | Some parent ->
           (User.in_group 
-             ~sp ~group:(Forum.thread_comments_creators $ parent.m_root_id) (),
+             ~group:(Forum.thread_comments_creators $ parent.m_root_id) (),
            User.in_group
-             ~sp 
              ~group:(Forum.thread_comments_creators_notmod $ parent.m_root_id)
              ())
       | None ->
@@ -92,20 +91,20 @@ let can_create_message ~sp ~parent_id f role =
       in
       Lwt.return (wiki, moderator)
 
-let new_message ~sp ~forum ~creator_id ?subject ?parent_id ?sticky ~text () = 
-  Forum.get_role sp forum >>= fun role ->
+let new_message ~forum ~creator_id ?subject ?parent_id ?sticky ~text () = 
+  Forum.get_role forum >>= fun role ->
   Forum_sql.get_forum ~forum () >>= fun f ->
   if f.f_deleted
   then Lwt.fail Ocsimore_common.Permission_denied
   else
-    can_create_message ~sp ~parent_id f role >>= fun (wiki, moderated) ->
+    can_create_message ~parent_id f role >>= fun (wiki, moderated) ->
     let title_syntax = f.f_title_syntax in
-    Forum_sql.new_message ~sp ~forum ~wiki ~creator_id
+    Forum_sql.new_message ~forum ~wiki ~creator_id
       ?subject ?parent_id ~moderated ~title_syntax ?sticky ~text
 
-let set_moderated ~sp ~message_id ~moderated =
+let set_moderated ~message_id ~moderated =
   Forum_sql.get_message ~message_id () >>= fun m ->
-  Forum.get_role sp m.m_forum >>= fun role ->
+  Forum.get_role m.m_forum >>= fun role ->
   let first_msg = m.m_parent_id = None in
   !!(role.message_moderators) >>= fun message_moderators ->
   !!(role.comment_moderators) >>= fun comment_moderators ->
@@ -114,9 +113,9 @@ let set_moderated ~sp ~message_id ~moderated =
   then Forum_sql.set_moderated ~message_id ~moderated
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let set_sticky ~sp ~message_id ~sticky =
+let set_sticky ~message_id ~sticky =
   Forum_sql.get_message ~message_id () >>= fun m ->
-  Forum.get_role sp m.m_forum >>= fun role ->
+  Forum.get_role m.m_forum >>= fun role ->
   let first_msg = m.m_parent_id = None in
   !!(role.message_sticky_makers) >>= fun message_sticky_makers ->
   !!(role.comment_sticky_makers) >>= fun comment_sticky_makers ->
@@ -125,37 +124,36 @@ let set_sticky ~sp ~message_id ~sticky =
   then Forum_sql.set_sticky ~message_id ~sticky
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let get_forum ~sp ?forum ?title () =
+let get_forum ?forum ?title () =
   Forum_sql.get_forum ?forum ?title () >>= fun f ->
-  User.in_group ~sp ~group:(forum_visible $ f.f_id) () >>= fun b ->
+  User.in_group ~group:(forum_visible $ f.f_id) () >>= fun b ->
   if b
   then Lwt.return f
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let get_forums_list ~sp () =
+let get_forums_list () =
   Forum_sql.get_forums_list () >>= fun l ->
   List.fold_right
     (fun f e -> 
        e >>= fun e ->
        let f = get_forum_info f in
-       User.in_group ~sp ~group:(forum_visible $ f.f_id) () >>= fun b ->
+       User.in_group ~group:(forum_visible $ f.f_id) () >>= fun b ->
        if b
        then Lwt.return (f::e)
        else Lwt.return e)
     l
     (Lwt.return [])
 
-let can_read_message ~sp m role =
+let can_read_message m role =
   let first_msg = m.m_parent_id = None in
   !!(m.m_has_special_rights) >>= fun has_special_rights ->
   let (mod_reader, notmod_reader) =
     if has_special_rights
     then
       (User.in_group
-         ~sp ~group:(Forum.thread_moderated_readers $ m.m_root_id) (),
+         ~group:(Forum.thread_moderated_readers $ m.m_root_id) (),
        lazy 
          (User.in_group
-            ~sp 
             ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()))
     else
       ((!!(role.moderated_message_readers) >>= fun moderated_message_readers ->
@@ -180,18 +178,18 @@ let can_read_message ~sp m role =
     else !!notmod_reader
 
 
-let get_message ~sp ~message_id =
+let get_message ~message_id =
   Forum_sql.get_message ~message_id () >>= fun m ->
   Forum_sql.get_forum ~forum:m.m_forum () >>= fun _ ->
   (* get_forum only to verify that the forum is not deleted? *)
-  Forum.get_role sp m.m_forum >>= fun role ->
-  can_read_message ~sp m role >>= fun b ->
+  Forum.get_role m.m_forum >>= fun role ->
+  can_read_message m role >>= fun b ->
   if b
   then Lwt.return m
   else Lwt.fail Ocsimore_common.Permission_denied
 
 
-let get_thread ~sp ~message_id =
+let get_thread ~message_id =
   Forum_sql.get_thread ~message_id ()
   >>= function
     | [] -> Lwt.fail Not_found
@@ -200,7 +198,7 @@ let get_thread ~sp ~message_id =
         assert (message_id = m.m_id);
         Forum_sql.get_forum ~forum:m.m_forum () >>= fun _ ->
         (* get_forum only to verify that the forum is not deleted *)
-        Forum.get_role sp m.m_forum >>= fun role ->
+        Forum.get_role m.m_forum >>= fun role ->
         let first_msg = m.m_parent_id = None in
         !!(m.m_has_special_rights) >>= fun has_special_rights ->
 
@@ -212,13 +210,11 @@ let get_thread ~sp ~message_id =
           then
             let rm = 
               lazy (User.in_group
-                      ~sp 
                       ~group:(Forum.thread_moderated_readers $ m.m_root_id) ())
             in
             let rnm =
               lazy 
                 (User.in_group
-                   ~sp 
                    ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id)
                    ())
             in
@@ -268,10 +264,10 @@ let get_thread ~sp ~message_id =
 
 type raw_message = Forum_types.raw_message_info
 
-let get_message_list ~sp ~forum ~first ~number () =
+let get_message_list ~forum ~first ~number () =
   Forum_sql.get_forum ~forum () >>= fun _ ->
   (* get_forum only to verify that the forum is not deleted *)
-  Forum.get_role sp forum >>= fun role ->
+  Forum.get_role forum >>= fun role ->
   !!(role.moderated_message_readers) >>= fun moderated_message_readers ->
   if not moderated_message_readers
   then Lwt.fail Ocsimore_common.Permission_denied
@@ -281,14 +277,14 @@ let get_message_list ~sp ~forum ~first ~number () =
     Forum_sql.get_message_list ~forum ~first ~number 
       ~moderated_only:(not message_readers_evennotmoderated) ()
 
-let message_info_of_raw_message ~sp m =
+let message_info_of_raw_message m =
   let m = Forum_types.get_message_info m in
   !!(m.m_has_special_rights) >>= fun has_special_rights ->
   if not has_special_rights
   then Lwt.return m
   else 
     User.in_group 
-      ~sp ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()
+      ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()
     >>= fun b ->
     if b
     then Lwt.return m
@@ -297,7 +293,7 @@ let message_info_of_raw_message ~sp m =
       then Lwt.fail Ocsimore_common.Permission_denied
       else
         User.in_group 
-          ~sp ~group:(Forum.thread_moderated_readers $ m.m_root_id) ()
+          ~group:(Forum.thread_moderated_readers $ m.m_root_id) ()
         >>= fun b ->
         if b
         then Lwt.return m

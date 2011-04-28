@@ -1,10 +1,32 @@
+<**/*> : debug, thread
+#<**/*.ml> : pa_trace, syntax(camlp4o), package(camlp4)
+<trace.*> : -pa_trace, package(camlp4), package(camlp4.quotations.o)
+<wiki_models.ml> or <wikicreole.ml> : -pa_trace, -syntax(camlp4o), -package(camlp4)
+
 "nis_chkpwd" : include
-<myocamlfind.*> : use_unix
-<**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_calendar, pkg_ocsigen.ext.eliom, pkg_ocsigen.xhtml, dtypes, warn_Y, warn_Z, notocamlduce
-<**/*_sql*.ml*>: pkg_pgocaml, pkg_pgocaml.syntax, syntax_camlp4o, notocamlduce
-<sql.ml*> : pkg_pgocaml
-<ocsimore_pam.ml*> : pkg_pam
-<ocsimore.cma> : with_nis_chkpwd, pkg_pam
-<**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, pkg_ocsigen.lwt_obrowser, -pkg_ocsigen
-"widget.ml" : warn_v
-"updatedb_sql.byte": pkg_threads,  pkg_pgocaml, pkg_ocsigen.server
+<**/*_sql*.ml*>: package(pgocaml), package(pgocaml.syntax), syntax(camlp4o), notocamlduce
+<sql.ml*> : package(pgocaml)
+<**/*.ml*> : package(calendar), package(tyxml), package(eliom.server), package(lwt)
+<updatedb_sql.byte> : package(dynlink), package(eliom.server), package(pgocaml)
+<{user,wiki}_sql.ml> : package(ocsigenserver.baselib)
+
+<user_widgets.ml> : package(lwt.syntax), syntax(camlp4o)
+<ocsimore_pam.ml> : package(pam)
+
+"nis_chkpwd/libnis_chkpwd.a" : use_crypt
+<nis_chkpwd/nis.cm{x,}a>: use_nis_chkpwd
+
+#forum
+
+<forum/forum_sql.ml> : package(ocsigenserver.baselib)
+<forum/forum_wikiext.ml> : package(lwt.syntax), syntax(camlp4o)
+
+# <myocamlfind.*> : use_unix
+# <**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_calendar, pkg_ocsigen.ext.eliom, pkg_ocsigen.xhtml, dtypes, warn_Y, warn_Z, notocamlduce
+# <**/*_sql*.ml*>: pkg_pgocaml, pkg_pgocaml.syntax, syntax_camlp4o, notocamlduce
+# <sql.ml*> : pkg_pgocaml
+# <ocsimore_pam.ml*> : pkg_pam
+# <ocsimore.cma> : with_nis_chkpwd, pkg_pam
+# <**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, pkg_ocsigen.lwt_obrowser, -pkg_ocsigen
+# "widget.ml" : warn_v
+# "updatedb_sql.byte": pkg_threads,  pkg_pgocaml, pkg_ocsigen.server

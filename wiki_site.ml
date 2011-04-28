@@ -22,13 +22,14 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_pervasives
 open Lwt
 open User_sql.Types
 open Wiki_types
 
 let body_to_div x =
-  (x : Xhtmltypes.body_content XHTML.M.elt list
-     :> Xhtmltypes.div_content XHTML.M.elt list
+  (x : XHTML_types.body_content XHTML.M.elt list
+     :> XHTML_types.div_content XHTML.M.elt list
   )
 
 let siteid =
@@ -42,7 +43,7 @@ let siteid =
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside Wiki module config"))
   in
-  let c = Eliom_sessions.get_config () in
+  let c = Eliom_config.get_config () in
   Lwt_unix.run (find_wikidata None c)
 
 
@@ -68,31 +69,31 @@ let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
 (** We register auxiliary services for administration boxes *)
 
-let service_edit_wikibox = Eliom_services.new_service
+let service_edit_wikibox = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
   ~get_params:Wiki_services.eliom_wikibox_args ()
 
 let () =
-  Eliom_predefmod.Xhtml.register service_edit_wikibox
-    (fun sp wb () ->
+  Eliom_output.Xhtml.register service_edit_wikibox
+    (fun wb () ->
        Wiki_sql.wikibox_wiki wb >>= fun w ->
        Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        let wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
-       Wiki.default_bi ~sp ~wikibox:wb ~rights >>= fun bi ->
+       Wiki.default_bi ~wikibox:wb ~rights >>= fun bi ->
        wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
        >>= fun page ->
-       wikibox_widget#css_header ~sp ?page:None w
+       wikibox_widget#css_header ?page:None w
        >>= fun css ->
-       Page_site.add_admin_pages_header sp;
-       Page_site.html_page ~sp ~css page
+       Page_site.add_admin_pages_header ();
+       Page_site.html_page ~css page
     )
 
 (** We register the service that lists all the wikis *)
-let () =  Eliom_predefmod.Xhtml.register Wiki_services.view_wikis
-    (fun sp () () ->
-       wikibox_widget#display_all_wikis sp >|= body_to_div >>= fun b ->
-       Page_site.admin_page ~sp b
+let () =  Eliom_output.Xhtml.register Wiki_services.view_wikis
+    (fun () () ->
+       wikibox_widget#display_all_wikis >|= body_to_div >>= fun b ->
+       Page_site.admin_page b
     )
 
 
@@ -198,7 +199,7 @@ let () = Lwt_unix.run
         (match path with
            | None -> ()
            | Some path ->
-               let path = Ocsigen_lib.split '/' path in
+               let path = String.split '/' path in
                let siteids = (* we always register the admin wiki *)
                  if wiki = wiki_admin.wiki_id then (h, h) else (siteid, h)
                in
@@ -239,15 +240,15 @@ let model_input ?a model =
   |> Wiki_types.wiki_model_of_string
 
 
-let create_wiki_form ~serv_path:_ ~service ~arg ~sp
+let create_wiki_form ~serv_path:_ ~service ~arg
     ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
     ~siteid
     ?err_handler cont =
-  let page sp _arg error form =
+  let page _arg error form =
     let title = match error with
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
-    Page_site.admin_page ~sp ~service:(cast_service service) ~title
+    Page_site.admin_page ~service:(cast_service service) ~title
       (XHTML.M.h1 [XHTML.M.pcdata title] ::
        (match error with
           | Xform.ErrorMsg err ->
@@ -259,7 +260,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
        ) @
        [form])
   in
-    form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
+    form ~fallback:service ~get_args:arg ~page ?err_handler
       (p (text "Title: " @+ string_input title +@
           text " (used to identify the wiki in the database) ") @@
        p (text "Description: " @+ string_input descr) @@
@@ -286,7 +287,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg ~sp
        p (submit_button "Create")
       |> cont)
   >>= fun form ->
-  page sp arg Xform.NoError form
+  page arg Xform.NoError form
 
 
 let create_wiki =
@@ -302,26 +303,26 @@ let create_wiki =
     | _ -> Some "An unknown error has occurred"
  in
   let path = [Ocsimore_lib.ocsimore_admin_dir;"create_wiki"] in
-  let create_wiki = Eliom_services.new_service ~path
+  let create_wiki = Eliom_services.service ~path
       ~get_params:Eliom_parameters.unit () in
-  Eliom_predefmod.Xhtml.register create_wiki
-    (fun sp () () ->
-       wiki_rights#can_create_wiki ~sp () >>= function
+  Eliom_output.Xhtml.register create_wiki
+    (fun () () ->
+       wiki_rights#can_create_wiki () >>= function
          | true ->
-             User.get_user_name sp >>= fun u ->
-             create_wiki_form ~serv_path:path ~service:create_wiki ~arg:() ~sp
+             User.get_user_name () >>= fun u ->
+             create_wiki_form ~serv_path:path ~service:create_wiki ~arg:()
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
                ~container:Wiki.default_container_page ~model:wikicreole_model
                ~siteid ~err_handler
                (fun (title, (descr, (path, (boxrights,
                      (staticdir, (admins, (readers, (container,
-                      (model, (hid, (_ : bool))))))))))) sp ->
+                      (model, (hid, (_ : bool))))))))))) () ->
                   let path = match path with
                     | None -> None
                     | Some p -> Some (Neturl.split_path p)
                   in
-                  Wiki_data.create_wiki ~sp ~title ~descr ?path ~boxrights
+                  Wiki_data.create_wiki ~title ~descr ?path ~boxrights
                     ?staticdir ~admins ~readers
                     ~container_text:container ~model ~rights:wiki_rights ()
                   >>= fun wid ->
@@ -329,13 +330,13 @@ let create_wiki =
                     | None -> []
                     | Some path ->
                         Wiki_services.register_wiki ~rights:wiki_rights
-                          ~sp ~path ~wiki:wid ~siteids:(siteid, hid) ();
+                          ~path ~wiki:wid ~siteids:(siteid, hid) ();
                         match Wiki_self_services.find_servpage wid with
                           | None -> (* should never happen, but this is not
                                        really important *) []
                           | Some service ->
-                              let link = Eliom_predefmod.Xhtml.a
-                                ~sp ~service [XHTML.M.pcdata "root page"] []
+                              let link = Eliom_output.Xhtml.a
+                                ~service [XHTML.M.pcdata "root page"] []
                               in
                               [XHTML.M.p
                                  [XHTML.M.pcdata "you can go to the ";
@@ -347,14 +348,14 @@ let create_wiki =
                   let msg = (Printf.sprintf "You have created wiki %s"
                                    (string_of_wiki wid))
                   in
-                  Page_site.admin_page ~sp ~service:create_wiki
+                  Page_site.admin_page ~service:create_wiki
                     (   XHTML.M.h1 [XHTML.M.pcdata "Wiki sucessfully created"]
                      :: XHTML.M.p [XHTML.M.pcdata msg]
                      :: link
                     )
                )
          | false ->
-             Page_site.admin_page ~sp ~service:create_wiki
+             Page_site.admin_page ~service:create_wiki
                [XHTML.M.p
                   [XHTML.M.pcdata "You are not allowed to create wikis. \
                                    If you have not already done so, \
@@ -365,14 +366,14 @@ let create_wiki =
   create_wiki
 
 
-let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
+let edit_wiki_form ~serv_path:_ ~service ~arg
       ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~model ~siteid
       ?err_handler cont =
-  let page sp _arg error form =
+  let page _arg error form =
     let title = match error with
       | Xform.NoError -> "Wiki edition"
       | _ -> "Error" in
-    Page_site.admin_page ~sp ~service:(cast_service service) ~title
+    Page_site.admin_page ~service:(cast_service service) ~title
       (   XHTML.M.h1 [XHTML.M.pcdata title]
        :: (match error with
              | Xform.ErrorMsg err ->
@@ -384,7 +385,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
       )
   in
     Wiki_sql.get_wiki_info_by_id wiki >>= fun winfo ->
-    form ~fallback:service ~get_args:arg ~page ~sp ?err_handler
+    form ~fallback:service ~get_args:arg ~page ?err_handler
       (p (strong (text (Printf.sprintf "Wiki '%s'" winfo.wiki_title)) ::
           text (Printf.sprintf " (id %s)" (Opaque.int32_t_to_string wiki))  @+
           Opaque.int32_input_xform ~a:[XHTML.M.a_input_type `Hidden] wiki) @@
@@ -406,7 +407,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg ~sp
        p (submit_button "Save")
       |> cont)
   >>= fun form ->
-  page sp arg Xform.NoError form
+  page arg Xform.NoError form
 
 
 let edit_wiki =
@@ -415,32 +416,32 @@ let edit_wiki =
         Some "You do not have sufficient permissions to edit wikis"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_predefmod.Xhtml.register Wiki_services.edit_wiki
-    (fun sp wiki () ->
+  Eliom_output.Xhtml.register Wiki_services.edit_wiki
+    (fun wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
        let rights = Wiki_models.get_rights info.wiki_model in
-       rights#can_create_wiki sp () >>= function
+       rights#can_create_wiki () >>= function
          | true ->
              edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
-               ~service:Wiki_services.view_wikis ~arg:() ~sp
+               ~service:Wiki_services.view_wikis ~arg:()
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container ~model:info.wiki_model
                ~siteid:info.wiki_siteid ~err_handler
                (fun (wiki, (descr, (container, (path, (boxrights, (staticdir,
-                     (model, (siteid, (_ : bool))))))))) sp ->
+                     (model, (siteid, (_ : bool))))))))) () ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                   let rights = Wiki_models.get_rights wiki_info.wiki_model in
-                  Wiki_data.update_wiki ~rights ~sp ~descr ~path ~boxrights
+                  Wiki_data.update_wiki ~rights ~descr ~path ~boxrights
                     ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
-                  Page_site.admin_page ~sp ~service:Wiki_services.view_wikis
+                  Page_site.admin_page ~service:Wiki_services.view_wikis
                     [XHTML.M.h1
                        [XHTML.M.pcdata "Wiki information sucessfully edited"]
                     ]
                )
          | false ->
-             Page_site.admin_page ~sp
+             Page_site.admin_page
                [XHTML.M.h1 [XHTML.M.pcdata "Insufficient permissions"];
                 XHTML.M.p [XHTML.M.pcdata "You do not have enough rights to \
                                            edit this wiki"];
@@ -451,13 +452,13 @@ let edit_wiki =
 
 
 let wiki_root =
-  Eliom_services.new_service
+  Eliom_services.service
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikis"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_predefmod.Xhtml.register wiki_root
-  (fun sp () () ->
-     Page_site.admin_page ~sp ~service:wiki_root ~title:"Ocsimore - Wiki module"
+let () = Eliom_output.Xhtml.register wiki_root
+  (fun () () ->
+     Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
        [XHTML.M.h1 [XHTML.M.pcdata "Wiki module"];
         XHTML.M.p
           [XHTML.M.pcdata "This is the Ocsimore admin page for the wiki \
@@ -468,20 +469,18 @@ let () = Eliom_predefmod.Xhtml.register wiki_root
 
 
 
-let () = Eliom_predefmod.Xhtml.register Wiki_services.edit_wiki_permissions_admin
-  (fun sp wiki () ->
-     wikibox_widget#display_edit_wiki_perm_form ~sp ~classes:[] wiki
+let () = Eliom_output.Xhtml.register Wiki_services.edit_wiki_permissions_admin
+  (fun wiki () ->
+     wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki
      >>= fun (_, form) ->
-     Page_site.admin_page ~sp ~service:Wiki_services.view_wikis
+     Page_site.admin_page ~service:Wiki_services.view_wikis
        [XHTML.M.div form]
   )
 
 let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
   ~links:[
-    "View all wikis", Wiki_services.view_wikis, (fun _ -> Lwt.return true);
-    "Create a new wiki", create_wiki, (fun sp ->
-                                         wiki_rights#can_create_wiki sp ());
-
+    "View all wikis", Wiki_services.view_wikis, (fun () -> Lwt.return true);
+    "Create a new wiki", create_wiki, wiki_rights#can_create_wiki;
   ]
 
 

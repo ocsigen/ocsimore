@@ -20,7 +20,7 @@
    @author Boris Yakobowski
 *)
 
-
+open Eliom_pervasives
 
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
@@ -34,13 +34,12 @@ type menu_link_service =
 val static_service :
   ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
     [ `One of string list ] Eliom_parameters.param_name, unit,
-    [ `Registrable ], Eliom_predefmod.Any.return)
+    [ `Registrable ], Eliom_output.Any.return)
    Eliom_services.service)
 
 (** Path to a static file, suitable for inclusion in a <a> tag *)
 val static_file_uri :
-     sp:Eliom_sessions.server_params
-  -> path:string list
+  path:string list
   -> XHTML.M.uri
 
 
@@ -51,7 +50,7 @@ module Header : sig
 
     (** Define a new header *)
     val create_header :
-         (   Eliom_sessions.server_params
+         (   unit
           -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
       -> header
 
@@ -59,13 +58,13 @@ module Header : sig
         in the page. If this function is called several times for the same
         page with the same header, the header will be included only once.
     *)
-    val require_header : header -> sp:Eliom_sessions.server_params -> unit
+    val require_header : header -> unit
 
     (** This function is called to generate the headers for one page.
         Only required headers are included.
     *)
     val generate_headers :
-         sp:Eliom_sessions.server_params
+      unit
       -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list
 
   end
@@ -73,30 +72,29 @@ module Header : sig
 (*
 (** Function to be called when Obrowser is used inside a page.
     The relevant javascript files will be included *)
-val add_obrowser_header : sp:Eliom_sessions.server_params -> unit
+val add_obrowser_header : sp:Eliom_common.server_params -> unit
  *)
 
 
 (** Function to be called on admin pages, and which add the
     relevant css (including for the admin menu) *)
-val add_admin_pages_header : sp:Eliom_sessions.server_params -> unit
+val add_admin_pages_header : unit -> unit
 
 
 (** Registers the string passed as argument so that it is called
     when the onload event on the body tag of the page fires. The
     string must thus be well-formed javascript (without ; at the end) *)
-val add_onload_function: Eliom_sessions.server_params -> string -> unit
+val add_onload_function: string -> unit
 
 (** Generic headers for an html page. The arguments [css] is added
     after the links resulting from the hooks added by the function
     [add_html_header_hook] above. The argument [body_classes] is
     used for the classes of the [body] html element. *)
 val html_page :
-  sp:Eliom_sessions.server_params ->
-  ?body_classes:Xhtmltypes.nmtokens ->
-  ?css:Xhtmltypes.link XHTML.M.elt list->
+  ?body_classes:XHTML_types.nmtokens ->
+  ?css:XHTML_types.link XHTML.M.elt list->
   ?title:string ->
-  Xhtmltypes.body_content XHTML.M.elt list ->
+  XHTML_types.body_content XHTML.M.elt list ->
   XHTML.M.html Lwt.t
 
 
@@ -112,7 +110,7 @@ val add_to_admin_menu :
   name:string ->
   links:(string *
          menu_link_service *
-         (Eliom_sessions.server_params -> bool Lwt.t)) list ->
+         (unit -> bool Lwt.t)) list ->
   root:menu_link_service ->
   unit
 
@@ -121,33 +119,31 @@ val add_to_admin_menu :
     currently active, which will be displayed in a different way *)
 val admin_menu:
   ?service:menu_link_service ->
-  Eliom_sessions.server_params ->
-  Xhtmltypes.block XHTML.M.elt list Lwt.t
+  Eliom_common.server_params ->
+  XHTML_types.block XHTML.M.elt list Lwt.t
 *)
 
 (** Displays a complete admin page, with the admin menu and the status bar.
     If [allow_unlogged] is false, users that have not logged-in will not
     be able to see the page *)
 val admin_page:
-  sp:Eliom_sessions.server_params ->
   ?service:menu_link_service ->
   ?body_classes:string list ->
-  ?css:Xhtmltypes.link XHTML.M.elt list ->
+  ?css:XHTML_types.link XHTML.M.elt list ->
   ?title:string ->
   ?allow_unlogged:bool ->
-  Xhtmltypes.div_content XHTML.M.elt list ->
+  XHTML_types.div_content XHTML.M.elt list ->
   XHTML.M.html Lwt.t
 
 
 val icon:
-  sp:Eliom_sessions.server_params ->
   path:string ->
   text:string ->
-  [> Xhtmltypes.img ] XHTML.M.elt
+  [> XHTML_types.img ] XHTML.M.elt
 
 
 val add_status_function:
-  (sp:Eliom_sessions.server_params
-   -> Xhtmltypes.div_content XHTML.M.elt Lwt.t)
+  (unit
+   -> XHTML_types.div_content XHTML.M.elt Lwt.t)
    -> unit
 

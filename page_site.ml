@@ -21,7 +21,7 @@
 *)
 
 
-
+open Eliom_pervasives
 
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
@@ -44,7 +44,7 @@ let admin_staticdir =
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside Page_site config"))
   in
-  let c = Eliom_sessions.get_config () in
+  let c = Eliom_config.get_config () in
   Lwt_unix.run (find_wikidata None c)
 
 exception No_admin_staticdir
@@ -59,18 +59,18 @@ let admin_staticdir =
         raise No_admin_staticdir
 
 
-let static_service = Eliom_predefmod.Any.register_new_service
+let static_service = Eliom_output.Any.register_service
   ~path:[Ocsimore_lib.ocsimore_admin_dir ; "static"]
   ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "path"))
-  (fun sp path () ->
+  (fun path () ->
      let path = admin_staticdir :: path in
-     let file = Ocsigen_lib.string_of_url_path ~encode:false path in
-     Eliom_predefmod.Files.send ~sp file
+     let file = Ocsigen_pervasives.Url.string_of_url_path ~encode:false path in
+     Eliom_output.Files.send file
   )
 
 
-let static_file_uri ~sp ~path =
-  Eliom_predefmod.Xhtml.make_uri ~service:static_service ~sp path
+let static_file_uri ~path =
+  Eliom_output.Xhtml.make_uri ~service:static_service path
 
 
 
@@ -86,25 +86,25 @@ module Header = (
       header_table := (k, header_content)::!header_table;
       k
 
-    let require_header header ~sp =
+    let require_header header =
       Polytables.set
-        ~table:(Eliom_sessions.get_request_cache sp)
+        ~table:(Eliom_request_info.get_request_cache ())
         ~key:header
         ~value:true
 
-    let generate_headers ~sp =
+    let generate_headers () =
       List.flatten
         (List.fold_left
           (fun beg (key, header_content) ->
              let tobeincluded =
                try
                  Polytables.get
-                   ~table:(Eliom_sessions.get_request_cache sp)
+                   ~table:(Eliom_request_info.get_request_cache ())
                    ~key
                with Not_found -> false
              in
              if tobeincluded
-             then (header_content sp)::beg
+             then (header_content ())::beg
              else beg)
           []
           !header_table
@@ -116,46 +116,45 @@ module Header = (
 
     (** Define a new header *)
     val create_header :
-         (   Eliom_sessions.server_params
-          -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
+         ( unit -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list )
       -> header
 
     (** Call this function every time you need a header to be included
         in the page. If this function is called several times for the same
         page with the same header, the header will be included only once.
     *)
-    val require_header : header -> sp:Eliom_sessions.server_params -> unit
+    val require_header : header -> unit
 
     (** This function is called to generate the headers for one page.
         Only required headers are included.
     *)
     val generate_headers :
-         sp:Eliom_sessions.server_params
+         unit
       -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list
 
   end)
 
 let admin_pages_header =
   Header.create_header
-    (fun sp ->
-       [Eliom_predefmod.Xhtml.css_link
-          (static_file_uri sp ["ocsiadmin.css"]) ()
+    (fun () ->
+       [Eliom_output.Xhtml.css_link
+          (static_file_uri ["ocsiadmin.css"]) ()
        ]
     )
 
 (* special handling for onload functions (?) *)
 let polytable_onload = Polytables.make_key ()
 
-let onload_functions sp =
-  try Polytables.get ~table:(Eliom_sessions.get_request_cache sp)
+let onload_functions () =
+  try Polytables.get ~table:(Eliom_request_info.get_request_cache ())
     ~key:polytable_onload
   with Not_found -> []
 
-let add_onload_function ?(first = false) sp s =
-  Polytables.set ~table:(Eliom_sessions.get_request_cache sp)
+let add_onload_function ?(first = false) s =
+  Polytables.set ~table:(Eliom_request_info.get_request_cache ())
     ~key:polytable_onload
-    ~value:(if first then onload_functions sp @ [s]
-            else s :: onload_functions sp)
+    ~value:(if first then onload_functions () @ [s]
+            else s :: onload_functions ())
 
 (*
 (* Obrowser *)
@@ -180,11 +179,11 @@ let add_onload_function = add_onload_function ~first:false
 (*
 let add_obrowser_header = Header.require_header obrowser_header
  *)
-let add_admin_pages_header = Header.require_header admin_pages_header
+let add_admin_pages_header () = Header.require_header admin_pages_header
 
 
-let html_page ~sp ?body_classes ?(css=[]) ?(title="Ocsimore") content =
-  let headers = Header.generate_headers sp in
+let html_page ?body_classes ?(css=[]) ?(title="Ocsimore") content =
+  let headers = Header.generate_headers () in
   let body_attrs = match body_classes with
     | None -> [XHTML.M.a_id "body"]
     | Some l -> [XHTML.M.a_id "body"; XHTML.M.a_class l]
@@ -203,7 +202,7 @@ let html_page ~sp ?body_classes ?(css=[]) ?(title="Ocsimore") content =
        (XHTML.M.head
           (XHTML.M.title (XHTML.M.pcdata title))
           ((css
-            :Xhtmltypes.link XHTML.M.elt list
+            :XHTML_types.link XHTML.M.elt list
             :> [ `Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
           @ headers))
        (XHTML.M.body ~a:body_attrs content)
@@ -215,7 +214,7 @@ let html_page ~sp ?body_classes ?(css=[]) ?(title="Ocsimore") content =
 
 
 let admin_root =
-  Eliom_services.new_service
+  Eliom_services.service
     ~path:[Ocsimore_lib.ocsimore_admin_dir;""]
     ~get_params:Eliom_parameters.unit ()
 
@@ -233,20 +232,20 @@ let menu_link sp (text, service, f) =
     | false -> Lwt.return None
 *)
 
-let menu_link sp (text, service, f) =
-  f sp >|= function
+let menu_link (text, service, f) =
+  f () >|= function
   | true -> Some ([XHTML.M.pcdata text], Site_tree (Main_page service, []))
   | false -> None
 
 let add_to_admin_menu ~name ~links ~root =
   admin_menu := (name, links, root) :: !admin_menu
 
-let admin_menu ?service sp =
+let admin_menu ?service () =
   Lwt_list.map_s
     (fun (name, links, root) ->
        Lwt_list.fold_left_s
          (fun r me ->
-            menu_link sp me >|= function | None -> r | Some me -> me::r
+            menu_link me >|= function | None -> r | Some me -> me::r
          )
          [] links >|= fun links ->
          ([XHTML.M.span
@@ -257,19 +256,18 @@ let admin_menu ?service sp =
     )
     !admin_menu >|= List.rev                               >>= fun admin_menu ->
   Lwt.return (Main_page admin_root, admin_menu)            >>= fun menu ->
-  Lwt.return (add_admin_pages_header sp)                   >|= fun () ->
+  Lwt.return (add_admin_pages_header ())                   >|= fun () ->
   Eliom_tools.Xhtml.hierarchical_menu_depth_first
      ~id:"admin_menu"
      ~whole_tree:false
      menu
      ?service
-     ~sp
 
 
 let add_status_function, status_text =
   let l = ref [] in
   (fun e -> l := e :: !l),
-  (fun sp -> Lwt_list.map_s (fun x -> x ~sp) !l)
+  (fun () -> Lwt_list.map_s (fun x -> x ()) !l)
 
 (*TODO: find a better place for [access_denied]'s definition and make customizable *)
 let access_denied =
@@ -278,29 +276,29 @@ let access_denied =
     XHTML.M.pcdata "You are not allowed to access this content. Please login.";
   ]
 
-let admin_page ~sp
+let admin_page
       ?service
       ?(body_classes =[]) ?(css=[]) ?(title="Ocsimore")
       ?(allow_unlogged=false)
       content =
-  admin_menu ?service sp                  >>= fun menu ->
-  status_text sp                          >>= fun status ->
-  User.get_user_id ~sp                    >>= fun usr_id ->
+  admin_menu ?service ()                  >>= fun menu ->
+  status_text ()                          >>= fun status ->
+  User.get_user_id ()                     >>= fun usr_id ->
   let content =
     if usr_id <> User.anonymous || allow_unlogged
     then content
     else access_denied
   in
-  html_page ~sp ~title ~css ~body_classes:("admin" :: body_classes)
-    (  menu
+  html_page ~title ~css ~body_classes:("admin" :: body_classes)
+    (  menu ()
      @ [XHTML.M.div ~a:[XHTML.M.a_id "admin_body"] content;
         XHTML.M.div ~a:[XHTML.M.a_id "admin_status"] status;
        ]
     )
 
 
-let icon ~sp ~path ~text =
-  let src = static_file_uri sp [path] in
+let icon ~path ~text =
+  let src = static_file_uri [path] in
   XHTML.M.img ~src ~alt:text ~a:[XHTML.M.a_title text] ()
 
 
@@ -315,8 +313,8 @@ let ocsimore_admin_greetings =
       ];
   ]
 
-let () = Eliom_predefmod.Xhtml.register admin_root
-  (fun sp () () ->
-     admin_page ~sp ~service:admin_root ~title:"Ocsimore"
+let () = Eliom_output.Xhtml.register admin_root
+  (fun () () ->
+     admin_page ~service:admin_root ~title:"Ocsimore"
        ocsimore_admin_greetings
   )
