@@ -60,6 +60,7 @@ let run_process prog argv =
 
 (************************************************************************)
 
+(*
 external crypt : string -> string -> string = "crypt_stub"
 
 (* crypt(3) uses a global state *)
@@ -91,6 +92,7 @@ let check_passwd ~passwd ~hash =
     let computed = crypt passwd hash in
     Lwt_mutex.unlock check_mutex;
     return (computed = hash)
+*)
 
 let check_nis ~login ~passwd =
   run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |] >>= function
@@ -99,7 +101,7 @@ let check_nis ~login ~passwd =
           let start_hash = String.index output ':' in
           let end_hash = String.index_from output (start_hash+1) ':' in
           let hash = String.sub output (start_hash+1) (end_hash-start_hash-1) in
-          check_passwd ~passwd ~hash
+          Crypt.check_passwd ~passwd ~hash
         with Not_found ->
           return false
         end

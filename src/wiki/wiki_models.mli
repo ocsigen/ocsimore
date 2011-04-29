@@ -58,14 +58,14 @@ type 'res wiki_parser =
 val register_flows_wiki_parser :
   name:string ->
   preparser:wiki_preparser ->
-  parser:XHTML_types.div_content XHTML.M.elt list wiki_parser ->
+  parser_:XHTML_types.div_content XHTML.M.elt list wiki_parser ->
     XHTML_types.div_content XHTML.M.elt list Wiki_types.content_type
 
 (** will also register a flows parser by adding a <div> around the result *)
 val register_inlines_wiki_parser :
   name:string ->
   preparser:wiki_preparser ->
-  parser:XHTML_types.inlinemix XHTML.M.elt list wiki_parser ->
+  parser_:XHTML_types.inlinemix XHTML.M.elt list wiki_parser ->
     XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type
 
 val get_flows_wiki_parser :

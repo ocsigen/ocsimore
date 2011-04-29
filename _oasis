@@ -1,0 +1,154 @@
+# +-------------------------------------------------------------------+
+# | Package parameters                                                |
+# +-------------------------------------------------------------------+
+
+OASISFormat: 0.1
+OCamlVersion: >= 3.12
+Name: ocsimore
+Version: 0.5
+LicenseFile: COPYING
+License: LGPL-2.1 with ocaml linking exception
+Authors:
+  Plein de monde a mettre
+Homepage: http://ocsigen.org/ocsimore
+BuildTools: ocamlbuild
+Plugins: DevFiles (0.2), META (0.2)
+
+Synopsis: Ocsimore lib for eliom
+Description:
+  A nice description
+
+# +-------------------------------------------------------------------+
+# | Libraries                                                         |
+# +-------------------------------------------------------------------+
+
+Library "ocsimore"
+  Path: src/core
+  Modules:
+    Crypt,
+    Language,
+    Dyngroups,
+    Ocsimore_common,
+    Ocsimore_config,
+    Ocsimore_lib,
+    Opaque,
+    Parse_config,
+    Sql,
+    Updatedb_sql,
+    User,
+    User_sql,
+    Widget,
+    Xform
+  CSources:
+    crypt_stubs.c
+  CCLib: -lcrypt
+  XMETADescription: Core Ocsimore
+  BuildDepends: camlp4, lwt.syntax, pgocaml.syntax, eliom.server, threads
+
+Library "user"
+  Path: src/user
+  FindlibName: user
+  FindlibParent: ocsimore
+  Modules:
+    Nis_chkpwd,
+    Ocsimore_nis,
+    Ocsimore_pam,
+    User_data,
+    User_external_auth
+  XMETADescription: User stuffs
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore, pam
+
+Library "wiki"
+  Path: src/wiki
+  FindlibName: wiki
+  FindlibParent: ocsimore
+  Modules:
+    Wikicreole,
+    Wiki_data,
+    Wiki_models,
+    Wiki_self_services,
+    Wiki_sql,
+    Wiki_syntax,
+    Wiki_types,
+    Wiki_widgets_interface,
+    Wiki
+  XMETADescription: Wiki stuffs
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore, ocsimore.user
+
+Library "forum"
+  Path: src/forum
+  FindlibName: forum
+  FindlibParent: ocsimore
+  Modules:
+    Forum_sql0,
+    Forum_data,
+    Forum,
+    Forum_sql,
+    Forum_types
+  XMETADescription: forum extension
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore, ocsimore.wiki
+
+Library "core_site"
+  Path: src/site
+  FindlibName: site
+  FindlibParent: ocsimore
+  Modules:
+    Page_site
+  XMETADescription: some extensions
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore, ocsimore.wiki
+
+Library "user_site"
+  Path: src/site
+  FindlibName: user
+  FindlibParent: site
+  Modules:
+    User_site,
+    User_ext,
+    User_services,
+    User_widgets
+  XMETADescription: some extensions
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore.site
+
+Library "wiki_site"
+  Path: src/site
+  FindlibName: wiki
+  FindlibParent: site
+  Modules:
+    Wiki_site,
+    Wiki_ext,
+    Wiki_services,
+    Wiki_widgets
+  XMETADescription: some extensions
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore.site
+
+Library "forum_site"
+  Path: src/site
+  FindlibName: forum
+  FindlibParent: site
+  Modules:
+    Forum_site,
+    Forum_wikiext,
+    Forum_services,
+    Forum_widgets,
+    Ocsicreateforum
+  XMETADescription: some extensions
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore.site
+
+Test "all"
+  Command: ocsigenserver -c ./local/etc/ocsigen/ocsimore.conf
+
+# +-------------------------------------------------------------------+
+# | Misc                                                              |
+# +-------------------------------------------------------------------+
+
+SourceRepository head
+  Type: darcs
+  Location: http://ocsigen.org/darcs/ocsimore
+  Browser: http://ocsigen.org/darcsweb/?r=ocsimore;a=summary

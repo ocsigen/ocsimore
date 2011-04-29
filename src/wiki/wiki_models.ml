@@ -94,7 +94,7 @@ let register_flows_wiki_parser,
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser:(b: XHTML_types.div_content XHTML.M.elt list wiki_parser) ->
+  ((fun ~name:k ~preparser:a ~parser_:(b: XHTML_types.div_content XHTML.M.elt list wiki_parser) ->
       let k = Wiki_types.content_type_of_string k in
       H.add t k (a, b);
       k),
@@ -118,7 +118,7 @@ let register_inlines_wiki_parser,
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser:b ->
+  ((fun ~name:k ~preparser:a ~parser_:b ->
       let k' = Wiki_types.content_type_of_string k in
       H.add t k' (a, b);
       (* we also register a flows parser: *)
@@ -145,5 +145,5 @@ let css_content_type =
   register_flows_wiki_parser
     ~name:"css"
     ~preparser:(fun _ s -> Lwt.return s)
-    ~parser:(fun _bi s -> Lwt.return [XHTML.M.pcdata s])
+    ~parser_:(fun _bi s -> Lwt.return [XHTML.M.pcdata s])
 

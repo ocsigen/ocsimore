@@ -253,7 +253,7 @@ let authenticate ~name ~pwd =
       | Ocsimore_user_plain p ->
           if p = pwd then Lwt.return u else Lwt.fail BadPassword
       | Ocsimore_user_crypt h ->
-          Nis_chkpwd.check_passwd ~passwd:pwd ~hash:h >>= fun ok ->
+          Crypt.check_passwd ~passwd:pwd ~hash:h >>= fun ok ->
           if ok then Lwt.return u else Lwt.fail BadPassword
       | Connect_forbidden ->
           Lwt.fail BadPassword

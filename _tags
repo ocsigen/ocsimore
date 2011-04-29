@@ -1,32 +1,72 @@
-<**/*> : debug, thread
-#<**/*.ml> : pa_trace, syntax(camlp4o), package(camlp4)
-<trace.*> : -pa_trace, package(camlp4), package(camlp4.quotations.o)
-<wiki_models.ml> or <wikicreole.ml> : -pa_trace, -syntax(camlp4o), -package(camlp4)
+# -*- conf -*-
 
-"nis_chkpwd" : include
-<**/*_sql*.ml*>: package(pgocaml), package(pgocaml.syntax), syntax(camlp4o), notocamlduce
-<sql.ml*> : package(pgocaml)
-<**/*.ml*> : package(calendar), package(tyxml), package(eliom.server), package(lwt)
-<updatedb_sql.byte> : package(dynlink), package(eliom.server), package(pgocaml)
-<{user,wiki}_sql.ml> : package(ocsigenserver.baselib)
+<src/**/*.ml>: syntax_camlp4o
+<src/wiki/wikicreole.ml*>: -syntax_camlp4o, -pkg_camlp4, -pkg_lwt.syntax, -pkg_pgocaml.syntax
 
-<user_widgets.ml> : package(lwt.syntax), syntax(camlp4o)
-<ocsimore_pam.ml> : package(pam)
-
-"nis_chkpwd/libnis_chkpwd.a" : use_crypt
-<nis_chkpwd/nis.cm{x,}a>: use_nis_chkpwd
-
-#forum
-
-<forum/forum_sql.ml> : package(ocsigenserver.baselib)
-<forum/forum_wikiext.ml> : package(lwt.syntax), syntax(camlp4o)
-
-# <myocamlfind.*> : use_unix
-# <**/*.ml*> : pkg_threads, pkg_ocsigen, pkg_calendar, pkg_ocsigen.ext.eliom, pkg_ocsigen.xhtml, dtypes, warn_Y, warn_Z, notocamlduce
-# <**/*_sql*.ml*>: pkg_pgocaml, pkg_pgocaml.syntax, syntax_camlp4o, notocamlduce
-# <sql.ml*> : pkg_pgocaml
-# <ocsimore_pam.ml*> : pkg_pam
-# <ocsimore.cma> : with_nis_chkpwd, pkg_pam
-# <**/*_client*> : pkg_obrowser, pkg_ocsigen.eliom_obrowser_client, pkg_ocsigen.lwt_obrowser, -pkg_ocsigen
-# "widget.ml" : warn_v
-# "updatedb_sql.byte": pkg_threads,  pkg_pgocaml, pkg_ocsigen.server
+# OASIS_START
+# DO NOT EDIT (digest: d2e3fe60d84a8b5571a444635ae846ea)
+# Library ocsimore
+"src/core": include
+"src/core/ocsimore.cmxs": use_ocsimore
+<src/core/ocsimore.{cma,cmxa}>: oasis_library_ocsimore_cclib
+"src/core/libocsimore.lib": oasis_library_ocsimore_cclib
+"src/core/dllocsimore.dll": oasis_library_ocsimore_cclib
+"src/core/libocsimore.a": oasis_library_ocsimore_cclib
+"src/core/dllocsimore.so": oasis_library_ocsimore_cclib
+<src/core/ocsimore.{cma,cmxa}>: use_libocsimore
+<src/core/*.ml{,i}>: pkg_threads
+<src/core/*.ml{,i}>: pkg_pgocaml.syntax
+<src/core/*.ml{,i}>: pkg_lwt.syntax
+<src/core/*.ml{,i}>: pkg_eliom.server
+<src/core/*.ml{,i}>: pkg_camlp4
+"src/core/crypt_stubs.c": pkg_threads
+"src/core/crypt_stubs.c": pkg_pgocaml.syntax
+"src/core/crypt_stubs.c": pkg_lwt.syntax
+"src/core/crypt_stubs.c": pkg_eliom.server
+"src/core/crypt_stubs.c": pkg_camlp4
+# Library user
+"src/user": include
+"src/user/user.cmxs": use_user
+<src/user/*.ml{,i}>: use_ocsimore
+<src/user/*.ml{,i}>: pkg_threads
+<src/user/*.ml{,i}>: pkg_pgocaml.syntax
+<src/user/*.ml{,i}>: pkg_pam
+<src/user/*.ml{,i}>: pkg_lwt.syntax
+<src/user/*.ml{,i}>: pkg_eliom.server
+<src/user/*.ml{,i}>: pkg_camlp4
+# Library wiki
+"src/wiki": include
+"src/wiki/wiki.cmxs": use_wiki
+<src/wiki/*.ml{,i}>: use_user
+<src/wiki/*.ml{,i}>: use_ocsimore
+<src/wiki/*.ml{,i}>: pkg_threads
+<src/wiki/*.ml{,i}>: pkg_pgocaml.syntax
+<src/wiki/*.ml{,i}>: pkg_pam
+<src/wiki/*.ml{,i}>: pkg_lwt.syntax
+<src/wiki/*.ml{,i}>: pkg_eliom.server
+<src/wiki/*.ml{,i}>: pkg_camlp4
+# Library forum
+"src/forum": include
+"src/forum/forum.cmxs": use_forum
+<src/forum/*.ml{,i}>: use_wiki
+<src/forum/*.ml{,i}>: use_user
+<src/forum/*.ml{,i}>: use_ocsimore
+<src/forum/*.ml{,i}>: pkg_threads
+<src/forum/*.ml{,i}>: pkg_pgocaml.syntax
+<src/forum/*.ml{,i}>: pkg_pam
+<src/forum/*.ml{,i}>: pkg_lwt.syntax
+<src/forum/*.ml{,i}>: pkg_eliom.server
+<src/forum/*.ml{,i}>: pkg_camlp4
+# Library core_site
+"src/site": include
+"src/site/core_site.cmxs": use_core_site
+<src/site/*.ml{,i}>: use_wiki
+<src/site/*.ml{,i}>: use_user
+<src/site/*.ml{,i}>: use_ocsimore
+<src/site/*.ml{,i}>: pkg_threads
+<src/site/*.ml{,i}>: pkg_pgocaml.syntax
+<src/site/*.ml{,i}>: pkg_pam
+<src/site/*.ml{,i}>: pkg_lwt.syntax
+<src/site/*.ml{,i}>: pkg_eliom.server
+<src/site/*.ml{,i}>: pkg_camlp4
+# OASIS_STOP

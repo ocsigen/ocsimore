@@ -158,7 +158,7 @@ let pass_authtype_from_pass pwd = match pwd with
       Lwt.return (pwd, (Some p, "l"))
 
   | Ocsimore_user_crypt pass ->
-      Nis_chkpwd.crypt_passwd pass >>=
+      Crypt.crypt_passwd pass >>=
       fun crypt ->
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
 

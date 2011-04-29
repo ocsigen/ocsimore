@@ -1,9 +1,8 @@
-touch .depend
-echo "DBUSER=ocsimore" > Makefile.config
-echo "PASSWORD=$1" >> Makefile.config
-echo "STATICDIR=/var/www/ocsimore" >> Makefile.config
-echo "USER=www-data" >> Makefile.config
-echo "GROUP=www-data" >> Makefile.config
-echo "SRC="`pwd` >> Makefile.config
-echo "NBCPU=1" >> Makefile.config
+#!/bin/sh
 
+# OASIS_START
+# DO NOT EDIT (digest: ed33e59fe00e48bc31edf413bbc8b8d6)
+set -e
+
+ocaml setup.ml -configure $*
+# OASIS_STOP
