@@ -27,8 +27,8 @@
 type attribs = (string * string) list
 
 type ('a, 'b, 'c) ext_kind =
-  | Block of 'a
-  | A_content of 'b
+  | Flow5 of 'a
+  | Phrasing_without_interactive of 'b
   | Link_plugin of 'c
 
 
@@ -39,66 +39,66 @@ type ('param, 'a) plugin_args =
     string option -> (** content for the extension, after the '|' *)
     'a
 
-type ('param, 'flow, 'a_content) plugin =
+type ('param, 'flow, 'phrasing_without_interactive, 'href) plugin =
     ('param,
-     ('flow, 'a_content, (string * attribs * 'a_content)) ext_kind
+     ('flow, 'phrasing_without_interactive, ('href * attribs * 'phrasing_without_interactive)) ext_kind
     ) plugin_args
 
 
-type ('flow, 'inline, 'a_content, 'param) builder =
-  { chars : string -> 'a_content;
-    strong_elem : attribs -> 'inline list -> 'a_content;
-    em_elem : attribs -> 'inline list -> 'a_content;
-    br_elem : attribs -> 'a_content;
-    img_elem : attribs -> string -> string -> 'a_content;
-    tt_elem : attribs -> 'inline list -> 'a_content;
-    monospace_elem : attribs -> 'inline list -> 'a_content;
-    underlined_elem : attribs -> 'inline list -> 'a_content;
-    linethrough_elem : attribs -> 'inline list -> 'a_content;
-    subscripted_elem : attribs -> 'inline list -> 'a_content;
-    superscripted_elem : attribs -> 'inline list -> 'a_content;
-    nbsp : 'a_content;
-    endash : 'a_content;
-    emdash : 'a_content;
-    a_elem : attribs -> string -> 'a_content list -> 'inline;
-    make_href : 'param -> string -> string option -> string;
+type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
+  { chars : string -> 'phrasing_without_interactive;
+    strong_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    em_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    br_elem : attribs -> 'phrasing_without_interactive;
+    img_elem : attribs -> 'href -> string -> 'phrasing_without_interactive;
+    tt_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    monospace_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    underlined_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    linethrough_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    subscripted_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    superscripted_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    nbsp : 'phrasing_without_interactive;
+    endash : 'phrasing_without_interactive;
+    emdash : 'phrasing_without_interactive;
+    a_elem : attribs -> 'href -> 'phrasing_without_interactive list -> 'phrasing;
+    make_href : 'param -> string -> string option -> 'href;
     (** the string option is the fragment part of the URL (#...)*)
-    p_elem : attribs -> 'inline list -> 'flow;
+    p_elem : attribs -> 'phrasing list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
-    h1_elem : attribs -> 'inline list -> 'flow;
-    h2_elem : attribs -> 'inline list -> 'flow;
-    h3_elem : attribs -> 'inline list -> 'flow;
-    h4_elem : attribs -> 'inline list -> 'flow;
-    h5_elem : attribs -> 'inline list -> 'flow;
-    h6_elem : attribs -> 'inline list -> 'flow;
-    ul_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
-    ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
-    dl_elem : attribs -> (bool * 'inline list * attribs) list -> 'flow;
+    h1_elem : attribs -> 'phrasing list -> 'flow;
+    h2_elem : attribs -> 'phrasing list -> 'flow;
+    h3_elem : attribs -> 'phrasing list -> 'flow;
+    h4_elem : attribs -> 'phrasing list -> 'flow;
+    h5_elem : attribs -> 'phrasing list -> 'flow;
+    h6_elem : attribs -> 'phrasing list -> 'flow;
+    ul_elem : attribs -> ('phrasing list * 'flow option * attribs) list -> 'flow;
+    ol_elem : attribs -> ('phrasing list * 'flow option * attribs) list -> 'flow;
+    dl_elem : attribs -> (bool * 'phrasing list * attribs) list -> 'flow;
     hr_elem : attribs -> 'flow;
     table_elem : attribs ->
-      ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
-    inline : 'a_content -> 'inline;
+      ((bool * attribs * 'phrasing list) list * attribs) list -> 'flow;
+    phrasing : 'phrasing_without_interactive -> 'phrasing;
 (** The syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
 [<<name arg1='value1' ... argn="valuen' |content>> ] *)
 (** Must display sthg (error message?) if the name does not exist. *)
-    plugin : string -> bool * ('param, 'flow, 'a_content) plugin;
+    plugin : string -> bool * ('param, 'flow, 'phrasing_without_interactive, 'href) plugin;
     plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
     link_action : string -> string option -> attribs -> int * int -> 'param -> unit;
-    error : string -> 'a_content;
+    error : string -> 'phrasing_without_interactive;
   }
 
 (*
 val from_channel :
   'param ->
-  ('flow, 'inline, 'a_content, 'param) builder -> in_channel -> 'flow list Lwt.t
+  ('flow, 'phrasing, 'phrasing_without_interactive, 'param) builder -> in_channel -> 'flow list Lwt.t
 *)
 
 val from_string :
   'param ->
-  ('flow, 'inline, 'a_content, 'param) builder -> string -> 'flow list Lwt.t
+  ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder -> string -> 'flow list Lwt.t
 
 (*
 val from_lexbuf :
   'param ->
-  ('flow, 'inline, 'a_content, 'param) builder -> Lexing.lexbuf -> 'flow list Lwt.t
+  ('flow, 'phrasing, 'phrasing_without_interactive, 'param) builder -> Lexing.lexbuf -> 'flow list Lwt.t
 *)

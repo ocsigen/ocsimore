@@ -29,8 +29,8 @@ exception Unrecognized_char
 type attribs = (string * string) list
 
 type ('a, 'b, 'c) ext_kind = 
-  | Block of 'a
-  | A_content of 'b
+  | Flow5 of 'a
+  | Phrasing_without_interactive of 'b
   | Link_plugin of 'c
 
 
@@ -41,48 +41,48 @@ type ('param, 'a) plugin_args =
     string option -> (** content for the extension, after the '|' *)
     'a
 
-type ('param, 'flow, 'a_content) plugin =
+type ('param, 'flow, 'phrasing_without_interactive, 'href) plugin =
     ('param,
-     ('flow, 'a_content, (string * attribs * 'a_content)) ext_kind
+     ('flow, 'phrasing_without_interactive, ('href * attribs * 'phrasing_without_interactive)) ext_kind
     ) plugin_args
 
 
-type ('flow, 'inline, 'a_content, 'param) builder =
-  { chars : string -> 'a_content;
-    strong_elem : attribs -> 'inline list -> 'a_content;
-    em_elem : attribs -> 'inline list -> 'a_content;
-    br_elem : attribs -> 'a_content;
-    img_elem : attribs -> string -> string -> 'a_content;
-    tt_elem : attribs -> 'inline list -> 'a_content;
-    monospace_elem : attribs -> 'inline list -> 'a_content;
-    underlined_elem : attribs -> 'inline list -> 'a_content;
-    linethrough_elem : attribs -> 'inline list -> 'a_content;
-    subscripted_elem : attribs -> 'inline list -> 'a_content;
-    superscripted_elem : attribs -> 'inline list -> 'a_content;
-    nbsp : 'a_content;
-    endash : 'a_content;
-    emdash : 'a_content;
-    a_elem : attribs -> string -> 'a_content list -> 'inline;
-    make_href : 'param -> string -> string option -> string;
-    p_elem : attribs -> 'inline list -> 'flow;
+type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
+  { chars : string -> 'phrasing_without_interactive;
+    strong_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    em_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    br_elem : attribs -> 'phrasing_without_interactive;
+    img_elem : attribs -> 'href -> string -> 'phrasing_without_interactive;
+    tt_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    monospace_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    underlined_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    linethrough_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    subscripted_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    superscripted_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
+    nbsp : 'phrasing_without_interactive;
+    endash : 'phrasing_without_interactive;
+    emdash : 'phrasing_without_interactive;
+    a_elem : attribs -> 'href -> 'phrasing_without_interactive list -> 'phrasing;
+    make_href : 'param -> string -> string option -> 'href;
+    p_elem : attribs -> 'phrasing list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
-    h1_elem : attribs -> 'inline list -> 'flow;
-    h2_elem : attribs -> 'inline list -> 'flow;
-    h3_elem : attribs -> 'inline list -> 'flow;
-    h4_elem : attribs -> 'inline list -> 'flow;
-    h5_elem : attribs -> 'inline list -> 'flow;
-    h6_elem : attribs -> 'inline list -> 'flow;
-    ul_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
-    ol_elem : attribs -> ('inline list * 'flow option * attribs) list -> 'flow;
-    dl_elem : attribs -> (bool * 'inline list * attribs) list -> 'flow;
+    h1_elem : attribs -> 'phrasing list -> 'flow;
+    h2_elem : attribs -> 'phrasing list -> 'flow;
+    h3_elem : attribs -> 'phrasing list -> 'flow;
+    h4_elem : attribs -> 'phrasing list -> 'flow;
+    h5_elem : attribs -> 'phrasing list -> 'flow;
+    h6_elem : attribs -> 'phrasing list -> 'flow;
+    ul_elem : attribs -> ('phrasing list * 'flow option * attribs) list -> 'flow;
+    ol_elem : attribs -> ('phrasing list * 'flow option * attribs) list -> 'flow;
+    dl_elem : attribs -> (bool * 'phrasing list * attribs) list -> 'flow;
     hr_elem : attribs -> 'flow;
     table_elem : attribs ->
-      ((bool * attribs * 'inline list) list * attribs) list -> 'flow;
-    inline : 'a_content -> 'inline;
-    plugin : string -> bool * ('param, 'flow, 'a_content) plugin;
+      ((bool * attribs * 'phrasing list) list * attribs) list -> 'flow;
+    phrasing : 'phrasing_without_interactive -> 'phrasing;
+    plugin : string -> bool * ('param, 'flow, 'phrasing_without_interactive, 'href) plugin;
     plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
     link_action : string -> string option -> attribs -> int * int -> 'param -> unit;
-    error : string -> 'a_content;
+    error : string -> 'phrasing_without_interactive;
   }
 
 type style =
@@ -91,26 +91,26 @@ type style =
 
 type list_kind = Unordered | Ordered
 
-type ('inline, 'flow) stack =
-    Style of style * 'inline list * attribs * ('inline, 'flow) stack
-  | Link of string * attribs * ('inline, 'flow) stack
+type ('phrasing, 'flow, 'href) stack =
+    Style of style * 'phrasing list * attribs * ('phrasing, 'flow, 'href) stack
+  | Link of 'href * attribs * ('phrasing, 'flow, 'href) stack
       (* Not that we do not save anything in the case of links, as
          links cannot be nested *)
   | Paragraph of attribs
   | Heading of int * attribs
-  | List_item of attribs * ('inline, 'flow) stack
+  | List_item of attribs * ('phrasing, 'flow, 'href) stack
   | List of
-      list_kind * ('inline list * 'flow option * attribs) list
-      * attribs * ('inline, 'flow) stack
-  | Descr_def of attribs * ('inline, 'flow) stack
-  | Descr_title of attribs * ('inline, 'flow) stack
-  | Descr of attribs * ('inline, 'flow) stack
-  | Table of ((bool * attribs * 'inline list) list * attribs) list * attribs
-  | Row of (bool * attribs * 'inline list) list * attribs * ('inline, 'flow) stack
-  | Entry of bool * attribs * ('inline, 'flow) stack
+      list_kind * ('phrasing list * 'flow option * attribs) list
+      * attribs * ('phrasing, 'flow, 'href) stack
+  | Descr_def of attribs * ('phrasing, 'flow, 'href) stack
+  | Descr_title of attribs * ('phrasing, 'flow, 'href) stack
+  | Descr of attribs * ('phrasing, 'flow, 'href) stack
+  | Table of ((bool * attribs * 'phrasing list) list * attribs) list * attribs
+  | Row of (bool * attribs * 'phrasing list) list * attribs * ('phrasing, 'flow, 'href) stack
+  | Entry of bool * attribs * ('phrasing, 'flow, 'href) stack
 
-type ('flow, 'inline, 'a_content, 'param) ctx =
-  { build : ('flow, 'inline, 'a_content, 'param) builder;
+type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) ctx =
+  { build : ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder;
     param : 'param;
     mutable italic : bool;
     mutable bold : bool;
@@ -122,13 +122,13 @@ type ('flow, 'inline, 'a_content, 'param) ctx =
     mutable heading : bool;
     mutable link : bool;
     mutable list_level : int;
-    mutable inline_mix : 'inline list;
-    mutable link_content : 'a_content list;
+    mutable phrasing_mix : 'phrasing list;
+    mutable link_content : 'phrasing_without_interactive list;
     mutable pre_content : string list;
-    mutable list : ('inline list * 'flow option * attribs) list;
-    mutable descr : (bool * 'inline list * attribs) list;
+    mutable list : ('phrasing list * 'flow option * attribs) list;
+    mutable descr : (bool * 'phrasing list * attribs) list;
     mutable flow : 'flow list;
-    mutable stack : ('inline, 'flow) stack }
+    mutable stack : ('phrasing, 'flow, 'href) stack }
 
 let count c s =
   let n = ref 0 in
@@ -138,7 +138,7 @@ let count c s =
 let push c v =
   match c.stack with
     Link _ -> c.link_content <- v :: c.link_content
-  | _      -> c.inline_mix <- c.build.inline v :: c.inline_mix
+  | _      -> c.phrasing_mix <- c.build.phrasing v :: c.phrasing_mix
 
 let push_string c s = push c (c.build.chars s)
 
@@ -194,7 +194,7 @@ let set_style c style v =
     | Subscripted -> c.subscripted <- v
     | Superscripted -> c.superscripted <- v
 
-let pop_style c style inline attribs stack =
+let pop_style c style phrasing attribs stack =
   let elt =
     match style with
       | Bold   -> c.build.strong_elem attribs
@@ -205,48 +205,48 @@ let pop_style c style inline attribs stack =
       | Subscripted -> c.build.subscripted_elem attribs
       | Superscripted -> c.build.superscripted_elem attribs
   in
-  let inline' = c.inline_mix in
+  let phrasing' = c.phrasing_mix in
   c.stack <- stack;
-  c.inline_mix <- inline;
-  push c (elt (List.rev inline'));
+  c.phrasing_mix <- phrasing;
+  push c (elt (List.rev phrasing'));
   set_style c style false
 
 let style_change c style att parse_attribs lexbuf =
   let atts = read_attribs att parse_attribs c lexbuf in
   if get_style c style then begin
     match c.stack with
-      Style (s, inline, attribs, stack) when s = style ->
-        pop_style c style inline attribs stack;
+      Style (s, phrasing, attribs, stack) when s = style ->
+        pop_style c style phrasing attribs stack;
     | _ ->
         push_string c "**";
         push_string c att
   end else begin
-    c.stack <- Style (style, c.inline_mix, atts, c.stack);
-    c.inline_mix <- [];
+    c.stack <- Style (style, c.phrasing_mix, atts, c.stack);
+    c.phrasing_mix <- [];
     set_style c style true
   end
 
 let pop_link c addr attribs stack =
   c.stack <- stack;
-  c.inline_mix <-
-    c.build.a_elem attribs addr (List.rev c.link_content) :: c.inline_mix;
+  c.phrasing_mix <-
+    c.build.a_elem attribs addr (List.rev c.link_content) :: c.phrasing_mix;
   c.link_content <- [];
   c.link <- false
 
 let close_entry c =
   match c.stack with
     Entry (heading, attribs, Row (entries, row_attribs, stack)) ->
-      c.stack <- Row ((heading, attribs, List.rev c.inline_mix) :: entries, 
+      c.stack <- Row ((heading, attribs, List.rev c.phrasing_mix) :: entries, 
                       row_attribs,
                       stack);
-      c.inline_mix <- [];
+      c.phrasing_mix <- [];
       true
   | Row _ ->
       true
   | Table _ ->
       (*VVV attribs? *)
-      c.stack <- Row ([(false, [], List.rev c.inline_mix)], [], c.stack);
-      c.inline_mix <- [];
+      c.stack <- Row ([(false, [], List.rev c.phrasing_mix)], [], c.stack);
+      c.phrasing_mix <- [];
       true
   | _ ->
       false
@@ -267,13 +267,13 @@ let close_descr_entry c =
   match c.stack with
     | Descr_def (attribs, stack) ->
         c.stack <- stack;
-        c.descr <- (false, List.rev c.inline_mix, attribs) :: c.descr;
-        c.inline_mix <- [];
+        c.descr <- (false, List.rev c.phrasing_mix, attribs) :: c.descr;
+        c.phrasing_mix <- [];
         true
     | Descr_title (attribs, stack) ->
         c.stack <- stack;
-        c.descr <- (true, List.rev c.inline_mix, attribs) :: c.descr;
-        c.inline_mix <- [];
+        c.descr <- (true, List.rev c.phrasing_mix, attribs) :: c.descr;
+        c.phrasing_mix <- [];
         true
     | _ ->
         false
@@ -281,16 +281,16 @@ let close_descr_entry c =
 
 let rec end_paragraph c lev =
   match c.stack with
-    Style (style, inline, attribs, stack) ->
-      pop_style c style inline attribs stack;
+    Style (style, phrasing, attribs, stack) ->
+      pop_style c style phrasing attribs stack;
       end_paragraph c lev
   | Link (addr, attribs, stack) ->
       pop_link c addr attribs stack;
       end_paragraph c lev
   | Paragraph attribs ->
-      if c.inline_mix <> [] then begin
-        c.flow <- c.build.p_elem attribs (List.rev c.inline_mix) :: c.flow;
-        c.inline_mix <- []
+      if c.phrasing_mix <> [] then begin
+        c.flow <- c.build.p_elem attribs (List.rev c.phrasing_mix) :: c.flow;
+        c.phrasing_mix <- []
       end;
       c.stack <- Paragraph []
   | Heading (l, attribs) ->
@@ -303,14 +303,14 @@ let rec end_paragraph c lev =
           | 5 -> c.build.h5_elem
           | _ -> c.build.h6_elem
       in
-      c.flow <- f attribs (List.rev c.inline_mix) :: c.flow;
-      c.inline_mix <- [];
+      c.flow <- f attribs (List.rev c.phrasing_mix) :: c.flow;
+      c.phrasing_mix <- [];
       c.heading <- false;
       c.stack <- Paragraph []
   | List_item (attribs, stack) ->
-      c.list <- (List.rev c.inline_mix, None, attribs) :: c.list;
+      c.list <- (List.rev c.phrasing_mix, None, attribs) :: c.list;
       c.stack <- stack;
-      c.inline_mix <- [];
+      c.phrasing_mix <- [];
       end_paragraph c lev
   | List (kind, lst, attribs, stack) ->
       if lev < c.list_level then begin
@@ -333,14 +333,14 @@ let rec end_paragraph c lev =
         end_paragraph c lev
       end
   | Descr_def (attribs, stack) ->
-      c.descr <- (false, List.rev c.inline_mix, attribs) :: c.descr;
+      c.descr <- (false, List.rev c.phrasing_mix, attribs) :: c.descr;
       c.stack <- stack;
-      c.inline_mix <- [];
+      c.phrasing_mix <- [];
       end_paragraph c lev
   | Descr_title (attribs, stack) ->
-      c.descr <- (true, List.rev c.inline_mix, attribs) :: c.descr;
+      c.descr <- (true, List.rev c.phrasing_mix, attribs) :: c.descr;
       c.stack <- stack;
-      c.inline_mix <- [];
+      c.phrasing_mix <- [];
       end_paragraph c lev
   | Descr (attribs, stack) ->
       let lst = c.build.dl_elem attribs (List.rev c.descr) in
@@ -601,9 +601,10 @@ and parse_rem c =
       if c.link then
         push_chars c lexbuf
       else
-        let addr = Lexing.lexeme lexbuf in
-        c.inline_mix <-
-          c.build.a_elem [] addr [c.build.chars addr] :: c.inline_mix;
+	let addr_string = Lexing.lexeme lexbuf in
+	let addr = c.build.make_href c.param addr_string None in
+        c.phrasing_mix <-
+          c.build.a_elem [] addr [c.build.chars addr_string] :: c.phrasing_mix;
       parse_rem c lexbuf
   }
   | "\\\\" (("@@" ?) as att) {
@@ -623,14 +624,14 @@ and parse_rem c =
       c.build.plugin_action name start (Lexing.lexeme_end lexbuf)
         c.param (List.rev args) content;
       match ext_info c.param args content with
-      | A_content i -> 
+      | Phrasing_without_interactive i ->
           push c i;
           parse_rem c lexbuf
       | Link_plugin (addr, attribs, content) ->
           c.link_content <- [ content ];
           pop_link c addr attribs c.stack;
           parse_rem c lexbuf
-      | Block b ->
+      | Flow5 b ->
           end_paragraph c 0;
           c.flow <- b :: c.flow;
           parse_bol c lexbuf
@@ -685,7 +686,7 @@ and parse_rem c =
       parse_rem c lexbuf
     }
   | _ {
-     Ocsigen_messages.warning 
+     Ocsigen_messages.warning
        ("Wikicreole: Unrecognized char "^(Lexing.lexeme lexbuf)^".");
      raise Unrecognized_char
   }
@@ -700,16 +701,16 @@ and parse_link beg begaddr fragment c attribs =
       push_string c begaddr;
       (match fragment with
          | None -> ()
-         | Some f -> 
+         | Some f ->
              push_string c "#";
-             push_string c f);   
+             push_string c f);
       parse_rem c lexbuf
     }
-  | (']' ? (not_line_break # [ ']' '|' '~' '#' ])) * 
+  | (']' ? (not_line_break # [ ']' '|' '~' '#' ])) *
           { match fragment with
-              | None -> 
+              | None ->
                   parse_link beg (begaddr^Lexing.lexeme lexbuf) None c attribs lexbuf
-              | Some f -> 
+              | Some f ->
                   parse_link beg begaddr (Some (f^Lexing.lexeme lexbuf)) c attribs lexbuf
           }
   | "]]" | '|' {
@@ -719,7 +720,7 @@ and parse_link beg begaddr fragment c attribs =
         push_string c begaddr;
         (match fragment with
           | None -> ()
-          | Some f -> 
+          | Some f ->
               push_string c "#";
               push_string c f);
         push_string c lb
@@ -738,9 +739,9 @@ and parse_link beg begaddr fragment c attribs =
             | None -> begaddr
             | Some f -> begaddr^"#"^f
           in
-          c.inline_mix <-
+          c.phrasing_mix <-
             c.build.a_elem
-            attribs addr [c.build.chars text] :: c.inline_mix;
+            attribs addr [c.build.chars text] :: c.phrasing_mix;
       end;
       parse_rem c lexbuf
   }
@@ -784,7 +785,7 @@ and parse_tt c attribs =
         ('}' ? '}' ? (not_line_break # '}')) * '}' * "}}}" {
       let s = Lexing.lexeme lexbuf in
       let txt = String.sub s 0 (String.length s - 3) in
-      push c (c.build.tt_elem attribs [c.build.inline (c.build.chars txt)]);
+      push c (c.build.tt_elem attribs [c.build.phrasing (c.build.chars txt)]);
       parse_rem c lexbuf
     }
   | "" {
@@ -822,7 +823,7 @@ and parse_extension start name wiki_content args c =
     |  ';'* | (white_space *) | (line_break *) {
         parse_extension start name wiki_content args c lexbuf
       }
-    | (not_line_break # white_space # '=' # '>') * '=' 
+    | (not_line_break # white_space # '=' # '>') * '='
         ((white_space | line_break) *) (('\'' | '"') as quote) {
         let s = Lexing.lexeme lexbuf in
         let i = String.index s '=' in
@@ -832,10 +833,10 @@ and parse_extension start name wiki_content args c =
           ((arg_name, arg_value)::args) c lexbuf
       }
     | _ {
-        ignore 
+        ignore
           (if wiki_content
            then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
-           else 
+           else
              ((parse_extension_content_nowiki start true "" c lexbuf), args));
         (Some ("Syntax error in extension "^name), args)
       }
@@ -864,7 +865,7 @@ and parse_extension_content_wiki start lev nowiki beg c =
                   parse_extension_content_nowiki start false (beg^s) c lexbuf
                 with None -> ">>"
                   | Some s -> s^">>"
-              in 
+              in
               parse_extension_content_wiki start lev false s c lexbuf
         }
       | "{{{" {
@@ -877,7 +878,7 @@ and parse_extension_content_wiki start lev nowiki beg c =
         }
       | ">>" {
           if nowiki
-          then 
+          then
             parse_extension_content_wiki start lev nowiki (beg^">>") c lexbuf
           else
             if lev>0
@@ -938,7 +939,7 @@ and parse_arg_value quote beg c =
         parse_arg_value quote (beg^(String.make 1 ch)) c lexbuf
       }
     | ('\'' | '"' | '~') as ch {
-        if ch = quote 
+        if ch = quote
         then beg
         else parse_arg_value quote (beg^(String.make 1 ch)) c lexbuf
       }
@@ -991,7 +992,7 @@ let context param b =
     heading = false; 
     link = false; 
     list_level = 0;
-    inline_mix = []; 
+    phrasing_mix = []; 
     link_content = []; 
     pre_content = []; 
     list = []; 

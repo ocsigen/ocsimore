@@ -1,4 +1,5 @@
-let user = "ocsimore"
+let db_user = ref "ocsimore"
+let db_name = ref "ocsimore"
 
 let password = ref (try Sys.getenv "PGPASSWORD" with Not_found -> "")
 

@@ -28,8 +28,8 @@ open User_sql.Types
 open Wiki_types
 
 let body_to_div x =
-  (x : XHTML_types.body_content XHTML.M.elt list
-     :> XHTML_types.div_content XHTML.M.elt list
+  (x : HTML5_types.body_content HTML5.M.elt list
+     :> HTML5_types.flow5 HTML5.M.elt list
   )
 
 let siteid =
@@ -74,7 +74,7 @@ let service_edit_wikibox = Eliom_services.service
   ~get_params:Wiki_services.eliom_wikibox_args ()
 
 let () =
-  Eliom_output.Xhtml.register service_edit_wikibox
+  Ocsimore_appl.register service_edit_wikibox
     (fun wb () ->
        Wiki_sql.wikibox_wiki wb >>= fun w ->
        Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
@@ -90,7 +90,7 @@ let () =
     )
 
 (** We register the service that lists all the wikis *)
-let () =  Eliom_output.Xhtml.register Wiki_services.view_wikis
+let () =  Eliom_output.Html5.register Wiki_services.view_wikis
     (fun () () ->
        wikibox_widget#display_all_wikis >|= body_to_div >>= fun b ->
        Page_site.admin_page b
@@ -249,12 +249,12 @@ let create_wiki_form ~serv_path:_ ~service ~arg
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
     Page_site.admin_page ~service:(cast_service service) ~title
-      (XHTML.M.h1 [XHTML.M.pcdata title] ::
+      (HTML5.M.h1 [HTML5.M.pcdata title] ::
        (match error with
           | Xform.ErrorMsg err ->
-              [XHTML.M.p
-                 ~a:[XHTML.M.a_class ["errmsg"]]
-                 [XHTML.M.pcdata err]
+              [HTML5.M.p
+                 ~a:[HTML5.M.a_class ["errmsg"]]
+                 [HTML5.M.pcdata err]
               ]
           | _ -> []
        ) @
@@ -277,12 +277,12 @@ let create_wiki_form ~serv_path:_ ~service ~arg
          (fun reader ->
             p (text "Reader" @+
                convert (string_input reader) User.user_from_userlogin_xform)) @@
-       p (text "Container text :" @+ [XHTML.M.br ()] @+
+       p (text "Container text :" @+ [HTML5.M.br ()] @+
           text_area ~cols:80 ~rows:20 container) @@
-       p (text "Wiki model (for advanced users):" @+ [XHTML.M.br ()] @+
+       p (text "Wiki model (for advanced users):" @+ [HTML5.M.br ()] @+
           model_input model) @@
        p (text "Site id (conditional loading of wikis, for advanced users):"
-          @+ [XHTML.M.br ()] @+
+          @+ [HTML5.M.br ()] @+
           string_opt_input siteid) @@
        p (submit_button "Create")
       |> cont)
@@ -305,7 +305,7 @@ let create_wiki =
   let path = [Ocsimore_lib.ocsimore_admin_dir;"create_wiki"] in
   let create_wiki = Eliom_services.service ~path
       ~get_params:Eliom_parameters.unit () in
-  Eliom_output.Xhtml.register create_wiki
+  Eliom_output.Html5.register create_wiki
     (fun () () ->
        wiki_rights#can_create_wiki () >>= function
          | true ->
@@ -335,13 +335,13 @@ let create_wiki =
                           | None -> (* should never happen, but this is not
                                        really important *) []
                           | Some service ->
-                              let link = Eliom_output.Xhtml.a
-                                ~service [XHTML.M.pcdata "root page"] []
+                              let link = Eliom_output.Html5.a
+                                ~service [HTML5.M.pcdata "root page"] []
                               in
-                              [XHTML.M.p
-                                 [XHTML.M.pcdata "you can go to the ";
+                              [HTML5.M.p
+                                 [HTML5.M.pcdata "you can go to the ";
                                   link;
-                                  XHTML.M.pcdata " of this wiki.";
+                                  HTML5.M.pcdata " of this wiki.";
                                  ]
                               ]
                   in
@@ -349,15 +349,15 @@ let create_wiki =
                                    (string_of_wiki wid))
                   in
                   Page_site.admin_page ~service:create_wiki
-                    (   XHTML.M.h1 [XHTML.M.pcdata "Wiki sucessfully created"]
-                     :: XHTML.M.p [XHTML.M.pcdata msg]
+                    (   HTML5.M.h1 [HTML5.M.pcdata "Wiki sucessfully created"]
+                     :: HTML5.M.p [HTML5.M.pcdata msg]
                      :: link
                     )
                )
          | false ->
              Page_site.admin_page ~service:create_wiki
-               [XHTML.M.p
-                  [XHTML.M.pcdata "You are not allowed to create wikis. \
+               [HTML5.M.p
+                  [HTML5.M.pcdata "You are not allowed to create wikis. \
                                    If you have not already done so, \
                                    try to login."
                   ]
@@ -374,11 +374,11 @@ let edit_wiki_form ~serv_path:_ ~service ~arg
       | Xform.NoError -> "Wiki edition"
       | _ -> "Error" in
     Page_site.admin_page ~service:(cast_service service) ~title
-      (   XHTML.M.h1 [XHTML.M.pcdata title]
+      (   HTML5.M.h1 [HTML5.M.pcdata title]
        :: (match error with
              | Xform.ErrorMsg err ->
-                 [XHTML.M.p ~a:[XHTML.M.a_class ["errmsg"]]
-                    [XHTML.M.pcdata err]
+                 [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
+                    [HTML5.M.pcdata err]
                  ]
              | _ -> [])
        @  [form]
@@ -388,11 +388,11 @@ let edit_wiki_form ~serv_path:_ ~service ~arg
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (p (strong (text (Printf.sprintf "Wiki '%s'" winfo.wiki_title)) ::
           text (Printf.sprintf " (id %s)" (Opaque.int32_t_to_string wiki))  @+
-          Opaque.int32_input_xform ~a:[XHTML.M.a_input_type `Hidden] wiki) @@
+          Opaque.int32_input_xform ~a:[HTML5.M.a_input_type `Hidden] wiki) @@
        p (text "Description: " @+ string_input descr) @@
        p (text "Container wikibox :" @+Opaque.int32_input_opt_xform container)@@
        p (text "Link this wiki to an url: " @+ path_input path +@
-          [XHTML.M.br ()] +@
+          [HTML5.M.br ()] +@
           text "Changing this option will only take effect after the server \
             is restarted; use '/' for the root URL, or nothing if you do not \
             want to bind the wiki") @@
@@ -416,7 +416,7 @@ let edit_wiki =
         Some "You do not have sufficient permissions to edit wikis"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_output.Xhtml.register Wiki_services.edit_wiki
+  Eliom_output.Html5.register Wiki_services.edit_wiki
     (fun wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
        let rights = Wiki_models.get_rights info.wiki_model in
@@ -436,14 +436,14 @@ let edit_wiki =
                     ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
                   Page_site.admin_page ~service:Wiki_services.view_wikis
-                    [XHTML.M.h1
-                       [XHTML.M.pcdata "Wiki information sucessfully edited"]
+                    [HTML5.M.h1
+                       [HTML5.M.pcdata "Wiki information sucessfully edited"]
                     ]
                )
          | false ->
              Page_site.admin_page
-               [XHTML.M.h1 [XHTML.M.pcdata "Insufficient permissions"];
-                XHTML.M.p [XHTML.M.pcdata "You do not have enough rights to \
+               [HTML5.M.h1 [HTML5.M.pcdata "Insufficient permissions"];
+                HTML5.M.p [HTML5.M.pcdata "You do not have enough rights to \
                                            edit this wiki"];
                ]
     );
@@ -456,12 +456,12 @@ let wiki_root =
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikis"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_output.Xhtml.register wiki_root
+let () = Eliom_output.Html5.register wiki_root
   (fun () () ->
      Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
-       [XHTML.M.h1 [XHTML.M.pcdata "Wiki module"];
-        XHTML.M.p
-          [XHTML.M.pcdata "This is the Ocsimore admin page for the wiki \
+       [HTML5.M.h1 [HTML5.M.pcdata "Wiki module"];
+        HTML5.M.p
+          [HTML5.M.pcdata "This is the Ocsimore admin page for the wiki \
                            module. The links on the right will help you \
                            configure your installation." ];
        ]
@@ -469,12 +469,12 @@ let () = Eliom_output.Xhtml.register wiki_root
 
 
 
-let () = Eliom_output.Xhtml.register Wiki_services.edit_wiki_permissions_admin
+let () = Eliom_output.Html5.register Wiki_services.edit_wiki_permissions_admin
   (fun wiki () ->
      wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki
      >>= fun (_, form) ->
      Page_site.admin_page ~service:Wiki_services.view_wikis
-       [XHTML.M.div form]
+       [HTML5.M.div form]
   )
 
 let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"

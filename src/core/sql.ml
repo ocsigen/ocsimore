@@ -34,8 +34,8 @@ type db_t = (string, bool) Hashtbl.t PGOCaml.t
 
 let connect () =
   PGOCaml.connect
-    ~database:"ocsimore"
-    ~user:Ocsimore_config.user
+    ~database:!Ocsimore_config.db_name
+    ~user:!Ocsimore_config.db_user
     ~password:!Ocsimore_config.password ()
 
 

@@ -76,21 +76,21 @@ val int32_t_to_string : 'a int32_t -> string
 
 (** Xform inputs *)
 val int32_input_aux_xform :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
-  string -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  string -> (HTML5_types.phrasing HTML5.M.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_xform :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
-  'a int32_t -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t) Xform.XformLwt.t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  'a int32_t -> (HTML5_types.phrasing HTML5.M.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_opt_aux_xform :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
-  string -> (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  string -> (HTML5_types.phrasing HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t
 
 val int32_input_opt_xform :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
   'a int32_t option ->
-  (XHTML_types.inlinemix XHTML.M.elt, 'a int32_t option) Xform.XformLwt.t
+  (HTML5_types.phrasing HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t
 
 
 (** {6 Opaque [string]s } *)

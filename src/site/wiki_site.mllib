@@ -1,7 +1,7 @@
 # OASIS_START
-# DO NOT EDIT (digest: ecd101b441ab1c16138909ba5f767f69)
-Wiki_site
-Wiki_ext
-Wiki_services
-Wiki_widgets
+# DO NOT EDIT (digest: 7fda68e1d24628769011ed854626fd83)
+server/Wiki_site
+server/Wiki_ext
+server/Wiki_services
+server/Wiki_widgets
 # OASIS_STOP

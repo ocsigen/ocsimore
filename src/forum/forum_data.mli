@@ -35,7 +35,7 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
-  title_syntax: XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type ->
+  title_syntax: HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->

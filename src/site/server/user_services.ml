@@ -305,7 +305,7 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameters.unit ()
           in
-          Eliom_output.Xhtml.register ~service
+          Eliom_output.Html5.register ~service
             (fun () () ->
                User.create_fresh_user ~name ~fullname ~email
                  ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
@@ -315,18 +315,18 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
                >>= fun () ->
                Page_site.admin_page
                  ~title:"Ocsimore - User creation"
-                 [ XHTML.M.h1 [XHTML.M.pcdata "User created"];
-                   XHTML.M.p [
-                     XHTML.M.pcdata "Your account has been created, and you \
+                 [ HTML5.M.h1 [HTML5.M.pcdata "User created"];
+                   HTML5.M.p [
+                     HTML5.M.pcdata "Your account has been created, and you \
                                      can now ";
-                     Eliom_output.Xhtml.a
+                     Eliom_output.Html5.a
                        ~service:service_login
-                       [XHTML.M.pcdata "login"] ();
+                       [HTML5.M.pcdata "login"] ();
                    ];
                  ]
             );
           let uri =
-            Eliom_output.Xhtml.make_string_uri ~service ~absolute:true ()
+            Eliom_output.Html5.make_string_uri ~service ~absolute:true ()
           in
           Lwt.catch (fun () ->
               mail_user_creation ~name ~email ~uri

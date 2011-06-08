@@ -30,34 +30,34 @@ let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
 (*TODO: relocate*)
-let eliom_inline_class = XHTML.M.a_class ["eliom_inline"]
-let accept_charset_utf8 = XHTML.M.a_accept_charset "utf-8"
+let eliom_inline_class = HTML5.M.a_class ["eliom_inline"]
+let accept_charset_utf8 = HTML5.M.a_accept_charset ["utf-8"]
 let unopt_str = function | None -> "" | Some s -> s
 
 
 let str_input ?(value="") ?(visible=true) name =
-  Eliom_output.Xhtml.string_input ~name ~value
+  Eliom_output.Html5.string_input ~name ~value
     ~input_type:(if visible then `Text else `Hidden)
     ()
 let passwd_input ?(value="") name =
-  Eliom_output.Xhtml.string_input
+  Eliom_output.Html5.string_input
     ~input_type:`Password
     ~name
     ~value ()
 let submit_input value =
-  Eliom_output.Xhtml.string_input ~input_type:`Submit ~value ()
+  Eliom_output.Html5.string_input ~input_type:`Submit ~value ()
 
 
 class type user_widget_class = object
   method display_roles :
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
   method display_groups :
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
   method display_users :
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
 
   method display_group :
-    user * string -> Eliom_output.Blocks.page Lwt.t
+    user * string -> Eliom_output.Blocks5.page Lwt.t
 
   method display_login_widget :
     ?user_prompt:string ->
@@ -66,24 +66,24 @@ class type user_widget_class = object
     ?switchtohttps:string ->
     ?show_ext:bool ->
     unit ->
-    XHTML_types.form_content XHTML.M.elt Lwt.t
+    HTML5_types.form_content HTML5.M.elt Lwt.t
 
   method private display_logout_box :
     ?show_ext:bool ->
     User_sql.Types.userdata ->
-    XHTML_types.form_content XHTML.M.elt list Lwt.t
+    HTML5_types.form_content HTML5.M.elt list Lwt.t
   method display_logout_button :
-    XHTML_types.button_content XHTML.M.elt list ->
-    XHTML_types.form XHTML.M.elt Lwt.t
-  method logout_uri : XHTML.M.uri
+    HTML5_types.button_content HTML5.M.elt list ->
+    HTML5_types.form HTML5.M.elt Lwt.t
+  method logout_uri : Wiki_syntax.href
 
   method user_link :
-    string -> [`A | `Form] XHTML.M.elt
+    string -> [`A of HTML5_types.a_content | `Form] HTML5.M.elt
 
   method user_list_to_xhtml :
     ?hook:(user:string ->
-          [`A | `Form] XHTML.M.elt list Lwt.t) ->
-    User_sql.Types.user list -> XHTML_types.block XHTML.M.elt Lwt.t
+          [`A of HTML5_types.a_content | `Form] HTML5.M.elt list Lwt.t) ->
+    User_sql.Types.user list -> HTML5_types.flow5 HTML5.M.elt Lwt.t
 
 
   (** Helper forms to add and remove users from groups. If [show_edit]
@@ -93,16 +93,16 @@ class type user_widget_class = object
     ?show_edit:bool ->
     ?default_add:string ->
     group:user ->
-    text:XHTML_types.block XHTML.M.elt list ->
+    text:HTML5_types.flow5 HTML5.M.elt list ->
     unit ->
-    XHTML_types.tbody_content XHTML.M.elt Lwt.t
+    HTML5_types.tbody_content HTML5.M.elt Lwt.t
 
   (** Form to add an user to a group *)
   method form_edit_user:
     user:User_sql.Types.user ->
-    text:XHTML_types.block XHTML.M.elt list ->
+    text:HTML5_types.flow5 HTML5.M.elt list ->
     unit ->
-    XHTML_types.block XHTML.M.elt list Lwt.t
+    HTML5_types.flow5 HTML5.M.elt list Lwt.t
 
   method form_edit_awr: 'a.
     text_prefix:string ->
@@ -110,20 +110,20 @@ class type user_widget_class = object
     arg:'a Opaque.int32_t ->
     ?defaults:string * string * string ->
     unit ->
-    (  XHTML_types.tbody_content XHTML.M.elt
-     * XHTML_types.tbody_content XHTML.M.elt list) Lwt.t
+    (  HTML5_types.tbody_content HTML5.M.elt
+     * HTML5_types.tbody_content HTML5.M.elt list) Lwt.t
 
   method status_text:
-    XHTML_types.form_content XHTML.M.elt list Lwt.t
+    HTML5_types.form_content HTML5.M.elt list Lwt.t
 
   method display_group_creation :
     ?err:string -> unit ->
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
 
   method display_group_creation_done :
     unit ->
     string * string ->
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
 
 end
 
@@ -131,13 +131,13 @@ class type user_widget_user_creation_class = object
   method display_user_creation :
     ?err:string ->
     unit ->
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
   method display_user_creation_done :
     name:string ->
     fullname:string ->
     email:string ->
     pwd:string*string ->
-    Eliom_output.Blocks.page Lwt.t
+    Eliom_output.Blocks5.page Lwt.t
 end
 
 
@@ -175,9 +175,9 @@ object (self)
     User_sql.users_in_group ~generic:false ~group >>= fun users ->
     self#user_list_to_xhtml ~hook users       >>= fun members ->
     Lwt.return
-      (XHTML.M.tr
-         (XHTML.M.td ~a:[XHTML.M.a_class ["role"]] text)
-         [XHTML.M.td ~a:[XHTML.M.a_class ["current_users"]] (members :: add)]
+      (HTML5.M.tr
+         [HTML5.M.td ~a:[HTML5.M.a_class ["role"]] text;
+	  HTML5.M.td ~a:[HTML5.M.a_class ["current_users"]] (members :: add)]
       )
 
 
@@ -208,51 +208,51 @@ object (self)
       | Some (d1, d2, d3) -> d1, d2, d3
     in
     aux grps.grp_admin
-      [XHTML.M.p [XHTML.M.pcdata (text_prefix ^" administrators: ")]] d1 ()
+      [HTML5.M.p [HTML5.M.pcdata (text_prefix ^" administrators: ")]] d1 ()
                                                                >>= fun forma ->
     aux grps.grp_writer
-      [XHTML.M.p [XHTML.M.pcdata (text_prefix ^" writers: ")]] d2 ()
+      [HTML5.M.p [HTML5.M.pcdata (text_prefix ^" writers: ")]] d2 ()
                                                                >>= fun formw ->
     aux grps.grp_reader
-      [XHTML.M.p [XHTML.M.pcdata (text_prefix ^" readers: ")]] d3 ()
+      [HTML5.M.p [HTML5.M.pcdata (text_prefix ^" readers: ")]] d3 ()
                                                                >>= fun formr ->
     Lwt.return (formr, [formw; forma;])
 
   method private bt_remove_user_from_group ~group ~user ?(text="Remove") () =
     let str_input = str_input ~visible:false in
     let mform (gname, (addname, remname)) =
-      [ XHTML.M.div ~a:[eliom_inline_class]
+      [ HTML5.M.div ~a:[eliom_inline_class]
           [ str_input ~value:group gname;
             str_input ~value:user remname;
             str_input addname;
-            Eliom_output.Xhtml.button ~button_type:`Submit
-              [XHTML.M.pcdata text];
+            Eliom_output.Html5.button ~button_type:`Submit
+              [HTML5.M.pcdata text];
           ]
       ]
     in
-    [Eliom_output.Xhtml.post_form
+    [Eliom_output.Html5.post_form
        ~a:[eliom_inline_class; accept_charset_utf8 ]
        ~service:User_services.action_add_remove_users_from_group mform ()]
 
   method private form_add_user_to_group ~group ?(default_add="") ?(text="Add") () =
     let str_input' = str_input ~visible:false in
     let mform (gname, (addname, remname)) =
-      [XHTML.M.div ~a:[eliom_inline_class]
+      [HTML5.M.div ~a:[eliom_inline_class]
          [str_input' ~value:group gname;
           str_input' remname;
           str_input ~value:default_add addname ;
-          Eliom_output.Xhtml.button ~button_type:`Submit
-            [XHTML.M.pcdata text];
+          Eliom_output.Html5.button ~button_type:`Submit
+            [HTML5.M.pcdata text];
          ]
       ]
     in
-    [Eliom_output.Xhtml.post_form
+    [Eliom_output.Html5.post_form
        ~a:[eliom_inline_class; accept_charset_utf8]
       ~service:User_services.action_add_remove_users_from_group mform ()]
 
   method user_list_to_xhtml ?hook l = match l with
     | [] -> Lwt.return
-              (XHTML.M.p [XHTML.M.em [XHTML.M.pcdata "(currently no user)"]])
+              (HTML5.M.p [HTML5.M.em [HTML5.M.pcdata "(currently no user)"]])
     | e :: es ->
         let hook = match hook with
           | None -> (fun _ -> Lwt.return [])
@@ -261,15 +261,13 @@ object (self)
         let convert u =
           User_sql.user_to_string ~expand_param:true u >>= fun user ->
           hook user                                    >|= fun hooked ->
-          XHTML.M.li ((self#user_link user) :: hooked)
+          HTML5.M.li ((self#user_link user) :: hooked)
         in
         convert e >>= fun e ->
         Lwt_list.fold_left_s
           (fun s u -> convert u >|= fun r -> r :: s)
           [e] es
-        >|= List.rev >|= function
-        | r::rs -> XHTML.M.ul ~a:[XHTML.M.a_class ["user_list"]] r rs
-        | [] -> (assert false) (*TODO: change function sa that no assertion is needed*)
+        >|= fun l -> HTML5.M.ul ~a:[HTML5.M.a_class ["user_list"]] l
 
 
   method private login_box_aux
@@ -283,23 +281,22 @@ object (self)
     then begin
       (if show_ext
        then self#login_box_extension
-       else Lwt.return ([]: [`Tr] XHTML.M.elt list)
+       else Lwt.return ([]: [`Tr] HTML5.M.elt list)
       ) >>= fun ext ->
       Lwt.return (fun (usr, pwd) ->
-        [XHTML.M.table ~a:[XHTML.M.a_class ["login_box"]]
-           (XHTML.M.tr
-              (XHTML.M.td [XHTML.M.pcdata user_prompt])
-              [XHTML.M.td [str_input usr]])
-           (   XHTML.M.tr
-                 (XHTML.M.td [XHTML.M.pcdata pwd_prompt])
-                 [XHTML.M.td [passwd_input pwd]]
-            :: XHTML.M.tr
-                 (XHTML.M.td [submit_input "Login"])
-                 []
+        [HTML5.M.table ~a:[HTML5.M.a_class ["login_box"]]
+           (HTML5.M.tr
+              [HTML5.M.td [HTML5.M.pcdata user_prompt];
+               HTML5.M.td [str_input usr]])
+           (   HTML5.M.tr
+                 [HTML5.M.td [HTML5.M.pcdata pwd_prompt];
+                  HTML5.M.td [passwd_input pwd]]
+            :: HTML5.M.tr
+                 [HTML5.M.td [submit_input "Login"]]
             :: ext
              @  (if error
-                then [XHTML.M.tr (XHTML.M.td ~a:[XHTML.M.a_colspan 2]
-                                    [XHTML.M.pcdata auth_error]) []
+                then [HTML5.M.tr [HTML5.M.td ~a:[HTML5.M.a_colspan 2]
+                                    [HTML5.M.pcdata auth_error]]
                 ]
                 else []
                )
@@ -309,9 +306,9 @@ object (self)
     end
     else
       Lwt.return (fun _ ->
-        [XHTML.M.p
-           [Eliom_output.Xhtml.a Eliom_services.https_void_coservice'
-              [XHTML.M.pcdata switchtohttps] ()
+        [HTML5.M.p
+           [Eliom_output.Html5.a Eliom_services.https_void_coservice'
+              [HTML5.M.pcdata switchtohttps] ()
            ]
         ]
       )
@@ -320,16 +317,15 @@ object (self)
     (if show_ext
      then self#logout_box_extension
      else Lwt.return []) >>= fun ext ->
-    Lwt.return [XHTML.M.table ~a:[XHTML.M.a_class["login_box"]]
-                  (XHTML.M.tr
-                     (XHTML.M.td
-                        [XHTML.M.pcdata (Printf.sprintf "You are logged as %s"
-                                           u.user_fullname)])
-                     []
+    Lwt.return [HTML5.M.table ~a:[HTML5.M.a_class["login_box"]]
+                  (HTML5.M.tr
+                     [HTML5.M.td
+                         [HTML5.M.pcdata (Printf.sprintf "You are logged as %s"
+                                            u.user_fullname)]]
                   )
-                  (XHTML.M.tr
-                     (XHTML.M.td
-                        [submit_input "logout"]) []
+                  (HTML5.M.tr
+                     [HTML5.M.td
+                         [submit_input "logout"]]
                    :: ext)
     ]
 
@@ -337,39 +333,35 @@ object (self)
 
   method private logout_box_extension =
     User.get_user_data () >|= fun ud ->
-    [XHTML.M.tr
-       (XHTML.M.td
-          [Eliom_output.Xhtml.a
+    [HTML5.M.tr
+       [HTML5.M.td
+          [Eliom_output.Html5.a
              User_services.service_view_group
-             [XHTML.M.pcdata "Manage your account"] ud.user_login
-          ]
-       )
-       []
+             [HTML5.M.pcdata "Manage your account"] ud.user_login
+          ]]
     ]
 
   method display_logout_button content =
     Lwt.return
-      (Eliom_output.Xhtml.post_form ~a:[XHTML.M.a_class ["logoutbutton"]]
+      (Eliom_output.Html5.post_form ~a:[HTML5.M.a_class ["logoutbutton"]]
          ~service:User_services.action_logout
          (fun () ->
-            [XHTML.M.p
-               [Eliom_output.Xhtml.button ~button_type:`Submit content]
+            [HTML5.M.p
+               [Eliom_output.Html5.button ~button_type:`Submit content]
             ]
          ) ()
       )
               (*
             {{ [<p>[
-                   {: Eliom_duce.Xhtml.button ~button_type:{:"submit":}
+                   {: Eliom_duce.Html5.button ~button_type:{:"submit":}
                       {: [ <div class="ocsimore_button">content ] :}
                       (*VVV How to avoid the <div> here??? *)
                       :}] ] }}) ())
                *)
 
   method logout_uri =
-    Eliom_output.Xhtml.make_uri
-      ~service:User_services.action_logout_get
-      ()
-
+    Wiki_syntax.Service_href
+      (Wiki_syntax.service_href (User_services.action_logout_get:>('a,'b) Wiki_syntax.wiki_service) ())
 
   method display_login_widget ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ?(show_ext=true) () =
     User.get_user_data () >>= fun u ->
@@ -377,8 +369,8 @@ object (self)
     (if logged then
        self#display_logout_box ~show_ext u >>= fun f ->
        Lwt.return (
-         Eliom_output.Xhtml.post_form
-           ~a:[XHTML.M.a_class ["logbox"; "logged"]]
+         Eliom_output.Html5.post_form
+           ~a:[HTML5.M.a_class ["logbox"; "logged"]]
            ~service:User_services.action_logout (fun _ -> f) ())
 
      else
@@ -387,23 +379,23 @@ object (self)
            ?switchtohttps ~show_ext error
          >>= fun f ->
          Lwt.return
-           (Eliom_output.Xhtml.post_form
+           (Eliom_output.Html5.post_form
               ~service:User_services.action_login ~a f ())
        in
        if List.exists
           (fun e -> e = User.BadPassword || e = User.BadUser)
           (User_data.get_login_error ())
        then (* unsuccessful attempt *)
-         f_login true ~a:[XHTML.M.a_class ["logbox"; "error"]]
+         f_login true ~a:[HTML5.M.a_class ["logbox"; "error"]]
        else (* no login attempt yet *)
-         f_login false ~a:[XHTML.M.a_class ["logbox"; "notlogged"]]
+         f_login false ~a:[HTML5.M.a_class ["logbox"; "notlogged"]]
     ) >>= fun f ->
-    Lwt.return (XHTML.M.div ~a:[XHTML.M.a_class [xhtml_class]] [f])
+    Lwt.return (HTML5.M.div ~a:[HTML5.M.a_class [xhtml_class]] [f])
 
 
   method user_link group =
-    Eliom_output.Xhtml.a ~service:User_services.service_view_group
-      [XHTML.M.pcdata group] group
+    Eliom_output.Html5.a ~service:User_services.service_view_group
+      [HTML5.M.pcdata group] group
 
 
   method display_group (group, g) =
@@ -424,29 +416,29 @@ object (self)
             | User.UnknownUser u -> "Unknown user/group '" ^ u ^ "'"
             | _ -> "Error"
           in
-          [XHTML.M.p ~a:[XHTML.M.a_class ["errmsg"]] [XHTML.M.pcdata msg]]
+          [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]] [HTML5.M.pcdata msg]]
     in
     let head =
-      XHTML.M.h1
-        [XHTML.M.pcdata ctext;
-         XHTML.M.pcdata ("'" ^ g ^ "'"); (*Weird...*)
+      HTML5.M.h1
+        [HTML5.M.pcdata ctext;
+         HTML5.M.pcdata ("'" ^ g ^ "'"); (*Weird...*)
         ]
     in
 
     (* Adding groups to the group *)
     self#form_edit_group ~show_edit:true ~group
-      ~text:[XHTML.M.p ~a:[eliom_inline_class]
-               [XHTML.M.strong
-                  [XHTML.M.pcdata ("Current users/groups in this "^ text ^": ")]
+      ~text:[HTML5.M.p ~a:[eliom_inline_class]
+               [HTML5.M.strong
+                  [HTML5.M.pcdata ("Current users/groups in this "^ text ^": ")]
             ]]
       ()
     >>= fun f1  ->
 
     (* Adding the group to groups *)
     self#form_edit_user ~user:group
-      ~text:[XHTML.M.p ~a:[XHTML.M.a_class ["eliom_inline"]]
-               [XHTML.M.strong
-                  [XHTML.M.pcdata ("Current groups/roles in which the " ^ text ^
+      ~text:[HTML5.M.p ~a:[HTML5.M.a_class ["eliom_inline"]]
+               [HTML5.M.strong
+                  [HTML5.M.pcdata ("Current groups/roles in which the " ^ text ^
                                    "is: ")
                   ]
                ]
@@ -461,48 +453,48 @@ object (self)
         g.user_pwd <> Connect_forbidden &&
         g.user_pwd <> External_Auth
       then
-        [Eliom_output.Xhtml.post_form
+        [Eliom_output.Html5.post_form
            ~service:User_services.action_edit_user_data
            (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
-              [XHTML.M.table
-                 (XHTML.M.tr
-                    (XHTML.M.td
-                       [XHTML.M.strong [XHTML.M.pcdata (gtypedescr ^ ": ")]])
-                    [XHTML.M.td [str_input ~value:g.user_fullname desc]]
+              [HTML5.M.table
+                 (HTML5.M.tr
+                    [HTML5.M.td
+                       [HTML5.M.strong [HTML5.M.pcdata (gtypedescr ^ ": ")]];
+                    HTML5.M.td [str_input ~value:g.user_fullname desc]]
                  )
-                 [XHTML.M.tr
-                    (XHTML.M.td [XHTML.M.pcdata "e-mail adress: "])
-                    [XHTML.M.td [str_input ~value:(unopt_str g.user_email)
+                 [HTML5.M.tr
+                    [HTML5.M.td [HTML5.M.pcdata "e-mail adress: "];
+                     HTML5.M.td [str_input ~value:(unopt_str g.user_email)
                                    email]];
-                  XHTML.M.tr
-                    (XHTML.M.td [passwd_input pwd ])
-                    [XHTML.M.td [passwd_input pwd2]];
-                  XHTML.M.tr
-                    (XHTML.M.td [submit_input "Confirm";
-                                 Eliom_output.Xhtml.user_type_input
+                  HTML5.M.tr
+                    [HTML5.M.td [passwd_input pwd ];
+                     HTML5.M.td [passwd_input pwd2]];
+                  HTML5.M.tr
+                    [HTML5.M.td [submit_input "Confirm";
+                                 Eliom_output.Html5.user_type_input
                                    string_from_userid
                                    ~input_type:`Hidden
                                    ~name:nuserid
                                    ~value:g.user_id ()
-                                ])
-                    []
+                                ]
+		    ]
                  ]
               ]
            )
            ()
         ]
       else
-        [XHTML.M.p [XHTML.M.strong [XHTML.M.pcdata (gtypedescr ^ ": ")];
-                    XHTML.M.pcdata g.user_fullname]
+        [HTML5.M.p [HTML5.M.strong [HTML5.M.pcdata (gtypedescr ^ ": ")];
+                    HTML5.M.pcdata g.user_fullname]
         ]
     in
       Lwt.return
         (   head
          :: error
-         @[ XHTML.M.div ~a:[XHTML.M.a_class ["user_block"]] edit;
-            XHTML.M.div ~a:[XHTML.M.a_class ["user_block"]]
-              [XHTML.M.table ~a:[XHTML.M.a_class ["users_in_group"]] f1 []];
-            XHTML.M.div ~a:[XHTML.M.a_class ["user_block"]] f2;
+         @[ HTML5.M.div ~a:[HTML5.M.a_class ["user_block"]] edit;
+            HTML5.M.div ~a:[HTML5.M.a_class ["user_block"]]
+              [HTML5.M.table ~a:[HTML5.M.a_class ["users_in_group"]] f1 []];
+            HTML5.M.div ~a:[HTML5.M.a_class ["user_block"]] f2;
         ])
 
 
@@ -515,7 +507,7 @@ object (self)
 
     self#display_users_groups ~show_auth:true ~l ~utype:`User >>= fun r ->
 
-    Lwt.return [XHTML.M.h1 [XHTML.M.pcdata "Existing users"]; r]
+    Lwt.return [HTML5.M.h1 [HTML5.M.pcdata "Existing users"]; r]
 
   method display_groups =
     User_sql.all_groups () >>= fun l ->
@@ -533,7 +525,7 @@ object (self)
 
     self#display_users_groups ~show_auth:false ~l ~utype:`Group >>= fun r ->
 
-    Lwt.return [XHTML.M.h1 [XHTML.M.pcdata "Existing groups"]; r]
+    Lwt.return [HTML5.M.h1 [HTML5.M.pcdata "Existing groups"]; r]
 
 
   (* Parameterized users *)
@@ -553,49 +545,49 @@ object (self)
               | Some { param_description = param } -> param
               | None -> "param"
             in
-            [XHTML.M.em [XHTML.M.pcdata ("(" ^ p ^ ")")]]
+            [HTML5.M.em [HTML5.M.pcdata ("(" ^ p ^ ")")]]
         | _ -> []
       in
-      XHTML.M.tr
-        (XHTML.M.td [XHTML.M.strong (XHTML.M.pcdata u.user_login :: p)])
-        [XHTML.M.td [XHTML.M.pcdata u.user_fullname]]
+      HTML5.M.tr
+        [HTML5.M.td [HTML5.M.strong (HTML5.M.pcdata u.user_login :: p)];
+         HTML5.M.td [HTML5.M.pcdata u.user_fullname]]
     in
     let l1 = List.rev (List.fold_left (fun s arg -> line arg :: s) [] tl) in
-    let t1 = XHTML.M.table ~a:[XHTML.M.a_class ["table_admin"]] (line hd) l1 in
+    let t1 = HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]] (line hd) l1 in
 
     let form name =
-      [XHTML.M.p
-         [Eliom_output.Xhtml.string_input ~name ~input_type:`Text ();
-          Eliom_output.Xhtml.button ~button_type:`Submit
-            [XHTML.M.pcdata "Edit this role"];
+      [HTML5.M.p
+         [Eliom_output.Html5.string_input ~name ~input_type:`Text ();
+          Eliom_output.Html5.button ~button_type:`Submit
+            [HTML5.M.pcdata "Edit this role"];
          ]
       ]
     in
     let f =
-      Eliom_output.Xhtml.get_form ~a:[accept_charset_utf8]
+      Eliom_output.Html5.get_form ~a:[accept_charset_utf8]
         ~service:User_services.service_view_group form
     in
     let msg2 =
       "Choose one group, and enter it (including its parameter if needed) below"
     in
     Lwt.return
-      [XHTML.M.h1 [XHTML.M.pcdata "Roles"];
+      [HTML5.M.h1 [HTML5.M.pcdata "Roles"];
        t1;
-       XHTML.M.p [XHTML.M.pcdata msg2];
+       HTML5.M.p [HTML5.M.pcdata msg2];
        f
       ]
 
   method private display_users_groups ~show_auth ~utype ~l =
     let line2 u =
       let l =
-        Eliom_output.Xhtml.a ~service:User_services.service_view_group
+        Eliom_output.Html5.a ~service:User_services.service_view_group
           [Page_site.icon ~path:"imgedit.png" ~text:"Details"]
           u.user_login
       in
       let aa =
         if show_auth
-        then [XHTML.M.td
-                [XHTML.M.pcdata
+        then [HTML5.M.td
+                [HTML5.M.pcdata
                    (match u.user_pwd with
                       | Connect_forbidden -> "group"
                       | Ocsimore_user_plain _
@@ -606,30 +598,26 @@ object (self)
              ]
         else []
       in
-      XHTML.M.tr
-        (XHTML.M.td ~a:[XHTML.M.a_class ["userlogin"]]
-           [XHTML.M.strong [XHTML.M.pcdata u.user_login]])
-        (   XHTML.M.td ~a:[XHTML.M.a_class ["userdescr"]]
-              [XHTML.M.pcdata u.user_fullname]
-         :: aa
-          @ [XHTML.M.td [l]]
-        )
+      HTML5.M.tr
+        ( [HTML5.M.td ~a:[HTML5.M.a_class ["userlogin"]]
+              [HTML5.M.strong [HTML5.M.pcdata u.user_login]];
+           HTML5.M.td ~a:[HTML5.M.a_class ["userdescr"]]
+             [HTML5.M.pcdata u.user_fullname]]
+          @ aa
+          @ [HTML5.M.td [l]] )
     in
     let l = List.rev (List.fold_left (fun s arg -> line2 arg :: s) [] l) in
     Lwt.return
-      (XHTML.M.table ~a:[XHTML.M.a_class ["table_admin"]]
-         (XHTML.M.tr
-            (XHTML.M.th [XHTML.M.pcdata "Login"])
-            (   XHTML.M.th
-                  [XHTML.M.pcdata (match utype with
-                                     | `User -> "Name"
-                                     | `Group -> "Description"
-                                  )
-                  ]
-             :: (if show_auth
-                 then [XHTML.M.th [XHTML.M.pcdata "Authentication"]]
-                 else []
-             )
+      (HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
+         (HTML5.M.tr
+            ([HTML5.M.th [HTML5.M.pcdata "Login"];
+             HTML5.M.th
+               [HTML5.M.pcdata (match utype with
+                 | `User -> "Name"
+                 | `Group -> "Description")]]
+             @ (if show_auth
+               then [HTML5.M.th [HTML5.M.pcdata "Authentication"]]
+               else [])
             )
          )
          l
@@ -648,43 +636,42 @@ object (self)
         self#display_logout_button ~sp {{ ['Logout'] }} >>= fun l ->
         Lwt.return {{ ['You are logged in as ' !u '. ' l ] }}
       else
-        let l = Eliom_duce.Xhtml.a User_services.service_login sp {{ "Login" }} () in
+        let l = Eliom_duce.Html5.a User_services.service_login sp {{ "Login" }} () in
         Lwt.return {{ ['You are not currently logged. ' l]  }} *)
 
 
   method display_group_creation ?(err="") () =
     User_data.can_create_group () >|= function
       | true ->
-          [XHTML.M.h1 [XHTML.M.pcdata "Group creation"];
-           XHTML.M.p [XHTML.M.pcdata
+          [HTML5.M.h1 [HTML5.M.pcdata "Group creation"];
+           HTML5.M.p [HTML5.M.pcdata
                         "You can use the form below to create a new Ocsimore \
                          group. (A group is a special form of user that is not \
                          authorized to log in.) Once this is done, you will \
                          be able to add users into your group."];
-           XHTML.M.h2 [XHTML.M.pcdata "Create a new group"];
-           Eliom_output.Xhtml.post_form
+           HTML5.M.h2 [HTML5.M.pcdata "Create a new group"];
+           Eliom_output.Html5.post_form
              ~service:User_services.action_create_new_group
              (fun (usr, desc) ->
-                [XHTML.M.table
-                   (XHTML.M.tr
-                      (XHTML.M.td [XHTML.M.pcdata "group name (letters and \
-                                                   digits only)"])
-                      [XHTML.M.td [str_input usr]])
-                   [XHTML.M.tr
-                      (XHTML.M.td [XHTML.M.pcdata "description"])
-                      [XHTML.M.td [str_input desc]];
-                    XHTML.M.tr
-                      (XHTML.M.td [submit_input "Create"])
-                      []
+                [HTML5.M.table
+                   (HTML5.M.tr
+                      [HTML5.M.td [HTML5.M.pcdata "group name (letters and \
+                                                   digits only)"];
+                       HTML5.M.td [str_input usr]])
+                   [HTML5.M.tr
+                      [HTML5.M.td [HTML5.M.pcdata "description"];
+                       HTML5.M.td [str_input desc]];
+                    HTML5.M.tr
+                      [HTML5.M.td [submit_input "Create"]]
                    ]
                 ]
              )
              ();
-           XHTML.M.p [XHTML.M.strong [XHTML.M.pcdata err]]
+           HTML5.M.p [HTML5.M.strong [HTML5.M.pcdata err]]
           ]
       | false ->
-          [XHTML.M.h1 [XHTML.M.pcdata "Error"];
-           XHTML.M.p [XHTML.M.pcdata "You are not allowed to create new groups"]
+          [HTML5.M.h1 [HTML5.M.pcdata "Error"];
+           HTML5.M.p [HTML5.M.pcdata "You are not allowed to create new groups"]
           ]
 
   method display_group_creation_done () (name, descr) =
@@ -693,12 +680,12 @@ object (self)
          User_data.create_group ~name ~descr >>= fun groupid ->
          User_sql.get_basicuser_data groupid >>= fun group ->
          Lwt.return
-           [XHTML.M.h1 [XHTML.M.pcdata "Group created"];
-            XHTML.M.p [XHTML.M.pcdata "You can now ";
-                       Eliom_output.Xhtml.a
+           [HTML5.M.h1 [HTML5.M.pcdata "Group created"];
+            HTML5.M.p [HTML5.M.pcdata "You can now ";
+                       Eliom_output.Html5.a
                          ~service:User_services.service_view_group
-                         [XHTML.M.pcdata "edit"] group.user_login;
-                       XHTML.M.pcdata " your new group."
+                         [HTML5.M.pcdata "edit"] group.user_login;
+                       HTML5.M.pcdata " your new group."
                       ];
            ]
       )
@@ -706,8 +693,8 @@ object (self)
          | Failure err -> self#display_group_creation ~err ()
          | Ocsimore_common.Permission_denied ->
              Lwt.return
-               [XHTML.M.h1 [XHTML.M.pcdata "Error"];
-                XHTML.M.p [XHTML.M.pcdata "You cannot create new groups"];
+               [HTML5.M.h1 [HTML5.M.pcdata "Error"];
+                HTML5.M.p [HTML5.M.pcdata "You cannot create new groups"];
                ]
          | e -> Lwt.fail e)
 
@@ -722,64 +709,63 @@ object (self)
   method private login_box_extension =
     User_data.can_create_user ~options:user_creation_options >|= function
       | true ->
-          [XHTML.M.tr
-             (XHTML.M.td ~a:[XHTML.M.a_colspan 2]
-                [Eliom_output.Xhtml.a
+          [HTML5.M.tr
+             [HTML5.M.td ~a:[HTML5.M.a_colspan 2]
+                [Eliom_output.Html5.a
                    User_services.service_create_new_user
-                   [XHTML.M.pcdata "New user? Register now!" ] ()
+                   [HTML5.M.pcdata "New user? Register now!" ] ()
                 ]
-             )
-             []
+             ]
           ]
       | false -> []
 
   method display_user_creation ?(err="") () =
     User_data.can_create_user ~options:user_creation_options >|= function
       | true ->
-          [XHTML.M.h1 [XHTML.M.pcdata "User creation"];
-           XHTML.M.p [XHTML.M.pcdata "Use the form below to create a new \
+          [HTML5.M.h1 [HTML5.M.pcdata "User creation"];
+           HTML5.M.p [HTML5.M.pcdata "Use the form below to create a new \
                                        Ocsimore user.";
-                      XHTML.M.br ();
-                      XHTML.M.pcdata "Note that users that authenticate \
+                      HTML5.M.br ();
+                      HTML5.M.pcdata "Note that users that authenticate \
                                       through external means (NIS or PAM) are \
                                       added automatically the first time they \
                                       log in inside Ocsimore, and you do not \
                                       need to create them";
                      ];
-           XHTML.M.h2 [XHTML.M.pcdata "Create a new user"];
-           XHTML.M.p [XHTML.M.pcdata "Please fill in the following fields.";
-                      XHTML.M.br ();
-                      XHTML.M.pcdata "Be very careful to enter a valid e-mail \
+           HTML5.M.h2 [HTML5.M.pcdata "Create a new user"];
+           HTML5.M.p [HTML5.M.pcdata "Please fill in the following fields.";
+                      HTML5.M.br ();
+                      HTML5.M.pcdata "Be very careful to enter a valid e-mail \
                                       address, as the confirmation url will be \
                                       sent there.";
                      ];
-           Eliom_output.Xhtml.post_form
+           Eliom_output.Html5.post_form
              ~service:User_services.action_create_new_user
              (fun (usr,(desc,(email, (pass1, pass2)))) ->
-                [XHTML.M.table
-                   (XHTML.M.tr
-                      (XHTML.M.td
-                         [XHTML.M.pcdata "login name: (letters & digits only)"])
-                      [XHTML.M.td [str_input usr]]
+                [HTML5.M.table
+                   (HTML5.M.tr
+                      [HTML5.M.td
+                         [HTML5.M.pcdata "login name: (letters & digits only)"];
+                       HTML5.M.td [str_input usr]]
                    )
-                   [XHTML.M.tr
-                      (XHTML.M.td [XHTML.M.pcdata "real name:"])
-                      [XHTML.M.td [str_input desc]];
-                    XHTML.M.tr
-                      (XHTML.M.td [XHTML.M.pcdata "e-mail address:"])
-                      [XHTML.M.td [str_input email]];
-                    XHTML.M.tr
-                      (XHTML.M.td [XHTML.M.pcdata "password:"])
-                      [XHTML.M.td [passwd_input pass1; passwd_input pass2]];
-                    XHTML.M.tr (XHTML.M.td [submit_input "Register"]) [];
+                   [HTML5.M.tr
+                      [HTML5.M.td [HTML5.M.pcdata "real name:"];
+                       HTML5.M.td [str_input desc]];
+                    HTML5.M.tr
+                      [HTML5.M.td [HTML5.M.pcdata "e-mail address:"];
+                       HTML5.M.td [str_input email]];
+                    HTML5.M.tr
+                      [HTML5.M.td [HTML5.M.pcdata "password:"];
+                       HTML5.M.td [passwd_input pass1; passwd_input pass2]];
+                    HTML5.M.tr [HTML5.M.td [submit_input "Register"]];
                    ]
                 ]
              ) ();
-           XHTML.M.p [XHTML.M.strong [XHTML.M.pcdata err]];
+           HTML5.M.p [HTML5.M.strong [HTML5.M.pcdata err]];
           ]
       | false ->
-          [XHTML.M.h1 [XHTML.M.pcdata "Error"];
-           XHTML.M.p [XHTML.M.pcdata "You are not allowed to create new users"];
+          [HTML5.M.h1 [HTML5.M.pcdata "Error"];
+           HTML5.M.p [HTML5.M.pcdata "You are not allowed to create new users"];
           ]
 
   method display_user_creation_done ~name  ~fullname ~email ~pwd =
@@ -790,11 +776,11 @@ object (self)
          else
            User_services.create_user ~name ~fullname ~email ~pwd:(fst pwd)
              ~options:user_creation_options () >|= fun () ->
-           [XHTML.M.h1 [XHTML.M.pcdata "User creation successful"];
-            XHTML.M.p [XHTML.M.pcdata "You will receive an activation e-mail \
+           [HTML5.M.h1 [HTML5.M.pcdata "User creation successful"];
+            HTML5.M.p [HTML5.M.pcdata "You will receive an activation e-mail \
                                        at the following address:";
-                       XHTML.M.br ();
-                       XHTML.M.em [XHTML.M.pcdata email];
+                       HTML5.M.br ();
+                       HTML5.M.em [HTML5.M.pcdata email];
                       ];
            ]
       )
@@ -802,8 +788,8 @@ object (self)
          | Failure err -> self#display_user_creation ~err ()
          | Ocsimore_common.Permission_denied ->
              Lwt.return
-               [XHTML.M.h1 [XHTML.M.pcdata "Error"];
-                XHTML.M.p [XHTML.M.pcdata "You cannot create new users"];
+               [HTML5.M.h1 [HTML5.M.pcdata "Error"];
+                HTML5.M.p [HTML5.M.pcdata "You cannot create new users"];
                ]
          | e -> Lwt.fail e)
 end

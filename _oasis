@@ -96,20 +96,35 @@ Library "core_site"
   FindlibName: site
   FindlibParent: ocsimore
   Modules:
-    Page_site
+    server/Ocsimore_appl,
+    server/Page_site
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore, ocsimore.wiki
+
+Library "core_site_client"
+  Path: src/site/client
+  FindlibName: site_client
+  FindlibParent: ocsimore
+  Modules:
+    Page_site,
+    Wiki_ext,
+    Wiki_widgets,
+    Ocsimore
+  XMETADescription: some extensions
+#  DataFiles: _build/src/site/client/ocsimore.js
+  BuildDepends:
+    camlp4, lwt.syntax, eliom.client, eliom.syntax
 
 Library "user_site"
   Path: src/site
   FindlibName: user
   FindlibParent: site
   Modules:
-    User_site,
-    User_ext,
-    User_services,
-    User_widgets
+    server/User_site,
+    server/User_ext,
+    server/User_services,
+    server/User_widgets
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site
@@ -119,10 +134,10 @@ Library "wiki_site"
   FindlibName: wiki
   FindlibParent: site
   Modules:
-    Wiki_site,
-    Wiki_ext,
-    Wiki_services,
-    Wiki_widgets
+    server/Wiki_site,
+    server/Wiki_ext,
+    server/Wiki_services,
+    server/Wiki_widgets
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site
@@ -132,14 +147,14 @@ Library "forum_site"
   FindlibName: forum
   FindlibParent: site
   Modules:
-    Forum_site,
-    Forum_wikiext,
-    Forum_services,
-    Forum_widgets,
-    Ocsicreateforum
+    server/Forum_site,
+    server/Forum_wikiext,
+    server/Forum_services,
+    server/Forum_widgets,
+    server/Ocsicreateforum
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.site
+    camlp4, lwt.syntax, ocsimore.site, ocsimore.forum
 
 Test "all"
   Command: ocsigenserver -c ./local/etc/ocsigen/ocsimore.conf

@@ -78,37 +78,39 @@ let unopt_string s = unopt ~def:"" s
 
 let parse_common_attribs attribs =
   let at1 =
-    try Some (XHTML.M.a_class [List.assoc "class" attribs])
+    try Some (HTML5.M.a_class [List.assoc "class" attribs])
     with Not_found -> None
   and at2 =
-    try Some (XHTML.M.a_id (List.assoc "id" attribs))
+    try Some (HTML5.M.a_id (List.assoc "id" attribs))
     with Not_found -> None
   in
   filter_raw [at1; at2]
 
 let parse_table_attribs attribs =
   let atts = parse_common_attribs attribs
+(* not available in html5 anymore
   and at1 =
-    try Some (XHTML.M.a_border (int_of_string (List.assoc "border" attribs)))
+    try Some (HTML5.M.a_border (int_of_string (List.assoc "border" attribs)))
     with Not_found | Failure _ -> None
   and at2 =
-    try Some (XHTML.M.a_cellpadding (length_of_string (List.assoc "cellpadding" attribs)))
+    try Some (HTML5.M.a_cellpadding (length_of_string (List.assoc "cellpadding" attribs)))
     with Not_found | Failure _ -> None
   and at3 =
-    try Some (XHTML.M.a_cellspacing (length_of_string (List.assoc "cellspacing" attribs)))
-    with Not_found | Failure _ -> None
+    try Some (HTML5.M.a_cellspacing (length_of_string (List.assoc "cellspacing" attribs)))
+    with Not_found | Failure _ -> None*)
   and at4 =
-    try Some (XHTML.M.a_summary (List.assoc "summary" attribs))
+    try Some (HTML5.M.a_summary (List.assoc "summary" attribs))
     with Not_found -> None
 (*and at5 =
-    try Some (XHTML.M.a_width (length_of_string (List.assoc "width" attribs)))
+    try Some (HTML5.M.a_width (length_of_string (List.assoc "width" attribs)))
     with Not_found | Failure _ -> None*)
   in
-  atts @ filter_raw [at1; at2; at3; at4;]
+  atts @ filter_raw [(*at1; at2; at3;*) at4;]
 
+(* No more valign in html5
 let parse_valign_attrib attribs =
   try
-    Some (XHTML.M.a_valign (match List.assoc "valign" attribs with
+    Some (HTML5.M.a_valign (match List.assoc "valign" attribs with
                               |"top" -> `Top
                               |"middle" -> `Middle
                               |"bottom" -> `Bottom
@@ -116,13 +118,14 @@ let parse_valign_attrib attribs =
                               | _ -> raise Not_found
     ))
   with Not_found -> None
+*)
 
 let parse_align_attrib attribs =
   try
-    Some (XHTML.M.a_align (match List.assoc "align" attribs with
+    Some (HTML5.M.a_align (match List.assoc "align" attribs with
                               |"left" -> `Left
                               |"right" -> `Right
-                              |"center" -> `Center
+                              (* |"center" -> `Center no more in HTML5 *)
                               |"justify" -> `Justify
                               |"char" -> `Char
                               | _ -> raise Not_found
@@ -131,7 +134,7 @@ let parse_align_attrib attribs =
 
 let parse_scope_attrib attribs =
   try
-    Some (XHTML.M.a_scope (match List.assoc "scope" attribs with
+    Some (HTML5.M.a_scope (match List.assoc "scope" attribs with
                              |"row" -> `Row
                              |"col" -> `Col
                              |"rowgroup" -> `Rowgroup
@@ -140,78 +143,172 @@ let parse_scope_attrib attribs =
     ))
   with Not_found -> None
 
+(* no any of this in html5
 let parse_table_row_attribs attribs =
   let atts = parse_common_attribs attribs
+(*
   and at1 =
-    try Some (XHTML.M.a_char (List.assoc "char" attribs).[0])
-    with Not_found | Invalid_argument _ -> None
+    try Some (HTML5.M.a_char (List.assoc "char" attribs).[0])
+    with Not_found | Invalid_argument _ -> None *)
 (*
   and at2 =
-    try Some (XHTML.M.a_width (length_of_string (List.assoc "charoff" attribs)))
+    try Some (HTML5.M.a_width (length_of_string (List.assoc "charoff" attribs)))
     with Not_found | Failure _ -> None
  *)
-  and at3 = parse_valign_attrib attribs
-  and at4 = parse_align_attrib attribs
+(* no more valign in HTML5
+  and at3 = parse_valign_attrib attribs *)
+(*  and at4 = parse_align_attrib attribs *)
   in
-  atts @ filter_raw [at1; at3; at4]
+  atts @ filter_raw [at1; at3; at4 ]
+*)
 
 let parse_table_cell_attribs attribs =
   let atts = parse_common_attribs attribs
+(* no more in html5
   and at1 =
-    try Some (XHTML.M.a_char (List.assoc "char" attribs).[0])
+    try Some (HTML5.M.a_char (List.assoc "char" attribs).[0])
     with Not_found | Failure _ -> None
   and at2  =
-    try Some (XHTML.M.a_charoff (length_of_string (List.assoc "charoff" attribs)))
-    with Not_found | Failure _ -> None
+    try Some (HTML5.M.a_charoff (length_of_string (List.assoc "charoff" attribs)))
+    with Not_found | Failure _ -> None *)
+(* No more abbr attribute in HTML5 
   and at3  =
-    try Some (XHTML.M.a_abbr (List.assoc "abbr" attribs))
-    with Not_found -> None
+    try Some (HTML5.M.a_abbr (List.assoc "abbr" attribs))
+    with Not_found -> None *)
+(*
   and at4 =
-    try Some (XHTML.M.a_axis (List.assoc "axis" attribs))
-    with Not_found -> None
+    try Some (HTML5.M.a_axis (List.assoc "axis" attribs))
+    with Not_found -> None *)
   and at5 =
-    try Some (XHTML.M.a_colspan (int_of_string (List.assoc "colspan" attribs)))
+    try Some (HTML5.M.a_colspan (int_of_string (List.assoc "colspan" attribs)))
     with Not_found | Failure _ -> None
   and at6 =
-    try Some (XHTML.M.a_headers [List.assoc "headers" attribs])
+    try Some (HTML5.M.a_headers [List.assoc "headers" attribs])
     with Not_found -> None
   and at7 =
-    try Some (XHTML.M.a_rowspan ( int_of_string (List.assoc "rowspan" attribs)))
+    try Some (HTML5.M.a_rowspan ( int_of_string (List.assoc "rowspan" attribs)))
     with Not_found | Failure _ -> None
 (*  and at8 = parse_valign_attrib attribs
   and at9 = parse_align_attrib attribs
   and at10 = parse_scope_attrib attribs *) in
-  atts @ filter_raw [at1; at2; at3; at4; at5; at6; at7]
+  atts @ filter_raw [(* at1; at2; at3; at4;*) at5; at6; at7]
 
 let list_builder = function
-  | [] -> Lwt.return (XHTML.M.li [], [])
+  | [] -> Lwt.return (HTML5.M.li [], [])
   | x::xs ->
       let f (c, l, attribs) =
         let a = opt_list (parse_common_attribs attribs) in
         element c >|= List.flatten   >>= fun r ->
         unopt ~def:(Lwt.return []) l >|= fun l ->
-        XHTML.M.li ?a ((r : XHTML_types.inlinemix XHTML.M.elt list :> XHTML_types.div_content XHTML.M.elt list) @ l)
+        HTML5.M.li ?a ((r : [ HTML5_types.phrasing ] HTML5.M.elt list :> [ HTML5_types.li_content ] HTML5.M.elt list) @ l)
       in
       f x                   >>= fun y ->
       Lwt_list.map_s f xs   >|= fun ys ->
       (y, ys)
 
-let descr_builder = function
-  | [] -> Lwt.return (XHTML.M.dt [], [])
-  | x::xs ->
-      let f (istitle, d, attribs) =
-        let a = opt_list (parse_common_attribs attribs) in
-        element d >|= fun d ->
-        if istitle
-        then (XHTML.M.dt ?a (List.flatten d))
-        else (XHTML.M.dd ?a (List.flatten d))
-      in
-      f x                  >>= fun y ->
-      Lwt_list.map_s f xs  >|= fun ys ->
-      (y, ys)
+let descr_builder l =
+  let f (istitle, (d : HTML5_types.phrasing HTML5.M.elt list Lwt.t list), attribs) =
+    let a = opt_list (parse_common_attribs attribs) in
+    element d >|= fun d ->
+      if istitle
+      then `Dt (HTML5.M.dt ?a (List.flatten d))
+      else `Dd (HTML5.M.dd ?a ((List.flatten d:>HTML5_types.flow5 HTML5.M.elt list)))
+  in
+  let rec list_dt acc = function
+    | [] -> None
+    | (`Dd _)::_ as l ->
+      let rest, dd = list_dd [] l in
+      Some ((List.rev acc, dd),rest)
+    | (`Dt v)::q -> list_dt (v::acc) q
+  and list_dd acc = function
+    | []
+    | (`Dt _)::_ as l -> l,List.rev acc
+    | (`Dd v)::q -> list_dd (v::acc) q
+  in
+  let rec combine acc l =
+    match list_dt [] l with
+      | None -> List.rev acc
+      | Some ((dt,dd),rest) ->
+	let dt = match dt with
+	  | [] -> HTML5.M.dt [], []
+	  | x::xs -> x,xs
+	in
+	let dd = match dd with
+	  | [] -> HTML5.M.dd [], []
+	  | x::xs -> x,xs
+	in
+	combine ((dt,dd)::acc) rest
+  in
+  lwt l = Lwt_list.map_s f l in
+  Lwt.return (combine [] l)
 
-let inline (x : XHTML_types.inlinemix XHTML.M.elt list) : XHTML_types.inlinemix XHTML.M.elt list =
-  [XHTML.M.span x]
+let phrasing (x : HTML5_types.phrasing HTML5.M.elt list) : HTML5_types.phrasing_without_interactive HTML5.M.elt list =
+  [HTML5.M.span x]
+
+type ('a,'b) wiki_service =
+    ('a, unit,
+     Eliom_services.get_service_kind,
+     Eliom_services.suff,
+     'b, unit,
+     Eliom_services.registrable,
+     Eliom_output.Any.return ) Eliom_services.service
+
+(* We need existential types to be able to parametrise service_href by
+   the service and its parameter without showing the type of the
+   parameter.
+
+   Since this does not exists in ocaml, we need some encoding *)
+
+module Appl_existential_services :
+sig
+  type 'a t
+
+  val a_link :
+    ?a:HTML5_types.a_attrib HTML5.M.attrib list ->
+    'a Eliom_pervasives.HTML5.M.elt list ->
+    [> 'a HTML5_types.a ] Eliom_pervasives.HTML5.M.elt t
+
+  val uri : string t
+
+  val run : 'b t -> ?fragment:string -> ?https:bool -> 'a -> ('a,'c) wiki_service -> 'b
+
+end
+  =
+struct
+  type 'b t = { t : 'a 'c. ?fragment:string -> ?https:bool -> 'a -> ('a,'c) wiki_service -> 'b }
+  type ('a,'c,'b) apply_serv = 'b t * 'a * ('a,'c) wiki_service
+  type ('b, 'z) apply_scope = { bind_apply : 'a 'c. ('a,'c, 'b) apply_serv -> 'z}
+  type 'b packed_apply = { open_apply : 'z. ('b, 'z) apply_scope -> 'z}
+
+  (* Packing and unpacking applications *)
+  let pack_apply value serv f = { open_apply = fun scope -> scope.bind_apply (f,value,serv) }
+  let with_packed_apply p e = p.open_apply e
+
+  let a_link ?a c = { t = ( fun ?fragment ?https param service ->
+    Eliom_output.Html5.a ~service ?a ?fragment ?https c param ) }
+  let uri = { t = ( fun ?fragment ?https param service ->
+    Uri.uri_of_string (Eliom_uri.make_string_uri ?fragment ?https ~service param) ) }
+
+  let run t ?fragment ?https v s = with_packed_apply (pack_apply v s t) { bind_apply = fun (f,v,s) -> f.t ?fragment ?https v s }
+
+end
+
+type service_href = { apply_serv : 'a. 'a Appl_existential_services.t -> 'a }
+
+type href =
+  | String_href of string
+  | Service_href of service_href
+
+let service_href ?fragment ?https serv param =
+  { apply_serv = (fun m -> Appl_existential_services.run m ?fragment ?https param serv) }
+
+let a_link_of_href href ?a c = href.apply_serv
+  (Appl_existential_services.a_link ?a c)
+
+let uri_of_href href =
+  match href with
+    | String_href s -> Uri.uri_of_string s
+    | Service_href href -> href.apply_serv (Appl_existential_services.uri)
 
 let link_regexp =
   Netstring_pcre.regexp "(http\\+|https\\+)?([a-z|A-Z|0-9]+)(\\((.*)\\))?:(.*)"
@@ -328,8 +425,8 @@ let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs wb =
        | _ -> None)
 
 
-type ('res, 'a_content) syntax_extension =
-  (Wiki_widgets_interface.box_info, 'res, 'a_content) Wikicreole.plugin
+type ('res, 'phrasing_without_interactive, 'href) syntax_extension =
+  (Wiki_widgets_interface.box_info, 'res, 'phrasing_without_interactive, 'href) Wikicreole.plugin
 
 
 type 'a plugin_hash = (string, 'a) Hashtbl.t
@@ -346,10 +443,10 @@ type 'a plugin_hash = (string, 'a) Hashtbl.t
    used as a preparser, the field [plugin_assoc] is also overridden
    using a proper function. See [preparse_extension] below. BY
 *)
-type ('res, 'inline, 'a_content) wikicreole_parser = {
-  builder: ('res, 'inline, 'a_content, box_info) Wikicreole.builder;
+type ('res, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser = {
+  builder: ('res, 'phrasing, 'phrasing_without_interactive, box_info, 'href) Wikicreole.builder;
 
-  plugin_assoc: (bool * ('res, 'a_content) syntax_extension) plugin_hash;
+  plugin_assoc: (bool * ('res, 'phrasing_without_interactive, 'href) syntax_extension) plugin_hash;
 
   plugin_action_assoc:
      ((Wiki_types.wikibox,
@@ -369,9 +466,9 @@ let default_plugin =
   (fun (name : string) ->
     (true,
      (fun _ args content ->
-        Wikicreole.A_content
+        Wikicreole.Phrasing_without_interactive
           (let s = string_of_extension name args content in
-           Lwt.return [(XHTML.M.pcdata s :> [>`PCDATA] XHTML.M.elt)]))
+           Lwt.return [(HTML5.M.pcdata s :> [>`PCDATA] HTML5.M.elt)]))
     )
   )
 
@@ -450,13 +547,13 @@ let preparse_extension wp (wb : Wiki_types.wikibox) content =
     dl_elem = nothing;
     hr_elem = nothing1;
     table_elem = nothing;
-    inline = nothing1;
+    phrasing = nothing1;
     plugin =
       (fun name ->
          let wiki_content =
            try fst (Hashtbl.find wp.plugin_assoc name)
            with Not_found -> false
-         in (wiki_content, (fun _ _ _ -> Wikicreole.A_content ())));
+         in (wiki_content, (fun _ _ _ -> Wikicreole.Phrasing_without_interactive ())));
     plugin_action = plugin_action;
     link_action = link_action;
     error = nothing1;
@@ -507,20 +604,22 @@ let make_href bi addr fragment =
             Url.remove_slash_at_beginning
               (Neturl.split_path page)
           in
-          Eliom_output.Xhtml.make_string_uri ?https
-            ?fragment ~service:servpage addr
-      | None -> "malformed link" (*VVV ??? *)
+	  Service_href (service_href (servpage:>('a,'b) wiki_service) addr)
+            (* Eliom_output.Html5.make_string_uri ?https
+               ?fragment ~service:servpage addr *)
+      | None -> String_href "malformed link" (*VVV ??? *)
   in
   match addr with
     | Page (page, forceproto) ->
         let wiki = bi.Wiki_widgets_interface.bi_wiki in
         aux ~fragment forceproto wiki page
     | Absolute addr -> (match fragment with
-                          | None -> addr
-                          | Some fragment -> addr^"#"^fragment)
+                          | None -> String_href addr
+                          | Some fragment -> String_href (addr^"#"^fragment))
     | Wiki_page (wiki, page, forceproto) -> aux ~fragment forceproto wiki page
     | Site (href, forceproto) ->
-        try
+      String_href (* CCC could we find a service for the site ? *)
+        (try
           let url = Neturl.url_of_string site_url_syntax href in
           let path = Neturl.url_path url in
           let path =
@@ -536,10 +635,10 @@ let make_href bi addr fragment =
                 in
                 Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
             | Some https ->
-                (Eliom_output.Xhtml.make_proto_prefix https)^
+                (Eliom_output.Html5.make_proto_prefix https)^
                   (Neturl.string_of_url (Neturl.modify_url ?fragment ~path url))
         with Neturl.Malformed_URL ->
-          "malformed link"
+          "malformed link")
 
 (********************************)
 (* builders. Default functions: *)
@@ -548,58 +647,69 @@ let strong_elem =
   (fun attribs content ->
      let a = opt_list (parse_common_attribs attribs) in
      element content >|= List.flatten >|= fun r ->
-     [(XHTML.M.strong ?a r : [>`Strong] XHTML.M.elt)]
+     [(HTML5.M.strong ?a r : [>`Strong] HTML5.M.elt)]
   )
 
 let em_elem =
   (fun attribs content ->
      let a = opt_list (parse_common_attribs attribs) in
      element content >|= List.flatten >|= fun r ->
-     [(XHTML.M.em ?a r : [>`Em] XHTML.M.elt)]
+     [(HTML5.M.em ?a r : [>`Em] HTML5.M.elt)]
   )
 
 let monospace_elem =
+(* No more tt in HTML5 
   (fun attribs content ->
      let a = opt_list (parse_common_attribs attribs) in
      element content >|= List.flatten >|= fun r ->
-     [(XHTML.M.tt ?a r : [>`Tt] XHTML.M.elt)]
+     [(HTML5.M.tt ?a r : [>`Tt] HTML5.M.elt)]
+  ) *)
+  (fun attribs content ->
+    let a = HTML5.M.a_class ["monospace"] :: parse_common_attribs attribs in
+    element content >|= List.flatten >|= fun r ->
+    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
   )
+
 
 let underlined_elem =
   (fun attribs content ->
-    let a = XHTML.M.a_class ["underlined"] :: parse_common_attribs attribs in
+    let a = HTML5.M.a_class ["underlined"] :: parse_common_attribs attribs in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.span ~a r : [>`Span] XHTML.M.elt)]
+    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
   )
 
 let linethrough_elem =
   (fun attribs content ->
-    let a = XHTML.M.a_class ["linethrough"] :: parse_common_attribs attribs in
+    let a = HTML5.M.a_class ["linethrough"] :: parse_common_attribs attribs in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.span ~a r : [>`Span] XHTML.M.elt)]
+    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
   )
 
 let subscripted_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.sub ?a r : [>`Sub] XHTML.M.elt)]
+    [(HTML5.M.sub ?a r : [>`Sub] HTML5.M.elt)]
   )
 
 let superscripted_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.sup ?a r : [>`Sup] XHTML.M.elt)]
+    [(HTML5.M.sup ?a r : [>`Sup] HTML5.M.elt)]
   )
 
 let a_elem =
   (fun attribs addr
-    (c : XHTML_types.a_content XHTML.M.elt list Lwt.t list) ->
+    (c : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t list) ->
        let a = parse_common_attribs attribs in
        Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
-       [(XHTML.M.a ~a:(XHTML.M.a_href (Uri.uri_of_string addr) :: a) c
-        : [>`A] XHTML.M.elt)])
+	 match addr with
+	   | String_href addr ->
+	     [(HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c
+               :> HTML5_types.phrasing HTML5.M.elt)]
+	   | Service_href href ->
+	     [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)])
 
 let default_make_href =
   (fun bi c fragment -> make_href bi (link_kind c) fragment)
@@ -607,131 +717,140 @@ let default_make_href =
 let br_elem =
   (fun attribs ->
     let a = opt_list (parse_common_attribs attribs) in
-    Lwt.return [(XHTML.M.br ?a () : [>`Br] XHTML.M.elt)])
+    Lwt.return [(HTML5.M.br ?a () : [>`Br] HTML5.M.elt)])
 
 let img_elem =
-  (fun attribs addr alt ->
+  (fun attribs href alt ->
      let a = opt_list (parse_common_attribs attribs) in
+     let src = uri_of_href href (* CCC https ? *) in
      Lwt.return
-       [(XHTML.M.img ~src:(Uri.uri_of_string addr) ~alt:alt ?a ()
-        : [>`Img] XHTML.M.elt)]
+       [(HTML5.M.img ~src ~alt:alt ?a ()
+        : [>`Img] HTML5.M.elt)]
   )
 
 let tt_elem =
+(* no more tt in HTML5
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.tt ?a r : [>`Tt] XHTML.M.elt)])
+    [(HTML5.M.tt ?a r : [>`Tt] HTML5.M.elt)]) *)
+  (fun attribs content ->
+    let a = HTML5.M.a_class ["teletype"] :: parse_common_attribs attribs in
+    element content >|= List.flatten >|= fun r ->
+    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
+  )
 
-let nbsp = Lwt.return [(XHTML.M.pcdata " " : [>`PCDATA] XHTML.M.elt)]
 
-let endash = Lwt.return [(XHTML.M.pcdata "–" : [>`PCDATA] XHTML.M.elt)]
+let nbsp = Lwt.return [(HTML5.M.pcdata " " : [>`PCDATA] HTML5.M.elt)]
 
-let emdash = Lwt.return [(XHTML.M.pcdata "—" : [>`PCDATA] XHTML.M.elt)]
+let endash = Lwt.return [(HTML5.M.pcdata "–" : [>`PCDATA] HTML5.M.elt)]
+
+let emdash = Lwt.return [(HTML5.M.pcdata "—" : [>`PCDATA] HTML5.M.elt)]
 
 let p_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.p ?a r : [>`P] XHTML.M.elt)])
+    [(HTML5.M.p ?a r : [>`P] HTML5.M.elt)])
 
 let pre_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     Lwt.return
-      [(XHTML.M.pre ?a [XHTML.M.pcdata (String.concat "" content)]
-       : [>`Pre] XHTML.M.elt)]
+      [(HTML5.M.pre ?a [HTML5.M.pcdata (String.concat "" content)]
+       : [>`Pre] HTML5.M.elt)]
   )
 
 let h1_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.h1 ?a r : [>`H1] XHTML.M.elt)])
+    [(HTML5.M.h1 ?a r : [>`H1] HTML5.M.elt)])
 
 let h2_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.h2 ?a r : [>`H2] XHTML.M.elt)])
+    [(HTML5.M.h2 ?a r : [>`H2] HTML5.M.elt)])
 
 let h3_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.h3 ?a r : [>`H3] XHTML.M.elt)])
+    [(HTML5.M.h3 ?a r : [>`H3] HTML5.M.elt)])
 
 let h4_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.h4 ?a r : [>`H4] XHTML.M.elt)])
+    [(HTML5.M.h4 ?a r : [>`H4] HTML5.M.elt)])
 
 let h5_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.h5 ?a r : [>`H5] XHTML.M.elt)])
+    [(HTML5.M.h5 ?a r : [>`H5] HTML5.M.elt)])
 
 let h6_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.h6 ?a r : [>`H6] XHTML.M.elt)])
+    [(HTML5.M.h6 ?a r : [>`H6] HTML5.M.elt)])
 
 let ul_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     list_builder content >|= fun (r,rs) ->
-    [(XHTML.M.ul ?a r rs : [>`Ul] XHTML.M.elt)])
+    [(HTML5.M.ul ?a (r::rs) : [>`Ul] HTML5.M.elt)])
 
 let ol_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     list_builder content >|= fun (r,rs) ->
-    [(XHTML.M.ol ?a r rs : [>`Ol] XHTML.M.elt)])
+    [(HTML5.M.ol ?a (r::rs) : [>`Ol] HTML5.M.elt)])
 
 let dl_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
-    descr_builder content >|= fun (r, rs) ->
-    [(XHTML.M.dl ?a r rs : [>`Dl] XHTML.M.elt)])
+    descr_builder content >|= fun r ->
+    [(HTML5.M.dl ?a r : [>`Dl] HTML5.M.elt)])
 
 let hr_elem =
   (fun attribs ->
     let a = opt_list (parse_common_attribs attribs) in
-    Lwt.return [(XHTML.M.hr ?a () : [>`Hr] XHTML.M.elt)])
+    Lwt.return [(HTML5.M.hr ?a () : [>`Hr] HTML5.M.elt)])
 
 let table_elem =
   (fun attribs l ->
     let a = opt_list (parse_table_attribs attribs) in
      match l with
-       | [] -> Lwt.return [XHTML.M.table ?a (XHTML.M.tr (XHTML.M.td []) []) []]
+       | [] -> Lwt.return [HTML5.M.table ?a (HTML5.M.tr [HTML5.M.td []]) []]
        | row::rows ->
-           let f (h, attribs, c) =
+           let f (h, attribs, (c:HTML5_types.phrasing HTML5.M.elt list Lwt.t list)) =
              let a = opt_list (parse_table_cell_attribs attribs) in
              element c >|= List.flatten >|= fun r ->
              if h
-             then XHTML.M.th ?a r
-             else XHTML.M.td ?a r
+             then HTML5.M.th ?a r
+             else HTML5.M.td ?a (r:>HTML5_types.flow5 HTML5.M.elt list)
            in
            let f2 (row, attribs) = match row with
-             | [] -> Lwt.return (XHTML.M.tr (XHTML.M.td []) [])
+             | [] -> Lwt.return (HTML5.M.tr [HTML5.M.td []])
              | x::xs ->
-                 let a = opt_list (parse_table_row_attribs attribs) in
+                 let a = opt_list (parse_common_attribs attribs) in
+                 (*let a = opt_list (parse_table_row_attribs attribs) in*)
                  f x                 >>= fun y ->
                  Lwt_list.map_s f xs >|= fun ys ->
-                 XHTML.M.tr ?a y ys
+                 HTML5.M.tr ?a (y::ys)
            in
            f2 row                 >>= fun row ->
            Lwt_list.map_s f2 rows >|= fun rows ->
-           [(XHTML.M.table ?a row rows : [>`Table] XHTML.M.elt)])
+           [(HTML5.M.table ?a row rows : [>`Table] HTML5.M.elt)])
 
-let inline =
+let phrasing =
   (fun x ->
     (x
-     : XHTML_types.a_content XHTML.M.elt list Lwt.t
-     :> XHTML_types.inlinemix XHTML.M.elt list Lwt.t)
+     : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+     :> HTML5_types.phrasing HTML5.M.elt list Lwt.t)
   )
 
 let plugin = default_plugin
@@ -742,28 +861,29 @@ let link_action = (fun _ _ _ _ _ -> ())
 
 let error =
   (fun (s : string) ->
-    Lwt.return [(XHTML.M.strong [XHTML.M.pcdata s] : [>`Strong] XHTML.M.elt)])
+    Lwt.return [(HTML5.M.strong [HTML5.M.pcdata s] : [>`Strong] HTML5.M.elt)])
 
 let span_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(XHTML.M.span ?a r : [>`Span] XHTML.M.elt)])
+    [(HTML5.M.span ?a r : [>`Span] HTML5.M.elt)])
 
 
 
 (********************************)
 (* Predefined builders.         *)
 
-let inline_builder :
-  (XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
-   XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
-   XHTML_types.a_content XHTML.M.elt list Lwt.t,
-   box_info)
+let phrasing_builder :
+  (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   box_info,
+   'href)
      Wikicreole.builder = (* no images, no titles, no tables, no lists,
                              no subwikiboxes, no content, no objects,
                              no paragraph, no pre, ... *)
-  { Wikicreole.chars = (fun s -> Lwt.return [XHTML.M.pcdata s]);
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]);
     strong_elem = strong_elem;
     em_elem = em_elem;
     monospace_elem = monospace_elem;
@@ -776,8 +896,8 @@ let inline_builder :
     br_elem =
       (fun _ ->
          Lwt.return
-           [XHTML.M.em
-              [XHTML.M.pcdata "Line breaks not enabled in this syntax"]]);
+           [HTML5.M.em
+              [HTML5.M.pcdata "Line breaks not enabled in this syntax"]]);
     img_elem = img_elem;
     tt_elem = tt_elem;
     nbsp = nbsp;
@@ -787,8 +907,8 @@ let inline_builder :
     pre_elem =
       (fun _ _ ->
          Lwt.return
-          [XHTML.M.em
-             [XHTML.M.pcdata "Blocks of code not enabled in this syntax"]]);
+          [HTML5.M.em
+             [HTML5.M.pcdata "Blocks of code not enabled in this syntax"]]);
     h1_elem = span_elem;
     h2_elem = span_elem;
     h3_elem = span_elem;
@@ -798,25 +918,25 @@ let inline_builder :
     ul_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Lists not enabled in this syntax"]]);
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
     ol_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Lists not enabled in this syntax"]]);
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
     dl_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Lists not enabled in this syntax"]]);
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
     hr_elem =
       (fun _ ->
         Lwt.return
-          [XHTML.M.em
-             [XHTML.M.pcdata "Horizontal rules not enabled in this syntax"]]);
+          [HTML5.M.em
+             [HTML5.M.pcdata "Horizontal rules not enabled in this syntax"]]);
     table_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Tables not enabled in this syntax"]]);
-    inline = inline;
+          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]);
+    phrasing = phrasing;
     plugin = plugin;
     plugin_action = plugin_action;
     link_action = link_action;
@@ -825,13 +945,14 @@ let inline_builder :
 
 
 let default_builder :
-  (XHTML_types.div_content XHTML.M.elt list Lwt.t,
-   XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
-   XHTML_types.a_content XHTML.M.elt list Lwt.t,
-   box_info
+  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   box_info,
+   'href
   ) Wikicreole.builder =
 
-  { Wikicreole.chars = (fun s -> Lwt.return [XHTML.M.pcdata s]) ;
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
     strong_elem = strong_elem;
     em_elem = em_elem;
     monospace_elem = monospace_elem;
@@ -860,7 +981,7 @@ let default_builder :
     dl_elem = dl_elem;
     hr_elem = hr_elem;
     table_elem = table_elem;
-    inline = inline;
+    phrasing = phrasing;
     plugin = plugin;
     plugin_action = plugin_action;
     link_action = link_action;
@@ -868,7 +989,7 @@ let default_builder :
   }
 
 let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
-  { Wikicreole.chars = (fun s -> Lwt.return [XHTML.M.pcdata s]) ;
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
     strong_elem = strong_elem;
     em_elem = em_elem;
     monospace_elem = monospace_elem;
@@ -882,7 +1003,7 @@ let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
     img_elem =
       (fun _ _ _ ->
          Lwt.return
-           [XHTML.M.em [XHTML.M.pcdata "Images not enabled in this syntax"]]);
+           [HTML5.M.em [HTML5.M.pcdata "Images not enabled in this syntax"]]);
     tt_elem = tt_elem;
     nbsp = nbsp;
     endash = endash;
@@ -900,7 +1021,7 @@ let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
     dl_elem = dl_elem;
     hr_elem = hr_elem;
     table_elem = table_elem;
-    inline = inline;
+    phrasing = phrasing;
     plugin = plugin;
     plugin_action = plugin_action;
     link_action = link_action;
@@ -909,7 +1030,7 @@ let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
 
 let reduced_builder2 = (* no images, no titles, no tables, no lists,
                           no subwikiboxes, no content, no objects *)
-  { Wikicreole.chars = (fun s -> Lwt.return [XHTML.M.pcdata s]) ;
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
     strong_elem = strong_elem;
     em_elem = em_elem;
     monospace_elem = monospace_elem;
@@ -923,7 +1044,7 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
     img_elem =
       (fun _ _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Images not enabled in this syntax"]]);
+          [HTML5.M.em [HTML5.M.pcdata "Images not enabled in this syntax"]]);
     tt_elem = tt_elem;
     nbsp = nbsp;
     endash = endash;
@@ -939,21 +1060,21 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
     ul_elem =
       (fun _ _ ->
         Lwt.return
-         [XHTML.M.em [XHTML.M.pcdata "Lists not enabled in this syntax"]]);
+         [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
     ol_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Lists not enabled in this syntax"]]);
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
     dl_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Lists not enabled in this syntax"]]);
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
     hr_elem = hr_elem;
     table_elem =
       (fun _ _ ->
         Lwt.return
-          [XHTML.M.em [XHTML.M.pcdata "Tables not enabled in this syntax"]]);
-    inline = inline;
+          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]);
+    phrasing = phrasing;
     plugin = plugin;
     plugin_action = plugin_action;
     link_action = link_action;
@@ -961,21 +1082,22 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
   }
 
 let reduced_builder_button :
-  ([XHTML_types.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
-   [XHTML_types.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
-   [XHTML_types.button_content | `PCDATA] XHTML.M.elt list Lwt.t,
-   box_info
+  ([HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
+   [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
+   [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
+   box_info,
+   'href
   ) Wikicreole.builder =
   let forbid0 s =
-    Lwt.return [(XHTML.M.em [XHTML.M.pcdata (s ^" not enabled in buttons")]
-                : [XHTML_types.button_content | `PCDATA] XHTML.M.elt)]
+    Lwt.return [(HTML5.M.em [HTML5.M.pcdata (s ^" not enabled in buttons")]
+                : [HTML5_types.button_content | `PCDATA] HTML5.M.elt)]
   in
   let forbid1 s _ = forbid0 s in
   let forbid2 s _ _ = forbid0 s in
   let forbid3 s _ _ _ = forbid0 s in
 
   { Wikicreole.chars =
-      (fun s -> Lwt.return [(XHTML.M.pcdata s : [>`PCDATA] XHTML.M.elt)]);
+      (fun s -> Lwt.return [(HTML5.M.pcdata s : [>`PCDATA] HTML5.M.elt)]);
     strong_elem = (*strong_elem;*) forbid2 "toto";
     em_elem = (*em_elem;*) forbid2 "toto";
     monospace_elem = (*monospace_elem;*) forbid2 "toto";
@@ -1004,7 +1126,7 @@ let reduced_builder_button :
     dl_elem = (*dl_elem;*) forbid2 "toto";
     hr_elem = (*hr_elem;*) forbid1 "toto";
     table_elem = (*table_elem;*) forbid2 "toto";
-    inline = (*inline;*) forbid1 "toto";
+    phrasing = (*phrasing;*) forbid1 "toto";
     plugin = plugin;
     plugin_action = plugin_action;
     link_action = link_action;
@@ -1053,8 +1175,8 @@ let reduced_wikicreole_parser_button_content = {
   link_action = ref void_plugin_action;
 }
 
-let inline_wikicreole_parser = {
-  builder = inline_builder;
+let phrasing_wikicreole_parser = {
+  builder = phrasing_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
   link_action = ref void_plugin_action;
@@ -1070,15 +1192,16 @@ let xml_of_wiki wp bi s =
   >>= Lwt_list.map_s (fun x -> x)
   >|= List.flatten
 
-let inline_of_wiki bi s : XHTML_types.inlinemix XHTML.M.elt list Lwt.t =
+let phrasing_of_wiki bi s : HTML5_types.phrasing HTML5.M.elt list Lwt.t =
   Wikicreole.from_string
     bi
-    ({inline_builder with
-       Wikicreole.plugin = plugin_function inline_wikicreole_parser
-     } : (XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
-          XHTML_types.inlinemix XHTML.M.elt list Lwt.t,
-          XHTML_types.a_content XHTML.M.elt list Lwt.t,
-          box_info
+    ({phrasing_builder with
+       Wikicreole.plugin = plugin_function phrasing_wikicreole_parser
+     } : (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+          HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+          HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+          box_info,
+	  'href
          ) Wikicreole.builder
     )
     s >>= function
@@ -1109,22 +1232,32 @@ let reduced_wikicreole_content_type2 =
     (preparse_extension reduced_wikicreole_parser2)
     (xml_of_wiki reduced_wikicreole_parser2)
 
+let wikicreole_phrasing_content_type =
+  Wiki_models.register_phrasings_wiki_parser "phrasing_wikicreole"
+    (preparse_extension phrasing_wikicreole_parser)
+    phrasing_of_wiki
+
+(* For backward compatibility *)
 let wikicreole_inline_content_type =
-  Wiki_models.register_inlines_wiki_parser "inline_wikicreole"
-    (preparse_extension inline_wikicreole_parser)
-    inline_of_wiki
+  Wiki_models.register_phrasings_wiki_parser "inline_wikicreole"
+    (preparse_extension phrasing_wikicreole_parser)
+    phrasing_of_wiki
 
 let rawtext_content_type =
   Wiki_models.register_flows_wiki_parser "rawtext"
     (fun _ s -> Lwt.return s)
-    (fun _bi s -> Lwt.return [XHTML.M.p [XHTML.M.pcdata s]])
+    (fun _bi s -> Lwt.return [HTML5.M.p [HTML5.M.pcdata s]])
 
-let a_content_of_wiki bi s =
-  inline_of_wiki bi s >>= fun r ->
-  Lwt.fail (Failure "TODO: how to safely pattern match on XHTML.M values")
+let phrasing_without_interactive_of_wiki bi s =
+  phrasing_of_wiki bi s >>= fun r ->
+  (* CCC horrible: nettoyer ca *)
+  Lwt.return (HTML5.M.totl (HTML5.M.toeltl r))
+(*
+  Lwt.fail (Failure "TODO: how to safely pattern match on HTML5.M values")
+*)
 (*  Lwt.return
     {{ map r with
-         |  <a (XHTML_types_duce.a_attrs)>l -> l
+         |  <a (HTML5_types_duce.a_attrs)>l -> l
          | p -> [p] }}*)
 
 
@@ -1155,42 +1288,42 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"div" ~wiki_content:true
     (fun bi args c ->
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let content = match c with
             | Some c -> c
             | None -> ""
           in
           xml_of_wiki wikicreole_parser bi content >|= fun content ->
           let classe =
-            try Some (XHTML.M.a_class [List.assoc "class" args])
+            try Some (HTML5.M.a_class [List.assoc "class" args])
             with Not_found -> None
           in
           let id =
-            try Some (XHTML.M.a_id (List.assoc "id" args))
+            try Some (HTML5.M.a_id (List.assoc "id" args))
             with Not_found -> None
           in
           let a = opt_list (filter_raw [classe; id]) in
-          [XHTML.M.div ?a content]
+          [HTML5.M.div ?a content]
     ));
 
 
   let f = (fun bi args c ->
-       Wikicreole.A_content
+       Wikicreole.Phrasing_without_interactive
          (let content = match c with
             | Some c -> c
             | None -> ""
           in
-          inline_of_wiki bi content >|= fun content ->
+          phrasing_of_wiki bi content >|= fun content ->
           let classe =
-            try Some (XHTML.M.a_class [List.assoc "class" args])
+            try Some (HTML5.M.a_class [List.assoc "class" args])
             with Not_found -> None
           in
           let id =
-            try Some (XHTML.M.a_id (List.assoc "id" args))
+            try Some (HTML5.M.a_id (List.assoc "id" args))
             with Not_found -> None
           in
           let a = opt_list (filter_raw [classe; id]) in
-          [XHTML.M.span ?a content]
+          [HTML5.M.span ?a content]
          )
     )
   in
@@ -1199,75 +1332,75 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"span" ~wiki_content:true
     f;
-  add_extension ~wp:inline_wikicreole_parser ~name:"span" ~wiki_content:true f;
+  add_extension ~wp:phrasing_wikicreole_parser ~name:"span" ~wiki_content:true f;
 
   let f =
     (fun bi _ _ ->
-      Wikicreole.A_content
+      Wikicreole.Phrasing_without_interactive
         (let wid = bi.Wiki_widgets_interface.bi_wiki in
          Wiki_sql.get_wiki_info_by_id wid >|= fun wiki_info ->
-         [XHTML.M.pcdata wiki_info.wiki_descr])
+         [HTML5.M.pcdata wiki_info.wiki_descr])
     )
   in
   add_extension_aux
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"wikiname" ~wiki_content:true f;
-  add_extension ~wp:inline_wikicreole_parser
+  add_extension ~wp:phrasing_wikicreole_parser
     ~name:"wikiname" ~wiki_content:true f;
 
 
   let f =
     (fun _ args content ->
-      Wikicreole.A_content
+      Wikicreole.Phrasing_without_interactive
         (let s = string_of_extension "raw" args content in
-         Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]))
+         Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]))
   in
   add_extension_aux
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"raw" ~wiki_content:false f;
-  add_extension ~wp:inline_wikicreole_parser ~name:"raw" ~wiki_content:false f;
+  add_extension ~wp:phrasing_wikicreole_parser ~name:"raw" ~wiki_content:false f;
 
-  let f = (fun _ _ _ -> Wikicreole.A_content (Lwt.return []))
+  let f = (fun _ _ _ -> Wikicreole.Phrasing_without_interactive (Lwt.return []))
   in
   add_extension_aux
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"" ~wiki_content:false f;
-  add_extension ~wp:inline_wikicreole_parser ~name:"" ~wiki_content:false f;
+  add_extension ~wp:phrasing_wikicreole_parser ~name:"" ~wiki_content:false f;
 
   add_extension_aux
     [wikicreole_parser]
     ~name:"content"
     (fun bi args _ ->
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let classe =
             try Some (List.assoc "class" args)
             with Not_found -> None
           and id =
-            try Some (XHTML.M.a_id (List.assoc "id" args))
+            try Some (HTML5.M.a_id (List.assoc "id" args))
             with Not_found -> None
           in
           bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
             | None ->
                 let a = match classe with
                   | None -> opt_list (filter_raw [id])
-                  | Some c -> Some (XHTML.M.a_class [c] :: filter_raw [id])
+                  | Some c -> Some (HTML5.M.a_class [c] :: filter_raw [id])
                 in
-                [XHTML.M.div ?a
-                   [XHTML.M.strong [XHTML.M.em [XHTML.M.pcdata "<<conten>>"]]]
+                [HTML5.M.div ?a
+                   [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<conten>>"]]]
                 ]
             | Some (wb, subbox) ->
                 let classe = match wb with
-                  | None -> apply_opt (fun c -> XHTML.M.a_class [c]) classe
+                  | None -> apply_opt (fun c -> HTML5.M.a_class [c]) classe
                   | Some wb ->
                       Some
-                        (XHTML.M.a_class
+                        (HTML5.M.a_class
                            (class_wikibox wb :: filter_raw [classe]))
                 in
                 let a = opt_list (filter_raw [classe; id]) in
-                [XHTML.M.div ?a subbox]
+                [HTML5.M.div ?a subbox]
          )
     );
 
@@ -1277,16 +1410,16 @@ let () =
     ~name:"menu"
     (fun bi args _ ->
        let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let classe =
-            XHTML.M.a_class
+            HTML5.M.a_class
               (   "wikimenu"
                :: filter_raw [
                     try Some (List.assoc "class" args) with Not_found -> None
                   ])
           in
           let id =
-            try Some (XHTML.M.a_id (List.assoc "id" args))
+            try Some (HTML5.M.a_id (List.assoc "id" args))
             with Not_found -> None
           in
           let a = Some (classe :: (filter_raw [id])) in
@@ -1296,7 +1429,7 @@ let () =
               with Not_found -> s, s
             in
             Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
-            a_content_of_wiki bi text >>= fun text2 ->
+            phrasing_without_interactive_of_wiki bi text >>= fun text2 ->
             let b =
               match wiki_info.Wiki_types.wiki_pages with
                 | Some dir ->
@@ -1307,20 +1440,20 @@ let () =
             if b
             then
               let classe = match classe with
-                | None   -> XHTML.M.a_class ["wikimenu_current"]
-                | Some c -> XHTML.M.a_class ("wikimenu_current" :: c)
+                | None   -> HTML5.M.a_class ["wikimenu_current"]
+                | Some c -> HTML5.M.a_class ("wikimenu_current" :: c)
               in
-              Lwt.return (XHTML.M.li ~a:[classe] text2)
+              Lwt.return (HTML5.M.li ~a:[classe] text2)
             else
-              let href =
-                XHTML.M.a_href
-                  (Uri.uri_of_string
-                     (make_href bi (link_kind link) None)
-                  )
+	      let link =
+		match make_href bi (link_kind link) None with
+		  | String_href addr ->
+		    (HTML5.M.a ~a:[HTML5.M.a_href (Uri.uri_of_string addr)] text2)
+		  | Service_href href -> a_link_of_href href ~a:[] text2
               in
-              let classe = apply_opt XHTML.M.a_class classe in
+              let classe = apply_opt HTML5.M.a_class classe in
               let a = apply_opt (fun x -> [x]) classe in
-              Lwt.return (XHTML.M.li ?a [XHTML.M.a ~a:[href] text2])
+              Lwt.return (HTML5.M.li ?a [link])
           in
           let rec mapf = function
             | []    -> Lwt.return []
@@ -1336,11 +1469,11 @@ let () =
             | [] -> Lwt.return []
             | [x] ->
                 f ~classe:["wikimenu_first"; "wikimenu_last"] x >|= fun y ->
-                [XHTML.M.ul ?a y []]
+                [HTML5.M.ul ?a [y]]
             | x::xs ->
                 f ~classe:["wikimenu_first"] x >>= fun y ->
                 mapf xs                        >|= fun ys ->
-                [XHTML.M.ul ?a y ys]
+                [HTML5.M.ul ?a (y::ys)]
          )
     );
 
@@ -1350,7 +1483,7 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"cond" ~wiki_content:true
     (fun bi args c ->
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let content = unopt_string c in
           let rec eval_cond = function
             | ("error", "autherror") ->

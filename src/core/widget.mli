@@ -38,7 +38,7 @@ class widget_with_error_box :
     method error_class : string
 
     method display_error_message :
-      ?message:string -> ?exc:exn -> unit -> XHTML_types.block XHTML.M.elt list
+      ?message:string -> ?exc:exn -> unit -> HTML5_types.flow5 HTML5.M.elt list
 
     (** Takes a threads that gets data (e.g. from a database),
         then a function that transforms this data into something printable
@@ -50,15 +50,15 @@ class widget_with_error_box :
     method bind_or_display_error :
       'a.
       'a Lwt.t ->
-      ('a -> (string list * XHTML_types.div_content XHTML.M.elt list) Lwt.t) ->
-      (string list * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+      ('a -> (string list * HTML5_types.flow5 HTML5.M.elt list) Lwt.t) ->
+      (string list * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
     method display_error_box :
       ?classes:string list ->
       ?message:string ->
       ?exc:exn ->
       unit ->
-      XHTML_types.block XHTML.M.elt
+      HTML5_types.flow5 HTML5.M.elt
 
   end
 
@@ -92,11 +92,11 @@ end
 
 class virtual ['param_type, 'data_type] parametrized_div_widget :
 object
-  inherit ['param_type, 'data_type, [`Div] XHTML.M.elt Lwt.t] parametrized_widget
+  inherit ['param_type, 'data_type, [`Div] HTML5.M.elt Lwt.t] parametrized_widget
 end
 
 class type ['param_type, 'data_type] parametrized_div_widget_t =
-          ['param_type, 'data_type, [`Div] XHTML.M.elt Lwt.t] parametrized_widget_t
+          ['param_type, 'data_type, [`Div] HTML5.M.elt Lwt.t] parametrized_widget_t
 
 class virtual ['param_type, 'result_type] parametrized_unit_widget :
 object
@@ -111,13 +111,13 @@ class type ['param_type, 'result_type] parametrized_unit_widget_t =
 class virtual ['param_type] parametrized_unit_div_widget :
 object
   inherit ['param_type, unit] parametrized_div_widget
-  inherit ['param_type, [`Div] XHTML.M.elt Lwt.t] parametrized_unit_widget
+  inherit ['param_type, [`Div] HTML5.M.elt Lwt.t] parametrized_unit_widget
   method private retrieve_data :
     'a -> unit Lwt.t
 end
 
 class type ['param_type] parametrized_unit_div_widget_t =
-          ['param_type, unit, [`Div] XHTML.M.elt Lwt.t] parametrized_widget_t
+          ['param_type, unit, [`Div] HTML5.M.elt Lwt.t] parametrized_widget_t
 
 (*
 (** The base parametrized_widget list class *)
@@ -130,7 +130,7 @@ object
      Calls the display procedure for every item of the
      contents in turn.
   *)
-  method display : [`Div] XHTML.M.elt Lwt.t
+  method display : [`Div] HTML5.M.elt Lwt.t
 
 
 end;;

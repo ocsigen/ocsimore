@@ -65,10 +65,10 @@ val input_opaque_int32 :
   ?value:'a Opaque.int32_t ->
   ?hidden:bool ->
   [< 'a Opaque.int32_t Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> [>XHTML_types.input] XHTML.M.elt
+  Eliom_parameters.param_name -> [>HTML5_types.input] HTML5.M.elt
 
 val input_opaque_int32_opt :
   ?value:'a Opaque.int32_t option ->
   ?hidden:bool ->
   [< 'a Opaque.int32_t option Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> [>XHTML_types.input] XHTML.M.elt
+  Eliom_parameters.param_name -> [>HTML5_types.input] HTML5.M.elt

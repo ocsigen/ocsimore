@@ -121,7 +121,7 @@ end
 type menu_style = [ `Linear | `Pencil | `None ]
 
 type box_info = {
-  bi_subbox: menu_style -> (wikibox option * XHTML_types.div_content XHTML.M.elt list) option Lwt.t
+  bi_subbox: menu_style -> (wikibox option * HTML5_types.flow5 HTML5.M.elt list) option Lwt.t
     (* Function generating the text to paste inside an <<option>> extension.
        The wikibox option is (if available) the wikibox which gave rise to
        this text *);
@@ -181,29 +181,29 @@ object
 
   (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
-    classes * XHTML_types.div_content XHTML.M.elt list ->
-    XHTML_types.block XHTML.M.elt Lwt.t
+    classes * HTML5_types.flow5 HTML5.M.elt list ->
+    HTML5_types.flow5 HTML5.M.elt Lwt.t
 
   (** Pretty-print the content of a wikibox *)
   method display_wikiboxcontent :
     bi:box_info ->
     classes:classes ->
-    XHTML_types.div_content XHTML.M.elt list Wiki_types.wikibox_content ->
-    (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+    HTML5_types.flow5 HTML5.M.elt list Wiki_types.wikibox_content ->
+    (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
   (** Display a wikibox without pretty-printing *)
   method display_raw_wikiboxcontent :
     classes:classes ->
-    XHTML_types.div_content XHTML.M.elt list Wiki_types.wikibox_content ->
-    (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+    HTML5_types.flow5 HTML5.M.elt list Wiki_types.wikibox_content ->
+    (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
   (** If error has is supposed to be displayed for the wikibox [wb],
       displays this error and wraps it together with the xml argument in a
       div tag. Otherwise, displays only the xml argument *)
   method wrap_error :
     wb:wikibox ->
-    XHTML_types.block XHTML.M.elt list ->
-    XHTML_types.block XHTML.M.elt list
+    HTML5_types.flow5 HTML5.M.elt list ->
+    HTML5_types.flow5 HTML5.M.elt list
 
 end
 
@@ -222,7 +222,7 @@ object
     bi:box_info ->
     ?classes:string list ->
     wikibox:wikibox ->
-    XHTML_types.block XHTML.M.elt list Lwt.t
+    HTML5_types.flow5 HTML5.M.elt list Lwt.t
 
 end
 
@@ -275,7 +275,7 @@ class type virtual interactive_wikibox =
       previewonly:bool ->
       wb:wikibox ->
       (** content *) string option * (** version *) int32 ->
-      (classes * XHTML_types.block XHTML.M.elt) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt) Lwt.t
 
     (** Same as [display_wikitext_edit_form], but with an help for the
        syntax of the wiki *)
@@ -287,7 +287,7 @@ class type virtual interactive_wikibox =
       previewonly:bool ->
       wb:wikibox ->
       string option * int32 ->
-      (classes * XHTML_types.block XHTML.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
     (** Displays the edition form for the wikibox [wbcss], which is supposed
        to contain a CSS. The form is supposed to be displayed instead of the
@@ -304,7 +304,7 @@ class type virtual interactive_wikibox =
       wbcss:wikibox ->
       wikipage:wiki * string option ->
       (** content *) string option * (** version *) int32 ->
-      (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
 
     (** Display a form permitting to edit the permissions of the given wiki.
@@ -314,14 +314,14 @@ class type virtual interactive_wikibox =
       classes:string list ->
       ?wb:wikibox ->
       wiki ->
-      (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
     (** Display a form to edit the permissions of the given wikibox*)
     method display_edit_wikibox_perm_form :
       bi:box_info ->
       classes:string list ->
       wikibox ->
-      (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
 
     (** Display the history of the wikibox [wb], which is supposed to contain
@@ -331,7 +331,7 @@ class type virtual interactive_wikibox =
       classes:string list ->
       wb:wikibox ->
       (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
-      (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
     (** Display the history of the wikibox [wb], which is supposed to contain
        a CSS. See [display_css_edit_form] for the arguments [wbcss] and
@@ -343,7 +343,7 @@ class type virtual interactive_wikibox =
       wbcss:wikibox ->
       wikipage:wiki * string option ->
       (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
-      (classes * XHTML_types.div_content XHTML.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
 
 
     (** Adds an interactive menu and a title on top of [content]. The result
@@ -360,8 +360,8 @@ class type virtual interactive_wikibox =
       ?special_box:special_box ->
       ?title:string ->
       wb:wikibox ->
-      (** content:*)XHTML_types.div_content XHTML.M.elt list ->
-      XHTML_types.block XHTML.M.elt list Lwt.t
+      (** content:*)HTML5_types.flow5 HTML5.M.elt list ->
+      HTML5_types.flow5 HTML5.M.elt list Lwt.t
 
 
     (** Display the wikibox [wb] as an interactive wikibox. We return the
@@ -374,7 +374,7 @@ class type virtual interactive_wikibox =
       ?cols:int ->
       ?special_box:special_box ->
       (** wb:*)wikibox ->
-      (XHTML_types.block XHTML.M.elt list * bool) Lwt.t
+      (HTML5_types.flow5 HTML5.M.elt list * bool) Lwt.t
 
     (** Same as [interactive_wikibox_aux], except that the http error
         code is not returned. *)
@@ -385,7 +385,7 @@ class type virtual interactive_wikibox =
       ?cols:int ->
       ?special_box:special_box ->
       (** wb:*)wikibox ->
-      XHTML_types.block XHTML.M.elt list Lwt.t
+      HTML5_types.flow5 HTML5.M.elt list Lwt.t
 
     (** Display the wikibox [wb_loc], but entirely overrides the content
         according to the argument [override]. The argument [wb_loc] is
@@ -399,14 +399,14 @@ class type virtual interactive_wikibox =
       wb_loc:wikibox ->
       override:wikibox_override ->
       unit ->
-      (XHTML_types.block XHTML.M.elt list * bool) Lwt.t
+      (HTML5_types.flow5 HTML5.M.elt list * bool) Lwt.t
 
 
     (** Returns the css headers for one wiki and optionally one page. *)
     method css_header :
       ?page:string ->
       wiki ->
-      XHTML_types.link XHTML.M.elt list Lwt.t
+      HTML5_types.link HTML5.M.elt list Lwt.t
 
 
    (** Adds the container of the wiki around some content. The content
@@ -424,9 +424,9 @@ class type virtual interactive_wikibox =
       menu_style:menu_style ->
       page:(string * string list) ->
       gen_box:(menu_style ->
-                 (wikibox option * XHTML_types.div_content XHTML.M.elt list *
+                 (wikibox option * HTML5_types.flow5 HTML5.M.elt list *
                   page_displayable * string option) Lwt.t) ->
-      (XHTML_types.xhtml XHTML.M.elt * int) Lwt.t
+      (HTML5_types.html HTML5.M.elt * int) Lwt.t
 
     (** Displaying of the content of an entire wikipage, ie. both
         the container (as per [display_container]) and the content
@@ -435,21 +435,21 @@ class type virtual interactive_wikibox =
       wiki:wiki ->
       menu_style:menu_style ->
       page:(string * string list) ->
-      (XHTML_types.xhtml XHTML.M.elt * int) Lwt.t
+      (HTML5_types.html HTML5.M.elt * int) Lwt.t
 
 
     (** Display of the list of all the wikis, as well as of some links to edit
         their properties *)
     method display_all_wikis :
-      XHTML_types.block XHTML.M.elt list Lwt.t
+      HTML5_types.flow5 HTML5.M.elt list Lwt.t
 
     (** Display edit form *)
     method draw_edit_form :
       rows:int ->
       cols:int ->
       Wiki_types.wikibox ->
-      XHTML_types.inlinemix XHTML.M.elt list ->
-      XHTML_types.inlinemix XHTML.M.elt list ->
+      HTML5_types.phrasing HTML5.M.elt list ->
+      HTML5_types.phrasing HTML5.M.elt list ->
       Int32.t ->
       string ->
       bool ->
@@ -458,6 +458,6 @@ class type virtual interactive_wikibox =
             Eliom_parameters.param_name *
             [ `One of int32 ] Eliom_parameters.param_name) *
            [ `One of string ] Eliom_parameters.param_name) ->
-      XHTML_types.form_content XHTML.M.elt list
+      HTML5_types.form_content HTML5.M.elt list
 
   end

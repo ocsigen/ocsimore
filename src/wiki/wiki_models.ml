@@ -39,7 +39,7 @@ let (>|=) = Lwt.(>|=)
 exception Wiki_model_does_not_exist of string
 
 type wiki_model =
-    {wm_syntax : XHTML_types.div_content XHTML.M.elt list Wiki_types.content_type;
+    {wm_syntax : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type;
      wm_rights : Wiki_types.wiki_rights;
      wm_widgets : Wiki_widgets_interface.interactive_wikibox;
     }
@@ -88,13 +88,13 @@ let register_flows_wiki_parser,
   get_flows_wiki_preparser =
   let module H =
     Hashtbl.Make(struct
-                   type t = XHTML_types.div_content XHTML.M.elt list Wiki_types.content_type
+                   type t = HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
                    let equal = (=)
                    let hash = Hashtbl.hash
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser_:(b: XHTML_types.div_content XHTML.M.elt list wiki_parser) ->
+  ((fun ~name:k ~preparser:a ~parser_:(b: HTML5_types.flow5 HTML5.M.elt list wiki_parser) ->
       let k = Wiki_types.content_type_of_string k in
       H.add t k (a, b);
       k),
@@ -107,12 +107,12 @@ let register_flows_wiki_parser,
       with Not_found -> raise (Content_type_does_not_exist
                                  (Wiki_types.string_of_content_type k))))
 
-let register_inlines_wiki_parser,
-  get_inlines_wiki_parser,
-  get_inlines_wiki_preparser =
+let register_phrasings_wiki_parser,
+  get_phrasings_wiki_parser,
+  get_phrasings_wiki_preparser =
   let module H =
     Hashtbl.Make(struct
-                   type t = XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type
+                   type t = HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type
                    let equal = (=)
                    let hash = Hashtbl.hash
                  end)
@@ -123,7 +123,7 @@ let register_inlines_wiki_parser,
       H.add t k' (a, b);
       (* we also register a flows parser: *)
       ignore (register_flows_wiki_parser k a
-                (fun bi s -> b bi s >|= fun r -> [XHTML.M.div r]));
+                (fun bi s -> b bi s >|= fun r -> [HTML5.M.div (r:HTML5_types.phrasing HTML5.M.elt list :> HTML5_types.flow5 HTML5.M.elt list)]));
       k'),
    (fun k ->
       try snd (H.find t k)
@@ -145,5 +145,5 @@ let css_content_type =
   register_flows_wiki_parser
     ~name:"css"
     ~preparser:(fun _ s -> Lwt.return s)
-    ~parser_:(fun _bi s -> Lwt.return [XHTML.M.pcdata s])
+    ~parser_:(fun _bi s -> Lwt.return [HTML5.M.pcdata s])
 

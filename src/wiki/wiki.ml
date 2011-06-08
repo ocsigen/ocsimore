@@ -57,7 +57,7 @@ let wiki_admin_servpage () =
 
 let wiki_admin_page_link page =
   wiki_admin_servpage () >>= fun service ->
-  Lwt.return (Eliom_output.Xhtml.make_uri ~service page)
+  Lwt.return (Eliom_output.Html5.make_uri ~service page)
 
 
 

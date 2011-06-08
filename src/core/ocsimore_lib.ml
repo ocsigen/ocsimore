@@ -156,9 +156,9 @@ let remove_begin_slash s =
 let hidden_bool_input :
   value:bool ->
   [< bool Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  [>XHTML_types.input] XHTML.M.elt
+  [>HTML5_types.input] HTML5.M.elt
  = fun ~value name ->
-   Eliom_output.Xhtml.user_type_input string_of_bool
+   Eliom_output.Html5.user_type_input string_of_bool
      ~input_type:`Hidden ~value ~name ()
 
 

@@ -90,7 +90,7 @@ type media_type_elem =
     | `Speech
     | `TTY
     | `TV ]
-type media_type = XHTML_types.mediadesc
+type media_type = HTML5_types.mediadesc
 let string_of_media_type_elem = function
   | `All -> "All"
   | `Aural -> "Aural"

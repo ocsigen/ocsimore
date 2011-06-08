@@ -2,7 +2,7 @@
 open Eliom_pervasives
 open CalendarLib
 module P = Eliom_parameters
-module M = Eliom_output.Xhtml
+module M = Eliom_output.Html5
 let ( ** ) = P.( ** )
 
 let def d v = match v with None -> d | Some v -> v
@@ -42,44 +42,44 @@ type (+'html, +'o) t
 
 
 val string_input :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list -> string -> (XHTML_types.inlinemix XHTML.M.elt, string) t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list -> string -> (HTML5_types.phrasing HTML5.M.elt, string) t
 val string_opt_input :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
-  string option -> (XHTML_types.inlinemix XHTML.M.elt, string option) t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  string option -> (HTML5_types.phrasing HTML5.M.elt, string option) t
 val int_input :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list -> ?format:(int -> string) ->
-  int -> (XHTML_types.inlinemix XHTML.M.elt, int) t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list -> ?format:(int -> string) ->
+  int -> (HTML5_types.phrasing HTML5.M.elt, int) t
 val bounded_int_input :
-  ?format:(int -> string) -> int -> int -> int -> (XHTML_types.inlinemix XHTML.M.elt, int) t
+  ?format:(int -> string) -> int -> int -> int -> (HTML5_types.phrasing HTML5.M.elt, int) t
 val bool_checkbox :
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list -> bool -> (XHTML_types.inlinemix XHTML.M.elt, bool) t
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list -> bool -> (HTML5_types.phrasing HTML5.M.elt, bool) t
 val text_area :
-  ?a:XHTML_types.textarea_attrib XHTML.M.attrib list ->
-  rows:int -> cols:int -> string -> (XHTML_types.inlinemix XHTML.M.elt, string) t
-val submit_button : string -> (XHTML_types.inlinemix XHTML.M.elt, bool) t
-val select_single : (string * string) list -> string -> (XHTML_types.inlinemix XHTML.M.elt, string) t
-(*val select_single : (string * 'a) list -> 'a -> (XHTML_types.inlinemix XHTML.M.elt, 'a) t*)
+  ?a:HTML5_types.textarea_attrib HTML5.M.attrib list ->
+  rows:int -> cols:int -> string -> (HTML5_types.phrasing HTML5.M.elt, string) t
+val submit_button : string -> (HTML5_types.phrasing HTML5.M.elt, bool) t
+val select_single : (string * string) list -> string -> (HTML5_types.phrasing HTML5.M.elt, string) t
+(*val select_single : (string * 'a) list -> 'a -> (HTML5_types.phrasing HTML5.M.elt, 'a) t*)
 (*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
 val list :
      'i list
-  -> ('i -> (XHTML_types.form_content XHTML.M.elt, 'o) t)
-  -> (XHTML_types.form_content XHTML.M.elt, 'o list) t
+  -> ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t)
+  -> (HTML5_types.form_content HTML5.M.elt, 'o list) t
 
 val list' :
      int
-  -> (XHTML_types.form_content XHTML.M.elt, 'o) t
-  -> (XHTML_types.form_content XHTML.M.elt, 'o list) t
+  -> (HTML5_types.form_content HTML5.M.elt, 'o) t
+  -> (HTML5_types.form_content HTML5.M.elt, 'o list) t
 
 val extensible_list :
   string -> 'i -> 'i list ->
-  ('i -> (XHTML_types.form_content XHTML.M.elt, 'o) t) ->
-  (XHTML_types.form_content XHTML.M.elt, 'o list) t
+  ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t) ->
+  (HTML5_types.form_content HTML5.M.elt, 'o list) t
 
 val opt_input:
-  input:('a -> (XHTML_types.inlinemix XHTML.M.elt, 'b) t) ->
+  input:('a -> (HTML5_types.phrasing HTML5.M.elt, 'b) t) ->
   default:'a ->
   'a option ->
-  (XHTML_types.inlinemix XHTML.M.elt, 'b option) t
+  (HTML5_types.phrasing HTML5.M.elt, 'b option) t
 
 
 module Ops : sig
@@ -95,18 +95,18 @@ end
 val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
 val check :
-  (XHTML_types.inlinemix XHTML.M.elt, 'a) t -> ('a -> string option) -> (XHTML_types.inlinemix XHTML.M.elt, 'a) t
+  (HTML5_types.phrasing HTML5.M.elt, 'a) t -> ('a -> string option) -> (HTML5_types.phrasing HTML5.M.elt, 'a) t
 
 val convert :
-  (XHTML_types.inlinemix XHTML.M.elt, 'a) t -> ('a -> 'b convert monad) -> (XHTML_types.inlinemix XHTML.M.elt, 'b) t
+  (HTML5_types.phrasing HTML5.M.elt, 'a) t -> ('a -> 'b convert monad) -> (HTML5_types.phrasing HTML5.M.elt, 'b) t
 
-val hour_input : int -> int -> (XHTML_types.inlinemix XHTML.M.elt, int * int) t
-val day_input : int -> int -> int -> (XHTML_types.inlinemix XHTML.M.elt, int * int * int) t
-val date_input : Calendar.t -> (XHTML_types.inlinemix XHTML.M.elt, Calendar.t) t
+val hour_input : int -> int -> (HTML5_types.phrasing HTML5.M.elt, int * int) t
+val day_input : int -> int -> int -> (HTML5_types.phrasing HTML5.M.elt, int * int * int) t
+val date_input : Calendar.t -> (HTML5_types.phrasing HTML5.M.elt, Calendar.t) t
 
-val text : string -> XHTML_types.inlinemix XHTML.M.elt list
-val strong : XHTML_types.inlinemix XHTML.M.elt list -> XHTML_types.inlinemix XHTML.M.elt
-val p : (XHTML_types.inlinemix XHTML.M.elt, 'b) t -> (XHTML_types.form_content XHTML.M.elt, 'b) t
+val text : string -> HTML5_types.phrasing HTML5.M.elt list
+val strong : HTML5_types.phrasing HTML5.M.elt list -> HTML5_types.phrasing HTML5.M.elt
+val p : (HTML5_types.phrasing HTML5.M.elt, 'b) t -> (HTML5_types.form_content HTML5.M.elt, 'b) t
 
 val form:
   fallback:('a, unit,
@@ -117,11 +117,11 @@ val form:
   Eliom_services.service ->
   get_args:'a ->
   page:('a -> error ->
-        [>XHTML_types.form] XHTML.M.elt -> XHTML.M.html Lwt.t) ->
+        [>HTML5_types.form] HTML5.M.elt -> HTML5.M.html Lwt.t) ->
   ?err_handler:(exn -> string option) ->
-  (XHTML_types.form_content XHTML.M.elt,
-   unit -> Eliom_output.Xhtml.page Lwt.t) t ->
-   [> XHTML_types.form] XHTML.M.elt monad
+  (HTML5_types.form_content HTML5.M.elt,
+   unit -> Eliom_output.Html5.page Lwt.t) t ->
+   [> HTML5_types.form] HTML5.M.elt monad
 
 
 end
@@ -229,7 +229,7 @@ let select_single lst value =
          let lst =
            List.map
              (fun (l, v) ->
-                M.Option ([], v, Some (XHTML.M.pcdata l), v = sel)
+                M.Option ([], v, Some (HTML5.M.pcdata l), v = sel)
              )
              lst
          in
@@ -380,7 +380,7 @@ let list' n f =
 
 (****)
 
-let error s = [XHTML.M.span ~a:[XHTML.M.a_class ["errmsg"]] [XHTML.M.pcdata s]]
+let error s = [HTML5.M.span ~a:[HTML5.M.a_class ["errmsg"]] [HTML5.M.pcdata s]]
 
 let check f tst =
   unpack f {f = fun f ->
@@ -414,15 +414,16 @@ let convert f conv =
 (****)
 
 let text
-  : string -> XHTML_types.inlinemix XHTML.M.elt list
-  = fun s -> [XHTML.M.pcdata s]
+  : string -> HTML5_types.phrasing HTML5.M.elt list
+  = fun s -> [HTML5.M.pcdata s]
 let strong
-  : XHTML_types.inlinemix XHTML.M.elt list -> XHTML_types.inlinemix XHTML.M.elt
-  = fun l -> XHTML.M.strong l
-let p (x : (XHTML_types.inlinemix XHTML.M.elt, 'b) t) =
-  wrap (fun x -> [XHTML.M.p x]) x
-let hidden (x : (XHTML_types.inlinemix XHTML.M.elt, 'b) t) =
-  wrap (fun x -> [XHTML.M.div ~a:[XHTML.M.a_style "display:none"] x]) x
+  : HTML5_types.phrasing HTML5.M.elt list -> HTML5_types.phrasing HTML5.M.elt
+  = fun l -> HTML5.M.strong l
+let p (x : (HTML5_types.phrasing HTML5.M.elt, 'b) t) =
+  wrap (fun x -> [HTML5.M.p x]) x
+let hidden (x : (HTML5_types.phrasing HTML5.M.elt, 'b) t) =
+  wrap (fun x -> [HTML5.M.div ~a:[HTML5.M.a_style "display:none"] x])
+    (x: (HTML5_types.phrasing HTML5.M.elt,'a) t :>(HTML5_types.flow5 HTML5.M.elt,'a) t)
 
 (****)
 
@@ -437,7 +438,7 @@ let bounded_int_input ?format a b i =
   let l =
       max (String.length (string_of_int a)) (String.length (string_of_int b))
   in
-  check (int_input ?format ~a:[XHTML.M.a_maxlength l; XHTML.M.a_size l] i)
+  check (int_input ?format ~a:[HTML5.M.a_maxlength l; HTML5.M.a_size l] i)
   (fun i ->
    if i < a || i > b then
      Some (Format.sprintf "doit être entre %i et %i" a b)
@@ -449,7 +450,7 @@ let bounded_int_input ?format a b i =
 let extensible_list txt default l f =
   (list l f @@
    let button =
-     wrap_int (fun x -> [XHTML.M.p x]) (submit_button_int txt) in
+     wrap_int (fun x -> [HTML5.M.p x]) (submit_button_int txt) in
    unpack (f default) {f = fun f ->
    pack
      {form =
@@ -545,7 +546,7 @@ let form ~fallback ~get_args ~page ?(err_handler = fun _ -> None) f =
                               (fun _ -> x) get_args in
                             page get_args (ErrorMsg err) form
                    )
-             | ((x : XHTML_types.form_content XHTML.M.elt list),
+             | ((x : HTML5_types.form_content HTML5.M.elt list),
                 (Error | Redisplay as err))     ->
                   let form =
                     M.post_form ~service (fun _ -> x) get_args in
@@ -588,7 +589,7 @@ let form ~fallback ~get_args ~page ?(err_handler = fun _ -> None) f =
                               (fun _ -> x) get_args in
                             page get_args (ErrorMsg err) form
                    )
-             | ((x : XHTML_types.form_content XHTML.M.elt list),
+             | ((x : HTML5_types.form_content HTML5.M.elt list),
                 (Error | Redisplay as err))     ->
                   let form =
                     M.post_form ~service (fun _ -> x) get_args in

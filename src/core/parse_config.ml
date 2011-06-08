@@ -45,6 +45,15 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
       Language.messages := Language.messages_english;
       parse_config l
+  | (Simplexmlparser.Element ("database", attribs, []))::l ->
+    List.iter (function
+		  | "name", name -> Ocsimore_config.db_name := name;
+		  | "user", user -> Ocsimore_config.db_user := user
+		  | attrib, _ ->
+		    raise (Ocsigen_extensions.Error_in_config_file
+			     ("Unexpected attribute inside ocsimore database config: "^attrib)))
+      attribs;
+    parse_config l
   | _ ->
       raise (Ocsigen_extensions.Error_in_config_file
                "Unexpected content inside ocsimore config")

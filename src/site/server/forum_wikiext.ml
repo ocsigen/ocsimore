@@ -31,7 +31,7 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
     [Wiki_syntax.wikicreole_parser]
     ~name:"forum_message" ~wiki_content:true
     (fun bi args content ->
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let classes =
             try Some [List.assoc "class" args]
             with Not_found -> None
@@ -44,10 +44,10 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
 		?classes
 		~data:message_id ()
 	    in
-	    ( Lwt.return [c] :> XHTML_types.div_content XHTML.M.elt list Lwt.t )
+	    ( Lwt.return [c] :> HTML5_types.flow5 HTML5.M.elt list Lwt.t )
           with Not_found | Failure _ ->
             let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]
+            Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
          )
     );
 
@@ -55,7 +55,7 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
     [Wiki_syntax.wikicreole_parser]
     ~name:"forum_thread" ~wiki_content:true
     (fun bi args content ->
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let classes =
             try Some [List.assoc "class" args]
             with Not_found -> None
@@ -78,7 +78,7 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
 	    Lwt.return [c]
           with Not_found | Failure _ ->
             let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]
+            Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
          )
     );
 
@@ -86,7 +86,7 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
     [Wiki_syntax.wikicreole_parser]
     ~name:"forum_message_list" ~wiki_content:true
     (fun bi args content ->
-       Wikicreole.Block
+       Wikicreole.Flow5
          (let classes =
             try Some [List.assoc "class" args]
             with Not_found -> None
@@ -125,7 +125,7 @@ let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_wi
 	    Lwt.return [c]
           with Not_found | Failure _ ->
             let s = Wiki_syntax.string_of_extension "raw" args content in
-            Lwt.return [XHTML.M.b [XHTML.M.pcdata s]]
+            Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
          )
     );
 

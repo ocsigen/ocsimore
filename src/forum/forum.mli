@@ -65,7 +65,7 @@ val thread_readers_evennotmoderated  : message_arg parameterized_group
     if it already exists. *)
 val create_forum :
   wiki_model:Wiki_types.wiki_model ->
-  title_syntax:XHTML_types.inlinemix XHTML.M.elt list Wiki_types.content_type ->
+  title_syntax:HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type ->
   title:string ->
   descr:string ->
   ?arborescent:bool ->
@@ -113,16 +113,16 @@ type role =
     }
 
 
-val get_role : 
+val get_role :
   Forum_types.forum -> role Lwt.t
 
 
 
 (** {2 } *)
 type forum_action_info =
-  | Preview of ((Forum_types.forum * 
+  | Preview of ((Forum_types.forum *
                    Forum_types.message option (* parent *)) * string)
-  | Msg_creation_not_allowed of (Forum_types.forum * 
+  | Msg_creation_not_allowed of (Forum_types.forum *
                                    Forum_types.message option (* parent *))
 
 
@@ -137,26 +137,26 @@ val eliom_message :
   string -> (message, [`WithoutSuffix], [`One of message] Eliom_parameters.param_name) Eliom_parameters.params_type
 
 (** Eliom input field for forums *)
-val eliom_forum_input : 
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
-  input_type:[< Eliom_output.Xhtml.basic_input_type ] ->
+val eliom_forum_input :
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  input_type:[< `Hidden | `Password | `Submit | `Text ] ->
   ?name:[< Forum_types.forum Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  ?value:Forum_types.forum -> unit -> [> XHTML_types.input ] XHTML.M.elt
+  ?value:Forum_types.forum -> unit -> [> HTML5_types.input ] HTML5.M.elt
 
 (** Eliom input field for messages *)
-val eliom_message_input : 
-  ?a:XHTML_types.input_attrib XHTML.M.attrib list ->
-  input_type:[< Eliom_output.Xhtml.basic_input_type ] ->
+val eliom_message_input :
+  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  input_type:[< `Hidden | `Password | `Submit | `Text ] ->
   ?name:[< Forum_types.message Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  ?value:Forum_types.message -> unit -> [> XHTML_types.input ] XHTML.M.elt
+  ?value:Forum_types.message -> unit -> [> HTML5_types.input ] HTML5.M.elt
 
 (** Eliom button for messages *)
 val eliom_message_button :
-  ?a:XHTML_types.button_attrib XHTML.M.attrib list ->
+  ?a:HTML5_types.button_attrib HTML5.M.attrib list ->
   name:[< Forum_types.message Eliom_parameters.setone ] Eliom_parameters.param_name ->
   value:Forum_types.message ->
-  XHTML_types.button_content XHTML.M.elt list ->
-  [> XHTML_types.button ] XHTML.M.elt
+  HTML5_types.button_content HTML5.M.elt list ->
+  [> HTML5_types.button ] HTML5.M.elt
 
 
 (** {2 } *)

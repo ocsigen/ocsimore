@@ -543,11 +543,11 @@ let eliom_message =
     ~of_string:message_of_string ~to_string:string_of_message 
 
 let eliom_forum_input ?a ~input_type ?name ?value () = 
-  Eliom_output.Xhtml.user_type_input string_of_forum ?a ~input_type ?name ?value ()
+  Eliom_output.Html5.user_type_input string_of_forum ?a ~input_type ?name ?value ()
 let eliom_message_input ?a ~input_type ?name ?value () = 
-  Eliom_output.Xhtml.user_type_input string_of_message ?a ~input_type ?name ?value ()
+  Eliom_output.Html5.user_type_input string_of_message ?a ~input_type ?name ?value ()
 let eliom_message_button ?a ~name ~value v =
-  Eliom_output.Xhtml.user_type_button string_of_message ?a ~name ~value v
+  Eliom_output.Html5.user_type_button string_of_message ?a ~name ~value v
 
 
 (** {2 Right model for forum's wikis} *)

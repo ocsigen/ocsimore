@@ -78,35 +78,31 @@ let set_wikibox_error v =
 
 
 
-
-
 let send_wikipage
   ~(rights : Wiki_types.wiki_rights)
   ~wiki
   ?(menu_style=`Linear)
   ~page
   () =
-
+  let wiki_page () =
+    Printf.printf "gen appl page\n%!";
+    lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+    let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
+    lwt (html,code) = widgets#display_wikipage ~wiki ~menu_style ~page in
+    Ocsimore_appl.send ~code html
+  in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
   (* if there is a static page, and should we send it ? *)
-  Lwt.catch
-    (fun () -> match wiki_info.wiki_staticdir with
-       | Some dir ->
-           Eliom_output.Files.send (dir ^"/"^ fst page) >>= fun r ->
-           (rights#can_view_static_files wiki >>= function (*RRR: This should be generalized and exported *)
-              | true -> Lwt.return r
-              | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
-           )
-       | None -> Lwt.fail Eliom_common.Eliom_404)
-    (function
-       | Eliom_common.Eliom_404 ->
-           Wiki_sql.get_wiki_info_by_id wiki             >>= fun wiki_info ->
-           let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
-           widgets#display_wikipage ~wiki ~menu_style ~page
-                                                         >>= fun (html, code) ->
-           Eliom_output.Xhtml.send ~code html
-       | e -> Lwt.fail e
-    )
+  match wiki_info.wiki_staticdir with
+    | Some dir ->
+      let filename = (dir ^"/"^ fst page) in
+      if Eliom_output.Files.check_file filename
+      then
+	(match_lwt rights#can_view_static_files wiki with (*RRR: This should be generalized and exported *)
+	  | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
+          | true -> Eliom_output.appl_self_redirect Eliom_output.Files.send filename)
+      else wiki_page ()
+    | None -> wiki_page ()
 
 
 (* Register the services for the wiki [wiki] *)
@@ -125,6 +121,7 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun path () ->
          let page' = Url.string_of_url_path ~encode:false path in
+	 Printf.printf "serv %s\n%!" page';
          send_wikipage ~rights ~wiki ~page:(page', path) ()
       )
   in
@@ -140,6 +137,7 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
            Url.remove_slash_at_beginning (Neturl.split_path page)
          in
          let page' = Url.string_of_url_path ~encode:false path in
+	 Printf.printf "naserv %s\n%!" page';
          send_wikipage ~rights ~wiki ~page:(page', path) ()
       )
   in

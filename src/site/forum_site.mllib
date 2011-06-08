@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: dac096d56d01ea839868a78eaa62e836)
-Forum_site
-Forum_wikiext
-Forum_services
-Forum_widgets
-Ocsicreateforum
+# DO NOT EDIT (digest: c90eef87862e0c97c584e8b5cc99d1f8)
+server/Forum_site
+server/Forum_wikiext
+server/Forum_services
+server/Forum_widgets
+server/Ocsicreateforum
 # OASIS_STOP

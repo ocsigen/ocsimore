@@ -3,6 +3,15 @@
 
 .btmenu {
     text-decoration: underline;
+    content
+}
+
+body.nomenu span.btmenu:before {
+    content:"Show menus";
+}
+
+span.btmenu:before {
+    content:"Hide menus";
 }
 
 /* Menu in linear mode */

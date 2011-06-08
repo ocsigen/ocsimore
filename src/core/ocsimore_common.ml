@@ -70,7 +70,7 @@ let eliom_opaque_int32_opt s =
 
 
 let input_opaque_int32 ?value ?(hidden=true) name =
-  let f = Eliom_output.Xhtml.user_type_input
+  let f = Eliom_output.Html5.user_type_input
     (fun v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
   in
   if hidden then
@@ -79,7 +79,7 @@ let input_opaque_int32 ?value ?(hidden=true) name =
     f ~input_type:`Text ()
 
 let input_opaque_int32_opt ?value ?(hidden=true) name =
-  let f = Eliom_output.Xhtml.user_type_input
+  let f = Eliom_output.Html5.user_type_input
     (fun v -> match v with
        | None -> ""
        | Some v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value

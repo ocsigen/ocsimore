@@ -1,10 +1,12 @@
 # -*- conf -*-
 
+<**/*>: debug
 <src/**/*.ml>: syntax_camlp4o
 <src/wiki/wikicreole.ml*>: -syntax_camlp4o, -pkg_camlp4, -pkg_lwt.syntax, -pkg_pgocaml.syntax
+<src/site/type/*>: thread, use_ocsimore, use_wiki
 
 # OASIS_START
-# DO NOT EDIT (digest: d2e3fe60d84a8b5571a444635ae846ea)
+# DO NOT EDIT (digest: f9be31107e8e009ea2f6a69eb56b9677)
 # Library ocsimore
 "src/core": include
 "src/core/ocsimore.cmxs": use_ocsimore
@@ -45,6 +47,8 @@
 <src/wiki/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/*.ml{,i}>: pkg_eliom.server
 <src/wiki/*.ml{,i}>: pkg_camlp4
+# Library core_site
+"src/site/core_site.cmxs": use_core_site
 # Library forum
 "src/forum": include
 "src/forum/forum.cmxs": use_forum
@@ -57,9 +61,21 @@
 <src/forum/*.ml{,i}>: pkg_lwt.syntax
 <src/forum/*.ml{,i}>: pkg_eliom.server
 <src/forum/*.ml{,i}>: pkg_camlp4
-# Library core_site
-"src/site": include
-"src/site/core_site.cmxs": use_core_site
+# Library wiki_site
+"src/site/wiki_site.cmxs": use_wiki_site
+# Library core_site_client
+"src/site/client": include
+"src/site/client/core_site_client.cmxs": use_core_site_client
+<src/site/client/*.ml{,i}>: pkg_lwt.syntax
+<src/site/client/*.ml{,i}>: pkg_eliom.syntax
+<src/site/client/*.ml{,i}>: pkg_eliom.client
+<src/site/client/*.ml{,i}>: pkg_camlp4
+# Library user_site
+"src/site/user_site.cmxs": use_user_site
+# Library forum_site
+"src/site/forum_site.cmxs": use_forum_site
+<src/site/*.ml{,i}>: use_forum
+<src/site/*.ml{,i}>: use_core_site
 <src/site/*.ml{,i}>: use_wiki
 <src/site/*.ml{,i}>: use_user
 <src/site/*.ml{,i}>: use_ocsimore
@@ -69,4 +85,32 @@
 <src/site/*.ml{,i}>: pkg_lwt.syntax
 <src/site/*.ml{,i}>: pkg_eliom.server
 <src/site/*.ml{,i}>: pkg_camlp4
+<src/site/server/*.ml{,i}>: use_forum
+<src/site/server/*.ml{,i}>: use_core_site
+<src/site/server/*.ml{,i}>: use_wiki
+<src/site/server/*.ml{,i}>: use_user
+<src/site/server/*.ml{,i}>: use_ocsimore
+<src/site/server/*.ml{,i}>: pkg_threads
+<src/site/server/*.ml{,i}>: pkg_pgocaml.syntax
+<src/site/server/*.ml{,i}>: pkg_pam
+<src/site/server/*.ml{,i}>: pkg_lwt.syntax
+<src/site/server/*.ml{,i}>: pkg_eliom.server
+<src/site/server/*.ml{,i}>: pkg_camlp4
+"src/site": include
+"src/site/server": include
 # OASIS_STOP
+"src/site": -include
+"src/site/server": -include
+"src/site/client": -include
+"src/wiki": -include
+"src/forum": -include
+"src/user": -include
+"src/core": -include
+
+# build ocsimore.js
+"src/site/client/ocsimore.byte": use_core_site_client
+"src/site/client/ocsimore.byte": pkg_lwt.syntax
+"src/site/client/ocsimore.byte": pkg_eliom.syntax
+"src/site/client/ocsimore.byte": pkg_eliom.client
+"src/site/client/ocsimore.byte": pkg_camlp4
+<src/site/wiki_site.cm{a,xa}>: js_core_site_client

@@ -40,7 +40,7 @@ val static_service :
 (** Path to a static file, suitable for inclusion in a <a> tag *)
 val static_file_uri :
   path:string list
-  -> XHTML.M.uri
+  -> HTML5.M.uri
 
 
 (** Allows to add HTML headers required by page components *)
@@ -51,7 +51,7 @@ module Header : sig
     (** Define a new header *)
     val create_header :
          (   unit
-          -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
+          -> HTML5_types.head_content_fun HTML5.M.elt list)
       -> header
 
     (** Call this function every time you need a header to be included
@@ -65,7 +65,7 @@ module Header : sig
     *)
     val generate_headers :
       unit
-      -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list
+      -> HTML5_types.head_content_fun HTML5.M.elt list
 
   end
 
@@ -91,12 +91,11 @@ val add_onload_function: string -> unit
     [add_html_header_hook] above. The argument [body_classes] is
     used for the classes of the [body] html element. *)
 val html_page :
-  ?body_classes:XHTML_types.nmtokens ->
-  ?css:XHTML_types.link XHTML.M.elt list->
+  ?body_classes:HTML5_types.nmtokens ->
+  ?css:HTML5_types.link HTML5.M.elt list->
   ?title:string ->
-  XHTML_types.body_content XHTML.M.elt list ->
-  XHTML.M.html Lwt.t
-
+  HTML5_types.body_content HTML5.M.elt list ->
+  HTML5.M.html Lwt.t
 
 (** Functions related to the administration menu *)
 
@@ -120,7 +119,7 @@ val add_to_admin_menu :
 val admin_menu:
   ?service:menu_link_service ->
   Eliom_common.server_params ->
-  XHTML_types.block XHTML.M.elt list Lwt.t
+  HTML5_types.block HTML5.M.elt list Lwt.t
 *)
 
 (** Displays a complete admin page, with the admin menu and the status bar.
@@ -129,21 +128,21 @@ val admin_menu:
 val admin_page:
   ?service:menu_link_service ->
   ?body_classes:string list ->
-  ?css:XHTML_types.link XHTML.M.elt list ->
+  ?css:HTML5_types.link HTML5.M.elt list ->
   ?title:string ->
   ?allow_unlogged:bool ->
-  XHTML_types.div_content XHTML.M.elt list ->
-  XHTML.M.html Lwt.t
+  HTML5_types.flow5 HTML5.M.elt list ->
+  HTML5.M.html Lwt.t
 
 
 val icon:
   path:string ->
   text:string ->
-  [> XHTML_types.img ] XHTML.M.elt
+  [> `Img ] HTML5.M.elt
 
 
 val add_status_function:
   (unit
-   -> XHTML_types.div_content XHTML.M.elt Lwt.t)
+   -> HTML5_types.flow5 HTML5.M.elt Lwt.t)
    -> unit
 

@@ -70,7 +70,10 @@ let static_service = Eliom_output.Any.register_service
 
 
 let static_file_uri ~path =
-  Eliom_output.Xhtml.make_uri ~service:static_service path
+  Printf.printf "path: %s\n%!" (String.concat "/" path);
+  let uri = Eliom_output.Html5.make_uri ~service:static_service path in
+  Printf.printf "uri: %s\n%!" uri;
+  uri
 
 
 
@@ -116,7 +119,7 @@ module Header = (
 
     (** Define a new header *)
     val create_header :
-         ( unit -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list )
+         ( unit -> HTML5_types.head_content_fun HTML5.M.elt list )
       -> header
 
     (** Call this function every time you need a header to be included
@@ -130,14 +133,14 @@ module Header = (
     *)
     val generate_headers :
          unit
-      -> [`Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list
+      -> HTML5_types.head_content_fun HTML5.M.elt list
 
   end)
 
 let admin_pages_header =
   Header.create_header
     (fun () ->
-       [Eliom_output.Xhtml.css_link
+       [Eliom_output.Html5.css_link
           (static_file_uri ["ocsiadmin.css"]) ()
        ]
     )
@@ -156,59 +159,28 @@ let add_onload_function ?(first = false) s =
     ~value:(if first then onload_functions () @ [s]
             else s :: onload_functions ())
 
-(*
-(* Obrowser *)
-let obrowser_header =
-  Header.create_header
-    (fun sp ->
-       let eliom_obrowser = Eliom_duce.Xhtml.js_script
-         ~uri:(static_file_uri sp ["eliom_obrowser.js"]) ()
-       and vm = Eliom_duce.Xhtml.js_script
-         ~uri:(static_file_uri sp ["vm.js"]) ()
-       in
-       add_onload_function ~first:true sp
-         (Printf.sprintf "main_vm = exec_caml ('%s/ocsimore_client.uue')"
-            (static_file_uri sp ["."]));
-       {{ [ vm eliom_obrowser  ] }}
-    )
- *)
-
 let add_onload_function = add_onload_function ~first:false
 
 (* shortcuts: *)
-(*
-let add_obrowser_header = Header.require_header obrowser_header
- *)
 let add_admin_pages_header () = Header.require_header admin_pages_header
 
 
 let html_page ?body_classes ?(css=[]) ?(title="Ocsimore") content =
   let headers = Header.generate_headers () in
   let body_attrs = match body_classes with
-    | None -> [XHTML.M.a_id "body"]
-    | Some l -> [XHTML.M.a_id "body"; XHTML.M.a_class l]
+    | None -> [HTML5.M.a_id "body"]
+    | Some l -> [HTML5.M.a_id "body"; HTML5.M.a_class l]
   in
-(*  and onload_body, onload_script = match onload_functions sp with
-    | [] -> {{ {} }}, {{ [] }}
-    | l -> {{ { onload="bodyOnload()" } }},
-        {{ [ <script type="text/javascript">
-                         {: Printf.sprintf "function bodyOnload() { \n%s;\n}"
-                            (String.concat ";\n" (List.rev l)) :}
-           ] }}
-  in
- *)
   Lwt.return
-    (XHTML.M.html
-       (XHTML.M.head
-          (XHTML.M.title (XHTML.M.pcdata title))
+    (HTML5.M.html
+       (HTML5.M.head
+          (HTML5.M.title (HTML5.M.pcdata title))
           ((css
-            :XHTML_types.link XHTML.M.elt list
-            :> [ `Link | `Meta | `Object | `Script | `Style ] XHTML.M.elt list)
+            :HTML5_types.link HTML5.M.elt list
+            :> HTML5_types.head_content_fun HTML5.M.elt list)
           @ headers))
-       (XHTML.M.body ~a:body_attrs content)
+       (HTML5.M.body ~a:body_attrs content)
     )
-
-
 
 (** Admin page *)
 
@@ -224,17 +196,9 @@ open Eliom_tools_common
 
 let admin_menu = ref []
 
-(*
-let menu_link sp (text, service, f) =
-  f sp >>= function
-    | true -> Lwt.return
-        (Some (Ocamlduce.Utf8.make text, Site_tree (Main_page service, [])))
-    | false -> Lwt.return None
-*)
-
 let menu_link (text, service, f) =
   f () >|= function
-  | true -> Some ([XHTML.M.pcdata text], Site_tree (Main_page service, []))
+  | true -> Some ([HTML5.M.pcdata text], Site_tree (Main_page service, []))
   | false -> None
 
 let add_to_admin_menu ~name ~links ~root =
@@ -248,16 +212,16 @@ let admin_menu ?service () =
             menu_link me >|= function | None -> r | Some me -> me::r
          )
          [] links >|= fun links ->
-         ([XHTML.M.span
-             ~a:[XHTML.M.a_class ["admin-menu-root"]]
-             [XHTML.M.pcdata name]],
+         ([HTML5.M.span
+             ~a:[HTML5.M.a_class ["admin-menu-root"]]
+             [HTML5.M.pcdata name]],
          Site_tree (Main_page root, List.rev links)
          )
     )
     !admin_menu >|= List.rev                               >>= fun admin_menu ->
   Lwt.return (Main_page admin_root, admin_menu)            >>= fun menu ->
   Lwt.return (add_admin_pages_header ())                   >|= fun () ->
-  Eliom_tools.Xhtml.hierarchical_menu_depth_first
+  Eliom_tools.Html5.hierarchical_menu_depth_first
      ~id:"admin_menu"
      ~whole_tree:false
      menu
@@ -272,8 +236,8 @@ let add_status_function, status_text =
 (*TODO: find a better place for [access_denied]'s definition and make customizable *)
 let access_denied =
   [
-    XHTML.M.h1 [XHTML.M.pcdata "Access denied"];
-    XHTML.M.pcdata "You are not allowed to access this content. Please login.";
+    HTML5.M.h1 [HTML5.M.pcdata "Access denied"];
+    HTML5.M.pcdata "You are not allowed to access this content. Please login.";
   ]
 
 let admin_page
@@ -291,29 +255,29 @@ let admin_page
   in
   html_page ~title ~css ~body_classes:("admin" :: body_classes)
     (  menu ()
-     @ [XHTML.M.div ~a:[XHTML.M.a_id "admin_body"] content;
-        XHTML.M.div ~a:[XHTML.M.a_id "admin_status"] status;
+     @ [HTML5.M.div ~a:[HTML5.M.a_id "admin_body"] content;
+        HTML5.M.div ~a:[HTML5.M.a_id "admin_status"] status;
        ]
     )
 
 
 let icon ~path ~text =
   let src = static_file_uri [path] in
-  XHTML.M.img ~src ~alt:text ~a:[XHTML.M.a_title text] ()
+  HTML5.M.img ~src ~alt:text ~a:[HTML5.M.a_title text] ()
 
 
 let ocsimore_admin_greetings =
   [
-    XHTML.M.h1 [XHTML.M.pcdata "Ocsimore"];
-    XHTML.M.p
-      [XHTML.M.pcdata
+    HTML5.M.h1 [HTML5.M.pcdata "Ocsimore"];
+    HTML5.M.p
+      [HTML5.M.pcdata
          "This is the Ocsimore root admin page. The links on the left will \
           help you configure the different modules of your Ocsimore \
           installation."
       ];
   ]
 
-let () = Eliom_output.Xhtml.register admin_root
+let () = Eliom_output.Html5.register admin_root
   (fun () () ->
      admin_page ~service:admin_root ~title:"Ocsimore"
        ocsimore_admin_greetings
