@@ -85,7 +85,6 @@ let send_wikipage
   ~page
   () =
   let wiki_page () =
-    Printf.printf "gen appl page\n%!";
     lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
     let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
     lwt (html,code) = widgets#display_wikipage ~wiki ~menu_style ~page in
@@ -121,7 +120,6 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun path () ->
          let page' = Url.string_of_url_path ~encode:false path in
-	 Printf.printf "serv %s\n%!" page';
          send_wikipage ~rights ~wiki ~page:(page', path) ()
       )
   in
@@ -137,7 +135,6 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
            Url.remove_slash_at_beginning (Neturl.split_path page)
          in
          let page' = Url.string_of_url_path ~encode:false path in
-	 Printf.printf "naserv %s\n%!" page';
          send_wikipage ~rights ~wiki ~page:(page', path) ()
       )
   in

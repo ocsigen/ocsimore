@@ -69,11 +69,7 @@ let static_service = Eliom_output.Any.register_service
   )
 
 
-let static_file_uri ~path =
-  Printf.printf "path: %s\n%!" (String.concat "/" path);
-  let uri = Eliom_output.Html5.make_uri ~service:static_service path in
-  Printf.printf "uri: %s\n%!" uri;
-  uri
+let static_file_uri ~path = Eliom_output.Html5.make_uri ~service:static_service path
 
 
 
