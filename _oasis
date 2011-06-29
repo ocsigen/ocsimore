@@ -118,8 +118,8 @@ Library "core_site_client"
 
 Library "user_site"
   Path: src/site
-  FindlibName: user
-  FindlibParent: site
+  FindlibName: user_site
+  FindlibParent: ocsimore
   Modules:
     server/User_site,
     server/User_ext,
@@ -131,8 +131,8 @@ Library "user_site"
 
 Library "wiki_site"
   Path: src/site
-  FindlibName: wiki
-  FindlibParent: site
+  FindlibName: wiki_site
+  FindlibParent: ocsimore
   Modules:
     server/Wiki_site,
     server/Wiki_ext,
@@ -144,8 +144,8 @@ Library "wiki_site"
 
 Library "forum_site"
   Path: src/site
-  FindlibName: forum
-  FindlibParent: site
+  FindlibName: forum_site
+  FindlibParent: ocsimore
   Modules:
     server/Forum_site,
     server/Forum_wikiext,

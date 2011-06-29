@@ -532,7 +532,7 @@ let form ~fallback ~get_args ~page ?(err_handler = fun _ -> None) f =
     ~post_params:params ()
   in
   M.post_form ~service (fun names ->
-    M.register ~scope:`Session ~service
+    M.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
              match f.form (Some v) names with
              | (x, Success act) ->
@@ -575,7 +575,7 @@ let form ~fallback ~get_args ~page ?(err_handler = fun _ -> None) f =
     ~post_params:params ()
   in
   M.lwt_post_form ~service (fun names ->
-    M.register ~scope:`Session ~service
+    M.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
              f.form (Some v) names >>= function
              | (x, Success act) ->

@@ -262,7 +262,9 @@ let authenticate ~name ~pwd =
 (** {2 Session data} *)
 
 let user_table: userid Eliom_state.persistent_table =
-  Eliom_state.create_persistent_table "ocsimore_user_table_v1"
+  Eliom_state.create_persistent_table
+    ~scope:(Eliom_common.session:>Eliom_common.user_scope)
+    "ocsimore_user_table_v1"
 
 type user_sd = userid Lwt.t
 
@@ -277,7 +279,7 @@ let get_user_ () =
           (fun () -> User_sql.get_basicuser_data u >>= fun _ud -> Lwt.return u)
           (function
              | User_sql.NotAnUser | Not_found ->
-                 Eliom_state.close_session () >>= fun () ->
+                 Eliom_state.discard ~scope:Eliom_common.session () >>= fun () ->
                  Polytables.clear (Eliom_request_info.get_request_cache ());
                  Lwt.return anonymous
              | e -> Lwt.fail e)
@@ -477,6 +479,7 @@ let set_session_data (user_id, username) =
   Polytables.set
     (Eliom_request_info.get_request_cache ()) user_key (Lwt.return user_id);
   Eliom_state.set_persistent_data_session_group
+    ~scope:Eliom_common.session
     ~set_max:(Some 2) username >>= fun () ->
   (* We store the user_id inside Eliom. Alternatively, we could
      just use the session group (and not create a table inside Eliom

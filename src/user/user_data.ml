@@ -197,7 +197,7 @@ let add_remove_user_from_groups sp user (add, rem) =
 open User_external_auth
 
 let logout () =
-  Eliom_state.close_session () >>= fun () ->
+  Eliom_state.discard ~scope:Eliom_common.session () >>= fun () ->
   Eliom_request_info.clean_request_cache ();
   Lwt.return ()
 
@@ -213,7 +213,7 @@ let th_ip = Throttle.create ~rate:1 ~max:1 ~n:10
 
 
 let login ~name ~pwd ~external_auth =
-  Eliom_state.close_session () >>= fun () ->
+  Eliom_state.discard ~scope:Eliom_common.session () >>= fun () ->
   (* XXX improve Lwt_throttle *)
   Throttle.wait th_login name >>= fun b1 ->
   Throttle.wait th_ip (Eliom_request_info.get_remote_ip ()) >>= fun b2 ->
