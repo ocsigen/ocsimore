@@ -2,6 +2,7 @@
 -- PostgreSQL database dump
 --
 
+SET statement_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = off;
 SET check_function_bodies = false;
@@ -18,13 +19,13 @@ CREATE SCHEMA announcement;
 ALTER SCHEMA announcement OWNER TO ocsimore;
 
 --
--- Name: plpgsql; Type: PROCEDURAL LANGUAGE; Schema: -; Owner: ocsimore
+-- Name: plpgsql; Type: PROCEDURAL LANGUAGE; Schema: -; Owner: postgres
 --
 
-CREATE PROCEDURAL LANGUAGE plpgsql;
+CREATE OR REPLACE PROCEDURAL LANGUAGE plpgsql;
 
 
-ALTER PROCEDURAL LANGUAGE plpgsql OWNER TO ocsimore;
+ALTER PROCEDURAL LANGUAGE plpgsql OWNER TO postgres;
 
 SET search_path = public, pg_catalog;
 
@@ -33,10 +34,10 @@ SET search_path = public, pg_catalog;
 --
 
 CREATE FUNCTION wbuid(integer, integer) RETURNS integer
+    LANGUAGE sql
     AS $_$
   SELECT uid FROM wikiboxindex WHERE wiki_id=$1 AND id=$2;
-$_$
-    LANGUAGE sql;
+$_$;
 
 
 ALTER FUNCTION public.wbuid(integer, integer) OWNER TO ocsimore;
@@ -73,8 +74,8 @@ ALTER TABLE announcement.category OWNER TO ocsimore;
 CREATE SEQUENCE category_id_seq
     START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -85,6 +86,13 @@ ALTER TABLE announcement.category_id_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE category_id_seq OWNED BY category.id;
+
+
+--
+-- Name: category_id_seq; Type: SEQUENCE SET; Schema: announcement; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('category_id_seq', 1, false);
 
 
 --
@@ -117,8 +125,8 @@ ALTER TABLE announcement.event OWNER TO ocsimore;
 CREATE SEQUENCE event_id_seq
     START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -129,6 +137,13 @@ ALTER TABLE announcement.event_id_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE event_id_seq OWNED BY event.id;
+
+
+--
+-- Name: event_id_seq; Type: SEQUENCE SET; Schema: announcement; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('event_id_seq', 1, false);
 
 
 --
@@ -163,8 +178,8 @@ ALTER TABLE announcement.person OWNER TO ocsimore;
 CREATE SEQUENCE person_id_seq
     START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -175,6 +190,13 @@ ALTER TABLE announcement.person_id_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE person_id_seq OWNED BY person.id;
+
+
+--
+-- Name: person_id_seq; Type: SEQUENCE SET; Schema: announcement; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('person_id_seq', 1, false);
 
 
 SET search_path = public, pg_catalog;
@@ -209,9 +231,10 @@ and PATH if it is for the wikipage PATH of the wiki';
 --
 
 CREATE SEQUENCE css_uid_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -222,6 +245,13 @@ ALTER TABLE public.css_uid_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE css_uid_seq OWNED BY css.uid;
+
+
+--
+-- Name: css_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('css_uid_seq', 1, false);
 
 
 --
@@ -289,9 +319,10 @@ COMMENT ON COLUMN forums.comments_wiki IS 'Wiki containing the comments';
 --
 
 CREATE SEQUENCE forums_id_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -302,6 +333,13 @@ ALTER TABLE public.forums_id_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE forums_id_seq OWNED BY forums.id;
+
+
+--
+-- Name: forums_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('forums_id_seq', 1, false);
 
 
 --
@@ -374,9 +412,10 @@ COMMENT ON COLUMN forums_messages.special_rights IS 'means that it is the root o
 --
 
 CREATE SEQUENCE forums_messages_id_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -387,6 +426,13 @@ ALTER TABLE public.forums_messages_id_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE forums_messages_id_seq OWNED BY forums_messages.id;
+
+
+--
+-- Name: forums_messages_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('forums_messages_id_seq', 1, false);
 
 
 --
@@ -437,9 +483,10 @@ ALTER TABLE public.users OWNER TO ocsimore;
 --
 
 CREATE SEQUENCE users_id_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -453,6 +500,13 @@ ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 
 --
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('users_id_seq', 1, false);
+
+
+--
 -- Name: wikiboxescontent; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
@@ -463,7 +517,8 @@ CREATE TABLE wikiboxescontent (
     content text,
     datetime timestamp without time zone DEFAULT now() NOT NULL,
     content_type text DEFAULT 'wikicreole'::text NOT NULL,
-    wikibox integer NOT NULL
+    wikibox integer NOT NULL,
+    ip text
 );
 
 
@@ -474,9 +529,10 @@ ALTER TABLE public.wikiboxescontent OWNER TO ocsimore;
 --
 
 CREATE SEQUENCE wikiboxes_version_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -487,6 +543,13 @@ ALTER TABLE public.wikiboxes_version_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE wikiboxes_version_seq OWNED BY wikiboxescontent.version;
+
+
+--
+-- Name: wikiboxes_version_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('wikiboxes_version_seq', 1, false);
 
 
 --
@@ -515,9 +578,10 @@ COMMENT ON COLUMN wikiboxindex.wiki IS 'Wiki to which the wikibox belongs';
 --
 
 CREATE SEQUENCE wikiboxindex_uid_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -528,6 +592,13 @@ ALTER TABLE public.wikiboxindex_uid_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE wikiboxindex_uid_seq OWNED BY wikiboxindex.uid;
+
+
+--
+-- Name: wikiboxindex_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('wikiboxindex_uid_seq', 1, false);
 
 
 --
@@ -550,9 +621,10 @@ ALTER TABLE public.wikipages OWNER TO ocsimore;
 --
 
 CREATE SEQUENCE wikipages_uid_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -563,6 +635,13 @@ ALTER TABLE public.wikipages_uid_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE wikipages_uid_seq OWNED BY wikipages.uid;
+
+
+--
+-- Name: wikipages_uid_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('wikipages_uid_seq', 1, false);
 
 
 --
@@ -577,7 +656,8 @@ CREATE TABLE wikis (
     boxrights boolean NOT NULL,
     container integer,
     staticdir text,
-    model text DEFAULT 'wikicreole'::text NOT NULL
+    model text DEFAULT 'wikicreole'::text NOT NULL,
+    siteid text
 );
 
 
@@ -616,9 +696,10 @@ COMMENT ON COLUMN wikis.boxrights IS 'True if each wikibox of the wiki has its o
 --
 
 CREATE SEQUENCE wikis_id_seq
+    START WITH 1
     INCREMENT BY 1
-    NO MAXVALUE
     NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 
@@ -629,6 +710,13 @@ ALTER TABLE public.wikis_id_seq OWNER TO ocsimore;
 --
 
 ALTER SEQUENCE wikis_id_seq OWNED BY wikis.id;
+
+
+--
+-- Name: wikis_id_seq; Type: SEQUENCE SET; Schema: public; Owner: ocsimore
+--
+
+SELECT pg_catalog.setval('wikis_id_seq', 1, false);
 
 
 SET search_path = announcement, pg_catalog;
@@ -715,6 +803,123 @@ ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
 SET search_path = announcement, pg_catalog;
 
 --
+-- Data for Name: category; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
+--
+
+COPY category (id, name, path, description, editable, "time", duration, room, location) FROM stdin;
+\.
+
+
+--
+-- Data for Name: event; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
+--
+
+COPY event (id, minor_version, major_version, last_updated, start, finish, room, location, status, category, title, description) FROM stdin;
+\.
+
+
+--
+-- Data for Name: event_person; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
+--
+
+COPY event_person (event, person) FROM stdin;
+\.
+
+
+--
+-- Data for Name: person; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
+--
+
+COPY person (id, name, affiliation) FROM stdin;
+\.
+
+
+SET search_path = public, pg_catalog;
+
+--
+-- Data for Name: css; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY css (wiki, page, wikibox, specialrights, uid, rank, mediatype) FROM stdin;
+\.
+
+
+--
+-- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY forums (id, title, descr, arborescent, deleted, title_syntax, messages_wiki, comments_wiki) FROM stdin;
+\.
+
+
+--
+-- Data for Name: forums_messages; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY forums_messages (id, creator_id, datetime, parent_id, root_id, forum_id, subject, wikibox, moderated, sticky, special_rights, tree_min, tree_max) FROM stdin;
+\.
+
+
+--
+-- Data for Name: options; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY options (name, value) FROM stdin;
+dbversion	6
+\.
+
+
+--
+-- Data for Name: userrights; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY userrights (id, groupid, idarg, groupidarg) FROM stdin;
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY users (id, login, password, fullname, email, dyn, authtype) FROM stdin;
+\.
+
+
+--
+-- Data for Name: wikiboxescontent; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY wikiboxescontent (version, comment, author, content, datetime, content_type, wikibox, ip) FROM stdin;
+\.
+
+
+--
+-- Data for Name: wikiboxindex; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY wikiboxindex (wiki, comment, specialrights, uid) FROM stdin;
+\.
+
+
+--
+-- Data for Name: wikipages; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY wikipages (wiki, wikibox, pagename, title, uid) FROM stdin;
+\.
+
+
+--
+-- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: ocsimore
+--
+
+COPY wikis (id, title, descr, pages, boxrights, container, staticdir, model, siteid) FROM stdin;
+\.
+
+
+SET search_path = announcement, pg_catalog;
+
+--
 -- Name: category_path_key; Type: CONSTRAINT; Schema: announcement; Owner: ocsimore; Tablespace: 
 --
 
@@ -781,6 +986,14 @@ ALTER TABLE ONLY forums
 
 
 --
+-- Name: options_pkey; Type: CONSTRAINT; Schema: public; Owner: ocsimore; Tablespace: 
+--
+
+ALTER TABLE ONLY options
+    ADD CONSTRAINT options_pkey PRIMARY KEY (name);
+
+
+--
 -- Name: userrights_id_key; Type: CONSTRAINT; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
@@ -837,11 +1050,11 @@ ALTER TABLE ONLY wikis
 
 
 --
--- Name: wikis_title_key; Type: CONSTRAINT; Schema: public; Owner: ocsimore; Tablespace: 
+-- Name: wikis_title_unique; Type: CONSTRAINT; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
 ALTER TABLE ONLY wikis
-    ADD CONSTRAINT wikis_title_key UNIQUE (title);
+    ADD CONSTRAINT wikis_title_unique UNIQUE (title, siteid);
 
 
 SET search_path = announcement, pg_catalog;
@@ -1004,6 +1217,3 @@ GRANT ALL ON SCHEMA public TO PUBLIC;
 -- PostgreSQL database dump complete
 --
 
-
-
-INSERT INTO options VALUES ('dbversion', '1')
