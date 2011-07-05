@@ -1341,20 +1341,20 @@ let add_extension ~wp ~name ?(wiki_content=true) f =
 
 let () =
   let add_extension_aux l ~name ?wiki_content f =
-    List.iter (fun wp -> add_extension ~wp ~name ?wiki_content f) l
+    List.iter (fun wp -> add_extension ~wp ~name ?wiki_content (f wp)) l
   in
 
   add_extension_aux
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"div" ~wiki_content:true
-    (fun bi args c ->
+    (fun wp bi args c ->
        Wikicreole.Flow5
          (let content = match c with
             | Some c -> c
             | None -> ""
           in
-          xml_of_wiki wikicreole_parser bi content >|= fun content ->
+          lwt content = xml_of_wiki wp bi content in
           let classe =
             try Some (HTML5.M.a_class [List.assoc "class" args])
             with Not_found -> None
@@ -1364,11 +1364,11 @@ let () =
             with Not_found -> None
           in
           let a = opt_list (filter_raw [classe; id]) in
-          [HTML5.M.div ?a content]
+          Lwt.return [HTML5.M.div ?a content]
     ));
 
 
-  let f = (fun bi args c ->
+  let f = (fun wp bi args c ->
        Wikicreole.Phrasing_without_interactive
          (let content = match c with
             | Some c -> c
@@ -1393,10 +1393,11 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"span" ~wiki_content:true
     f;
-  add_extension ~wp:phrasing_wikicreole_parser ~name:"span" ~wiki_content:true f;
+  add_extension ~wp:phrasing_wikicreole_parser ~name:"span" ~wiki_content:true
+    (f phrasing_wikicreole_parser);
 
   let f =
-    (fun bi _ _ ->
+    (fun _ bi _ _ ->
       Wikicreole.Phrasing_without_interactive
         (let wid = bi.Wiki_widgets_interface.bi_wiki in
          Wiki_sql.get_wiki_info_by_id wid >|= fun wiki_info ->
@@ -1408,11 +1409,10 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"wikiname" ~wiki_content:true f;
   add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"wikiname" ~wiki_content:true f;
-
+    ~name:"wikiname" ~wiki_content:true (f phrasing_wikicreole_parser);
 
   let f =
-    (fun _ args content ->
+    (fun _ _ args content ->
       Wikicreole.Phrasing_without_interactive
         (let s = string_of_extension "raw" args content in
          Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]))
@@ -1421,20 +1421,22 @@ let () =
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"raw" ~wiki_content:false f;
-  add_extension ~wp:phrasing_wikicreole_parser ~name:"raw" ~wiki_content:false f;
+  add_extension ~wp:phrasing_wikicreole_parser ~name:"raw" ~wiki_content:false
+    (f phrasing_wikicreole_parser);
 
-  let f = (fun _ _ _ -> Wikicreole.Phrasing_without_interactive (Lwt.return []))
+  let f = (fun _ _ _ _ -> Wikicreole.Phrasing_without_interactive (Lwt.return []))
   in
   add_extension_aux
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"" ~wiki_content:false f;
-  add_extension ~wp:phrasing_wikicreole_parser ~name:"" ~wiki_content:false f;
+  add_extension ~wp:phrasing_wikicreole_parser ~name:"" ~wiki_content:false
+    (f phrasing_wikicreole_parser);
 
   add_extension_aux
     [wikicreole_parser]
     ~name:"content"
-    (fun bi args _ ->
+    (fun _ bi args _ ->
        Wikicreole.Flow5
          (let classe =
             try Some (List.assoc "class" args)
@@ -1469,7 +1471,7 @@ let () =
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"menu"
-    (fun bi args _ ->
+    (fun _ bi args _ ->
        let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
        Wikicreole.Flow5
          (let classe =
@@ -1539,48 +1541,51 @@ let () =
     );
 
 
+  let f_cond wp bi args c =
+    Wikicreole.Flow5
+      (let content = unopt_string c in
+       let rec eval_cond = function
+         | ("error", "autherror") ->
+           Lwt_list.exists_s
+             (fun e ->
+               Lwt.return (e = User.BadPassword || e = User.BadUser))
+             (User_data.get_login_error ())
+         | ("ingroup", g) ->
+           Lwt.catch
+             (fun () ->
+               User.get_user_by_name g >>= fun group ->
+               User.in_group ~group ())
+             (function _ -> Lwt.return false)
+         | ("http_code", "404") ->
+           Lwt.return (Wiki_widgets_interface.page_displayable () =
+               Wiki_widgets_interface.Page_404)
+         | ("http_code", "403") ->
+           Lwt.return (Wiki_widgets_interface.page_displayable () =
+               Wiki_widgets_interface.Page_403)
+         | ("http_code", "40?") ->
+           Lwt.return (Wiki_widgets_interface.page_displayable () <>
+                         Wiki_widgets_interface.Page_displayable)
+         | (err, value) when String.length err >= 3 &&
+             String.sub err 0 3 = "not" ->
+           let not_cond =
+             (String.sub err 3 (String.length err - 3), value)
+           in
+           eval_cond not_cond >|= not
+         | _ -> Lwt.return false
+       in
+       (match args with
+         | [c] -> eval_cond c
+         | _   -> Lwt.return false)
+           >>= function
+             | true -> xml_of_wiki wp bi content
+             | false -> Lwt.return []
+      )
+  in
+
   add_extension_aux
     [wikicreole_parser; reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"cond" ~wiki_content:true
-    (fun bi args c ->
-       Wikicreole.Flow5
-         (let content = unopt_string c in
-          let rec eval_cond = function
-            | ("error", "autherror") ->
-                Lwt_list.exists_s
-                  (fun e ->
-                    Lwt.return (e = User.BadPassword || e = User.BadUser))
-                  (User_data.get_login_error ())
-            | ("ingroup", g) ->
-                Lwt.catch
-                  (fun () ->
-                     User.get_user_by_name g >>= fun group ->
-                     User.in_group ~group ())
-                  (function _ -> Lwt.return false)
-            | ("http_code", "404") ->
-                Lwt.return (Wiki_widgets_interface.page_displayable () =
-                    Wiki_widgets_interface.Page_404)
-            | ("http_code", "403") ->
-                Lwt.return (Wiki_widgets_interface.page_displayable () =
-                    Wiki_widgets_interface.Page_403)
-            | ("http_code", "40?") ->
-                Lwt.return (Wiki_widgets_interface.page_displayable () <>
-                              Wiki_widgets_interface.Page_displayable)
-            | (err, value) when String.length err >= 3 &&
-                String.sub err 0 3 = "not" ->
-                let not_cond =
-                  (String.sub err 3 (String.length err - 3), value)
-                in
-                eval_cond not_cond >|= not
-            | _ -> Lwt.return false
-          in
-          (match args with
-             | [c] -> eval_cond c
-             | _   -> Lwt.return false)
-         >>= function
-           | true -> xml_of_wiki wikicreole_parser bi content
-           | false -> Lwt.return []
-         )
-    )
+     f_cond;
 
+  add_extension_aux [menu_parser] ~name:"cond" ~wiki_content:true f_cond;
