@@ -127,28 +127,28 @@ let register_wikibox_syntax_extensions
        box='' argument of wikibox is missing. We also recursively parse the
        content c of the extension *)
     (* Parsing of c : *)
-    (match c with
+    lwt c = match c with
       | None -> Lwt.return None
       | Some c ->
           Wiki_syntax.preparse_extension wp wb c >|= fun c -> Some c
-    ) >>= fun c ->
+    in
     (* Adding the 'box=' argument *)
     (try
-       Wiki_sql.wikibox_wiki wb >>= fun wid ->
+       lwt wid = Wiki_sql.wikibox_wiki wb in
        (* The user can specify the wiki, or we deduce it from the context. *)
        let wid = extract_wiki_id args wid in
-       Wiki_sql.get_wiki_info_by_id wid >>= fun wiki_info ->
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wid in
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        let content_type =
          Wiki_models.get_default_content_type wiki_info.wiki_model
        in
        try (* If a wikibox is already specified, there is nothing to change *)
-         ignore (List.assoc "box" args); Lwt.return args
+         ignore (List.assoc "box" args); Lwt.return (args, c)
        with Not_found ->
-         User.get_user_id () >>= fun userid ->
+         lwt userid = User.get_user_id () in
          rights#can_create_subwikiboxes wid >>= function
            | true ->
-               Wiki_data.new_wikitextbox
+             lwt box = Wiki_data.new_wikitextbox
                  ~rights
                  ~wiki:wid
                  ~author:userid
@@ -157,8 +157,7 @@ let register_wikibox_syntax_extensions
                  ~content:"**//new wikibox//**"
                  ~content_type
                  ()
-                 >>= fun box ->
-                 (Wiki_sql.get_wikibox_info wb >>= function
+           in (Wiki_sql.get_wikibox_info wb >>= function
                     | { wikibox_special_rights = true } ->
                         User.GenericRights.iter_awr_lwt
                         (fun f ->
@@ -171,10 +170,10 @@ let register_wikibox_syntax_extensions
                  ) >|= fun () ->
                  (   ("box", string_of_wikibox box)
                   (*We remove the wiki information, which is no longer useful*)
-                  :: List.remove_assoc "wiki" args)
-           | false -> Lwt.return args
-     with Failure _ -> Lwt.return args)
-    >|= fun args ->
+                  :: List.remove_assoc "wiki" args, None)
+           | false -> Lwt.return (args, c)
+     with Failure _ -> Lwt.return (args, c))
+    >|= fun (args, c) ->
     Some (Wiki_syntax.string_of_extension "wikibox" args c)
     )
   in
