@@ -137,7 +137,9 @@ Library "wiki_site"
     server/Wiki_site,
     server/Wiki_ext,
     server/Wiki_services,
-    server/Wiki_widgets
+    server/Wiki_widgets,
+    server/Wiki_menu,
+    server/Wiki_dir
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site

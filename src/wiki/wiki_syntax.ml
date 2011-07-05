@@ -712,7 +712,16 @@ let a_elem =
 	     [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)])
 
 let default_make_href =
-  (fun bi c fragment -> make_href bi (link_kind c) fragment)
+  (fun bi c fragment ->
+    make_href bi (link_kind c) fragment )
+
+let menu_make_href bi c fragment =
+  (* Accept only simple page. Ignore fragment and anything else silently... *)
+  match link_kind c with
+  | Page (page, None) -> String_href page
+  | Wiki_page (wiki,page,None) ->
+      String_href ("wiki(" ^ Wiki_types.string_of_wiki wiki ^ "):" ^ page)
+  | _ -> String_href ""
 
 let br_elem =
   (fun attribs ->
@@ -1081,6 +1090,53 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
     error = error;
   }
 
+
+let menu_builder :
+    ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ]
+        Eliom_pervasives.HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing Eliom_pervasives.HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive
+       Eliom_pervasives.HTML5.M.elt list Lwt.t, 'a, href)
+         Wikicreole.builder =
+ (* no images, no objects, no subwikiboxes, no content *)
+  let nothing _ _ = Lwt.return []
+  and nothing1 _ = Lwt.return [] in
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem = a_elem;
+    make_href = menu_make_href;
+    br_elem = nothing1;
+    img_elem = img_elem;
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
+    p_elem = nothing;
+    pre_elem = nothing;
+    h1_elem = h1_elem;
+    h2_elem = h2_elem;
+    h3_elem = h3_elem;
+    h4_elem = h4_elem;
+    h5_elem = h5_elem;
+    h6_elem = h6_elem;
+    ul_elem = nothing;
+    ol_elem = nothing;
+    dl_elem = nothing;
+    hr_elem = nothing1;
+    table_elem = nothing;
+    phrasing = phrasing;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    link_action = link_action;
+    error = error;
+  }
+
 let reduced_builder_button :
   ([HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
@@ -1133,8 +1189,6 @@ let reduced_builder_button :
     error = error;
   }
 
-
-
 (********************************)
 (* Default parsers:             *)
 
@@ -1163,6 +1217,13 @@ let reduced_wikicreole_parser1 = {
 
 let reduced_wikicreole_parser2 = {
   builder = reduced_builder2;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
+}
+
+let menu_parser = {
+  builder = menu_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
   link_action = ref void_plugin_action;

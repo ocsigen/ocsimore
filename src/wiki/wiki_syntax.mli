@@ -32,7 +32,7 @@ type ('res, 'phrasing_without_interactive, 'href) syntax_extension =
 
 (** The abstract type of the objects able to parse wiki creole syntax,
     possibly with extensions. Those objects are passed as arguments
-    to all displaing functions *)
+    to all displaying functions *)
 type ('res, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser
 
 type ('a,'b) wiki_service =
@@ -127,6 +127,13 @@ val phrasing_wikicreole_parser :
    href
   ) wikicreole_parser
 
+(** Parser for menu *)
+val menu_parser :
+  ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ]
+      Eliom_pervasives.HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing Eliom_pervasives.HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive
+     Eliom_pervasives.HTML5.M.elt list Lwt.t, href) wikicreole_parser
 
 (** the content type for wikicreole boxes: *)
 val wikicreole_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
