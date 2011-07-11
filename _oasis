@@ -44,6 +44,7 @@ Library "ocsimore"
   CCLib: -lcrypt
   XMETADescription: Core Ocsimore
   BuildDepends: camlp4, lwt.syntax, pgocaml.syntax, eliom.server, threads
+  XMETARequires: eliom.server, threads
 
 Library "user"
   Path: src/user
@@ -58,6 +59,7 @@ Library "user"
   XMETADescription: User stuffs
   BuildDepends:
     camlp4, lwt.syntax, ocsimore, pam
+  XMETARequires: ocsimore, pam
 
 Library "wiki"
   Path: src/wiki
@@ -75,7 +77,8 @@ Library "wiki"
     Wiki
   XMETADescription: Wiki stuffs
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore, ocsimore.user
+    camlp4, lwt.syntax, ocsimore.user
+  XMETARequires: ocsimore.user
 
 Library "forum"
   Path: src/forum
@@ -89,7 +92,8 @@ Library "forum"
     Forum_types
   XMETADescription: forum extension
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore, ocsimore.wiki
+    camlp4, lwt.syntax, ocsimore.wiki
+  XMETARequires: ocsimore.wiki
 
 Library "core_site"
   Path: src/site
@@ -101,6 +105,7 @@ Library "core_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore, ocsimore.wiki
+  XMETARequires: ocsimore.wiki
 
 Library "core_site_client"
   Path: src/site/client
@@ -115,6 +120,7 @@ Library "core_site_client"
 #  DataFiles: _build/src/site/client/ocsimore.js
   BuildDepends:
     camlp4, lwt.syntax, eliom.client, eliom.syntax
+  XMETARequires: eliom.client
 
 Library "user_site"
   Path: src/site
@@ -128,6 +134,7 @@ Library "user_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site
+  XMETARequires: ocsimore.site
 
 Library "wiki_site"
   Path: src/site
@@ -143,6 +150,7 @@ Library "wiki_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site
+  XMETARequires: ocsimore.site
 
 Library "forum_site"
   Path: src/site
@@ -157,6 +165,7 @@ Library "forum_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site, ocsimore.forum
+  XMETARequires: ocsimore.site, ocsimore.forum
 
 Test "all"
   Command: ocsigenserver -c ./local/etc/ocsigen/ocsimore.conf
