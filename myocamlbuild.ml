@@ -478,10 +478,30 @@ let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
 (* OASIS_STOP *)
 
-Options.use_ocamlfind := true;;
 Ocamlbuild_pack.Log.classic_display := true;;
 
-Unix.putenv "PGDATABASE" "ocsimore";;
+let env =
+  BaseEnvLight.load
+    ~filename:MyOCamlbuildBase.env_filename
+    ~allow_empty:true
+    ()
+
+let set_var var_name env_var =
+  let s = BaseEnvLight.var_get var_name env in
+  Unix.putenv env_var s
+
+let set_var_option var_name env_var =
+  match BaseEnvLight.var_get var_name env with
+    | "none" -> ()
+    | s -> Unix.putenv env_var s
+
+let () =
+  set_var "pgdatabase" "PGDATABASE";
+  set_var "pgport" "PGPORT";
+  set_var "pguser" "PGUSER";
+  set_var "pgpassword" "PGPASSWORD";
+  set_var_option "pghost" "PGHOST";
+  set_var_option "pg_socket_domain_dir" "UNIX_SOCKET_DOMAIN_DIR"
 
 let copy_with_header src prod =
   let dir = Filename.dirname prod in
@@ -517,14 +537,14 @@ let tag_eliom_files () =
 	let type_inferred = Pathname.concat (Pathname.concat path "type")
 	  (Pathname.update_extension "inferred.mli" name) in
 	tag_file client_file
-	  [ "package(eliom.client)"; "package(eliom.syntax.client)";
+	  [ "pkg_eliom.client"; "pkg_eliom.syntax.client";
 	    Printf.sprintf "need_eliom_type(%s)" type_inferred; "syntax(camlp4o)";];
 	tag_file server_file
-	  [ "package(eliom.server)"; "package(eliom.syntax.server)";
+	  [ "pkg_eliom.server"; "pkg_eliom.syntax.server";
 	    "syntax(camlp4o)";];
 	tag_file type_file
 	  ( Tags.elements (tags_of_pathname server_file)
-	    @ [ "package(eliom.server)"; "package(eliom.syntax.type)";
+	    @ [ "pkg_eliom.server"; "pkg_eliom.syntax.type";
 		"syntax(camlp4o)";]);
 	(* server files are available from type directory *)
 	Pathname.define_context (Pathname.concat path "type") [Pathname.concat path "server"];
