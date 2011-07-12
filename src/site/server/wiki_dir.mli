@@ -49,4 +49,4 @@ val make_page:
   -> ?css: (HTML5_types.link Eliom_pervasives.HTML5.M.elt list)
   -> (Wiki_widgets_interface.box_info
       -> (string * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) Lwt.t)
-  -> HTML5_types.html Eliom_pervasives.HTML5.M.elt  Lwt.t
+  -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t

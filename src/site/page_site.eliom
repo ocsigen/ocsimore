@@ -26,7 +26,8 @@ open Eliom_pervasives
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
     (Eliom_services.get_service_kind,
-     [ `Unregistrable | `Registrable ])
+     [ `Unregistrable | `Registrable ],
+    Eliom_output.non_caml_service)
     Eliom_tools_common.one_page
 
 

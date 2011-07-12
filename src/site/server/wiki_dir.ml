@@ -79,16 +79,12 @@ let make_page ~wiki_id ?(css = []) contents =
   Page_site.html_page ~title ~css box
 
 let do_wiki_page ?resolve_wiki_menu_file ~wrapper file bi =
-  begin
-    match resolve_wiki_menu_file with
-    | Some resolver -> Wiki_menu.set_menu_resolver resolver
-    | None -> ()
-  end;
+  ignore (map_option Wiki_menu.set_menu_resolver resolve_wiki_menu_file);
   Lwt_io.with_file ~mode:Lwt_io.input file
     (fun ch ->
       lwt data = Lwt_io.read ch in
-      lwt x = Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi data in
-      wrapper bi x)
+      lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi data in
+      wrapper bi xml)
 
 exception Dir
 
@@ -110,11 +106,10 @@ let process ~wiki_id ~resolve_wiki_file ?resolve_wiki_menu_file
     | _ -> raise Dir
   with
    | Undefined | Ocsigen_local_files.Failed_404 | Dir ->
-      make_page ~wiki_id ?css (fun bi -> (wrapper bi (err404 bi params)))
-  | Ocsigen_local_files.NotReadableDirectory
-  | Ocsigen_local_files.Failed_403 ->
-      make_page ~wiki_id ?css (fun bi -> (wrapper bi (err403 bi params)))
-
+       make_page ~wiki_id ?css (fun bi -> (wrapper bi (err404 bi params)))
+   | Ocsigen_local_files.NotReadableDirectory
+   | Ocsigen_local_files.Failed_403 ->
+       make_page ~wiki_id ?css (fun bi -> (wrapper bi (err403 bi params)))
 
 let make_wrapper_of_wikibox ?title ~wb = fun _ bi contents ->
   lwt info = Wiki_sql.get_wiki_info_by_id bi.Wiki_widgets_interface.bi_wiki in

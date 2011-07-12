@@ -251,7 +251,7 @@ type ('a,'b) wiki_service =
      Eliom_services.suff,
      'b, unit,
      Eliom_services.registrable,
-     Eliom_output.Any.return ) Eliom_services.service
+     Eliom_output.appl_service ) Eliom_services.service
 
 (* We need existential types to be able to parametrise service_href by
    the service and its parameter without showing the type of the

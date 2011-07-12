@@ -25,7 +25,8 @@ open Eliom_pervasives
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
     (Eliom_services.get_service_kind,
-     [ `Unregistrable | `Registrable ])
+     [ `Unregistrable | `Registrable ],
+     Eliom_output.non_caml_service)
     Eliom_tools_common.one_page
 
 
@@ -34,7 +35,7 @@ type menu_link_service =
 val static_service :
   ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
     [ `One of string list ] Eliom_parameters.param_name, unit,
-    [ `Registrable ], Eliom_output.Any.return)
+    [ `Registrable ], Eliom_output.http_service)
    Eliom_services.service)
 
 (** Path to a static file, suitable for inclusion in a <a> tag *)

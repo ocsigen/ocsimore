@@ -143,7 +143,6 @@ object (self)
          | e -> Lwt.fail e)
 end;;
 
-
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
     or navigate through viewing options *)
@@ -182,21 +181,22 @@ object (self)
       | `None -> Lwt.return []
       | `Pencil | `Linear as menu_style ->
 
-    let history  = preapply Wiki_services.action_wikibox_history wb in
-    let edit     = preapply Wiki_services.action_edit_wikibox wb in
-    let delete   = preapply Wiki_services.action_delete_wikibox wb in
-    let view     = Eliom_services.void_coservice' in
+    let history  =
+      (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
+    let edit     = (preapply Wiki_services.action_edit_wikibox wb :> Eliom_tools_common.get_page) in
+    let delete   = (preapply Wiki_services.action_delete_wikibox wb :> Eliom_tools_common.get_page) in
+    let view     = (Eliom_services.void_coservice' :> Eliom_tools_common.get_page) in
     let edit_wikibox_perm =
-      preapply Wiki_services.action_edit_wikibox_permissions wb
+      (preapply Wiki_services.action_edit_wikibox_permissions wb :> Eliom_tools_common.get_page)
     in
     (match special_box with
        | WikiPageBox (w, page) ->
            (bi.bi_rights#can_create_wikipagecss (w, page) >|= function
               | true ->
                   let edit =
-                    preapply
+                    (preapply
                       Wiki_services.action_edit_css_list
-                      (wb, (w, Some page))
+                      (wb, (w, Some page)) :> Eliom_tools_common.get_page)
                   in
                   Some (edit, [HTML5.M.pcdata "wikipage css"])
               | false -> None
@@ -205,9 +205,9 @@ object (self)
            (bi.bi_rights#can_create_wikicss w >|= function
               | true ->
                   let edit =
-                    preapply
+                    (preapply
                       Wiki_services.action_edit_css_list
-                      (wb, (w, None))
+                      (wb, (w, None)) :> Eliom_tools_common.get_page)
                   in
                   Some (edit, [HTML5.M.pcdata "wiki css"])
               | false -> None
@@ -220,9 +220,9 @@ object (self)
            bi.bi_rights#can_admin_wikipage wp >|= function
              | true ->
                  let edit_wp =
-                   preapply
+                   (preapply
                      Wiki_services.action_edit_wikipage_properties
-                     (wb, wp)
+                     (wb, wp) :> Eliom_tools_common.get_page)
                  in
                  Some (edit_wp, [HTML5.M.pcdata "edit wikipage options"])
              | false -> None
@@ -235,13 +235,13 @@ object (self)
            match b1 || b2 with
              | true ->
                  let edit_p =
-                   preapply
+                   (preapply
                      Wiki_services.action_edit_wiki_options
-                     (wb, w)
+                     (wb, w) :> Eliom_tools_common.get_page)
                  in
                  Lwt.return
                    (Some
-                      (edit_p,
+                      ((edit_p :> Eliom_tools_common.get_page),
                        [HTML5.M.pcdata "edit wiki permissions or options"])
                    )
              | false -> Lwt.return None

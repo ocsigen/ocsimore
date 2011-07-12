@@ -124,7 +124,7 @@ val form:
        'b,
        unit,
        [< `Registrable ],
-       Eliom_services.http)
+       Eliom_output.http_service)
           Eliom_services.service
   -> get_args:'a
   -> page:( 'a

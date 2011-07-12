@@ -27,14 +27,18 @@ type menu =
 type menu_item =
    HTML5_types.a_content HTML5.M.elt list *
       (Eliom_services.get_service_kind,
-       Eliom_services.registrable, HTML5_types.a_content HTML5.M.elt list)
+       Eliom_services.registrable,
+       Eliom_output.non_caml_service,
+       HTML5_types.a_content HTML5.M.elt list)
       Eliom_tools_common.hierarchical_site_item
 
 val build_tree :
     create_service:
 	(?wiki:Wiki_types.wiki ->
           string list ->
-	  (Eliom_services.get_service_kind, Eliom_services.registrable)
+	  (Eliom_services.get_service_kind,
+	   Eliom_services.registrable,
+	   Eliom_output.non_caml_service)
             Eliom_tools_common.one_page) ->
     menu ->
     menu_item list
@@ -44,7 +48,9 @@ val build_tree_from_string :
     create_service:
 	(?wiki:Wiki_types.wiki ->
           string list ->
-	  (Eliom_services.get_service_kind, Eliom_services.registrable)
+	  (Eliom_services.get_service_kind,
+	   Eliom_services.registrable,
+	   Eliom_output.non_caml_service)
             Eliom_tools_common.one_page) ->
     contents:string ->
     menu_item list Lwt.t
@@ -56,5 +62,7 @@ val create_wiki_page_service:
     Wiki_widgets_interface.box_info ->
       ?wiki:Wiki_types.wiki ->
         string list ->
-	  (Eliom_services.get_service_kind, Eliom_services.registrable)
+	  (Eliom_services.get_service_kind,
+	   Eliom_services.registrable,
+	   Eliom_output.non_caml_service)
 	    Eliom_tools_common.one_page

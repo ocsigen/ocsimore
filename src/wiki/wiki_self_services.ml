@@ -50,7 +50,7 @@ let naservpages :
      [ `One of string ] Eliom_parameters.param_name,
      unit,
      [`Registrable ],
-     Eliom_output.Any.return
+     Eliom_output.appl_service
     ) Eliom_services.service Servpages.t = Servpages.create 5
 let servpages :
     (string list,
@@ -60,7 +60,7 @@ let servpages :
      [ `One of string list ] Eliom_parameters.param_name,
      unit,
      [ `Registrable ],
-     Eliom_output.Any.return
+     Eliom_output.appl_service
     ) Eliom_services.service Servpages.t = Servpages.create 5
 let servwikicss :
     (Wiki_types.wikibox,

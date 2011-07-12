@@ -41,7 +41,7 @@ type ('a,'b) wiki_service =
      Eliom_services.suff,
      'b, unit,
      Eliom_services.registrable,
-     Eliom_output.Any.return ) Eliom_services.service
+     Eliom_output.appl_service ) Eliom_services.service
 
 type service_href
 
