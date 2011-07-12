@@ -55,6 +55,18 @@ val build_tree_from_string :
     contents:string ->
     menu_item list Lwt.t
 
+val build_tree_from_file :
+    Wiki_widgets_interface.box_info ->
+    create_service:
+	(?wiki:Wiki_types.wiki ->
+          string list ->
+	  (Eliom_services.get_service_kind,
+	   Eliom_services.registrable,
+	   Eliom_output.non_caml_service)
+            Eliom_tools_common.one_page) ->
+    file:Ocsigen_local_files.resolved ->
+    menu_item list Lwt.t
+
 type resolver = string list -> Ocsigen_local_files.resolved
 val set_menu_resolver: resolver -> unit
 

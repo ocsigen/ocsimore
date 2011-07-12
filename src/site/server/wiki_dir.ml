@@ -40,7 +40,9 @@ let resolve_file_in_dir ?(default = "") ?(suffix = "") dir =
       ~request:(Eliom_request_info.get_request ())
       ~filename:(filename ^ suffix)
 
-let make_page ~wiki_id ?(css = []) contents =
+let make_page ~wiki_id ?(css = (fun () -> [])) contents =
+
+  (* TODO GRGR add wiki menu if logged... *)
 
   (* Wiki box info *)
   lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki_id in
@@ -64,7 +66,7 @@ let make_page ~wiki_id ?(css = []) contents =
     Url.string_of_url_path ~encode:false
       (Eliom_request_info.get_current_full_path ()) in
   lwt wcss = Wiki_site.wikibox_widget#css_header ~page wiki_id in
-  let css = css @ wcss in
+  let css = css () @ wcss in
 
   (* Contents *)
   lwt (title, contents) = contents bi in
@@ -121,3 +123,32 @@ let make_wrapper_of_wikibox ?title ~wb = fun _ bi contents ->
 	     (fun _ -> Lwt.return (Some (None, contents))) } in
   lwt box = Wiki_site.wikibox_widget#display_interactive_wikibox ~bi wb in
   Lwt.return (title, box)
+
+let serve_file
+    ~wiki_id ~resolve_file ?resolve_wiki_menu_file
+    ?(err404 = fun _ _ -> [ HTML5.M.pcdata "404" ])
+    ?(err403 = fun _ _ -> [ HTML5.M.pcdata "403" ])
+    ?css
+    ?wrapper
+    () = fun params () ->
+  (Wiki_sql.get_wiki_info_by_id wiki_id) >>= fun info ->
+  let wrapper = match wrapper with
+  | Some wrapper -> wrapper params
+  | None -> fun _ contents ->
+      Lwt.return (info.Wiki_types.wiki_title, [HTML5.M.div contents]) in
+  try
+    match resolve_file params with
+    | Ocsigen_local_files.RFile file ->
+        Eliom_output.appl_self_redirect Eliom_output.Files.send file
+    | _ -> raise Dir
+  with
+   | Undefined | Ocsigen_local_files.Failed_404 | Dir ->
+       lwt page =
+	 make_page ~wiki_id ?css (fun bi -> (wrapper bi (err404 bi params))) in
+       Ocsimore_appl.send page
+   | Ocsigen_local_files.NotReadableDirectory
+   | Ocsigen_local_files.Failed_403 ->
+       lwt page =
+	 make_page ~wiki_id ?css (fun bi -> (wrapper bi (err403 bi params))) in
+       Ocsimore_appl.send page
+

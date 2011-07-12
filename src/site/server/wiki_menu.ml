@@ -242,3 +242,12 @@ let _ =
 let build_tree_from_string bi ~create_service ~contents =
   lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.menu_parser bi contents in
   Lwt.return (build_tree ~create_service xml)
+
+let build_tree_from_file bi ~create_service ~file =
+  match file with
+  | Ocsigen_local_files.RDir _ -> Lwt.return []
+  | Ocsigen_local_files.RFile file ->
+    Lwt_io.with_file ~mode:Lwt_io.input file
+      (fun ch ->
+	lwt contents = Lwt_io.read ch in
+	build_tree_from_string bi ~create_service ~contents)

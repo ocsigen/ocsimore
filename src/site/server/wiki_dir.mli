@@ -39,14 +39,26 @@ val process:
     ?resolve_wiki_menu_file:(string list resolver) ->
     ?err404:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
     ?err403:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
-    ?css:(HTML5_types.link Eliom_pervasives.HTML5.M.elt list) ->
+    ?css:(unit -> HTML5_types.link Eliom_pervasives.HTML5.M.elt list) ->
     ?wrapper:('a wrapper) ->
     unit ->
-    'a -> unit -> HTML5_types.html Eliom_pervasives.HTML5.M.elt  Lwt.t
+    'a -> unit -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t
+
+val serve_file:
+    wiki_id:Wiki_types.wiki ->
+    resolve_file:('a resolver) ->
+    ?resolve_wiki_menu_file:(string list resolver) ->
+    ?err404:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
+    ?err403:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
+    ?css:(unit -> HTML5_types.link Eliom_pervasives.HTML5.M.elt list) ->
+    ?wrapper:('a wrapper) ->
+    unit ->
+    'a -> unit ->
+    (Ocsimore_appl.appl Eliom_output.application_content, Eliom_output.appl_service ) Eliom_output.kind Lwt.t
 
 val make_page:
   wiki_id:Wiki_types.wiki
-  -> ?css: (HTML5_types.link Eliom_pervasives.HTML5.M.elt list)
+  -> ?css: (unit -> HTML5_types.link Eliom_pervasives.HTML5.M.elt list)
   -> (Wiki_widgets_interface.box_info
       -> (string * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) Lwt.t)
   -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t
