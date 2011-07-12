@@ -507,7 +507,7 @@ let copy_with_header src prod =
   let dir = Filename.dirname prod in
   let mkdir = Cmd (Sh ("mkdir -p " ^ dir)) in
   let contents = Pathname.read src in
-  let header = "# 0 \""^(Filename.basename src)^"\"\n" in
+  let header = "# 1 \""^src^"\"\n" in
   Seq [mkdir;Echo ([header;contents],prod)]
 
 let copy_rule_with_header name ?(deps=[]) src prod =
