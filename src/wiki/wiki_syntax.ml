@@ -34,7 +34,7 @@ let class_wikibox wb = Printf.sprintf "wikiboxcontent%s" (string_of_wikibox wb)
 
 let string_of_extension name args content =
     "<<"^name^" "
-  ^ (String.concat " " (List.map (fun (n, v) -> n^"='"^v^"'") args))
+  ^ (String.concat " " (List.map (fun (n, v) -> n^"=\""^v^"\"") args))
   ^ (match content with | None -> "" | Some content -> "|"^content)
   ^ ">>"
 
