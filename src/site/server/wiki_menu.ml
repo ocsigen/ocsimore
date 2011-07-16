@@ -202,11 +202,24 @@ let get_kind bi args =
   with
   | Not_found -> `DepthFirstWhole
 
+let get_class bi args =
+  try
+    let a = List.assoc "class" args in
+    Some (String.split ~multisep:true ' ' a)
+  with Not_found -> None
+let get_id bi args =
+  try
+    Some (List.assoc "id" args)
+  with Not_found -> None
+
+
 let do_wikimenu bi args contents =
   let service = None in
   let contents =
     Lwt.catch
       (fun () ->
+	let classe = get_class bi args in
+	let id = get_id bi args in
 	let kind = get_kind bi args in
 	lwt nodes = get_nodes bi args contents in
 	let tree = build_tree ~create_service:(create_wiki_page_service bi) nodes in
@@ -214,16 +227,19 @@ let do_wikimenu bi args contents =
 	  match kind with
 	  | `DepthFirstWhole ->
 	      Eliom_tools.Html5.hierarchical_menu_depth_first
+		?classe ?id
 		(Eliom_tools_common.Not_clickable, tree)
 		~whole_tree:true
 		?service ()
 	  | `DepthFirst ->
 	      Eliom_tools.Html5.hierarchical_menu_depth_first
+		?classe ?id
 		(Eliom_tools_common.Not_clickable, tree)
 		~whole_tree:false
 		?service ()
 	  | `BreadthFirst ->
 	      Eliom_tools.Html5.hierarchical_menu_breadth_first
+		?classe ?id
 		(Eliom_tools_common.Not_clickable, tree)
 		?service () in
 	Lwt.return menu)
