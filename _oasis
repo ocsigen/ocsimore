@@ -44,7 +44,7 @@ Library "ocsimore"
   CCLib: -lcrypt
   XMETADescription: Core Ocsimore
   BuildDepends: camlp4, lwt.syntax, pgocaml.syntax, eliom.server, threads
-  XMETARequires: eliom.server, threads
+  XMETARequires: pgocaml, eliom.server, threads
 
 Library "user"
   Path: src/user
@@ -76,6 +76,9 @@ Library "wiki"
     Wiki_widgets_interface,
     Wiki
   XMETADescription: Wiki stuffs
+  DataFiles:
+    ../../local/var/www/static/*.css,
+    ../../local/var/www/static/*.png ($prefix/var/www/$pkg_name)
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.user
   XMETARequires: ocsimore.user
@@ -117,7 +120,6 @@ Library "core_site_client"
     Wiki_widgets,
     Ocsimore
   XMETADescription: some extensions
-#  DataFiles: _build/src/site/client/ocsimore.js
   BuildDepends:
     camlp4, lwt.syntax, eliom.client, eliom.syntax
   XMETARequires: eliom.client
@@ -134,7 +136,7 @@ Library "user_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site
-  XMETARequires: ocsimore.site
+  XMETARequires:
 
 Library "wiki_site"
   Path: src/site
@@ -150,7 +152,7 @@ Library "wiki_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site
-  XMETARequires: ocsimore.site
+  XMETARequires:
 
 Library "forum_site"
   Path: src/site
@@ -165,7 +167,7 @@ Library "forum_site"
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.site, ocsimore.forum
-  XMETARequires: ocsimore.site, ocsimore.forum
+  XMETARequires:
 
 Test "all"
   Command: ocsigenserver -c ./local/etc/ocsigen/ocsimore.conf
