@@ -1358,7 +1358,7 @@ object (self)
 
    (* Displays the wikibox corresponding to a wikipage. This function, properly
       applied, is suitable for use with [display_container]. *)
-   method private display_wikipage_wikibox ~wiki ~page:(page, page_list) =
+   method private display_wikipage_wikibox ~wiki ~page:(page, page_list) ?subbox () =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
@@ -1370,7 +1370,12 @@ object (self)
           >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
           Wiki.default_bi ~wikibox:box ~rights >>= fun bi ->
           let bi = { bi with bi_page = wiki, Some page_list;
-                             bi_menu_style = menu_style } in
+                             bi_menu_style = menu_style; } in
+	  let bi = match subbox with
+	    | None -> bi
+	    | Some subbox ->
+	      let bi = Wiki_widgets_interface.add_ancestor_bi box bi in
+	      { bi with bi_subbox = subbox bi; } in
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) box
           >>= fun (subbox, allowed) ->
@@ -1430,20 +1435,33 @@ object (self)
    (* Displaying of an entire page. We just pass the proper rendering
    function to [display_container] *)
    method display_wikipage ~wiki ~menu_style ~page =
-     self#display_wikipage_wikibox ~wiki ~page >>= fun g ->
-     self#display_container ~wiki ~menu_style ~page
-       ~gen_box:(fun x ->
-                   (g x : (Wiki_types.wikibox option *
-                           HTML5_types.flow5 HTML5.M.elt list *
-                           Wiki_widgets_interface.page_displayable *
-                           string option) Lwt.t
-                        :> (Wiki_types.wikibox option *
-                            HTML5_types.flow5 HTML5.M.elt list *
-                            Wiki_widgets_interface.page_displayable *
-                            string option) Lwt.t
-                   )
-                )
+     lwt gen_box = self#display_wikipage_wikibox ~wiki ~page () in
+     self#display_container ~wiki ~menu_style ~page ~gen_box
 
+   method display_wikifile ~wiki ~menu_style ~template ~file =
+     let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
+     let page = Url.string_of_url_path ~encode:false path, path in
+     let subbox bi menu_style =
+       match file with
+       | Ocsigen_local_files.RFile file ->
+	   Lwt_io.with_file ~mode:Lwt_io.input file
+	     (fun ch ->
+	       lwt data = Lwt_io.read ch in
+	       lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi data in
+	       Lwt.return (Some (None, xml)))
+       | _ -> Lwt.return None in
+     lwt gen_box = self#display_wikipage_wikibox ~wiki ~page ~subbox () in
+     self#display_container ~wiki ~menu_style ~page ~gen_box
+
+   method display_wikibox ~wiki ~menu_style ~template ~wb =
+     let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
+     let page = Url.string_of_url_path ~encode:false path, path in
+     let subbox bi menu_style =
+       lwt xml = self#display_interactive_wikibox bi wb in
+       Lwt.return (Some (None, xml))
+     in
+     lwt gen_box = self#display_wikipage_wikibox ~wiki ~page ~subbox () in
+     self#display_container ~wiki ~menu_style ~page ~gen_box
 
    method display_all_wikis =
      (* Lists of all wikis *)

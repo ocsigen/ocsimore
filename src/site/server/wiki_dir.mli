@@ -19,46 +19,26 @@
  *)
 
 type 'a resolver = 'a -> Ocsigen_local_files.resolved
+
 exception Undefined
 
 val resolve_file_in_dir:
     ?default:string -> ?suffix:string -> string -> string list resolver
 
-type 'a wrapper =
-    'a
-    -> Wiki_widgets_interface.box_info
-    -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list
-    -> (string * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) Lwt.t
+val process_wikifile:
+  wiki:Wiki_types.wiki ->
+  template:string ->
+  wb404:Wiki_types.wikibox ->
+  wb403:Wiki_types.wikibox ->
+  ('a -> Ocsigen_local_files.resolved) ->
+  'a -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t
 
-val make_wrapper_of_wikibox:
-    ?title:string -> wb:Wiki_types.wikibox -> 'a wrapper
-
-val process:
-    wiki_id:Wiki_types.wiki ->
-    resolve_wiki_file:('a resolver) ->
-    ?resolve_wiki_menu_file:(string list resolver) ->
-    ?err404:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
-    ?err403:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
-    ?css:(unit -> HTML5_types.link Eliom_pervasives.HTML5.M.elt list) ->
-    ?wrapper:('a wrapper) ->
-    unit ->
-    'a -> unit -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t
-
-val serve_file:
-    wiki_id:Wiki_types.wiki ->
-    resolve_file:('a resolver) ->
-    ?resolve_wiki_menu_file:(string list resolver) ->
-    ?err404:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
-    ?err403:(Wiki_widgets_interface.box_info -> 'a -> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) ->
-    ?css:(unit -> HTML5_types.link Eliom_pervasives.HTML5.M.elt list) ->
-    ?wrapper:('a wrapper) ->
-    unit ->
-    'a -> unit ->
-    (Ocsimore_appl.appl Eliom_output.application_content, Eliom_output.appl_service ) Eliom_output.kind Lwt.t
-
-val make_page:
-  wiki_id:Wiki_types.wiki
-  -> ?css: (unit -> HTML5_types.link Eliom_pervasives.HTML5.M.elt list)
-  -> (Wiki_widgets_interface.box_info
-      -> (string * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) Lwt.t)
-  -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t
+val process_auxfile:
+  wiki:Wiki_types.wiki ->
+  template:string ->
+  wb404:Wiki_types.wikibox ->
+  wb403:Wiki_types.wikibox ->
+  ('a -> Ocsigen_local_files.resolved) ->
+  'a ->
+  (Ocsimore_appl.appl Eliom_output.application_content,
+   Eliom_output.appl_service) Eliom_output.kind Lwt.t

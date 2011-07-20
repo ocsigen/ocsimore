@@ -438,6 +438,22 @@ class type virtual interactive_wikibox =
       (HTML5_types.html HTML5.M.elt * int) Lwt.t
 
 
+    (** Displaying of the content of an template wikipage, with [file]
+	as subbox.  *)
+    method display_wikifile :
+      wiki:wiki ->
+	menu_style:menu_style ->
+	  template:string ->
+	    file: Ocsigen_local_files.resolved ->
+	      (HTML5_types.html HTML5.M.elt * int) Lwt.t
+
+    method display_wikibox :
+      wiki:wiki ->
+	menu_style:menu_style ->
+	  template:string ->
+	    wb: Wiki_types.wikibox ->
+	      (HTML5_types.html HTML5.M.elt * int) Lwt.t
+
     (** Display of the list of all the wikis, as well as of some links to edit
         their properties *)
     method display_all_wikis :
@@ -461,3 +477,4 @@ class type virtual interactive_wikibox =
       HTML5_types.form_content HTML5.M.elt list
 
   end
+
