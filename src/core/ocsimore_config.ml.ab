@@ -1,0 +1,6 @@
+let db_user = ref "$pguser"
+let db_name = ref "$pgdatabase"
+
+let password = ref (try Sys.getenv "PGPASSWORD" with Not_found -> "$pgpassword")
+
+let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)

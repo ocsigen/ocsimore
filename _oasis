@@ -13,10 +13,11 @@ Authors:
 Homepage: http://ocsigen.org/ocsimore
 BuildTools: ocamlbuild
 Plugins: DevFiles (0.2), META (0.2)
-
 Synopsis: Ocsimore lib for eliom
 Description:
   A nice description
+
+FilesAB: src/core/ocsimore_config.ml.ab
 
 # +-------------------------------------------------------------------+
 # | Libraries                                                         |
