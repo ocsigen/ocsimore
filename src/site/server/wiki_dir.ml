@@ -27,7 +27,7 @@ type 'a resolver = 'a -> Ocsigen_local_files.resolved
 let resolve_file_in_dir ?(default = "") ?(suffix = "") dir =
   fun file ->
     let filename = match file with
-      | [] -> Filename.concat dir  default
+      | [] | [""] -> Filename.concat dir  default
       | file -> List.fold_left Filename.concat dir file in
     Ocsigen_local_files.resolve
       ~no_check_for:dir
