@@ -94,7 +94,7 @@ let register_flows_wiki_parser,
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser_:(b: HTML5_types.flow5 HTML5.M.elt list wiki_parser) ->
+  ((fun ~name:k ~preparser:a ~parser_:(b:HTML5_types.flow5 HTML5.M.elt list wiki_parser) ->
       let k = Wiki_types.content_type_of_string k in
       H.add t k (a, b);
       k),

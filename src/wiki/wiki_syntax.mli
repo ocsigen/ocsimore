@@ -86,7 +86,7 @@ val wikicreole_parser :
     Used for example for forum messages.
 *)
 val reduced_wikicreole_parser0 :
-  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    href
@@ -96,7 +96,7 @@ val reduced_wikicreole_parser0 :
     Used for example for forum messages with restricted features.
 *)
 val reduced_wikicreole_parser1 :
-  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    href
@@ -105,7 +105,7 @@ val reduced_wikicreole_parser1 :
 (** The same, without images, objects, titles, tables, lists,
     subwikiboxes and containers (content). *)
 val reduced_wikicreole_parser2 :
-  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    href

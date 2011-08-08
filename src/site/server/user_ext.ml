@@ -79,8 +79,12 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
           )
   in
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    [wikicreole_parser]
+    ~name:"username" ~wiki_content:true f;
+  add_extension
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
     ~name:"username" ~wiki_content:true f;
   Wiki_syntax.add_extension
     ~wp:phrasing_wikicreole_parser ~name:"username" ~wiki_content:true f;

@@ -201,8 +201,12 @@ let register_wikibox_syntax_extensions
     )
   in
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    [wikicreole_parser]
+    ~name:"link" ~wiki_content:true f;
+  add_extension
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
     ~name:"link" ~wiki_content:true f;
   Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
     ~name:"link" ~wiki_content:true (f phrasing_wikicreole_parser);
@@ -228,8 +232,12 @@ let register_wikibox_syntax_extensions
     )
   in
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    [wikicreole_parser]
+    ~name:"nonattachedlink" ~wiki_content:true f;
+  add_extension
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+      reduced_wikicreole_parser2]
     ~name:"nonattachedlink" ~wiki_content:true f;
   Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
     ~name:"nonattachedlink" ~wiki_content:true (f phrasing_wikicreole_parser);
@@ -250,8 +258,12 @@ let register_wikibox_syntax_extensions
     )
   in
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    [wikicreole_parser]
+    ~name:"cancellink" ~wiki_content:true f;
+  add_extension
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+      reduced_wikicreole_parser2]
     ~name:"cancellink" ~wiki_content:true f;
   Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
     ~name:"cancellink" ~wiki_content:true (f phrasing_wikicreole_parser);
@@ -285,11 +297,7 @@ let register_wikibox_syntax_extensions
     );
 
 
-
-  add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0]
-    ~name:"img" ~wiki_content:true
-    (fun _wp bi args c ->
+  let f wp bi args c =
        Wikicreole.Phrasing_without_interactive
          (let page = Ocsimore_lib.list_assoc_default "name" args ""
           and https = extract_https args
@@ -304,7 +312,13 @@ let register_wikibox_syntax_extensions
           Lwt.return
             [HTML5.M.img ~src:url ~alt ~a:atts ()]
          )
-    );
+  in
+  add_extension
+    [wikicreole_parser]
+    ~name:"img" ~wiki_content:true f;
+  add_extension
+    [reduced_wikicreole_parser0]
+    ~name:"img" ~wiki_content:true f;
 
   let f = (fun _wp bi args _ ->
        Wikicreole.Phrasing_without_interactive
@@ -321,8 +335,12 @@ let register_wikibox_syntax_extensions
     )
   in
   add_extension
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    [wikicreole_parser]
+    ~name:"switchmenu" ~wiki_content:true f;
+  add_extension
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
     ~name:"switchmenu" ~wiki_content:true f;
   Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
     ~name:"switchmenu" ~wiki_content:true (f phrasing_wikicreole_parser)

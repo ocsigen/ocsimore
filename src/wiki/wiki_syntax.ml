@@ -60,7 +60,7 @@ let length_of_string s = (*FIXME?*)
         | _ -> (assert false)
 
 
-let rec filter_raw = function (*/!\ NOT TAIL REC /!\*)
+let rec filter_raw = function (* /!\ NOT TAIL REC /!\ *)
   | [] -> []
   | None :: xs -> filter_raw xs
   | Some x :: xs -> x :: filter_raw xs
@@ -196,11 +196,14 @@ let parse_table_cell_attribs attribs =
 let list_builder = function
   | [] -> Lwt.return (HTML5.M.li [], [])
   | x::xs ->
-      let f (c, l, attribs) =
+      let f ((c, l, attribs) :
+	       (HTML5_types.phrasing HTML5.M.elt list Lwt.t list
+		* [< HTML5_types.li_content] HTML5.M.elt list Lwt.t option
+		* (string * HTML5_types.nmtoken) list)) =
         let a = opt_list (parse_common_attribs attribs) in
         element c >|= List.flatten   >>= fun r ->
         unopt ~def:(Lwt.return []) l >|= fun l ->
-        HTML5.M.li ?a ((r : [ HTML5_types.phrasing ] HTML5.M.elt list :> [ HTML5_types.li_content ] HTML5.M.elt list) @ l)
+          HTML5.M.li ?a ((r  :> HTML5_types.flow5 HTML5.M.elt list) @ (l :> HTML5_types.flow5 HTML5.M.elt list))
       in
       f x                   >>= fun y ->
       Lwt_list.map_s f xs   >|= fun ys ->
@@ -212,7 +215,7 @@ let descr_builder l =
     element d >|= fun d ->
       if istitle
       then `Dt (HTML5.M.dt ?a (List.flatten d))
-      else `Dd (HTML5.M.dd ?a ((List.flatten d:>HTML5_types.flow5 HTML5.M.elt list)))
+      else `Dd (HTML5.M.dd ?a ((List.flatten d:>HTML5_types.flow5_without_header_footer HTML5.M.elt list)))
   in
   let rec list_dt acc = function
     | [] -> None
@@ -840,7 +843,7 @@ let table_elem =
              element c >|= List.flatten >|= fun r ->
              if h
              then HTML5.M.th ?a r
-             else HTML5.M.td ?a (r:>HTML5_types.flow5 HTML5.M.elt list)
+             else HTML5.M.td ?a (r:>HTML5_types.flow5_without_header_footer HTML5.M.elt list)
            in
            let f2 (row, attribs) = match row with
              | [] -> Lwt.return (HTML5.M.tr [HTML5.M.td []])
@@ -997,7 +1000,57 @@ let default_builder :
     error = error;
   }
 
-let reduced_builder = (* no images, no objects, no subwikiboxes, no content *)
+let default_builder_without_header_and_footer :
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   box_info,
+   'href
+  ) Wikicreole.builder =
+
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem = a_elem;
+    make_href = default_make_href;
+    br_elem = br_elem;
+    img_elem = img_elem;
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
+    p_elem = p_elem;
+    pre_elem = pre_elem;
+    h1_elem = h1_elem;
+    h2_elem = h2_elem;
+    h3_elem = h3_elem;
+    h4_elem = h4_elem;
+    h5_elem = h5_elem;
+    h6_elem = h6_elem;
+    ul_elem = ul_elem;
+    ol_elem = ol_elem;
+    dl_elem = dl_elem;
+    hr_elem = hr_elem;
+    table_elem = table_elem;
+    phrasing = phrasing;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    link_action = link_action;
+    error = error;
+  }
+
+let reduced_builder :
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   box_info,
+   'href
+  ) Wikicreole.builder = (* no images, no objects, no subwikiboxes, no content *)
   { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
     strong_elem = strong_elem;
     em_elem = em_elem;
@@ -1194,15 +1247,25 @@ let reduced_builder_button :
 
 let void_plugin_action = fun _ _ _ _ -> Lwt.return None
 
-let wikicreole_parser = {
+let wikicreole_parser :
+  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   href
+  ) wikicreole_parser = {
   builder = default_builder;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
   link_action = ref void_plugin_action;
 }
 
-let reduced_wikicreole_parser0 = {
-  builder = default_builder;
+let reduced_wikicreole_parser0 :
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   href
+  ) wikicreole_parser = {
+  builder = default_builder_without_header_and_footer;
   plugin_assoc = Hashtbl.create 17;
   plugin_action_assoc = Hashtbl.create 17;
   link_action = ref void_plugin_action;
@@ -1281,17 +1344,20 @@ let wikicreole_content_type =
 let reduced_wikicreole_content_type0 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole0"
     (preparse_extension reduced_wikicreole_parser0)
-    (xml_of_wiki reduced_wikicreole_parser0)
+    (xml_of_wiki reduced_wikicreole_parser0
+     :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type1 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole1"
     (preparse_extension reduced_wikicreole_parser1)
-    (xml_of_wiki reduced_wikicreole_parser1)
+    (xml_of_wiki reduced_wikicreole_parser1
+     :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type2 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole2"
     (preparse_extension reduced_wikicreole_parser2)
-    (xml_of_wiki reduced_wikicreole_parser2)
+    (xml_of_wiki reduced_wikicreole_parser2
+     :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let wikicreole_phrasing_content_type =
   Wiki_models.register_phrasings_wiki_parser "phrasing_wikicreole"
@@ -1344,31 +1410,61 @@ let () =
     List.iter (fun wp -> add_extension ~wp ~name ?wiki_content (f wp)) l
   in
 
-  add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"div" ~wiki_content:true
-    (fun wp bi args c ->
-       Wikicreole.Flow5
-         (let content = match c with
-            | Some c -> c
-            | None -> ""
-          in
-          lwt content = xml_of_wiki wp bi content in
-          let classe =
-            try Some (HTML5.M.a_class [List.assoc "class" args])
-            with Not_found -> None
-          in
-          let id =
-            try Some (HTML5.M.a_id (List.assoc "id" args))
-            with Not_found -> None
-          in
-          let a = opt_list (filter_raw [classe; id]) in
-          Lwt.return [HTML5.M.div ?a content]
-    ));
+  let f_block make wp bi args c =
+    Wikicreole.Flow5
+      (let content = match c with
+         | Some c -> c
+         | None -> ""
+       in
+       lwt content = xml_of_wiki wp bi content in
+       let classe =
+         try Some (HTML5.M.a_class [List.assoc "class" args])
+         with Not_found -> None
+       in
+       let id =
+         try Some (HTML5.M.a_id (List.assoc "id" args))
+         with Not_found -> None
+       in
+       let style =
+         try Some (HTML5.M.a_id (List.assoc "style" args))
+         with Not_found -> None
+       in
+       let a = opt_list (filter_raw [classe; id; style]) in
+       Lwt.return [make ?a content]
+      ) in
 
 
-  let f = (fun wp bi args c ->
+  let add l (name, make) =
+    add_extension_aux l
+      ~name:name ~wiki_content:true
+      (f_block make) in
+
+  List.iter
+    (add [wikicreole_parser])
+    ["div", HTML5.M.div;
+     "aside", HTML5.M.aside;
+     "nav", HTML5.M.nav;
+     "section", HTML5.M.section;];
+  List.iter
+    (add
+       [reduced_wikicreole_parser0;
+	reduced_wikicreole_parser1;
+	reduced_wikicreole_parser2])
+    ["div", HTML5.M.div;
+     "aside", HTML5.M.aside;
+     "nav", HTML5.M.nav;
+     "section", HTML5.M.section;
+    ];
+  List.iter
+    (fun (name, make) ->
+       add_extension
+	 ~wp:wikicreole_parser ~name ~wiki_content:true
+	 (f_block make reduced_wikicreole_parser0))
+    ["header", HTML5.M.header;
+     "footer", HTML5.M.footer;
+    ];
+
+  let f_span = (fun wp bi args c ->
        Wikicreole.Phrasing_without_interactive
          (let content = match c with
             | Some c -> c
@@ -1389,14 +1485,20 @@ let () =
     )
   in
   add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
+    [wikicreole_parser]
+    ~name:"span" ~wiki_content:true
+    f_span;
+  add_extension_aux
+    [reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"span" ~wiki_content:true
-    f;
-  add_extension ~wp:phrasing_wikicreole_parser ~name:"span" ~wiki_content:true
-    (f phrasing_wikicreole_parser);
+    f_span;
+  add_extension_aux
+    [phrasing_wikicreole_parser]
+    ~name:"span" ~wiki_content:true
+    f_span;
 
-  let f =
+  let f_wikiname =
     (fun _ bi _ _ ->
       Wikicreole.Phrasing_without_interactive
         (let wid = bi.Wiki_widgets_interface.bi_wiki in
@@ -1405,140 +1507,161 @@ let () =
     )
   in
   add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"wikiname" ~wiki_content:true f;
-  add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"wikiname" ~wiki_content:true (f phrasing_wikicreole_parser);
+    [wikicreole_parser]
+    ~name:"wikiname" ~wiki_content:true f_wikiname;
+  add_extension_aux
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
+    ~name:"wikiname" ~wiki_content:true f_wikiname;
+  add_extension_aux
+    [phrasing_wikicreole_parser]
+    ~name:"wikiname" ~wiki_content:true f_wikiname;
 
-  let f =
+  let f_raw =
     (fun _ _ args content ->
       Wikicreole.Phrasing_without_interactive
         (let s = string_of_extension "raw" args content in
          Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]))
   in
   add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
+    [reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"raw" ~wiki_content:false f;
-  add_extension ~wp:phrasing_wikicreole_parser ~name:"raw" ~wiki_content:false
-    (f phrasing_wikicreole_parser);
+    ~name:"raw" ~wiki_content:false f_raw;
+  add_extension_aux
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
+    ~name:"raw" ~wiki_content:false f_raw;
+  add_extension_aux
+    [phrasing_wikicreole_parser]
+    ~name:"raw" ~wiki_content:false f_raw;
 
-  let f = (fun _ _ _ _ -> Wikicreole.Phrasing_without_interactive (Lwt.return []))
+  let f_empty _ _ _ _ =
+    Wikicreole.Phrasing_without_interactive (Lwt.return [])
   in
   add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"" ~wiki_content:false f;
-  add_extension ~wp:phrasing_wikicreole_parser ~name:"" ~wiki_content:false
-    (f phrasing_wikicreole_parser);
+    [wikicreole_parser]
+    ~name:"" ~wiki_content:false f_empty;
+  add_extension_aux
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
+    ~name:"" ~wiki_content:false f_empty;
+  add_extension_aux
+    [phrasing_wikicreole_parser]
+    ~name:"" ~wiki_content:false f_empty;
 
+  let f_content _ bi args _ =
+    Wikicreole.Flow5
+      (let classe =
+         try Some (List.assoc "class" args)
+         with Not_found -> None
+       and id =
+         try Some (HTML5.M.a_id (List.assoc "id" args))
+         with Not_found -> None
+       in
+       bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
+       | None ->
+           let a = match classe with
+             | None -> opt_list (filter_raw [id])
+             | Some c -> Some (HTML5.M.a_class [c] :: filter_raw [id])
+           in
+           [HTML5.M.div ?a
+              [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<conten>>"]]]
+           ]
+       | Some (wb, subbox) ->
+           let classe = match wb with
+             | None -> apply_opt (fun c -> HTML5.M.a_class [c]) classe
+             | Some wb ->
+                 Some
+                   (HTML5.M.a_class
+                      (class_wikibox wb :: filter_raw [classe]))
+           in
+           let a = opt_list (filter_raw [classe; id]) in
+           [HTML5.M.div ?a subbox]
+      )
+  in
   add_extension_aux
     [wikicreole_parser]
-    ~name:"content"
-    (fun _ bi args _ ->
-       Wikicreole.Flow5
-         (let classe =
-            try Some (List.assoc "class" args)
-            with Not_found -> None
-          and id =
-            try Some (HTML5.M.a_id (List.assoc "id" args))
-            with Not_found -> None
-          in
-          bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
-            | None ->
-                let a = match classe with
-                  | None -> opt_list (filter_raw [id])
-                  | Some c -> Some (HTML5.M.a_class [c] :: filter_raw [id])
-                in
-                [HTML5.M.div ?a
-                   [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<conten>>"]]]
-                ]
-            | Some (wb, subbox) ->
-                let classe = match wb with
-                  | None -> apply_opt (fun c -> HTML5.M.a_class [c]) classe
-                  | Some wb ->
-                      Some
-                        (HTML5.M.a_class
-                           (class_wikibox wb :: filter_raw [classe]))
-                in
-                let a = opt_list (filter_raw [classe; id]) in
-                [HTML5.M.div ?a subbox]
-         )
-    );
+    ~name:"content" f_content;
 
-  add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"menu"
-    (fun _ bi args _ ->
-       let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
-       Wikicreole.Flow5
-         (let classe =
-            HTML5.M.a_class
-              (   "wikimenu"
+  let f_menu _ bi args _ =
+    let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
+    Wikicreole.Flow5
+      (let classe =
+         HTML5.M.a_class
+           (   "wikimenu"
                :: filter_raw [
-                    try Some (List.assoc "class" args) with Not_found -> None
-                  ])
-          in
-          let id =
-            try Some (HTML5.M.a_id (List.assoc "id" args))
-            with Not_found -> None
-          in
-          let a = Some (classe :: (filter_raw [id])) in
-          let f ?classe s =
-            let link, text =
-              try String.sep '|' s
-              with Not_found -> s, s
-            in
-            Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
-            phrasing_without_interactive_of_wiki bi text >>= fun text2 ->
-            let b =
-              match wiki_info.Wiki_types.wiki_pages with
-                | Some dir ->
-                    Eliom_request_info.get_current_sub_path_string ()
-                  = Ocsimore_lib.remove_begin_slash (dir^"/"^link)
-                | None -> false
-            in
-            if b
-            then
-              let classe = match classe with
-                | None   -> HTML5.M.a_class ["wikimenu_current"]
-                | Some c -> HTML5.M.a_class ("wikimenu_current" :: c)
-              in
-              Lwt.return (HTML5.M.li ~a:[classe] text2)
-            else
-	      let link =
-		match make_href bi (link_kind link) None with
-		  | String_href addr ->
-		    (HTML5.M.a ~a:[HTML5.M.a_href (Uri.uri_of_string addr)] text2)
-		  | Service_href href -> a_link_of_href href ~a:[] text2
-              in
-              let classe = apply_opt HTML5.M.a_class classe in
-              let a = apply_opt (fun x -> [x]) classe in
-              Lwt.return (HTML5.M.li ?a [link])
-          in
-          let rec mapf = function
-            | []    -> Lwt.return []
-            | [x]   -> f ~classe:["wikimenu_last"] x >|= fun y -> [y]
-            | x::xs -> f x     >>= fun y  ->
-                       mapf xs >|= fun ys ->
-                       (y::ys)
-          in
-          match List.fold_left
-            (fun beg (n, v) -> if n="item" then v::beg else beg)
-            [] args
-          with
-            | [] -> Lwt.return []
-            | [x] ->
-                f ~classe:["wikimenu_first"; "wikimenu_last"] x >|= fun y ->
-                [HTML5.M.ul ?a [y]]
-            | x::xs ->
-                f ~classe:["wikimenu_first"] x >>= fun y ->
-                mapf xs                        >|= fun ys ->
-                [HTML5.M.ul ?a (y::ys)]
-         )
-    );
+                 try Some (List.assoc "class" args) with Not_found -> None
+               ])
+       in
+       let id =
+         try Some (HTML5.M.a_id (List.assoc "id" args))
+         with Not_found -> None
+       in
+       let a = Some (classe :: (filter_raw [id])) in
+       let f ?classe s =
+         let link, text =
+           try String.sep '|' s
+           with Not_found -> s, s
+         in
+         Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
+           phrasing_without_interactive_of_wiki bi text >>= fun text2 ->
+             let b =
+               match wiki_info.Wiki_types.wiki_pages with
+               | Some dir ->
+                   Eliom_request_info.get_current_sub_path_string ()
+                   = Ocsimore_lib.remove_begin_slash (dir^"/"^link)
+               | None -> false
+             in
+             if b
+             then
+               let classe = match classe with
+                 | None   -> HTML5.M.a_class ["wikimenu_current"]
+                 | Some c -> HTML5.M.a_class ("wikimenu_current" :: c)
+               in
+               Lwt.return (HTML5.M.li ~a:[classe] text2)
+             else
+	       let link =
+		 match make_href bi (link_kind link) None with
+		 | String_href addr ->
+		     (HTML5.M.a ~a:[HTML5.M.a_href (Uri.uri_of_string addr)] text2)
+		 | Service_href href -> a_link_of_href href ~a:[] text2
+               in
+               let classe = apply_opt HTML5.M.a_class classe in
+               let a = apply_opt (fun x -> [x]) classe in
+               Lwt.return (HTML5.M.li ?a [link])
+       in
+       let rec mapf = function
+         | []    -> Lwt.return []
+         | [x]   -> f ~classe:["wikimenu_last"] x >|= fun y -> [y]
+           | x::xs -> f x     >>= fun y  ->
+               mapf xs >|= fun ys ->
+                 (y::ys)
+       in
+       match List.fold_left
+         (fun beg (n, v) -> if n="item" then v::beg else beg)
+         [] args
+       with
+       | [] -> Lwt.return []
+       | [x] ->
+           f ~classe:["wikimenu_first"; "wikimenu_last"] x >|= fun y ->
+             [HTML5.M.ul ?a [y]]
+           | x::xs ->
+               f ~classe:["wikimenu_first"] x >>= fun y ->
+                 mapf xs                        >|= fun ys ->
+                   [HTML5.M.ul ?a (y::ys)]
+      )
+  in
+  add_extension_aux
+    [wikicreole_parser]
+    ~name:"menu" f_menu;
+  add_extension_aux
+    [reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
+    ~name:"menu" f_menu;
 
 
   let f_cond wp bi args c =
@@ -1583,9 +1706,12 @@ let () =
   in
 
   add_extension_aux
-    [wikicreole_parser; reduced_wikicreole_parser0;
+    [wikicreole_parser]
+    ~name:"cond" ~wiki_content:true f_cond;
+  add_extension_aux
+    [reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"cond" ~wiki_content:true
-     f_cond;
-
-  add_extension_aux [menu_parser] ~name:"cond" ~wiki_content:true f_cond;
+    ~name:"cond" ~wiki_content:true f_cond;
+  add_extension_aux
+    [menu_parser]
+    ~name:"cond" ~wiki_content:true f_cond;
