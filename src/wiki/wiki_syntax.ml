@@ -1259,6 +1259,18 @@ let wikicreole_parser :
   link_action = ref void_plugin_action;
 }
 
+let wikicreole_parser' :
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   href
+  ) wikicreole_parser = {
+  builder = default_builder_without_header_and_footer;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
+}
+
 let reduced_wikicreole_parser0 :
   (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
@@ -1340,6 +1352,12 @@ let wikicreole_content_type =
   Wiki_models.register_flows_wiki_parser "wikicreole"
     (preparse_extension wikicreole_parser)
     (xml_of_wiki wikicreole_parser)
+
+let wikicreole_content_type' =
+  Wiki_models.register_flows_wiki_parser "wikicreole'"
+    (preparse_extension wikicreole_parser)
+    (xml_of_wiki wikicreole_parser'
+     :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type0 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole0"
@@ -1447,7 +1465,8 @@ let () =
      "section", HTML5.M.section;];
   List.iter
     (add
-       [reduced_wikicreole_parser0;
+       [wikicreole_parser';
+	reduced_wikicreole_parser0;
 	reduced_wikicreole_parser1;
 	reduced_wikicreole_parser2])
     ["div", HTML5.M.div;
@@ -1459,7 +1478,7 @@ let () =
     (fun (name, make) ->
        add_extension
 	 ~wp:wikicreole_parser ~name ~wiki_content:true
-	 (f_block make reduced_wikicreole_parser0))
+	 (f_block make wikicreole_parser'))
     ["header", HTML5.M.header;
      "footer", HTML5.M.footer;
     ];
@@ -1489,8 +1508,10 @@ let () =
     ~name:"span" ~wiki_content:true
     f_span;
   add_extension_aux
-    [reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1;
+     reduced_wikicreole_parser2]
     ~name:"span" ~wiki_content:true
     f_span;
   add_extension_aux
@@ -1510,7 +1531,8 @@ let () =
     [wikicreole_parser]
     ~name:"wikiname" ~wiki_content:true f_wikiname;
   add_extension_aux
-    [reduced_wikicreole_parser0;
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
     ~name:"wikiname" ~wiki_content:true f_wikiname;
@@ -1529,7 +1551,8 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"raw" ~wiki_content:false f_raw;
   add_extension_aux
-    [reduced_wikicreole_parser0;
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
     ~name:"raw" ~wiki_content:false f_raw;
@@ -1544,7 +1567,8 @@ let () =
     [wikicreole_parser]
     ~name:"" ~wiki_content:false f_empty;
   add_extension_aux
-    [reduced_wikicreole_parser0;
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
     ~name:"" ~wiki_content:false f_empty;
@@ -1584,6 +1608,9 @@ let () =
   in
   add_extension_aux
     [wikicreole_parser]
+    ~name:"content" f_content;
+  add_extension_aux
+    [wikicreole_parser']
     ~name:"content" f_content;
 
   let f_menu _ bi args _ =
@@ -1658,7 +1685,8 @@ let () =
     [wikicreole_parser]
     ~name:"menu" f_menu;
   add_extension_aux
-    [reduced_wikicreole_parser0;
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
     ~name:"menu" f_menu;
@@ -1709,7 +1737,8 @@ let () =
     [wikicreole_parser]
     ~name:"cond" ~wiki_content:true f_cond;
   add_extension_aux
-    [reduced_wikicreole_parser0;
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"cond" ~wiki_content:true f_cond;
   add_extension_aux

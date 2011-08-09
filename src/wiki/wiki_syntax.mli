@@ -82,6 +82,14 @@ val wikicreole_parser :
   ) wikicreole_parser
 (* Currently modified in Wiki_widgets and User_widgets *)
 
+(** The same parser as [wikicreole_parser] but with a more precise type. *)
+val wikicreole_parser' :
+  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   href
+  ) wikicreole_parser
+
 (** The same, without subwikiboxes and containers (content).
     Used for example for forum messages.
 *)
@@ -137,6 +145,7 @@ val menu_parser :
 
 (** the content type for wikicreole boxes: *)
 val wikicreole_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
+val wikicreole_content_type' : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
 
 (** the content type for reduced_wikicreole_parser0: *)
 val reduced_wikicreole_content_type0 : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
