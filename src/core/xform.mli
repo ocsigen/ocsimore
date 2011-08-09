@@ -22,61 +22,61 @@ module type Xform = sig
   val string_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list
     -> string
-    -> (HTML5_types.phrasing HTML5.M.elt, string) t
+    -> ([> HTML5_types.input ] HTML5.M.elt, string) t
 
   (** Maps the empty list to None, and all the others lists to Some *)
   val string_opt_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list
     -> string option
-    -> (HTML5_types.phrasing HTML5.M.elt, string option) t
+    -> ([> HTML5_types.input] HTML5.M.elt, string option) t
 
   val int_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list
     -> ?format:(int -> string)
     -> int
-    -> (HTML5_types.phrasing HTML5.M.elt, int) t
+    -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, int) t
   val bounded_int_input :
     ?format:(int -> string)
     -> int -> int -> int
-    -> (HTML5_types.phrasing HTML5.M.elt, int) t
+    -> ([> HTML5_types.input | HTML5_types.span] HTML5.M.elt, int) t
 
   val bool_checkbox :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list
     -> bool
-    -> (HTML5_types.phrasing HTML5.M.elt, bool) t
+    -> ([> HTML5_types.input] HTML5.M.elt, bool) t
 
   val text_area :
     ?a:HTML5_types.textarea_attrib HTML5.M.attrib list
     -> rows:int -> cols:int -> string
-    -> (HTML5_types.phrasing HTML5.M.elt, string) t
+    -> ([> HTML5_types.textarea] HTML5.M.elt, string) t
 
-  val submit_button : string -> (HTML5_types.phrasing HTML5.M.elt, bool) t
+  val submit_button : string -> ([> HTML5_types.input ] HTML5.M.elt, bool) t
 
   val select_single :
     (string * string) list -> string
-    -> (HTML5_types.phrasing HTML5.M.elt, string) t
+    -> ([> HTML5_types.select] HTML5.M.elt, string) t
 
   val list :
     'i list
-    -> ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t)
-    -> (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    -> ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t)
+    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
 
   val list' :
     int
-    -> (HTML5_types.form_content HTML5.M.elt, 'o) t
-    -> (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t
+    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
 
   val extensible_list :
     string -> 'i -> 'i list ->
-    ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t) ->
-    (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t) ->
+    ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
 
 (* Displays the input control for 'a, and a checkbox to encode Some/None *)
   val opt_input:
-    input:('a -> (HTML5_types.phrasing HTML5.M.elt, 'b) t) ->
+    input:('a -> (HTML5_types.input HTML5.M.elt, 'b) t) ->
     default:'a ->
     'a option ->
-    (HTML5_types.phrasing HTML5.M.elt, 'b option) t
+    ([> HTML5_types.input] HTML5.M.elt, 'b option) t
 
 
   module Ops : sig
@@ -92,26 +92,23 @@ module type Xform = sig
   val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
   val check :
-    (HTML5_types.phrasing HTML5.M.elt, 'a) t
-    -> ('a -> string option)
-    -> (HTML5_types.phrasing HTML5.M.elt, 'a) t
+    (([> HTML5_types.span] as 'b) HTML5.M.elt, 'a) t ->
+    ('a -> string option) ->
+    ('b HTML5.M.elt, 'a) t
 
   val convert :
-    (HTML5_types.phrasing HTML5.M.elt, 'a) t
-    -> ('a -> 'b convert monad)
-    -> (HTML5_types.phrasing HTML5.M.elt, 'b) t
+   (([> HTML5_types.span] as 'c) HTML5.M.elt, 'a) t ->
+    ('a -> 'b convert monad) ->
+    ('c HTML5.M.elt, 'b) t
 
-  val hour_input : int -> int -> (HTML5_types.phrasing HTML5.M.elt, int * int) t
+  val hour_input : int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int) t
   val day_input :
-    int -> int -> int -> (HTML5_types.phrasing HTML5.M.elt, int * int * int) t
-  val date_input : Calendar.t -> (HTML5_types.phrasing HTML5.M.elt, Calendar.t) t
+    int -> int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int * int) t
+  val date_input : Calendar.t -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, Calendar.t) t
 
-  val text : string -> HTML5_types.phrasing HTML5.M.elt list
-  val strong :
-    HTML5_types.phrasing HTML5.M.elt list -> HTML5_types.phrasing HTML5.M.elt
-  val p :
-    (HTML5_types.phrasing HTML5.M.elt, 'b) t
-    -> (HTML5_types.form_content HTML5.M.elt, 'b) t
+  val text : string -> [> HTML5_types.pcdata ] HTML5.M.elt list
+  val strong : [< HTML5_types.strong_content_fun ] HTML5.M.elt list -> [> HTML5_types.strong ] HTML5.M.elt
+  val p : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.p] HTML5.M.elt, 'b) t
 
   val form:
     fallback:(

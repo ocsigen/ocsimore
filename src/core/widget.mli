@@ -38,7 +38,7 @@ class widget_with_error_box :
     method error_class : string
 
     method display_error_message :
-      ?message:string -> ?exc:exn -> unit -> HTML5_types.flow5_without_header_footer HTML5.M.elt list
+      ?message:string -> ?exc:exn -> unit -> [> `P ] HTML5.M.elt list
 
     (** Takes a threads that gets data (e.g. from a database),
         then a function that transforms this data into something printable
@@ -48,17 +48,20 @@ class widget_with_error_box :
         data retrieval.
     *)
     method bind_or_display_error :
-      'a.
-      'a Lwt.t ->
-      ('a -> (string list * HTML5_types.flow5 HTML5.M.elt list) Lwt.t) ->
-      (string list * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+     'a 'b.
+           'a Lwt.t ->
+           ('a ->
+            (HTML5_types.nmtoken list * ([> HTML5_types.p ] as 'b) Eliom_pervasives.HTML5.M.elt list)
+            Lwt.t) ->
+           (HTML5_types.nmtoken list * 'b Eliom_pervasives.HTML5.M.elt list)
+           Lwt.t
 
     method display_error_box :
       ?classes:string list ->
       ?message:string ->
       ?exc:exn ->
       unit ->
-      HTML5_types.flow5_without_header_footer HTML5.M.elt
+      [> `P ] HTML5.M.elt
 
   end
 

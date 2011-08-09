@@ -1,4 +1,3 @@
-
 open Eliom_pervasives
 open CalendarLib
 module P = Eliom_parameters
@@ -42,44 +41,44 @@ module type Xform = sig
 
 
   val string_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> string -> (HTML5_types.phrasing HTML5.M.elt, string) t
+    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> string -> ([> HTML5_types.input] HTML5.M.elt, string) t
   val string_opt_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
-    string option -> (HTML5_types.phrasing HTML5.M.elt, string option) t
+    string option -> ([> HTML5_types.input] HTML5.M.elt, string option) t
   val int_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list -> ?format:(int -> string) ->
-    int -> (HTML5_types.phrasing HTML5.M.elt, int) t
+    int -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, int) t
   val bounded_int_input :
-    ?format:(int -> string) -> int -> int -> int -> (HTML5_types.phrasing HTML5.M.elt, int) t
+    ?format:(int -> string) -> int -> int -> int -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, int) t
   val bool_checkbox :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> bool -> (HTML5_types.phrasing HTML5.M.elt, bool) t
+    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> bool -> ([> HTML5_types.input] HTML5.M.elt, bool) t
   val text_area :
     ?a:HTML5_types.textarea_attrib HTML5.M.attrib list ->
-    rows:int -> cols:int -> string -> (HTML5_types.phrasing HTML5.M.elt, string) t
-  val submit_button : string -> (HTML5_types.phrasing HTML5.M.elt, bool) t
-  val select_single : (string * string) list -> string -> (HTML5_types.phrasing HTML5.M.elt, string) t
+    rows:int -> cols:int -> string -> ([> HTML5_types.textarea] HTML5.M.elt, string) t
+  val submit_button : string -> ([> HTML5_types.input ] HTML5.M.elt, bool) t
+  val select_single : (string * string) list -> string -> ([> HTML5_types.select] HTML5.M.elt, string) t
 (*val select_single : (string * 'a) list -> 'a -> (HTML5_types.phrasing HTML5.M.elt, 'a) t*)
 (*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
   val list :
     'i list
-    -> ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t)
-    -> (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    -> ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t)
+    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
 
   val list' :
     int
-    -> (HTML5_types.form_content HTML5.M.elt, 'o) t
-    -> (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t
+    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
 
   val extensible_list :
     string -> 'i -> 'i list ->
-    ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t) ->
-    (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t) ->
+    ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
 
   val opt_input:
-    input:('a -> (HTML5_types.phrasing HTML5.M.elt, 'b) t) ->
+    input:('a -> (HTML5_types.input HTML5.M.elt, 'b) t) ->
     default:'a ->
     'a option ->
-    (HTML5_types.phrasing HTML5.M.elt, 'b option) t
+    ([> HTML5_types.input] HTML5.M.elt, 'b option) t
 
 
   module Ops : sig
@@ -95,18 +94,20 @@ module type Xform = sig
   val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
   val check :
-    (HTML5_types.phrasing HTML5.M.elt, 'a) t -> ('a -> string option) -> (HTML5_types.phrasing HTML5.M.elt, 'a) t
+    (([> HTML5_types.span] as 'b) HTML5.M.elt, 'a) t ->
+    ('a -> string option) ->
+    ('b HTML5.M.elt, 'a) t
 
   val convert :
-    (HTML5_types.phrasing HTML5.M.elt, 'a) t -> ('a -> 'b convert monad) -> (HTML5_types.phrasing HTML5.M.elt, 'b) t
+    (([> HTML5_types.span] as 'c) HTML5.M.elt, 'a) t -> ('a -> 'b convert monad) -> ('c HTML5.M.elt, 'b) t
 
-  val hour_input : int -> int -> (HTML5_types.phrasing HTML5.M.elt, int * int) t
-  val day_input : int -> int -> int -> (HTML5_types.phrasing HTML5.M.elt, int * int * int) t
-  val date_input : Calendar.t -> (HTML5_types.phrasing HTML5.M.elt, Calendar.t) t
+  val hour_input : int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int) t
+  val day_input : int -> int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int * int) t
+  val date_input : Calendar.t -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, Calendar.t) t
 
-  val text : string -> HTML5_types.phrasing HTML5.M.elt list
-  val strong : HTML5_types.phrasing HTML5.M.elt list -> HTML5_types.phrasing HTML5.M.elt
-  val p : (HTML5_types.phrasing HTML5.M.elt, 'b) t -> (HTML5_types.form_content HTML5.M.elt, 'b) t
+  val text : string -> [> HTML5_types.pcdata ] HTML5.M.elt list
+  val strong : [< HTML5_types.strong_content_fun ] HTML5.M.elt list -> [> HTML5_types.strong ] HTML5.M.elt
+  val p : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.p] HTML5.M.elt, 'b) t
 
   val form:
     fallback:('a, unit,
@@ -145,7 +146,7 @@ end) = struct
   type ('html, 'o, 'res) cont =
       {f : 'content 'spec . ('content, 'spec, 'html, 'o) u -> 'res}
 
-  type ('html, 'o) t = {unpack : 'res . ('html, 'o, 'res) cont -> 'res}
+  type (+'html, 'o) t = {unpack : 'res . ('html, 'o, 'res) cont -> 'res}
 
   let pack f = {unpack = fun g -> g.f f}
   let unpack f = f.unpack
@@ -345,8 +346,18 @@ end) = struct
           params = (fun name -> (P.unit, name))}
       |> (fun () -> [])
 
-  let list l f =
+  let list l f :
+    (HTML5_types.form_content Eliom_pervasives.HTML5.M.elt, 'a list) t =
     List.fold_right (fun v r -> f v @@ r |> (fun (x, l) -> x :: l)) l empty_list
+
+  let list =
+    (list :
+    'a list ->
+         ('a -> (HTML5_types.form_content Eliom_pervasives.HTML5.M.elt, 'b) t) ->
+         (HTML5_types.form_content Eliom_pervasives.HTML5.M.elt, 'b list) t :>
+    'a list ->
+         ('a -> ([< HTML5_types.form_content] Eliom_pervasives.HTML5.M.elt, 'b) t) ->
+         ([> HTML5_types.form_content] Eliom_pervasives.HTML5.M.elt, 'b list) t)
 
   let rec repeat n v = if n = 0 then [] else v :: repeat (n - 1) v
 
@@ -377,6 +388,15 @@ end) = struct
 	    (fun name -> (P.list (Name.to_string name) (fst (f.params Name.first)),
 			  Name.next name))}
 	     }
+
+  let list' =
+    (list' :
+    int
+    -> (HTML5_types.form_content HTML5.M.elt, 'o) t
+    -> (HTML5_types.form_content HTML5.M.elt, 'o list) t :>
+    int
+    -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t
+    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t)
 
 (****)
 
@@ -413,13 +433,9 @@ end) = struct
 
 (****)
 
-  let text
-      : string -> HTML5_types.phrasing HTML5.M.elt list
-    = fun s -> [HTML5.M.pcdata s]
-  let strong
-      : HTML5_types.phrasing HTML5.M.elt list -> HTML5_types.phrasing HTML5.M.elt
-    = fun l -> HTML5.M.strong l
-  let p (x : (HTML5_types.phrasing HTML5.M.elt, 'b) t) =
+  let text s = [HTML5.M.pcdata s]
+  let strong l = HTML5.M.strong l
+  let p (x : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t) =
     wrap (fun x -> [HTML5.M.p x]) x
   let hidden (x : (HTML5_types.phrasing HTML5.M.elt, 'b) t) =
     wrap (fun x -> [HTML5.M.div ~a:[HTML5.M.a_style "display:none"] x])
@@ -479,10 +495,19 @@ end) = struct
 		 button.params}})
       |> (fun (l1, l2) -> l1 @ l2)
 
+  let extensible_list =
+    (extensible_list
+    : string -> 'i -> 'i list ->
+     ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t) ->
+     (HTML5_types.form_content HTML5.M.elt, 'o list) t
+    :> string -> 'i -> 'i list ->
+     ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t) ->
+     ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t)
+
 (****)
 
   let hour_input hour min =
-    bounded_int_input 0 23 hour +@ text "h" @@
+   bounded_int_input 0 23 hour +@ text "h" @@
       bounded_int_input ~format:(Format.sprintf "%02d") 0 59 min
 
   let day_input day month year =
@@ -502,9 +527,9 @@ end) = struct
         Calendar.make year month day hour min 0)
 
   let opt_input ~input ~default v =
-    bool_checkbox (v <> None) @@
+    (bool_checkbox (v <> None) @@
       input (match v with None -> default | Some s -> s)
-      |> (fun (checked, s) -> if checked then Some s else None)
+      |> (fun (checked, s) -> if checked then Some s else None))
 
 end
 

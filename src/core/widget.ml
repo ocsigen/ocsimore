@@ -27,6 +27,14 @@ open Ocsimore_lib
 
 class widget = object end
 
+(* let bind_or_display_error *)
+    (* (error_class : string) *)
+    (* (display_error_box : *)
+       (* ?classes:HTML5_types.nmtoken list -> *)
+     (* ?message:string -> *)
+     (* ?exc:exn -> unit -> [> HTML5_types.p ] Eliom_pervasives.HTML5.M.elt) *)
+    (* data transform_data = *)
+
 class widget_with_error_box =
 object(self)
 
@@ -34,12 +42,19 @@ object(self)
 
   method error_class = error_class
 
-  method display_error_message ?message ?exc () =
+  method display_error_message :
+     'a. ?message:string -> ?exc:exn -> unit -> ([> `P ] as 'a) HTML5.M.elt list =
+    fun ?message ?exc () ->
     match message, exc with
       | None, None -> []
       | message, exc -> [self#display_error_box ?message ?exc ()]
 
-  method display_error_box ?(classes=[]) ?(message = "Error") ?exc () =
+  method display_error_box :
+      'a. ?classes:string list ->
+      ?message:string ->
+      ?exc:exn ->
+      unit ->
+      ([> `P ] as 'a) HTML5.M.elt = fun ?(classes=[]) ?(message = "Error") ?exc () ->
     let classes = error_class::classes in
     let message = match exc with
       | None -> HTML5.M.strong [HTML5.M.pcdata message]
@@ -60,21 +75,23 @@ object(self)
           else
             HTML5.M.strong [HTML5.M.pcdata message]
     in
-    (HTML5.M.p ~a:[HTML5.M.a_class classes] [message]
-       : HTML5_types.flow5_without_header_footer HTML5.M.elt)
+    HTML5.M.p ~a:[HTML5.M.a_class classes] [message]
 
-  method bind_or_display_error : 'a.
+  method bind_or_display_error :
+    'a 'b.
     'a Lwt.t ->
-    ('a -> (string list * HTML5_types.flow5 HTML5.M.elt list) Lwt.t) -> _
-    = fun data transform_data ->
+      ('a ->
+       (HTML5_types.nmtoken list * ([> HTML5_types.p ] as 'b) Eliom_pervasives.HTML5.M.elt list)
+         Lwt.t) ->
+        (HTML5_types.nmtoken list * 'b Eliom_pervasives.HTML5.M.elt list)
+          Lwt.t =
+    fun data transform_data ->
       Lwt.catch
-        (fun () -> data >>= transform_data)
-        (fun exc ->
-           Lwt.return
-             ([error_class],
-              [(self#display_error_box ~exc ()
-                 : HTML5_types.flow5_without_header_footer HTML5.M.elt :> HTML5_types.flow5 HTML5.M.elt)]
-             ))
+	(fun () -> data >>= transform_data)
+	(fun exc ->
+	  Lwt.return
+            ([error_class],
+             [self#display_error_box ~exc ()]))
 
 end
 
