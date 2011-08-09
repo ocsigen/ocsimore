@@ -104,7 +104,7 @@ object (self)
   method display_basic_box (classes, content) =
     Lwt.return
       (HTML5.M.div ~a:[HTML5.M.a_class classes] content
-       : [`Div] HTML5.M.elt :> HTML5_types.flow5 HTML5.M.elt)
+       : [`Div] HTML5.M.elt :> HTML5_types.flow5_without_header_footer HTML5.M.elt)
 
   method wrap_error ~wb r =
     match Wiki_services.get_wikibox_error () with
@@ -456,7 +456,10 @@ object (self)
       ~bi ~classes
       ?(rows=25) ?(cols=80)
       ~wb ~wbcss ~wikipage
-      (content, boxversion) =
+      (content, boxversion) : (Wiki_widgets_interface.classes *
+          HTML5_types.flow5_without_header_footer
+          Eliom_pervasives.HTML5.M.elt list)
+         Lwt.t =
 
     let content = match content with
       | None -> "/* Deleted CSS */"
@@ -517,7 +520,11 @@ object (self)
       to change the permissions, as this will be checked by the service
       (and the user should not have access to the page otherwise). We
       also suppose that boxrights is set to true for the wiki *)
-  method display_edit_wikibox_perm_form ~bi ~classes wb =
+  method display_edit_wikibox_perm_form ~bi ~classes wb
+    : (Wiki_widgets_interface.classes *
+          HTML5_types.flow5_without_header_footer
+          Eliom_pervasives.HTML5.M.elt list)
+         Lwt.t =
     Wiki_sql.get_wikibox_info wb >>= fun { wikibox_special_rights = sr } ->
     let bt_change value textbt =
       let mform (wbname, srname) =
@@ -628,7 +635,11 @@ object (self)
 
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
-  method display_edit_wiki_perm_form ~classes ?wb wiki =
+  method display_edit_wiki_perm_form ~classes ?wb wiki
+    : (Wiki_widgets_interface.classes *
+          HTML5_types.flow5_without_header_footer
+          Eliom_pervasives.HTML5.M.elt list)
+         Lwt.t =
     let aux g text =
       user_widgets#form_edit_group ~group:(g $ wiki)
         ~text:[HTML5.M.p
@@ -756,7 +767,10 @@ object (self)
     | Some page ->  "page " ^ page
 
 
-  method display_wikitext_history ~bi ~classes ~wb l =
+  method display_wikitext_history ~bi ~classes ~wb l :
+    (Wiki_widgets_interface.classes *
+       HTML5_types.flow5_without_header_footer HTML5.M.elt list)
+         Lwt.t =
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
@@ -780,7 +794,9 @@ object (self)
     >|= List.flatten
     >|= fun l -> (classes, l)
 
-  method display_css_history ~bi ~classes ~wb ~wbcss ~wikipage l =
+  method display_css_history ~bi ~classes ~wb ~wbcss ~wikipage l
+    : (Wiki_widgets_interface.classes *
+	 HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t =
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
@@ -1106,7 +1122,7 @@ object (self)
                   (fun x ->
                      self#display_wikitext_edit_form_help ~bi ?cols ?rows
                        ~previewonly:true ~wb ~classes x >|= fun (s,b) ->
-                     (s, (b :HTML5_types.flow5 HTML5.M.elt list :> HTML5_types.flow5 HTML5.M.elt list))
+                     (s, (b :> HTML5_types.flow5 HTML5.M.elt list))
                   )
                 >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
                 >>= ok
@@ -1123,7 +1139,12 @@ object (self)
                      Lwt.return (Some content, version)
                   )
                   (self#display_css_edit_form ~bi ?cols ?rows
-                     ~wb:wb_loc ~wbcss ~wikipage ~classes)
+                     ~wb:wb_loc ~wbcss ~wikipage ~classes
+		    :>
+		     string option * Int32.t ->
+		   (Wiki_widgets_interface.classes *
+		      HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+		     Lwt.t)
                 >>= (self#menu_edit_css ~bi ?special_box wb_loc wikipage)
                 >>= ok
             | false -> display_error ()
@@ -1138,7 +1159,11 @@ object (self)
           (bi.bi_rights#can_set_wikibox_specific_permissions wb >>= function
             | true ->
                 self#display_edit_wikibox_perm_form ~bi ~classes wb
-                >>=  (self#menu_edit_wikibox_perms ~bi ?special_box wb_loc)
+                >>=  (self#menu_edit_wikibox_perms ~bi ?special_box wb_loc
+		      :> HTML5_types.nmtokens *
+			HTML5_types.flow5_without_header_footer HTML5.M.elt list ->
+		      HTML5_types.flow5_without_header_footer HTML5.M.elt
+			list Lwt.t)
                 >>= ok
           | false -> display_error ()
           )
@@ -1150,7 +1175,11 @@ object (self)
             | true ->
                 (self#display_edit_wiki_option_form ~classes
                    ~wb:wb_loc ~options:b2 ~perms:b1 wiki)
-                >>= (self#menu_edit_wiki_options ~bi ?special_box wb_loc wiki)
+                >>= (self#menu_edit_wiki_options ~bi ?special_box wb_loc wiki
+		     :> Wiki_widgets_interface.classes *
+         HTML5_types.flow5_without_header_footer Eliom_pervasives.HTML5.M.elt list ->
+         HTML5_types.flow5_without_header_footer Eliom_pervasives.HTML5.M.elt
+         list Lwt.t)
                 >>= ok
             | false -> display_error ()
           )
@@ -1180,7 +1209,7 @@ object (self)
                              [HTML5.M.pcdata "Preview"]
                         :: prev
                         :: form)
-                       : HTML5_types.flow5 HTML5.M.elt list
+                       : HTML5_types.flow5_without_header_footer HTML5.M.elt list
                        :> HTML5_types.flow5 HTML5.M.elt list)
                      )
                   )
@@ -1204,7 +1233,12 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   (Wiki_data.wikibox_history bi.bi_rights wb)
-                  (self#display_wikitext_history ~bi ~classes ~wb)
+                  (self#display_wikitext_history ~bi ~classes ~wb
+		   :>
+		     (int32 * string * int32 * CalendarLib.Printer.Calendar.t) list ->
+		   (Wiki_widgets_interface.classes *
+		      HTML5_types.flow5 HTML5.M.elt list)
+         Lwt.t)
                 >>= (self#menu_wikitext_history ~bi ?special_box wb_loc)
                 >>= ok
             | false -> display_error ()
@@ -1216,7 +1250,9 @@ object (self)
                 error_box#bind_or_display_error
                   (Wiki_data.wikibox_history bi.bi_rights wbcss)
                   (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss
-                     ~wikipage:(wiki,wikipage))
+                     ~wikipage:(wiki,wikipage)
+		   :> (int32 * string * int32 * CalendarLib.Printer.Calendar.t) list ->
+		   (Wiki_widgets_interface.classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t)
                 >>= (self#menu_css_history ~bi ?special_box wb_loc
                         (wiki, wikipage))
                 >>= ok
@@ -1229,7 +1265,10 @@ object (self)
             | true ->
                 (self#display_edit_wikibox_perm_form ~bi ~classes wbcss)
                 >>= (self#menu_edit_css_perms ~bi ?special_box wb_loc
-                       (wiki, wikipage))
+                       (wiki, wikipage) :> Wiki_widgets_interface.classes *
+         HTML5_types.flow5_without_header_footer HTML5.M.elt list ->
+         HTML5_types.flow5_without_header_footer HTML5.M.elt
+         list Lwt.t)
                 >>= ok
           | false -> display_error ()
           )
@@ -1352,7 +1391,7 @@ object (self)
        | Wiki_widgets_interface.Page_404 -> 404
        | Wiki_widgets_interface.Page_403 -> 403
      in
-     lwt r = Page_site.html_page ~css ~title pagecontent in
+     lwt r = Page_site.html_page ~css ~title (pagecontent:> HTML5_types.body_content Eliom_pervasives.HTML5.M.elt list) in
      Lwt.return (r, code)
 
 
@@ -1435,8 +1474,17 @@ object (self)
    (* Displaying of an entire page. We just pass the proper rendering
    function to [display_container] *)
    method display_wikipage ~wiki ~menu_style ~page =
-     lwt gen_box = self#display_wikipage_wikibox ~wiki ~page () in
-     self#display_container ~wiki ~menu_style ~page ~gen_box
+     lwt gen_box =
+       (self#display_wikipage_wikibox ~wiki ~page ()
+	:> (Wiki_widgets_interface.menu_style ->
+          (Wiki_types.wikibox option *
+           HTML5_types.flow5 HTML5.M.elt list *
+           Wiki_widgets_interface.page_displayable * string option)
+          Lwt.t)
+         Lwt.t)
+     in
+     self#display_container ~wiki ~menu_style ~page
+       ~gen_box
 
    method display_wikifile ~wiki ~menu_style ~template ~file =
      let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
@@ -1450,17 +1498,34 @@ object (self)
 	       lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi data in
 	       Lwt.return (Some (None, xml)))
        | _ -> Lwt.return None in
-     lwt gen_box = self#display_wikipage_wikibox ~wiki ~page ~subbox () in
+     lwt gen_box =
+       (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
+	:> (Wiki_widgets_interface.menu_style ->
+          (Wiki_types.wikibox option *
+           HTML5_types.flow5
+           Eliom_pervasives.HTML5.M.elt list *
+           Wiki_widgets_interface.page_displayable * string option)
+          Lwt.t)
+         Lwt.t)
+     in
      self#display_container ~wiki ~menu_style ~page ~gen_box
 
    method display_wikibox ~wiki ~menu_style ~template ~wb =
      let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
      let page = Url.string_of_url_path ~encode:false path, path in
      let subbox bi menu_style =
-       lwt xml = self#display_interactive_wikibox bi wb in
+       lwt xml =
+	 (self#display_interactive_wikibox bi wb
+	  :> HTML5_types.flow5 HTML5.M.elt list Lwt.t) in
        Lwt.return (Some (None, xml))
      in
-     lwt gen_box = self#display_wikipage_wikibox ~wiki ~page ~subbox () in
+     lwt gen_box =
+       (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
+	:>  (Wiki_widgets_interface.menu_style ->
+         (Wiki_types.wikibox option *
+          HTML5_types.flow5 HTML5.M.elt list *
+          Wiki_widgets_interface.page_displayable * string option)
+         Lwt.t) Lwt.t) in
      self#display_container ~wiki ~menu_style ~page ~gen_box
 
    method display_all_wikis =

@@ -61,7 +61,7 @@ object(self)
             HTML5.M.strong [HTML5.M.pcdata message]
     in
     (HTML5.M.p ~a:[HTML5.M.a_class classes] [message]
-       : HTML5_types.flow5 HTML5.M.elt)
+       : HTML5_types.flow5_without_header_footer HTML5.M.elt)
 
   method bind_or_display_error : 'a.
     'a Lwt.t ->
@@ -73,7 +73,7 @@ object(self)
            Lwt.return
              ([error_class],
               [(self#display_error_box ~exc ()
-                 : HTML5_types.flow5 HTML5.M.elt :> HTML5_types.flow5 HTML5.M.elt)]
+                 : HTML5_types.flow5_without_header_footer HTML5.M.elt :> HTML5_types.flow5 HTML5.M.elt)]
              ))
 
 end

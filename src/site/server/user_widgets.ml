@@ -66,7 +66,7 @@ class type user_widget_class = object
     ?switchtohttps:string ->
     ?show_ext:bool ->
     unit ->
-    HTML5_types.form_content HTML5.M.elt Lwt.t
+    HTML5_types.div HTML5.M.elt Lwt.t
 
   method private display_logout_box :
     ?show_ext:bool ->
@@ -74,7 +74,7 @@ class type user_widget_class = object
     HTML5_types.form_content HTML5.M.elt list Lwt.t
   method display_logout_button :
     HTML5_types.button_content HTML5.M.elt list ->
-    HTML5_types.form HTML5.M.elt Lwt.t
+    HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t
   method logout_uri : Wiki_syntax.href
 
   method user_link :

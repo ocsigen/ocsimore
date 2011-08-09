@@ -84,8 +84,8 @@ let () =
        user_widgets#display_login_widget () >>= fun body ->
        Page_site.admin_page ~allow_unlogged:true
          [HTML5.M.h1 [HTML5.M.pcdata "Login page"];
-          (body: HTML5_types.form_content HTML5.M.elt
-               :> HTML5_types.flow5 HTML5.M.elt)
+          (body: HTML5_types.div HTML5.M.elt
+               :> [> HTML5_types.div] HTML5.M.elt)
          ]
     );
 

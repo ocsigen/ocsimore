@@ -86,7 +86,7 @@ let () =
        wikibox_widget#css_header ?page:None w
        >>= fun css ->
        Page_site.add_admin_pages_header ();
-       Page_site.html_page ~css page
+       Page_site.html_page ~css (page :> HTML5_types.body_content Eliom_pervasives.HTML5.M.elt list)
     )
 
 (** We register the service that lists all the wikis *)

@@ -160,13 +160,13 @@ object (self)
       (classes,
        List.flatten
 	 [ admin_line;
-	   (wikiboxsubject :> HTML5_types.flow5
+	   (wikiboxsubject :> HTML5_types.flow5_without_header_footer
 	      HTML5.M.elt list);
 	   [ HTML5.M.span ~a:[HTML5.M.a_class ["info_class"]]
                [ HTML5.M.pcdata
 		   (Format.sprintf "posted by %s %s" author
 		      (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))]];
-	   (wikibox :> HTML5_types.flow5 HTML5.M.elt list) ]
+	   (wikibox :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) ]
       )
 
   method display ?(classes=[]) ~data:message_id ()
@@ -174,7 +174,9 @@ object (self)
     add_forum_css_header ();
     widget_with_error_box#bind_or_display_error
       (self#get_message ~message_id)
-      (self#pretty_print_message ~classes)
+      (self#pretty_print_message ~classes :> Forum_types.message_info ->
+         (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         Lwt.t)
     >>= fun (classes, r) -> self#display_message ~classes r
 
 end
@@ -271,7 +273,7 @@ object (self)
              (if draw_comment_form
               then self#display_comment_line ~role ?rows ?cols m
               else Lwt.return []) >>= fun comment_line ->
-             message_widget#display_message ~classes msg_info >>= fun first ->
+             message_widget#display_message ~classes (msg_info:> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)  >>= fun first ->
              print_children ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
              Lwt.return ([(first:>HTML5_types.flow5 HTML5.M.elt)],
@@ -369,7 +371,7 @@ object (self)
             >>= fun m ->
             message_widget#pretty_print_message ~classes:[] m
             >>= fun (classes, content) ->
-            message_widget#display_message ~classes content >>= fun m ->
+            message_widget#display_message ~classes (content:> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) >>= fun m ->
             Lwt.return [ m ]
          )
          (function
@@ -390,8 +392,8 @@ object (self)
      else Lwt.return [])
     >>= fun form ->
     Lwt.return (classes,
-		(List.flatten l :> HTML5_types.flow5 HTML5.M.elt list)
-		@ ( form :> HTML5_types.flow5 HTML5.M.elt list) )
+		(List.flatten l :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)
+		@ ( form :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
 
   method display ?(rows : int option) ?(cols : int option) ?(classes=[])
     ~forum ~first ~number ?(add_message_form = true) () =
@@ -399,7 +401,10 @@ object (self)
     widget_with_error_box#bind_or_display_error
       (self#get_message_list ~forum ~first ~number)
       (self#pretty_print_message_list
-         ~forum ?rows ?cols ~classes ?add_message_form)
+         ~forum ?rows ?cols ~classes ?add_message_form :>
+	 Forum_data.raw_message list ->
+       (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
 
 end

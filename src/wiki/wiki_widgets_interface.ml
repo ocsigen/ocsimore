@@ -182,7 +182,7 @@ object
   (** Displays some xhtml elements inside a <div> *)
   method display_basic_box :
     classes * HTML5_types.flow5 HTML5.M.elt list ->
-    HTML5_types.flow5 HTML5.M.elt Lwt.t
+    HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t
 
   (** Pretty-print the content of a wikibox *)
   method display_wikiboxcontent :
@@ -202,8 +202,8 @@ object
       div tag. Otherwise, displays only the xml argument *)
   method wrap_error :
     wb:wikibox ->
-    HTML5_types.flow5 HTML5.M.elt list ->
-    HTML5_types.flow5 HTML5.M.elt list
+    HTML5_types.flow5_without_header_footer HTML5.M.elt list ->
+    HTML5_types.flow5_without_header_footer HTML5.M.elt list
 
 end
 
@@ -222,7 +222,7 @@ object
     bi:box_info ->
     ?classes:string list ->
     wikibox:wikibox ->
-    HTML5_types.flow5 HTML5.M.elt list Lwt.t
+    HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t
 
 end
 
@@ -275,7 +275,7 @@ class type virtual interactive_wikibox =
       previewonly:bool ->
       wb:wikibox ->
       (** content *) string option * (** version *) int32 ->
-      (classes * HTML5_types.flow5 HTML5.M.elt) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt) Lwt.t
 
     (** Same as [display_wikitext_edit_form], but with an help for the
        syntax of the wiki *)
@@ -287,7 +287,7 @@ class type virtual interactive_wikibox =
       previewonly:bool ->
       wb:wikibox ->
       string option * int32 ->
-      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t
 
     (** Displays the edition form for the wikibox [wbcss], which is supposed
        to contain a CSS. The form is supposed to be displayed instead of the
@@ -304,7 +304,7 @@ class type virtual interactive_wikibox =
       wbcss:wikibox ->
       wikipage:wiki * string option ->
       (** content *) string option * (** version *) int32 ->
-      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t
 
 
     (** Display a form permitting to edit the permissions of the given wiki.
@@ -314,14 +314,14 @@ class type virtual interactive_wikibox =
       classes:string list ->
       ?wb:wikibox ->
       wiki ->
-      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t
 
     (** Display a form to edit the permissions of the given wikibox*)
     method display_edit_wikibox_perm_form :
       bi:box_info ->
       classes:string list ->
       wikibox ->
-      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t
 
 
     (** Display the history of the wikibox [wb], which is supposed to contain
@@ -331,7 +331,7 @@ class type virtual interactive_wikibox =
       classes:string list ->
       wb:wikibox ->
       (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
-      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t
 
     (** Display the history of the wikibox [wb], which is supposed to contain
        a CSS. See [display_css_edit_form] for the arguments [wbcss] and
@@ -343,7 +343,7 @@ class type virtual interactive_wikibox =
       wbcss:wikibox ->
       wikipage:wiki * string option ->
       (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
-      (classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t
+      (classes * HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t
 
 
     (** Adds an interactive menu and a title on top of [content]. The result
@@ -361,7 +361,7 @@ class type virtual interactive_wikibox =
       ?title:string ->
       wb:wikibox ->
       (** content:*)HTML5_types.flow5 HTML5.M.elt list ->
-      HTML5_types.flow5 HTML5.M.elt list Lwt.t
+      HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t
 
 
     (** Display the wikibox [wb] as an interactive wikibox. We return the
@@ -374,7 +374,7 @@ class type virtual interactive_wikibox =
       ?cols:int ->
       ?special_box:special_box ->
       (** wb:*)wikibox ->
-      (HTML5_types.flow5 HTML5.M.elt list * bool) Lwt.t
+      (HTML5_types.flow5_without_header_footer HTML5.M.elt list * bool) Lwt.t
 
     (** Same as [interactive_wikibox_aux], except that the http error
         code is not returned. *)
@@ -385,7 +385,7 @@ class type virtual interactive_wikibox =
       ?cols:int ->
       ?special_box:special_box ->
       (** wb:*)wikibox ->
-      HTML5_types.flow5 HTML5.M.elt list Lwt.t
+      HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t
 
     (** Display the wikibox [wb_loc], but entirely overrides the content
         according to the argument [override]. The argument [wb_loc] is
@@ -399,7 +399,7 @@ class type virtual interactive_wikibox =
       wb_loc:wikibox ->
       override:wikibox_override ->
       unit ->
-      (HTML5_types.flow5 HTML5.M.elt list * bool) Lwt.t
+      (HTML5_types.flow5_without_header_footer HTML5.M.elt list * bool) Lwt.t
 
 
     (** Returns the css headers for one wiki and optionally one page. *)

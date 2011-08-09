@@ -38,7 +38,7 @@ class widget_with_error_box :
     method error_class : string
 
     method display_error_message :
-      ?message:string -> ?exc:exn -> unit -> HTML5_types.flow5 HTML5.M.elt list
+      ?message:string -> ?exc:exn -> unit -> HTML5_types.flow5_without_header_footer HTML5.M.elt list
 
     (** Takes a threads that gets data (e.g. from a database),
         then a function that transforms this data into something printable
@@ -58,7 +58,7 @@ class widget_with_error_box :
       ?message:string ->
       ?exc:exn ->
       unit ->
-      HTML5_types.flow5 HTML5.M.elt
+      HTML5_types.flow5_without_header_footer HTML5.M.elt
 
   end
 
