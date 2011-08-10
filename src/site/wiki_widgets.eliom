@@ -374,8 +374,8 @@ class dynamic_wikibox
     bi:_ -> classes:_ ->
       ?active_item:_ -> ?special_box:_ ->
 	?title:_ -> wb:_ ->
-          ([< HTML5_types.div_content_fun ] as 'a) HTML5.M.elt list ->
-	    ([> `Div ] as 'b) HTML5.M.elt list Lwt.t =
+          ([< HTML5_types.div_content_fun > `Div ] as 'a) HTML5.M.elt list ->
+	    'a HTML5.M.elt list Lwt.t =
 
     fun ~bi ~classes
         ?active_item ?special_box
@@ -383,14 +383,17 @@ class dynamic_wikibox
         content ->
 
     self#box_menu ~bi ?special_box ?active_item ?title wb >>= fun menu ->
-    let classes = if menu = [] then classes else interactive_class::classes in
-    Lwt.return
-      [HTML5.M.div
-         ~a:[HTML5.M.a_class classes]
-         (  menu
-          @ [HTML5.M.div ~a:[HTML5.M.a_class ["boxcontent"]] content]
-         )
-       ]
+    if menu = [] then
+      Lwt.return content
+	(* [HTML5.M.div ~a:[HTML5.M.a_class classes] content] *)
+    else
+      Lwt.return
+	[HTML5.M.div
+            ~a:[HTML5.M.a_class (interactive_class::classes)]
+            (  menu
+               @ [HTML5.M.div ~a:[HTML5.M.a_class ["boxcontent"]] content]
+            )
+	]
 
   method draw_edit_form
       ~rows ~cols

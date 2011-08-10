@@ -361,8 +361,8 @@ class type virtual interactive_wikibox =
       ?special_box:special_box ->
       ?title:string ->
       wb:wikibox ->
-      (** content:*)[< HTML5_types.div_content_fun ] HTML5.M.elt list ->
-      [> HTML5_types.div ] HTML5.M.elt list Lwt.t
+      (** content:*)([< HTML5_types.div_content_fun > `Div ] as 'a) HTML5.M.elt list ->
+      'a HTML5.M.elt list Lwt.t
 
 
     (** Display the wikibox [wb] as an interactive wikibox. We return the
