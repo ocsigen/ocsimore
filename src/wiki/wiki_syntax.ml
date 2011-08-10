@@ -1463,6 +1463,7 @@ let () =
     (add [wikicreole_parser])
     ["div", HTML5.M.div;
      "aside", HTML5.M.aside;
+     "article", HTML5.M.article;
      "nav", HTML5.M.nav;
      "section", HTML5.M.section;];
   List.iter
@@ -1473,6 +1474,7 @@ let () =
 	reduced_wikicreole_parser2])
     ["div", HTML5.M.div;
      "aside", HTML5.M.aside;
+     "article", HTML5.M.article;
      "nav", HTML5.M.nav;
      "section", HTML5.M.section;
     ];
