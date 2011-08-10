@@ -83,8 +83,11 @@ let parse_common_attribs attribs =
   and at2 =
     try Some (HTML5.M.a_id (List.assoc "id" attribs))
     with Not_found -> None
+  and at3 =
+    try Some (HTML5.M.a_style (List.assoc "style" attribs))
+    with Not_found -> None
   in
-  filter_raw [at1; at2]
+  filter_raw [at1; at2; at3]
 
 let parse_table_attribs attribs =
   let atts = parse_common_attribs attribs
@@ -1424,6 +1427,11 @@ let add_extension ~wp ~name ?(wiki_content=true) f =
              Lwt.return (Some (string_of_extension name args (Some c)))
       )
 
+let remove_re = Netstring_pcre.regexp "\\A\\s*(\\S((\\N|\\s)*\\S)?)\\s*\\z"
+let remove_spaces s =
+  match Netstring_pcre.string_match remove_re s 0 with
+  | None -> s
+  | Some r -> Netstring_pcre.matched_group r 1 s
 
 let () =
   let add_extension_aux l ~name ?wiki_content f =
@@ -1433,7 +1441,7 @@ let () =
   let f_block make wp bi args c =
     Wikicreole.Flow5
       (let content = match c with
-         | Some c -> c
+         | Some c -> remove_spaces c
          | None -> ""
        in
        lwt content = xml_of_wiki wp bi content in
@@ -1446,7 +1454,7 @@ let () =
          with Not_found -> None
        in
        let style =
-         try Some (HTML5.M.a_id (List.assoc "style" args))
+         try Some (HTML5.M.a_style (List.assoc "style" args))
          with Not_found -> None
        in
        let a = opt_list (filter_raw [classe; id; style]) in
@@ -1502,7 +1510,11 @@ let () =
             try Some (HTML5.M.a_id (List.assoc "id" args))
             with Not_found -> None
           in
-          let a = opt_list (filter_raw [classe; id]) in
+	  let style =
+            try Some (HTML5.M.a_style (List.assoc "style" args))
+            with Not_found -> None
+	  in
+          let a = opt_list (filter_raw [classe; id; style]) in
           [HTML5.M.span ?a content]
          )
     )
@@ -1608,7 +1620,11 @@ let () =
          try Some (HTML5.M.a_id (List.assoc "id" args))
          with Not_found -> None
        in
-       let a = Some (classe :: (filter_raw [id])) in
+       let style =
+         try Some (HTML5.M.a_style (List.assoc "style" args))
+         with Not_found -> None
+       in
+       let a = Some (classe :: (filter_raw [id; style])) in
        let f ?classe s =
          let link, text =
            try String.sep '|' s
