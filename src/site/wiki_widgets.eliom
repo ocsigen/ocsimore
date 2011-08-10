@@ -77,11 +77,23 @@ let add_wiki_css_header () =
   Page_site.Header.require_header wiki_css_header;
 
 
-class wikibox_aux (error_box : Widget.widget_with_error_box)
-  : Wiki_widgets_interface.wikibox_aux =
-object (self)
+class wikibox_aux (error_box : Widget.widget_with_error_box) =
+(object (self)
 
-  method display_wikiboxcontent ~bi ~classes (wiki_syntax, content, _ver as wb)=
+  method display_basic_box : 'a 'b.
+    _ * ([< HTML5_types.div_content_fun] as 'b) HTML5.M.elt list ->
+      ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+
+    fun (classes, content) ->
+    Lwt.return (HTML5.M.div ~a:[HTML5.M.a_class classes] content)
+
+  method display_wikiboxcontent : 'a 'b.
+    bi:_ -> classes:_ ->
+      ([< HTML5_types.flow5 ] as 'a) HTML5.M.elt list Wiki_types.wikibox_content ->
+	(Wiki_widgets_interface.classes *
+	   ([> HTML5_types.flow5 ] as 'b) HTML5.M.elt list) Lwt.t =
+
+    fun ~bi ~classes (wiki_syntax, content, _ver as wb) ->
     add_wiki_css_header ();
     let wiki_parser = Wiki_models.get_flows_wiki_parser wiki_syntax in
     match content with
@@ -90,7 +102,13 @@ object (self)
           Lwt.return (classes, x)
       | _ -> self#display_raw_wikiboxcontent ~classes wb
 
-  method display_raw_wikiboxcontent ~classes (_content_type, content, _ver) =
+  method display_raw_wikiboxcontent : 'a 'b.
+    classes:_ ->
+      'a HTML5.M.elt list Wiki_types.wikibox_content ->
+	(Wiki_widgets_interface.classes *
+           ([> HTML5_types.pre | HTML5_types.em ] as 'b) HTML5.M.elt list) Lwt.t =
+
+    fun ~classes (_content_type, content, _ver) ->
     Lwt.return
       (classes,
        (match content with
@@ -101,55 +119,62 @@ object (self)
        )
       )
 
-  method display_basic_box (classes, content) =
-    Lwt.return
-      (HTML5.M.div ~a:[HTML5.M.a_class classes] content
-       : [`Div] HTML5.M.elt :> HTML5_types.flow5_without_header_footer HTML5.M.elt)
+  method wrap_error : 'a.
+    wb:_ ->
+      ([< HTML5_types.div_content_fun > `Div ] as 'a) HTML5.M.elt list ->
+	'a HTML5.M.elt list =
 
-  method wrap_error ~wb r =
+    fun ~wb r ->
     match Wiki_services.get_wikibox_error () with
       | Some (wb', exc) when Some wb = wb' ->
+	  let r = (r :> HTML5_types.div_content_fun HTML5.M.elt list) in
           let err_msg = error_box#display_error_box ~exc () in
           [HTML5.M.div (err_msg :: r)]
       | _ -> r
 
-end
+ end : Wiki_widgets_interface.wikibox_aux)
 
 
-class frozen_wikibox (error_box : Widget.widget_with_error_box)
-  : Wiki_widgets_interface.frozen_wikibox =
-object (self)
+class frozen_wikibox (error_box : Widget.widget_with_error_box) =
+(object (self)
 
   inherit wikibox_aux error_box
 
   val frozen_wb_class = "frozen_wikibox"
 
-  method display_frozen_wikibox ~bi ?(classes=[]) ~wikibox =
-    Lwt.catch
-      (fun () ->
+  method display_frozen_wikibox : 'a.
+    bi:_ -> ?classes:_ -> wikibox:_ ->
+      ([> HTML5_types.div | HTML5_types.p ] as 'a) HTML5.M.elt list Lwt.t =
+
+    fun ~bi ?(classes=[]) ~wikibox ->
+    (Lwt.catch
+       (fun () ->
          error_box#bind_or_display_error
            (Wiki_data.wikibox_content bi.bi_rights wikibox)
            (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
          >>= self#display_basic_box >|= fun r ->
-         self#wrap_error ~wb:wikibox [r]
-      )
-      (function
+           (self#wrap_error ~wb:wikibox [r] :> [ `Div | `P ] HTML5.M.elt list)
+       )
+       (function
          | Ocsimore_common.Permission_denied ->
-              Lwt.return
-                [error_box#display_error_box
-                   ~classes:(frozen_wb_class::classes)
-                   ~message:"You are not allowed to see this content."
-                   ()]
+           Lwt.return
+             [error_box#display_error_box
+                 ~classes:(frozen_wb_class::classes)
+                 ~message:"You are not allowed to see this content."
+                 ()]
          | e -> Lwt.fail e)
-end;;
+       : [ `Div | `P ] HTML5.M.elt list Lwt.t
+       :> [> `Div | `P ] HTML5.M.elt list Lwt.t)
+
+ end : Wiki_widgets_interface.frozen_wikibox )
 
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
     or navigate through viewing options *)
-class dynamic_wikibox (error_box : Widget.widget_with_error_box)
-  (user_widgets: User_widgets.user_widget_class)
-  : Wiki_widgets_interface.interactive_wikibox =
-object (self)
+class dynamic_wikibox
+  (error_box : Widget.widget_with_error_box)
+  (user_widgets: User_widgets.user_widget_class) =
+(object (self)
 
   inherit frozen_wikibox error_box
 
@@ -345,11 +370,17 @@ object (self)
                      ]
                   ]
 
-  method display_menu_box
-                  ~bi
-                  ~classes
-                  ?active_item ?special_box ?title
-                  ~wb content =
+  method display_menu_box : 'a 'b.
+    bi:_ -> classes:_ ->
+      ?active_item:_ -> ?special_box:_ ->
+	?title:_ -> wb:_ ->
+          ([< HTML5_types.div_content_fun ] as 'a) HTML5.M.elt list ->
+	    ([> `Div ] as 'b) HTML5.M.elt list Lwt.t =
+
+    fun ~bi ~classes
+        ?active_item ?special_box
+        ?title ~wb
+        content ->
 
     self#box_menu ~bi ?special_box ?active_item ?title wb >>= fun menu ->
     let classes = if menu = [] then classes else interactive_class::classes in
@@ -359,7 +390,7 @@ object (self)
          (  menu
           @ [HTML5.M.div ~a:[HTML5.M.a_class ["boxcontent"]] content]
          )
-      ]
+       ]
 
   method draw_edit_form
       ~rows ~cols
@@ -395,8 +426,13 @@ object (self)
 
 
   (* Wikitext in editing mode *)
-  method display_wikitext_edit_form
-    ~bi ~classes ?(rows=25) ?(cols=80) ~previewonly ~wb (content, version) =
+  method display_wikitext_edit_form : 'a.
+    bi:_ -> classes:_ ->
+      ?rows:_ -> ?cols:_ ->
+	previewonly:_ -> wb:_ -> _ ->
+	   (classes * ([> HTML5_types.form ] as 'a) HTML5.M.elt) Lwt.t =
+
+    fun ~bi ~classes ?(rows=25) ?(cols=80) ~previewonly ~wb (content, version) ->
     let content = match content with
       | None -> "<<|  Deleted >>"
       | Some content -> content
@@ -431,11 +467,16 @@ object (self)
             content previewonly) ())
 
   (* Wikitext in editing mode, with an help box on the syntax of the wiki *)
-  method display_wikitext_edit_form_help
-      ~bi ~classes
-      ?rows ?cols
-      ~previewonly
-      ~wb data =
+  method display_wikitext_edit_form_help : 'a.
+    bi:_ -> classes:_ ->
+      ?rows:_ -> ?cols:_ ->
+	previewonly:_ -> wb:_-> _ ->
+	  (classes * ([> HTML5_types.form | HTML5_types.div ] as 'a) HTML5.M.elt list) Lwt.t =
+
+     fun ~bi ~classes
+         ?rows ?cols
+         ~previewonly
+         ~wb data ->
 
     Wiki.get_admin_wiki ()              >>= fun { wiki_id = admin_wiki } ->
     Wiki_sql.get_wikipage_info
@@ -452,14 +493,16 @@ object (self)
 
 
   (* Css in editing mode *)
-  method display_css_edit_form
-      ~bi ~classes
-      ?(rows=25) ?(cols=80)
-      ~wb ~wbcss ~wikipage
-      (content, boxversion) : (Wiki_widgets_interface.classes *
-          HTML5_types.flow5_without_header_footer
-          Eliom_pervasives.HTML5.M.elt list)
-         Lwt.t =
+  method display_css_edit_form : 'a.
+    bi:_ -> classes:_ ->
+      ?rows:_ -> ?cols:_ ->
+        wb:_ -> wbcss:_ ->
+          wikipage:_ -> _ ->
+            (Wiki_widgets_interface.classes *
+               ([> HTML5_types.form ] as 'a) HTML5.M.elt list) Lwt.t =
+
+    fun ~bi ~classes ?(rows=25) ?(cols=80)
+        ~wb ~wbcss ~wikipage (content, boxversion) ->
 
     let content = match content with
       | None -> "/* Deleted CSS */"
@@ -520,11 +563,13 @@ object (self)
       to change the permissions, as this will be checked by the service
       (and the user should not have access to the page otherwise). We
       also suppose that boxrights is set to true for the wiki *)
-  method display_edit_wikibox_perm_form ~bi ~classes wb
-    : (Wiki_widgets_interface.classes *
-          HTML5_types.flow5_without_header_footer
-          Eliom_pervasives.HTML5.M.elt list)
-         Lwt.t =
+  method display_edit_wikibox_perm_form : 'a.
+    bi:_ -> classes:_ ->
+      _ ->
+        (Wiki_widgets_interface.classes *
+           ([> `Form | `P | `PCDATA | `Table ] as 'a) HTML5.M.elt list) Lwt.t =
+
+    fun ~bi ~classes wb ->
     Wiki_sql.get_wikibox_info wb >>= fun { wikibox_special_rights = sr } ->
     let bt_change value textbt =
       let mform (wbname, srname) =
@@ -635,11 +680,12 @@ object (self)
 
   (** Form for the permissions of a wiki; The [wb] argument is the wikibox
       which will be overridden with an error message if the save fails *)
-  method display_edit_wiki_perm_form ~classes ?wb wiki
-    : (Wiki_widgets_interface.classes *
-          HTML5_types.flow5_without_header_footer
-          Eliom_pervasives.HTML5.M.elt list)
-         Lwt.t =
+  method display_edit_wiki_perm_form : 'a.
+    classes:_ -> ?wb:_ -> _ ->
+      (Wiki_widgets_interface.classes *
+         ([> `H2 | `P | `Table ] as 'a) HTML5.M.elt list) Lwt.t =
+
+    fun ~classes ?wb wiki ->
     let aux g text =
       user_widgets#form_edit_group ~group:(g $ wiki)
         ~text:[HTML5.M.p
@@ -767,10 +813,11 @@ object (self)
     | Some page ->  "page " ^ page
 
 
-  method display_wikitext_history ~bi ~classes ~wb l :
-    (Wiki_widgets_interface.classes *
-       HTML5_types.flow5_without_header_footer HTML5.M.elt list)
-         Lwt.t =
+  method display_wikitext_history : 'a 'b.
+    bi:_ -> classes:_ -> wb:_ -> _ ->
+      (classes * ([> `PCDATA | `Em | `Br | `A of ([> `PCDATA] as 'b) ] as 'a) HTML5.M.elt list) Lwt.t =
+
+    fun ~bi ~classes ~wb l ->
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
@@ -794,9 +841,13 @@ object (self)
     >|= List.flatten
     >|= fun l -> (classes, l)
 
-  method display_css_history ~bi ~classes ~wb ~wbcss ~wikipage l
-    : (Wiki_widgets_interface.classes *
-	 HTML5_types.flow5_without_header_footer HTML5.M.elt list) Lwt.t =
+  method display_css_history : 'a 'b.
+    bi:_ -> classes:_ -> wb:_ -> wbcss:_ ->
+      wikipage:_ -> _ ->
+        (Wiki_widgets_interface.classes *
+           ([> `PCDATA | `Em | `Br | `A of ([> `PCDATA ]as 'b) ] as 'a) HTML5.M.elt list) Lwt.t =
+
+    fun ~bi ~classes ~wb ~wbcss ~wikipage l ->
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
@@ -1071,10 +1122,14 @@ object (self)
     (classes, [HTML5.M.div ~a:[HTML5.M.a_class classes] r])
 
 
-  method display_interactive_wikibox_aux
-      ~bi
-      ?(classes=[]) ?rows ?cols
-      ?special_box wb =
+  method display_interactive_wikibox_aux : 'a.
+    bi:_ -> ?classes:_ ->
+      ?rows:_ -> ?cols:_ ->
+	 ?special_box:_ -> _ ->
+	   (([> HTML5_types.div ] as 'a) HTML5.M.elt list * bool) Lwt.t =
+
+    fun ~bi ?(classes=[]) ?rows ?cols
+        ?special_box wb ->
 
     let classes = wikibox_class::classes in
     let override = Wiki_services.get_override_wikibox () in
@@ -1097,10 +1152,16 @@ object (self)
            >>= (self#menu_view ~bi ?special_box wb) >|= fun r ->
            (r, code)
     ) >|= fun (r, code) ->
-    (self#wrap_error ~wb r, code)
+    ((self#wrap_error ~wb r : [ `Div ] HTML5.M.elt list :> [> `Div ] HTML5.M.elt list), code)
 
-  method display_overriden_interactive_wikibox
-    ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override () =
+  method display_overriden_interactive_wikibox : 'a.
+    bi:_ -> ?classes:_ ->
+      ?rows:_ -> ?cols:_ ->
+	?special_box:_ -> wb_loc:_ ->
+	  override:_ -> unit ->
+	    (([> `Div | `P ] as 'a) HTML5.M.elt list * bool) Lwt.t =
+
+    fun ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override () ->
     let display_error () =
       Lwt.return
         ([error_box#display_error_box
@@ -1113,7 +1174,7 @@ object (self)
     (* UNUSED
     let place_second_in_list (x,y) = Lwt.return (x,[y]) in
     *)
-    match override with
+    (match override with
       | EditWikitext wb ->
           (bi.bi_rights#can_write_wikibox wb >>= function
             | true ->
@@ -1121,13 +1182,11 @@ object (self)
                   (Wiki_data.wikibox_content' bi.bi_rights wb)
                   (fun x ->
                      self#display_wikitext_edit_form_help ~bi ?cols ?rows
-                       ~previewonly:true ~wb ~classes x >|= fun (s,b) ->
-                     (s, (b :> HTML5_types.flow5 HTML5.M.elt list))
-                  )
+                       ~previewonly:true ~wb ~classes x)
                 >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
                 >>= ok
             | false -> display_error ()
-          )
+	  )
 
       | EditCss ((wikipage, wbcss), css) ->
           (bi.bi_rights#can_write_wikibox wbcss >>= function
@@ -1139,12 +1198,7 @@ object (self)
                      Lwt.return (Some content, version)
                   )
                   (self#display_css_edit_form ~bi ?cols ?rows
-                     ~wb:wb_loc ~wbcss ~wikipage ~classes
-		    :>
-		     string option * Int32.t ->
-		   (Wiki_widgets_interface.classes *
-		      HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
-		     Lwt.t)
+                     ~wb:wb_loc ~wbcss ~wikipage ~classes)
                 >>= (self#menu_edit_css ~bi ?special_box wb_loc wikipage)
                 >>= ok
             | false -> display_error ()
@@ -1159,11 +1213,7 @@ object (self)
           (bi.bi_rights#can_set_wikibox_specific_permissions wb >>= function
             | true ->
                 self#display_edit_wikibox_perm_form ~bi ~classes wb
-                >>=  (self#menu_edit_wikibox_perms ~bi ?special_box wb_loc
-		      :> HTML5_types.nmtokens *
-			HTML5_types.flow5_without_header_footer HTML5.M.elt list ->
-		      HTML5_types.flow5_without_header_footer HTML5.M.elt
-			list Lwt.t)
+                >>= self#menu_edit_wikibox_perms ~bi ?special_box wb_loc
                 >>= ok
           | false -> display_error ()
           )
@@ -1175,11 +1225,7 @@ object (self)
             | true ->
                 (self#display_edit_wiki_option_form ~classes
                    ~wb:wb_loc ~options:b2 ~perms:b1 wiki)
-                >>= (self#menu_edit_wiki_options ~bi ?special_box wb_loc wiki
-		     :> Wiki_widgets_interface.classes *
-         HTML5_types.flow5_without_header_footer Eliom_pervasives.HTML5.M.elt list ->
-         HTML5_types.flow5_without_header_footer Eliom_pervasives.HTML5.M.elt
-         list Lwt.t)
+                >>= self#menu_edit_wiki_options ~bi ?special_box wb_loc wiki
                 >>= ok
             | false -> display_error ()
           )
@@ -1204,13 +1250,11 @@ object (self)
                        ~bi ?cols ?rows ~previewonly:false ~wb cv
                                                             >|= fun (_, form) ->
                      (classes,
-                      ((   HTML5.M.p
-                             ~a:[HTML5.M.a_class [box_title_class]]
-                             [HTML5.M.pcdata "Preview"]
-                        :: prev
-                        :: form)
-                       : HTML5_types.flow5_without_header_footer HTML5.M.elt list
-                       :> HTML5_types.flow5 HTML5.M.elt list)
+                      (HTML5.M.p
+                         ~a:[HTML5.M.a_class [box_title_class]]
+                         [HTML5.M.pcdata "Preview"]
+                       :: prev
+                       :: form)
                      )
                   )
                 >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
@@ -1233,12 +1277,7 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   (Wiki_data.wikibox_history bi.bi_rights wb)
-                  (self#display_wikitext_history ~bi ~classes ~wb
-		   :>
-		     (int32 * string * int32 * CalendarLib.Printer.Calendar.t) list ->
-		   (Wiki_widgets_interface.classes *
-		      HTML5_types.flow5 HTML5.M.elt list)
-         Lwt.t)
+                  (self#display_wikitext_history ~bi ~classes ~wb)
                 >>= (self#menu_wikitext_history ~bi ?special_box wb_loc)
                 >>= ok
             | false -> display_error ()
@@ -1250,9 +1289,7 @@ object (self)
                 error_box#bind_or_display_error
                   (Wiki_data.wikibox_history bi.bi_rights wbcss)
                   (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss
-                     ~wikipage:(wiki,wikipage)
-		   :> (int32 * string * int32 * CalendarLib.Printer.Calendar.t) list ->
-		   (Wiki_widgets_interface.classes * HTML5_types.flow5 HTML5.M.elt list) Lwt.t)
+                     ~wikipage:(wiki,wikipage))
                 >>= (self#menu_css_history ~bi ?special_box wb_loc
                         (wiki, wikipage))
                 >>= ok
@@ -1265,10 +1302,7 @@ object (self)
             | true ->
                 (self#display_edit_wikibox_perm_form ~bi ~classes wbcss)
                 >>= (self#menu_edit_css_perms ~bi ?special_box wb_loc
-                       (wiki, wikipage) :> Wiki_widgets_interface.classes *
-         HTML5_types.flow5_without_header_footer HTML5.M.elt list ->
-         HTML5_types.flow5_without_header_footer HTML5.M.elt
-         list Lwt.t)
+                       (wiki, wikipage))
                 >>= ok
           | false -> display_error ()
           )
@@ -1308,17 +1342,28 @@ object (self)
                 >>= ok
             | false -> display_error ()
           )
+        : (([`Div | `P ] HTML5.M.elt list * bool) Lwt.t)
+        :> (([> `Div | `P ] HTML5.M.elt list * bool) Lwt.t))
 
 
-   method display_interactive_wikibox
-     ~bi ?(classes=[]) ?rows ?cols ?special_box wb =
+  method display_interactive_wikibox : 'a.
+    bi:_ -> ?classes:_ ->
+      ?rows:_ -> ?cols:_ ->
+        ?special_box:_ -> _ ->
+          ([> `Div ] as 'a) HTML5.M.elt list Lwt.t =
+
+     fun ~bi ?(classes=[]) ?rows ?cols ?special_box wb ->
      add_wiki_css_header ();
      self#display_interactive_wikibox_aux
        ~bi ?rows ?cols ~classes ?special_box wb
      >|= fst (*fun (r, _allowed) -> Lwt.return r*)
 
 
-   method css_header ?page wiki =
+   method css_header : 'a.
+     ?page:_ -> _ ->
+       ([> HTML5_types.link] as 'a) HTML5.M.elt list Lwt.t =
+
+     fun ?page wiki ->
      let css_url_service service args media =
        Eliom_output.Html5.css_link
          ?a:(if media = []
@@ -1351,14 +1396,23 @@ object (self)
            in
            Lwt.return (css @ ll)
 
-   method private display_container
-     ~wiki ~menu_style ~page:(page, page_list) ~gen_box =
+   method private display_container : 'a.
+     wiki:_ -> menu_style:_ ->
+       page:_ ->
+         gen_box:(Wiki_widgets_interface.menu_style ->
+                  (Wiki_types.wikibox option *
+                     ([< HTML5_types.flow5 ] as 'a)
+                     Eliom_pervasives.HTML5.M.elt list *
+                     Wiki_widgets_interface.page_displayable * string option)
+                    Lwt.t) ->
+           (HTML5_types.html Eliom_pervasives.HTML5.M.elt * int) Lwt.t =
+
+     fun ~wiki ~menu_style ~page:(page, page_list) ~gen_box ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
      gen_box menu_style >>= fun (wbid, subbox, err_code, title) ->
      Wiki_widgets_interface.set_page_displayable err_code;
-
      (* We render the container, if it exists *)
      (match wb_container with
         | None -> Lwt.return [HTML5.M.div subbox]
@@ -1372,6 +1426,11 @@ object (self)
                 gen_box ms >>= fun (wbid, subbox, _, _) ->
                 Lwt.return (Some (wbid, subbox))
             in
+	    let fsubbox =
+	      (fsubbox :> Wiki_widgets_interface.menu_style ->
+               (Wiki_types.wikibox option *
+		  HTML5_types.flow5 HTML5.M.elt list)
+		 option Lwt.t) in
             let bi = { bi with  bi_subbox = fsubbox;
                          bi_page = wiki, Some page_list;
                          bi_menu_style = menu_style } in
@@ -1581,13 +1640,12 @@ object (self)
           l;
        ]
 
-end
+end : Wiki_widgets_interface.interactive_wikibox)
 
 class phrasing_wikibox
   (error_box : Widget.widget_with_error_box)
-  (user_widgets: User_widgets.user_widget_class)
-  : Wiki_widgets_interface.interactive_wikibox =
-object (self)
+  (user_widgets: User_widgets.user_widget_class) =
+(object (self)
 
   inherit dynamic_wikibox error_box user_widgets
 
@@ -1628,4 +1686,4 @@ object (self)
     (classes, [f])
 
 
-end
+ end : Wiki_widgets_interface.interactive_wikibox)

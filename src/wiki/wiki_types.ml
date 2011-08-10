@@ -43,7 +43,7 @@ type wikipage = wiki * string
 type wikipage_arg = [ `Wikipage ]
 type wikipage_uid = wikipage_arg Opaque.int32_t
 
-type 'a content_type = string
+type +'a content_type = string
 type wiki_model = string
 let string_of_wiki_model = id
 let wiki_model_of_string = id

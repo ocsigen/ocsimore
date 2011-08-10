@@ -218,14 +218,14 @@ val xml_of_wiki :
 val phrasing_of_wiki :
   Wiki_widgets_interface.box_info ->
   string ->
-  HTML5_types.phrasing HTML5.M.elt list Lwt.t
+  [> HTML5_types.phrasing] HTML5.M.elt list Lwt.t
 
 (** returns only the content of the first paragraph of a wiki text,
     after having removed links. *)
 val phrasing_without_interactive_of_wiki :
   Wiki_widgets_interface.box_info ->
   string ->
-  HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  [> HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t
 
 (** Returns the wiki syntax for an extension box
     from its name, arguments and content.

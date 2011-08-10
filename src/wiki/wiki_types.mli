@@ -45,7 +45,7 @@ type wikipage_arg = [ `Wikipage ]
 type wikipage_uid = wikipage_arg Opaque.int32_t
 
 type wiki_model
-type 'a content_type (** The parameter is the type of the content,
+type +'a content_type (** The parameter is the type of the content,
                          once translated to xhtml
                          (usually flows or inlines) *)
 val string_of_wiki_model : wiki_model -> string

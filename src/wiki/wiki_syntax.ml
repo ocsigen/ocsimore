@@ -1328,8 +1328,8 @@ let xml_of_wiki wp bi s =
   >>= Lwt_list.map_s (fun x -> x)
   >|= List.flatten
 
-let phrasing_of_wiki bi s : HTML5_types.phrasing HTML5.M.elt list Lwt.t =
-  Wikicreole.from_string
+let phrasing_of_wiki bi s =
+  ((Wikicreole.from_string
     bi
     ({phrasing_builder with
        Wikicreole.plugin = plugin_function phrasing_wikicreole_parser
@@ -1342,7 +1342,9 @@ let phrasing_of_wiki bi s : HTML5_types.phrasing HTML5.M.elt list Lwt.t =
     )
     s >>= function
       | [] -> Lwt.return []
-      | a::_ -> a
+      | a::_ -> a)
+    : HTML5_types.phrasing HTML5.M.elt list Lwt.t
+    :> [> HTML5_types.phrasing] HTML5.M.elt list Lwt.t)
 
 
 (********************************)

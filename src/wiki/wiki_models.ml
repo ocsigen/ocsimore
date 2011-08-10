@@ -52,12 +52,9 @@ let register_wiki_model, get_rights, get_default_content_type, get_widgets =
                               end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~content_type:a ~rights:b ~widgets:c ->
+  ((fun ~name:k ~content_type:wm_syntax ~rights:wm_rights ~widgets:wm_widgets ->
       let k = Wiki_types.wiki_model_of_string k in
-      H.add t k
-      {wm_syntax=a;
-       wm_rights=b;
-       wm_widgets=c;};
+      H.add t k {wm_syntax; wm_rights; wm_widgets;};
       k),
    (fun k ->
       try (H.find t k).wm_rights
@@ -73,13 +70,25 @@ let register_wiki_model, get_rights, get_default_content_type, get_widgets =
         raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k)))
   )
 
+(* Opening types... *)
+let register_wiki_model ~name ~content_type ~rights ~widgets =
+  let content_type =
+    (content_type
+       : [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
+       :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
+  register_wiki_model ~name ~content_type ~rights ~widgets
+let get_default_content_type k =
+  (get_default_content_type k
+     : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
+     :> [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type)
+
 (** Table of wiki syntaxes. *)
 exception Content_type_does_not_exist of string
 
 type wiki_preparser =
     Wiki_types.wikibox -> string -> string Lwt.t
 
-type 'res wiki_parser =
+type +'res wiki_parser =
     Wiki_widgets_interface.box_info -> string -> 'res Lwt.t
       (* pretty printer *)
 
@@ -94,9 +103,10 @@ let register_flows_wiki_parser,
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser_:(b:HTML5_types.flow5 HTML5.M.elt list wiki_parser) ->
+  ((fun ~name:k ~preparser:a ~parser_:b ->
       let k = Wiki_types.content_type_of_string k in
-      H.add t k (a, b);
+      H.add t k (a, (b : [< HTML5_types.flow5] HTML5.M.elt list wiki_parser
+		       :> HTML5_types.flow5 HTML5.M.elt list wiki_parser));
       k),
    (fun k ->
       try snd (H.find t k)
@@ -106,6 +116,71 @@ let register_flows_wiki_parser,
       try fst (H.find t k)
       with Not_found -> raise (Content_type_does_not_exist
                                  (Wiki_types.string_of_content_type k))))
+
+(* Opening types ... *)
+let register_flows_wiki_parser ~name ~preparser ~parser_ =
+  let parser_ =
+    (parser_ : [< HTML5_types.flow5] HTML5.M.elt list wiki_parser
+             :> HTML5_types.flow5 HTML5.M.elt list wiki_parser) in
+  (register_flows_wiki_parser ~name ~preparser ~parser_
+     : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
+     :> [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type)
+let get_flows_wiki_parser k =
+  let k = (k : [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
+	     :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
+  (get_flows_wiki_parser k : HTML5_types.flow5 HTML5.M.elt list wiki_parser
+     :> [> HTML5_types.flow5] HTML5.M.elt list wiki_parser)
+let get_flows_wiki_preparser k =
+  let k = (k : [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
+	     :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
+  get_flows_wiki_preparser k
+
+let register_flows_wiki_parser',
+  get_flows_wiki_parser',
+  get_flows_wiki_preparser' =
+  let module H =
+    Hashtbl.Make(struct
+                   type t = HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type
+                   let equal = (=)
+                   let hash = Hashtbl.hash
+                 end)
+  in
+  let t = H.create 10 in
+  ((fun ~name:k ~preparser:a ~parser_:(b:HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser) ->
+      let k' = Wiki_types.content_type_of_string k in
+      H.add t k' (a, b);
+      (* we also register a flows parser: *)
+      ignore (register_flows_wiki_parser k a
+                (fun bi s -> b bi s >|= fun r -> [HTML5.M.div (r:HTML5_types.flow5_without_header_footer HTML5.M.elt list :> HTML5_types.flow5 HTML5.M.elt list)]));
+      k'),
+   (fun k ->
+      try snd (H.find t k)
+      with Not_found -> raise (Content_type_does_not_exist
+                                 (Wiki_types.string_of_content_type k))),
+   (fun k ->
+      try fst (H.find t k)
+      with Not_found -> raise (Content_type_does_not_exist
+                                 (Wiki_types.string_of_content_type k))))
+
+
+(* Opening types ... *)
+let register_flows_wiki_parser' ~name ~preparser ~parser_ =
+  let parser_ =
+    (parser_ : [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list wiki_parser
+             :> HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser) in
+  (register_flows_wiki_parser' ~name ~preparser ~parser_
+     : HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type
+     :> [> HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type)
+let get_flows_wiki_parser' k =
+  let k = (k : [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type
+	     :> HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type) in
+  (get_flows_wiki_parser' k : HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser
+     :> [> HTML5_types.flow5_without_header_footer] HTML5.M.elt list wiki_parser)
+let get_flows_wiki_preparser' k =
+  let k = (k : [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type
+	     :> HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type) in
+  get_flows_wiki_preparser' k
+
 
 let register_phrasings_wiki_parser,
   get_phrasings_wiki_parser,
@@ -122,8 +197,8 @@ let register_phrasings_wiki_parser,
       let k' = Wiki_types.content_type_of_string k in
       H.add t k' (a, b);
       (* we also register a flows parser: *)
-      ignore (register_flows_wiki_parser k a
-                (fun bi s -> b bi s >|= fun r -> [HTML5.M.div (r:HTML5_types.phrasing HTML5.M.elt list :> HTML5_types.flow5 HTML5.M.elt list)]));
+      ignore (register_flows_wiki_parser' k a
+                (fun bi s -> b bi s >|= fun r -> [HTML5.M.div (r:HTML5_types.phrasing HTML5.M.elt list :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)]));
       k'),
    (fun k ->
       try snd (H.find t k)
@@ -133,6 +208,25 @@ let register_phrasings_wiki_parser,
       try fst (H.find t k)
       with Not_found -> raise (Content_type_does_not_exist
                                  (Wiki_types.string_of_content_type k))))
+
+(* Opening types ... *)
+let register_phrasings_wiki_parser ~name ~preparser ~parser_ =
+  let parser_ =
+    (parser_ : [< HTML5_types.phrasing] HTML5.M.elt list wiki_parser
+             :> HTML5_types.phrasing HTML5.M.elt list wiki_parser) in
+  (register_phrasings_wiki_parser ~name ~preparser ~parser_
+     : HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type
+     :> [> HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type)
+let get_phrasings_wiki_parser k =
+  let k = (k : [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type
+	     :> HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type) in
+  (get_phrasings_wiki_parser k : HTML5_types.phrasing HTML5.M.elt list wiki_parser
+     :> [> HTML5_types.phrasing] HTML5.M.elt list wiki_parser)
+let get_phrasings_wiki_preparser k =
+  let k = (k : [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type
+	     :> HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type) in
+  get_phrasings_wiki_preparser k
+
 
 let get_default_wiki_parser s =
   get_flows_wiki_parser (get_default_content_type s)
