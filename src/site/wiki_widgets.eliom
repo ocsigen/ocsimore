@@ -1424,16 +1424,14 @@ class dynamic_wikibox
             Wiki.default_bi ~rights ~wikibox:wb_container >>= fun bi ->
             let fsubbox ms =
               if ms = menu_style then
-                Lwt.return (Some (wbid, subbox))
+                Lwt.return (Some subbox)
               else
-                gen_box ms >>= fun (wbid, subbox, _, _) ->
-                Lwt.return (Some (wbid, subbox))
+                gen_box ms >>= fun (_, subbox, _, _) ->
+                Lwt.return (Some subbox)
             in
 	    let fsubbox =
 	      (fsubbox :> Wiki_widgets_interface.menu_style ->
-               (Wiki_types.wikibox option *
-		  HTML5_types.flow5 HTML5.M.elt list)
-		 option Lwt.t) in
+               (HTML5_types.flow5 HTML5.M.elt list) option Lwt.t) in
             let bi = { bi with  bi_subbox = fsubbox;
                          bi_page = wiki, Some page_list;
                          bi_menu_style = menu_style } in
@@ -1558,7 +1556,7 @@ class dynamic_wikibox
 	     (fun ch ->
 	       lwt data = Lwt_io.read ch in
 	       lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi data in
-	       Lwt.return (Some (None, xml)))
+	       Lwt.return (Some xml))
        | _ -> Lwt.return None in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
@@ -1579,7 +1577,7 @@ class dynamic_wikibox
        lwt xml =
 	 (self#display_interactive_wikibox bi wb
 	  :> HTML5_types.flow5 HTML5.M.elt list Lwt.t) in
-       Lwt.return (Some (None, xml))
+       Lwt.return (Some xml)
      in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()

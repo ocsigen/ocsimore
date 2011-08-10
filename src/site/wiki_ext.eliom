@@ -77,7 +77,7 @@ let register_wikibox_syntax_extensions
                | Some c ->
                  Wiki_syntax.xml_of_wiki wikicreole_parser
                    { bi with bi_menu_style = menu_style } c >|= fun r ->
-                     Some (Some bi.bi_box, r)
+                     Some r
              in
              Wiki_sql.wikibox_wiki box >>= fun wiki ->
              Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->

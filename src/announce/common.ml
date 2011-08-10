@@ -86,7 +86,7 @@ let wiki_page path sp (headers : {{[Xhtmltypes_duce.head_misc*]}}) contents =
   let rights = Wiki_models.get_rights wiki_info.wiki_model in
   Wiki.default_bi ~sp ~wikibox:wiki_box ~rights >>= fun bi ->
   let bi = { bi with Wiki_widgets_interface.bi_subbox =
-      (fun _ -> Lwt.return (Some (None, subbox))) } in
+      (fun _ -> Lwt.return (Some subbox)) } in
   Wiki_site.wikibox_widget#display_interactive_wikibox ~bi wiki_box
   >>= fun box ->
   Wiki_site.wikibox_widget#css_header ~sp ~page wiki_id

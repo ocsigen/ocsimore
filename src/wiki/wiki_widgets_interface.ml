@@ -121,7 +121,7 @@ end
 type menu_style = [ `Linear | `Pencil | `None ]
 
 type box_info = {
-  bi_subbox: menu_style -> (wikibox option * HTML5_types.flow5 HTML5.M.elt list) option Lwt.t
+  bi_subbox: menu_style -> HTML5_types.flow5 HTML5.M.elt list option Lwt.t
     (* Function generating the text to paste inside an <<option>> extension.
        The wikibox option is (if available) the wikibox which gave rise to
        this text *);

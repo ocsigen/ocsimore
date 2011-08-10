@@ -1582,39 +1582,16 @@ let () =
 
   let f_content _ bi args _ =
     Wikicreole.Flow5
-      (let classe =
-         try Some (List.assoc "class" args)
-         with Not_found -> None
-       and id =
-         try Some (HTML5.M.a_id (List.assoc "id" args))
-         with Not_found -> None
-       in
-       bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
+      (bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
        | None ->
-           let a = match classe with
-             | None -> opt_list (filter_raw [id])
-             | Some c -> Some (HTML5.M.a_class [c] :: filter_raw [id])
-           in
-           [HTML5.M.div ?a
-              [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<conten>>"]]]
+           [HTML5.M.div
+              [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
            ]
-       | Some (wb, subbox) ->
-           let classe = match wb with
-             | None -> apply_opt (fun c -> HTML5.M.a_class [c]) classe
-             | Some wb ->
-                 Some
-                   (HTML5.M.a_class
-                      (class_wikibox wb :: filter_raw [classe]))
-           in
-           let a = opt_list (filter_raw [classe; id]) in
-           [HTML5.M.div ?a subbox]
+       | Some subbox -> subbox
       )
   in
   add_extension_aux
     [wikicreole_parser]
-    ~name:"content" f_content;
-  add_extension_aux
-    [wikicreole_parser']
     ~name:"content" f_content;
 
   let f_menu _ bi args _ =
