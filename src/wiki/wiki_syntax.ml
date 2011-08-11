@@ -1427,7 +1427,7 @@ let add_extension ~wp ~name ?(wiki_content=true) f =
              Lwt.return (Some (string_of_extension name args (Some c)))
       )
 
-let remove_re = Netstring_pcre.regexp "\\A\\s*(\\S((\\N|\\s)*\\S)?)\\s*\\z"
+let remove_re = Netstring_pcre.regexp "(?s-m)\\A\\s*(\\S(.*\\S)?)\\s*\\z"
 let remove_spaces s =
   match Netstring_pcre.string_match remove_re s 0 with
   | None -> s
