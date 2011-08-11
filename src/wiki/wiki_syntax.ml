@@ -1466,9 +1466,21 @@ let () =
     add_extension_aux l
       ~name:name ~wiki_content:true
       (f_block make) in
-
   List.iter
-    (add [wikicreole_parser])
+    (fun (name, make) ->
+       add_extension
+	 ~wp:wikicreole_parser ~name ~wiki_content:true
+	 (f_block make wikicreole_parser))
+    ["div", HTML5.M.div;
+     "aside", HTML5.M.aside;
+     "article", HTML5.M.article;
+     "nav", HTML5.M.nav;
+     "section", HTML5.M.section;];
+  List.iter
+    (fun (name, make) ->
+       add_extension
+	 ~wp:wikicreole_parser' ~name ~wiki_content:true
+	 (f_block make wikicreole_parser))
     ["div", HTML5.M.div;
      "aside", HTML5.M.aside;
      "article", HTML5.M.article;
@@ -1476,8 +1488,7 @@ let () =
      "section", HTML5.M.section;];
   List.iter
     (add
-       [wikicreole_parser';
-	reduced_wikicreole_parser0;
+       [reduced_wikicreole_parser0;
 	reduced_wikicreole_parser1;
 	reduced_wikicreole_parser2])
     ["div", HTML5.M.div;
@@ -1577,7 +1588,7 @@ let () =
     ~name:"raw" ~wiki_content:false f_raw;
 
   let f_empty _ _ _ _ =
-    Wikicreole.Phrasing_without_interactive (Lwt.return [])
+    Wikicreole.Flow5 (Lwt.return [])
   in
   add_extension_aux
     [wikicreole_parser]
@@ -1604,6 +1615,20 @@ let () =
   in
   add_extension_aux
     [wikicreole_parser]
+    ~name:"content" f_content;
+
+  let f_content _ bi args _ =
+    Wikicreole.Flow5
+      (bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
+       | None ->
+           [HTML5.M.div
+              [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
+           ]
+       | Some subbox -> [HTML5.M.div subbox]
+      )
+  in
+  add_extension_aux
+    [wikicreole_parser']
     ~name:"content" f_content;
 
   let f_menu _ bi args _ =
