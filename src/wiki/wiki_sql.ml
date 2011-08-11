@@ -403,7 +403,7 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
        PGSQL(db) "INSERT INTO css (wiki, page, wikibox, mediatype, rank)
                   VALUES ($wiki, $?page, $wb, $media,
                    (SELECT COALESCE (max(rank) + 1, 1) from CSS
-                    WHERE wiki=wiki AND page IS NOT DISTINCT FROM $?page)
+                    WHERE wiki = $wiki AND page IS NOT DISTINCT FROM $?page)
                   )"
     )
 

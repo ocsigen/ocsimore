@@ -966,7 +966,7 @@ SET search_path = public, pg_catalog;
 --
 
 ALTER TABLE ONLY css
-    ADD CONSTRAINT css_page_key UNIQUE (page);
+    ADD CONSTRAINT css_page_key UNIQUE (wiki, page, rank);
 
 
 --
