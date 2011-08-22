@@ -1514,11 +1514,36 @@ let () =
      "nav", HTML5.M.nav;
      "section", HTML5.M.section;
     ];
+
+  let f_block' make bi args c =
+    Wikicreole.Flow5
+      (let content = match c with
+         | Some c -> remove_spaces c
+         | None -> ""
+       in
+       let bi = { bi with bi_sectioning = false } in
+       lwt content = xml_of_wiki wikicreole_parser' bi content in
+       let classe =
+         try Some (HTML5.M.a_class [List.assoc "class" args])
+         with Not_found -> None
+       in
+       let id =
+         try Some (HTML5.M.a_id (List.assoc "id" args))
+         with Not_found -> None
+       in
+       let style =
+         try Some (HTML5.M.a_style (List.assoc "style" args))
+         with Not_found -> None
+       in
+       let a = opt_list (filter_raw [classe; id; style]) in
+       Lwt.return [make ?a content]
+      ) in
+
   List.iter
     (fun (name, make) ->
        add_extension
 	 ~wp:wikicreole_parser ~name ~wiki_content:true
-	 (f_block make wikicreole_parser'))
+	 (f_block' make))
     ["header", HTML5.M.header;
      "footer", HTML5.M.footer;
     ];
