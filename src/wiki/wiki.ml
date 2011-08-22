@@ -449,10 +449,11 @@ let default_bi ~wikibox ~rights =
   Wiki_sql.wikibox_wiki wikibox >>= fun wiki ->
   Lwt.return {
     Wiki_widgets_interface.bi_ancestors = Wiki_widgets_interface.Ancestors.no_ancestors;
-    bi_subbox = (fun _ -> Lwt.return None);
+    bi_subbox = (fun ~sectioning _ -> Lwt.return None);
     bi_box = wikibox;
     bi_wiki = wiki;
     bi_rights = rights;
     bi_page = wiki, None;
     bi_menu_style = `Linear;
+    bi_sectioning = false;
   }

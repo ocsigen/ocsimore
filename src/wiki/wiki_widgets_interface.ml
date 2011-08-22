@@ -121,7 +121,7 @@ end
 type menu_style = [ `Linear | `Pencil | `None ]
 
 type box_info = {
-  bi_subbox: menu_style -> HTML5_types.flow5 HTML5.M.elt list option Lwt.t
+  bi_subbox: sectioning:bool -> menu_style -> HTML5_types.flow5 HTML5.M.elt list option Lwt.t
     (* Function generating the text to paste inside an <<option>> extension.
        The wikibox option is (if available) the wikibox which gave rise to
        this text *);
@@ -132,6 +132,7 @@ type box_info = {
   bi_page : wiki * string list option (* page at the origin of the display request *);
   bi_rights: Wiki_types.wiki_rights;
   bi_menu_style : menu_style;
+  bi_sectioning: bool;
 }
 
 let add_ancestor_bi x bi =
@@ -422,11 +423,12 @@ class type virtual interactive_wikibox =
        html page, and the http error code returned by [gen_box]. *)
     method display_container:
       wiki:wiki ->
+      sectioning:bool ->
       menu_style:menu_style ->
       page:(string * string list) ->
-      gen_box:(menu_style ->
-                 (wikibox option * [< HTML5_types.flow5 ] HTML5.M.elt list *
-                  page_displayable * string option) Lwt.t) ->
+      gen_box:(sectioning:bool -> menu_style ->
+                (wikibox option * [< HTML5_types.flow5 ] HTML5.M.elt list *
+                   page_displayable * string option) Lwt.t) ->
       (HTML5_types.html HTML5.M.elt * int) Lwt.t
 
     (** Displaying of the content of an entire wikipage, ie. both
@@ -434,6 +436,7 @@ class type virtual interactive_wikibox =
         of the wikibox that corresponds to the wikipage. *)
     method display_wikipage :
       wiki:wiki ->
+      sectioning:bool ->
       menu_style:menu_style ->
       page:(string * string list) ->
       (HTML5_types.html HTML5.M.elt * int) Lwt.t
@@ -443,6 +446,7 @@ class type virtual interactive_wikibox =
 	as subbox.  *)
     method display_wikifile :
       wiki:wiki ->
+      sectioning:bool ->
 	menu_style:menu_style ->
 	  template:string ->
 	    file: Ocsigen_local_files.resolved ->
@@ -450,6 +454,7 @@ class type virtual interactive_wikibox =
 
     method display_wikibox :
       wiki:wiki ->
+      sectioning:bool ->
 	menu_style:menu_style ->
 	  template:string ->
 	    wb: Wiki_types.wikibox ->

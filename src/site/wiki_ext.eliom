@@ -72,11 +72,12 @@ let register_wikibox_syntax_extensions
                [error_box#display_error_box
                    ~message:"Wiki error: loop of wikiboxes" ()]
            else
-             let fsubbox menu_style = match c with
+             let fsubbox ~sectioning menu_style = match c with
                | None -> Lwt.return None
                | Some c ->
                  Wiki_syntax.xml_of_wiki wikicreole_parser
-                   { bi with bi_menu_style = menu_style } c >|= fun r ->
+                   { bi with bi_menu_style = menu_style;
+		       bi_sectioning = sectioning; } c >|= fun r ->
                      Some r
              in
              Wiki_sql.wikibox_wiki box >>= fun wiki ->

@@ -1400,9 +1400,9 @@ class dynamic_wikibox
            Lwt.return (css @ ll)
 
    method private display_container : 'a.
-     wiki:_ -> menu_style:_ ->
+     wiki:_ -> sectioning:_ -> menu_style:_ ->
        page:_ ->
-         gen_box:(Wiki_widgets_interface.menu_style ->
+         gen_box:(sectioning:bool -> Wiki_widgets_interface.menu_style ->
                   (Wiki_types.wikibox option *
                      ([< HTML5_types.flow5 ] as 'a)
                      Eliom_pervasives.HTML5.M.elt list *
@@ -1410,11 +1410,11 @@ class dynamic_wikibox
                     Lwt.t) ->
            (HTML5_types.html Eliom_pervasives.HTML5.M.elt * int) Lwt.t =
 
-     fun ~wiki ~menu_style ~page:(page, page_list) ~gen_box ->
+     fun ~wiki ~sectioning ~menu_style ~page:(page, page_list) ~gen_box ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
-     gen_box menu_style >>= fun (wbid, subbox, err_code, title) ->
+     gen_box ~sectioning menu_style >>= fun (wbid, subbox, err_code, title) ->
      Wiki_widgets_interface.set_page_displayable err_code;
      (* We render the container, if it exists *)
      (match wb_container with
@@ -1422,15 +1422,15 @@ class dynamic_wikibox
 
         | Some wb_container ->
             Wiki.default_bi ~rights ~wikibox:wb_container >>= fun bi ->
-            let fsubbox ms =
-              if ms = menu_style then
+              let fsubbox ~sectioning:st ms =
+              if ms = menu_style && st = sectioning then
                 Lwt.return (Some subbox)
               else
-                gen_box ms >>= fun (_, subbox, _, _) ->
+                gen_box ~sectioning:st ms >>= fun (_, subbox, _, _) ->
                 Lwt.return (Some subbox)
             in
 	    let fsubbox =
-	      (fsubbox :> Wiki_widgets_interface.menu_style ->
+	      (fsubbox :> sectioning:bool -> Wiki_widgets_interface.menu_style ->
                (HTML5_types.flow5 HTML5.M.elt list) option Lwt.t) in
             let bi = { bi with  bi_subbox = fsubbox;
                          bi_page = wiki, Some page_list;
@@ -1462,14 +1462,15 @@ class dynamic_wikibox
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
      Lwt.return
-     (fun menu_style -> Lwt.catch
+     (fun ~sectioning menu_style -> Lwt.catch
        (fun () ->
           (* We render the wikibox for the page *)
           Wiki_sql.get_wikipage_info wiki page
           >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
           Wiki.default_bi ~wikibox:box ~rights >>= fun bi ->
           let bi = { bi with bi_page = wiki, Some page_list;
-                             bi_menu_style = menu_style; } in
+                             bi_menu_style = menu_style;
+			     bi_sectioning = sectioning; } in
 	  let bi = match subbox with
 	    | None -> bi
 	    | Some subbox ->
@@ -1533,23 +1534,24 @@ class dynamic_wikibox
 
    (* Displaying of an entire page. We just pass the proper rendering
    function to [display_container] *)
-   method display_wikipage ~wiki ~menu_style ~page =
+   method display_wikipage ~wiki ~sectioning ~menu_style ~page =
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ()
-	:> (Wiki_widgets_interface.menu_style ->
+	:> (sectioning:bool -> Wiki_widgets_interface.menu_style ->
           (Wiki_types.wikibox option *
            HTML5_types.flow5 HTML5.M.elt list *
            Wiki_widgets_interface.page_displayable * string option)
           Lwt.t)
          Lwt.t)
      in
-     self#display_container ~wiki ~menu_style ~page
+     self#display_container ~wiki ~sectioning ~menu_style ~page
        ~gen_box
 
-   method display_wikifile ~wiki ~menu_style ~template ~file =
+   method display_wikifile ~wiki ~sectioning ~menu_style ~template ~file =
      let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
      let page = Url.string_of_url_path ~encode:false path, path in
-     let subbox bi menu_style =
+     let subbox bi ~sectioning menu_style =
+       let bi = { bi  with bi_sectioning = sectioning } in
        match file with
        | Ocsigen_local_files.RFile file ->
 	   Lwt_io.with_file ~mode:Lwt_io.input file
@@ -1560,7 +1562,7 @@ class dynamic_wikibox
        | _ -> Lwt.return None in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
-	:> (Wiki_widgets_interface.menu_style ->
+	:> (sectioning:bool -> Wiki_widgets_interface.menu_style ->
           (Wiki_types.wikibox option *
            HTML5_types.flow5
            Eliom_pervasives.HTML5.M.elt list *
@@ -1568,12 +1570,15 @@ class dynamic_wikibox
           Lwt.t)
          Lwt.t)
      in
-     self#display_container ~wiki ~menu_style ~page ~gen_box
+     self#display_container ~wiki ~sectioning ~menu_style ~page ~gen_box
 
-   method display_wikibox ~wiki ~menu_style ~template ~wb =
+   method display_wikibox ~wiki ~sectioning ~menu_style ~template ~wb =
      let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
      let page = Url.string_of_url_path ~encode:false path, path in
-     let subbox bi menu_style =
+     let subbox bi ~sectioning menu_style =
+       let bi = { bi  with bi_sectioning = sectioning;
+		    	   bi_menu_style = menu_style;
+		} in
        lwt xml =
 	 (self#display_interactive_wikibox bi wb
 	  :> HTML5_types.flow5 HTML5.M.elt list Lwt.t) in
@@ -1581,12 +1586,12 @@ class dynamic_wikibox
      in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
-	:>  (Wiki_widgets_interface.menu_style ->
+	:>  (sectioning:bool -> Wiki_widgets_interface.menu_style ->
          (Wiki_types.wikibox option *
           HTML5_types.flow5 HTML5.M.elt list *
           Wiki_widgets_interface.page_displayable * string option)
          Lwt.t) Lwt.t) in
-     self#display_container ~wiki ~menu_style ~page ~gen_box
+     self#display_container ~wiki ~sectioning ~menu_style ~page ~gen_box
 
    method display_all_wikis =
      (* Lists of all wikis *)

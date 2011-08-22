@@ -27,6 +27,8 @@ val resolve_file_in_dir:
 
 val process_wikifile:
   wiki:Wiki_types.wiki ->
+  ?sectioning:bool ->
+  ?menu_style:Wiki_widgets_interface.menu_style ->
   template:string ->
   wb404:Wiki_types.wikibox ->
   wb403:Wiki_types.wikibox ->
@@ -35,6 +37,8 @@ val process_wikifile:
 
 val process_auxfile:
   wiki:Wiki_types.wiki ->
+  ?sectioning:bool ->
+  ?menu_style:Wiki_widgets_interface.menu_style ->
   template:string ->
   wb404:Wiki_types.wikibox ->
   wb403:Wiki_types.wikibox ->

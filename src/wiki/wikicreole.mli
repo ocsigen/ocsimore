@@ -71,6 +71,7 @@ type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
     h4_elem : attribs -> 'phrasing list -> 'flow;
     h5_elem : attribs -> 'phrasing list -> 'flow;
     h6_elem : attribs -> 'phrasing list -> 'flow;
+    section_elem : attribs -> 'flow list -> 'flow;
     ul_elem : attribs -> ('phrasing list * 'flow option * attribs) list -> 'flow;
     ol_elem : attribs -> ('phrasing list * 'flow option * attribs) list -> 'flow;
     dl_elem : attribs -> (bool * 'phrasing list * attribs) list -> 'flow;
@@ -90,12 +91,15 @@ type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
 (*
 val from_channel :
   'param ->
-  ('flow, 'phrasing, 'phrasing_without_interactive, 'param) builder -> in_channel -> 'flow list Lwt.t
+`  ('flow, 'phrasing, 'phrasing_without_interactive, 'param) builder -> in_channel -> 'flow list Lwt.t
 *)
 
 val from_string :
+  sectioning:bool ->
   'param ->
-  ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder -> string -> 'flow list Lwt.t
+  ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href)
+  builder ->
+  string -> 'flow list Lwt.t
 
 (*
 val from_lexbuf :

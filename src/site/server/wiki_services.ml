@@ -87,7 +87,8 @@ let send_wikipage
   let wiki_page () =
     lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
     let widgets = Wiki_models.get_widgets wiki_info.wiki_model in
-    lwt (html,code) = widgets#display_wikipage ~wiki ~menu_style ~page in
+    lwt (html,code) =
+      widgets#display_wikipage ~wiki ~sectioning:false ~menu_style ~page in
     Ocsimore_appl.send ~code html
   in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->

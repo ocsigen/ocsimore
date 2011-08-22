@@ -548,6 +548,7 @@ let preparse_extension wp (wb : Wiki_types.wikibox) content =
     h4_elem = nothing;
     h5_elem = nothing;
     h6_elem = nothing;
+    section_elem = nothing;
     ul_elem = nothing;
     ol_elem = nothing;
     dl_elem = nothing;
@@ -564,7 +565,7 @@ let preparse_extension wp (wb : Wiki_types.wikibox) content =
     link_action = link_action;
     error = nothing1;
   } in
-  Wikicreole.from_string wb preparse_builder content
+  Wikicreole.from_string ~sectioning:false wb preparse_builder content
   >>= fun (_ : unit list) ->
   let buf = Buffer.create 1024 in
   Lwt_list.fold_left_s
@@ -812,6 +813,12 @@ let h6_elem =
     element content >|= List.flatten >|= fun r ->
     [(HTML5.M.h6 ?a r : [>`H6] HTML5.M.elt)])
 
+let section_elem =
+  (fun attribs content ->
+    let a = opt_list (parse_common_attribs attribs) in
+    element content >|= List.flatten >|= fun r ->
+    [(HTML5.M.section ?a r : [>`Section] HTML5.M.elt)])
+
 let ul_elem =
   (fun attribs content ->
     let a = opt_list (parse_common_attribs attribs) in
@@ -930,6 +937,7 @@ let phrasing_builder :
     h4_elem = span_elem;
     h5_elem = span_elem;
     h6_elem = span_elem;
+    section_elem = span_elem;
     ul_elem =
       (fun _ _ ->
         Lwt.return
@@ -991,6 +999,7 @@ let default_builder :
     h4_elem = h4_elem;
     h5_elem = h5_elem;
     h6_elem = h6_elem;
+    section_elem = section_elem;
     ul_elem = ul_elem;
     ol_elem = ol_elem;
     dl_elem = dl_elem;
@@ -1035,6 +1044,7 @@ let default_builder_without_header_and_footer :
     h4_elem = h4_elem;
     h5_elem = h5_elem;
     h6_elem = h6_elem;
+    section_elem = section_elem;
     ul_elem = ul_elem;
     ol_elem = ol_elem;
     dl_elem = dl_elem;
@@ -1081,6 +1091,7 @@ let reduced_builder :
     h4_elem = h4_elem;
     h5_elem = h5_elem;
     h6_elem = h6_elem;
+    section_elem = section_elem;
     ul_elem = ul_elem;
     ol_elem = ol_elem;
     dl_elem = dl_elem;
@@ -1122,6 +1133,7 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
     h4_elem = p_elem;
     h5_elem = p_elem;
     h6_elem = p_elem;
+    section_elem = section_elem;
     ul_elem =
       (fun _ _ ->
         Lwt.return
@@ -1181,6 +1193,7 @@ let menu_builder :
     h4_elem = h4_elem;
     h5_elem = h5_elem;
     h6_elem = h6_elem;
+    section_elem = nothing;
     ul_elem = nothing;
     ol_elem = nothing;
     dl_elem = nothing;
@@ -1233,6 +1246,7 @@ let reduced_builder_button :
     h4_elem = (*p_elem;*) forbid2 "toto";
     h5_elem = (*p_elem;*) forbid2 "toto";
     h6_elem = (*p_elem;*) forbid2 "toto";
+    section_elem = (*p_elem;*) forbid2 "toto";
     ul_elem = (*ul_elem;*) forbid2 "toto";
     ol_elem = (*ol_elem;*) forbid2 "toto";
     dl_elem = (*dl_elem;*) forbid2 "toto";
@@ -1327,12 +1341,15 @@ let phrasing_wikicreole_parser = {
 (* Default parser functions:    *)
 
 let xml_of_wiki wp bi s =
-  Wikicreole.from_string bi (builder_from_wikicreole_parser wp) s
+  Wikicreole.from_string
+    ~sectioning:bi.bi_sectioning
+    bi (builder_from_wikicreole_parser wp) s
   >>= Lwt_list.map_s (fun x -> x)
   >|= List.flatten
 
 let phrasing_of_wiki bi s =
   ((Wikicreole.from_string
+    ~sectioning:false
     bi
     ({phrasing_builder with
        Wikicreole.plugin = plugin_function phrasing_wikicreole_parser
@@ -1605,7 +1622,7 @@ let () =
 
   let f_content _ bi args _ =
     Wikicreole.Flow5
-      (bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
+      (bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style >|= function
        | None ->
            [HTML5.M.div
               [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
@@ -1619,7 +1636,7 @@ let () =
 
   let f_content _ bi args _ =
     Wikicreole.Flow5
-      (bi.Wiki_widgets_interface.bi_subbox bi.bi_menu_style >|= function
+      (bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style >|= function
        | None ->
            [HTML5.M.div
               [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
@@ -1766,3 +1783,29 @@ let () =
   add_extension_aux
     [menu_parser]
     ~name:"cond" ~wiki_content:true f_cond;
+
+  let f_sectioning bi_sectioning wp bi args c =
+    Wikicreole.Flow5
+      (let content = match c with
+         | Some c -> remove_spaces c
+         | None -> ""
+       in
+       let bi = { bi with bi_sectioning } in
+       xml_of_wiki wp bi content
+      ) in
+  add_extension_aux
+    [wikicreole_parser]
+    ~name:"sectioning" ~wiki_content:true (f_sectioning true);
+  add_extension_aux
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"sectioning" ~wiki_content:true (f_sectioning true);
+  add_extension_aux
+    [wikicreole_parser]
+    ~name:"no_sectioning" ~wiki_content:true (f_sectioning false);
+  add_extension_aux
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"no_sectioning" ~wiki_content:true (f_sectioning false);
