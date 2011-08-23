@@ -1793,10 +1793,8 @@ let () =
            eval_cond not_cond >|= not
          | _ -> Lwt.return false
        in
-       (match args with
-         | [c] -> eval_cond c
-         | _   -> Lwt.return false)
-           >>= function
+       Lwt_list.for_all_p eval_cond args
+       >>= function
              | true -> xml_of_wiki wp bi content
              | false -> Lwt.return []
       )
