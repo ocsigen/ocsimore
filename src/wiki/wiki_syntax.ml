@@ -1780,6 +1780,11 @@ let () =
          | ("http_code", "40?") ->
            Lwt.return (Wiki_widgets_interface.page_displayable () <>
                          Wiki_widgets_interface.Page_displayable)
+         | ("page", page) ->
+	     Lwt.return
+	       (match snd (bi.bi_page) with
+		| None -> false
+		| Some path -> (String.concat "/" path = page))
          | (err, value) when String.length err >= 3 &&
              String.sub err 0 3 = "not" ->
            let not_cond =
