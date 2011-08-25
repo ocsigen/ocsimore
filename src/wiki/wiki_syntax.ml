@@ -1785,6 +1785,8 @@ let () =
 	       (match snd (bi.bi_page) with
 		| None -> false
 		| Some path -> (String.concat "/" path = page))
+         | ("wiki", wiki) ->
+	     Lwt.return (Wiki_types.string_of_wiki (fst (bi.bi_page)) = wiki)
          | (err, value) when String.length err >= 3 &&
              String.sub err 0 3 = "not" ->
            let not_cond =
