@@ -1756,16 +1756,13 @@ let () =
     ~name:"menu" f_menu;
 
 
-  let f_cond wp bi args c =
-    Wikicreole.Flow5
-      (let content = unopt_string c in
-       let rec eval_cond = function
-         | ("error", "autherror") ->
-           Lwt_list.exists_s
-             (fun e ->
-               Lwt.return (e = User.BadPassword || e = User.BadUser))
-             (User_data.get_login_error ())
-         | ("ingroup", g) ->
+  let rec eval_cond bi = function
+    | ("error", "autherror") ->
+        Lwt_list.exists_s
+          (fun e ->
+             Lwt.return (e = User.BadPassword || e = User.BadUser))
+          (User_data.get_login_error ())
+    | ("ingroup", g) ->
            Lwt.catch
              (fun () ->
                User.get_user_by_name g >>= fun group ->
@@ -1792,10 +1789,24 @@ let () =
            let not_cond =
              (String.sub err 3 (String.length err - 3), value)
            in
-           eval_cond not_cond >|= not
+           eval_cond bi not_cond >|= not
          | _ -> Lwt.return false
-       in
-       Lwt_list.for_all_p eval_cond args
+  in
+
+  let f_cond wp bi args c =
+    Wikicreole.Flow5
+      (let content = unopt_string c in
+       Lwt_list.for_all_p (eval_cond bi) args
+       >>= function
+             | true -> xml_of_wiki wp bi content
+             | false -> Lwt.return []
+      )
+  in
+
+  let f_orcond wp bi args c =
+    Wikicreole.Flow5
+      (let content = unopt_string c in
+       Lwt_list.exists_p (eval_cond bi) args
        >>= function
              | true -> xml_of_wiki wp bi content
              | false -> Lwt.return []
@@ -1813,6 +1824,19 @@ let () =
   add_extension_aux
     [menu_parser]
     ~name:"cond" ~wiki_content:true f_cond;
+
+
+  add_extension_aux
+    [wikicreole_parser]
+    ~name:"orcond" ~wiki_content:true f_orcond;
+  add_extension_aux
+    [wikicreole_parser';
+     reduced_wikicreole_parser0;
+     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
+    ~name:"orcond" ~wiki_content:true f_orcond;
+  add_extension_aux
+    [menu_parser]
+    ~name:"orcond" ~wiki_content:true f_orcond;
 
   let f_sectioning bi_sectioning wp bi args c =
     Wikicreole.Flow5
