@@ -79,6 +79,7 @@ Library "wiki"
   XMETADescription: Wiki stuffs
   DataFiles:
     ../../local/var/www/static/*.css,
+    ../../local/var/www/static/*.js,
     ../../local/var/www/static/*.png ($prefix/var/www/$pkg_name)
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.user
@@ -117,6 +118,7 @@ Library "core_site_client"
   FindlibParent: ocsimore
   Modules:
     Page_site,
+    HTML5outliner,
     Wiki_ext,
     Wiki_widgets,
     Ocsimore
@@ -145,6 +147,7 @@ Library "wiki_site"
   FindlibParent: ocsimore
   Modules:
     server/Wiki_site,
+    server/HTML5outliner,
     server/Wiki_ext,
     server/Wiki_services,
     server/Wiki_widgets,

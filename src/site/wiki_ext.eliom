@@ -29,11 +29,16 @@ open Wiki_widgets_interface
 let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 
-
 (* Helper functions for the syntax extensions below *)
 let extract args v default =
   try List.assoc v args
   with Not_found -> default
+
+let opt_list = function | [] -> None | _::_ as l -> Some l
+let rec filter_raw = function (* /!\ NOT TAIL REC /!\ *)
+  | [] -> []
+  | None :: xs -> filter_raw xs
+  | Some x :: xs -> x :: filter_raw xs
 
 let extract_wiki_id args default =
   try wiki_of_string (List.assoc "wiki" args)
@@ -44,6 +49,8 @@ and extract_https args =
     | "https" -> Some true
     | _ -> None
   with Not_found -> None
+
+
 
 let register_wikibox_syntax_extensions
     (error_box : Widget.widget_with_error_box) =
@@ -352,5 +359,54 @@ let register_wikibox_syntax_extensions
      reduced_wikicreole_parser2]
     ~name:"switchmenu" ~wiki_content:true f;
   Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"switchmenu" ~wiki_content:true (f phrasing_wikicreole_parser)
+    ~name:"switchmenu" ~wiki_content:true (f phrasing_wikicreole_parser);
 
+  let f_outline wp bi (args: (string * string) list) c =
+    Wikicreole.Flow5
+      (let elem =
+	 try
+	   `Id (List.assoc "target" args)
+	 with Not_found -> `Container in
+       lwt content = match c with
+	 | None -> Lwt.return []
+	 | Some c -> Wiki_syntax.xml_of_wiki wp bi c
+       in
+       let classe =
+         try Some (HTML5.M.a_class [List.assoc "class" args])
+         with Not_found -> None
+       in
+       let id =
+         try Some (HTML5.M.a_id (List.assoc "id" args))
+         with Not_found -> None
+       in
+       let style =
+         try Some (HTML5.M.a_style (List.assoc "style" args))
+         with Not_found -> None
+       in
+       let ocsimore_class = Some (HTML5.M.a_class ["ocsimore_outline"]) in
+       let a = opt_list (filter_raw [classe; id; style; ocsimore_class]) in
+       let nav = HTML5.M.unique (HTML5.M.nav ?a content) in
+       HTML5outliner.add_outliner_js ();
+       let ignore = ()  (* Build arguments *) in
+       Eliom_services.onload {{
+
+	 let nav = Eliom_client.Html5.of_element %nav in
+	 let elem, ignore = match %elem with
+	   | `Id id ->
+	       (Dom_html.document##getElementById(Js.string id) :>
+		  Dom.node Js.t Js.opt),
+	       Some (HTML5outliner.ignore_target_header ())
+	   | `Container -> HTML5outliner.find_container nav in
+	 let outline = HTML5outliner.outline ?ignore elem in
+	 match Js.Opt.to_option outline with
+	 | Some outline ->
+	     Dom.appendChild nav (outline##asDOM(Js._true));
+	 | None -> ()
+
+     }};
+     Lwt.return [nav])
+  in
+  Wiki_syntax.add_extension ~wp:wikicreole_parser
+    ~name:"outline" ~wiki_content:true (f_outline wikicreole_parser);
+  Wiki_syntax.add_extension ~wp:wikicreole_parser'
+    ~name:"outline" ~wiki_content:true (f_outline wikicreole_parser')
