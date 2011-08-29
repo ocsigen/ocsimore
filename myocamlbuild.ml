@@ -588,6 +588,8 @@ let () =
 	 | Before_options ->
 	   tag_eliom_files ()
          | After_rules ->
+	   Pathname.define_context "src/site/server" ["src/wiki"];
+	   Pathname.define_context "src/site/client" ["src/wiki"];
 	   (* only works in subdirectories: no source at toplevel *)
 	   copy_rule "shared/*.ml -> client/*.ml"
 	     "%(path)/shared/%(file).ml" "%(path)/client/%(file).ml";
