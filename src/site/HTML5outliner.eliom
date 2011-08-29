@@ -22,7 +22,8 @@ let add_outliner_js () =
      fun n ->
        if !first_node then
 	 ( first_node := false;
-	   if Js.to_string n##nodeName <> "ARTICLE" then
+	   if Js.to_string n##nodeName <> "ARTICLE"
+	      && Js.to_string n##nodeName <> "SECTION"  then
 	     first_section := false;
 	   Js._false )
        else if !first_section then
