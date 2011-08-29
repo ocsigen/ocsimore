@@ -28,10 +28,11 @@ exception Unrecognized_char
 
 type attribs = (string * string) list
 
-type ('a, 'b, 'c) ext_kind =
+type ('a, 'b, 'c, 'd) ext_kind =
   | Flow5 of 'a
-  | Phrasing_without_interactive of 'b
-  | Link_plugin of 'c
+  | Flow5_link of 'b
+  | Phrasing_without_interactive of 'c
+  | Phrasing_link of 'd
 
 
 (** Arguments for the extension mechanisme, after '<<' *)
@@ -41,13 +42,15 @@ type ('param, 'a) plugin_args =
     string option -> (** content for the extension, after the '|' *)
     'a
 
-type ('param, 'flow, 'phrasing_without_interactive, 'href) plugin =
+type ('param, 'flow, 'flow_without_interactive, 'phrasing_without_interactive, 'href) plugin =
     ('param,
-     ('flow, 'phrasing_without_interactive, ('href * attribs * 'phrasing_without_interactive)) ext_kind
+     ('flow, ('href * attribs * 'flow_without_interactive),
+      'phrasing_without_interactive, ('href * attribs * 'phrasing_without_interactive)) ext_kind
     ) plugin_args
 
 
-type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
+type ('flow, 'flow_without_interactive,
+      'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
   { chars : string -> 'phrasing_without_interactive;
     strong_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
     em_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
@@ -62,7 +65,8 @@ type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
     nbsp : 'phrasing_without_interactive;
     endash : 'phrasing_without_interactive;
     emdash : 'phrasing_without_interactive;
-    a_elem : attribs -> 'href -> 'phrasing_without_interactive list -> 'phrasing;
+    a_elem_phrasing : attribs -> 'href -> 'phrasing_without_interactive list -> 'phrasing;
+    a_elem_flow : attribs -> 'href -> 'flow_without_interactive list -> 'flow;
     make_href : 'param -> string -> string option -> 'href;
     p_elem : attribs -> 'phrasing list -> 'flow;
     pre_elem : attribs -> string list -> 'flow;
@@ -80,7 +84,7 @@ type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
     table_elem : attribs ->
       ((bool * attribs * 'phrasing list) list * attribs) list -> 'flow;
     phrasing : 'phrasing_without_interactive -> 'phrasing;
-    plugin : string -> bool * ('param, 'flow, 'phrasing_without_interactive, 'href) plugin;
+    plugin : string -> bool * ('param, 'flow, 'flow_without_interactive, 'phrasing_without_interactive, 'href) plugin;
     plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
     link_action : string -> string option -> attribs -> int * int -> 'param -> unit;
     error : string -> 'phrasing_without_interactive;
@@ -110,8 +114,8 @@ type ('phrasing, 'flow, 'href) stack =
   | Row of (bool * attribs * 'phrasing list) list * attribs * ('phrasing, 'flow, 'href) stack
   | Entry of bool * attribs * ('phrasing, 'flow, 'href) stack
 
-type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) ctx =
-  { build : ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder;
+type ('flow, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'param, 'href) ctx =
+  { build : ('flow, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder;
     param : 'param;
     mutable italic : bool;
     mutable bold : bool;
@@ -252,7 +256,7 @@ let style_change c style att parse_attribs lexbuf =
 let pop_link c addr attribs stack =
   c.stack <- stack;
   c.phrasing_mix <-
-    c.build.a_elem attribs addr (List.rev c.link_content) :: c.phrasing_mix;
+    c.build.a_elem_phrasing attribs addr (List.rev c.link_content) :: c.phrasing_mix;
   c.link_content <- [];
   c.link <- false
 
@@ -629,7 +633,7 @@ and parse_rem c =
 	let addr_string = Lexing.lexeme lexbuf in
 	let addr = c.build.make_href c.param addr_string None in
         c.phrasing_mix <-
-          c.build.a_elem [] addr [c.build.chars addr_string] :: c.phrasing_mix;
+          c.build.a_elem_phrasing [] addr [c.build.chars addr_string] :: c.phrasing_mix;
       parse_rem c lexbuf
   }
   | "\\\\" (("@@" ?) as att) {
@@ -652,13 +656,17 @@ and parse_rem c =
       | Phrasing_without_interactive i ->
           push c i;
           parse_rem c lexbuf
-      | Link_plugin (addr, attribs, content) ->
+      | Phrasing_link (addr, attribs, content) ->
           c.link_content <- [ content ];
           pop_link c addr attribs c.stack;
           parse_rem c lexbuf
       | Flow5 b ->
           end_paragraph c 0;
           push_flow c b;
+          parse_bol c lexbuf
+      | Flow5_link (addr, attribs, content) ->
+          end_paragraph c 0;
+	  push_flow c (c.build.a_elem_flow attribs addr [content]);
           parse_bol c lexbuf
     }
   | "{{{" (("@@" ?) as att)
@@ -766,7 +774,7 @@ and parse_link beg begaddr fragment c attribs =
             | Some f -> begaddr^"#"^f
           in
           c.phrasing_mix <-
-            c.build.a_elem
+            c.build.a_elem_phrasing
             attribs addr [c.build.chars text] :: c.phrasing_mix;
       end;
       parse_rem c lexbuf

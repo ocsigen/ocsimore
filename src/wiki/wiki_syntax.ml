@@ -431,8 +431,8 @@ let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs wb =
        | _ -> None)
 
 
-type ('res, 'phrasing_without_interactive, 'href) syntax_extension =
-  (Wiki_widgets_interface.box_info, 'res, 'phrasing_without_interactive, 'href) Wikicreole.plugin
+type ('res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) syntax_extension =
+  (Wiki_widgets_interface.box_info, 'res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) Wikicreole.plugin
 
 
 type 'a plugin_hash = (string, 'a) Hashtbl.t
@@ -449,10 +449,10 @@ type 'a plugin_hash = (string, 'a) Hashtbl.t
    used as a preparser, the field [plugin_assoc] is also overridden
    using a proper function. See [preparse_extension] below. BY
 *)
-type ('res, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser = {
-  builder: ('res, 'phrasing, 'phrasing_without_interactive, box_info, 'href) Wikicreole.builder;
+type ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser = {
+  builder: ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, box_info, 'href) Wikicreole.builder;
 
-  plugin_assoc: (bool * ('res, 'phrasing_without_interactive, 'href) syntax_extension) plugin_hash;
+  plugin_assoc: (bool * ('res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) syntax_extension) plugin_hash;
 
   plugin_action_assoc:
      ((Wiki_types.wikibox,
@@ -525,7 +525,8 @@ let preparse_extension wp (wb : Wiki_types.wikibox) content =
     Wikicreole.chars = nothing1;
     strong_elem = nothing;
     em_elem = nothing;
-    a_elem = (fun _ _ _ -> ());
+    a_elem_phrasing = (fun _ _ _ -> ());
+    a_elem_flow = (fun _ _ _ -> ());
     make_href = (fun _ a fragment -> match fragment with
                    | None -> a
                    | Some f -> a ^"#"^f);
@@ -706,7 +707,7 @@ let superscripted_elem =
     [(HTML5.M.sup ?a r : [>`Sup] HTML5.M.elt)]
   )
 
-let a_elem =
+let a_elem_phrasing =
   (fun attribs addr
     (c : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t list) ->
        let a = parse_common_attribs attribs in
@@ -717,6 +718,16 @@ let a_elem =
                :> HTML5_types.phrasing HTML5.M.elt)]
 	   | Service_href href ->
 	     [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)])
+
+let a_elem_flow =
+  (fun attribs addr c ->
+       let a = parse_common_attribs attribs in
+       Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
+	 match addr with
+	   | String_href addr ->
+	     [HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c]
+	   | Service_href href ->
+	     [a_link_of_href href ~a c])
 
 let default_make_href =
   (fun bi c fragment ->
@@ -898,6 +909,7 @@ let span_elem =
 
 let phrasing_builder :
   (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    box_info,
@@ -913,7 +925,8 @@ let phrasing_builder :
     linethrough_elem = linethrough_elem;
     subscripted_elem = subscripted_elem;
     superscripted_elem = superscripted_elem;
-    a_elem = a_elem;
+    a_elem_phrasing = a_elem_phrasing;
+    a_elem_flow = a_elem_phrasing;
     make_href = default_make_href;
     br_elem =
       (fun _ ->
@@ -966,9 +979,81 @@ let phrasing_builder :
     error = error;
   }
 
+let phrasing_builder_without_interactive :
+  (HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   box_info,
+   'href)
+     Wikicreole.builder = (* no images, no titles, no tables, no lists,
+                             no subwikiboxes, no content, no objects,
+                             no paragraph, no pre, ... *)
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]);
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem_phrasing = (fun _ _ _ -> Lwt.return []);
+    a_elem_flow = (fun _ _ _ -> Lwt.return []);
+    make_href = default_make_href;
+    br_elem =
+      (fun _ ->
+         Lwt.return
+           [HTML5.M.em
+              [HTML5.M.pcdata "Line breaks not enabled in this syntax"]]);
+    img_elem = img_elem;
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
+    p_elem = span_elem;
+    pre_elem =
+      (fun _ _ ->
+         Lwt.return
+          [HTML5.M.em
+             [HTML5.M.pcdata "Blocks of code not enabled in this syntax"]]);
+    h1_elem = span_elem;
+    h2_elem = span_elem;
+    h3_elem = span_elem;
+    h4_elem = span_elem;
+    h5_elem = span_elem;
+    h6_elem = span_elem;
+    section_elem = span_elem;
+    ul_elem =
+      (fun _ _ ->
+        Lwt.return
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
+    ol_elem =
+      (fun _ _ ->
+        Lwt.return
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
+    dl_elem =
+      (fun _ _ ->
+        Lwt.return
+          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
+    hr_elem =
+      (fun _ ->
+        Lwt.return
+          [HTML5.M.em
+             [HTML5.M.pcdata "Horizontal rules not enabled in this syntax"]]);
+    table_elem =
+      (fun _ _ ->
+        Lwt.return
+          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]);
+    phrasing = phrasing;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    link_action = link_action;
+    error = error;
+  }
 
 let default_builder :
   (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    box_info,
@@ -983,7 +1068,8 @@ let default_builder :
     linethrough_elem = linethrough_elem;
     subscripted_elem = subscripted_elem;
     superscripted_elem = superscripted_elem;
-    a_elem = a_elem;
+    a_elem_phrasing = a_elem_phrasing;
+    a_elem_flow = a_elem_flow;
     make_href = default_make_href;
     br_elem = br_elem;
     img_elem = img_elem;
@@ -1014,6 +1100,7 @@ let default_builder :
 
 let default_builder_without_header_and_footer :
   (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    box_info,
@@ -1028,7 +1115,55 @@ let default_builder_without_header_and_footer :
     linethrough_elem = linethrough_elem;
     subscripted_elem = subscripted_elem;
     superscripted_elem = superscripted_elem;
-    a_elem = a_elem;
+    a_elem_phrasing = a_elem_phrasing;
+    a_elem_flow = a_elem_flow;
+    make_href = default_make_href;
+    br_elem = br_elem;
+    img_elem = img_elem;
+    tt_elem = tt_elem;
+    nbsp = nbsp;
+    endash = endash;
+    emdash = emdash;
+    p_elem = p_elem;
+    pre_elem = pre_elem;
+    h1_elem = h1_elem;
+    h2_elem = h2_elem;
+    h3_elem = h3_elem;
+    h4_elem = h4_elem;
+    h5_elem = h5_elem;
+    h6_elem = h6_elem;
+    section_elem = section_elem;
+    ul_elem = ul_elem;
+    ol_elem = ol_elem;
+    dl_elem = dl_elem;
+    hr_elem = hr_elem;
+    table_elem = table_elem;
+    phrasing = phrasing;
+    plugin = plugin;
+    plugin_action = plugin_action;
+    link_action = link_action;
+    error = error;
+  }
+
+let default_builder_without_interactive :
+  (HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   box_info,
+   'href
+  ) Wikicreole.builder =
+
+  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
+    strong_elem = strong_elem;
+    em_elem = em_elem;
+    monospace_elem = monospace_elem;
+    underlined_elem = underlined_elem;
+    linethrough_elem = linethrough_elem;
+    subscripted_elem = subscripted_elem;
+    superscripted_elem = superscripted_elem;
+    a_elem_phrasing = (fun _ _ _ -> Lwt.return []);
+    a_elem_flow = (fun _ _ _ -> Lwt.return []);
     make_href = default_make_href;
     br_elem = br_elem;
     img_elem = img_elem;
@@ -1059,6 +1194,7 @@ let default_builder_without_header_and_footer :
 
 let reduced_builder :
   (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    box_info,
@@ -1072,7 +1208,8 @@ let reduced_builder :
     linethrough_elem = linethrough_elem;
     subscripted_elem = subscripted_elem;
     superscripted_elem = superscripted_elem;
-    a_elem = a_elem;
+    a_elem_phrasing = a_elem_phrasing;
+    a_elem_flow = a_elem_flow;
     make_href = default_make_href;
     br_elem = br_elem;
     img_elem =
@@ -1114,7 +1251,8 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
     linethrough_elem = linethrough_elem;
     subscripted_elem = subscripted_elem;
     superscripted_elem = superscripted_elem;
-    a_elem = a_elem;
+    a_elem_phrasing = a_elem_phrasing;
+    a_elem_flow = a_elem_flow;
     make_href = default_make_href;
     br_elem = br_elem;
     img_elem =
@@ -1162,6 +1300,7 @@ let reduced_builder2 = (* no images, no titles, no tables, no lists,
 let menu_builder :
     ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ]
         Eliom_pervasives.HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
      HTML5_types.phrasing Eliom_pervasives.HTML5.M.elt list Lwt.t,
      HTML5_types.phrasing_without_interactive
        Eliom_pervasives.HTML5.M.elt list Lwt.t, 'a, href)
@@ -1177,7 +1316,8 @@ let menu_builder :
     linethrough_elem = linethrough_elem;
     subscripted_elem = subscripted_elem;
     superscripted_elem = superscripted_elem;
-    a_elem = a_elem;
+    a_elem_phrasing = a_elem_phrasing;
+    a_elem_flow = (fun _ _ _ -> Lwt.return []);
     make_href = menu_make_href;
     br_elem = nothing1;
     img_elem = img_elem;
@@ -1210,6 +1350,7 @@ let reduced_builder_button :
   ([HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
+   [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
    box_info,
    'href
   ) Wikicreole.builder =
@@ -1230,7 +1371,8 @@ let reduced_builder_button :
     linethrough_elem = (*linethrough_elem;*) forbid2 "toto";
     subscripted_elem = (*subscripted_elem;*) forbid2 "toto";
     superscripted_elem = (*superscripted_elem;*) forbid2 "toto";
-    a_elem = forbid3 "links";
+    a_elem_phrasing = forbid3 "links";
+    a_elem_flow = forbid3 "links";
     make_href = default_make_href;
     br_elem = (*br_elem;*) forbid1 "toto";
     img_elem = (*img_elem ;*) forbid3 "toto";
@@ -1266,6 +1408,7 @@ let void_plugin_action = fun _ _ _ _ -> Lwt.return None
 
 let wikicreole_parser :
   (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    href
@@ -1276,8 +1419,21 @@ let wikicreole_parser :
   link_action = ref void_plugin_action;
 }
 
-let wikicreole_parser' :
+let wikicreole_parser_without_interactive :
+  (HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+   href
+  ) wikicreole_parser = {
+  builder = default_builder_without_interactive;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
+}
+let wikicreole_parser_without_header_footer :
   (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    href
@@ -1290,6 +1446,7 @@ let wikicreole_parser' :
 
 let reduced_wikicreole_parser0 :
   (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
    href
@@ -1335,6 +1492,13 @@ let phrasing_wikicreole_parser = {
   link_action = ref void_plugin_action;
 }
 
+let phrasing_wikicreole_parser_without_interactive = {
+  builder = phrasing_builder_without_interactive;
+  plugin_assoc = Hashtbl.create 17;
+  plugin_action_assoc = Hashtbl.create 17;
+  link_action = ref void_plugin_action;
+}
+
 
 
 (********************************)
@@ -1351,9 +1515,10 @@ let phrasing_of_wiki bi s =
   ((Wikicreole.from_string
     ~sectioning:false
     bi
-    ({phrasing_builder with
+    ( {phrasing_builder with
        Wikicreole.plugin = plugin_function phrasing_wikicreole_parser
      } : (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+          HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
           HTML5_types.phrasing HTML5.M.elt list Lwt.t,
           HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
           box_info,
@@ -1378,7 +1543,7 @@ let wikicreole_content_type =
 let wikicreole_content_type' =
   Wiki_models.register_flows_wiki_parser "wikicreole'"
     (preparse_extension wikicreole_parser)
-    (xml_of_wiki wikicreole_parser'
+    (xml_of_wiki wikicreole_parser_without_header_footer
      :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type0 =
@@ -1496,7 +1661,17 @@ let () =
   List.iter
     (fun (name, make) ->
        add_extension
-	 ~wp:wikicreole_parser' ~name ~wiki_content:true
+	 ~wp:wikicreole_parser_without_header_footer ~name ~wiki_content:true
+	 (f_block make wikicreole_parser))
+    ["div", HTML5.M.div;
+     "aside", HTML5.M.aside;
+     "article", HTML5.M.article;
+     "nav", HTML5.M.nav;
+     "section", HTML5.M.section;];
+  List.iter
+    (fun (name, make) ->
+       add_extension
+	 ~wp:wikicreole_parser_without_interactive ~name ~wiki_content:true
 	 (f_block make wikicreole_parser))
     ["div", HTML5.M.div;
      "aside", HTML5.M.aside;
@@ -1522,7 +1697,7 @@ let () =
          | None -> ""
        in
        let bi = { bi with bi_sectioning = false } in
-       lwt content = xml_of_wiki wikicreole_parser' bi content in
+       lwt content = xml_of_wiki wikicreole_parser_without_header_footer bi content in
        let classe =
          try Some (HTML5.M.a_class [List.assoc "class" args])
          with Not_found -> None
@@ -1577,7 +1752,7 @@ let () =
     ~name:"span" ~wiki_content:true
     f_span;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
@@ -1600,7 +1775,7 @@ let () =
     [wikicreole_parser]
     ~name:"wikiname" ~wiki_content:true f_wikiname;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
@@ -1620,7 +1795,7 @@ let () =
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"raw" ~wiki_content:false f_raw;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
@@ -1636,7 +1811,7 @@ let () =
     [wikicreole_parser]
     ~name:"" ~wiki_content:false f_empty;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
@@ -1670,7 +1845,7 @@ let () =
       )
   in
   add_extension_aux
-    [wikicreole_parser']
+    [wikicreole_parser_without_header_footer]
     ~name:"content" f_content;
 
   let f_menu _ bi args _ =
@@ -1749,7 +1924,7 @@ let () =
     [wikicreole_parser]
     ~name:"menu" f_menu;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
@@ -1817,7 +1992,7 @@ let () =
     [wikicreole_parser]
     ~name:"cond" ~wiki_content:true f_cond;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"cond" ~wiki_content:true f_cond;
@@ -1830,7 +2005,7 @@ let () =
     [wikicreole_parser]
     ~name:"orcond" ~wiki_content:true f_orcond;
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"orcond" ~wiki_content:true f_orcond;
@@ -1851,7 +2026,7 @@ let () =
     [wikicreole_parser]
     ~name:"sectioning" ~wiki_content:true (f_sectioning true);
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"sectioning" ~wiki_content:true (f_sectioning true);
@@ -1859,7 +2034,7 @@ let () =
     [wikicreole_parser]
     ~name:"no_sectioning" ~wiki_content:true (f_sectioning false);
   add_extension_aux
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1; reduced_wikicreole_parser2]
     ~name:"no_sectioning" ~wiki_content:true (f_sectioning false);

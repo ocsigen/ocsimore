@@ -26,10 +26,11 @@
 
 type attribs = (string * string) list
 
-type ('a, 'b, 'c) ext_kind =
+type ('a, 'b, 'c, 'd) ext_kind =
   | Flow5 of 'a
-  | Phrasing_without_interactive of 'b
-  | Link_plugin of 'c
+  | Flow5_link of 'b
+  | Phrasing_without_interactive of 'c
+  | Phrasing_link of 'd
 
 
 (** Arguments for the extension mechanisme, after '<<' *)
@@ -39,13 +40,14 @@ type ('param, 'a) plugin_args =
     string option -> (** content for the extension, after the '|' *)
     'a
 
-type ('param, 'flow, 'phrasing_without_interactive, 'href) plugin =
+type ('param, 'flow, 'flow_without_interactive, 'phrasing_without_interactive, 'href) plugin =
     ('param,
-     ('flow, 'phrasing_without_interactive, ('href * attribs * 'phrasing_without_interactive)) ext_kind
+     ('flow, ('href * attribs * 'flow_without_interactive),
+      'phrasing_without_interactive, ('href * attribs * 'phrasing_without_interactive)) ext_kind
     ) plugin_args
 
 
-type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
+type ('flow, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
   { chars : string -> 'phrasing_without_interactive;
     strong_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
     em_elem : attribs -> 'phrasing list -> 'phrasing_without_interactive;
@@ -60,7 +62,8 @@ type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
     nbsp : 'phrasing_without_interactive;
     endash : 'phrasing_without_interactive;
     emdash : 'phrasing_without_interactive;
-    a_elem : attribs -> 'href -> 'phrasing_without_interactive list -> 'phrasing;
+    a_elem_phrasing : attribs -> 'href -> 'phrasing_without_interactive list -> 'phrasing;
+    a_elem_flow : attribs -> 'href -> 'flow_without_interactive list -> 'flow;
     make_href : 'param -> string -> string option -> 'href;
     (** the string option is the fragment part of the URL (#...)*)
     p_elem : attribs -> 'phrasing list -> 'flow;
@@ -82,7 +85,7 @@ type ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href) builder =
 (** The syntax of plugins is [<<name arg1='value1' ... argn="valuen' >>] or
 [<<name arg1='value1' ... argn="valuen' |content>> ] *)
 (** Must display sthg (error message?) if the name does not exist. *)
-    plugin : string -> bool * ('param, 'flow, 'phrasing_without_interactive, 'href) plugin;
+    plugin : string -> bool * ('param, 'flow, 'flow_without_interactive, 'phrasing_without_interactive, 'href) plugin;
     plugin_action :  string -> int -> int -> ('param, unit) plugin_args;
     link_action : string -> string option -> attribs -> int * int -> 'param -> unit;
     error : string -> 'phrasing_without_interactive;
@@ -97,7 +100,7 @@ val from_channel :
 val from_string :
   sectioning:bool ->
   'param ->
-  ('flow, 'phrasing, 'phrasing_without_interactive, 'param, 'href)
+  ('flow, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'param, 'href)
   builder ->
   string -> 'flow list Lwt.t
 

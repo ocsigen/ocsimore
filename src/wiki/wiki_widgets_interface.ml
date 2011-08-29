@@ -91,7 +91,6 @@ of the wiki. The [wikibox] argument contains the wikibox which holds
 the css *)
 and css_wikibox = (wiki * string option) * wikibox
 
-
 (*********************************************************************)
 
 module Ancestors : sig

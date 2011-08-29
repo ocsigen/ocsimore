@@ -36,7 +36,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
   in
   let wikicreole_parser = Wiki_syntax.wikicreole_parser in
-  let wikicreole_parser' = Wiki_syntax.wikicreole_parser' in
+  let wikicreole_parser_without_header_footer = Wiki_syntax.wikicreole_parser_without_header_footer in
   let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0 in
   let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1 in
   let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2 in
@@ -58,7 +58,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     ~name:"loginbox" ~wiki_content:true
     f_loginbox;
   add_extension
-    [wikicreole_parser']
+    [wikicreole_parser_without_header_footer]
     ~name:"loginbox" ~wiki_content:true
     f_loginbox;
 
@@ -79,7 +79,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     ~name:"logoutbutton" ~wiki_content:true
     f_logoutbutton;
   add_extension
-    [wikicreole_parser']
+    [wikicreole_parser_without_header_footer]
     ~name:"logoutbutton" ~wiki_content:true
     f_logoutbutton;
 
@@ -93,7 +93,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     [wikicreole_parser]
     ~name:"username" ~wiki_content:true f;
   add_extension
-    [wikicreole_parser';
+    [wikicreole_parser_without_header_footer;
      reduced_wikicreole_parser0;
      reduced_wikicreole_parser1;
      reduced_wikicreole_parser2]
@@ -102,7 +102,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     ~wp:phrasing_wikicreole_parser ~name:"username" ~wiki_content:true f;
 
   let f_logoutlink bi args c =
-       Wikicreole.Link_plugin
+       Wikicreole.Phrasing_link
          (let content = match c with
             | Some c -> Wiki_syntax.phrasing_without_interactive_of_wiki bi c
             | None -> Lwt.return [HTML5.M.pcdata "logout"]
@@ -116,7 +116,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     [wikicreole_parser]
     ~name:"logoutlink" ~wiki_content:true f_logoutlink;
   add_extension
-    [wikicreole_parser']
+    [wikicreole_parser_without_header_footer]
     ~name:"logoutlink" ~wiki_content:true f_logoutlink
 
 
