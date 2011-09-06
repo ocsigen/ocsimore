@@ -74,7 +74,7 @@ class type user_widget_class = object
     HTML5_types.form_content HTML5.M.elt list Lwt.t
   method display_logout_button :
     HTML5_types.button_content HTML5.M.elt list ->
-    HTML5_types.flow5_without_header_footer HTML5.M.elt Lwt.t
+    [> HTML5_types.form ] HTML5.M.elt Lwt.t
   method logout_uri : Wiki_syntax.href
 
   method user_link :
@@ -341,7 +341,9 @@ object (self)
           ]]
     ]
 
-  method display_logout_button content =
+  method display_logout_button
+    : 'a. _ -> ([> HTML5_types.form ] as 'a) HTML5.M.elt Lwt.t =
+    fun content ->
     Lwt.return
       (Eliom_output.Html5.post_form ~a:[HTML5.M.a_class ["logoutbutton"]]
          ~service:User_services.action_logout
@@ -361,7 +363,7 @@ object (self)
 
   method logout_uri =
     Wiki_syntax.Service_href
-      (Wiki_syntax.service_href (User_services.action_logout_get:>('a,'b) Wiki_syntax.wiki_service) ())
+      (Wiki_syntax.service_href User_services.action_logout_get ())
 
   method display_login_widget ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ?(show_ext=true) () =
     User.get_user_data () >>= fun u ->

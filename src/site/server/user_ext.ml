@@ -32,91 +32,53 @@ let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 
 let register_user_extensions (user_widget : User_widgets.user_widget_class) =
-  let add_extension l ~name ~wiki_content f =
-    List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
-  in
-  let wikicreole_parser = Wiki_syntax.wikicreole_parser in
-  let wikicreole_parser_without_header_footer = Wiki_syntax.wikicreole_parser_without_header_footer in
-  let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0 in
-  let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1 in
-  let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2 in
-  let phrasing_wikicreole_parser = Wiki_syntax.phrasing_wikicreole_parser in
 
   let f_loginbox bi args _c =
-    Wikicreole.Flow5
+    `Flow5
       (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
        let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
        let auth_error = Ocsimore_lib.list_assoc_opt "auth_error" args in
        let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args
        in
-       (user_widget#display_login_widget
-          ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ()) >|= fun b ->
-         [(b : HTML5_types.div HTML5.M.elt :> [>HTML5_types.div] HTML5.M.elt)]) in
+       lwt b =
+	 user_widget#display_login_widget
+           ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () in
+       Lwt.return [(b : HTML5_types.div HTML5.M.elt :> [>HTML5_types.div] HTML5.M.elt)]) in
 
-  add_extension
-    [wikicreole_parser]
-    ~name:"loginbox" ~wiki_content:true
-    f_loginbox;
-  add_extension
-    [wikicreole_parser_without_header_footer]
-    ~name:"loginbox" ~wiki_content:true
-    f_loginbox;
+  Wiki_syntax.register_interactive_simple_flow_extension
+    ~name:"loginbox" ~reduced:false f_loginbox;
 
   let f_logoutbutton bi _args c =
-    Wikicreole.Flow5
-      (let content = match c with
+    `Flow5
+      (lwt content = match c with
         | Some c -> c
-        | None -> "logout"
+        | None -> Lwt.return [HTML5.M.pcdata "logout"]
        in
-       lwt content = Wiki_syntax.xml_of_wiki
-         Wiki_syntax.reduced_wikicreole_parser_button_content bi content in
-       user_widget#display_logout_button content >|= fun f ->
-         [(f:HTML5_types.flow5_without_header_footer HTML5.M.elt :> [>HTML5_types.flow5_without_header_footer] HTML5.M.elt)]
-      ) in
+       lwt f = user_widget#display_logout_button content in
+       Lwt.return [f]) in
 
-  add_extension
-    [wikicreole_parser]
-    ~name:"logoutbutton" ~wiki_content:true
-    f_logoutbutton;
-  add_extension
-    [wikicreole_parser_without_header_footer]
-    ~name:"logoutbutton" ~wiki_content:true
-    f_logoutbutton;
+  let add_logoutbutton wp =
+    Wiki_syntax.register_wiki_extension ~wp ~name:"logoutbutton"
+      ~wp_rec:Wiki_syntax.reduced_wikicreole_parser_button_content f_logoutbutton in
+  add_logoutbutton Wiki_syntax.wikicreole_parser;
+  add_logoutbutton Wiki_syntax.wikicreole_parser_without_header_footer;
 
-  let f = (fun bi _args _c ->
-             Wikicreole.Phrasing_without_interactive
-               (User.get_user_data () >|= fun ud ->
-                [HTML5.M.pcdata ud.user_fullname])
-          )
-  in
-  add_extension
-    [wikicreole_parser]
-    ~name:"username" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"username" ~wiki_content:true f;
-  Wiki_syntax.add_extension
-    ~wp:phrasing_wikicreole_parser ~name:"username" ~wiki_content:true f;
+  let f_username bi _args _c =
+    `Phrasing_without_interactive
+      (lwt user_data = User.get_user_data () in
+       Lwt.return [HTML5.M.pcdata user_data.user_fullname]) in
+
+  Wiki_syntax.register_simple_flow_extension ~name:"username" f_username;
+  Wiki_syntax.register_simple_phrasing_extension ~name:"username" f_username;
 
   let f_logoutlink bi args c =
-       Wikicreole.Phrasing_link
-         (let content = match c with
-            | Some c -> Wiki_syntax.phrasing_without_interactive_of_wiki bi c
-            | None -> Lwt.return [HTML5.M.pcdata "logout"]
-          in
-          (user_widget#logout_uri,
-           args,
-           content)
-         )
-    in
-  add_extension
-    [wikicreole_parser]
-    ~name:"logoutlink" ~wiki_content:true f_logoutlink;
-  add_extension
-    [wikicreole_parser_without_header_footer]
-    ~name:"logoutlink" ~wiki_content:true f_logoutlink
-
-
+      (let content = match c with
+         | Some c -> c
+         | None -> Lwt.return [HTML5.M.pcdata "logout"]
+       in
+       (user_widget#logout_uri,
+        args,
+        content)
+      )
+  in
+  Wiki_syntax.register_link_phrasing_extension ~name:"logoutlink" ~reduced:false f_logoutlink

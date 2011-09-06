@@ -17,31 +17,33 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   Pretty print wiki to OcamlDuce
+   Pretty print wiki to HTML5 using Eliom's TyXML
    @author Vincent Balat
    @author Boris Yakobowski
 *)
 
 open Eliom_pervasives
+open Ocsimore_lib
 open Wiki_types
+open Wiki_syntax_types
 open Wiki_widgets_interface
 let (>>=) = Lwt.(>>=)
 let (>|=) = Lwt.(>|=)
 
 
+
 let class_wikibox wb = Printf.sprintf "wikiboxcontent%s" (string_of_wikibox wb)
 
-
 let string_of_extension name args content =
-    "<<"^name^" "
+  "<<"^name^" "
   ^ (String.concat " " (List.map (fun (n, v) -> n^"=\""^v^"\"") args))
   ^ (match content with | None -> "" | Some content -> "|"^content)
   ^ ">>"
 
 let opt_list = function | [] -> None | _::_ as l -> Some l
 
-
 (***)
+
 let element c = (* : 'a Lwt.t list Lwt.t -> 'a list Lwt.t *)
   let rec aux = function
     | [] -> Lwt.return []
@@ -174,7 +176,7 @@ let parse_table_cell_attribs attribs =
   and at2  =
     try Some (HTML5.M.a_charoff (length_of_string (List.assoc "charoff" attribs)))
     with Not_found | Failure _ -> None *)
-(* No more abbr attribute in HTML5 
+(* No more abbr attribute in HTML5
   and at3  =
     try Some (HTML5.M.a_abbr (List.assoc "abbr" attribs))
     with Not_found -> None *)
@@ -196,30 +198,42 @@ let parse_table_cell_attribs attribs =
   and at10 = parse_scope_attrib attribs *) in
   atts @ filter_raw [(* at1; at2; at3; at4;*) at5; at6; at7]
 
-let list_builder = function
+let item_builder
+    ((c : HTML5_types.phrasing HTML5.M.elt list Lwt.t list), l, attribs) =
+  let a = opt_list (parse_common_attribs attribs) in
+  lwt r = element c >|= List.flatten in
+  lwt l = unopt ~def:(Lwt.return []) l in
+  Lwt.return
+    (HTML5.M.li ?a ((r :> HTML5_types.li_content_fun HTML5.M.elt list)
+		    @ (l :> HTML5_types.li_content_fun HTML5.M.elt list)))
+
+let item_builder =
+  (item_builder (* opening types *)
+     : (HTML5_types.phrasing HTML5.M.elt list Lwt.t list * _ * _ -> _)
+     :> ([< HTML5_types.phrasing ] HTML5.M.elt list Lwt.t list * _ * _ -> _))
+
+let list_builder xs = match xs with
   | [] -> Lwt.return (HTML5.M.li [], [])
-  | x::xs ->
-      let f ((c, l, attribs) :
-	       (HTML5_types.phrasing HTML5.M.elt list Lwt.t list
-		* [< HTML5_types.li_content] HTML5.M.elt list Lwt.t option
-		* (string * HTML5_types.nmtoken) list)) =
-        let a = opt_list (parse_common_attribs attribs) in
-        element c >|= List.flatten   >>= fun r ->
-        unopt ~def:(Lwt.return []) l >|= fun l ->
-          HTML5.M.li ?a ((r  :> HTML5_types.flow5 HTML5.M.elt list) @ (l :> HTML5_types.flow5 HTML5.M.elt list))
-      in
-      f x                   >>= fun y ->
-      Lwt_list.map_s f xs   >|= fun ys ->
-      (y, ys)
+  | x :: xs ->
+      lwt y = item_builder x in
+      lwt ys = Lwt_list.map_s item_builder xs in
+      Lwt.return (y, ys)
+
+let ddt_builder
+    (istitle, (d : HTML5_types.phrasing HTML5.M.elt list Lwt.t list), attribs) =
+  let a = opt_list (parse_common_attribs attribs) in
+  lwt d = element d in
+  Lwt.return
+    (if istitle
+     then `Dt (HTML5.M.dt ?a ((List.flatten d :> HTML5_types.dt_content_fun HTML5.M.elt list)))
+     else `Dd (HTML5.M.dd ?a ((List.flatten  d :> HTML5_types.dd_content_fun HTML5.M.elt list))))
+
+let ddt_builder =
+  (ddt_builder (* opening types *)
+     : (_ * HTML5_types.phrasing HTML5.M.elt list Lwt.t list * _ -> _)
+     :> (_ * [< HTML5_types.phrasing ] HTML5.M.elt list Lwt.t list * _ -> _))
 
 let descr_builder l =
-  let f (istitle, (d : HTML5_types.phrasing HTML5.M.elt list Lwt.t list), attribs) =
-    let a = opt_list (parse_common_attribs attribs) in
-    element d >|= fun d ->
-      if istitle
-      then `Dt (HTML5.M.dt ?a (List.flatten d))
-      else `Dd (HTML5.M.dd ?a ((List.flatten d:>HTML5_types.flow5_without_header_footer HTML5.M.elt list)))
-  in
   let rec list_dt acc = function
     | [] -> None
     | (`Dd _)::_ as l ->
@@ -245,19 +259,19 @@ let descr_builder l =
 	in
 	combine ((dt,dd)::acc) rest
   in
-  lwt l = Lwt_list.map_s f l in
+  lwt l = Lwt_list.map_s ddt_builder l in
   Lwt.return (combine [] l)
 
 let phrasing (x : HTML5_types.phrasing HTML5.M.elt list) : HTML5_types.phrasing_without_interactive HTML5.M.elt list =
   [HTML5.M.span x]
 
-type ('a,'b) wiki_service =
+type ('a,'b, 'kind, 'suff, 'reg, 'appl) wiki_service =
     ('a, unit,
-     Eliom_services.get_service_kind,
-     Eliom_services.suff,
+     [< Eliom_services.get_service_kind] as 'kind,
+     [< Eliom_services.suff] as 'suff,
      'b, unit,
-     Eliom_services.registrable,
-     Eliom_output.appl_service ) Eliom_services.service
+     [< Eliom_services.registrable] as 'reg,
+     [< Eliom_output.appl_service] as 'appl) Eliom_services.service
 
 (* We need existential types to be able to parametrise service_href by
    the service and its parameter without showing the type of the
@@ -265,56 +279,30 @@ type ('a,'b) wiki_service =
 
    Since this does not exists in ocaml, we need some encoding *)
 
-module Appl_existential_services :
-sig
-  type 'a t
+type service_href = Wiki_syntax_types.service_href
+type href = Wiki_syntax_types.href =
+	    | String_href of string
+	    | Service_href of service_href
 
-  val a_link :
-    ?a:HTML5_types.a_attrib HTML5.M.attrib list ->
-    'a Eliom_pervasives.HTML5.M.elt list ->
-    [> 'a HTML5_types.a ] Eliom_pervasives.HTML5.M.elt t
+let service_href ?fragment ?https service param =
+  let module Href = struct
+    let uri =
+      Uri.uri_of_string (Eliom_uri.make_string_uri ?fragment ?https ~service param)
+    let a_link ?a c =
+      Eliom_output.Html5.a ~service ?a ?fragment ?https c param
+  end in
+  (module Href : Service_href)
 
-  val uri : string t
-
-  val run : 'b t -> ?fragment:string -> ?https:bool -> 'a -> ('a,'c) wiki_service -> 'b
-
-end
-  =
-struct
-  type 'b t = { t : 'a 'c. ?fragment:string -> ?https:bool -> 'a -> ('a,'c) wiki_service -> 'b }
-  type ('a,'c,'b) apply_serv = 'b t * 'a * ('a,'c) wiki_service
-  type ('b, 'z) apply_scope = { bind_apply : 'a 'c. ('a,'c, 'b) apply_serv -> 'z}
-  type 'b packed_apply = { open_apply : 'z. ('b, 'z) apply_scope -> 'z}
-
-  (* Packing and unpacking applications *)
-  let pack_apply value serv f = { open_apply = fun scope -> scope.bind_apply (f,value,serv) }
-  let with_packed_apply p e = p.open_apply e
-
-  let a_link ?a c = { t = ( fun ?fragment ?https param service ->
-    Eliom_output.Html5.a ~service ?a ?fragment ?https c param ) }
-  let uri = { t = ( fun ?fragment ?https param service ->
-    Uri.uri_of_string (Eliom_uri.make_string_uri ?fragment ?https ~service param) ) }
-
-  let run t ?fragment ?https v s = with_packed_apply (pack_apply v s t) { bind_apply = fun (f,v,s) -> f.t ?fragment ?https v s }
-
-end
-
-type service_href = { apply_serv : 'a. 'a Appl_existential_services.t -> 'a }
-
-type href =
-  | String_href of string
-  | Service_href of service_href
-
-let service_href ?fragment ?https serv param =
-  { apply_serv = (fun m -> Appl_existential_services.run m ?fragment ?https param serv) }
-
-let a_link_of_href href ?a c = href.apply_serv
-  (Appl_existential_services.a_link ?a c)
+let a_link_of_href href ?a c =
+  let module Href = (val href : Service_href) in
+  Href.a_link ?a c
 
 let uri_of_href href =
   match href with
     | String_href s -> Uri.uri_of_string s
-    | Service_href href -> href.apply_serv (Appl_existential_services.uri)
+    | Service_href href ->
+      let module Href = (val href : Service_href) in
+      Href.uri
 
 let link_regexp =
   Netstring_pcre.regexp "(http\\+|https\\+)?([a-z|A-Z|0-9]+)(\\((.*)\\))?:(.*)"
@@ -431,160 +419,316 @@ let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs wb =
        | _ -> None)
 
 
-type ('res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) syntax_extension =
-  (Wiki_widgets_interface.box_info, 'res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) Wikicreole.plugin
+
+(** **)
+
+type preparser = Wiki_syntax_types.preparser
+type 'a wikicreole_parser = 'a Wiki_syntax_types.wikicreole_parser
+
+type ('a, 'b, 'c) ext_wikicreole_parser =
+    ('a, 'b, 'c) Wiki_syntax_types.ExtParser.ext_wikicreole_parser
+
+open Wiki_syntax_types.ExtParser
+
+(* cast ('a, 'b, 'c) ext_wikicreole_parser to 'a wikicreole_parser *)
+let cast_wp (type a) (type b) (type c) wp =
+  let module P = (val wp : ExtParser with type res = a
+			 	     and type res_without_interactive = b
+				     and type link_content = c) in
+  (module P : Parser with type res = a)
+
+(* cast ('a, 'b, 'c) ext_wikicreole_parser to 'b wikicreole_parser *)
+let cast_niwp (type a) (type b) (type c) wp =
+  let module P = (val wp : ExtParser with type res = a
+				     and type res_without_interactive = b
+				     and type link_content = c) in
+  (module struct
+     type res = P.res_without_interactive
+     let from_string = P.from_string_without_interactive
+     let preparse_string = P.preparse_string
+   end : Parser with type res = b)
 
 
-type 'a plugin_hash = (string, 'a) Hashtbl.t
+module type RawParser = sig
 
-(* A wikicreole_parser is essentially a [Wikicreole.builder] object
-   (contained in the field [builder] but easily extensible. That is,
-   the fields [plugin] and [plugin_action] of [Wikicreole.builder],
-   which are supposed to be functions, are here represented as
-   association tables. Thus, it becomes easy (and, more importantly,
-   not costly) to add extensions. When a [wikicreole_parser] must be
-   used as a builder, we call the function [builder_from_wikicreole_parser]
-   (defined below), which updates the field [plugin] of the builder.
-   (This supposes that the builder is used to parse something. When
-   used as a preparser, the field [plugin_assoc] is also overridden
-   using a proper function. See [preparse_extension] below. BY
-*)
-type ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser = {
-  builder: ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, box_info, 'href) Wikicreole.builder;
+  include Wikicreole.RawBuilder
+    with type param := Wiki_widgets_interface.box_info
+    and type href := href
 
-  plugin_assoc: (bool * ('res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) syntax_extension) plugin_hash;
+  val ignore_a_elem_phrasing :
+    Wikicreole.attribs -> href ->
+    phrasing_without_interactive list -> phrasing_without_interactive
+  val ignore_a_elem_flow :
+    Wikicreole.attribs -> href ->
+    flow_without_interactive list -> flow_without_interactive
 
-  plugin_action_assoc:
-     ((Wiki_types.wikibox,
-       string option Lwt.t)
-        Wikicreole.plugin_args)
-    plugin_hash;
+  type non_interactive_syntax_extension =
+      [ `Flow5 of flow_without_interactive
+      | `Phrasing_without_interactive of phrasing_without_interactive ]
 
-  link_action:
-    (string ->
-     string option ->
-     Wikicreole.attribs ->
-     Wiki_types.wikibox ->
-       string option Lwt.t) ref
-}
+  type interactive_syntax_extension =
+      (flow,
+       (href * Wikicreole.attribs * flow_without_interactive),
+       phrasing_without_interactive,
+       (href * Wikicreole.attribs * phrasing_without_interactive))
+	Wikicreole.ext_kind
 
-let default_plugin =
-  (fun (name : string) ->
-    (true,
-     (fun _ args content ->
-        Wikicreole.Phrasing_without_interactive
-          (let s = string_of_extension name args content in
-           Lwt.return [(HTML5.M.pcdata s :> [>`PCDATA] HTML5.M.elt)]))
-    )
-  )
+  val default_non_interactive_plugin:
+    string ->
+    bool * (Wiki_widgets_interface.box_info, non_interactive_syntax_extension) Wikicreole.plugin
 
-let plugin_function prsr name =
-  try Hashtbl.find prsr.plugin_assoc name
-  with Not_found -> default_plugin name
+  val default_interactive_plugin:
+    string ->
+    bool * (Wiki_widgets_interface.box_info, interactive_syntax_extension) Wikicreole.plugin
 
-let builder_from_wikicreole_parser prsr =
-  { prsr.builder with
-      Wikicreole.plugin = plugin_function prsr
-  }
+end
 
-let copy_parser wp = {
-  wp with
-    plugin_assoc = Hashtbl.copy wp.plugin_assoc;
-    plugin_action_assoc = Hashtbl.copy wp.plugin_action_assoc;
-    link_action = ref !(wp.link_action);
-}
+module MakeParser(B: RawParser) :
+  ExtParser with type res = B.flow
+	    and type res_without_interactive = B.flow_without_interactive
+	    and type link_content = B.phrasing_without_interactive
+  = struct
 
+  type res = B.flow
+  type res_without_interactive = B.flow_without_interactive
+  type link_content = B.phrasing_without_interactive
 
-let add_preparser_extension ~wp ~name f =
-  Hashtbl.add wp.plugin_action_assoc name f
+  type wikiparser = (res, res_without_interactive, link_content) ext_wikicreole_parser
 
-let set_link_extension ~wp f =
-    wp.link_action := f
+  type interactive_syntax_extension = B.interactive_syntax_extension
+  type non_interactive_syntax_extension = B.non_interactive_syntax_extension
 
+  type non_interactive_plugin =
+      (Wiki_widgets_interface.box_info,
+       non_interactive_syntax_extension) Wikicreole.plugin
+  type interactive_plugin =
+      (Wiki_widgets_interface.box_info,
+       interactive_syntax_extension) Wikicreole.plugin
 
-let preparse_extension wp (wb : Wiki_types.wikibox) content =
-  let subst = ref [] in
-  let plugin_action name start end_ params args content =
-    subst := (start,
-              end_,
-              (try
-                 (Hashtbl.find wp.plugin_action_assoc)
-                   name params args content
-               with Not_found -> Lwt.return None))::!subst
-  and link_action addr fragment attribs (start, end_) params =
-    subst := (start,
-              end_,
-              try !(wp.link_action) addr fragment attribs params
-              with _ -> Lwt.return None) ::!subst
-  and nothing _ _ = ()
-  and nothing1 _ = ()
-  in
-  (* This builder does essentially nothing, except on extensions
-     where it calls plugin_action *)
-  let preparse_builder = {
-    Wikicreole.chars = nothing1;
-    strong_elem = nothing;
-    em_elem = nothing;
-    a_elem_phrasing = (fun _ _ _ -> ());
-    a_elem_flow = (fun _ _ _ -> ());
-    make_href = (fun _ a fragment -> match fragment with
-                   | None -> a
-                   | Some f -> a ^"#"^f);
-    br_elem = nothing1;
-    img_elem = (fun _ _ _ -> ());
-    tt_elem = nothing;
-    monospace_elem = nothing;
-    underlined_elem = nothing;
-    linethrough_elem = nothing;
-    subscripted_elem = nothing;
-    superscripted_elem = nothing;
-    nbsp = ();
-    endash = ();
-    emdash = ();
-    p_elem = nothing;
-    pre_elem = nothing;
-    h1_elem = nothing;
-    h2_elem = nothing;
-    h3_elem = nothing;
-    h4_elem = nothing;
-    h5_elem = nothing;
-    h6_elem = nothing;
-    section_elem = nothing;
-    ul_elem = nothing;
-    ol_elem = nothing;
-    dl_elem = nothing;
-    hr_elem = nothing1;
-    table_elem = nothing;
-    phrasing = nothing1;
-    plugin =
-      (fun name ->
-         let wiki_content =
-           try fst (Hashtbl.find wp.plugin_assoc name)
-           with Not_found -> false
-         in (wiki_content, (fun _ _ _ -> Wikicreole.Phrasing_without_interactive ())));
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = nothing1;
-  } in
-  Wikicreole.from_string ~sectioning:false wb preparse_builder content
-  >>= fun (_ : unit list) ->
-  let buf = Buffer.create 1024 in
-  Lwt_list.fold_left_s
-    (fun pos (start, end_, replacement) ->
-       replacement >>= function
-         | None -> Lwt.return pos;
-         | Some replacement ->
-             Buffer.add_substring buf content pos (start - pos);
-             Buffer.add_string buf replacement;
-             Lwt.return end_
-    )
-    0
-    (List.rev !subst)
-  >>= fun pos ->
-  let l = String.length content in
-  if pos < l
-  then Buffer.add_substring buf content pos (l - pos);
-  Lwt.return (Buffer.contents buf)
+  let interactive_plugin_assoc = Hashtbl.create 17
+  let register_interactive_extension ~name ~wiki_content plugin =
+    Hashtbl.add interactive_plugin_assoc name (wiki_content, plugin)
+
+  let non_interactive_plugin_assoc = Hashtbl.create 17
+  let register_non_interactive_extension ~name ~wiki_content plugin =
+    Hashtbl.add non_interactive_plugin_assoc name (wiki_content, plugin)
+
+  module InteractiveBuilder = struct
+    include B
+    type syntax_extension = interactive_syntax_extension
+    type href' = href
+    type href = href'
+    type param = Wiki_widgets_interface.box_info
+
+    let plugin name =
+      try Hashtbl.find interactive_plugin_assoc name
+      with Not_found -> default_interactive_plugin name
+
+    let plugin_action _ _ _ _ _ _ = ()
+    let link_action _ _ _ _ _ = ()
+  end
+
+  module NonInteractiveBuilder = struct
+
+    type flow = B.flow_without_interactive
+    type flow_without_interactive = B.flow_without_interactive
+    type phrasing_without_interactive = B.phrasing_without_interactive
+    type phrasing = B.phrasing_without_interactive
+    type syntax_extension =
+        (flow, href * Wikicreole.attribs * flow_without_interactive,
+         phrasing_without_interactive,
+         href * Wikicreole.attribs * phrasing_without_interactive)
+          Wikicreole.ext_kind
+    type uo_list = B.uo_list
+    type href' = href
+    type href = href'
+    type param = Wiki_widgets_interface.box_info
+
+    let error = B.error
+    let list = B.list
+    let hr_elem = B.hr_elem
+    let pre_elem = B.pre_elem
+    let make_href = B.make_href
+    let emdash = B.emdash
+    let endash = B.endash
+    let nbsp = B.nbsp
+    let img_elem = B.img_elem
+    let br_elem = B.br_elem
+    let chars = B.chars
+
+    let strong_elem att c = B.strong_elem att (List.map B.phrasing c)
+    let em_elem att c = B.em_elem att (List.map B.phrasing c)
+    let tt_elem att c = B.tt_elem att (List.map B.phrasing c)
+    let monospace_elem att c = B.monospace_elem att (List.map B.phrasing c)
+    let underlined_elem att c =
+      B.underlined_elem att (List.map B.phrasing c)
+    let linethrough_elem att c =
+      B.linethrough_elem att (List.map B.phrasing c)
+    let subscripted_elem att c =
+      B.subscripted_elem att (List.map B.phrasing c)
+    let superscripted_elem att c =
+      B.superscripted_elem att (List.map B.phrasing c)
+
+    let p_elem att c = B.p_elem att (List.map B.phrasing c)
+    let h1_elem att c = B.h1_elem att (List.map B.phrasing c)
+    let h2_elem att c = B.h2_elem att (List.map B.phrasing c)
+    let h3_elem att c = B.h3_elem att (List.map B.phrasing c)
+    let h4_elem att c = B.h4_elem att (List.map B.phrasing c)
+    let h5_elem att c = B.h5_elem att (List.map B.phrasing c)
+    let h6_elem att c = B.h6_elem att (List.map B.phrasing c)
+    let section_elem att c = B.section_elem att (List.map B.flow c)
+
+    let map_item (a,b,c) = (List.map B.phrasing a, b, c)
+    let ul_elem att l = B.ul_elem att (List.map map_item l)
+    let ol_elem att l = B.ol_elem att (List.map map_item l)
+
+    let map_def (a,b,c) = (a, List.map B.phrasing b, c)
+    let dl_elem att l = B.dl_elem att (List.map map_def l)
+
+    let map_td (a,b,c) = (a,b,List.map B.phrasing c)
+    let map_tr (a, b) = (List.map map_td a, b)
+    let table_elem att l = B.table_elem att (List.map map_tr l)
+
+    let phrasing x = x
+    let flow x = x
+    let a_elem_phrasing = B.ignore_a_elem_phrasing
+    let a_elem_flow = B.ignore_a_elem_flow
+
+    let plugin name =
+      ((try
+	 Hashtbl.find non_interactive_plugin_assoc name
+       with Not_found ->
+	 B.default_non_interactive_plugin name)
+	 : bool * (param, non_interactive_syntax_extension) Wikicreole.plugin
+       :> bool * (param, syntax_extension) Wikicreole.plugin)
+
+    let plugin_action _ _ _ _ _ _ = ()
+    let link_action _ _ _ _ _ = ()
+  end
+
+  let interactive_builder =
+    (module InteractiveBuilder
+       : Wikicreole.Builder with type param = Wiki_widgets_interface.box_info
+			    and type flow = B.flow)
+
+  let non_interactive_builder =
+    (module NonInteractiveBuilder
+       : Wikicreole.Builder with type param = Wiki_widgets_interface.box_info
+			    and type flow = B.flow_without_interactive)
+
+  let from_string ~sectioning wb content =
+    Wikicreole.from_string ~sectioning wb interactive_builder content
+
+  let from_string_without_interactive ~sectioning wb content =
+    Wikicreole.from_string ~sectioning wb non_interactive_builder content
+
+  let plugin_action_assoc = Hashtbl.create 17
+  let register_subst ~name subst =
+    Hashtbl.add plugin_action_assoc name subst
+
+  let link_action_ref = ref (fun _ _ _ _ -> Lwt.return None)
+  let set_link_subst action = link_action_ref := action
+
+  module Preparser = struct
+
+    type href = string
+    type param = (int * int * string option Lwt.t) list ref * Wiki_types.wikibox
+    type phrasing_without_interactive = unit
+    type phrasing = unit
+    type flow = unit
+    type flow_without_interactive = unit
+    type uo_list = unit
+
+    type syntax_extension =
+	(flow, href * Wikicreole.attribs * flow_without_interactive,
+	 phrasing_without_interactive,
+         href * Wikicreole.attribs * phrasing_without_interactive)
+          Wikicreole.ext_kind
+
+    let nothing _ _ = ()
+    let nothing1 _ = ()
+    let chars = nothing1
+    let strong_elem = nothing
+    let em_elem = nothing
+    let a_elem_phrasing _ _ _ = ()
+    let a_elem_flow _ _ _ = ()
+    let make_href _ a fragment = match fragment with
+      | None -> a
+      | Some f -> a ^"#"^f
+    let br_elem = nothing1
+    let img_elem _ _ _ = ()
+    let tt_elem = nothing
+    let monospace_elem = nothing
+    let underlined_elem = nothing
+    let linethrough_elem = nothing
+    let subscripted_elem = nothing
+    let superscripted_elem = nothing
+    let nbsp = ()
+    let endash = ()
+    let emdash = ()
+    let p_elem = nothing
+    let pre_elem = nothing
+    let h1_elem = nothing
+    let h2_elem = nothing
+    let h3_elem = nothing
+    let h4_elem = nothing
+    let h5_elem = nothing
+    let h6_elem = nothing
+    let section_elem = nothing
+    let ul_elem = nothing
+    let ol_elem = nothing
+    let dl_elem = nothing
+    let list = nothing1
+    let flow = nothing1
+    let hr_elem = nothing1
+    let table_elem = nothing
+    let phrasing = nothing1
+    let plugin name =
+      let wiki_content =
+        try fst (Hashtbl.find interactive_plugin_assoc name)
+        with Not_found -> false
+      in (wiki_content, (fun _ _ _ -> `Phrasing_without_interactive ()))
+    let plugin_action name start end_ (subst, params) attribs content =
+      subst := (start,
+		end_,
+		(try
+                   (Hashtbl.find plugin_action_assoc) name params attribs content
+		 with _ (* was Not_found *) -> Lwt.return None))::!subst
+    let link_action addr fragment attribs (start, end_) (subst, params) =
+      subst := (start,
+		end_,
+		try !(link_action_ref) addr fragment attribs params
+		with _ -> Lwt.return None) ::!subst
+    let error = nothing1
+  end
+
+  let preparser =
+    (module Preparser : Wikicreole.Builder
+      with type param = (int * int * string option Lwt.t) list ref *
+                        Wiki_types.wikibox
+      and type flow = unit)
+
+  let preparse_string wb content =
+    let subst = ref [] in
+    ignore (Wikicreole.from_string (subst, wb) preparser content : unit list);
+    let buf = Buffer.create 1024 in
+    lwt pos =
+      Lwt_list.fold_left_s
+	(fun pos (start, end_, replacement) ->
+	  replacement >>= function
+            | None -> Lwt.return pos;
+            | Some replacement ->
+              Buffer.add_substring buf content pos (start - pos);
+              Buffer.add_string buf replacement;
+              Lwt.return end_
+	)
+	0
+	(List.rev !subst) in
+    if pos < (String.length content) then
+      Buffer.add_substring buf content pos (String.length content - pos);
+    Lwt.return (Buffer.contents buf)
+
+end
 
 let site_url_syntax =
   {
@@ -612,7 +756,7 @@ let make_href bi addr fragment =
             Url.remove_slash_at_beginning
               (Neturl.split_path page)
           in
-	  Service_href (service_href (servpage:>('a,'b) wiki_service) addr)
+	  Service_href (service_href servpage addr)
             (* Eliom_output.Html5.make_string_uri ?https
                ?fragment ~service:servpage addr *)
       | None -> String_href "malformed link" (*VVV ??? *)
@@ -651,88 +795,6 @@ let make_href bi addr fragment =
 (********************************)
 (* builders. Default functions: *)
 
-let strong_elem =
-  (fun attribs content ->
-     let a = opt_list (parse_common_attribs attribs) in
-     element content >|= List.flatten >|= fun r ->
-     [(HTML5.M.strong ?a r : [>`Strong] HTML5.M.elt)]
-  )
-
-let em_elem =
-  (fun attribs content ->
-     let a = opt_list (parse_common_attribs attribs) in
-     element content >|= List.flatten >|= fun r ->
-     [(HTML5.M.em ?a r : [>`Em] HTML5.M.elt)]
-  )
-
-let monospace_elem =
-(* No more tt in HTML5 
-  (fun attribs content ->
-     let a = opt_list (parse_common_attribs attribs) in
-     element content >|= List.flatten >|= fun r ->
-     [(HTML5.M.tt ?a r : [>`Tt] HTML5.M.elt)]
-  ) *)
-  (fun attribs content ->
-    let a = HTML5.M.a_class ["monospace"] :: parse_common_attribs attribs in
-    element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
-  )
-
-
-let underlined_elem =
-  (fun attribs content ->
-    let a = HTML5.M.a_class ["underlined"] :: parse_common_attribs attribs in
-    element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
-  )
-
-let linethrough_elem =
-  (fun attribs content ->
-    let a = HTML5.M.a_class ["linethrough"] :: parse_common_attribs attribs in
-    element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
-  )
-
-let subscripted_elem =
-  (fun attribs content ->
-    let a = opt_list (parse_common_attribs attribs) in
-    element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.sub ?a r : [>`Sub] HTML5.M.elt)]
-  )
-
-let superscripted_elem =
-  (fun attribs content ->
-    let a = opt_list (parse_common_attribs attribs) in
-    element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.sup ?a r : [>`Sup] HTML5.M.elt)]
-  )
-
-let a_elem_phrasing =
-  (fun attribs addr
-    (c : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t list) ->
-       let a = parse_common_attribs attribs in
-       Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
-	 match addr with
-	   | String_href addr ->
-	     [(HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c
-               :> HTML5_types.phrasing HTML5.M.elt)]
-	   | Service_href href ->
-	     [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)])
-
-let a_elem_flow =
-  (fun attribs addr c ->
-       let a = parse_common_attribs attribs in
-       Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
-	 match addr with
-	   | String_href addr ->
-	     [HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c]
-	   | Service_href href ->
-	     [a_link_of_href href ~a c])
-
-let default_make_href =
-  (fun bi c fragment ->
-    make_href bi (link_kind c) fragment )
-
 let menu_make_href bi c fragment =
   (* Accept only simple page. Ignore fragment and anything else silently... *)
   match link_kind c with
@@ -741,1301 +803,1443 @@ let menu_make_href bi c fragment =
       String_href ("wiki(" ^ Wiki_types.string_of_wiki wiki ^ "):" ^ page)
   | _ -> String_href ""
 
-let br_elem =
-  (fun attribs ->
-    let a = opt_list (parse_common_attribs attribs) in
-    Lwt.return [(HTML5.M.br ?a () : [>`Br] HTML5.M.elt)])
 
-let img_elem =
-  (fun attribs href alt ->
-     let a = opt_list (parse_common_attribs attribs) in
-     let src = uri_of_href href (* CCC https ? *) in
-     Lwt.return
-       [(HTML5.M.img ~src ~alt:alt ?a ()
-        : [>`Img] HTML5.M.elt)]
-  )
 
-let tt_elem =
-(* no more tt in HTML5
-  (fun attribs content ->
+
+(*******************************************)
+(* Type information for predefined parser. *)
+
+module FlowTypes = struct
+
+  type flow =
+      HTML5_types.flow5 HTML5.M.elt list Lwt.t
+  type flow_without_interactive =
+      HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t
+  let flow x = (x: flow_without_interactive :> flow)
+
+  type phrasing =
+      HTML5_types.phrasing HTML5.M.elt list Lwt.t
+  type phrasing_without_interactive =
+      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  let phrasing x = (x : phrasing_without_interactive :> phrasing)
+
+  type uo_list = [ `Ol | `Ul | `Em ] HTML5.M.elt list Lwt.t
+  let list x = (x : uo_list :> flow_without_interactive)
+
+  type interactive_syntax_extension =
+      (flow, href * Wikicreole.attribs * flow_without_interactive,
+       phrasing_without_interactive,
+       href * Wikicreole.attribs * phrasing_without_interactive)
+        Wikicreole.ext_kind
+
+  type non_interactive_syntax_extension =
+      [ `Flow5 of flow_without_interactive
+      | `Phrasing_without_interactive of phrasing_without_interactive ]
+
+end
+
+module FlowWithoutHeaderFooterTypes = struct
+
+  type flow =
+      HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t
+  type flow_without_interactive =
+      HTML5_types.flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t
+  let flow x = (x: flow_without_interactive :> flow)
+
+  type phrasing =
+      HTML5_types.phrasing HTML5.M.elt list Lwt.t
+  type phrasing_without_interactive =
+      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  let phrasing x = (x : phrasing_without_interactive :> phrasing)
+
+  type uo_list = [ `Ol | `Ul ] HTML5.M.elt list Lwt.t
+  let list x = (x : uo_list :> flow_without_interactive)
+
+  type interactive_syntax_extension =
+      (flow, href * Wikicreole.attribs * flow_without_interactive,
+       phrasing_without_interactive,
+       href * Wikicreole.attribs * phrasing_without_interactive)
+        Wikicreole.ext_kind
+
+  type non_interactive_syntax_extension =
+      [ `Flow5 of flow_without_interactive
+      | `Phrasing_without_interactive of phrasing_without_interactive ]
+
+end
+
+module PhrasingTypes = struct
+
+  type flow =
+      HTML5_types.phrasing HTML5.M.elt list Lwt.t
+  type flow_without_interactive =
+      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  let flow x = (x: flow_without_interactive :> flow)
+
+  type phrasing =
+      HTML5_types.phrasing HTML5.M.elt list Lwt.t
+  type phrasing_without_interactive =
+      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  let phrasing x = (x : phrasing_without_interactive :> phrasing)
+
+  type uo_list = HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  let list x = (x : uo_list :> flow_without_interactive)
+
+  type interactive_syntax_extension =
+      (flow, href * Wikicreole.attribs * flow_without_interactive,
+       phrasing_without_interactive,
+       href * Wikicreole.attribs * phrasing_without_interactive)
+        Wikicreole.ext_kind
+
+  type non_interactive_syntax_extension =
+      [ `Flow5 of flow_without_interactive
+      | `Phrasing_without_interactive of phrasing_without_interactive ]
+
+end
+
+module MenuTypes = struct
+
+  type flow = [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] HTML5.M.elt list Lwt.t
+  type flow_without_interactive = flow
+  let flow x = (x: flow_without_interactive :> flow)
+
+  type phrasing =
+      HTML5_types.phrasing HTML5.M.elt list Lwt.t
+  type phrasing_without_interactive =
+      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  let phrasing x = (x : phrasing_without_interactive :> phrasing)
+
+  type uo_list = [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] HTML5.M.elt list Lwt.t
+  let list x = (x : uo_list :> flow_without_interactive)
+
+  type interactive_syntax_extension =
+      (flow, href * Wikicreole.attribs * flow_without_interactive,
+       phrasing_without_interactive,
+       href * Wikicreole.attribs * phrasing_without_interactive)
+        Wikicreole.ext_kind
+
+  type non_interactive_syntax_extension =
+      [ `Flow5 of flow_without_interactive
+      | `Phrasing_without_interactive of phrasing_without_interactive ]
+
+end
+
+module ButtonTypes = struct
+
+  type flow =
+    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+  type flow_without_interactive =
+    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+  let flow x = (x: flow_without_interactive :> flow)
+
+  type phrasing =
+    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+  type phrasing_without_interactive =
+    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+  let phrasing x = (x : phrasing_without_interactive :> phrasing)
+
+  type uo_list =
+    [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+  let list x = (x : uo_list :> flow_without_interactive)
+
+  type interactive_syntax_extension =
+      (flow, href * Wikicreole.attribs * flow_without_interactive,
+       phrasing_without_interactive,
+       href * Wikicreole.attribs * phrasing_without_interactive)
+        Wikicreole.ext_kind
+
+  type non_interactive_syntax_extension =
+      [ `Flow5 of flow_without_interactive
+      | `Phrasing_without_interactive of phrasing_without_interactive ]
+
+end
+
+(********************************)
+(* Predefined builders.         *)
+
+module FlowBuilder = struct
+
+  let chars s = Lwt.return [HTML5.M.pcdata s]
+
+  let strong_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.tt ?a r : [>`Tt] HTML5.M.elt)]) *)
-  (fun attribs content ->
+      [(HTML5.M.strong ?a r : [>`Strong] HTML5.M.elt)]
+
+  let em_elem attribs content =
+    let a = opt_list (parse_common_attribs attribs) in
+    element content >|= List.flatten >|= fun r ->
+      [(HTML5.M.em ?a r : [>`Em] HTML5.M.elt)]
+
+  let monospace_elem attribs content =
+    (* No more tt in HTML5
+       (fun attribs content ->
+       let a = opt_list (parse_common_attribs attribs) in
+       element content >|= List.flatten >|= fun r ->
+       [(HTML5.M.tt ?a r : [>`Tt] HTML5.M.elt)]
+       ) *)
+    let a = HTML5.M.a_class ["monospace"] :: parse_common_attribs attribs in
+    element content >|= List.flatten >|= fun r ->
+      [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
+
+
+  let underlined_elem attribs content =
+    let a = HTML5.M.a_class ["underlined"] :: parse_common_attribs attribs in
+    element content >|= List.flatten >|= fun r ->
+      [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
+
+  let linethrough_elem attribs content =
+    let a = HTML5.M.a_class ["linethrough"] :: parse_common_attribs attribs in
+    element content >|= List.flatten >|= fun r ->
+      [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
+
+  let subscripted_elem attribs content =
+    let a = opt_list (parse_common_attribs attribs) in
+    element content >|= List.flatten >|= fun r ->
+      [(HTML5.M.sub ?a r : [>`Sub] HTML5.M.elt)]
+
+  let superscripted_elem attribs content =
+    let a = opt_list (parse_common_attribs attribs) in
+    element content >|= List.flatten >|= fun r ->
+      [(HTML5.M.sup ?a r : [>`Sup] HTML5.M.elt)]
+
+  let a_elem_phrasing
+      attribs addr
+      (c : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t list) =
+    let a = parse_common_attribs attribs in
+    Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
+      match addr with
+	| String_href addr ->
+	  [(HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c
+            :> HTML5_types.phrasing HTML5.M.elt)]
+	| Service_href href ->
+	  [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)]
+
+  let a_elem_flow attribs addr c =
+    let a = parse_common_attribs attribs in
+    Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
+      match addr with
+	| String_href addr ->
+	  [HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c]
+	| Service_href href ->
+	  [a_link_of_href href ~a c]
+
+  let make_href =
+    (fun bi c fragment ->
+      make_href bi (link_kind c) fragment )
+
+  let br_elem attribs =
+    let a = opt_list (parse_common_attribs attribs) in
+    Lwt.return [(HTML5.M.br ?a () : [>`Br] HTML5.M.elt)]
+
+  let img_elem attribs href alt =
+    let a = opt_list (parse_common_attribs attribs) in
+    let src = uri_of_href href (* CCC https ? *) in
+    Lwt.return
+      [(HTML5.M.img ~src ~alt:alt ?a ()
+          : [>`Img] HTML5.M.elt)]
+
+  let tt_elem attribs content =
+    (* no more tt in HTML5
+       (fun attribs content ->
+       let a = opt_list (parse_common_attribs attribs) in
+       element content >|= List.flatten >|= fun r ->
+       [(HTML5.M.tt ?a r : [>`Tt] HTML5.M.elt)]) *)
     let a = HTML5.M.a_class ["teletype"] :: parse_common_attribs attribs in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
-  )
+      [(HTML5.M.span ~a r : [>`Span] HTML5.M.elt)]
 
 
-let nbsp = Lwt.return [(HTML5.M.pcdata " " : [>`PCDATA] HTML5.M.elt)]
+  let nbsp = Lwt.return [(HTML5.M.pcdata " " : [>`PCDATA] HTML5.M.elt)]
 
-let endash = Lwt.return [(HTML5.M.pcdata "–" : [>`PCDATA] HTML5.M.elt)]
+  let endash = Lwt.return [(HTML5.M.pcdata "–" : [>`PCDATA] HTML5.M.elt)]
 
-let emdash = Lwt.return [(HTML5.M.pcdata "—" : [>`PCDATA] HTML5.M.elt)]
+  let emdash = Lwt.return [(HTML5.M.pcdata "—" : [>`PCDATA] HTML5.M.elt)]
 
-let p_elem =
-  (fun attribs content ->
+  let p_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.p ?a r : [>`P] HTML5.M.elt)])
+      [(HTML5.M.p ?a r : [>`P] HTML5.M.elt)]
 
-let pre_elem =
-  (fun attribs content ->
+  let pre_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     Lwt.return
       [(HTML5.M.pre ?a [HTML5.M.pcdata (String.concat "" content)]
-       : [>`Pre] HTML5.M.elt)]
-  )
+	  : [>`Pre] HTML5.M.elt)]
 
-let h1_elem =
-  (fun attribs content ->
+  let h1_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.h1 ?a r : [>`H1] HTML5.M.elt)])
+      [(HTML5.M.h1 ?a r : [>`H1] HTML5.M.elt)]
 
-let h2_elem =
-  (fun attribs content ->
+  let h2_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.h2 ?a r : [>`H2] HTML5.M.elt)])
+      [(HTML5.M.h2 ?a r : [>`H2] HTML5.M.elt)]
 
-let h3_elem =
-  (fun attribs content ->
+  let h3_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.h3 ?a r : [>`H3] HTML5.M.elt)])
+      [(HTML5.M.h3 ?a r : [>`H3] HTML5.M.elt)]
 
-let h4_elem =
-  (fun attribs content ->
+  let h4_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.h4 ?a r : [>`H4] HTML5.M.elt)])
+      [(HTML5.M.h4 ?a r : [>`H4] HTML5.M.elt)]
 
-let h5_elem =
-  (fun attribs content ->
+  let h5_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.h5 ?a r : [>`H5] HTML5.M.elt)])
+      [(HTML5.M.h5 ?a r : [>`H5] HTML5.M.elt)]
 
-let h6_elem =
-  (fun attribs content ->
+  let h6_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.h6 ?a r : [>`H6] HTML5.M.elt)])
+      [(HTML5.M.h6 ?a r : [>`H6] HTML5.M.elt)]
 
-let section_elem =
-  (fun attribs content ->
+  let section_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.section ?a r : [>`Section] HTML5.M.elt)])
+      [(HTML5.M.section ?a
+	  (r :> HTML5_types.section_content_fun HTML5.M.elt list)
+	  : [>`Section] HTML5.M.elt)]
 
-let ul_elem =
-  (fun attribs content ->
+  let ul_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     list_builder content >|= fun (r,rs) ->
-    [(HTML5.M.ul ?a (r::rs) : [>`Ul] HTML5.M.elt)])
+      [(HTML5.M.ul ?a (r::rs) : [>`Ul] HTML5.M.elt)]
 
-let ol_elem =
-  (fun attribs content ->
+  let ol_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     list_builder content >|= fun (r,rs) ->
-    [(HTML5.M.ol ?a (r::rs) : [>`Ol] HTML5.M.elt)])
+      [(HTML5.M.ol ?a (r::rs) : [>`Ol] HTML5.M.elt)]
 
-let dl_elem =
-  (fun attribs content ->
+  let dl_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     descr_builder content >|= fun r ->
-    [(HTML5.M.dl ?a r : [>`Dl] HTML5.M.elt)])
+      [(HTML5.M.dl ?a r : [>`Dl] HTML5.M.elt)]
 
-let hr_elem =
-  (fun attribs ->
+  let hr_elem attribs =
     let a = opt_list (parse_common_attribs attribs) in
-    Lwt.return [(HTML5.M.hr ?a () : [>`Hr] HTML5.M.elt)])
+    Lwt.return [(HTML5.M.hr ?a () : [>`Hr] HTML5.M.elt)]
 
-let table_elem =
-  (fun attribs l ->
+  let tdh_builder (h, attribs, (c: HTML5_types.phrasing HTML5.M.elt list Lwt.t list)) =
+    let a = opt_list (parse_table_cell_attribs attribs) in
+    lwt r = element c >|= List.flatten in
+    Lwt.return
+      (if h
+       then HTML5.M.th ?a r
+       else HTML5.M.td ?a (r:>HTML5_types.td_content_fun HTML5.M.elt list))
+
+  let tdh_builder =
+    (tdh_builder (* opening types *)
+       : _ * _ * HTML5_types.phrasing HTML5.M.elt list Lwt.t list -> _
+     :> _ * _ * [< HTML5_types.phrasing] HTML5.M.elt list Lwt.t list -> _)
+
+  let tr_builder (row, attribs) = match row with
+    | [] -> Lwt.return (HTML5.M.tr [HTML5.M.td []])
+    | x::xs ->
+      let a = opt_list (parse_common_attribs attribs) in
+    (*let a = opt_list (parse_table_row_attribs attribs) in*)
+      lwt y = tdh_builder x in
+      lwt ys = Lwt_list.map_s tdh_builder xs in
+      Lwt.return (HTML5.M.tr ?a (y::ys))
+
+  let table_elem attribs l =
     let a = opt_list (parse_table_attribs attribs) in
-     match l with
-       | [] -> Lwt.return [HTML5.M.table ?a (HTML5.M.tr [HTML5.M.td []]) []]
-       | row::rows ->
-           let f (h, attribs, (c:HTML5_types.phrasing HTML5.M.elt list Lwt.t list)) =
-             let a = opt_list (parse_table_cell_attribs attribs) in
-             element c >|= List.flatten >|= fun r ->
-             if h
-             then HTML5.M.th ?a r
-             else HTML5.M.td ?a (r:>HTML5_types.flow5_without_header_footer HTML5.M.elt list)
-           in
-           let f2 (row, attribs) = match row with
-             | [] -> Lwt.return (HTML5.M.tr [HTML5.M.td []])
-             | x::xs ->
-                 let a = opt_list (parse_common_attribs attribs) in
-                 (*let a = opt_list (parse_table_row_attribs attribs) in*)
-                 f x                 >>= fun y ->
-                 Lwt_list.map_s f xs >|= fun ys ->
-                 HTML5.M.tr ?a (y::ys)
-           in
-           f2 row                 >>= fun row ->
-           Lwt_list.map_s f2 rows >|= fun rows ->
-           [(HTML5.M.table ?a row rows : [>`Table] HTML5.M.elt)])
+    match l with
+      | [] -> Lwt.return [HTML5.M.table ?a (HTML5.M.tr [HTML5.M.td []]) []]
+      | row::rows ->
+	lwt row = tr_builder row in
+	lwt rows = Lwt_list.map_s tr_builder rows in
+	Lwt.return [(HTML5.M.table ?a row rows : [>`Table] HTML5.M.elt)]
 
-let phrasing =
-  (fun x ->
-    (x
-     : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
-     :> HTML5_types.phrasing HTML5.M.elt list Lwt.t)
-  )
+  let error =
+    (fun (s : string) ->
+      Lwt.return [(HTML5.M.strong [HTML5.M.pcdata s] : [>`Strong] HTML5.M.elt)])
 
-let plugin = default_plugin
-
-let plugin_action = (fun _ _ _ _ _ _ -> ())
-
-let link_action = (fun _ _ _ _ _ -> ())
-
-let error =
-  (fun (s : string) ->
-    Lwt.return [(HTML5.M.strong [HTML5.M.pcdata s] : [>`Strong] HTML5.M.elt)])
-
-let span_elem =
-  (fun attribs content ->
+  let span_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-    [(HTML5.M.span ?a r : [>`Span] HTML5.M.elt)])
+      [(HTML5.M.span ?a r : [>`Span] HTML5.M.elt)]
 
+  let default_interactive_plugin name =
+    (true,
+     (fun _ args content ->
+       `Phrasing_without_interactive
+	 (let s = string_of_extension name args content in
+          Lwt.return [HTML5.M.pcdata s])))
+  let default_non_interactive_plugin = default_interactive_plugin
+
+  let ignore_a_elem_phrasing attribs addr content = span_elem attribs content
+  let ignore_a_elem_flow attribs addr content =
+    let a = opt_list (parse_common_attribs attribs) in
+    element content >|= List.flatten >|= fun r ->
+    [(HTML5.M.div ?a r : [>`Div] HTML5.M.elt)]
+
+
+end
+
+module ReducedFlowBuilder = struct
+
+  (* without image *)
+
+  include FlowBuilder
+
+  let img_elem _ _ _ =
+    Lwt.return
+      [HTML5.M.em [HTML5.M.pcdata "Images not enabled in this syntax"]]
+
+end
+
+module Reduced2FlowBuilder = struct
+
+  (* no images, no titles, no tables, no lists,
+     no subwikiboxes, no content, no objects *)
+
+  include ReducedFlowBuilder
+
+  let h1_elem = p_elem
+  let h2_elem = p_elem
+  let h3_elem = p_elem
+  let h4_elem = p_elem
+  let h5_elem = p_elem
+  let h6_elem = p_elem
+  let ul_elem _ _ =
+    Lwt.return
+      [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]
+  let ol_elem _ _ =
+    Lwt.return
+      [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]
+  let dl_elem _ _ =
+    Lwt.return
+      [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]
+  let table_elem  _ _ =
+    Lwt.return
+          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]
+end
+
+module PhrasingBuilder = struct
+
+  (* no images, no titles, no tables, no lists,
+     no subwikiboxes, no content, no objects,
+     no paragraph, no pre, ... *)
+
+  include Reduced2FlowBuilder
+
+  let br_elem _ =
+    Lwt.return
+      [HTML5.M.em
+          [HTML5.M.pcdata "Line breaks not enabled in this syntax"]]
+  let p_elem = span_elem
+  let pre_elem _ _ =
+         Lwt.return
+          [HTML5.M.em
+             [HTML5.M.pcdata "Blocks of code not enabled in this syntax"]]
+  let h1_elem = span_elem
+  let h2_elem = span_elem
+  let h3_elem = span_elem
+  let h4_elem = span_elem
+  let h5_elem = span_elem
+  let h6_elem = span_elem
+  let section_elem = span_elem
+  let hr_elem _ =
+    Lwt.return
+      [HTML5.M.em
+          [HTML5.M.pcdata "Horizontal rules not enabled in this syntax"]]
+  let table_elem _ _ =
+    Lwt.return
+      [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]
+
+  let ignore_a_elem_flow = ignore_a_elem_phrasing
+
+end
+
+module MenuBuilder = struct
+
+  include FlowBuilder
+
+  let nothing _ _ = Lwt.return []
+  and nothing1 _ = Lwt.return []
+
+  let strong_elem = strong_elem
+  let em_elem = em_elem
+  let monospace_elem = monospace_elem
+  let underlined_elem = underlined_elem
+  let linethrough_elem = linethrough_elem
+  let subscripted_elem = subscripted_elem
+  let superscripted_elem = superscripted_elem
+  let a_elem_phrasing = a_elem_phrasing
+  let a_elem_flow _ _ _ = Lwt.return []
+  let make_href = menu_make_href
+  let br_elem = nothing1
+  let p_elem = nothing
+  let pre_elem = nothing
+  let section_elem = nothing
+  let ul_elem = nothing
+  let ol_elem = nothing
+  let dl_elem = nothing
+  let hr_elem = nothing1
+  let table_elem = nothing
+
+  let ignore_a_elem_flow _ _ _ = Lwt.return []
+
+end
+
+module ButtonBuilder = struct
+
+  include FlowBuilder
+
+  let forbid0 s =
+    Lwt.return [(HTML5.M.em [HTML5.M.pcdata (s ^ " not enabled in buttons")]
+                   : [HTML5_types.button_content | `PCDATA] HTML5.M.elt)]
+
+  let forbid1 s _ = forbid0 s
+  let forbid2 s _ _ = forbid0 s
+  let forbid3 s _ _ _ = forbid0 s
+
+  let strong_elem = forbid2 "strong"
+  let em_elem = forbid2 "em"
+  let monospace_elem = forbid2 "monospace"
+  let underlined_elem = forbid2 "underlined"
+  let linethrough_elem = forbid2 "linethrough"
+  let subscripted_elem = forbid2 "subscripted"
+  let superscripted_elem = forbid2 "superscripted"
+  let a_elem_phrasing = forbid3 "a_elem"
+  let a_elem_flow = forbid3 "a_elem"
+  let br_elem = forbid1 "br"
+  let img_elem = forbid3 "img"
+  let tt_elem = forbid2 "tt"
+  let nbsp = forbid0 "nbsp"
+  let endash = forbid0 "endash"
+  let emdash = forbid0 "emdash"
+  let p_elem = forbid2 "p_elem"
+  let pre_elem = forbid2 "pre"
+  let h1_elem = forbid2 "h1"
+  let h2_elem = forbid2 "h2"
+  let h3_elem = forbid2 "h3"
+  let h4_elem = forbid2 "h4"
+  let h5_elem = forbid2 "h5"
+  let h6_elem = forbid2 "h6"
+  let section_elem = forbid2 "section"
+  let ul_elem = forbid2 "ul"
+  let ol_elem = forbid2 "ol"
+  let dl_elem = forbid2 "dl"
+  let hr_elem = forbid1 "hr"
+  let table_elem = forbid2 "table"
+  let phrasing = forbid1 "phrasing"
+
+  let ignore_a_elem_phrasing = forbid3 "a_elem"
+  let ignore_a_elem_flow = forbid3 "a_elem"
+
+end
 
 
 (********************************)
 (* Predefined builders.         *)
 
-let phrasing_builder :
-  (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   box_info,
-   'href)
-     Wikicreole.builder = (* no images, no titles, no tables, no lists,
-                             no subwikiboxes, no content, no objects,
-                             no paragraph, no pre, ... *)
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]);
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = a_elem_phrasing;
-    a_elem_flow = a_elem_phrasing;
-    make_href = default_make_href;
-    br_elem =
-      (fun _ ->
-         Lwt.return
-           [HTML5.M.em
-              [HTML5.M.pcdata "Line breaks not enabled in this syntax"]]);
-    img_elem = img_elem;
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = span_elem;
-    pre_elem =
-      (fun _ _ ->
-         Lwt.return
-          [HTML5.M.em
-             [HTML5.M.pcdata "Blocks of code not enabled in this syntax"]]);
-    h1_elem = span_elem;
-    h2_elem = span_elem;
-    h3_elem = span_elem;
-    h4_elem = span_elem;
-    h5_elem = span_elem;
-    h6_elem = span_elem;
-    section_elem = span_elem;
-    ul_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    ol_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    dl_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    hr_elem =
-      (fun _ ->
-        Lwt.return
-          [HTML5.M.em
-             [HTML5.M.pcdata "Horizontal rules not enabled in this syntax"]]);
-    table_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]);
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
 
-let phrasing_builder_without_interactive :
-  (HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   box_info,
-   'href)
-     Wikicreole.builder = (* no images, no titles, no tables, no lists,
-                             no subwikiboxes, no content, no objects,
-                             no paragraph, no pre, ... *)
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]);
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = (fun _ _ _ -> Lwt.return []);
-    a_elem_flow = (fun _ _ _ -> Lwt.return []);
-    make_href = default_make_href;
-    br_elem =
-      (fun _ ->
-         Lwt.return
-           [HTML5.M.em
-              [HTML5.M.pcdata "Line breaks not enabled in this syntax"]]);
-    img_elem = img_elem;
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = span_elem;
-    pre_elem =
-      (fun _ _ ->
-         Lwt.return
-          [HTML5.M.em
-             [HTML5.M.pcdata "Blocks of code not enabled in this syntax"]]);
-    h1_elem = span_elem;
-    h2_elem = span_elem;
-    h3_elem = span_elem;
-    h4_elem = span_elem;
-    h5_elem = span_elem;
-    h6_elem = span_elem;
-    section_elem = span_elem;
-    ul_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    ol_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    dl_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    hr_elem =
-      (fun _ ->
-        Lwt.return
-          [HTML5.M.em
-             [HTML5.M.pcdata "Horizontal rules not enabled in this syntax"]]);
-    table_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]);
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
+(* Default parser *)
 
-let default_builder :
-  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   box_info,
-   'href
-  ) Wikicreole.builder =
+module WikicreoleParser = MakeParser(struct
+  include FlowTypes
+  include FlowBuilder
+end)
 
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = a_elem_phrasing;
-    a_elem_flow = a_elem_flow;
-    make_href = default_make_href;
-    br_elem = br_elem;
-    img_elem = img_elem;
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = p_elem;
-    pre_elem = pre_elem;
-    h1_elem = h1_elem;
-    h2_elem = h2_elem;
-    h3_elem = h3_elem;
-    h4_elem = h4_elem;
-    h5_elem = h5_elem;
-    h6_elem = h6_elem;
-    section_elem = section_elem;
-    ul_elem = ul_elem;
-    ol_elem = ol_elem;
-    dl_elem = dl_elem;
-    hr_elem = hr_elem;
-    table_elem = table_elem;
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
-
-let default_builder_without_header_and_footer :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   box_info,
-   'href
-  ) Wikicreole.builder =
-
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = a_elem_phrasing;
-    a_elem_flow = a_elem_flow;
-    make_href = default_make_href;
-    br_elem = br_elem;
-    img_elem = img_elem;
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = p_elem;
-    pre_elem = pre_elem;
-    h1_elem = h1_elem;
-    h2_elem = h2_elem;
-    h3_elem = h3_elem;
-    h4_elem = h4_elem;
-    h5_elem = h5_elem;
-    h6_elem = h6_elem;
-    section_elem = section_elem;
-    ul_elem = ul_elem;
-    ol_elem = ol_elem;
-    dl_elem = dl_elem;
-    hr_elem = hr_elem;
-    table_elem = table_elem;
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
-
-let default_builder_without_interactive :
-  (HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   box_info,
-   'href
-  ) Wikicreole.builder =
-
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = (fun _ _ _ -> Lwt.return []);
-    a_elem_flow = (fun _ _ _ -> Lwt.return []);
-    make_href = default_make_href;
-    br_elem = br_elem;
-    img_elem = img_elem;
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = p_elem;
-    pre_elem = pre_elem;
-    h1_elem = h1_elem;
-    h2_elem = h2_elem;
-    h3_elem = h3_elem;
-    h4_elem = h4_elem;
-    h5_elem = h5_elem;
-    h6_elem = h6_elem;
-    section_elem = section_elem;
-    ul_elem = ul_elem;
-    ol_elem = ol_elem;
-    dl_elem = dl_elem;
-    hr_elem = hr_elem;
-    table_elem = table_elem;
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
-
-let reduced_builder :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   box_info,
-   'href
-  ) Wikicreole.builder = (* no images, no objects, no subwikiboxes, no content *)
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = a_elem_phrasing;
-    a_elem_flow = a_elem_flow;
-    make_href = default_make_href;
-    br_elem = br_elem;
-    img_elem =
-      (fun _ _ _ ->
-         Lwt.return
-           [HTML5.M.em [HTML5.M.pcdata "Images not enabled in this syntax"]]);
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = p_elem;
-    pre_elem = pre_elem;
-    h1_elem = h1_elem;
-    h2_elem = h2_elem;
-    h3_elem = h3_elem;
-    h4_elem = h4_elem;
-    h5_elem = h5_elem;
-    h6_elem = h6_elem;
-    section_elem = section_elem;
-    ul_elem = ul_elem;
-    ol_elem = ol_elem;
-    dl_elem = dl_elem;
-    hr_elem = hr_elem;
-    table_elem = table_elem;
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
-
-let reduced_builder2 = (* no images, no titles, no tables, no lists,
-                          no subwikiboxes, no content, no objects *)
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = a_elem_phrasing;
-    a_elem_flow = a_elem_flow;
-    make_href = default_make_href;
-    br_elem = br_elem;
-    img_elem =
-      (fun _ _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Images not enabled in this syntax"]]);
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = p_elem;
-    pre_elem = pre_elem;
-    h1_elem = p_elem;
-    h2_elem = p_elem;
-    h3_elem = p_elem;
-    h4_elem = p_elem;
-    h5_elem = p_elem;
-    h6_elem = p_elem;
-    section_elem = section_elem;
-    ul_elem =
-      (fun _ _ ->
-        Lwt.return
-         [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    ol_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    dl_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Lists not enabled in this syntax"]]);
-    hr_elem = hr_elem;
-    table_elem =
-      (fun _ _ ->
-        Lwt.return
-          [HTML5.M.em [HTML5.M.pcdata "Tables not enabled in this syntax"]]);
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
+let wikicreole_parser =
+  (module WikicreoleParser
+      : ExtParser with type res = FlowTypes.flow
+	                  and type res_without_interactive =
+				FlowTypes.flow_without_interactive
+			 and type link_content =
+				FlowTypes.phrasing_without_interactive)
 
 
-let menu_builder :
-    ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ]
-        Eliom_pervasives.HTML5.M.elt list Lwt.t,
-     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-     HTML5_types.phrasing Eliom_pervasives.HTML5.M.elt list Lwt.t,
-     HTML5_types.phrasing_without_interactive
-       Eliom_pervasives.HTML5.M.elt list Lwt.t, 'a, href)
-         Wikicreole.builder =
- (* no images, no objects, no subwikiboxes, no content *)
-  let nothing _ _ = Lwt.return []
-  and nothing1 _ = Lwt.return [] in
-  { Wikicreole.chars = (fun s -> Lwt.return [HTML5.M.pcdata s]) ;
-    strong_elem = strong_elem;
-    em_elem = em_elem;
-    monospace_elem = monospace_elem;
-    underlined_elem = underlined_elem;
-    linethrough_elem = linethrough_elem;
-    subscripted_elem = subscripted_elem;
-    superscripted_elem = superscripted_elem;
-    a_elem_phrasing = a_elem_phrasing;
-    a_elem_flow = (fun _ _ _ -> Lwt.return []);
-    make_href = menu_make_href;
-    br_elem = nothing1;
-    img_elem = img_elem;
-    tt_elem = tt_elem;
-    nbsp = nbsp;
-    endash = endash;
-    emdash = emdash;
-    p_elem = nothing;
-    pre_elem = nothing;
-    h1_elem = h1_elem;
-    h2_elem = h2_elem;
-    h3_elem = h3_elem;
-    h4_elem = h4_elem;
-    h5_elem = h5_elem;
-    h6_elem = h6_elem;
-    section_elem = nothing;
-    ul_elem = nothing;
-    ol_elem = nothing;
-    dl_elem = nothing;
-    hr_elem = nothing1;
-    table_elem = nothing;
-    phrasing = phrasing;
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
+(* Default flow parser but types as flow5_without_header_footer *)
 
-let reduced_builder_button :
-  ([HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
-   [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
-   [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
-   [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t,
-   box_info,
-   'href
-  ) Wikicreole.builder =
-  let forbid0 s =
-    Lwt.return [(HTML5.M.em [HTML5.M.pcdata (s ^" not enabled in buttons")]
-                : [HTML5_types.button_content | `PCDATA] HTML5.M.elt)]
-  in
-  let forbid1 s _ = forbid0 s in
-  let forbid2 s _ _ = forbid0 s in
-  let forbid3 s _ _ _ = forbid0 s in
+module WikicreoleParserWithoutHeaderFooter = MakeParser(struct
+  include FlowWithoutHeaderFooterTypes
+  include FlowBuilder
 
-  { Wikicreole.chars =
-      (fun s -> Lwt.return [(HTML5.M.pcdata s : [>`PCDATA] HTML5.M.elt)]);
-    strong_elem = (*strong_elem;*) forbid2 "toto";
-    em_elem = (*em_elem;*) forbid2 "toto";
-    monospace_elem = (*monospace_elem;*) forbid2 "toto";
-    underlined_elem = (*underlined_elem;*) forbid2 "toto";
-    linethrough_elem = (*linethrough_elem;*) forbid2 "toto";
-    subscripted_elem = (*subscripted_elem;*) forbid2 "toto";
-    superscripted_elem = (*superscripted_elem;*) forbid2 "toto";
-    a_elem_phrasing = forbid3 "links";
-    a_elem_flow = forbid3 "links";
-    make_href = default_make_href;
-    br_elem = (*br_elem;*) forbid1 "toto";
-    img_elem = (*img_elem ;*) forbid3 "toto";
-    tt_elem = (*tt_elem;*) forbid2 "toto";
-    nbsp = (*nbsp;*) forbid0 "toto";
-    endash = (*endash;*) forbid0 "toto";
-    emdash = (*emdash;*) forbid0 "toto";
-    p_elem = (*p_elem;*) forbid2 "toto";
-    pre_elem = (*pre_elem;*) forbid2 "toto";
-    h1_elem = (*p_elem;*) forbid2 "toto";
-    h2_elem = (*p_elem;*) forbid2 "toto";
-    h3_elem = (*p_elem;*) forbid2 "toto";
-    h4_elem = (*p_elem;*) forbid2 "toto";
-    h5_elem = (*p_elem;*) forbid2 "toto";
-    h6_elem = (*p_elem;*) forbid2 "toto";
-    section_elem = (*p_elem;*) forbid2 "toto";
-    ul_elem = (*ul_elem;*) forbid2 "toto";
-    ol_elem = (*ol_elem;*) forbid2 "toto";
-    dl_elem = (*dl_elem;*) forbid2 "toto";
-    hr_elem = (*hr_elem;*) forbid1 "toto";
-    table_elem = (*table_elem;*) forbid2 "toto";
-    phrasing = (*phrasing;*) forbid1 "toto";
-    plugin = plugin;
-    plugin_action = plugin_action;
-    link_action = link_action;
-    error = error;
-  }
+  (* let section_elem attribs (content: flow list) = *)
+    (* let a = opt_list (parse_common_attribs attribs) in *)
+    (* element content >|= List.flatten >|= fun r -> *)
+      (* [(HTML5.M.section ?a *)
+	  (* (r :> HTML5_types.section_content_fun HTML5.M.elt list) *)
+	  (* : [>`Section] HTML5.M.elt)] *)
 
-(********************************)
-(* Default parsers:             *)
+  (* let ignore_a_elem_flow attribs addr (content : flow list) = *)
+    (* let a = opt_list (parse_common_attribs attribs) in *)
+    (* element content >|= List.flatten >|= fun r -> *)
+    (* [(HTML5.M.div ?a r : [>`Div] HTML5.M.elt)] *)
 
-let void_plugin_action = fun _ _ _ _ -> Lwt.return None
+end)
 
-let wikicreole_parser :
-  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser = {
-  builder = default_builder;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+let wikicreole_parser_without_header_footer =
+  (module WikicreoleParserWithoutHeaderFooter
+      : ExtParser with type res = FlowWithoutHeaderFooterTypes.flow
+	                  and type res_without_interactive =
+				FlowWithoutHeaderFooterTypes.flow_without_interactive
+			 and type link_content =
+				FlowWithoutHeaderFooterTypes.phrasing_without_interactive)
 
-let wikicreole_parser_without_interactive :
-  (HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser = {
-  builder = default_builder_without_interactive;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
-let wikicreole_parser_without_header_footer :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser = {
-  builder = default_builder_without_header_and_footer;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
 
-let reduced_wikicreole_parser0 :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser = {
-  builder = default_builder_without_header_and_footer;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+(* Reduced parsers. *)
 
-let reduced_wikicreole_parser1 = {
-  builder = reduced_builder;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+module ReducedWikicreoleParser0 = MakeParser(struct
+  include FlowTypes
+  include FlowBuilder
+end)
 
-let reduced_wikicreole_parser2 = {
-  builder = reduced_builder2;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+module ReducedWikicreoleParser1 = MakeParser(struct
+  include FlowTypes
+  include ReducedFlowBuilder
+end)
 
-let menu_parser = {
-  builder = menu_builder;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+module ReducedWikicreoleParser2 = MakeParser(struct
+  include FlowTypes
+  include Reduced2FlowBuilder
+end)
 
-let reduced_wikicreole_parser_button_content = {
-  builder = reduced_builder_button;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+let reduced_wikicreole_parser0 =
+  (module ReducedWikicreoleParser0
+      : ExtParser with type res = FlowTypes.flow
+	                  and type res_without_interactive =
+				FlowTypes.flow_without_interactive
+			 and type link_content =
+				FlowTypes.phrasing_without_interactive)
 
-let phrasing_wikicreole_parser = {
-  builder = phrasing_builder;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+let reduced_wikicreole_parser1 =
+  (module ReducedWikicreoleParser1
+      : ExtParser with type res = FlowTypes.flow
+	                  and type res_without_interactive =
+				FlowTypes.flow_without_interactive
+			 and type link_content =
+				FlowTypes.phrasing_without_interactive)
 
-let phrasing_wikicreole_parser_without_interactive = {
-  builder = phrasing_builder_without_interactive;
-  plugin_assoc = Hashtbl.create 17;
-  plugin_action_assoc = Hashtbl.create 17;
-  link_action = ref void_plugin_action;
-}
+let reduced_wikicreole_parser2 =
+  (module ReducedWikicreoleParser2
+      : ExtParser with type res = FlowTypes.flow
+	                  and type res_without_interactive =
+				FlowTypes.flow_without_interactive
+			 and type link_content =
+				FlowTypes.phrasing_without_interactive)
 
+(* Phrasing parser. *)
+
+module PhrasingWikicreoleParser = MakeParser(struct
+  include PhrasingTypes
+  include PhrasingBuilder
+end)
+
+let phrasing_wikicreole_parser =
+  (module PhrasingWikicreoleParser
+      : ExtParser with type res = PhrasingTypes.flow
+	                  and type res_without_interactive =
+				PhrasingTypes.flow_without_interactive
+			 and type link_content =
+				PhrasingTypes.phrasing_without_interactive)
+
+(* Menu builder *)
+
+let menu_parser =
+  (module MakeParser(struct
+    include MenuTypes
+    include MenuBuilder
+  end) : ExtParser with type res = MenuTypes.flow
+	                  and type res_without_interactive =
+				MenuTypes.flow_without_interactive
+			 and type link_content =
+				MenuTypes.phrasing_without_interactive)
+
+(* Button builder *)
+
+let reduced_wikicreole_parser_button_content =
+  (module MakeParser(struct
+    include ButtonTypes
+    include ButtonBuilder
+  end) : ExtParser with type res =
+     [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+		   and type res_without_interactive =
+     [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t
+		   and type link_content =
+     [HTML5_types.button_content | `PCDATA] HTML5.M.elt list Lwt.t)
 
 
 (********************************)
 (* Default parser functions:    *)
 
-let xml_of_wiki wp bi s =
-  Wikicreole.from_string
-    ~sectioning:bi.bi_sectioning
-    bi (builder_from_wikicreole_parser wp) s
-  >>= Lwt_list.map_s (fun x -> x)
-  >|= List.flatten
+let xml_of_wiki (type t) wp bi content =
+  let module Parser =
+    (val wp : Parser with type res = t HTML5.M.elt list Lwt.t) in
+  let xml = Parser.from_string ~sectioning:bi.bi_sectioning bi content in
+  element xml >|= List.flatten
 
-let phrasing_of_wiki bi s =
-  ((Wikicreole.from_string
-    ~sectioning:false
-    bi
-    ( {phrasing_builder with
-       Wikicreole.plugin = plugin_function phrasing_wikicreole_parser
-     } : (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-          HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-          HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-          HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-          box_info,
-	  'href
-         ) Wikicreole.builder
-    )
-    s >>= function
-      | [] -> Lwt.return []
-      | a::_ -> a)
-    : HTML5_types.phrasing HTML5.M.elt list Lwt.t
-    :> [> HTML5_types.phrasing] HTML5.M.elt list Lwt.t)
-
+let preparse_extension (type t) wp wb content =
+  let module Parser = (val wp : Parser with type res = t) in
+  Parser.preparse_string wb content
 
 (********************************)
 (* Predefined content types:    *)
 
+
+
 let wikicreole_content_type =
   Wiki_models.register_flows_wiki_parser "wikicreole"
-    (preparse_extension wikicreole_parser)
-    (xml_of_wiki wikicreole_parser)
-
-let wikicreole_content_type' =
-  Wiki_models.register_flows_wiki_parser "wikicreole'"
-    (preparse_extension wikicreole_parser)
-    (xml_of_wiki wikicreole_parser_without_header_footer
-     :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
+    (preparse_extension (cast_wp wikicreole_parser))
+    (xml_of_wiki (cast_wp wikicreole_parser))
 
 let reduced_wikicreole_content_type0 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole0"
-    (preparse_extension reduced_wikicreole_parser0)
-    (xml_of_wiki reduced_wikicreole_parser0
+    (preparse_extension (cast_wp reduced_wikicreole_parser0))
+    (xml_of_wiki (cast_wp reduced_wikicreole_parser0)
      :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type1 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole1"
-    (preparse_extension reduced_wikicreole_parser1)
-    (xml_of_wiki reduced_wikicreole_parser1
+    (preparse_extension (cast_wp reduced_wikicreole_parser1))
+    (xml_of_wiki (cast_wp reduced_wikicreole_parser1)
      :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type2 =
   Wiki_models.register_flows_wiki_parser "reduced_wikicreole2"
-    (preparse_extension reduced_wikicreole_parser2)
-    (xml_of_wiki reduced_wikicreole_parser2
+    (preparse_extension (cast_wp reduced_wikicreole_parser2))
+    (xml_of_wiki (cast_wp reduced_wikicreole_parser2)
      :> HTML5_types.flow5 HTML5.M.elt list Wiki_models.wiki_parser)
 
 let wikicreole_phrasing_content_type =
   Wiki_models.register_phrasings_wiki_parser "phrasing_wikicreole"
-    (preparse_extension phrasing_wikicreole_parser)
-    phrasing_of_wiki
+    (preparse_extension (cast_wp phrasing_wikicreole_parser))
+    (xml_of_wiki (cast_wp phrasing_wikicreole_parser))
 
 (* For backward compatibility *)
 let wikicreole_inline_content_type =
   Wiki_models.register_phrasings_wiki_parser "inline_wikicreole"
-    (preparse_extension phrasing_wikicreole_parser)
-    phrasing_of_wiki
+    (preparse_extension (cast_wp phrasing_wikicreole_parser))
+    (xml_of_wiki (cast_wp phrasing_wikicreole_parser))
 
 let rawtext_content_type =
   Wiki_models.register_flows_wiki_parser "rawtext"
     (fun _ s -> Lwt.return s)
     (fun _bi s -> Lwt.return [HTML5.M.p [HTML5.M.pcdata s]])
 
-let phrasing_without_interactive_of_wiki bi s =
-  phrasing_of_wiki bi s >>= fun r ->
-  (* CCC horrible: nettoyer ca *)
-  Lwt.return (HTML5.M.totl (HTML5.M.toeltl r))
-(*
-  Lwt.fail (Failure "TODO: how to safely pattern match on HTML5.M values")
-*)
-(*  Lwt.return
-    {{ map r with
-         |  <a (HTML5_types_duce.a_attrs)>l -> l
-         | p -> [p] }}*)
-
-
-
 
 (*********************************************************************)
 (* Adding syntax extensions in predefined parsers:                   *)
 
-let add_extension ~wp ~name ?(wiki_content=true) f =
-  Hashtbl.add wp.plugin_assoc name (wiki_content, f);
-  if wiki_content then
-    Hashtbl.add wp.plugin_action_assoc name
-      (fun wb args -> function
-         | None -> Lwt.return None
-         | Some c ->
-             preparse_extension wp wb c >>= fun c ->
-             Lwt.return (Some (string_of_extension name args (Some c)))
-      )
+type (+'flow_without_interactive,
+      +'phrasing_without_interactive) non_interactive_simple_plugin =
+    (Wiki_widgets_interface.box_info,
+      [ `Flow5 of 'flow_without_interactive
+      | `Phrasing_without_interactive of 'phrasing_without_interactive])
+    Wikicreole.plugin
 
-let remove_re = Netstring_pcre.regexp "(?s-m)\\A\\s*(\\S(.*\\S)?)\\s*\\z"
-let remove_spaces s =
-  match Netstring_pcre.string_match remove_re s 0 with
-  | None -> s
-  | Some r -> Netstring_pcre.matched_group r 1 s
+type (+'flow,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive) interactive_simple_plugin =
+    (Wiki_widgets_interface.box_info,
+     ('flow,
+      (href * Wikicreole.attribs *' flow_without_interactive),
+      'phrasing_without_interactive,
+      (href * Wikicreole.attribs * 'phrasing_without_interactive))
+       Wikicreole.ext_kind) Wikicreole.plugin
+
+type (+'without_interactive) link_simple_plugin =
+    (Wiki_widgets_interface.box_info,
+     href * Wikicreole.attribs * 'without_interactive)
+    Wikicreole.plugin
+
+let register_simple_extension
+    (type a) (type b) (type c)
+    ~(wp: (a,b,c) ext_wikicreole_parser)
+    ~name ?preparser ?ni_plugin plugin =
+  let module Parser =
+    (val wp : ExtParser with type res = a
+			        and type res_without_interactive = b
+			        and type link_content = c) in
+
+  Parser.register_interactive_extension ~name ~wiki_content:false plugin;
+  iter_option
+    (Parser.register_non_interactive_extension ~name ~wiki_content:false)
+    ni_plugin;
+  iter_option
+    (Parser.register_non_interactive_extension ~name ~wiki_content:false)
+    ni_plugin;
+  iter_option (Parser.register_subst ~name) preparser
+
+(***** Registering to a group of parser. *)
+
+let register_simple_flow_extension
+    ~name ?(reduced = true) ?preparser
+    (plugin:
+       ([< HTML5_types.flow5_without_interactive_header_footer] HTML5.M.elt list Lwt.t,
+	[< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t)
+       non_interactive_simple_plugin)
+    =
+  register_simple_extension ~name ?preparser
+    ~wp:wikicreole_parser
+    ~ni_plugin:
+      (plugin :> WikicreoleParser.non_interactive_plugin)
+    (plugin :> WikicreoleParser.interactive_plugin);
+  register_simple_extension ~name ?preparser
+    ~wp:wikicreole_parser_without_header_footer
+    ~ni_plugin:
+      (plugin :> WikicreoleParserWithoutHeaderFooter.non_interactive_plugin)
+    (plugin :> WikicreoleParserWithoutHeaderFooter.interactive_plugin);
+  if reduced then begin
+    register_simple_extension ~name ?preparser
+      ~wp:reduced_wikicreole_parser0
+      ~ni_plugin:
+        (plugin :> ReducedWikicreoleParser0.non_interactive_plugin)
+      (plugin :> ReducedWikicreoleParser0.interactive_plugin);
+    register_simple_extension ~name ?preparser
+      ~wp:reduced_wikicreole_parser1
+      ~ni_plugin:
+        (plugin :> ReducedWikicreoleParser1.non_interactive_plugin)
+      (plugin :> ReducedWikicreoleParser1.interactive_plugin);
+    register_simple_extension ~name ?preparser
+      ~wp:reduced_wikicreole_parser2
+      ~ni_plugin:
+        (plugin :> ReducedWikicreoleParser2.non_interactive_plugin)
+      (plugin :> ReducedWikicreoleParser2.interactive_plugin)
+    end
+
+let register_interactive_simple_flow_extension
+    ~name ?(reduced = true) ?preparser
+    (plugin:
+       (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+	HTML5_types.flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+	HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t )
+       interactive_simple_plugin) =
+  register_simple_extension ~name ?preparser
+    ~wp:wikicreole_parser
+    (plugin :> WikicreoleParser.interactive_plugin);
+  register_simple_extension ~name ?preparser
+    ~wp:wikicreole_parser_without_header_footer
+    (plugin :> WikicreoleParserWithoutHeaderFooter.interactive_plugin);
+  if reduced then begin
+    register_simple_extension ~name ?preparser
+      ~wp:reduced_wikicreole_parser0
+      (plugin :> ReducedWikicreoleParser0.interactive_plugin);
+    register_simple_extension ~name ?preparser
+      ~wp:reduced_wikicreole_parser1
+      (plugin :> ReducedWikicreoleParser1.interactive_plugin);
+    register_simple_extension ~name ?preparser
+      ~wp:reduced_wikicreole_parser2
+      (plugin :> ReducedWikicreoleParser2.interactive_plugin)
+  end
+
+let register_interactive_simple_flow_extension =
+  (register_interactive_simple_flow_extension
+     : name:_ -> ?reduced:_ -> ?preparser:_ ->
+    (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+     HTML5_types.flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t )
+      interactive_simple_plugin -> unit
+    :> name:_ -> ?reduced:_ -> ?preparser:_ ->
+    ([< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Lwt.t,
+     [< HTML5_types.flow5_without_interactive_header_footer] HTML5.M.elt list Lwt.t,
+     [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t )
+      interactive_simple_plugin -> unit)
+
+let register_link_simple_flow_extension ~name ?reduced ?preparser plugin =
+  let plugin wb attribs c = `Flow5_link (plugin wb attribs c) in
+  register_interactive_simple_flow_extension ~name ?reduced ?preparser plugin
+
+let register_simple_phrasing_extension
+    ~name ?reduced ?preparser
+    (plugin :
+       (HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+	HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+       non_interactive_simple_plugin) =
+  register_simple_flow_extension ~name ?reduced ?preparser
+    (plugin :>
+       (HTML5_types.flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+	HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+       non_interactive_simple_plugin);
+  register_simple_extension ~name ?preparser
+    ~wp:phrasing_wikicreole_parser
+    ~ni_plugin:
+      (plugin :> PhrasingWikicreoleParser.non_interactive_plugin)
+    (plugin :> PhrasingWikicreoleParser.interactive_plugin)
+
+let register_simple_phrasing_extension =
+  (register_simple_phrasing_extension
+     : name:_ -> ?reduced:_ -> ?preparser:_ ->
+    (HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+      non_interactive_simple_plugin -> unit
+    :> name:_ -> ?reduced:_ -> ?preparser:_ ->
+    ([< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t,
+     [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t)
+      non_interactive_simple_plugin -> unit)
+
+let register_interactive_simple_phrasing_extension
+    ~name ?reduced ?preparser
+    (plugin :
+       (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+	HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+	HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+       interactive_simple_plugin) =
+  register_interactive_simple_flow_extension ~name ?reduced ?preparser
+    (plugin :>
+       (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+	HTML5_types.flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+	HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+       interactive_simple_plugin);
+  register_simple_extension ~name ?preparser
+    ~wp:phrasing_wikicreole_parser
+    (plugin :> PhrasingWikicreoleParser.interactive_plugin)
+
+let register_interactive_simple_phrasing_extension =
+  (register_interactive_simple_phrasing_extension
+     : name:_ -> ?reduced:_ -> ?preparser:_ ->
+    (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+      interactive_simple_plugin -> unit
+    :> name:_ -> ?reduced:_ -> ?preparser:_ ->
+    ([< HTML5_types.phrasing] HTML5.M.elt list Lwt.t,
+     [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t,
+     [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t)
+      interactive_simple_plugin -> unit)
+
+let register_link_simple_phrasing_extension ~name ?reduced ?preparser plugin =
+  let plugin wb attribs c = `Phrasing_link (plugin wb attribs c) in
+  register_interactive_simple_flow_extension ~name ?reduced ?preparser plugin
+
+(**** *)
+
+type (-'content,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive)
+  wiki_plugin =
+    Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      'content option ->
+      [ `Flow5 of 'flow_without_interactive
+      | `Phrasing_without_interactive of 'phrasing_without_interactive]
+
+type (-'content,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive)
+  link_plugin =
+    Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      'content option ->
+      [ `Flow5_link of (href * Wikicreole.attribs * 'flow_without_interactive)
+      | `Phrasing_link of (href * Wikicreole.attribs * 'phrasing_without_interactive)]
+
+let make_action (type a) (type b) (type c) ~name wp preparser =
+  (fun wb attribs -> function
+   | None -> begin
+       match preparser with
+       | Some action -> action wb attribs None
+       | None -> Lwt.return (Some (string_of_extension name attribs None))
+     end
+   | Some c ->
+       let module Parser =
+	 (val wp : ExtParser
+	  with type res = a
+	  and type res_without_interactive = b
+	  and type link_content = c) in
+       lwt c = Parser.preparse_string wb c in
+       match preparser with
+       | Some action -> action wb attribs (Some c)
+       | None ->
+	   Lwt.return (Some (string_of_extension name attribs (Some c))))
+
+let raw_register_wiki_extension
+    (type a) (type b) (type c)
+    ~wp ~name ?preparser ?ni_plugin plugin =
+  let module Parser = (val wp : ExtParser with type res = a
+						 and type res_without_interactive = b
+						 and type link_content = c) in
+  Parser.register_interactive_extension ~name ~wiki_content:true plugin;
+  iter_option
+    (Parser.register_non_interactive_extension ~name ~wiki_content:true)
+    ni_plugin;
+  iter_option (Parser.register_subst ~name) preparser
+
+let register_wiki_extension
+    ~wp ~name ~wp_rec ?preparser ?ni_plugin plugin =
+  let plugin bi attribs c =
+    let c = map_option remove_spaces c in
+    plugin bi attribs (map_option (xml_of_wiki (cast_wp wp_rec) bi) c) in
+  let ni_plugin =
+    map_option
+      (fun ni_plugin bi attribs c ->
+	 let c = map_option remove_spaces c in
+	 ni_plugin bi attribs (map_option (xml_of_wiki (cast_niwp wp_rec) bi) c))
+      ni_plugin in
+  let preparser =
+    map_option (fun p -> make_action ~name wp_rec preparser) preparser in
+  raw_register_wiki_extension ~wp ~name ?preparser ?ni_plugin
+    (plugin :> (_, _, _) interactive_simple_plugin)
+
+let register_link_extension ~wp ~name ~wp_rec ?preparser
+    (plugin : (_, _, _) link_plugin)  =
+  let plugin bi attribs c =
+    let c = map_option remove_spaces c in
+    plugin bi attribs (map_option (xml_of_wiki (cast_niwp wp_rec) bi) c) in
+  let preparser =
+    map_option (fun p -> make_action ~name wp_rec preparser) preparser in
+  raw_register_wiki_extension ~wp ~name ?preparser
+    (plugin :> _ -> _ -> _ -> (_, _, _, _) Wikicreole.ext_kind)
+
+type wiki_flow_pplugin = {
+  fpp: 'flow.
+    ('flow HTML5_types.between_flow5_and_flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+     'flow HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+  wiki_plugin
+}
+
+
+let register_wiki_flow_extension
+    ~name ?(reduced = true) ?preparser plugin =
+  let register wp =
+    register_wiki_extension ~name ~wp ~wp_rec:wp ?preparser
+      ~ni_plugin:(plugin.fpp :> (FlowTypes.flow_without_interactive,
+			     FlowTypes.flow_without_interactive, _) wiki_plugin)
+      (plugin.fpp :> (FlowTypes.flow, FlowTypes.flow, _) wiki_plugin)
+  in
+  register wikicreole_parser;
+  register_wiki_extension ~name
+    ~wp:wikicreole_parser_without_header_footer
+    ~wp_rec:wikicreole_parser_without_header_footer ?preparser
+    ~ni_plugin:(plugin.fpp :> (FlowWithoutHeaderFooterTypes.flow_without_interactive,
+			   FlowWithoutHeaderFooterTypes.flow_without_interactive, _)
+		  wiki_plugin)
+    (plugin.fpp :> (FlowWithoutHeaderFooterTypes.flow,
+		FlowWithoutHeaderFooterTypes.flow, _) wiki_plugin);
+  if reduced then begin
+    register reduced_wikicreole_parser0;
+    register reduced_wikicreole_parser1;
+    register reduced_wikicreole_parser2
+ end
+
+type interactive_wiki_flow_pplugin = {
+  ifpp: 'flow 'flow_without_interactive.
+    (('flow, 'flow_without_interactive) HTML5_types.between_flow5_and_flow5_without_header_footer HTML5.M.elt list Lwt.t,
+     'flow HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+    wiki_plugin
+}
+
+let register_interactive_wiki_flow_extension
+    ~name ?(reduced = true) ?preparser plugin =
+  let register wp =
+    register_wiki_extension ~name ~wp ~wp_rec:wp ?preparser
+      (plugin.ifpp :> (FlowTypes.flow, FlowTypes.flow, _) wiki_plugin)
+  in
+  register wikicreole_parser;
+  register_wiki_extension ~name
+    ~wp:wikicreole_parser_without_header_footer
+    ~wp_rec:wikicreole_parser_without_header_footer ?preparser
+    (plugin.ifpp :>
+       (FlowWithoutHeaderFooterTypes.flow,
+	FlowWithoutHeaderFooterTypes.flow,
+	_)
+       wiki_plugin);
+  if reduced then begin
+    register reduced_wikicreole_parser0;
+    register reduced_wikicreole_parser1;
+    register reduced_wikicreole_parser2
+ end
+
+type link_wiki_flow_pplugin = {
+  lfpp: 'flow_without_interactive.
+    Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      ([> HTML5_types.flow5_without_interactive_header_footer] as 'flow_without_interactive)
+	HTML5.M.elt list Lwt.t option ->
+      (href * Wikicreole.attribs * 'flow_without_interactive HTML5.M.elt list Lwt.t)
+}
+
+let register_link_flow_extension ~name ?(reduced = true) ?preparser plugin =
+  let plugin wb attribs c = `Flow5_link (plugin.lfpp wb attribs c) in
+  let register wp =
+    register_link_extension ~name ~wp ~wp_rec:wp ?preparser plugin
+  in
+  register wikicreole_parser;
+  register wikicreole_parser_without_header_footer;
+  if reduced then begin
+    register reduced_wikicreole_parser0;
+    register reduced_wikicreole_parser1;
+    register reduced_wikicreole_parser2
+ end
+
+
+type wiki_phrasing_pplugin = {
+  ppp: 'phrasing.
+    (([< HTML5_types.phrasing ] as 'phrasing) HTML5.M.elt list Lwt.t,
+     'phrasing HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+    wiki_plugin
+}
+
+let register_wiki_phrasing_extension
+    ~name ?(reduced = true) ?preparser plugin =
+  let wp_rec = phrasing_wikicreole_parser in
+  let register wp =
+    register_wiki_extension ~name~wp_rec ?preparser ~wp
+      ~ni_plugin:
+      (plugin.ppp :>
+	 (_, FlowTypes.flow_without_interactive, _) wiki_plugin)
+      (plugin.ppp :> _ -> _ -> _ -> (FlowTypes.flow, _, _, _) Wikicreole.ext_kind)
+  in
+  register wikicreole_parser;
+  register_wiki_extension ~name ~wp_rec ?preparser
+    ~wp:wikicreole_parser_without_header_footer
+    ~ni_plugin:
+    (plugin.ppp :>
+       (_, FlowWithoutHeaderFooterTypes.flow_without_interactive, _) wiki_plugin)
+    (plugin.ppp :>
+       _ -> _ -> _ -> (FlowWithoutHeaderFooterTypes.flow, _, _, _) Wikicreole.ext_kind);
+  if reduced then begin
+    register reduced_wikicreole_parser0;
+    register reduced_wikicreole_parser1;
+    register reduced_wikicreole_parser2
+  end;
+  register_wiki_extension ~name ~wp_rec ?preparser
+    ~wp:phrasing_wikicreole_parser
+    ~ni_plugin:plugin.ppp
+    (plugin.ppp :> _ -> _ -> _ -> (_, _, _, _) Wikicreole.ext_kind)
+
+let register_interactive_wiki_phrasing_extension
+    ~name ?(reduced = true) ?preparser plugin =
+  let wp_rec = phrasing_wikicreole_parser in
+  let register wp =
+    register_wiki_extension ~name ~wp ~wp_rec ?preparser
+      (plugin.ppp :>
+	 _ -> _ -> _ -> (FlowTypes.flow, _ * _ * FlowTypes.flow_without_interactive, _, _)
+	 Wikicreole.ext_kind)
+  in
+  register wikicreole_parser;
+  register_wiki_extension ~name ~wp_rec ?preparser
+    ~wp:wikicreole_parser_without_header_footer
+    (plugin.ppp :>
+	 _ -> _ -> _ ->
+     (FlowWithoutHeaderFooterTypes.flow,
+      _ * _ * FlowWithoutHeaderFooterTypes.flow_without_interactive, _, _)
+	 Wikicreole.ext_kind);
+  if reduced then begin
+    register reduced_wikicreole_parser0;
+    register reduced_wikicreole_parser1;
+    register reduced_wikicreole_parser2
+  end;
+  register_wiki_extension ~name ~wp_rec ?preparser
+    ~wp:phrasing_wikicreole_parser
+    (plugin.ppp :> _ -> _ -> _ -> (_, _, _, _) Wikicreole.ext_kind)
+
+type link_wiki_phrasing_pplugin =
+    Wiki_widgets_interface.box_info ->
+    Wikicreole.attribs ->
+    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t option ->
+    (href * Wikicreole.attribs * HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+
+let register_link_phrasing_extension ~name ?(reduced = true) ?preparser
+    (plugin: link_wiki_phrasing_pplugin) =
+  let plugin wb attribs c = `Phrasing_link (plugin wb attribs c) in
+  let wp_rec = phrasing_wikicreole_parser in
+  let register wp =
+    register_link_extension ~name ~wp ~wp_rec ?preparser plugin
+  in
+  register wikicreole_parser;
+  register wikicreole_parser_without_header_footer;
+  if reduced then begin
+    register reduced_wikicreole_parser0;
+    register reduced_wikicreole_parser1;
+    register reduced_wikicreole_parser2
+  end;
+  register phrasing_wikicreole_parser
+
+(***** *)
+
+
+
+(* Extensions: div; aside; article; nav; section; header; footer *)
+
+let f_block make sectioning wp bi args content =
+  `Flow5
+    ( let content = map_option remove_spaces content in
+      let bi = { bi with bi_sectioning = bi.bi_sectioning && sectioning } in
+      lwt content = match content with
+	| None -> Lwt.return []
+	| Some content -> xml_of_wiki wp bi content in
+      let a = Some (parse_common_attribs args) in
+      Lwt.return [make ?a content])
 
 let () =
-  let add_extension_aux l ~name ?wiki_content f =
-    List.iter (fun wp -> add_extension ~wp ~name ?wiki_content (f wp)) l
-  in
+  let add_divs wp wp_rec =
+    List.iter
+      (fun (name, make, make') ->
+	 (* FIXME it won't type without duplicating the 'make'
+	    argument... *)
+	 raw_register_wiki_extension ~wp ~name
+	   ~ni_plugin:(f_block make' true (cast_niwp wp_rec))
+	   (f_block make true (cast_wp wp_rec)))
+      ["div", HTML5.M.div, HTML5.M.div;
+       "aside", HTML5.M.aside, HTML5.M.aside;
+       "article", HTML5.M.article, HTML5.M.article;
+       "nav", HTML5.M.nav, HTML5.M.nav;
+       "section", HTML5.M.section, HTML5.M.section;
+      ] in
+  add_divs wikicreole_parser wikicreole_parser;
+  add_divs wikicreole_parser_without_header_footer wikicreole_parser;
+  add_divs reduced_wikicreole_parser0 reduced_wikicreole_parser0;
+  add_divs reduced_wikicreole_parser1 reduced_wikicreole_parser1;
+  add_divs reduced_wikicreole_parser2 reduced_wikicreole_parser2
 
-  let f_block make wp bi args c =
-    Wikicreole.Flow5
-      (let content = match c with
-         | Some c -> remove_spaces c
-         | None -> ""
-       in
-       lwt content = xml_of_wiki wp bi content in
-       let classe =
-         try Some (HTML5.M.a_class [List.assoc "class" args])
-         with Not_found -> None
-       in
-       let id =
-         try Some (HTML5.M.a_id (List.assoc "id" args))
-         with Not_found -> None
-       in
-       let style =
-         try Some (HTML5.M.a_style (List.assoc "style" args))
-         with Not_found -> None
-       in
-       let a = opt_list (filter_raw [classe; id; style]) in
-       Lwt.return [make ?a content]
-      ) in
-
-
-  let add l (name, make) =
-    add_extension_aux l
-      ~name:name ~wiki_content:true
-      (f_block make) in
+let () =
   List.iter
     (fun (name, make) ->
-       add_extension
-	 ~wp:wikicreole_parser ~name ~wiki_content:true
-	 (f_block make wikicreole_parser))
-    ["div", HTML5.M.div;
-     "aside", HTML5.M.aside;
-     "article", HTML5.M.article;
-     "nav", HTML5.M.nav;
-     "section", HTML5.M.section;];
-  List.iter
-    (fun (name, make) ->
-       add_extension
-	 ~wp:wikicreole_parser_without_header_footer ~name ~wiki_content:true
-	 (f_block make wikicreole_parser))
-    ["div", HTML5.M.div;
-     "aside", HTML5.M.aside;
-     "article", HTML5.M.article;
-     "nav", HTML5.M.nav;
-     "section", HTML5.M.section;];
-  List.iter
-    (fun (name, make) ->
-       add_extension
-	 ~wp:wikicreole_parser_without_interactive ~name ~wiki_content:true
-	 (f_block make wikicreole_parser))
-    ["div", HTML5.M.div;
-     "aside", HTML5.M.aside;
-     "article", HTML5.M.article;
-     "nav", HTML5.M.nav;
-     "section", HTML5.M.section;];
-  List.iter
-    (add
-       [reduced_wikicreole_parser0;
-	reduced_wikicreole_parser1;
-	reduced_wikicreole_parser2])
-    ["div", HTML5.M.div;
-     "aside", HTML5.M.aside;
-     "article", HTML5.M.article;
-     "nav", HTML5.M.nav;
-     "section", HTML5.M.section;
-    ];
-
-  let f_block' make bi args c =
-    Wikicreole.Flow5
-      (let content = match c with
-         | Some c -> remove_spaces c
-         | None -> ""
-       in
-       let bi = { bi with bi_sectioning = false } in
-       lwt content = xml_of_wiki wikicreole_parser_without_header_footer bi content in
-       let classe =
-         try Some (HTML5.M.a_class [List.assoc "class" args])
-         with Not_found -> None
-       in
-       let id =
-         try Some (HTML5.M.a_id (List.assoc "id" args))
-         with Not_found -> None
-       in
-       let style =
-         try Some (HTML5.M.a_style (List.assoc "style" args))
-         with Not_found -> None
-       in
-       let a = opt_list (filter_raw [classe; id; style]) in
-       Lwt.return [make ?a content]
-      ) in
-
-  List.iter
-    (fun (name, make) ->
-       add_extension
-	 ~wp:wikicreole_parser ~name ~wiki_content:true
-	 (f_block' make))
+       raw_register_wiki_extension ~name
+	 ~wp:wikicreole_parser
+	 (f_block make false (cast_wp wikicreole_parser_without_header_footer)))
     ["header", HTML5.M.header;
-     "footer", HTML5.M.footer;
-    ];
+     "footer", HTML5.M.footer]
 
-  let f_span = (fun wp bi args c ->
-       Wikicreole.Phrasing_without_interactive
-         (let content = match c with
-            | Some c -> c
-            | None -> ""
-          in
-          phrasing_of_wiki bi content >|= fun content ->
-          let classe =
-            try Some (HTML5.M.a_class [List.assoc "class" args])
-            with Not_found -> None
-          in
-          let id =
-            try Some (HTML5.M.a_id (List.assoc "id" args))
-            with Not_found -> None
-          in
-	  let style =
-            try Some (HTML5.M.a_style (List.assoc "style" args))
-            with Not_found -> None
-	  in
-          let a = opt_list (filter_raw [classe; id; style]) in
-          [HTML5.M.span ?a content]
-         )
-    )
-  in
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"span" ~wiki_content:true
-    f_span;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"span" ~wiki_content:true
-    f_span;
-  add_extension_aux
-    [phrasing_wikicreole_parser]
-    ~name:"span" ~wiki_content:true
-    f_span;
+(* span *)
 
-  let f_wikiname =
-    (fun _ bi _ _ ->
-      Wikicreole.Phrasing_without_interactive
-        (let wid = bi.Wiki_widgets_interface.bi_wiki in
-         Wiki_sql.get_wiki_info_by_id wid >|= fun wiki_info ->
-         [HTML5.M.pcdata wiki_info.wiki_descr])
-    )
-  in
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"wikiname" ~wiki_content:true f_wikiname;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"wikiname" ~wiki_content:true f_wikiname;
-  add_extension_aux
-    [phrasing_wikicreole_parser]
-    ~name:"wikiname" ~wiki_content:true f_wikiname;
+let f_span bi args content =
+  `Phrasing_without_interactive
+    (lwt content = match content with
+       | None -> Lwt.return []
+       | Some c -> c
+     in
+     let a = Some (parse_common_attribs args) in
+     Lwt.return [HTML5.M.span ?a content])
 
-  let f_raw =
-    (fun _ _ args content ->
-      Wikicreole.Phrasing_without_interactive
-        (let s = string_of_extension "raw" args content in
-         Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]))
-  in
-  add_extension_aux
-    [reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"raw" ~wiki_content:false f_raw;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"raw" ~wiki_content:false f_raw;
-  add_extension_aux
-    [phrasing_wikicreole_parser]
-    ~name:"raw" ~wiki_content:false f_raw;
+let () =
+  register_wiki_phrasing_extension ~name:"span" { ppp = f_span}
 
-  let f_empty _ _ _ _ =
-    Wikicreole.Flow5 (Lwt.return [])
-  in
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"" ~wiki_content:false f_empty;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"" ~wiki_content:false f_empty;
-  add_extension_aux
-    [phrasing_wikicreole_parser]
-    ~name:"" ~wiki_content:false f_empty;
+(* wikiname *)
 
-  let f_content _ bi args _ =
-    Wikicreole.Flow5
-      (bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style >|= function
-       | None ->
-           [HTML5.M.div
-              [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
+let f_wikiname bi _args _c =
+  `Phrasing_without_interactive
+    (let wid = bi.Wiki_widgets_interface.bi_wiki in
+     lwt wiki_info = Wiki_sql.get_wiki_info_by_id wid in
+     Lwt.return [HTML5.M.pcdata wiki_info.wiki_descr])
+
+let () =
+  register_simple_phrasing_extension ~name:"wikiname" f_wikiname
+
+(* Raw *)
+
+let f_raw _bi args content =
+  `Phrasing_without_interactive
+    (let s = string_of_extension "raw" args content in
+     Lwt.return [HTML5.M.b [HTML5.M.pcdata s]])
+
+let () =
+  register_simple_phrasing_extension ~name:"raw" f_raw
+
+(* Empty *)
+
+let f_empty _bi _args _c = `Flow5 (Lwt.return [])
+
+let () =
+  register_simple_phrasing_extension ~name:"" f_empty
+
+(* Content *)
+
+let f_content bi _args _c =
+  `Flow5
+    (match_lwt bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style with
+     | None ->
+         Lwt.return
+	   [HTML5.M.div
+               [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
            ]
-       | Some subbox -> subbox
-      )
-  in
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"content" f_content;
+     | Some subbox ->
+         Lwt.return subbox)
 
-  let f_content _ bi args _ =
-    Wikicreole.Flow5
-      (bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style >|= function
-       | None ->
-           [HTML5.M.div
-              [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
+let () =
+  register_simple_extension ~wp:wikicreole_parser ~name:"content" f_content
+
+
+let f_content_div bi _args _c =
+  `Flow5
+    (match_lwt bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style with
+     | None ->
+         Lwt.return
+	   [HTML5.M.div
+               [HTML5.M.strong [HTML5.M.em [HTML5.M.pcdata "<<content>>"]]]
            ]
-       | Some subbox -> [HTML5.M.div subbox]
-      )
-  in
-  add_extension_aux
-    [wikicreole_parser_without_header_footer]
-    ~name:"content" f_content;
+     | Some subbox ->
+         Lwt.return [HTML5.M.div subbox])
 
-  let f_menu _ bi args _ =
-    let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
-    Wikicreole.Flow5
-      (let classe =
-         HTML5.M.a_class
-           (   "wikimenu"
-               :: filter_raw [
-                 try Some (List.assoc "class" args) with Not_found -> None
-               ])
+let () =
+  register_simple_extension ~wp:wikicreole_parser_without_header_footer ~name:"content" f_content_div
+
+(* menu *)
+
+let f_menu bi args _c =
+  let wiki_id = bi.Wiki_widgets_interface.bi_wiki in
+  `Flow5
+    (let classe =
+       HTML5.M.a_class
+         (   "wikimenu"
+             :: filter_raw [
+               try Some (List.assoc "class" args) with Not_found -> None
+             ])
+     in
+     let id =
+       try Some (HTML5.M.a_id (List.assoc "id" args))
+       with Not_found -> None
+     in
+     let style =
+       try Some (HTML5.M.a_style (List.assoc "style" args))
+       with Not_found -> None
+     in
+     let a = Some (classe :: (filter_raw [id; style])) in
+     let f ?classe s =
+       let link, text =
+         try String.sep '|' s
+         with Not_found -> s, s
        in
-       let id =
-         try Some (HTML5.M.a_id (List.assoc "id" args))
-         with Not_found -> None
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki_id in
+       lwt text2 =
+	 xml_of_wiki (cast_niwp phrasing_wikicreole_parser) bi text in
+       let text2 : HTML5_types.flow5 HTML5.M.elt list =
+	 HTML5.M.totl (HTML5.M.toeltl text2) (* FIXME *) in
+       let b =
+         match wiki_info.Wiki_types.wiki_pages with
+           | Some dir ->
+             Eliom_request_info.get_current_sub_path_string ()
+             = Ocsimore_lib.remove_begin_slash (dir^"/"^link)
+           | None -> false
        in
-       let style =
-         try Some (HTML5.M.a_style (List.assoc "style" args))
-         with Not_found -> None
-       in
-       let a = Some (classe :: (filter_raw [id; style])) in
-       let f ?classe s =
-         let link, text =
-           try String.sep '|' s
-           with Not_found -> s, s
+       if b
+       then
+         let classe = match classe with
+           | None   -> HTML5.M.a_class ["wikimenu_current"]
+           | Some c -> HTML5.M.a_class ("wikimenu_current" :: c)
          in
-         Wiki_sql.get_wiki_info_by_id wiki_id >>= fun wiki_info ->
-           phrasing_without_interactive_of_wiki bi text >>= fun text2 ->
-             let b =
-               match wiki_info.Wiki_types.wiki_pages with
-               | Some dir ->
-                   Eliom_request_info.get_current_sub_path_string ()
-                   = Ocsimore_lib.remove_begin_slash (dir^"/"^link)
-               | None -> false
-             in
-             if b
-             then
-               let classe = match classe with
-                 | None   -> HTML5.M.a_class ["wikimenu_current"]
-                 | Some c -> HTML5.M.a_class ("wikimenu_current" :: c)
-               in
-               Lwt.return (HTML5.M.li ~a:[classe] text2)
-             else
-	       let link =
-		 match make_href bi (link_kind link) None with
-		 | String_href addr ->
-		     (HTML5.M.a ~a:[HTML5.M.a_href (Uri.uri_of_string addr)] text2)
-		 | Service_href href -> a_link_of_href href ~a:[] text2
-               in
-               let classe = apply_opt HTML5.M.a_class classe in
-               let a = apply_opt (fun x -> [x]) classe in
-               Lwt.return (HTML5.M.li ?a [link])
-       in
-       let rec mapf = function
-         | []    -> Lwt.return []
-         | [x]   -> f ~classe:["wikimenu_last"] x >|= fun y -> [y]
+         Lwt.return (HTML5.M.li ~a:[classe] text2)
+       else
+	 let link =
+	   match make_href bi (link_kind link) None with
+	     | String_href addr ->
+	       (HTML5.M.a ~a:[HTML5.M.a_href (Uri.uri_of_string addr)] text2)
+	     | Service_href href -> a_link_of_href href ~a:[] text2
+         in
+	 let link : HTML5_types.flow5 HTML5.M.elt =
+	   HTML5.M.tot (HTML5.M.toelt link) (* FIXME *) in
+         let classe = apply_opt HTML5.M.a_class classe in
+         let a = apply_opt (fun x -> [x]) classe in
+         Lwt.return (HTML5.M.li ?a [link])
+     in
+     let rec mapf = function
+       | []    -> Lwt.return []
+       | [x]   -> f ~classe:["wikimenu_last"] x >|= fun y -> [y]
            | x::xs -> f x     >>= fun y  ->
-               mapf xs >|= fun ys ->
-                 (y::ys)
-       in
-       match List.fold_left
-         (fun beg (n, v) -> if n="item" then v::beg else beg)
-         [] args
-       with
+             mapf xs >|= fun ys ->
+               (y::ys)
+     in
+     match List.fold_left
+       (fun beg (n, v) -> if n="item" then v::beg else beg)
+       [] args
+     with
        | [] -> Lwt.return []
        | [x] ->
-           f ~classe:["wikimenu_first"; "wikimenu_last"] x >|= fun y ->
-             [HTML5.M.ul ?a [y]]
+         f ~classe:["wikimenu_first"; "wikimenu_last"] x >|= fun y ->
+           [HTML5.M.ul ?a [y]]
            | x::xs ->
-               f ~classe:["wikimenu_first"] x >>= fun y ->
-                 mapf xs                        >|= fun ys ->
-                   [HTML5.M.ul ?a (y::ys)]
-      )
+             f ~classe:["wikimenu_first"] x >>= fun y ->
+             mapf xs                        >|= fun ys ->
+               [HTML5.M.ul ?a (y::ys)]
+    )
+
+let () =
+  register_simple_flow_extension ~name:"menu" f_menu
+
+(* cond ; orcond *)
+
+let rec eval_cond bi = function
+  | ("error", "autherror") ->
+    Lwt_list.exists_s
+      (fun e ->
+        Lwt.return (e = User.BadPassword || e = User.BadUser))
+      (User_data.get_login_error ())
+  | ("ingroup", g) ->
+    Lwt.catch
+      (fun () ->
+        User.get_user_by_name g >>= fun group ->
+        User.in_group ~group ())
+      (function _ -> Lwt.return false)
+  | ("http_code", "404") ->
+    Lwt.return (Wiki_widgets_interface.page_displayable () =
+        Wiki_widgets_interface.Page_404)
+  | ("http_code", "403") ->
+    Lwt.return (Wiki_widgets_interface.page_displayable () =
+        Wiki_widgets_interface.Page_403)
+  | ("http_code", "40?") ->
+    Lwt.return (Wiki_widgets_interface.page_displayable () <>
+                  Wiki_widgets_interface.Page_displayable)
+  | ("page", page) ->
+    Lwt.return
+      (match snd (bi.bi_page) with
+	| None -> false
+	| Some path -> (String.concat "/" path = page))
+  | ("wiki", wiki) ->
+    Lwt.return (Wiki_types.string_of_wiki (fst (bi.bi_page)) = wiki)
+  | (err, value) when String.length err >= 3 &&
+      String.sub err 0 3 = "not" ->
+    let not_cond =
+      (String.sub err 3 (String.length err - 3), value)
+    in
+    eval_cond bi not_cond >|= not
+  | _ -> Lwt.return false
+
+let f_cond bi args content =
+  `Flow5
+    (lwt cond = Lwt_list.for_all_p (eval_cond bi) args in
+     match content, cond with
+     | Some content, true -> content
+     | _ -> Lwt.return [])
+
+let f_orcond bi args content =
+  `Flow5
+    (lwt cond = Lwt_list.exists_p (eval_cond bi) args in
+     match content, cond with
+     | Some content, true -> content
+     | _ -> Lwt.return [])
+
+let () =
+  register_wiki_flow_extension ~name:"cond" { fpp = f_cond };
+  register_wiki_flow_extension ~name:"orcond" { fpp = f_orcond };
+  let add_cond wp =
+    register_wiki_extension ~wp ~name:"cond" ~wp_rec:wp f_cond;
+    register_wiki_extension ~wp ~name:"orcond" ~wp_rec:wp f_orcond in
+  add_cond menu_parser;
+  add_cond phrasing_wikicreole_parser
+
+(* sectioning *)
+
+let f_sectioning bi_sectioning wp bi args content =
+  `Flow5
+    (match content with
+     | None -> Lwt.return []
+     | Some c ->
+	 let content = remove_spaces c in
+	 let bi = { bi with bi_sectioning } in
+	 xml_of_wiki wp bi content)
+
+let () =
+  let add_sectioning wp =
+    raw_register_wiki_extension ~name:"sectioning"
+      ~wp
+      ~ni_plugin:(f_sectioning true (cast_niwp wp))
+      (f_sectioning true (cast_wp wp));
+    raw_register_wiki_extension ~name:"nosectioning"
+      ~wp
+      ~ni_plugin:(f_sectioning false (cast_niwp wp))
+      (f_sectioning false (cast_wp wp));
   in
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"menu" f_menu;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"menu" f_menu;
-
-
-  let rec eval_cond bi = function
-    | ("error", "autherror") ->
-        Lwt_list.exists_s
-          (fun e ->
-             Lwt.return (e = User.BadPassword || e = User.BadUser))
-          (User_data.get_login_error ())
-    | ("ingroup", g) ->
-           Lwt.catch
-             (fun () ->
-               User.get_user_by_name g >>= fun group ->
-               User.in_group ~group ())
-             (function _ -> Lwt.return false)
-         | ("http_code", "404") ->
-           Lwt.return (Wiki_widgets_interface.page_displayable () =
-               Wiki_widgets_interface.Page_404)
-         | ("http_code", "403") ->
-           Lwt.return (Wiki_widgets_interface.page_displayable () =
-               Wiki_widgets_interface.Page_403)
-         | ("http_code", "40?") ->
-           Lwt.return (Wiki_widgets_interface.page_displayable () <>
-                         Wiki_widgets_interface.Page_displayable)
-         | ("page", page) ->
-	     Lwt.return
-	       (match snd (bi.bi_page) with
-		| None -> false
-		| Some path -> (String.concat "/" path = page))
-         | ("wiki", wiki) ->
-	     Lwt.return (Wiki_types.string_of_wiki (fst (bi.bi_page)) = wiki)
-         | (err, value) when String.length err >= 3 &&
-             String.sub err 0 3 = "not" ->
-           let not_cond =
-             (String.sub err 3 (String.length err - 3), value)
-           in
-           eval_cond bi not_cond >|= not
-         | _ -> Lwt.return false
-  in
-
-  let f_cond wp bi args c =
-    Wikicreole.Flow5
-      (let content = unopt_string c in
-       Lwt_list.for_all_p (eval_cond bi) args
-       >>= function
-             | true -> xml_of_wiki wp bi content
-             | false -> Lwt.return []
-      )
-  in
-
-  let f_orcond wp bi args c =
-    Wikicreole.Flow5
-      (let content = unopt_string c in
-       Lwt_list.exists_p (eval_cond bi) args
-       >>= function
-             | true -> xml_of_wiki wp bi content
-             | false -> Lwt.return []
-      )
-  in
-
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"cond" ~wiki_content:true f_cond;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"cond" ~wiki_content:true f_cond;
-  add_extension_aux
-    [menu_parser]
-    ~name:"cond" ~wiki_content:true f_cond;
-
-
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"orcond" ~wiki_content:true f_orcond;
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"orcond" ~wiki_content:true f_orcond;
-  add_extension_aux
-    [menu_parser]
-    ~name:"orcond" ~wiki_content:true f_orcond;
-
-  let f_sectioning bi_sectioning wp bi args c =
-    Wikicreole.Flow5
-      (let content = match c with
-         | Some c -> remove_spaces c
-         | None -> ""
-       in
-       let bi = { bi with bi_sectioning } in
-       xml_of_wiki wp bi content
-      ) in
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"sectioning" ~wiki_content:true (f_sectioning true);
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"sectioning" ~wiki_content:true (f_sectioning true);
-  add_extension_aux
-    [wikicreole_parser]
-    ~name:"no_sectioning" ~wiki_content:true (f_sectioning false);
-  add_extension_aux
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1; reduced_wikicreole_parser2]
-    ~name:"no_sectioning" ~wiki_content:true (f_sectioning false);
-
+  add_sectioning wikicreole_parser;
+  add_sectioning wikicreole_parser_without_header_footer;
+  add_sectioning reduced_wikicreole_parser0;
+  add_sectioning reduced_wikicreole_parser1
+  (* no headings in reduced_wikicreole_parser2 *)

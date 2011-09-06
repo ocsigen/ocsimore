@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
-   Wiki AST to OcamlDuce
+   Pretty print wiki to HTML5 using Eliom's TyXML
    @author Vincent Balat
 *)
 
@@ -25,23 +25,33 @@ open Eliom_pervasives
 open Wiki_types
 
 
-(** The type for a function acting as a syntax extension *)
-type ('res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) syntax_extension =
-  (Wiki_widgets_interface.box_info, 'res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) Wikicreole.plugin
-
-
 (** The abstract type of the objects able to parse wiki creole syntax,
     possibly with extensions. Those objects are passed as arguments
     to all displaying functions *)
-type ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser
+type 'res wikicreole_parser
 
-type ('a,'b) wiki_service =
+(** The abstract type for extensible parser. See
+    [register_simple_extension] and [register_wiki_extension].*)
+type ('res,
+      'res_without_interactive,
+      'content_link) ext_wikicreole_parser
+
+(** Cast an extensible parser to a raw parser to be used with
+    [xml_of_wiki]. *)
+val cast_wp : ('a, 'b, 'c) ext_wikicreole_parser -> 'a wikicreole_parser
+
+(** Cast an extensible parser to the associated non_interactive parser
+    to be used with [xml_of_wiki]. *)
+val cast_niwp : ('a, 'b, 'c) ext_wikicreole_parser -> 'b wikicreole_parser
+
+
+type ('a,'b, 'kind, 'suff, 'reg, 'appl) wiki_service =
     ('a, unit,
-     Eliom_services.get_service_kind,
-     Eliom_services.suff,
+     [< Eliom_services.get_service_kind] as 'kind,
+     [< Eliom_services.suff] as 'suff,
      'b, unit,
-     Eliom_services.registrable,
-     Eliom_output.appl_service ) Eliom_services.service
+     [< Eliom_services.registrable] as 'reg,
+     [< Eliom_output.appl_service] as 'appl) Eliom_services.service
 
 type service_href
 
@@ -49,7 +59,7 @@ type href =
   | String_href of string
   | Service_href of service_href
 
-val service_href : ?fragment:string -> ?https:bool -> ('a,'b) wiki_service -> 'a -> service_href
+val service_href : ?fragment:string -> ?https:bool -> ('a,'b,'c,'d,'e,'f) wiki_service -> 'a -> service_href
 
 val a_link_of_href : service_href ->
   ?a:HTML5_types.a_attrib HTML5.M.attrib list ->
@@ -58,117 +68,344 @@ val a_link_of_href : service_href ->
 
 val uri_of_href : href -> string
 
-(** Add a syntax extension to an existing syntax parser.
-    If [wiki_content] is [true], it means that your extension
-    may contain wikisyntax after "|" (that will be preparsed).
-*)
-val add_extension :
-  wp:('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser ->
+(** Add a syntax extension to an existing parser. *)
+
+(** The type of extension that can be registred into both the
+    interactive and non_interactive variant and of a parser. *)
+type (+'flow,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive) interactive_simple_plugin =
+    (Wiki_widgets_interface.box_info,
+     ('flow,
+      (href * Wikicreole.attribs *' flow_without_interactive),
+      'phrasing_without_interactive,
+      (href * Wikicreole.attribs * 'phrasing_without_interactive))
+       Wikicreole.ext_kind) Wikicreole.plugin
+
+(** The type of extension that can be registred into the interactive
+    variant of a parser. *)
+type (+'flow_without_interactive,
+      +'phrasing_without_interactive) non_interactive_simple_plugin =
+    (Wiki_widgets_interface.box_info,
+     [ `Flow5 of 'flow_without_interactive
+     | `Phrasing_without_interactive of 'phrasing_without_interactive])
+      Wikicreole.plugin
+
+type preparser =
+    Wiki_types.wikibox ->
+    Wikicreole.attribs ->
+    string option ->
+    string option Lwt.t
+
+(* Register an extension whose content does not follow the wiki
+   syntax. *)
+val register_simple_extension :
+  wp:('res,
+      'flow_without_interactive,
+      'phrasing_without_interactive) ext_wikicreole_parser ->
   name:string ->
-  ?wiki_content:bool ->
-  ('res, 'flow_without_interactive, 'phrasing_without_interactive, 'href) syntax_extension ->
+  ?preparser:preparser ->
+  ?ni_plugin:
+    ('flow_without_interactive,
+     'phrasing_without_interactive) non_interactive_simple_plugin ->
+  ('res,
+   'flow_without_interactive,
+   'phrasing_without_interactive) interactive_simple_plugin ->
   unit
+
+type (-'content,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive)
+  wiki_plugin =
+    Wiki_widgets_interface.box_info ->
+    Wikicreole.attribs ->
+    'content option ->
+    [ `Flow5 of 'flow_without_interactive
+    | `Phrasing_without_interactive of 'phrasing_without_interactive]
+
+(* Register an extension whose content follow the wiki syntax. *)
+val register_wiki_extension :
+  wp:('res,
+      'flow_without_interactive,
+      'phrasing_without_interactive) ext_wikicreole_parser ->
+  name:string ->
+  wp_rec:('a HTML5.M.elt list Lwt.t,
+	  'b HTML5.M.elt list Lwt.t,
+	  'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
+  ?preparser:preparser ->
+  ?ni_plugin:
+    ('b HTML5.M.elt list Lwt.t,
+     'flow_without_interactive,
+     'phrasing_without_interactive) wiki_plugin ->
+  ('a HTML5.M.elt list Lwt.t,
+   'res,
+   'phrasing_without_interactive) wiki_plugin ->
+  unit
+
+type (-'content,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive)
+  link_plugin =
+    Wiki_widgets_interface.box_info ->
+    Wikicreole.attribs ->
+    'content option ->
+    [ `Flow5_link of (href * Wikicreole.attribs * 'flow_without_interactive)
+    | `Phrasing_link of (href * Wikicreole.attribs * 'phrasing_without_interactive)]
+
+(* Register an extension whose content follow the wiki syntax. The
+   content is parsed with the non interactive variant of [wp_rec]. *)
+val register_link_extension :
+  wp:('res,
+      'flow_without_interactive,
+      'phrasing_without_interactive) ext_wikicreole_parser ->
+  name:string ->
+  wp_rec:('a HTML5.M.elt list Lwt.t,
+	  'b HTML5.M.elt list Lwt.t,
+	  'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
+  ?preparser:(Wiki_types.wikibox ->
+              Wikicreole.attribs ->
+              string option -> string option Lwt.t) ->
+  ('b HTML5.M.elt list Lwt.t,
+   'flow_without_interactive,
+   'phrasing_without_interactive) link_plugin ->
+  unit
+
+(* Register an extension whose content does follow the wiki syntax. (low-level variant) *)
+val raw_register_wiki_extension:
+  wp:('res,
+      'flow_without_interactive,
+      'phrasing_without_interactive) ext_wikicreole_parser ->
+  name:string ->
+  ?preparser:preparser ->
+  ?ni_plugin:
+    ('flow_without_interactive,
+     'phrasing_without_interactive) non_interactive_simple_plugin ->
+  ('res,
+   'flow_without_interactive,
+   'phrasing_without_interactive) interactive_simple_plugin ->
+  unit
+
+(* Add a "flow" syntax extension to all predefined parser
+   (that accept flow !) *)
+
+val register_simple_flow_extension :
+  name:string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  ([< HTML5_types.flow5_without_interactive_header_footer] HTML5.M.elt list Lwt.t,
+   [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t)
+     non_interactive_simple_plugin ->
+  unit
+
+val register_interactive_simple_flow_extension :
+  name:string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  ([< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Lwt.t,
+   [< HTML5_types.flow5_without_interactive_header_footer] HTML5.M.elt list Lwt.t,
+   [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t )
+  interactive_simple_plugin ->
+  unit
+
+type (+'without_interactive) link_simple_plugin =
+    (Wiki_widgets_interface.box_info,
+     href * Wikicreole.attribs * 'without_interactive)
+      Wikicreole.plugin
+
+val register_link_simple_flow_extension :
+  name:string ->
+  ?reduced:bool ->
+  ?preparser:Wiki_syntax_types.preparser ->
+  ([< HTML5_types.flow5_without_interactive_header_footer ] HTML5.M.elt list Lwt.t)
+    link_simple_plugin ->
+  unit
+
+type wiki_flow_pplugin = {
+  fpp: 'flow.
+    ('flow HTML5_types.between_flow5_and_flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+     'flow HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+    wiki_plugin
+}
+
+val register_wiki_flow_extension :
+  name: string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  wiki_flow_pplugin ->
+  unit
+
+type interactive_wiki_flow_pplugin = {
+  ifpp: 'flow 'flow_without_interactive.
+    (('flow, 'flow_without_interactive)
+	HTML5_types.between_flow5_and_flow5_without_header_footer
+	HTML5.M.elt list Lwt.t,
+     'flow HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+    wiki_plugin
+}
+
+val register_interactive_wiki_flow_extension :
+  name: string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  interactive_wiki_flow_pplugin ->
+  unit
+
+type link_wiki_flow_pplugin = {
+  lfpp: 'flow_without_interactive.
+    Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      ([> HTML5_types.flow5_without_interactive_header_footer] as 'flow_without_interactive)
+	HTML5.M.elt list Lwt.t option ->
+      (href * Wikicreole.attribs * 'flow_without_interactive HTML5.M.elt list Lwt.t)
+}
+
+val register_link_flow_extension :
+  name: string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  link_wiki_flow_pplugin ->
+  unit
+
+
+(* Add a "phrasing" syntax extension to all predefined parser *)
+
+val register_simple_phrasing_extension :
+  name:string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  ([< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t,
+   [< HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t)
+    non_interactive_simple_plugin ->
+  unit
+
+val register_interactive_simple_phrasing_extension :
+  name:string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+    (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+      interactive_simple_plugin ->
+  unit
+
+val register_link_simple_phrasing_extension :
+  name:string ->
+  ?reduced:bool ->
+  ?preparser:Wiki_syntax_types.preparser ->
+  ([< HTML5_types.phrasing_without_interactive ] HTML5.M.elt list Lwt.t)
+    link_simple_plugin ->
+  unit
+
+type wiki_phrasing_pplugin = {
+  ppp: 'phrasing.
+    (([< HTML5_types.phrasing ] as 'phrasing)
+       HTML5.M.elt list Lwt.t,
+     'phrasing HTML5.M.elt list Lwt.t,
+     HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+    wiki_plugin
+}
+
+val register_wiki_phrasing_extension :
+  name: string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  wiki_phrasing_pplugin ->
+  unit
+
+val register_interactive_wiki_phrasing_extension :
+  name: string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  wiki_phrasing_pplugin ->
+  unit
+
+type link_wiki_phrasing_pplugin =
+    Wiki_widgets_interface.box_info ->
+    Wikicreole.attribs ->
+    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t option ->
+    (href * Wikicreole.attribs * HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
+
+val register_link_phrasing_extension :
+  name: string ->
+  ?reduced:bool ->
+  ?preparser:preparser ->
+  link_wiki_phrasing_pplugin ->
+  unit
+
+
+(******)
 
 
 (** The default syntax parser. It parses wiki creole syntax, as well
     as div, span, wikiname, raw, content, menu and cond tags.
     Default (and full) wiki parser.
 *)
+
 val wikicreole_parser :
   (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
    HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 (* Currently modified in Wiki_widgets and User_widgets *)
 
 (** The same parser as [wikicreole_parser] but with a more precise type. *)
 val wikicreole_parser_without_header_footer :
   (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
-
-val wikicreole_parser_without_interactive   :
-  (HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.flow5_without_interactive_header_footer HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 
 (** The same, without subwikiboxes and containers (content).
     Used for example for forum messages.
 *)
 val reduced_wikicreole_parser0 :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
    HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 
 (** The same, without images, objects, subwikiboxes and containers (content).
     Used for example for forum messages with restricted features.
 *)
 val reduced_wikicreole_parser1 :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
    HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 
 (** The same, without images, objects, titles, tables, lists,
     subwikiboxes and containers (content). *)
 val reduced_wikicreole_parser2 :
-  (HTML5_types.flow5_without_header_footer HTML5.M.elt list Lwt.t,
+  (HTML5_types.flow5 HTML5.M.elt list Lwt.t,
    HTML5_types.flow5_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 
 (** For button content. *)
 val reduced_wikicreole_parser_button_content :
   (HTML5_types.button_content HTML5.M.elt list Lwt.t,
    HTML5_types.button_content HTML5.M.elt list Lwt.t,
-   HTML5_types.button_content HTML5.M.elt list Lwt.t,
-   HTML5_types.button_content HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.button_content HTML5.M.elt list Lwt.t) ext_wikicreole_parser
 
 (** Parser for phrasing wikicreole. *)
 val phrasing_wikicreole_parser :
   (HTML5_types.phrasing HTML5.M.elt list Lwt.t,
    HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
-
-val phrasing_wikicreole_parser_without_interactive :
-  (HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   href
-  ) wikicreole_parser
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 
 (** Parser for menu *)
 val menu_parser :
-  ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ]
-      Eliom_pervasives.HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing Eliom_pervasives.HTML5.M.elt list Lwt.t,
-   HTML5_types.phrasing_without_interactive
-     Eliom_pervasives.HTML5.M.elt list Lwt.t, href) wikicreole_parser
+  ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] HTML5.M.elt list Lwt.t,
+   [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] HTML5.M.elt list Lwt.t,
+   HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t
+  ) ext_wikicreole_parser
 
 (** the content type for wikicreole boxes: *)
-val wikicreole_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
+val wikicreole_content_type :
+  HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
 
 (** the content type for reduced_wikicreole_parser0: *)
 val reduced_wikicreole_content_type0 : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
@@ -187,29 +424,13 @@ val rawtext_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content
 val wikicreole_phrasing_content_type :
   HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type
 
-(** Return a copy of a parser. The calls to [add_extension] on one of the
-    copy will not be visible on the other *)
-val copy_parser :
-  ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser ->
-  ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser
-
-
-
-(** Functions called to transform some wikicreole text *)
-val add_preparser_extension :
-  wp:('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser ->
-  name:string ->
-  (Wiki_types.wikibox,
-    string option Lwt.t)
-  Wikicreole.plugin_args ->
-  unit
-
 val preparse_extension :
-  ('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser ->
+  'res wikicreole_parser ->
   Wiki_types.wikibox ->
-  string -> string Lwt.t
+  string ->
+  string Lwt.t
 
-
+(*
 (** Sets the extension which will be called on links *)
 val set_link_extension :
   wp:('res, 'flow_without_interactive, 'phrasing, 'phrasing_without_interactive, 'href) wikicreole_parser ->
@@ -219,7 +440,7 @@ val set_link_extension :
    Wiki_types.wikibox ->
    string option Lwt.t) ->
   unit
-
+*)
 
 (** **)
 
@@ -228,28 +449,10 @@ val set_link_extension :
 
 (** Returns the HTML5 corresponding to a wiki page *)
 val xml_of_wiki :
-  ('res_pre list Lwt.t,
-   'flow_without_interactive,
-   'phrasing,
-   [> `PCDATA ] HTML5.M.elt list Lwt.t,
-   'href
-  ) wikicreole_parser ->
+  'res HTML5.M.elt list Lwt.t wikicreole_parser ->
   Wiki_widgets_interface.box_info ->
   string ->
-  'res_pre list Lwt.t
-
-(** returns only the content of the first paragraph of a wiki text. *)
-val phrasing_of_wiki :
-  Wiki_widgets_interface.box_info ->
-  string ->
-  [> HTML5_types.phrasing] HTML5.M.elt list Lwt.t
-
-(** returns only the content of the first paragraph of a wiki text,
-    after having removed links. *)
-val phrasing_without_interactive_of_wiki :
-  Wiki_widgets_interface.box_info ->
-  string ->
-  [> HTML5_types.phrasing_without_interactive] HTML5.M.elt list Lwt.t
+  'res HTML5.M.elt list Lwt.t
 
 (** Returns the wiki syntax for an extension box
     from its name, arguments and content.
@@ -257,9 +460,9 @@ val phrasing_without_interactive_of_wiki :
 val string_of_extension :
   string -> (string * string) list -> string option -> string
 
-(** parses common attributes ([class], [id]) *)
+(** parses common attributes ([class], [id], [style]) *)
 val parse_common_attribs :
-  (string * string) list -> HTML5_types.common HTML5.M.attrib list
+  Wikicreole.attribs -> HTML5_types.common HTML5.M.attrib list
 
 (** returns the type of URL.
     [Page] means a page in current wiki ([wiki:page], or [page]),
@@ -287,7 +490,7 @@ val make_href :
 val class_wikibox: wikibox -> string
 
 
-
+(*
 val translate_link :
   oldwiki:wiki ->
   newwiki:wiki ->
@@ -297,3 +500,5 @@ val translate_link :
   Wikicreole.attribs ->
   wikibox ->
   string option Lwt.t
+*)
+

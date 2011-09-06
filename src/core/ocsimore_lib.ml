@@ -19,6 +19,8 @@ let ( ^: ) x xs = x :: xs (* right assoc, same precedence of ^? *)
 let ( % ) x y = x,y  (* left assoc, higher precedence *)
 
 
+let iter_option f o = match o with None -> () | Some x -> f x
+
 type 'a tree = Node of 'a * ('a tree list);;
 
     (* A user defined parameter type *)
@@ -164,3 +166,10 @@ let hidden_bool_input :
 
 let eliom_bool =
   Eliom_parameters.user_type ~to_string:string_of_bool ~of_string:bool_of_string
+
+
+let remove_re = Netstring_pcre.regexp "(?s-m)\\A\\s*(\\S(.*\\S)?)\\s*\\z"
+let remove_spaces s =
+  match Netstring_pcre.string_match remove_re s 0 with
+  | None -> s
+  | Some r -> Netstring_pcre.matched_group r 1 s

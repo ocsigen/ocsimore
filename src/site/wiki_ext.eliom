@@ -55,84 +55,54 @@ and extract_https args =
 let register_wikibox_syntax_extensions
     (error_box : Widget.widget_with_error_box) =
 
-  let add_extension l ~name ~wiki_content f =
-    List.iter
-      (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content (f wp))
-      l
-  in
-  let wikicreole_parser = Wiki_syntax.wikicreole_parser in
-  let wikicreole_parser_without_header_footer = Wiki_syntax.wikicreole_parser_without_header_footer in
-  let wikicreole_parser_without_interactive = Wiki_syntax.wikicreole_parser_without_interactive in
-  let reduced_wikicreole_parser0 = Wiki_syntax.reduced_wikicreole_parser0 in
-  let reduced_wikicreole_parser1 = Wiki_syntax.reduced_wikicreole_parser1 in
-  let reduced_wikicreole_parser2 = Wiki_syntax.reduced_wikicreole_parser2 in
-  let phrasing_wikicreole_parser = Wiki_syntax.phrasing_wikicreole_parser in
-  let phrasing_wikicreole_parser_without_interactive = Wiki_syntax.phrasing_wikicreole_parser_without_interactive in
-
-  let f_wikibox bi args c =
-    (Wikicreole.Flow5
-      (Lwt.catch
-         (fun () ->
-           let box =
-             wikibox_of_sql (Int32.of_string (List.assoc "box" args))
+  let f_wikibox wp bi args c =
+    `Flow5
+      (try_lwt
+         let box =
+           wikibox_of_sql (Int32.of_string (List.assoc "box" args))
+         in
+         if Ancestors.in_ancestors box bi.bi_ancestors then
+           Lwt.return
+             [error_box#display_error_box
+                 ~message:"Wiki error: loop of wikiboxes" ()]
+         else
+           let fsubbox ~sectioning menu_style = match c with
+             | None -> Lwt.return None
+             | Some c ->
+	       let bi =
+                 { bi with bi_menu_style = menu_style;
+		   bi_sectioning = sectioning; } in
+               lwt r = Wiki_syntax.xml_of_wiki wp bi c in
+               Lwt.return (Some (r :> HTML5_types.flow5 HTML5.M.elt list))
            in
-           if Ancestors.in_ancestors box bi.bi_ancestors then
-             Lwt.return
-               [error_box#display_error_box
-                   ~message:"Wiki error: loop of wikiboxes" ()]
-           else
-             let fsubbox ~sectioning menu_style = match c with
-               | None -> Lwt.return None
-               | Some c ->
-                 Wiki_syntax.xml_of_wiki wikicreole_parser
-                   { bi with bi_menu_style = menu_style;
-		       bi_sectioning = sectioning; } c >|= fun r ->
-                     Some r
-             in
-             Wiki_sql.wikibox_wiki box >>= fun wiki ->
-             Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-             let widget = Wiki_models.get_widgets wiki_info.wiki_model in
-             let class_box = Wiki_syntax.class_wikibox box in
-             widget#display_interactive_wikibox
-               ?rows:(Ocsimore_lib.int_of_string_opt
-                        (Ocsimore_lib.list_assoc_opt "rows" args))
-               ?cols:(Ocsimore_lib.int_of_string_opt
-                        (Ocsimore_lib.list_assoc_opt "cols" args))
-               ?classes:(try Some [List.assoc "class" args; class_box]
-                 with Not_found -> Some [class_box])
-               ~bi:{bi with
-                 bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
-                 bi_box = box;
-                 bi_wiki = wiki;
-                 bi_subbox = fsubbox }
-               box
-         )
-         (function
-           | Not_found ->
-             Lwt.return
-               [HTML5.M.code [HTML5.M.pcdata "<<wikibox>>" ]]
-           | _ ->
-             Lwt.return
-               [error_box#display_error_box
-                   ~message:"Wiki error: error in wikibox extension" ()]
-         )))
+           lwt wiki = Wiki_sql.wikibox_wiki box in
+           lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+           let widget = Wiki_models.get_widgets wiki_info.wiki_model in
+           let class_box = Wiki_syntax.class_wikibox box in
+           widget#display_interactive_wikibox
+             ?rows:(Ocsimore_lib.int_of_string_opt
+                      (Ocsimore_lib.list_assoc_opt "rows" args))
+             ?cols:(Ocsimore_lib.int_of_string_opt
+                      (Ocsimore_lib.list_assoc_opt "cols" args))
+             ?classes:(try Some [List.assoc "class" args; class_box]
+               with Not_found -> Some [class_box])
+             ~bi:{bi with
+               bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
+               bi_box = box;
+               bi_wiki = wiki;
+               bi_subbox = fsubbox }
+             box
+        with
+	| Not_found ->
+            Lwt.return
+              [HTML5.M.code [HTML5.M.pcdata "<<wikibox>>" ]]
+	| _ ->
+            Lwt.return
+              [error_box#display_error_box
+		  ~message:"Wiki error: error in wikibox extension" ()])
   in
 
-  Wiki_syntax.add_extension ~wp:wikicreole_parser ~name:"wikibox" ~wiki_content:true
-    (f_wikibox :> (HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list Lwt.t,
-          HTML5_types.flow5_without_interactive Eliom_pervasives.HTML5.M.elt list Lwt.t,
-          HTML5_types.phrasing_without_interactive
-          Eliom_pervasives.HTML5.M.elt list Lwt.t, Wiki_syntax.href)
-         Wiki_syntax.syntax_extension);
-  Wiki_syntax.add_extension ~wp:wikicreole_parser_without_header_footer ~name:"wikibox" ~wiki_content:true
-    f_wikibox;
-  Wiki_syntax.add_extension ~wp:wikicreole_parser_without_interactive ~name:"wikibox" ~wiki_content:true
-    f_wikibox;
-
-  (* add_extension "wikibox" above has already added a preparser for wikibox,
-     which recursively parses the argument of the wikibox. We override it
-     below, but do the same thing at the beginning of our preparser *)
-  let preparse_wikibox = (fun wp wb args c ->
+  let preparse_wikibox wp wb args c =
     (* There are two parts in the extension : we try to create boxes if the
        box='' argument of wikibox is missing. We also recursively parse the
        content c of the extension *)
@@ -140,10 +110,10 @@ let register_wikibox_syntax_extensions
     lwt c = match c with
       | None -> Lwt.return None
       | Some c ->
-          Wiki_syntax.preparse_extension wp wb c >|= fun c -> Some c
+          Wiki_syntax.preparse_extension (Wiki_syntax.cast_wp wp) wb c >|= fun c -> Some c
     in
     (* Adding the 'box=' argument *)
-    (try
+    lwt (args, c) = try
        lwt wid = Wiki_sql.wikibox_wiki wb in
        (* The user can specify the wiki, or we deduce it from the context. *)
        let wid = extract_wiki_id args wid in
@@ -156,10 +126,11 @@ let register_wikibox_syntax_extensions
          ignore (List.assoc "box" args); Lwt.return (args, c)
        with Not_found ->
          lwt userid = User.get_user_id () in
-         rights#can_create_subwikiboxes wid >>= function
-           | true ->
-             lwt box = Wiki_data.new_wikitextbox
-                 ~rights
+         lwt have_right = rights#can_create_subwikiboxes wid in
+	 if have_right then
+           ( lwt box =
+	       Wiki_data.new_wikitextbox
+		 ~rights
                  ~wiki:wid
                  ~author:userid
                  ~comment:(Printf.sprintf "Subbox of wikibox %s (from wiki %s)"
@@ -167,146 +138,94 @@ let register_wikibox_syntax_extensions
                  ~content:"**//new wikibox//**"
                  ~content_type
                  ()
-           in (Wiki_sql.get_wikibox_info wb >>= function
-                    | { wikibox_special_rights = true } ->
-                        User.GenericRights.iter_awr_lwt
-                        (fun f ->
-                           let g = f.User.GenericRights.field
-                             Wiki.wikibox_grps in
-                           User.add_to_group ~user:(g $ wb) ~group:(g $ box)
-                        )
-                    | { wikibox_special_rights = false } ->
-                        Lwt.return ()
-                 ) >|= fun () ->
-                 (   ("box", string_of_wikibox box)
+             in
+	     lwt special_rights = Wiki_sql.get_wikibox_info box in
+             ( if special_rights.wikibox_special_rights then
+		 User.GenericRights.iter_awr_lwt
+                   (fun f ->
+                     let g = f.User.GenericRights.field
+                       Wiki.wikibox_grps in
+                     User.add_to_group ~user:(g $ wb) ~group:(g $ box))
+               else
+		 Lwt.return () ) >>
+	     Lwt.return
+	       (("box", string_of_wikibox box)
                   (*We remove the wiki information, which is no longer useful*)
-                  :: List.remove_assoc "wiki" args, None)
-           | false -> Lwt.return (args, c)
-     with Failure _ -> Lwt.return (args, c))
-    >|= fun (args, c) ->
-    Some (Wiki_syntax.string_of_extension "wikibox" args c)
-    )
+                :: List.remove_assoc "wiki" args, None) )
+	 else
+	   Lwt.return (args, c)
+     with Failure _ -> Lwt.return (args, c)
+    in
+    Lwt.return (Some (Wiki_syntax.string_of_extension "wikibox" args c))
   in
-  Wiki_syntax.add_preparser_extension
-    ~wp:wikicreole_parser ~name:"wikibox"
-    (preparse_wikibox wikicreole_parser);
-  Wiki_syntax.add_preparser_extension
-    ~wp:wikicreole_parser_without_header_footer ~name:"wikibox"
-    (preparse_wikibox wikicreole_parser_without_header_footer);
-  Wiki_syntax.add_preparser_extension
-    ~wp:wikicreole_parser_without_interactive ~name:"wikibox"
-    (preparse_wikibox wikicreole_parser_without_interactive);
 
-  let f_link = (fun wp bi args c ->
-    (let page = Ocsimore_lib.list_assoc_default "page" args "" in
-     let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
-     let https = extract_https args in
-     let content =
-       match c with
-         | Some c -> Wiki_syntax.xml_of_wiki wp bi c
-         | None -> Lwt.return [HTML5.M.pcdata page]
-     in
-          (* class and id attributes will be taken by Wiki_syntax.a_elem *)
-     (let wiki = extract_wiki_id args bi.bi_wiki in
-      Wiki_syntax.make_href
-        bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment
-     ),
+  let add_wikibox wp =
+    Wiki_syntax.raw_register_wiki_extension ~wp ~name:"wikibox"
+      ~preparser:(preparse_wikibox wp)
+      ~ni_plugin:(f_wikibox (Wiki_syntax.cast_niwp wp))
+      (f_wikibox (Wiki_syntax.cast_wp wp)) in
+  add_wikibox Wiki_syntax.wikicreole_parser;
+  add_wikibox Wiki_syntax.wikicreole_parser_without_header_footer;
+
+  let f_link bi args c =
+    let page = Ocsimore_lib.list_assoc_default "page" args "" in
+    let fragment = Ocsimore_lib.list_assoc_opt "fragment" args in
+    let https = extract_https args in
+    let content =
+      match c with
+        | Some c -> c
+        | None -> Lwt.return [HTML5.M.pcdata page]
+    in
+    (* class and id attributes will be taken by Wiki_syntax.a_elem *)
+    let wiki = extract_wiki_id args bi.bi_wiki in
+    ( Wiki_syntax.make_href
+        bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment,
+      args,
+      content ) in
+  Wiki_syntax.register_link_flow_extension ~name:"flow_link" { Wiki_syntax.lfpp = f_link };
+  Wiki_syntax.register_link_phrasing_extension ~name:"link" f_link;
+
+  let f_nonattachedlink bi args c =
+    let href = Ocsimore_lib.list_assoc_default "page" args ""
+    and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
+    and https = extract_https args in
+    let content =
+      match c with
+      | Some c -> c
+      | None -> Lwt.return [HTML5.M.pcdata href]
+    in
+    let wiki_id = extract_wiki_id args bi.bi_wiki in
+    (Wiki_syntax.Service_href
+       (Wiki_syntax.service_href ?https ?fragment
+          (Wiki_self_services.find_naservpage wiki_id) href),
      args,
      content)
-  )
   in
-  Wiki_syntax.add_extension ~wp:wikicreole_parser
-    ~name:"link" ~wiki_content:true
-    (fun bi args c ->
-      Wikicreole.Flow5_link
-	(f_link wikicreole_parser_without_interactive bi args c));
-  Wiki_syntax.add_extension ~wp:wikicreole_parser_without_header_footer
-    ~name:"link" ~wiki_content:true
-    (fun bi args c ->
-      Wikicreole.Flow5_link
-	(f_link wikicreole_parser_without_interactive bi args c));
 
-  Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"link" ~wiki_content:true
-    (fun bi args c ->
-      Wikicreole.Phrasing_link
-	(f_link phrasing_wikicreole_parser_without_interactive bi args c));
+  Wiki_syntax.register_link_flow_extension ~name:"flow_nonattachedlink"
+    { Wiki_syntax.lfpp = f_nonattachedlink };
+  Wiki_syntax.register_link_phrasing_extension ~name:"nonattachedlink"
+    f_nonattachedlink;
 
-  (* Wiki_syntax.add_extension ~wp:wikicreole_parser_without_header_footer *)
-    (* ~name:"link" ~wiki_content:true (f_flow_link wikicreole_parser_without_interactive); *)
-  (* add_extension *)
-    (* [wikicreole_parser_without_header_footer; *)
-     (* reduced_wikicreole_parser0; *)
-     (* reduced_wikicreole_parser1; *)
-     (* reduced_wikicreole_parser2] *)
-    (* ~name:"link" ~wiki_content:true f; *)
-
-
-  (* Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser *)
-    (* ~name:"link" ~wiki_content:true (f phrasing_wikicreole_parser); *)
-
-
-  let f = (fun _wp bi args c ->
-       Wikicreole.Phrasing_link
-         (let href = Ocsimore_lib.list_assoc_default "page" args ""
-          and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
-          and https = extract_https args in
-          let content =
-            match c with
-              | Some c -> Wiki_syntax.phrasing_without_interactive_of_wiki bi c
-              | None -> Lwt.return [HTML5.M.pcdata href]
-          in
-          let wiki_id = extract_wiki_id args bi.bi_wiki in
-	  (Wiki_syntax.Service_href
-	     (Wiki_syntax.service_href ?https ?fragment
-                (Wiki_self_services.find_naservpage wiki_id:>('a,'b) Wiki_syntax.wiki_service) href),
-           args,
-           content)
-         )
-    )
+  let f_cancellink bi args c =
+    let content = match c with
+      | Some c -> c
+      | None -> Lwt.return [HTML5.M.pcdata "Cancel"]
+    in
+    (Wiki_syntax.Service_href
+       (Wiki_syntax.service_href
+	  Eliom_services.void_coservice' ()),
+     args,
+     content)
   in
-  add_extension
-    [wikicreole_parser]
-    ~name:"nonattachedlink" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"nonattachedlink" ~wiki_content:true f;
-  Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"nonattachedlink" ~wiki_content:true (f phrasing_wikicreole_parser);
 
+  Wiki_syntax.register_link_flow_extension ~name:"flow_cancellink"
+    { Wiki_syntax.lfpp = f_cancellink };
+  Wiki_syntax.register_link_phrasing_extension ~name:"cancellink"
+    f_cancellink;
 
-  let f = (fun _wp bi args c ->
-    Wikicreole.Phrasing_link
-      (let content = match c with
-         | Some c -> Wiki_syntax.phrasing_without_interactive_of_wiki bi c
-         | None -> Lwt.return [HTML5.M.pcdata "Cancel"]
-       in
-       (Wiki_syntax.Service_href
-	  (Wiki_syntax.service_href
-	     (Eliom_services.void_coservice':>(unit,unit) Wiki_syntax.wiki_service) ()),
-        args,
-        content)
-      )
-    )
-  in
-  add_extension
-    [wikicreole_parser]
-    ~name:"cancellink" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"cancellink" ~wiki_content:true f;
-  Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"cancellink" ~wiki_content:true (f phrasing_wikicreole_parser);
-
-
-  let f_object _wp bi args _c =
-    Wikicreole.Phrasing_without_interactive
+  let f_object bi args _c =
+    `Phrasing_without_interactive
       ((* no more in HTML5 let type_ = Ocsimore_lib.list_assoc_default "type" args "" *)
         let page = Ocsimore_lib.list_assoc_default "data" args ""
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
@@ -328,82 +247,53 @@ let register_wikibox_syntax_extensions
           ]
       )
   in
-  add_extension
-    [wikicreole_parser]
-    ~name:"object" ~wiki_content:true f_object;
-  add_extension
-    [wikicreole_parser_without_header_footer]
-    ~name:"object" ~wiki_content:true f_object;
-  add_extension
-    [wikicreole_parser_without_interactive]
-    ~name:"object" ~wiki_content:true f_object;
+  Wiki_syntax.register_simple_flow_extension ~name:"object" ~reduced:false f_object
 
-
-  let f wp bi args c =
-       Wikicreole.Phrasing_without_interactive
-         (let page = Ocsimore_lib.list_assoc_default "name" args ""
-          and https = extract_https args
-          and wiki = extract_wiki_id args bi.bi_wiki in
-          let alt = match c with Some c -> c | None -> page in
-          let atts = Wiki_syntax.parse_common_attribs args in
-          let url =
-	    Wiki_syntax.uri_of_href
-	      (Wiki_syntax.make_href
-		 bi (Wiki_syntax.Wiki_page (wiki, page, https)) None)
-          in
-          Lwt.return
-            [HTML5.M.img ~src:url ~alt ~a:atts ()]
-         )
+  let f_img bi args c =
+    `Phrasing_without_interactive
+      (let page = Ocsimore_lib.list_assoc_default "name" args ""
+      and https = extract_https args
+      and wiki = extract_wiki_id args bi.bi_wiki in
+       let alt = match c with Some c -> c | None -> page in
+       let atts = Wiki_syntax.parse_common_attribs args in
+       let url =
+	 Wiki_syntax.uri_of_href
+	   (Wiki_syntax.make_href
+	      bi (Wiki_syntax.Wiki_page (wiki, page, https)) None)
+       in
+       Lwt.return
+         [HTML5.M.img ~src:url ~alt ~a:atts ()]
+      )
   in
-  add_extension
-    [wikicreole_parser]
-    ~name:"img" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0]
-    ~name:"img" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_interactive]
-    ~name:"img" ~wiki_content:true f;
+  Wiki_syntax.register_simple_flow_extension ~name:"img" ~reduced:false f_img;
 
-  let f = (fun _wp bi args _ ->
-       Wikicreole.Phrasing_without_interactive
-         (let atts = Wiki_syntax.parse_common_attribs args in
-          Lwt.return
-            [HTML5.M.span
-		[HTML5.M.a ~a:((( HTML5.M.a_onclick
-		   {{ ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"):bool Js.t) }} )
-		   :: atts))
-                   [HTML5.M.span ~a:[ HTML5.M.a_class ["btmenu"] ] []]
-		]
-            ]
-         )
-    )
+  let f_switchmenu bi args _c =
+    `Phrasing_without_interactive
+      (let atts = Wiki_syntax.parse_common_attribs args in
+       Lwt.return
+         [HTML5.M.span
+	     [HTML5.M.a ~a:((( HTML5.M.a_onclick
+				 {{ ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"):bool Js.t) }} )
+			     :: atts))
+                 [HTML5.M.span ~a:[ HTML5.M.a_class ["btmenu"] ] []]
+	     ]
+         ]
+      )
   in
-  add_extension
-    [wikicreole_parser]
-    ~name:"switchmenu" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_header_footer;
-     reduced_wikicreole_parser0;
-     reduced_wikicreole_parser1;
-     reduced_wikicreole_parser2]
-    ~name:"switchmenu" ~wiki_content:true f;
-  add_extension
-    [wikicreole_parser_without_interactive]
-    ~name:"switchmenu" ~wiki_content:true f;
-  Wiki_syntax.add_extension ~wp:phrasing_wikicreole_parser
-    ~name:"switchmenu" ~wiki_content:true (f phrasing_wikicreole_parser);
+  Wiki_syntax.register_simple_phrasing_extension  ~name:"switchmenu" f_switchmenu;
 
-  let f_outline wp bi (args: (string * string) list) c =
-    Wikicreole.Flow5
+  let f_outline bi (args: (string * string) list) c =
+    `Flow5
       (let elem =
 	 try
 	   `Id (List.assoc "target" args)
 	 with Not_found -> `Container in
        lwt content = match c with
 	 | None -> Lwt.return []
-	 | Some c -> Wiki_syntax.xml_of_wiki wp bi c
+	 | Some c ->
+	   Wiki_syntax.xml_of_wiki
+	     (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
+	     bi c
        in
        let classe =
          try Some (HTML5.M.a_class [List.assoc "class" args])
@@ -437,9 +327,11 @@ let register_wikibox_syntax_extensions
 	 | None -> ()
 
      }};
-     Lwt.return [nav])
+     Lwt.return [nav] )
   in
-  Wiki_syntax.add_extension ~wp:wikicreole_parser
-    ~name:"outline" ~wiki_content:true (f_outline wikicreole_parser);
-  Wiki_syntax.add_extension ~wp:wikicreole_parser_without_header_footer
-    ~name:"outline" ~wiki_content:true (f_outline wikicreole_parser_without_header_footer)
+  Wiki_syntax.raw_register_wiki_extension ~name:"outline"
+    ~wp:Wiki_syntax.wikicreole_parser
+    f_outline;
+  Wiki_syntax.raw_register_wiki_extension ~name:"outline"
+    ~wp:Wiki_syntax.wikicreole_parser_without_header_footer
+    f_outline

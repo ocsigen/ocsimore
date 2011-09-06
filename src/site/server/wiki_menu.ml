@@ -167,14 +167,14 @@ let get_nodes bi args contents =
       Lwt_io.with_file ~mode:Lwt_io.input file
 	(fun ch ->
           lwt data = Lwt_io.read ch in
-          lwt nodes = Wiki_syntax.xml_of_wiki Wiki_syntax.menu_parser bi data in
+          lwt nodes = Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi data in
 	  Lwt.return nodes)
     | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
   with
   | Not_found ->
       begin match contents with
       | Some c ->
-	  Wiki_syntax.xml_of_wiki Wiki_syntax.menu_parser bi c
+	  Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
       | None -> Lwt.return [] end
   | exc -> Lwt.fail exc (* 404 and so... TODO *)
 
@@ -248,15 +248,19 @@ let do_wikimenu bi args contents =
 	| exc -> error (Format.sprintf "Error wikimenu: exception %s"
 			  (Printexc.to_string exc)))
   in
-  Wikicreole.Flow5 contents
+  `Flow5 contents
 
 let _ =
-  Wiki_syntax.add_extension Wiki_syntax.wikicreole_parser "wikimenu" do_wikimenu
+  Wiki_syntax.raw_register_wiki_extension
+    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikimenu" do_wikimenu;
+  Wiki_syntax.raw_register_wiki_extension
+    ~wp:Wiki_syntax.wikicreole_parser_without_header_footer ~name:"wikimenu" do_wikimenu
+
 
 (** *)
 
 let build_tree_from_string bi ~create_service ~contents =
-  lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.menu_parser bi contents in
+  lwt xml = Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi contents in
   Lwt.return (build_tree ~create_service xml)
 
 let build_tree_from_file bi ~create_service ~file =

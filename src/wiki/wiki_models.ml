@@ -198,7 +198,7 @@ let register_phrasings_wiki_parser,
       H.add t k' (a, b);
       (* we also register a flows parser: *)
       ignore (register_flows_wiki_parser' k a
-                (fun bi s -> b bi s >|= fun r -> [HTML5.M.div (r:HTML5_types.phrasing HTML5.M.elt list :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)]));
+                (fun bi s -> b bi s >|= fun r -> [HTML5.M.div (r:HTML5_types.phrasing HTML5.M.elt list :> HTML5_types.div_content_fun HTML5.M.elt list)]));
       k'),
    (fun k ->
       try snd (H.find t k)

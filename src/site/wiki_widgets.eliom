@@ -1557,7 +1557,8 @@ class dynamic_wikibox
 	   Lwt_io.with_file ~mode:Lwt_io.input file
 	     (fun ch ->
 	       lwt data = Lwt_io.read ch in
-	       lwt xml = Wiki_syntax.xml_of_wiki Wiki_syntax.wikicreole_parser bi data in
+	       lwt xml = Wiki_syntax.xml_of_wiki
+		 (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser) bi data in
 	       Lwt.return (Some xml))
        | _ -> Lwt.return None in
      lwt gen_box =
