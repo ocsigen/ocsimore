@@ -49,8 +49,9 @@ object (_self)
   val add_msg_class = "ocsiforum_add_message_form"
 
   method display
-    ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) ()
-    : HTML5_types.form Eliom_pervasives.HTML5.M.elt =
+    : 'a. ?forum:_ -> ?parent:_ -> ?title:_ -> ?rows:_ -> ?cols:_ -> _ ->
+      ([> HTML5_types.form ] as 'a) HTML5.M.elt =
+    fun ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) () ->
     add_forum_css_header ();
     let draw_form (actionnamename,
                    ((parentname, forumname), (subjectname, textname))) =
@@ -102,7 +103,9 @@ object (self)
   method get_message ~message_id =
     Forum_data.get_message ~message_id
 
-  method display_message ~classes content =
+  method display_message
+    : 'a. classes:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    fun ~classes content ->
     let classes = msg_class::classes in
     Lwt.return
       (HTML5.M.div ~a:[HTML5.M.a_class classes] content)
@@ -169,8 +172,9 @@ object (self)
 	   (wikibox :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) ]
       )
 
-  method display ?(classes=[]) ~data:message_id ()
-    : HTML5_types.div HTML5.M.elt Lwt.t =
+  method display
+    : 'a. ?classes:_ -> data:_ -> unit -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    fun ?(classes=[]) ~data:message_id () ->
     add_forum_css_header ();
     widget_with_error_box#bind_or_display_error
       (self#get_message ~message_id)
@@ -198,7 +202,9 @@ object (self)
   method get_thread ~message_id =
     Forum_data.get_thread ~message_id
 
-  method display_thread ~classes ((first : HTML5_types.flow5 HTML5.M.elt list), coms) : 'a Lwt.t =
+  method display_thread :
+    'a. classes:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    fun ~classes ((first : HTML5_types.flow5 HTML5.M.elt list), coms) ->
     let classes = thr_class::classes in
     Lwt.return
       (HTML5.M.div ~a:[HTML5.M.a_class classes] ( first @ coms ))
@@ -302,8 +308,11 @@ object (self)
           >>= fun (msg, coms, _) ->
           Lwt.return (classes, (msg, coms))
 
-  method display ?(commentable = true) ?rows ?cols
-    ?(classes=[]) ~data:message_id () : HTML5_types.flow5 HTML5.M.elt Lwt.t =
+  method display :
+    'a. ?commentable:_ -> ?rows:_ -> ?cols:_ ->
+      ?classes:_ -> data:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    fun ?(commentable = true) ?rows ?cols
+    ?(classes=[]) ~data:message_id () ->
     add_forum_css_header ();
     let data = self#get_thread ~message_id in
     let transform_data =
@@ -313,7 +322,7 @@ object (self)
        (fun () -> data >>= transform_data)
        (fun exc ->
           let e =
-            ( [ widget_with_error_box#display_error_box ~exc () ] :> HTML5_types.flow5 HTML5.M.elt list )
+            [ widget_with_error_box#display_error_box ~exc () ]
           in
           Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
     >>= fun (classes, c) ->
@@ -356,10 +365,12 @@ object (self)
   method get_message_list ~forum ~first ~number =
     Forum_data.get_message_list ~forum ~first ~number ()
 
-  method display_message_list ~classes content =
+  method display_message_list :
+    'a. classes:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    fun ~classes content ->
     let classes = (ml_class::classes) in
     Lwt.return
-      (HTML5.M.div ~a:[HTML5.M.a_class classes] content : HTML5_types.flow5 HTML5.M.elt)
+      (HTML5.M.div ~a:[HTML5.M.a_class classes] content)
 
   method pretty_print_message_list ~forum ?rows ?cols ~classes
     ~add_message_form list =
@@ -395,8 +406,12 @@ object (self)
 		(List.flatten l :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)
 		@ ( form :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
 
-  method display ?(rows : int option) ?(cols : int option) ?(classes=[])
-    ~forum ~first ~number ?(add_message_form = true) () =
+  method display :
+    'a. ?rows:_ -> ?cols:_ -> ?classes:_ -> forum:_ ->
+      first:_ -> number:_ -> ?add_message_form:_ -> unit ->
+	([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    fun ?(rows : int option) ?(cols : int option) ?(classes=[])
+    ~forum ~first ~number ?(add_message_form = true) () ->
     add_forum_css_header ();
     widget_with_error_box#bind_or_display_error
       (self#get_message_list ~forum ~first ~number)

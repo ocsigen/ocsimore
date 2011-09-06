@@ -23,24 +23,21 @@
 
 open Eliom_pervasives
 
-let register_wikiext ((message_widget : Forum_widgets.message_widget), thread_widget, message_list_widget) =
-  let add_extension l ~name ~wiki_content f =
-    List.iter (fun wp -> Wiki_syntax.add_extension ~wp ~name ~wiki_content f) l
-  in
-  add_extension
-    [Wiki_syntax.wikicreole_parser]
-    ~name:"forum_message" ~wiki_content:true
-    (fun bi args content ->
-       Wikicreole.Flow5
-         (let classes =
-            try Some [List.assoc "class" args]
-            with Not_found -> None
-          in
-          try
-            let message_id =
+let register_wikiext
+    ((message_widget : Forum_widgets.message_widget),
+     (thread_widget : Forum_widgets.thread_widget),
+     (message_list_widget : Forum_widgets.message_list_widget)) =
+  let f_forum_message bi args content =
+    `Flow5
+      (let classes =
+         try Some [List.assoc "class" args]
+         with Not_found -> None
+       in
+       try
+         let message_id =
               Forum_types.message_of_string (List.assoc "message" args)
-            in
-            lwt c = message_widget#display
+         in
+         lwt c = message_widget#display
 		?classes
 		~data:message_id ()
 	    in
