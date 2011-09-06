@@ -2001,12 +2001,16 @@ let () =
 
 let () =
   List.iter
-    (fun (name, make) ->
+    (fun (name, make, make') ->
+       (* FIXME it won't type without duplicating the 'make'
+	  argument... *)
        raw_register_wiki_extension ~name
 	 ~wp:wikicreole_parser
+	 ~ni_plugin:
+	 (f_block make' false (cast_niwp wikicreole_parser_without_header_footer))
 	 (f_block make false (cast_wp wikicreole_parser_without_header_footer)))
-    ["header", HTML5.M.header;
-     "footer", HTML5.M.footer]
+    ["header", HTML5.M.header, HTML5.M.header;
+     "footer", HTML5.M.footer, HTML5.M.footer]
 
 (* span *)
 
