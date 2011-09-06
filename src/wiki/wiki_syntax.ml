@@ -1871,8 +1871,10 @@ let register_link_flow_extension ~name ?(reduced = true) ?preparser plugin =
 
 
 type wiki_phrasing_pplugin = {
-  ppp: 'phrasing.
-    (([< HTML5_types.phrasing ] as 'phrasing) HTML5.M.elt list Lwt.t,
+  ppp: 'phrasing 'phrasing_without_interactive.
+    (('phrasing, 'phrasing_without_interactive)
+       HTML5_types.between_phrasing_and_phrasing_without_interactive
+       HTML5.M.elt list Lwt.t,
      'phrasing HTML5.M.elt list Lwt.t,
      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
     wiki_plugin
@@ -1884,18 +1886,26 @@ let register_wiki_phrasing_extension
   let register wp =
     register_wiki_extension ~name~wp_rec ?preparser ~wp
       ~ni_plugin:
-      (plugin.ppp :>
-	 (_, FlowTypes.flow_without_interactive, _) wiki_plugin)
-      (plugin.ppp :> _ -> _ -> _ -> (FlowTypes.flow, _, _, _) Wikicreole.ext_kind)
+      (plugin.ppp
+	 : (FlowTypes.phrasing_without_interactive,
+	    FlowTypes.phrasing_without_interactive, _) wiki_plugin
+         :> (FlowTypes.phrasing_without_interactive,
+	     FlowTypes.flow_without_interactive, _) wiki_plugin)
+      (plugin.ppp
+	 : (FlowTypes.phrasing, FlowTypes.phrasing, _) wiki_plugin
+         :> (FlowTypes.phrasing, FlowTypes.flow, _) wiki_plugin)
   in
   register wikicreole_parser;
   register_wiki_extension ~name ~wp_rec ?preparser
     ~wp:wikicreole_parser_without_header_footer
     ~ni_plugin:
-    (plugin.ppp :>
-       (_, FlowWithoutHeaderFooterTypes.flow_without_interactive, _) wiki_plugin)
-    (plugin.ppp :>
-       _ -> _ -> _ -> (FlowWithoutHeaderFooterTypes.flow, _, _, _) Wikicreole.ext_kind);
+    (plugin.ppp
+       : (FlowTypes.phrasing_without_interactive,
+	    FlowTypes.phrasing_without_interactive, _) wiki_plugin
+     :> (_, FlowWithoutHeaderFooterTypes.flow_without_interactive, _) wiki_plugin)
+    (plugin.ppp
+       : (FlowTypes.phrasing, FlowTypes.phrasing, _) wiki_plugin
+     :> (_, FlowWithoutHeaderFooterTypes.flow, _) wiki_plugin);
   if reduced then begin
     register reduced_wikicreole_parser0;
     register reduced_wikicreole_parser1;
@@ -1911,18 +1921,16 @@ let register_interactive_wiki_phrasing_extension
   let wp_rec = phrasing_wikicreole_parser in
   let register wp =
     register_wiki_extension ~name ~wp ~wp_rec ?preparser
-      (plugin.ppp :>
-	 _ -> _ -> _ -> (FlowTypes.flow, _ * _ * FlowTypes.flow_without_interactive, _, _)
-	 Wikicreole.ext_kind)
+      (plugin.ppp
+	 : (FlowTypes.phrasing, FlowTypes.phrasing, _) wiki_plugin
+       :> (_, FlowTypes.flow, _) wiki_plugin)
   in
   register wikicreole_parser;
   register_wiki_extension ~name ~wp_rec ?preparser
     ~wp:wikicreole_parser_without_header_footer
-    (plugin.ppp :>
-	 _ -> _ -> _ ->
-     (FlowWithoutHeaderFooterTypes.flow,
-      _ * _ * FlowWithoutHeaderFooterTypes.flow_without_interactive, _, _)
-	 Wikicreole.ext_kind);
+      (plugin.ppp
+	 : (FlowTypes.phrasing, FlowTypes.phrasing, _) wiki_plugin
+       :> (_, FlowWithoutHeaderFooterTypes.flow, _) wiki_plugin);
   if reduced then begin
     register reduced_wikicreole_parser0;
     register reduced_wikicreole_parser1;
@@ -2006,13 +2014,17 @@ let f_span bi args content =
   `Phrasing_without_interactive
     (lwt content = match content with
        | None -> Lwt.return []
-       | Some c -> c
+       | Some c ->
+	   (c :> (HTML5_types.phrasing,
+		  HTML5_types.phrasing_without_interactive)
+	      HTML5_types.between_phrasing_and_phrasing_without_interactive
+		  HTML5.M.elt list Lwt.t)
      in
      let a = Some (parse_common_attribs args) in
-     Lwt.return [HTML5.M.span ?a content])
+     Lwt.return [(HTML5.M.span ?a content : 'a HTML5.M.elt)])
 
 let () =
-  register_wiki_phrasing_extension ~name:"span" { ppp = f_span}
+  register_wiki_phrasing_extension ~name:"span" { ppp = f_span }
 
 (* wikiname *)
 

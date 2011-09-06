@@ -299,8 +299,9 @@ val register_link_simple_phrasing_extension :
   unit
 
 type wiki_phrasing_pplugin = {
-  ppp: 'phrasing.
-    (([< HTML5_types.phrasing ] as 'phrasing)
+  ppp: 'phrasing 'phrasing_without_interactive.
+    (('phrasing, 'phrasing_without_interactive)
+       HTML5_types.between_phrasing_and_phrasing_without_interactive
        HTML5.M.elt list Lwt.t,
      'phrasing HTML5.M.elt list Lwt.t,
      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
