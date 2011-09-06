@@ -2014,11 +2014,7 @@ let f_span bi args content =
   `Phrasing_without_interactive
     (lwt content = match content with
        | None -> Lwt.return []
-       | Some c ->
-	   (c :> (HTML5_types.phrasing,
-		  HTML5_types.phrasing_without_interactive)
-	      HTML5_types.between_phrasing_and_phrasing_without_interactive
-		  HTML5.M.elt list Lwt.t)
+       | Some c -> (c :> HTML5_types.phrasing HTML5.M.elt list Lwt.t)
      in
      let a = Some (parse_common_attribs args) in
      Lwt.return [(HTML5.M.span ?a content : 'a HTML5.M.elt)])

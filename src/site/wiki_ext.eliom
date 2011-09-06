@@ -182,8 +182,8 @@ let register_wikibox_syntax_extensions
         bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment,
       args,
       content ) in
-  Wiki_syntax.register_link_flow_extension ~name:"flow_link" { Wiki_syntax.lfpp = f_link };
-  Wiki_syntax.register_link_phrasing_extension ~name:"link" f_link;
+  Wiki_syntax.register_link_flow_extension ~name:"link" { Wiki_syntax.lfpp = f_link };
+  Wiki_syntax.register_link_phrasing_extension ~name:"link-inline" f_link;
 
   let f_nonattachedlink bi args c =
     let href = Ocsimore_lib.list_assoc_default "page" args ""
@@ -202,9 +202,9 @@ let register_wikibox_syntax_extensions
      content)
   in
 
-  Wiki_syntax.register_link_flow_extension ~name:"flow_nonattachedlink"
+  Wiki_syntax.register_link_flow_extension ~name:"nonattachedlink"
     { Wiki_syntax.lfpp = f_nonattachedlink };
-  Wiki_syntax.register_link_phrasing_extension ~name:"nonattachedlink"
+  Wiki_syntax.register_link_phrasing_extension ~name:"nonattachedlink-inline"
     f_nonattachedlink;
 
   let f_cancellink bi args c =
@@ -219,9 +219,9 @@ let register_wikibox_syntax_extensions
      content)
   in
 
-  Wiki_syntax.register_link_flow_extension ~name:"flow_cancellink"
+  Wiki_syntax.register_link_flow_extension ~name:"cancellink"
     { Wiki_syntax.lfpp = f_cancellink };
-  Wiki_syntax.register_link_phrasing_extension ~name:"cancellink"
+  Wiki_syntax.register_link_phrasing_extension ~name:"cancellink-inline"
     f_cancellink;
 
   let f_object bi args _c =
