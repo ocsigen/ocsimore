@@ -78,10 +78,10 @@ let unopt ~def = function
 let unopt_string s = unopt ~def:"" s
 
 
-let parse_common_attribs attribs =
+let parse_common_attribs ?classes attribs =
   let at1 =
-    try Some (HTML5.M.a_class [List.assoc "class" attribs])
-    with Not_found -> None
+    try Some (HTML5.M.a_class (String.split ',' (List.assoc "class" attribs) @ unopt ~def:[] classes))
+    with Not_found -> map_option HTML5.M.a_class classes
   and at2 =
     try Some (HTML5.M.a_id (List.assoc "id" attribs))
     with Not_found -> None
@@ -1005,7 +1005,7 @@ module FlowBuilder = struct
   let a_elem_phrasing
       attribs addr
       (c : HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t list) =
-    let a = parse_common_attribs attribs in
+    let a = parse_common_attribs ~classes:["ocsimore_phrasing_link"] attribs in
     Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
       match addr with
 	| String_href addr ->
@@ -1015,7 +1015,7 @@ module FlowBuilder = struct
 	  [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)]
 
   let a_elem_flow attribs addr c =
-    let a = parse_common_attribs attribs in
+    let a = parse_common_attribs ~classes:["ocsimore_flow_link"] attribs in
     Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
       match addr with
 	| String_href addr ->

@@ -295,21 +295,8 @@ let register_wikibox_syntax_extensions
 	     (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
 	     bi c
        in
-       let classe =
-         try Some (HTML5.M.a_class [List.assoc "class" args])
-         with Not_found -> None
-       in
-       let id =
-         try Some (HTML5.M.a_id (List.assoc "id" args))
-         with Not_found -> None
-       in
-       let style =
-         try Some (HTML5.M.a_style (List.assoc "style" args))
-         with Not_found -> None
-       in
-       let ocsimore_class = Some (HTML5.M.a_class ["ocsimore_outline"]) in
-       let a = opt_list (filter_raw [classe; id; style; ocsimore_class]) in
-       let nav = HTML5.M.unique (HTML5.M.nav ?a content) in
+       let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
+       let nav = HTML5.M.unique (HTML5.M.nav ~a content) in
        HTML5outliner.add_outliner_js ();
        Eliom_services.onload {{
 
