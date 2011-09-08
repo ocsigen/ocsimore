@@ -1,0 +1,48 @@
+
+===Predefined services===
+
+{{{ocsimoreadmin/login}}} a connection box (useful for example if you removed by
+mistake the login box from all pages)
+
+{{{ocsimoreadmin/wiki_edit?wikiid=n&boxid=m}}} to edit a wikibox
+
+
+
+
+===authentication using external services===
+
+//Any contributions appreciated for other authentication methods!//
+
+===NIS authentication:===
+
+Configuration file example:
+{{{
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+        <nis/>
+      </eliom>
+}}}
+
+
+====PAM authentication:====
+
+Configuration file example:
+{{{
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+        <pam service="ocsimore" />
+      </eliom>
+}}}
+
+Here the service name must correspond to a file in {{{/etc/pam.d}}}.
+
+//Warning:// It is not possible (for now) to use
+authentication based on {{{/etc/shadow}}} (using pam_unix), because
+Ocsigen does not have read access to this file
+(would be dangerous to give access to that file to a web server).
+
+===Clear the cache
+
+Use the {{{ocsimore:clearcache}}} command to clear the database cache. Example:
+
+{{{
+echo "ocsimore:clearcache" > /var/run/ocsigen_command
+}}}

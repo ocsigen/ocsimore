@@ -1,0 +1,186 @@
+==Ocsimore's wiki extension==
+
+Creating several wikis (associated to several paths)
+allows to give different rights for subdirectories of the site.
+
+===Wiki syntax===
+
+The wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax (but it is possible to plug another
+syntax). 
+
+{{wiki(1):creole_cheat_sheet.png|Base wikicreole syntax}}
+
+It supports extensions with the following syntax:
+
+{{{<<extensionname arg1='value1' arg2='value2' >>}}}
+or
+{{{<<extensionname arg1='value1' arg2='value2' |data>>}}}
+
+See below for predefined extensions.
+
+It also supports attributes with the following syntax:
+{{{@@name="value"; name= "value"@@}}}
+Put attribute just after the openning tag.
+For example:
+{{{//@@class="important"@@some text//}}}
+
+For now, attributes {{{class}}} and {{{id}}} are defined for each tag, and
+the semantics is the one of xhtml class and id attributes.
+
+Sometimes it is possible to put several sets of attributes 
+(tables, rows, list items).
+Examples:
+
+{{{|@@...attributes for full table...@...attributes for row...@...attributes for cell...@@ first cell| ... |}}}
+
+{{{*@@...attributes for full list...@...attributes for item...@@ text}}}
+
+=====Links=====
+
+Links are created with the syntax {{{[[page|...]]}}}, where {{{page}}} is by default a page in the current wiki.
+Note that //it is not a relative link!//
+More precisely, it is relative to the root of the wiki.
+Thus it is possible to have the same wikibox on several pages.
+
+{{{[[page|...]]}}} is a shortcut for {{{[[wiki:page|...]]}}}.
+If you want to create a link towards a page from another wiki, do {{{[[wiki(n):page|...]]}}}, where {{{n}}} is the
+wiki number.
+
+If you want to make a link relative to the root of the full site (for example towards a page that is not in a wiki), do:
+{{{[[site:href|...]]}}} (where {{{href}}} may contain characters like {{{?}}} or {{{&}}})).
+
+If you want ot make an absolute link towards another Web site, put the full URL, for example:
+{{{[[http://server/page|...]]}}}.
+
+If you want towards a page, forcing {{{http}}} or {{{https}}}, do for example:
+{{{[[https+wiki(n):page|...]]}}} or {{{[[http+site:href|...]]}}}. In that case, the link will be absolute.
+
+//Warning: it is recommended to use absolute URLs only for external links or if you want to force the protocol!//
+
+=====Additions=====
+
+|{{{--}}}| -- (en dash)|
+|{{{---}}}| --- (em dash)|
+|{{{##Monospace##}}}|##Monospace##|
+|{{{^^Superscript^^}}}|^^Superscript^^|
+|{{{,,Subscripted,,}}}|,,Subscripted,,|
+|{{{__Underline__}}}|__Underline__|
+|{{{/-Line-through-/}}}|/-Line-through-/|
+|{{{;title1}}}\\{{{:definition1}}}\\{{{;title2}}}\\{{{:definition2}}}|//Definition list//|
+
+
+====Predefined extensions====
+
+{{{<<div class='...' id='...' |data>>}}}
+creates a <div> box.
+
+{{{<<span class='...' id='...' |data>>}}}
+creates a <span> box.
+
+{{{<<wikibox box='j' >>}}}
+displays the wikibox number j from current wiki.
+Other optional arguments are possible:
+*{{{wiki='i'}}} to display a box from another wiki
+*{{{cols='i'}}} (number of columns of the edition window)
+*{{{rows='i'}}} (number of rows of the edition window)
+*{{{class='...'}}} (class xml attribute to use for the box)
+
+If you want to create a new wikibox, do not put the box argument.
+A wikibox may be a container. Just put {{{<<content>>}}} inside it.
+To use a container, use the syntax:
+{{{<<wikibox box='j' | put here the content >>}}}
+
+{{{<<|...>>}}} comment (will not be displayed)
+
+{{{<<menu item='link|text of the item' item='...' ... >>}}}
+displays a menu
+
+{{{<<loginbox>>}}}
+displays a login box
+Optional parameters:
+*{{{user_prompt='login:'}}}
+*{{{pwd_prompt='pwd:'}}}
+*{{{auth_error='Wrong login or password'}}}
+
+{{{<<logoutlink>>}}}
+{{{<<logoutbutton>>}}}
+display a logout link or button
+
+{{{<<raw arg1='value1' arg2='value2' | data >>}}}
+displays the string  {{{"<<arg1='value1' arg2='value2' | data >>"}}}
+(for debugging purpose).
+
+Conditional display w.r.t. groups: (EXPERIMENTAL)
+*{{{<<cond ingroup='users'|data>>}}}
+*{{{<<cond notingroup='users'|data>>}}}
+*{{{<<cond error='autherror'|data>>}}} (wrong user or password)
+
+{{{<<username>>}}} displays the name of the user.
+
+{{{<<nonattachedlink wiki='...' page='...'|...>>}}} is like {{{[[...|...]]}}}
+for links,
+but instead of using a link towards another page, it uses a non-attached
+service (i.e. the path in the URL won't change, only parameters).
+Use this if you do not want to go to another URL.
+The wiki argument is optional.
+other optional arguments:
+protocol='https' or protocol='http' (will create absolute links)
+fragment="..." to create a link containing a # (link to a portion of page with
+an id attribute)
+class, id
+
+{{{<<object wiki='...' data='...' type='...'>>}}} 
+allows to include an objet in the page (see {{{<object>}}} xhtml tag).
+The wiki argument is optional.
+other optional arguments:
+protocol="https" or protocol="http" (will create absolute links)
+fragment="..." to create a link containing a # (link to a portion of page with
+an id attribute)
+class, id
+
+{{{<<cancellink|...>>}}} is a link towards the same page without special
+parameters. Use it if you want to cancel the edition of a page for example.
+The text after the vertical bar is the text of the link.
+
+//deprecated! now use the extended syntax for links// {{{<<link wiki='...' page='...'|...>>}}} is like 
+{{{[[...|...]]}}} for links,
+but allows links towards other wikis.
+The wiki argument is optional.
+other optional arguments:
+protocol="https" or protocol="http" (will create absolute links)
+fragment="..." to create a link containing a # (link to a portion of page with
+an id attribute)
+class, id
+
+//deprecated! now use the extended syntax for links// {{{<<img wiki='...' name='...' |...>>}}} is like 
+{{{ {{...|...}} }}} for images,
+but allows links towards images from other wikis
+(will compute the URL from the URL of the wiki).
+The wiki argument is optional.
+other optional arguments:
+protocol="https" or protocol="http" (will create absolute links)
+class, id
+
+
+
+
+
+===Groups hierarchy===
+For each wiki:
+{{{
+       -------- WikiAdmin(w)-------------------------------------------------------
+      /                 |                 \             \                \         \
+WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)  Wikiboxes
+     |                  |             Creators(w)    Creators(w)                 Deletors(w)
+WikiboxesWriters(w)  FilesWriters(w)          \       /
+     |                  |                   GenWikiboxes
+WikiboxesReaders(w)  FilesReaders(w)         Creators(w)
+
+
+WikiboxAdmin(wb)
+   |
+WikiboxWriter(wb)
+   |
+WikiboxReader(wb)
+}}}
+The generic permissions of the wiki can be overridden on a per-wikibox basis, using the groups Wikibox*

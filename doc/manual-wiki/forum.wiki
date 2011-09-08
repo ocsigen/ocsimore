@@ -1,0 +1,63 @@
+==Ocsimore's forum extension==
+
+===Wiki syntax===
+
+{{{<<forum_message_list forum="1">>}}}
+
+{{{<<forum_thread forum="1">>}}}
+
+{{{<<forum_message forum="1">>}}}
+
+===Group hierarchy===
+
+====For all forums====
+{{{
+   forum_creators
+}}}
+
+====For each forum====
+{{{
+                                                   \     /
+                                               moderated_readers                
+                                   __________/        |
+                            \  /  /                \  |  /
+        \     /            readers                _creators                                    \   /
+  deletors_if_creators        |                       |                                    modifiers_if_creator
+         \ | /              \ | /                  \  |  /                   \  /              \ | /
+       _deletors         _moderators      _creators_not_moderated         ..._sticky_setters  _modifiers
+               \________________\_______________      |      ____________/_____________________/
+                                                 forum_admin
+
+                                                    admin
+
+
+}}}
+
+
+====For each forum wiki (messages or comments)====
+{{{
+                                                        forum_visible
+                                                              |
+                                                 _readersifmessagemoderated
+                         _______________________/         /   |   \        \____________
+                        /                                /    |    \                    \
+ deletors_if_creator   /                                /     |     \                    \      modifiers_if_creator
+          |           /                                /      |      \                    \          |
+_deletors = wikiboxdel  _readersnotmod = wikiboxreaders   _creators    _sticky_setters      modifiers = wikiboxwriters
+                                       |               \      |
+                                 _moderators  _creators_notmod = wikiboxcreators
+
+                                                  admin
+}}}
+
+====For threads with special rights====
+{{{
+
+                     moderated_readers
+                    /         |
+                   /          |
+  comments_creators    readers_notmod
+          |
+comments_creators_notmod
+}}}
+
