@@ -2012,6 +2012,28 @@ let () =
     ["header", HTML5.M.header, HTML5.M.header;
      "footer", HTML5.M.footer, HTML5.M.footer]
 
+(* pre *)
+
+let f_pre bi args content =
+  `Flow5
+    (lwt content = match content with
+       | None -> Lwt.return []
+       | Some c -> (c :> HTML5_types.pre_content HTML5.M.elt list Lwt.t)
+     in
+     let a = Some (parse_common_attribs args) in
+     Lwt.return [HTML5.M.pre ?a content])
+
+let () =
+  let register wp =
+    register_wiki_extension ~wp ~wp_rec:phrasing_wikicreole_parser
+      ~name:"pre" ~ni_plugin:f_pre f_pre in
+  register wikicreole_parser;
+  register wikicreole_parser_without_header_footer;
+  register reduced_wikicreole_parser0;
+  register reduced_wikicreole_parser1;
+  register reduced_wikicreole_parser2
+
+
 (* span *)
 
 let f_span bi args content =
