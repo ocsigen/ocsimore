@@ -1226,11 +1226,10 @@ module PhrasingBuilder = struct
 
   include Reduced2FlowBuilder
 
-  let br_elem _ =
-    Lwt.return
-      [HTML5.M.em
-          [HTML5.M.pcdata "Line breaks not enabled in this syntax"]]
-  let p_elem = span_elem
+  let p_elem _ (c: PhrasingTypes.phrasing list) : PhrasingTypes.flow_without_interactive =
+    lwt l = Lwt_list.map_s (* Don't do this at home kids ! PC *)
+      (fun x ->  lwt x = x in Lwt.return (HTML5.M.totl (HTML5.M.toeltl x))) c in
+    Lwt.return (List.flatten l)
   let pre_elem _ _ =
          Lwt.return
           [HTML5.M.em
