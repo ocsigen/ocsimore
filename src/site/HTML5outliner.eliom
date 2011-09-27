@@ -41,7 +41,10 @@ let add_outliner_js () =
        | tag ->
 	   let ignore =
 	     if tag = "HEADER" then
-	       Some (fun n' -> Js.bool (n' == n))
+	       Some (fun n' ->
+		       Js.bool
+			 ((Js.Opt.get (n'##parentNode) (fun () -> n)) == n
+			  && Js.to_string (n'##nodeName) <> "H1"))
 	     else
 	       ignore
 	   in
