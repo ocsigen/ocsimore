@@ -589,7 +589,7 @@ let () =
 	   tag_eliom_files ()
          | After_rules ->
 	   Pathname.define_context "src/wiki" ["src/core"; "src/user"];
-	   Pathname.define_context "src/site/type"   ["src/wiki";"src/user";"src/core"];
+	   Pathname.define_context "src/site/type"   ["src/wiki";"src/user";"src/core"; "src/forum"];
 	   Pathname.define_context "src/site/server" ["src/wiki";"src/user";"src/core"];
 	   Pathname.define_context "src/site/client" ["src/wiki";"src/user";"src/core"];
 	   Pathname.define_context "src/forum" ["src/wiki";"src/user"];

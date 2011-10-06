@@ -2,6 +2,10 @@ div.ocsiforum_comment_form {
   display: none;
 }
 
+div.ocsiforum_comment_form.showcomment {
+  display: block;
+}
+
 div.ocsiforum_comment_button {
   cursor: pointer;
   font-size: 50%;

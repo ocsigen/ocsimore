@@ -217,48 +217,30 @@ object (self)
        HTML5.M.div ~a:[HTML5.M.a_class classes2] coms)
 
   method display_comment_line ~role ?rows ?cols m =
-(*    Lwt.return
-       {{ [
-         <span class={: comment_class :}>
-           {: Ocamlduce.Utf8.make "Comment" :}
-         <div class={: comment_class :}>[
-           {: Eliom_duce.Html5.post_form
-              ~a:{{ { accept-charset="utf-8" } }}
-              ~service:add_message_service
-              ~sp draw_form () :}]
-         ] }} *)
   !!(role.Forum.comment_creators) >>= fun comment_creators ->
   if comment_creators
   then
-    (* TODO obrowser -> js_of_ocaml
-    let n1_id = Eliom_obrowser.fresh_id () in
-    let n2_id = Eliom_obrowser.fresh_id () in
-    *)
     let form =
       add_message_widget#display ~parent:m.m_id ~title:false ?rows ?cols ()
     in
-    let rec n1 =
+    let comment_div =
+      HTML5.M.unique
+        (HTML5.M.div
+	   ~a:[HTML5.M.a_class [comment_class]]
+	   [ form ])
+    in
+    let show_form =
       HTML5.M.div
 	~a:[HTML5.M.a_class [comment_button_class];
-            (* TODO obrowser -> js_of_ocaml
-	      HTML5.M.a_id n1_id;
-              HTML5.M.a_onclick (Forum_client_calls.switchshow n1_id n2_id)
-	    *)
-	   ]
+            HTML5.M.a_onclick
+              {{ ignore (
+                (Eliom_client.Html5.of_div %comment_div)##classList
+                  ##toggle(Js.string "showcomment"):bool Js.t)
+              }} ]
 	[HTML5.M.pcdata "Comment" ]
-    and n2 =
-      HTML5.M.div
-	~a:[HTML5.M.a_class [comment_class];
-	    HTML5.M.a_style "display:block";
-	   (* TODO obrowser -> js_of_ocaml
-              HTML5.M.a_id n2_id
-	   *)
-	   ]
-	[ form ]
     in
-    Lwt.return [ n1; n2 ]
+    Lwt.return [ show_form; comment_div ]
   else Lwt.return []
-
 
   method pretty_print_thread ~classes ~commentable ?rows ?cols thread :
     (string list * (HTML5_types.flow5 HTML5.M.elt list * HTML5_types.flow5 HTML5.M.elt list)) Lwt.t =

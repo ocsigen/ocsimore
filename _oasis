@@ -121,6 +121,7 @@ Library "core_site_client"
     HTML5outliner,
     Wiki_ext,
     Wiki_widgets,
+    Forum_widgets,
     Ocsimore
   XMETADescription: some extensions
   BuildDepends:
