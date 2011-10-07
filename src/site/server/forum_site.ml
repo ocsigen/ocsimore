@@ -50,6 +50,8 @@ let thread_widget =
 let message_list_widget =
   new Forum_widgets.message_list_widget
     widget_err message_widget add_message_widget
+let forum_widget =
+  new Forum_widgets.forum_widget widget_err
 
 let _ = Forum_wikiext.register_wikiext
   (message_widget, thread_widget, message_list_widget)
@@ -70,6 +72,88 @@ let () = Eliom_output.Html5.register forum_root
        ]
   )
 
+let ($) = User_sql.Types.($)
+
+let content_type_input content_type =
+  let open Xform.XformLwt in
+  let open Xform.XformLwt.Ops in
+  string_input (Wiki_types.string_of_content_type content_type)
+  |> Wiki_types.content_type_of_string
+
+let edit_forum_form ~serv_path:_ ~service ~arg
+    ~(forum:Forum_types.forum) ~title ~descr ~arborescent
+    ~title_syntax ~messages_wiki ~comments_wiki
+    ?err_handler cont =
+  let page _arg error form =
+    let title = match error with
+      | Xform.NoError -> "Forum edition"
+      | _ -> "Error" in
+    Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
+      ( HTML5.M.h1 [HTML5.M.pcdata title]
+       :: (match error with
+             | Xform.ErrorMsg err ->
+                 [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
+                    [HTML5.M.pcdata err]
+                 ]
+             | _ -> [])
+       @  [form]
+      )
+  in
+  lwt info = Forum_data.get_forum ~forum () in
+  let open Forum_types in
+  let open Xform.XformLwt in
+  let open Xform.XformLwt.Ops in
+  (* TODO: allow editing other fields *)
+  lwt form =
+    Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
+    (p (strong (text (Printf.sprintf "Forum '%s'" info.f_title)) ::
+          text (Printf.sprintf " (id %s)" (string_of_forum forum))  @+
+          Opaque.int32_input_xform ~a:[HTML5.M.a_input_type `Hidden] forum) @@
+       p (text "Title: " @+ string_input title) @@
+       p (text "Description: " @+ string_input descr) @@
+       p (text "Arborescent: " @+ bool_checkbox arborescent) @@
+       p (text "Comments wiki: "  @+ Opaque.int32_input_xform comments_wiki) @@
+       p (text "Messages wiki: "  @+ Opaque.int32_input_xform messages_wiki) @@
+       p (text "Title syntax: " @+ content_type_input title_syntax) @@
+       p (submit_button "Save")
+      |> cont)
+  in
+  page arg Xform.NoError form
+
+
+let edit_forum =
+  let err_handler = function
+    | Ocsimore_common.Permission_denied ->
+        Some "You do not have sufficient permissions to edit forums"
+    | _ -> Some "An unknown error has occurred"
+  in
+  Eliom_output.Html5.register Forum_services.edit_forum
+    (fun forum () ->
+      lwt info = Forum_data.get_forum ~forum () in
+      let open Forum_types in
+      match_lwt User.in_group ~group:(Forum.forum_admin $ forum) () with
+        | true ->
+          edit_forum_form ~serv_path:Forum_services.path_edit_forum
+            ~service:Forum_services.view_forums ~arg:()
+            ~forum ~title:info.f_title ~descr:info.f_descr
+            ~arborescent:info.f_arborescent ~comments_wiki:info.f_comments_wiki
+            ~messages_wiki:info.f_messages_wiki
+            ~title_syntax:info.f_title_syntax ~err_handler
+            (fun (forum, (title, (descr, (arborescent,
+               (comments_wiki, (messages_wiki,
+               (title_syntax, (_ : bool)))))))) () ->
+              lwt () = Forum_data.update_forum ~title ~descr
+                ~arborescent ~comments_wiki ~messages_wiki
+                ~title_syntax forum in
+              Page_site.admin_page ~service:Forum_services.view_forums
+                [HTML5.M.h1
+                [HTML5.M.pcdata "Forum information sucessfully edited"]])
+        | false ->
+          Page_site.admin_page
+            [HTML5.M.h1 [HTML5.M.pcdata "Insufficient permissions"];
+             HTML5.M.p [HTML5.M.pcdata "You do not have enough rights to \
+                                           edit this forum"];])
+
 let forum_empty_menu =
   Eliom_services.service
     ~path:[Ocsimore_lib.ocsimore_admin_dir;"forums_do_nothing"]
@@ -84,7 +168,14 @@ let () = Eliom_output.Html5.register forum_empty_menu
       ]
   )
 
+(** We register the service that lists all the forums *)
+let () =  Eliom_output.Html5.register Forum_services.view_forums
+    (fun () () ->
+      lwt body = forum_widget#display_all_forums in
+      Page_site.admin_page body)
+
 let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
   ~links:[
+    "View all forums", Forum_services.view_forums, (fun () -> Lwt.return true);
     "empty menu", forum_empty_menu, (fun () -> Lwt.return true);
   ]

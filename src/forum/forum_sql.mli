@@ -39,6 +39,18 @@ val new_forum :
   unit ->
   forum Lwt.t
 
+(** Update the information of a forum. All arguments not passed are left
+    unchanged *)
+val update_forum :
+  ?title:string ->
+  ?descr:string ->
+  ?arborescent:bool ->
+  ?title_syntax: 'res Wiki_types.content_type ->
+  ?messages_wiki:Wiki_types.wiki ->
+  ?comments_wiki:Wiki_types.wiki ->
+  Forum_types.forum ->
+  unit Lwt.t
+
 (** inserts a message in a forum. 
     [?moderated] and [?sticky] are false by default. *)
 val new_message :

@@ -125,3 +125,13 @@ let register_services () =
 
   (add_message_service,
    moderate_message_service)
+
+let path_edit_forum = [Ocsimore_lib.ocsimore_admin_dir;"edit_forum"]
+
+let edit_forum = Eliom_services.service
+  ~path:path_edit_forum
+  ~get_params:(Forum.eliom_forum "forum") ()
+
+let view_forums = Eliom_services.service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_forums"]
+  ~get_params:Eliom_parameters.unit ()

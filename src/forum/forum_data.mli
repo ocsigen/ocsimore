@@ -41,6 +41,19 @@ val new_forum :
   unit ->
   Forum_types.forum Lwt.t
 
+(** Update the information of a forum. All arguments not passed are left
+    unchanged. May fail with exception
+    [Ocsimore_common.Permission_denied]. *)
+val update_forum :
+  ?title:string ->
+  ?descr:string ->
+  ?arborescent:bool ->
+  ?title_syntax: 'res Wiki_types.content_type ->
+  ?messages_wiki:Wiki_types.wiki ->
+  ?comments_wiki:Wiki_types.wiki ->
+  Forum_types.forum ->
+  unit Lwt.t
+
 (** inserts a message in a forum. 
     [?moderated] and [?sticky] are false by default.
     May fail with exception [Ocsimore_common.Permission_denied].

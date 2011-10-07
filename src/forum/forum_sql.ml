@@ -47,6 +47,45 @@ let new_forum
        Lwt.return (forum_of_sql s)
     )
 
+let update_forum ?title ?descr ?arborescent ?title_syntax
+    ?messages_wiki ?comments_wiki forum =
+  let forum_id = sql_of_forum forum in
+  Sql.full_transaction_block
+    (fun db ->
+      lwt () = (match title with
+        | None -> Lwt.return ()
+        | Some title ->
+          PGSQL(db) "UPDATE forums SET title = $title \
+                     WHERE id = $forum_id") in
+      lwt () = (match descr with
+        | None -> Lwt.return ()
+        | Some descr ->
+          PGSQL(db) "UPDATE forums SET descr = $descr \
+                     WHERE id = $forum_id") in
+      lwt () = (match arborescent with
+        | None -> Lwt.return ()
+        | Some arborescent ->
+          PGSQL(db) "UPDATE forums SET arborescent = $arborescent \
+                     WHERE id = $forum_id") in
+      lwt () = (match messages_wiki with
+        | None -> Lwt.return ()
+        | Some messages_wiki ->
+          let messages_wiki = Wiki_types.sql_of_wiki messages_wiki in
+          PGSQL(db) "UPDATE forums SET messages_wiki = $messages_wiki \
+                     WHERE id = $forum_id") in
+      lwt () = (match comments_wiki with
+        | None -> Lwt.return ()
+        | Some comments_wiki ->
+          let comments_wiki = Wiki_types.sql_of_wiki comments_wiki in
+          PGSQL(db) "UPDATE forums SET comments_wiki = $comments_wiki \
+                     WHERE id = $forum_id") in
+      (match title_syntax with
+        | None -> Lwt.return ()
+        | Some title_syntax ->
+          let title_syntax = Wiki_types.string_of_content_type title_syntax in
+          PGSQL(db) "UPDATE forums SET title_syntax = $title_syntax \
+                     WHERE id = $forum_id"))
+
 let new_message ~forum ~wiki ~creator_id ~title_syntax
     ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
   let creator_id' = sql_from_userid creator_id in

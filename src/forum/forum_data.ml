@@ -40,6 +40,13 @@ let new_forum
     ~title ~descr ?arborescent ~title_syntax ~messages_wiki ~comments_wiki ()
   else Lwt.fail Ocsimore_common.Permission_denied
 
+let update_forum ?title ?descr ?arborescent ?title_syntax
+    ?messages_wiki ?comments_wiki forum =
+  match_lwt User.in_group ~group:(forum_admin $ forum) () with
+    | true -> Forum_sql.update_forum ?title ?descr ?arborescent ?title_syntax
+      ?messages_wiki ?comments_wiki forum
+    | false -> raise_lwt Ocsimore_common.Permission_denied
+
 let can_create_message ~parent_id f role =
   (* returns (wiki * bool (* moderated *)) or fails with Permission_denied *)
   let first_msg = parent_id = None in

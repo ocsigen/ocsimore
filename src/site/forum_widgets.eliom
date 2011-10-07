@@ -403,5 +403,42 @@ object (self)
        (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
+end
+
+class forum_widget
+  (widget_with_error_box : Widget.widget_with_error_box) =
+object (self)
+
+     method display_all_forums : HTML5_types.flow5 HTML5.M.elt list Lwt.t =
+     lwt forums = Forum_data.get_forums_list () in
+     let line forum_info =
+       let open Forum_types in
+         let id = string_of_forum forum_info.f_id in
+         let edit =
+           Eliom_output.Html5.a ~service:Forum_services.edit_forum
+             [Page_site.icon ~path:"imgedit.png" ~text:"Edit wiki options"]
+             forum_info.f_id
+         in
+         (HTML5.M.tr
+            [HTML5.M.td ~a:[HTML5.M.a_class ["forumid"]] [HTML5.M.pcdata id];
+             HTML5.M.td ~a:[HTML5.M.a_class ["forumname"]]
+               [HTML5.M.strong [HTML5.M.pcdata forum_info.f_title]];
+             HTML5.M.td ~a:[HTML5.M.a_class ["forumdescr"]]
+               [HTML5.M.pcdata forum_info.f_descr];
+             HTML5.M.td [edit];
+            ])
+     in
+     let l = List.map line forums in
+     Lwt.return
+       [HTML5.M.h1 [HTML5.M.pcdata "Existing Ocsimore forums"];
+        HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
+          (HTML5.M.tr
+             [HTML5.M.th [HTML5.M.pcdata "Id"];
+              HTML5.M.th [HTML5.M.pcdata "Forum"];
+              HTML5.M.th [HTML5.M.pcdata "Description"];
+             ]
+          )
+          l;
+       ]
 
 end
