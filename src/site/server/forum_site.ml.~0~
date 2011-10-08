@@ -103,6 +103,7 @@ let edit_forum_form ~serv_path:_ ~service ~arg
   in
   let open Xform.XformLwt in
   let open Xform.XformLwt.Ops in
+  (* TODO: allow editing other fields *)
   lwt form =
     Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
       Xform.(table
@@ -117,6 +118,7 @@ let edit_forum_form ~serv_path:_ ~service ~arg
      |> cont)
   in
   page arg Xform.NoError form
+
 
 let edit_forum =
   let err_handler = function
@@ -152,14 +154,14 @@ let edit_forum =
 
 let forum_empty_menu =
   Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"forums_do_nothing"]
+    ~path:[!Ocsimore_config.admin_dir;"forums_do_nothing"]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_output.Html5.register forum_empty_menu
   (fun () () ->
     Page_site.admin_page ~service:forum_empty_menu
-      [HTML5.M.h1 [HTML5.M.pcdata "An empty configuration page for forums"];
-       HTML5.M.p
+      ~title:"Forum empty menu"
+      [ HTML5.M.p
          [HTML5.M.pcdata "This is empty and do nothing." ];
       ]
   )
@@ -175,7 +177,6 @@ let () =
 let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
   ~links:[
     "View all forums", Forum_services.view_forums, (fun () -> Lwt.return true);
-    "create forum", Forum_services.create_forum,
-    (fun () -> User.in_group ~group:Forum.forum_creators ());
+    "empty menu", forum_empty_menu, (fun () -> Lwt.return true);
   ]
 
