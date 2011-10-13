@@ -458,10 +458,10 @@ let package_default =
           ("src/wiki/wiki", ["src/wiki"]);
           ("src/site/core_site", ["src/site"; "src/site/server"]);
           ("src/forum/forum", ["src/forum"]);
-          ("src/site/wiki_site", ["src/site"; "src/site/server"]);
-          ("src/site/client/core_site_client", ["src/site/client"]);
           ("src/site/user_site", ["src/site"; "src/site/server"]);
-          ("src/site/forum_site", ["src/site"; "src/site/server"])
+          ("src/site/forum_site", ["src/site"; "src/site/server"]);
+          ("src/site/wiki_site", ["src/site"; "src/site/server"]);
+          ("src/site/client/core_site_client", ["src/site/client"])
        ];
      lib_c = [("ocsimore", "src/core", [])];
      flags =
@@ -588,10 +588,10 @@ let () =
 	 | Before_options ->
 	   tag_eliom_files ()
          | After_rules ->
-	   Pathname.define_context "src/wiki" ["src/core"; "src/user"];
-	   Pathname.define_context "src/site/type"   ["src/wiki";"src/user";"src/core"; "src/forum"];
-	   Pathname.define_context "src/site/server" ["src/wiki";"src/user";"src/core"];
-	   Pathname.define_context "src/site/client" ["src/wiki";"src/user";"src/core"];
+	   Pathname.define_context "src/wiki" ["src/core"];
+	   Pathname.define_context "src/site/server" ["src/wiki";"src/user";"src/core";"src/forum"];
+	   Pathname.define_context "src/site/client" ["src/wiki";"src/user";"src/core";"src/forum"];
+	   Pathname.define_context "src/site/type" ["src/wiki";"src/user";"src/core";"src/forum"];
 	   Pathname.define_context "src/forum" ["src/wiki";"src/user"];
 	   Pathname.define_context "src/user" ["src/core"];
 	   (* only works in subdirectories: no source at toplevel *)
