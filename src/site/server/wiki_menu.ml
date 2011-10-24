@@ -31,9 +31,8 @@ type menu_item =
    HTML5_types.a_content HTML5.M.elt list *
       (Eliom_services.get_service_kind,
        Eliom_services.registrable,
-       Eliom_output.non_caml_service,
        HTML5_types.a_content HTML5.M.elt list)
-      Eliom_tools_common.hierarchical_site_item
+      Eliom_tools.hierarchical_site_item
 
 (** Parse menu in wiki syntax *)
 
@@ -85,13 +84,13 @@ let build_node ~create_service (contents: XML.elt list) tree =
 	  Some (Wiki_types.wiki_of_sql (Int32.of_string wikinum)),
 	  Netstring_pcre.matched_group result 2 href in
     (HTML5.M.totl (get_node_contents a),
-     Eliom_tools_common.Site_tree
-       (Eliom_tools_common.Main_page
+     Eliom_tools.Site_tree
+       (Eliom_tools.Main_page
 	  (create_service ?wiki (Neturl.split_path href)), tree))
   end
   | contents ->
     (HTML5.M.totl contents,
-     Eliom_tools_common.Site_tree (Eliom_tools_common.Not_clickable, tree))
+     Eliom_tools.Site_tree (Eliom_tools.Not_clickable, tree))
 
 let rec parse_nodes ~create_service link_stack tree_acc last nodes =
   match nodes with
@@ -141,7 +140,7 @@ let create_wiki_page_service bi ?(wiki = bi.Wiki_widgets_interface.bi_wiki) page
 	  "Wiki_menu: Can't find service for wiki id %s." wiki;
 	raise (Error (Printf.sprintf "Oups ! service not found for id %s." wiki))
   in
-  (Eliom_services.preapply ~service page :> Eliom_tools_common.get_page)
+  (Eliom_services.preapply ~service page :> Eliom_tools.get_page)
 
 (** How to resolve the optional "file" attribute.
 
@@ -228,19 +227,19 @@ let do_wikimenu bi args contents =
 	  | `DepthFirstWhole ->
 	      Eliom_tools.Html5.hierarchical_menu_depth_first
 		?classe ?id
-		(Eliom_tools_common.Not_clickable, tree)
+		(Eliom_tools.Not_clickable, tree)
 		~whole_tree:true
 		?service ()
 	  | `DepthFirst ->
 	      Eliom_tools.Html5.hierarchical_menu_depth_first
 		?classe ?id
-		(Eliom_tools_common.Not_clickable, tree)
+		(Eliom_tools.Not_clickable, tree)
 		~whole_tree:false
 		?service ()
 	  | `BreadthFirst ->
 	      Eliom_tools.Html5.hierarchical_menu_breadth_first
 		?classe ?id
-		(Eliom_tools_common.Not_clickable, tree)
+		(Eliom_tools.Not_clickable, tree)
 		?service () in
 	Lwt.return menu)
       (function

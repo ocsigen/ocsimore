@@ -28,9 +28,8 @@ type menu_item =
    HTML5_types.a_content HTML5.M.elt list *
       (Eliom_services.get_service_kind,
        Eliom_services.registrable,
-       Eliom_output.non_caml_service,
        HTML5_types.a_content HTML5.M.elt list)
-      Eliom_tools_common.hierarchical_site_item
+      Eliom_tools.hierarchical_site_item
 
 val build_tree :
     create_service:
@@ -39,7 +38,7 @@ val build_tree :
 	  (Eliom_services.get_service_kind,
 	   Eliom_services.registrable,
 	   Eliom_output.non_caml_service)
-            Eliom_tools_common.one_page) ->
+            Eliom_tools.one_page) ->
     menu ->
     menu_item list
 
@@ -51,7 +50,7 @@ val build_tree_from_string :
 	  (Eliom_services.get_service_kind,
 	   Eliom_services.registrable,
 	   Eliom_output.non_caml_service)
-            Eliom_tools_common.one_page) ->
+            Eliom_tools.one_page) ->
     contents:string ->
     menu_item list Lwt.t
 
@@ -63,7 +62,7 @@ val build_tree_from_file :
 	  (Eliom_services.get_service_kind,
 	   Eliom_services.registrable,
 	   Eliom_output.non_caml_service)
-            Eliom_tools_common.one_page) ->
+            Eliom_tools.one_page) ->
     file:Ocsigen_local_files.resolved ->
     menu_item list Lwt.t
 
@@ -77,4 +76,4 @@ val create_wiki_page_service:
 	  (Eliom_services.get_service_kind,
 	   Eliom_services.registrable,
 	   Eliom_output.non_caml_service)
-	    Eliom_tools_common.one_page
+	    Eliom_tools.one_page

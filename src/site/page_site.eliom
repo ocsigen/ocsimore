@@ -28,7 +28,7 @@ type menu_link_service =
     (Eliom_services.get_service_kind,
      [ `Unregistrable | `Registrable ],
     Eliom_output.non_caml_service)
-    Eliom_tools_common.one_page
+    Eliom_tools.one_page
 
 
 let (>>=) = Lwt.(>>=)
@@ -188,14 +188,12 @@ let admin_root =
     ~get_params:Eliom_parameters.unit ()
 
 
-open Eliom_tools_common
-
 
 let admin_menu = ref []
 
 let menu_link (text, service, f) =
   f () >|= function
-  | true -> Some ([HTML5.M.pcdata text], Site_tree (Main_page service, []))
+  | true -> Some ([HTML5.M.pcdata text], Eliom_tools.Site_tree (Eliom_tools.Main_page service, []))
   | false -> None
 
 let add_to_admin_menu ~name ~links ~root =
@@ -212,12 +210,12 @@ let admin_menu ?service () =
          ([HTML5.M.span
              ~a:[HTML5.M.a_class ["admin-menu-root"]]
              [HTML5.M.pcdata name]],
-         Site_tree (Main_page root, List.rev links)
+         Eliom_tools.Site_tree (Eliom_tools.Main_page root, List.rev links)
          )
     )
-    !admin_menu >|= List.rev                               >>= fun admin_menu ->
-  Lwt.return (Main_page admin_root, admin_menu)            >>= fun menu ->
-  Lwt.return (add_admin_pages_header ())                   >|= fun () ->
+    !admin_menu >|= List.rev                                >>= fun admin_menu ->
+  Lwt.return (Eliom_tools.Main_page admin_root, admin_menu) >>= fun menu ->
+  Lwt.return (add_admin_pages_header ())                    >|= fun () ->
   Eliom_tools.Html5.hierarchical_menu_depth_first
      ~id:"admin_menu"
      ~whole_tree:false

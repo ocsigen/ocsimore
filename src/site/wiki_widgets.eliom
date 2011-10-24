@@ -338,7 +338,7 @@ class dynamic_wikibox
           Wiki.wiki_admin_page_link ["crayon.png"] >>= fun img ->
           let menu = Eliom_tools.Html5.menu
                        ~classe:["wikiboxmenu"]
-                       (view, [HTML5.M.pcdata "view"]) l
+                       ((view, [HTML5.M.pcdata "view"]) :: l)
                        ?service ()
           in
           match menu_style with
