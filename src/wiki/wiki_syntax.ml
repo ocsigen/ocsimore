@@ -286,8 +286,7 @@ type href = Wiki_syntax_types.href =
 
 let service_href ?fragment ?https service param =
   let module Href = struct
-    let uri =
-      Uri.uri_of_string (Eliom_uri.make_string_uri ?fragment ?https ~service param)
+    let uri = Eliom_output.Html5.make_uri ?fragment ?https ~service param
     let a_link ?a c =
       Eliom_output.Html5.a ~service ?a ?fragment ?https c param
   end in
@@ -299,7 +298,7 @@ let a_link_of_href href ?a c =
 
 let uri_of_href href =
   match href with
-    | String_href s -> Uri.uri_of_string s
+    | String_href s -> HTML5.M.uri_of_string s
     | Service_href href ->
       let module Href = (val href : Service_href) in
       Href.uri
@@ -1009,7 +1008,7 @@ module FlowBuilder = struct
     Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
       match addr with
 	| String_href addr ->
-	  [(HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c
+	  [(HTML5.M.a ~a:(HTML5.M.a_href (HTML5.M.uri_of_string addr) :: a) c
             :> HTML5_types.phrasing HTML5.M.elt)]
 	| Service_href href ->
 	  [(a_link_of_href href ~a c :> HTML5_types.phrasing HTML5.M.elt)]
@@ -1019,7 +1018,7 @@ module FlowBuilder = struct
     Lwt_list.map_s (fun x -> x) c >|= List.flatten >|= fun c ->
       match addr with
 	| String_href addr ->
-	  [HTML5.M.a ~a:(HTML5.M.a_href (Uri.uri_of_string addr) :: a) c]
+	  [HTML5.M.a ~a:(HTML5.M.a_href (HTML5.M.uri_of_string addr) :: a) c]
 	| Service_href href ->
 	  [a_link_of_href href ~a c]
 
@@ -2155,7 +2154,7 @@ let f_menu bi args _c =
 	 let link =
 	   match make_href bi (link_kind link) None with
 	     | String_href addr ->
-	       (HTML5.M.a ~a:[HTML5.M.a_href (Uri.uri_of_string addr)] text2)
+	       (HTML5.M.a ~a:[HTML5.M.a_href (HTML5.M.uri_of_string addr)] text2)
 	     | Service_href href -> a_link_of_href href ~a:[] text2
          in
 	 let link : HTML5_types.flow5 HTML5.M.elt =

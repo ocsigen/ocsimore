@@ -7,7 +7,7 @@ module type Service_href = sig
     'a HTML5.M.elt list ->
     [> 'a HTML5_types.a ] HTML5.M.elt
 
-  val uri : string
+  val uri : HTML5.M.uri
 
 end
 

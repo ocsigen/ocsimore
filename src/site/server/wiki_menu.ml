@@ -54,7 +54,7 @@ let get_href node = match XML.content node with
   | XML.Node ("a", attribs, _) -> begin
     let a_href = List.find (fun a -> XML.aname a = "href") attribs in
     match XML.acontent a_href with
-      | XML.AStr (_ , href) -> href
+      | XML.AStr href -> href
       | _ -> assert false
   end
   | _ -> assert false

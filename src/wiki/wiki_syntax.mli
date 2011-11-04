@@ -66,7 +66,7 @@ val a_link_of_href : service_href ->
   'a Eliom_pervasives.HTML5.M.elt list ->
   [> 'a HTML5_types.a ] Eliom_pervasives.HTML5.M.elt
 
-val uri_of_href : href -> string
+val uri_of_href : href -> HTML5.M.uri
 
 (** Add a syntax extension to an existing parser. *)
 
