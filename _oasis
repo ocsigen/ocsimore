@@ -79,7 +79,6 @@ Library "wiki"
   XMETADescription: Wiki stuffs
   DataFiles:
     ../../local/var/www/static/*.css,
-    ../../local/var/www/static/*.js,
     ../../local/var/www/static/*.png ($prefix/var/www/$pkg_name)
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.user

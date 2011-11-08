@@ -288,6 +288,12 @@ let register_wikibox_syntax_extensions
 	 try
 	   `Id (List.assoc "target" args)
 	 with Not_found -> `Container in
+       let restrict =
+	 try Some (List.assoc "restrict" args)
+	 with Not_found -> None in
+       let depth =
+	 try Some (int_of_string (List.assoc "depth" args))
+	 with _ -> None in
        lwt content = match c with
 	 | None -> Lwt.return []
 	 | Some c ->
@@ -295,23 +301,50 @@ let register_wikibox_syntax_extensions
 	     (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
 	     bi c
        in
+       let div = not bi.bi_sectioning || List.mem_assoc "div" args in
+
        let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
-       let nav = HTML5.M.unique (HTML5.M.nav ~a content) in
-       HTML5outliner.add_outliner_js ();
+       let nav = HTML5.M.unique ((if div then HTML5.M.div else HTML5.M.nav) ~a content) in
        Eliom_services.onload {{
 
-	 let nav = Eliom_client.Html5.of_element %nav in
-	 let elem, ignore = match %elem with
+	 let nav = (Eliom_client.Html5.of_element %nav :> Dom.node Js.t)  in
+
+	 let ignore = (fun (n: Dom.node Js.t) -> n == nav) in
+	 let elem, restrict = match %elem with
 	   | `Id id ->
-	       (Dom_html.document##getElementById(Js.string id) :>
-		  Dom.node Js.t Js.opt),
-	       Some (HTML5outliner.ignore_target_header ())
-	   | `Container -> HTML5outliner.find_container nav in
-	 let outline = HTML5outliner.outline ?ignore elem in
-	 match Js.Opt.to_option outline with
-	 | Some outline ->
-	     Dom.appendChild nav (outline##asDOM(Js._true));
+                ( (Dom_html.document##getElementById(Js.string id) :>
+		     Dom.node Js.t Js.opt),
+		  None )
+	   | `Container ->
+	       let fragment =
+		 if %div then
+		   try let heading = HTML5outliner.find_previous_heading nav in
+		       Js.Opt.case
+			 (Js.Opt.map heading HTML5outliner.get_fragment)
+			 (fun () -> None)
+			 id
+		   with Not_found -> None
+		 else None
+	       in
+	       (HTML5outliner.find_container nav, fragment)
+	 in
+	 let restrict = match %restrict with
+	   | None -> restrict
+	   | Some _ as restrict -> restrict
+	 in
+	 match Js.Opt.to_option elem with
 	 | None -> ()
+	 | Some elem ->
+	    let outline =
+	      HTML5outliner.outline ~ignore (Dom.list_of_nodeList elem##childNodes) in
+	    let outline =
+	      match restrict with
+	      | Some fragment -> HTML5outliner.find_fragment fragment outline
+	      | None ->
+		  match outline with
+		  | [ HTML5outliner.Section(_,_,outline) ] -> outline
+		  | _ -> outline in
+	    Dom.appendChild nav (HTML5outliner.build_ol ?depth:%depth outline)
 
      }};
      Lwt.return [nav] )

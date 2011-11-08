@@ -6,10 +6,22 @@
 <src/site/type/*>: thread, use_ocsimore, use_wiki
 
 # OASIS_START
-# DO NOT EDIT (digest: f9be31107e8e009ea2f6a69eb56b9677)
+# DO NOT EDIT (digest: eda406efefda39d761aefb425f5f3d5a)
+# Ignore VCS directories, you can use the same kind of rule outside 
+# OASIS_START/STOP if you want to exclude directories that contains 
+# useless stuff for the build process
+<**/.svn>: -traverse
+<**/.svn>: not_hygienic
+".bzr": -traverse
+".bzr": not_hygienic
+".hg": -traverse
+".hg": not_hygienic
+".git": -traverse
+".git": not_hygienic
+"_darcs": -traverse
+"_darcs": not_hygienic
 # Library ocsimore
 "src/core": include
-"src/core/ocsimore.cmxs": use_ocsimore
 <src/core/ocsimore.{cma,cmxa}>: oasis_library_ocsimore_cclib
 "src/core/libocsimore.lib": oasis_library_ocsimore_cclib
 "src/core/dllocsimore.dll": oasis_library_ocsimore_cclib
@@ -28,7 +40,6 @@
 "src/core/crypt_stubs.c": pkg_camlp4
 # Library user
 "src/user": include
-"src/user/user.cmxs": use_user
 <src/user/*.ml{,i}>: use_ocsimore
 <src/user/*.ml{,i}>: pkg_threads
 <src/user/*.ml{,i}>: pkg_pgocaml.syntax
@@ -38,7 +49,6 @@
 <src/user/*.ml{,i}>: pkg_camlp4
 # Library wiki
 "src/wiki": include
-"src/wiki/wiki.cmxs": use_wiki
 <src/wiki/*.ml{,i}>: use_user
 <src/wiki/*.ml{,i}>: use_ocsimore
 <src/wiki/*.ml{,i}>: pkg_threads
@@ -48,10 +58,8 @@
 <src/wiki/*.ml{,i}>: pkg_eliom.server
 <src/wiki/*.ml{,i}>: pkg_camlp4
 # Library core_site
-"src/site/core_site.cmxs": use_core_site
 # Library forum
 "src/forum": include
-"src/forum/forum.cmxs": use_forum
 <src/forum/*.ml{,i}>: use_wiki
 <src/forum/*.ml{,i}>: use_user
 <src/forum/*.ml{,i}>: use_ocsimore
@@ -61,20 +69,11 @@
 <src/forum/*.ml{,i}>: pkg_lwt.syntax
 <src/forum/*.ml{,i}>: pkg_eliom.server
 <src/forum/*.ml{,i}>: pkg_camlp4
-# Library wiki_site
-"src/site/wiki_site.cmxs": use_wiki_site
-# Library core_site_client
-"src/site/client": include
-"src/site/client/core_site_client.cmxs": use_core_site_client
-<src/site/client/*.ml{,i}>: pkg_lwt.syntax
-<src/site/client/*.ml{,i}>: pkg_eliom.syntax
-<src/site/client/*.ml{,i}>: pkg_eliom.client
-<src/site/client/*.ml{,i}>: pkg_camlp4
 # Library user_site
-"src/site/user_site.cmxs": use_user_site
 # Library forum_site
-"src/site/forum_site.cmxs": use_forum_site
 <src/site/*.ml{,i}>: use_forum
+<src/site/server/*.ml{,i}>: use_forum
+# Library wiki_site
 <src/site/*.ml{,i}>: use_core_site
 <src/site/*.ml{,i}>: use_wiki
 <src/site/*.ml{,i}>: use_user
@@ -85,7 +84,6 @@
 <src/site/*.ml{,i}>: pkg_lwt.syntax
 <src/site/*.ml{,i}>: pkg_eliom.server
 <src/site/*.ml{,i}>: pkg_camlp4
-<src/site/server/*.ml{,i}>: use_forum
 <src/site/server/*.ml{,i}>: use_core_site
 <src/site/server/*.ml{,i}>: use_wiki
 <src/site/server/*.ml{,i}>: use_user
@@ -98,6 +96,12 @@
 <src/site/server/*.ml{,i}>: pkg_camlp4
 "src/site": include
 "src/site/server": include
+# Library core_site_client
+"src/site/client": include
+<src/site/client/*.ml{,i}>: pkg_lwt.syntax
+<src/site/client/*.ml{,i}>: pkg_eliom.syntax
+<src/site/client/*.ml{,i}>: pkg_eliom.client
+<src/site/client/*.ml{,i}>: pkg_camlp4
 # OASIS_STOP
 "src/site": -include
 "src/site/server": -include
