@@ -301,7 +301,9 @@ let register_wikibox_syntax_extensions
 	     (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
 	     bi c
        in
-       let div = not bi.bi_sectioning || List.mem_assoc "div" args in
+       let div =
+	 (elem = `Container && not bi.bi_sectioning)
+	 || List.mem_assoc "div" args in
 
        let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
        let nav = HTML5.M.unique ((if div then HTML5.M.div else HTML5.M.nav) ~a content) in
