@@ -301,6 +301,10 @@ let register_wikibox_syntax_extensions
 	     (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
 	     bi c
        in
+       let ignore =
+	 try List.map String.lowercase (String.split ~multisep:true ' ' (List.assoc "ignore" args))
+	 with Not_found -> ["nav";"aside"]
+       in
        let div =
 	 (elem = `Container && not bi.bi_sectioning)
 	 || List.mem_assoc "div" args in
@@ -311,7 +315,9 @@ let register_wikibox_syntax_extensions
 
 	 let nav = (Eliom_client.Html5.of_element %nav :> Dom.node Js.t)  in
 
-	 let ignore = (fun (n: Dom.node Js.t) -> n == nav) in
+	 let ignore = (fun (n: Dom.node Js.t) ->
+	   let tag = String.lowercase (Js.to_string n##nodeName) in
+	   n == nav || List.mem tag %ignore) in
 	 let elem, restrict = match %elem with
 	   | `Id id ->
                 ( (Dom_html.document##getElementById(Js.string id) :>
