@@ -29,6 +29,14 @@ open Wiki_types
 let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 
+(* TODO Handle wikiboxes with multiple media (i.e. "screen print" or even "all") carefully! *)
+let grouped_by_media wblist_with_media =
+  let rec insert_by_media ((wb, media, _) as wb_media) = function
+      [] -> [media, [wb]]
+    | (media', wblist) :: rest when media = media' ->
+        (media, wb :: wblist) :: rest
+    | pair :: rest -> pair :: insert_by_media wb_media rest in
+  List.fold_right insert_by_media wblist_with_media []
 
 class wikibox_error_box =
 object
@@ -1378,24 +1386,25 @@ class dynamic_wikibox
      (match Wiki_self_services.find_servwikicss wiki with
         | None -> Lwt.return []
         | Some wikicss_service ->
-            Wiki_sql.get_css_wikibox_for_wiki wiki >|=
+            Wiki_sql.get_css_wikibox_for_wiki wiki >|= fun wblist_with_media ->
             List.map
-              (fun (wb, media, _) -> css_url_service wikicss_service wb media)
+              (fun (media, wblist) -> css_url_service wikicss_service wblist media)
+              (grouped_by_media wblist_with_media)
      )
      >>= fun css ->
      match page with
        | None -> Lwt.return css
        | Some page ->
-           Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun l ->
+           Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun wblist_with_media ->
            let ll =
              List.map
-               (fun (wb, media, _) ->
+               (fun (media, wblist) ->
                   css_url_service
                     Wiki_services.pagecss_service
-                    ((wiki, page), wb)
+                    ((wiki, page), wblist)
                     media
                )
-               l
+               (grouped_by_media wblist_with_media)
            in
            Lwt.return (css @ ll)
 

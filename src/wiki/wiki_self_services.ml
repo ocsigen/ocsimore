@@ -63,13 +63,13 @@ let servpages :
      Eliom_output.appl_service
     ) Eliom_services.service Servpages.t = Servpages.create 5
 let servwikicss :
-    (Wiki_types.wikibox,
+    (Wiki_types.wikibox list,
      unit,
      [ `Attached of
          ([ `Internal of [ `Service | `Coservice ] | `External ],
           [`Get]) Eliom_services.a_s ],
      [ `WithoutSuffix ],
-     [ `One of Wiki_types.wikibox ] Eliom_parameters.param_name,
+     [ `One of Wiki_types.wikibox ] Eliom_parameters.param_name Eliom_parameters.listnames,
      unit,
      [ `Registrable ],
      Eliom_output.CssText.return
