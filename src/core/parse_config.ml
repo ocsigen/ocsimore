@@ -45,6 +45,9 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
       Language.messages := Language.messages_english;
       parse_config l
+  | (Simplexmlparser.Element ("application_name", ["name", name], _)) :: l ->
+      Ocsimore_config.application_name := name;
+      parse_config l
   | (Simplexmlparser.Element ("database", attribs, []))::l ->
     List.iter (function
 		  | "name", name -> Ocsimore_config.db_name := name;
@@ -65,9 +68,12 @@ let rec parse_config = function
 			     ("Unexpected attribute inside ocsimore database config: "^attrib)))
       attribs;
     parse_config l
-  | _ ->
+  | Simplexmlparser.Element (name, _, _) :: _ ->
       raise (Ocsigen_extensions.Error_in_config_file
-               "Unexpected content inside ocsimore config")
+               ("Unexpected content <"^name^"> inside ocsimore config"))
+  | Simplexmlparser.PCData pcdata :: _ ->
+      raise (Ocsigen_extensions.Error_in_config_file
+               ("Unexpected pcdata ..."^pcdata^"... inside ocsimore config"))
 
 let () = Ocsigen_extensions.register_extension
   ~name:"ocsimore" ~init_fun:parse_config ()

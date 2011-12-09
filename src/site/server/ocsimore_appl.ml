@@ -57,7 +57,7 @@ let register_post_coservice' ?scope =
 
 module Default_param : Eliom_output.APPL_PARAMS =
 struct
-  let application_name = "ocsimore"
+  let application_name = !Ocsimore_config.application_name
 end
 
 module Appl = Eliom_output.Eliom_appl(Default_param)
