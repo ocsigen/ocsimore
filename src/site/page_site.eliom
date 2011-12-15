@@ -175,7 +175,7 @@ let html_page ?body_classes ?(css=[]) ?(title="Ocsimore") content =
           ((css
             :HTML5_types.link HTML5.M.elt list
             :> HTML5_types.head_content_fun HTML5.M.elt list)
-          @ headers))
+          @ headers @ [Ocsimore_appl.application_script ~async:true ()]))
        (HTML5.M.body ~a:body_attrs content)
     )
 
