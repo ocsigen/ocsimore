@@ -66,7 +66,8 @@ let static_service = Eliom_output.Any.register_service
   (fun path () ->
      let path = admin_staticdir :: path in
      let file = Ocsigen_pervasives.Url.string_of_url_path ~encode:false path in
-     Eliom_output.Files.send file
+     Eliom_output.Files.send ~options:(3600 * 24 * 7) file
+     (* TODO: parametrize cache duration... *)
   )
 
 

@@ -145,6 +145,7 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
     Eliom_output.CssText.register_service
       ~path:(path@["__wikicss"])
       ~get_params:(Eliom_parameters.list "wblist" (Ocsimore_common.eliom_opaque_int32 "wb"))
+      ~options:(3600 * 24 * 7) (* TODO parametrize *)
       (fun wblist () ->
          Wiki_data.wiki_css rights wiki >>= fun l ->
          let get_content wb = let (v, _, _) = List.assoc wb l in v in
@@ -402,6 +403,7 @@ and action_set_wikibox_special_permissions =
    directory as the page. Important for relative links inside the css. *)
 and pagecss_service = Eliom_output.CssText.register_coservice'
   ~name:"pagecss" ~get_params:(eliom_wikipage_args ** Eliom_parameters.list "wblist" eliom_wikibox_args)
+  ~options:(3600 * 24 * 7) (* TODO parametrize *)
   (fun ((wiki, page), wblist) () ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
      let rights = Wiki_models.get_rights wiki_info.wiki_model in
