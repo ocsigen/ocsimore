@@ -755,7 +755,7 @@ let make_href bi addr fragment =
             Url.remove_slash_at_beginning
               (Neturl.split_path page)
           in
-	  Service_href (service_href servpage addr)
+	  Service_href (service_href ?fragment ?https servpage addr)
             (* Eliom_output.Html5.make_string_uri ?https
                ?fragment ~service:servpage addr *)
       | None -> String_href "malformed link" (*VVV ??? *)

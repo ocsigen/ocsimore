@@ -648,7 +648,7 @@ and parse_rem c =
       end;
       parse_rem c lexbuf
     }
-  | ("http:" | "ftp:") (not_line_break # white_space) *
+  | ("http:" | "https:" | "ftp:") (not_line_break # white_space) *
     (not_line_break # white_space # punctuation) {
       if c.link then
         push_chars c lexbuf
