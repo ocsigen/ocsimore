@@ -463,7 +463,7 @@ val string_of_extension :
 
 (** parses common attributes ([class], [id], [style]) *)
 val parse_common_attribs :
-  ?classes:HTML5_types.nmtokens -> Wikicreole.attribs -> HTML5_types.common HTML5.M.attrib list
+  ?classes:HTML5_types.nmtokens -> Wikicreole.attribs -> [> HTML5_types.common ] HTML5.M.attrib list
 
 (** returns the type of URL.
     [Page] means a page in current wiki ([wiki:page], or [page]),
