@@ -1,6 +1,11 @@
+
+let opt s = if s = "" then None else Some s
+
 let db_user = ref "$pguser"
 let db_name = ref "$pgdatabase"
-
-let password = ref (try Sys.getenv "PGPASSWORD" with Not_found -> "$pgpassword")
+let db_host = ref (opt "$pghost")
+let db_port = ref (Eliom_pervasives.map_option int_of_string (opt "$pgport"))
+let db_unix_domain_socket_dir = ref (opt "$pg_socket_domain_dir")
+let db_password = ref (opt "$pgpassword")
 
 let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)

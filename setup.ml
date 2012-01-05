@@ -29,11 +29,11 @@ let _ =
   List.map add_option
     [ "database host address (none meaning using local unix socket)",
       "pghost",
-      "none";
+      "";
 
       "database port",
       "pgport",
-      "5432";
+      "";
 
       "database name",
       "pgdatabase",
@@ -45,11 +45,11 @@ let _ =
 
       "database password",
       "pgpassword",
-      "ocsimore";
+      "";
 
       "database unix socket domain directory (default to none)",
       "pg_socket_domain_dir",
-      "none" ]
+      "" ]
 
 
 let () = setup ();;

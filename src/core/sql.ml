@@ -34,9 +34,12 @@ type db_t = (string, bool) Hashtbl.t PGOCaml.t
 
 let connect () =
   PGOCaml.connect
+    ?host:!Ocsimore_config.db_host
+    ?port:!Ocsimore_config.db_port
+    ?unix_domain_socket_dir:!Ocsimore_config.db_unix_domain_socket_dir
+    ?password:!Ocsimore_config.db_password ()
     ~database:!Ocsimore_config.db_name
     ~user:!Ocsimore_config.db_user
-    ~password:!Ocsimore_config.password ()
 
 
 let pool = Lwt_pool.create 16 connect
