@@ -69,9 +69,9 @@ let register_wikibox_syntax_extensions
            let fsubbox ~sectioning menu_style = match c with
              | None -> Lwt.return None
              | Some c ->
-	       let bi =
+               let bi =
                  { bi with bi_menu_style = menu_style;
-		   bi_sectioning = sectioning; } in
+                   bi_sectioning = sectioning; } in
                lwt r = Wiki_syntax.xml_of_wiki wp bi c in
                Lwt.return (Some (r :> HTML5_types.flow5 HTML5.M.elt list))
            in
@@ -93,13 +93,13 @@ let register_wikibox_syntax_extensions
                bi_subbox = fsubbox }
              box
         with
-	| Not_found ->
+        | Not_found ->
             Lwt.return
               [HTML5.M.code [HTML5.M.pcdata "<<wikibox>>" ]]
-	| _ ->
+        | _ ->
             Lwt.return
               [error_box#display_error_box
-		  ~message:"Wiki error: error in wikibox extension" ()])
+                  ~message:"Wiki error: error in wikibox extension" ()])
   in
 
   let preparse_wikibox wp wb args c =
@@ -110,7 +110,8 @@ let register_wikibox_syntax_extensions
     lwt c = match c with
       | None -> Lwt.return None
       | Some c ->
-          Wiki_syntax.preparse_extension (Wiki_syntax.cast_wp wp) wb c >|= fun c -> Some c
+          Wiki_models.preparse_string (Wiki_syntax.preprocess_extension (Wiki_syntax.cast_wp wp)) wb c
+          >|= fun c -> Some c
     in
     (* Adding the 'box=' argument *)
     lwt (args, c) = try
@@ -127,10 +128,10 @@ let register_wikibox_syntax_extensions
        with Not_found ->
          lwt userid = User.get_user_id () in
          lwt have_right = rights#can_create_subwikiboxes wid in
-	 if have_right then
+         if have_right then
            ( lwt box =
-	       Wiki_data.new_wikitextbox
-		 ~rights
+               Wiki_data.new_wikitextbox
+                 ~rights
                  ~wiki:wid
                  ~author:userid
                  ~comment:(Printf.sprintf "Subbox of wikibox %s (from wiki %s)"
@@ -139,21 +140,21 @@ let register_wikibox_syntax_extensions
                  ~content_type
                  ()
              in
-	     lwt special_rights = Wiki_sql.get_wikibox_info box in
+             lwt special_rights = Wiki_sql.get_wikibox_info box in
              ( if special_rights.wikibox_special_rights then
-		 User.GenericRights.iter_awr_lwt
+                 User.GenericRights.iter_awr_lwt
                    (fun f ->
                      let g = f.User.GenericRights.field
                        Wiki.wikibox_grps in
                      User.add_to_group ~user:(g $ wb) ~group:(g $ box))
                else
-		 Lwt.return () ) >>
-	     Lwt.return
-	       (("box", string_of_wikibox box)
+                 Lwt.return () ) >>
+             Lwt.return
+               (("box", string_of_wikibox box)
                   (*We remove the wiki information, which is no longer useful*)
                 :: List.remove_assoc "wiki" args, None) )
-	 else
-	   Lwt.return (args, c)
+         else
+           Lwt.return (args, c)
      with Failure _ -> Lwt.return (args, c)
     in
     Lwt.return (Some (Wiki_syntax.string_of_extension "wikibox" args c))
@@ -214,7 +215,7 @@ let register_wikibox_syntax_extensions
     in
     (Wiki_syntax.Service_href
        (Wiki_syntax.service_href
-	  Eliom_services.void_coservice' ()),
+          Eliom_services.void_coservice' ()),
      args,
      content)
   in
@@ -236,12 +237,12 @@ let register_wikibox_syntax_extensions
         Lwt.return
           [HTML5.M.object_
               ~a:(   (HTML5.M.a_data (Wiki_syntax.uri_of_href url)
-			: [>HTML5_types.common | `Data ] HTML5.M.attrib)
+                        : [>HTML5_types.common | `Data ] HTML5.M.attrib)
                    (*:: (HTML5.M.a_type type_
                      : [>HTML5_types.common | `Data ] HTML5.M.attrib) *)
                      :: (atts
-			   : HTML5_types.common HTML5.M.attrib list
-			 :> [>HTML5_types.common | `Data ] HTML5.M.attrib list)
+                           : HTML5_types.common HTML5.M.attrib list
+                         :> [>HTML5_types.common | `Data ] HTML5.M.attrib list)
               )
               []
           ]
@@ -257,9 +258,9 @@ let register_wikibox_syntax_extensions
        let alt = match c with Some c -> c | None -> page in
        let atts = Wiki_syntax.parse_common_attribs args in
        let url =
-	 Wiki_syntax.uri_of_href
-	   (Wiki_syntax.make_href
-	      bi (Wiki_syntax.Wiki_page (wiki, page, https)) None)
+         Wiki_syntax.uri_of_href
+           (Wiki_syntax.make_href
+              bi (Wiki_syntax.Wiki_page (wiki, page, https)) None)
        in
        Lwt.return
          [HTML5.M.img ~src:url ~alt ~a:atts ()]
@@ -272,11 +273,11 @@ let register_wikibox_syntax_extensions
       (let atts = Wiki_syntax.parse_common_attribs args in
        Lwt.return
          [HTML5.M.span
-	     [HTML5.M.a ~a:((( HTML5.M.a_onclick
-				 {{ ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"):bool Js.t) }} )
-			     :: atts))
+             [HTML5.M.a ~a:((( HTML5.M.a_onclick
+                                 {{ ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"):bool Js.t) }} )
+                             :: atts))
                  [HTML5.M.span ~a:[ HTML5.M.a_class ["btmenu"] ] []]
-	     ]
+             ]
          ]
       )
   in
@@ -285,74 +286,74 @@ let register_wikibox_syntax_extensions
   let f_outline bi (args: (string * string) list) c =
     `Flow5
       (let elem =
-	 try
-	   `Id (List.assoc "target" args)
-	 with Not_found -> `Container in
+         try
+           `Id (List.assoc "target" args)
+         with Not_found -> `Container in
        let restrict =
-	 try Some (List.assoc "restrict" args)
-	 with Not_found -> None in
+         try Some (List.assoc "restrict" args)
+         with Not_found -> None in
        let depth =
-	 try Some (int_of_string (List.assoc "depth" args))
-	 with _ -> None in
+         try Some (int_of_string (List.assoc "depth" args))
+         with _ -> None in
        lwt content = match c with
-	 | None -> Lwt.return []
-	 | Some c ->
-	   Wiki_syntax.xml_of_wiki
-	     (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
-	     bi c
+         | None -> Lwt.return []
+         | Some c ->
+           Wiki_syntax.xml_of_wiki
+             (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
+             bi c
        in
        let ignore =
-	 try List.map String.lowercase (String.split ~multisep:true ' ' (List.assoc "ignore" args))
-	 with Not_found -> ["nav";"aside"]
+         try List.map String.lowercase (String.split ~multisep:true ' ' (List.assoc "ignore" args))
+         with Not_found -> ["nav";"aside"]
        in
        let div =
-	 (elem = `Container && not bi.bi_sectioning)
-	 || List.mem_assoc "div" args in
+         (elem = `Container && not bi.bi_sectioning)
+         || List.mem_assoc "div" args in
 
        let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
        let nav = HTML5.M.unique ((if div then HTML5.M.div else HTML5.M.nav) ~a content) in
        Eliom_services.onload {{
 
-	 let nav = (Eliom_client.Html5.of_element %nav :> Dom.node Js.t)  in
+         let nav = (Eliom_client.Html5.of_element %nav :> Dom.node Js.t)  in
 
-	 let ignore = (fun (n: Dom.node Js.t) ->
-	   let tag = String.lowercase (Js.to_string n##nodeName) in
-	   n == nav || List.mem tag %ignore) in
-	 let elem, restrict = match %elem with
-	   | `Id id ->
+         let ignore = (fun (n: Dom.node Js.t) ->
+           let tag = String.lowercase (Js.to_string n##nodeName) in
+           n == nav || List.mem tag %ignore) in
+         let elem, restrict = match %elem with
+           | `Id id ->
                 ( (Dom_html.document##getElementById(Js.string id) :>
-		     Dom.node Js.t Js.opt),
-		  None )
-	   | `Container ->
-	       let fragment =
-		 if %div then
-		   try let heading = HTML5outliner.find_previous_heading nav in
-		       Js.Opt.case
-			 (Js.Opt.map heading HTML5outliner.get_fragment)
-			 (fun () -> None)
-			 id
-		   with Not_found -> None
-		 else None
-	       in
-	       (HTML5outliner.find_container nav, fragment)
-	 in
-	 let restrict = match %restrict with
-	   | None -> restrict
-	   | Some _ as restrict -> restrict
-	 in
-	 match Js.Opt.to_option elem with
-	 | None -> ()
-	 | Some elem ->
-	    let outline =
-	      HTML5outliner.outline ~ignore (Dom.list_of_nodeList elem##childNodes) in
-	    let outline =
-	      match restrict with
-	      | Some fragment -> HTML5outliner.find_fragment fragment outline
-	      | None ->
-		  match outline with
-		  | [ HTML5outliner.Section(_,_,outline) ] -> outline
-		  | _ -> outline in
-	    Dom.appendChild nav (HTML5outliner.build_ol ?depth:%depth outline)
+                     Dom.node Js.t Js.opt),
+                  None )
+           | `Container ->
+               let fragment =
+                 if %div then
+                   try let heading = HTML5outliner.find_previous_heading nav in
+                       Js.Opt.case
+                         (Js.Opt.map heading HTML5outliner.get_fragment)
+                         (fun () -> None)
+                         id
+                   with Not_found -> None
+                 else None
+               in
+               (HTML5outliner.find_container nav, fragment)
+         in
+         let restrict = match %restrict with
+           | None -> restrict
+           | Some _ as restrict -> restrict
+         in
+         match Js.Opt.to_option elem with
+         | None -> ()
+         | Some elem ->
+            let outline =
+              HTML5outliner.outline ~ignore (Dom.list_of_nodeList elem##childNodes) in
+            let outline =
+              match restrict with
+              | Some fragment -> HTML5outliner.find_fragment fragment outline
+              | None ->
+                  match outline with
+                  | [ HTML5outliner.Section(_,_,outline) ] -> outline
+                  | _ -> outline in
+            Dom.appendChild nav (HTML5outliner.build_ol ?depth:%depth outline)
 
      }};
      Lwt.return [nav] )

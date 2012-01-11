@@ -425,11 +425,7 @@ val rawtext_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content
 val wikicreole_phrasing_content_type :
   HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type
 
-val preparse_extension :
-  'res wikicreole_parser ->
-  Wiki_types.wikibox ->
-  string ->
-  string Lwt.t
+val preprocess_extension : 'res wikicreole_parser -> Wiki_models.wiki_preprocessor
 
 (*
 (** Sets the extension which will be called on links *)

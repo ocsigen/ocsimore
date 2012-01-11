@@ -36,12 +36,13 @@ let unopt_media_type = function
   | Some x -> x
   | None -> raise (Invalid_argument "media_type_elem_of_string")
 
-
 (** Polymorphic keys and subsequent functions to govern the display
     of wikiboxes *)
 
 let override_wikibox_key : (wikibox * wikibox_override) Polytables.key =
   Polytables.make_key ()
+
+let desugar_messages = Eliom_references.eref ~scope:Eliom_common.request []
 
 (** How to change the display of a wikibox: which wikibox is concerned,
    and what should be displayed instead *)
@@ -315,41 +316,51 @@ and action_edit_wikipage_properties = Eliom_output.Action.register_coservice'
      set_override_wikibox (wb, EditWikipageProperties wp);
      Lwt.return ())
 
-and action_send_wikiboxtext = Eliom_output.Any.register_post_coservice'
-  ~keep_get_na_params:false ~name:"wiki_save_wikitext"
-  ~post_params:
-  (Eliom_parameters.string "actionname" **
-     ((eliom_wikibox_args ** Eliom_parameters.int32 "boxversion") **
-        Eliom_parameters.string "content"))
-  (fun () (actionname, ((wb, boxversion), content)) ->
-     (* We always show a preview before saving. Moreover, we check that the
-        wikibox that the wikibox has not been modified in parallel of our
-        modifications. If this is the case, we also show a warning *)
-     Wiki.modified_wikibox wb boxversion >>= fun modified ->
-     if actionname = "save" then
-       match modified with
-         | None ->
-             Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-             Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-             let rights = Wiki_models.get_rights wiki_info.wiki_model in
-             let wp = Wiki_models.get_default_wiki_preparser
-               wiki_info.wiki_model in
-             Wiki_data.wikibox_content rights wb
-             >>= fun (content_type, _, _) ->
-             wp wb content >>= fun content ->
-             save_then_redirect ~error:(error_handler_wb wb) `BasePage
-               (fun () -> Wiki_data.save_wikitextbox ~rights
-                  ~content_type ~wb ~content:(Some content))
-         | Some _ ->
-             set_override_wikibox
-               (wb, PreviewWikitext (wb, (content, boxversion)));
-             Eliom_output.Action.send ()
-     else begin
-       set_override_wikibox
-         (wb, PreviewWikitext (wb, (content, boxversion)));
-       Eliom_output.Action.send ()
-     end
-  )
+and action_send_wikiboxtext =
+  let post_params =
+    let open Eliom_parameters in
+    let action = string "actionname" in
+    let page_wiki = eliom_wiki "page_wiki" in
+    let page_path = 
+      let none_page_path = user_type (fun _ -> ()) (fun _ -> "") "empty_page_path" in
+      let some_page_path = list "page_path" (string "page_path_snippet") in
+      sum none_page_path some_page_path
+    in
+    let wb = eliom_wikibox_args in
+    let boxversion = int32 "boxversion" in
+    let content = string "content" in
+    action ** ((page_wiki ** page_path) ** ((wb ** boxversion) ** content))
+  in
+  Eliom_output.Any.register_post_coservice'
+    ~keep_get_na_params:false ~name:"wiki_save_wikitext" ~post_params
+    (fun () (actionname, ((page_wiki, page_path), ((wb, boxversion), content))) ->
+       (* We always show a preview before saving. Moreover, we check that the
+          wikibox that the wikibox has not been modified in parallel of our
+          modifications. If this is the case, we also show a warning *)
+       Wiki_sql.wikibox_wiki wb >>= fun wiki ->
+       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       let rights = Wiki_models.get_rights wiki_info.wiki_model in
+       Wiki_data.wikibox_content rights wb >>= fun (content_type, _, _) ->
+       let wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
+       Wiki.modified_wikibox wb boxversion >>= fun modified ->
+       if actionname = "save" && modified = None then (
+         Wiki_models.preparse_string wpp wb content >>= fun content ->
+         save_then_redirect ~error:(error_handler_wb wb) `BasePage
+           (fun () -> Wiki_data.save_wikitextbox ~rights
+              ~content_type ~wb ~content:(Some content))
+       ) else (
+         let desugar_context = {
+           Wiki_syntax_types.dc_page_wiki = page_wiki;
+           dc_page_path = Eliom_parameters.(match page_path with Inj1 _ -> None | Inj2 path -> Some path);
+           dc_warnings = [];
+         } in
+         Wiki_models.desugar_string wpp desugar_context content >>= fun content ->
+         Printf.eprintf "There are %d warnings" (List.length desugar_context.Wiki_syntax_types.dc_warnings);
+         Eliom_references.set desugar_messages desugar_context.Wiki_syntax_types.dc_warnings >>= fun () ->
+         set_override_wikibox (wb, PreviewWikitext (wb, (content, boxversion)));
+         Eliom_output.Action.send ()
+       )
+    )
 
 and action_send_css = Eliom_output.Any.register_post_coservice'
   ~keep_get_na_params:false ~name:"wiki_save_css"

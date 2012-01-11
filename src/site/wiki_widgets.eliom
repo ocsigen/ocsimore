@@ -38,6 +38,21 @@ let grouped_by_media wblist_with_media =
     | pair :: rest -> pair :: insert_by_media wb_media rest in
   List.fold_right insert_by_media wblist_with_media []
 
+
+let hidden_page_inputs (page_wiki, page_path) (page_wiki_name, (empty_page_path_name, page_path_name)) =
+  Ocsimore_common.input_opaque_int32 ~value:page_wiki page_wiki_name ::
+  match page_path with
+      Some path -> 
+        page_path_name.Eliom_parameters.it
+          (fun name value init -> Eliom_output.Html5.string_input ~input_type:`Hidden ~name ~value () :: init)
+          path
+          []
+    | None ->
+        [Eliom_output.Html5.user_type_input (fun () -> "")
+           ~name:empty_page_path_name
+           ~value:()
+           ~input_type:`Hidden ()]
+
 class wikibox_error_box =
 object
 
@@ -404,35 +419,35 @@ class dynamic_wikibox
 	]
 
   method draw_edit_form
+      ~page
       ~rows ~cols
       wb
-      warning1 warning2
+      warning1
+      warning2
       curversion
       content
       previewonly
-      (actionname, ((wbname, versionname), contentname)) =
+      (actionname, (page_wiki_path_names, ((wbname, versionname), contentname))) =
     [HTML5.M.p
-       (   warning1
-        @ (Ocsimore_common.input_opaque_int32 ~value:wb wbname
-        :: Eliom_output.Html5.int32_input ~input_type:`Hidden
+       (  warning1
+        @ Ocsimore_common.input_opaque_int32 ~value:wb wbname
+        :: hidden_page_inputs page page_wiki_path_names
+        @ Eliom_output.Html5.int32_input ~input_type:`Hidden
              ~name:versionname ~value:curversion ()
         :: Eliom_output.Html5.textarea
               ~a:[HTML5.M.a_class ["wikitextarea"]]
               ~name:contentname ~rows ~cols
               ~value:content ()
-        :: [HTML5.M.br ()])
-        @  warning2
-        @ (Eliom_output.Html5.string_button
+        :: HTML5.M.br ()
+        :: warning2
+        @ Eliom_output.Html5.string_button
              ~name:actionname ~value:"preview"
              [HTML5.M.pcdata "Preview"]
-        :: (if previewonly
+        :: if previewonly
             then []
-            else [Eliom_output.Html5.string_button
-                    ~name:actionname ~value:"save"
-                    [HTML5.M.pcdata "Save"]
-                 ]
-           ))
-       )
+            else [Eliom_output.Html5.string_button ~name:actionname ~value:"save"
+                    [HTML5.M.pcdata "Save"]]
+           )
     ]
 
 
@@ -474,8 +489,7 @@ class dynamic_wikibox
        Eliom_output.Html5.post_form
          ~a:[HTML5.M.a_accept_charset ["utf-8"]]
          ~service:Wiki_services.action_send_wikiboxtext
-         (self#draw_edit_form ~rows ~cols wb warning1 warning2 curversion
-            content previewonly) ())
+         (self#draw_edit_form ~page:bi.Wiki_widgets_interface.bi_page ~rows ~cols wb warning1 warning2 curversion content previewonly) ())
 
   (* Wikitext in editing mode, with an help box on the syntax of the wiki *)
   method display_wikitext_edit_form_help : 'a.
@@ -1241,8 +1255,8 @@ class dynamic_wikibox
             | false -> display_error ()
           )
 
-      | PreviewWikitext (wb, (content, version)) ->
-          (bi.bi_rights#can_write_wikibox wb >>= function
+      | PreviewWikitext (wb, (content, version)) -> begin
+          bi.bi_rights#can_write_wikibox wb >>= function
             | true ->
                 error_box#bind_or_display_error
                   (Wiki_data.wikibox_content ~version~rights:bi.bi_rights wb
@@ -1259,19 +1273,27 @@ class dynamic_wikibox
                                                             >>= fun prev ->
                      self#display_wikitext_edit_form_help ~classes:[]
                        ~bi ?cols ?rows ~previewonly:false ~wb cv
-                                                            >|= fun (_, form) ->
+                                                            >>= fun (_, form) ->
+                     Eliom_references.get Wiki_services.desugar_messages >|= fun desugar_messages ->
+                     let desugar_messages_list =
+                       if desugar_messages <> [] then
+                          let open HTML5.M in
+                          let li_for_msg (_, msg) = li [pcdata msg] in
+                          [div ~a:[a_class ["desugar_warnings"]] [
+                             p [pcdata "Warnings"];
+                             ul (List.map li_for_msg desugar_messages)
+                          ]]
+                       else []
+                     in
                      (classes,
-                      (HTML5.M.p
-                         ~a:[HTML5.M.a_class [box_title_class]]
-                         [HTML5.M.pcdata "Preview"]
-                       :: prev
-                       :: form)
-                     )
-                  )
-                >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
+                      HTML5.M.(p ~a:[a_class [box_title_class]] [pcdata "Preview"]) ::
+                        desugar_messages_list @
+                        prev ::
+                        form))
+                >>= self#menu_edit_wikitext ~bi ?special_box wb_loc
                 >>= ok
             | false -> display_error ()
-          )
+        end
 
       | EditWikipageProperties wp ->
           (bi.bi_rights#can_admin_wikipage wp >>= function
@@ -1666,13 +1688,14 @@ class phrasing_wikibox
   inherit dynamic_wikibox error_box user_widgets
 
   method draw_edit_form
-         ~rows:_ ~cols:_
+         ~page ~rows:_ ~cols:_
          wb warning1 warning2 curversion content
          previewonly
-         (actionname, ((wbname, versionname), contentname)) =
+         (actionname, (page_wiki_path_names, ((wbname, versionname), contentname))) =
     [HTML5.M.p
        (List.flatten
           [warning1;
+           hidden_page_inputs page page_wiki_path_names;
            [Ocsimore_common.input_opaque_int32 ~value:wb wbname;
             Eliom_output.Html5.int32_input ~input_type:`Hidden
               ~name:versionname ~value:curversion ();

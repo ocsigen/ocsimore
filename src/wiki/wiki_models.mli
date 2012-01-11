@@ -48,29 +48,34 @@ val get_widgets : Wiki_types.wiki_model -> Wiki_widgets_interface.interactive_wi
 (** Table of wiki syntaxes. *)
 exception Content_type_does_not_exist of string
 
-type wiki_preparser =
-    Wiki_types.wikibox -> string -> string Lwt.t
+type wiki_preprocessor = (module Wiki_syntax_types.Preprocessor)
+val identity_preprocessor : wiki_preprocessor
+
+(** See [Wiki_syntax_types.Preprocessor.preparse_string] *)
+val preparse_string: wiki_preprocessor -> Wiki_types.wikibox -> string -> string Lwt.t
+
+(** See [Wiki_syntax_types.Preprocessor.preparse_string] *)
+val desugar_string : wiki_preprocessor -> Wiki_syntax_types.desugar_param -> string -> string Lwt.t
 
 type +'res wiki_parser =
-  Wiki_widgets_interface.box_info -> string ->
-  'res Lwt.t (* pretty printer *)
+  Wiki_widgets_interface.box_info -> string -> 'res Lwt.t (* pretty printer *)
 
 val register_flows_wiki_parser :
   name:string ->
-  preparser:wiki_preparser ->
+  preprocessor:wiki_preprocessor ->
   parser_:[< HTML5_types.flow5] HTML5.M.elt list wiki_parser ->
     [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
 
 val register_flows_wiki_parser' :
   name:string ->
-  preparser:wiki_preparser ->
+  preprocessor:wiki_preprocessor ->
   parser_:[< HTML5_types.flow5_without_header_footer] HTML5.M.elt list wiki_parser ->
     [> HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type
 
 (** will also register a flows parser by adding a <div> around the result *)
 val register_phrasings_wiki_parser :
   name:string ->
-  preparser:wiki_preparser ->
+  preprocessor:wiki_preprocessor ->
   parser_:[< HTML5_types.phrasing] HTML5.M.elt list wiki_parser ->
     [> HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type
 
@@ -86,18 +91,18 @@ val get_phrasings_wiki_parser :
   [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type ->
   [> HTML5_types.phrasing] HTML5.M.elt list wiki_parser
 
-val get_flows_wiki_preparser :
-  [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type -> wiki_preparser
+val get_flows_wiki_preprocessor :
+  [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type -> wiki_preprocessor
 
-val get_flows_wiki_preparser' :
-  [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type -> wiki_preparser
+val get_flows_wiki_preprocessor' :
+  [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type -> wiki_preprocessor
 
-val get_phrasings_wiki_preparser :
-  [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type -> wiki_preparser
+val get_phrasings_wiki_preprocessor :
+  [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type -> wiki_preprocessor
 
 (** default wikiparser for one wiki model *)
 val get_default_wiki_parser :
   Wiki_types.wiki_model -> [> HTML5_types.flow5] HTML5.M.elt list wiki_parser
-val get_default_wiki_preparser : Wiki_types.wiki_model -> wiki_preparser
+val get_default_wiki_preprocessor : Wiki_types.wiki_model -> wiki_preprocessor
 
 val css_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type

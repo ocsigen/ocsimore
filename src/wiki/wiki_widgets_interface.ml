@@ -466,6 +466,7 @@ class type virtual interactive_wikibox =
 
     (** Display edit form *)
     method draw_edit_form :
+      page:(Wiki_types.wiki * string list option) ->
       rows:int ->
       cols:int ->
       Wiki_types.wikibox ->
@@ -475,10 +476,12 @@ class type virtual interactive_wikibox =
       string ->
       bool ->
       [ `One of string ] Eliom_parameters.param_name *
-        (([ `One of Wiki_types.wikibox_arg Opaque.int32_t ]
-            Eliom_parameters.param_name *
-            [ `One of int32 ] Eliom_parameters.param_name) *
-           [ `One of string ] Eliom_parameters.param_name) ->
+      (([ `One of Wiki_types.wiki ] Eliom_parameters.param_name *
+        ([ `One of unit ] Eliom_parameters.param_name *
+         [ `One of string ] Eliom_parameters.param_name Eliom_parameters.listnames)) *
+       (([ `One of Wiki_types.wikibox ] Eliom_parameters.param_name *
+         [ `One of int32 ] Eliom_parameters.param_name) *
+        [ `One of string ] Eliom_parameters.param_name)) ->
       HTML5_types.form_content HTML5.M.elt list
 
   end

@@ -85,8 +85,22 @@ let get_default_content_type k =
 (** Table of wiki syntaxes. *)
 exception Content_type_does_not_exist of string
 
-type wiki_preparser =
-    Wiki_types.wikibox -> string -> string Lwt.t
+type wiki_preprocessor = (module Wiki_syntax_types.Preprocessor)
+
+let identity_preprocessor = 
+  let module Identity_preprocessor = struct
+    let preparse_string _ s = Lwt.return s
+    let desugar_string _ s = Lwt.return s
+  end in
+  (module Identity_preprocessor : Wiki_syntax_types.Preprocessor)
+
+let preparse_string wpp p c =
+  let module Preprocessor = (val wpp : Wiki_syntax_types.Preprocessor) in
+  Preprocessor.preparse_string p c
+
+let desugar_string wpp p c =
+  let module Preprocessor = (val wpp : Wiki_syntax_types.Preprocessor) in
+  Preprocessor.desugar_string p c
 
 type +'res wiki_parser =
     Wiki_widgets_interface.box_info -> string -> 'res Lwt.t
@@ -94,7 +108,7 @@ type +'res wiki_parser =
 
 let register_flows_wiki_parser,
   get_flows_wiki_parser,
-  get_flows_wiki_preparser =
+  get_flows_wiki_preprocessor =
   let module H =
     Hashtbl.Make(struct
                    type t = HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
@@ -103,10 +117,10 @@ let register_flows_wiki_parser,
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser_:b ->
+  ((fun ~name:k ~preprocessor:(a:wiki_preprocessor) ~parser_:b ->
       let k = Wiki_types.content_type_of_string k in
       H.add t k (a, (b : [< HTML5_types.flow5] HTML5.M.elt list wiki_parser
-		       :> HTML5_types.flow5 HTML5.M.elt list wiki_parser));
+                       :> HTML5_types.flow5 HTML5.M.elt list wiki_parser));
       k),
    (fun k ->
       try snd (H.find t k)
@@ -118,26 +132,26 @@ let register_flows_wiki_parser,
                                  (Wiki_types.string_of_content_type k))))
 
 (* Opening types ... *)
-let register_flows_wiki_parser ~name ~preparser ~parser_ =
+let register_flows_wiki_parser ~name ~preprocessor ~parser_ =
   let parser_ =
     (parser_ : [< HTML5_types.flow5] HTML5.M.elt list wiki_parser
              :> HTML5_types.flow5 HTML5.M.elt list wiki_parser) in
-  (register_flows_wiki_parser ~name ~preparser ~parser_
+  (register_flows_wiki_parser ~name ~preprocessor ~parser_
      : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
      :> [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type)
 let get_flows_wiki_parser k =
   let k = (k : [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
-	     :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
+             :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
   (get_flows_wiki_parser k : HTML5_types.flow5 HTML5.M.elt list wiki_parser
      :> [> HTML5_types.flow5] HTML5.M.elt list wiki_parser)
-let get_flows_wiki_preparser k =
+let get_flows_wiki_preprocessor k =
   let k = (k : [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
-	     :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
-  get_flows_wiki_preparser k
+             :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
+  get_flows_wiki_preprocessor k
 
 let register_flows_wiki_parser',
   get_flows_wiki_parser',
-  get_flows_wiki_preparser' =
+  get_flows_wiki_preprocessor' =
   let module H =
     Hashtbl.Make(struct
                    type t = HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type
@@ -146,7 +160,7 @@ let register_flows_wiki_parser',
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser_:(b:HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser) ->
+  ((fun ~name:k ~preprocessor:a ~parser_:(b:HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser) ->
       let k' = Wiki_types.content_type_of_string k in
       H.add t k' (a, b);
       (* we also register a flows parser: *)
@@ -164,27 +178,27 @@ let register_flows_wiki_parser',
 
 
 (* Opening types ... *)
-let register_flows_wiki_parser' ~name ~preparser ~parser_ =
+let register_flows_wiki_parser' ~name ~preprocessor ~parser_ =
   let parser_ =
     (parser_ : [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list wiki_parser
              :> HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser) in
-  (register_flows_wiki_parser' ~name ~preparser ~parser_
+  (register_flows_wiki_parser' ~name ~preprocessor ~parser_
      : HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type
      :> [> HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type)
 let get_flows_wiki_parser' k =
   let k = (k : [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type
-	     :> HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type) in
+             :> HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type) in
   (get_flows_wiki_parser' k : HTML5_types.flow5_without_header_footer HTML5.M.elt list wiki_parser
      :> [> HTML5_types.flow5_without_header_footer] HTML5.M.elt list wiki_parser)
-let get_flows_wiki_preparser' k =
+let get_flows_wiki_preprocessor' k =
   let k = (k : [< HTML5_types.flow5_without_header_footer] HTML5.M.elt list Wiki_types.content_type
-	     :> HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type) in
-  get_flows_wiki_preparser' k
+             :> HTML5_types.flow5_without_header_footer HTML5.M.elt list Wiki_types.content_type) in
+  get_flows_wiki_preprocessor' k
 
 
 let register_phrasings_wiki_parser,
   get_phrasings_wiki_parser,
-  get_phrasings_wiki_preparser =
+  get_phrasings_wiki_preprocessor =
   let module H =
     Hashtbl.Make(struct
                    type t = HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type
@@ -193,7 +207,7 @@ let register_phrasings_wiki_parser,
                  end)
   in
   let t = H.create 10 in
-  ((fun ~name:k ~preparser:a ~parser_:b ->
+  ((fun ~name:k ~preprocessor:a ~parser_:b ->
       let k' = Wiki_types.content_type_of_string k in
       H.add t k' (a, b);
       (* we also register a flows parser: *)
@@ -210,34 +224,33 @@ let register_phrasings_wiki_parser,
                                  (Wiki_types.string_of_content_type k))))
 
 (* Opening types ... *)
-let register_phrasings_wiki_parser ~name ~preparser ~parser_ =
+let register_phrasings_wiki_parser ~name ~preprocessor ~parser_ =
   let parser_ =
     (parser_ : [< HTML5_types.phrasing] HTML5.M.elt list wiki_parser
              :> HTML5_types.phrasing HTML5.M.elt list wiki_parser) in
-  (register_phrasings_wiki_parser ~name ~preparser ~parser_
+  (register_phrasings_wiki_parser ~name ~preprocessor ~parser_
      : HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type
      :> [> HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type)
 let get_phrasings_wiki_parser k =
   let k = (k : [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type
-	     :> HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type) in
+             :> HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type) in
   (get_phrasings_wiki_parser k : HTML5_types.phrasing HTML5.M.elt list wiki_parser
      :> [> HTML5_types.phrasing] HTML5.M.elt list wiki_parser)
-let get_phrasings_wiki_preparser k =
+let get_phrasings_wiki_preprocessor k =
   let k = (k : [< HTML5_types.phrasing] HTML5.M.elt list Wiki_types.content_type
-	     :> HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type) in
-  get_phrasings_wiki_preparser k
+             :> HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type) in
+  get_phrasings_wiki_preprocessor k
 
 
 let get_default_wiki_parser s =
   get_flows_wiki_parser (get_default_content_type s)
 
-let get_default_wiki_preparser s =
-  get_flows_wiki_preparser (get_default_content_type s)
-
+let get_default_wiki_preprocessor s =
+  get_flows_wiki_preprocessor (get_default_content_type s)
 
 let css_content_type =
   register_flows_wiki_parser
     ~name:"css"
-    ~preparser:(fun _ s -> Lwt.return s)
+    ~preprocessor:identity_preprocessor
     ~parser_:(fun _bi s -> Lwt.return [HTML5.M.pcdata s])
 

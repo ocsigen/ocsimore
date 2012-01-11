@@ -24,6 +24,27 @@ type href =
    becomes easy (and, more importantly, not costly) to add
    extensions. *)
 
+type desugar_param = {
+  dc_page_wiki : Wiki_types.wiki;
+  dc_page_path : string list option;
+  mutable dc_warnings : ((int * int) * string) list;
+}
+
+module type Preprocessor = sig
+
+  (** [desugar_string dc content] does some possible syntactical desugaring in
+      [content]. It should be safe to call this, i.e. there shall be no side
+      effects in it. (The result must still be [Lwt.t] because it may access
+      the DB read-only.  *)
+  val desugar_string : desugar_param -> string -> string Lwt.t
+
+  (* [preparse_string wb content] does possibly some replacements in [content]
+     and may have arbitrary side effects in the process (e.g. creating
+    wikiboxes etc.). *)
+  val preparse_string: Wiki_types.wikibox -> string -> string Lwt.t
+
+end
+
 module type Parser = sig
 
   type res
@@ -34,7 +55,7 @@ module type Parser = sig
     string ->
     res list
 
-  val preparse_string: Wiki_types.wikibox -> string -> string Lwt.t
+  include Preprocessor
 
 end
 
