@@ -335,29 +335,29 @@ let sub_string ?from ?to_ str =
 
 (*
 1. An empty path refers to the current url:
-    [[]] ⇒ [[wiki(25):/a/b/c]]
-    [[#ijk]] ⇒ [[wiki(25):a/b/c#ijk]])
+    [[]] => [[wiki(25):/a/b/c]]
+    [[#ijk]] => [[wiki(25):a/b/c#ijk]])
 
 2. Relative paths are resolved with respect to the `dirname` of the current
 path (i.e. /a/b in the example):
-    [[.]] ⇒ [[wiki(25):/a/b]]
-    [[xyz]], [[./xyz]] ⇒ [[wiki(25):/a/b/xyz]]
-    [[..]] ⇒ [[wiki(25):/a]]
-    [[../xyz]] ⇒ [[wiki(25):/a/xyz]]
-    [[c/xyz]] ⇒ [[wiki(25):/a/b/c/xyz]]
+    [[.]] => [[wiki(25):/a/b]]
+    [[xyz]], [[./xyz]] => [[wiki(25):/a/b/xyz]]
+    [[..]] => [[wiki(25):/a]]
+    [[../xyz]] => [[wiki(25):/a/xyz]]
+    [[c/xyz]] => [[wiki(25):/a/b/c/xyz]]
 
-3. wikis can be referred to by their title:
-    [[wiki("title"):path]] ⇒ [[wiki(ix):path]]
+3. The current wiki may be referred to by ~
+    [[~/xyz]] => [[wiki(25):xyz]]
+   (but [[wiki:/xyz]] => [[wiki:/xyz]]!
 
 4. We will provide basic support for resolving complete paths to a wiki and a
 path, like:
-    [[/a/b/c]] ⇒ [[wiki(ix):e/f]]
+    [[/a/b/c]] => [[wiki(ix):e/f]]
     such that prefix/e/f == /a/b/c where prefix is the URL of wiki(ix).
 Currently only for prefix = a || prefix = /a (this not consistent in the DB),
 
-5. The current wiki may be referred to by ~
-    [[~/xyz]] ⇒ [[wiki(25):xyz]]
-   (but [[wiki:/xyz]] ⇒ [[wiki:/xyz]]!
+5. wikis can be referred to by their title:
+    [[wiki("title"):path]] => [[wiki(ix):path]]
  *)
 
 let normalize_link =
@@ -370,16 +370,16 @@ let normalize_link =
     let failure_malformed_link pos desugar_param fmt = Printf.ksprintf (failure_malformed_link' pos desugar_param) fmt
     let no_replacement = Lwt.return None
   end in
-  let has_prefix prefix offset str =
+  let has_prefix ?(offset=0) prefix str =
     String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
   in
   let resolve_parent_path addr rev_page_path =
     let rec aux offset back_path =
-      if has_prefix "/" offset addr then
+      if has_prefix ~offset "/" addr then
         aux (offset + 1) back_path
-      else if has_prefix "./" offset addr then
+      else if has_prefix ~offset "./" addr then
         aux (offset + 2) back_path
-      else if has_prefix "../" offset addr then
+      else if has_prefix ~offset "../" addr then
         match back_path with
             _ :: back_path' -> aux (offset + 3) back_path'
           | [] ->
@@ -423,7 +423,8 @@ let normalize_link =
                 page_wiki_id_string
                 (get_map_option ~default:"" (String.concat "/") desugar_param.dc_page_path)
             else
-              if addr.[0] = '/' then (* [[/xyz/path]] => [[wiki(ix)/path]] where wiki(ix) has URL /xyz *)
+              if addr.[0] = '/' then (* [[/snippet/path]] => [[wiki(ix)/path]] where wiki(ix) has URL /snippet *)
+                (* TODO this should search for arbitrary prefixes of [addr] for wiki-URLs. *)
                 let ix = String.index_from addr 1 '/' in
                 try_lwt
                   lwt wiki_info =
@@ -439,7 +440,7 @@ let normalize_link =
                   Result.failure_malformed_link pos desugar_param "no wiki at %s"
                     (sub_string ~to_:ix addr)
               else
-                if has_prefix "~/" 0 addr then (* [[~/xyz]] => [[wiki(25)/xyz]] *)
+                if has_prefix "~/" addr then (* [[~/xyz]] => [[wiki(25)/xyz]] *)
                   Result.success_replace "wiki(%s):%s"
                     page_wiki_id_string
                     (sub_string ~from:1 addr)
