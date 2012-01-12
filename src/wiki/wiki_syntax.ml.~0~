@@ -333,36 +333,32 @@ let sub_string ?from ?to_ str =
   let to_ = match to_ with Some ix -> ix | None -> String.length str in
   String.sub str from (to_ - from)
 
-let has_prefix ?(offset=0) prefix str =
-  String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
+(*
+1. An empty path refers to the current url:
+    [[]] => [[wiki(25):/a/b/c]]
+    [[#ijk]] => [[wiki(25):a/b/c#ijk]])
 
-(* [resolve_parent_path "../../"] ["c";"b";"a"] => ["a"] *)
-let resolve_parent_path addr rev_page_path =
-  let rec aux offset back_path =
-    if has_prefix ~offset "/" addr then
-      aux (offset + 1) back_path
-    else if has_prefix ~offset "./" addr then
-      aux (offset + 2) back_path
-    else if has_prefix ~offset "../" addr then
-      match back_path with
-          _ :: back_path' -> aux (offset + 3) back_path'
-        | [] ->
-            let msg =
-              Printf.sprintf "cannot access %s from %s"
-                addr
-                (String.concat "/" (List.rev rev_page_path))
-            in
-            `Failure msg
-    else
-      let rem_addr = sub_string ~from:offset addr in
-      `Success (back_path, rem_addr)
-  in aux 0 rev_page_path
+2. Relative paths are resolved with respect to the `dirname` of the current
+path (i.e. /a/b in the example):
+    [[.]] => [[wiki(25):/a/b]]
+    [[xyz]], [[./xyz]] => [[wiki(25):/a/b/xyz]]
+    [[..]] => [[wiki(25):/a]]
+    [[../xyz]] => [[wiki(25):/a/xyz]]
+    [[c/xyz]] => [[wiki(25):/a/b/c/xyz]]
 
-let rev_reference_page_path opt_path =
-  match map_option List.rev opt_path with
-      Some (_ :: path) -> `Success path
-    | None -> `Failure "relative link not from no page path"
-    | Some [] -> `Failure "relative link not from empty page path"
+3. The current wiki may be referred to by ~
+    [[~/xyz]] => [[wiki(25):xyz]]
+   (but [[wiki:/xyz]] => [[wiki:/xyz]]!
+
+4. We will provide basic support for resolving complete paths to a wiki and a
+path, like:
+    [[/a/b/c]] => [[wiki(ix):e/f]]
+    such that prefix/e/f == /a/b/c where prefix is the URL of wiki(ix).
+Currently only for prefix = a || prefix = /a (this not consistent in the DB),
+
+5. wikis can be referred to by their title:
+    [[wiki("title"):path]] => [[wiki(ix):path]]
+ *)
 
 let normalize_link =
   let module Result = struct
@@ -374,6 +370,30 @@ let normalize_link =
     let failure_malformed_link pos desugar_param fmt = Printf.ksprintf (failure_malformed_link' pos desugar_param) fmt
     let no_replacement = Lwt.return None
   end in
+  let has_prefix ?(offset=0) prefix str =
+    String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
+  in
+  let resolve_parent_path addr rev_page_path =
+    let rec aux offset back_path =
+      if has_prefix ~offset "/" addr then
+        aux (offset + 1) back_path
+      else if has_prefix ~offset "./" addr then
+        aux (offset + 2) back_path
+      else if has_prefix ~offset "../" addr then
+        match back_path with
+            _ :: back_path' -> aux (offset + 3) back_path'
+          | [] ->
+              `Failure
+                (fun pos desugar_param ->
+                   Result.failure_malformed_link pos desugar_param
+                     "cannot access %s from %s"
+                     addr
+                     (String.concat "/" (List.rev rev_page_path)))
+      else
+        let rem_addr = sub_string ~from:offset addr in
+        `Success (back_path, rem_addr)
+    in aux 0 rev_page_path
+  in
   fun pos addr fragment desugar_param ->
     let open Netstring_pcre in
     match string_match link_regexp addr 0 with
@@ -426,20 +446,23 @@ let normalize_link =
                     (sub_string ~from:1 addr)
                 else (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
                   (* Choose reference path for resolving relative link *)
-                  begin match rev_reference_page_path desugar_param.Wiki_syntax_types.dc_page_path with
-                      `Failure msg ->
-                          Result.failure_malformed_link' pos desugar_param msg
-                    | `Success rev_ref_path ->
-                         begin match resolve_parent_path addr rev_ref_path with
-                             `Success (rev_rem_path, rem_addr) ->
-                               Lwt.return (Some (List.rev rev_rem_path, rem_addr))
-                           | `Failure msg ->
-                               Result.failure_malformed_link' pos desugar_param msg
-                         end
+                  begin match map_option List.rev desugar_param.Wiki_syntax_types.dc_page_path with
+                      Some (_ :: rev_reference_path) ->
+                       begin match resolve_parent_path addr rev_reference_path with
+                           `Success rem_path_addr -> Lwt.return (Some rem_path_addr)
+                         | `Failure failure -> failure pos desugar_param
+                       end
+                    | None ->
+                        Result.failure_malformed_link pos desugar_param
+                          "relative link not from no page path"
+                    | Some [] ->
+                        Result.failure_malformed_link pos desugar_param
+                          "relative link not from empty page path"
                   end
                   (* Resolve addr relative to the reference path *)
                   >>= begin function
-                      Some (rem_reference_path, rem_addr) ->
+                      Some (rev_rem_reference_path, rem_addr) ->
+                        let rem_reference_path = List.rev rev_rem_reference_path in
                         Result.success_replace "wiki(%s):%s%s"
                           page_wiki_id_string
                           (String.concat "/" rem_reference_path)
@@ -456,7 +479,6 @@ type link_kind =
   | Page of string * force_https
   | Wiki_page of Wiki_types.wiki * string * force_https
   | Site of string * force_https
-  | Relative of string * force_https
 
 let link_kind addr =
   match Netstring_pcre.string_match link_regexp addr 0 with
@@ -475,15 +497,15 @@ let link_kind addr =
           let page = Netstring_pcre.matched_group result page_group addr in
           try
             let wikinum = Netstring_pcre.matched_group result wiki_id_group addr in
-            let wiki = Wiki_types.wiki_of_sql (Int32.of_string wikinum) in
-            Wiki_page (wiki, page, forceproto)
+            Wiki_page ((Wiki_types.wiki_of_sql (Int32.of_string wikinum)),
+                       page,
+                       forceproto)
           with Failure _ | Not_found -> Page (page, forceproto)
-        else
+        else if proto = "site"
+        then
           let page = Netstring_pcre.matched_group result 5 addr in
-          match proto with
-              "site" -> Site (page, forceproto)
-            | "rel" -> Relative (page, forceproto)
-            | _ -> Absolute addr
+          Site (page, forceproto)
+        else Absolute addr
 
 let remove_first_slash s =
   let l = String.length s in
@@ -954,7 +976,7 @@ let make_href bi addr fragment =
             | None ->
                 let path =
                   Eliom_uri.reconstruct_relative_url_path
-                    (Eliom_request_info.get_original_full_path ())
+                    (Eliom_request_info.get_csp_original_full_path ())
                     path
                 in
                 Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
