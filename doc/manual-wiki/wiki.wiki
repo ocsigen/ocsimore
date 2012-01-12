@@ -35,27 +35,66 @@ Examples:
 
 {{{*@@...attributes for full list...@...attributes for item...@@ text}}}
 
-=====Links=====
+===== Links =====
 
-Links are created with the syntax {{{[[page|...]]}}}, where {{{page}}} is by default a page in the current wiki.
-Note that //it is not a relative link!//
-More precisely, it is relative to the root of the wiki.
-Thus it is possible to have the same wikibox on several pages.
+Links are created with the syntax {{{[[target]]}}} or {{{target|content}}} where
+{{{target}}} is the target of the link and {{{content}}} is the content of the link.
 
-{{{[[page|...]]}}} is a shortcut for {{{[[wiki:page|...]]}}}.
-If you want to create a link towards a page from another wiki, do {{{[[wiki(n):page|...]]}}}, where {{{n}}} is the
-wiki number.
+There are five kinds for the target of a link which might occur in the database
 
-If you want to make a link relative to the root of the full site (for example towards a page that is not in a wiki), do:
-{{{[[site:href|...]]}}} (where {{{href}}} may contain characters like {{{?}}} or {{{&}}})).
+# A link to the wiki page of wiki {{{wiki(n)}}} and path {{{path}}} is given by 
+  {{{wiki(n):path}}} (see below for abbreviations)
+# If you want to make a link relative to the root of the full site (for example
+  towards a page that is not in a wiki), do: {{{[[site:href|...]]}}} (where
+  {{{href}}} may contain characters like {{{?}}} or {{{&}}})).
+# If you want to make an absolute link towards another Web site, put the full URL,
+  for example: {{{[[http://server/page|...]]}}}. \\
+  //Warning: it is recommended to use absolute URLs only for external links!//
+# Links which should remain relative to the /currently displayed wiki page/ start
+  with {{{rel:}}}
+  ** {{{[[rel:/xyz]]}}} is displayed as {{{<a href="pagewiki/xyz">...</a>}}} where
+     {{{pagewiki}}} is the url of the wiki of the
+     currently displayed wiki page.
+  ** {{{[[rel:xyz]]}}} is displayed as {{{<a href="pagewiki/pagepath/xyz">...</a>}}}
+     is the url of the wiki and {{{pagepath}}} is the path of the currently
+     displayed wiki page.
 
-If you want ot make an absolute link towards another Web site, put the full URL, for example:
-{{{[[http://server/page|...]]}}}.
+Those targets of link may be prefixed with {{{http+}}} or {{{htpps+}}} to
+enforce a specific HTTP-protocol.
 
-If you want towards a page, forcing {{{http}}} or {{{https}}}, do for example:
-{{{[[https+wiki(n):page|...]]}}} or {{{[[http+site:href|...]]}}}. In that case, the link will be absolute.
+====== Abbreviations for links ======
 
-//Warning: it is recommended to use absolute URLs only for external links or if you want to force the protocol!//
+Additionally, there are abbreviation for easily creating (relative) links. Those are
+replaced by the above forms //when creating the preview of wikibox//. Possible
+problems with relative links are shown in the preview.
+
+This replacement usually depends on the wiki page (i.e. a page wiki and a page path)
+where the wikibox is edited. NB that the page wiki may be different to the wiki
+of the edited wikibox.
+
+The examples for the following rules for resolving relative links are given for
+wiki page {{{/wiki25/a/b/c}}}, i.e. the page wiki {{{wiki(25)}}} and the page
+path {{{/a/b/c}}}.
+
+# An empty path refers to the current url:
+    ** {{{[[]]}}} => {{{[[wiki(25):/a/b/c]]}}}
+    ** {{{[[#anchor]]}}} => {{{[[wiki(25):a/b/c#anchor]]}}})
+# Relative paths are corresponding to hrefs in {{{a}}}-elements in HTML:
+    ** {{{[[.]]}}} => {{{[[wiki(25):/a/b]]}}}
+    ** {{{[[xyz]]}}}, {{{[[./xyz]]}}} =>  {{{[[wiki(25):/a/b/xyz]]}}}
+    ** {{{[[..]]}}} => {{{[[wiki(25):/a]]}}}
+    ** {{{[[../xyz]]}}} => {{{[[wiki(25):/a/xyz]]}}}
+    ** {{{[[c/xyz]]}}} => {{{[[wiki(25):/a/b/c/xyz]]}}}
+  NB that, for example, {{{[[xyz]]}}} was resolved to {{{[[wiki(25):/a/b/c/xyz}}}
+  if the page path was {{{/a/b/c/}}} (note the trailing slash).
+# We will provide basic support for resolving complete paths to a wiki and a
+  path, like:
+    ** {{{[[/a/b/c]]}}} => {{{[[wiki(ix):e/f]]}}}
+  such that prefix/e/f = /a/b/c where prefix is the URL of wiki(ix).
+  Currently only for prefix = a || prefix = /a (this not consistent in the DB),
+# Other wikis can be referred to by their title:
+    ** {{{[[wiki("title"):path]]}}} => {{{[[wiki(ix):path]]}}}
+  where {{{"title"}}} is the title of the wiki with index {{{ix}}}
 
 =====Additions=====
 
