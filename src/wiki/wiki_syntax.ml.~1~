@@ -336,39 +336,33 @@ let sub_string ?from ?to_ str =
 let has_prefix ?(offset=0) prefix str =
   String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
 
-(*
-   [resolve_href "../../"] ["c";"b";"a"] => ["a"]
-   [resolve_href "/xyz"] ["c";"b";"a"] => [], "xyz"
- *)
-let resolve_href addr rev_page_path =
-  if has_prefix "/" addr then
-    [], addr
-  else
-    let rec aux offset back_path =
-      if has_prefix ~offset "/" addr then
-        aux (offset + 1) back_path
-      else if has_prefix ~offset "./" addr then
-        aux (offset + 2) back_path
-      else if has_prefix ~offset "../" addr then
-        match back_path with
-            _ :: back_path' -> aux (offset + 3) back_path'
-          | [] ->
-              let msg =
-                Printf.sprintf "cannot access %s from %s"
-                  addr
-                  (String.concat "/" (List.rev rev_page_path))
-              in
-              raise (Failure msg)
-      else
-        let rem_addr = sub_string ~from:offset addr in
-        back_path, rem_addr
-    in aux 0 rev_page_path
+(* [resolve_parent_path "../../"] ["c";"b";"a"] => ["a"] *)
+let resolve_parent_path addr rev_page_path =
+  let rec aux offset back_path =
+    if has_prefix ~offset "/" addr then
+      aux (offset + 1) back_path
+    else if has_prefix ~offset "./" addr then
+      aux (offset + 2) back_path
+    else if has_prefix ~offset "../" addr then
+      match back_path with
+          _ :: back_path' -> aux (offset + 3) back_path'
+        | [] ->
+            let msg =
+              Printf.sprintf "cannot access %s from %s"
+                addr
+                (String.concat "/" (List.rev rev_page_path))
+            in
+            `Failure msg
+    else
+      let rem_addr = sub_string ~from:offset addr in
+      `Success (back_path, rem_addr)
+  in aux 0 rev_page_path
 
 let rev_reference_page_path opt_path =
   match map_option List.rev opt_path with
-      Some (_ :: path) -> path
-    | None -> raise (Failure "relative link not from no page path")
-    | Some [] -> raise (Failure "relative link not from empty page path")
+      Some (_ :: path) -> `Success path
+    | None -> `Failure "relative link not from no page path"
+    | Some [] -> `Failure "relative link not from empty page path"
 
 let normalize_link =
   let module Result = struct
@@ -409,7 +403,7 @@ let normalize_link =
                 page_wiki_id_string
                 (get_map_option ~default:"" (String.concat "/") desugar_param.dc_page_path)
             else
-              if has_prefix "/" addr then (* [[/snippet/path]] => [[wiki(ix)/path]] where wiki(ix) has URL /snippet *)
+              if addr.[0] = '/' then (* [[/snippet/path]] => [[wiki(ix)/path]] where wiki(ix) has URL /snippet *)
                 (* TODO this should search for arbitrary prefixes of [addr] for wiki-URLs. *)
                 let ix = String.index_from addr 1 '/' in
                 try_lwt
@@ -432,12 +426,17 @@ let normalize_link =
                     (sub_string ~from:1 addr)
                 else (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
                   (* Choose reference path for resolving relative link *)
-                  (try
-                    let rev_ref_path = rev_reference_page_path desugar_param.Wiki_syntax_types.dc_page_path in
-                    let rev_rem_path, rem_addr = resolve_href addr rev_ref_path in
-                    Lwt.return (Some (List.rev rev_rem_path, rem_addr))
-                  with Failure msg ->
-                    Result.failure_malformed_link' pos desugar_param msg)
+                  begin match rev_reference_page_path desugar_param.Wiki_syntax_types.dc_page_path with
+                      `Failure msg ->
+                          Result.failure_malformed_link' pos desugar_param msg
+                    | `Success rev_ref_path ->
+                         begin match resolve_parent_path addr rev_ref_path with
+                             `Success (rev_rem_path, rem_addr) ->
+                               Lwt.return (Some (List.rev rev_rem_path, rem_addr))
+                           | `Failure msg ->
+                               Result.failure_malformed_link' pos desugar_param msg
+                         end
+                  end
                   (* Resolve addr relative to the reference path *)
                   >>= begin function
                       Some (rem_reference_path, rem_addr) ->
