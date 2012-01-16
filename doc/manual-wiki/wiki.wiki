@@ -38,35 +38,37 @@ Examples:
 ===== Links =====
 
 Links are created with the syntax {{{[[target]]}}} or {{{target|content}}} where
-{{{target}}} is the target of the link and {{{content}}} is the content of the link.
+{{{target}}} is the target of the link and {{{content}}} is the optional content
+of the link.
 
-There are five kinds for the target of a link which might occur in the database
+There are five kinds for the target of a link which might occur in the database.
 
-# A link to the wiki page of wiki {{{wiki(n)}}} and path {{{path}}} is given by 
-  {{{wiki(n):path}}} (see below for abbreviations)
-# If you want to make a link relative to the root of the full site (for example
-  towards a page that is not in a wiki), do: {{{[[site:href|...]]}}} (where
-  {{{href}}} may contain characters like {{{?}}} or {{{&}}})).
-# If you want to make an absolute link towards another Web site, put the full URL,
-  for example: {{{[[http://server/page|...]]}}}. \\
-  //Warning: it is recommended to use absolute URLs only for external links!//
-# Links which should remain relative to the /currently displayed wiki page/ start
-  with {{{rel:}}}
-  ** {{{[[rel:/xyz]]}}} is displayed as {{{<a href="pagewiki/xyz">...</a>}}} where
-     {{{pagewiki}}} is the url of the wiki of the
-     currently displayed wiki page.
-  ** {{{[[rel:xyz]]}}} is displayed as {{{<a href="pagewiki/pagepath/xyz">...</a>}}}
-     is the url of the wiki and {{{pagepath}}} is the path of the currently
-     displayed wiki page.
+;{{{[[wiki(id):page]]}}}
+:A link to a certain {{{page}}} in a given wiki with {{{id}}} (see below for
+abbreviations).
+;{{{[[wiki:page]]}}}
+:A link to a certain {{{page}}} of the currently displayed wiki
+;{{{[[site:href]]}}}
+:A link relative to the root of the full site, for example towards a page that
+ is not in a wiki (where {{{href}}} may contain characters like {{{?}}} or
+ {{{&}}})
+;{{{[[href:path]]}}}
+: You can also create links by a simple href, i.e.
+  {{{[[href:path]]}}} is displayed as {{{<a href="path">...</a>}}}. The
+  {{{href}}} may also contain GET-parameters.
 
-Those targets of link may be prefixed with {{{http+}}} or {{{htpps+}}} to
-enforce a specific HTTP-protocol.
+The targets of all those links may be prefixed with {{{http+}}} or {{{htpps+}}}
+to enforce a specific HTTP-protocol.
+
+Additionally, you can create an absolute link towards web site by putting the
+whole URL in double brackets, for example: {{{[[http://server/page|...]]}}}
+//Warning: it is recommended to use absolute URLs only for external links!//
 
 ====== Abbreviations for links ======
 
 Additionally, there are abbreviation for easily creating (relative) links. Those are
-replaced by the above forms //when creating the preview of wikibox//. Possible
-problems with relative links are shown in the preview.
+replaced by the above forms //when creating the preview of wikibox// or before
+saving. Possible problems with relative links are shown in the preview.
 
 This replacement usually depends on the wiki page (i.e. a page wiki and a page path)
 where the wikibox is edited. NB that the page wiki may be different to the wiki
