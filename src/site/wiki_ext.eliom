@@ -180,7 +180,7 @@ let register_wikibox_syntax_extensions
     (* class and id attributes will be taken by Wiki_syntax.a_elem *)
     let wiki = extract_wiki_id args bi.bi_wiki in
     ( Wiki_syntax.make_href
-        bi (Wiki_syntax.Wiki_page (wiki, page, https)) fragment,
+        bi (Wiki_syntax.Wiki_page (Some wiki, page, https)) fragment,
       args,
       content ) in
   Wiki_syntax.register_link_flow_extension ~name:"link" { Wiki_syntax.lfpp = f_link };
@@ -260,7 +260,7 @@ let register_wikibox_syntax_extensions
        let url =
          Wiki_syntax.uri_of_href
            (Wiki_syntax.make_href
-              bi (Wiki_syntax.Wiki_page (wiki, page, https)) None)
+              bi (Wiki_syntax.Wiki_page (Some wiki, page, https)) None)
        in
        Lwt.return
          [HTML5.M.img ~src:url ~alt ~a:atts ()]

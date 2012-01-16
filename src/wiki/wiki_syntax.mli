@@ -130,8 +130,8 @@ val register_wiki_extension :
       'phrasing_without_interactive) ext_wikicreole_parser ->
   name:string ->
   wp_rec:('a HTML5.M.elt list Lwt.t,
-          'b HTML5.M.elt list Lwt.t,
-          'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
+	  'b HTML5.M.elt list Lwt.t,
+	  'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
   ?preparser:preparser ->
   ?ni_plugin:
     ('b HTML5.M.elt list Lwt.t,
@@ -160,8 +160,8 @@ val register_link_extension :
       'phrasing_without_interactive) ext_wikicreole_parser ->
   name:string ->
   wp_rec:('a HTML5.M.elt list Lwt.t,
-          'b HTML5.M.elt list Lwt.t,
-          'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
+	  'b HTML5.M.elt list Lwt.t,
+	  'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
   ?preparser:(Wiki_types.wikibox ->
               Wikicreole.attribs ->
               string option -> string option Lwt.t) ->
@@ -238,8 +238,8 @@ val register_wiki_flow_extension :
 type interactive_wiki_flow_pplugin = {
   ifpp: 'flow 'flow_without_interactive.
     (('flow, 'flow_without_interactive)
-        HTML5_types.between_flow5_and_flow5_without_header_footer
-        HTML5.M.elt list Lwt.t,
+	HTML5_types.between_flow5_and_flow5_without_header_footer
+	HTML5.M.elt list Lwt.t,
      'flow HTML5.M.elt list Lwt.t,
      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
     wiki_plugin
@@ -257,7 +257,7 @@ type link_wiki_flow_pplugin = {
     Wiki_widgets_interface.box_info ->
       Wikicreole.attribs ->
       ([> HTML5_types.flow5_without_interactive_header_footer] as 'flow_without_interactive)
-        HTML5.M.elt list Lwt.t option ->
+	HTML5.M.elt list Lwt.t option ->
       (href * Wikicreole.attribs * 'flow_without_interactive HTML5.M.elt list Lwt.t)
 }
 
@@ -461,20 +461,21 @@ val string_of_extension :
 val parse_common_attribs :
   ?classes:HTML5_types.nmtokens -> Wikicreole.attribs -> [> HTML5_types.common ] HTML5.M.attrib list
 
-(** returns the type of URL.
-    [Page] means a page in current wiki ([wiki:page], or [page]),
-    [Wiki_page] means a page in another wiki ([wiki(num):page]),
-    [Site] means an URL relative to the root of the site ([site:href]),
-    [Absolute] means an absolute URL ([<otherscheme>:href]).
-*)
 type force_https = bool option
 
+(** Returns the type of URL.
+    # [Wiki_page (None, path, _)] means the page of the currently display wiki at the given path.
+    # [Wiki_page (Some wiki, path, _)] means a page in the providede wiki at the given path.
+    # [Href path] means a link relative to the the domain if starting with a '/' or relative to the current URL
+      otherwise.
+    # [Site path] means a link relative the Ocsigen application site.
+    # [Absolute] means an absolute URL ([<otherscheme>:href]).
+*)
 type link_kind =
-  | Absolute of string
-  | Page of string * force_https
-  | Wiki_page of Wiki_types.wiki * string * force_https
+  | Wiki_page of Wiki_types.wiki option * string * force_https
+  | Href of string * force_https
   | Site of string * force_https
-  | Relative of string * force_https
+  | Absolute of string
 
 val link_kind : string -> link_kind
 
