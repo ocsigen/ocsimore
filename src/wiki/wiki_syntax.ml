@@ -44,6 +44,24 @@ let opt_list = function | [] -> None | _::_ as l -> Some l
 
 (***)
 
+let site_url_syntax =
+  {
+    Neturl.url_enable_scheme = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_user = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_user_param = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_password = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_host = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_port = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_path = Neturl.Url_part_allowed;
+    Neturl.url_enable_param = Neturl.Url_part_not_recognized;
+    Neturl.url_enable_query = Neturl.Url_part_allowed;
+    Neturl.url_enable_fragment = Neturl.Url_part_allowed;
+    Neturl.url_enable_other = Neturl.Url_part_not_recognized;
+    Neturl.url_accepts_8bits = true;
+    Neturl.url_is_valid = (fun _ -> true);
+    Neturl.url_enable_relative = true;
+  }
+
 let element c = (* : 'a Lwt.t list Lwt.t -> 'a list Lwt.t *)
   let rec aux = function
     | [] -> Lwt.return []
@@ -337,6 +355,20 @@ let sub_string ?from ?to_ str =
 let has_prefix ?(offset=0) ~prefix str =
   String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
 
+let list_postfix ~prefix list =
+  let rec aux = function
+      [], res -> Some res
+    | x::xs, y::ys when x = y -> aux (xs, ys)
+    | _ -> None
+  in
+  let string_of_list = String.concat "; " in
+  Printf.printf
+    "list_postfix ~prefix:[%s] [%s] => %s%!\n"
+    (string_of_list prefix)
+    (string_of_list list)
+    (match aux (prefix, list) with Some s -> Printf.sprintf "[%s]" (string_of_list s) | None -> "-/-");
+  aux (prefix, list)
+
 (*
    [resolve_href "../../"] ["c";"b";"a"] => ["a"]
    [resolve_href "/xyz"] ["c";"b";"a"] => [], "xyz"
@@ -410,31 +442,28 @@ let normalize_link =
                 page_wiki_id_string
                 (get_map_option ~default:"" ~f:(String.concat "/") desugar_param.dc_page_path)
             else
-              if has_prefix ~prefix:"/" addr then (* [[/snippet/path]] => [[wiki(ix)/path]] where wiki(ix) has URL /snippet *)
-                (* TODO this should search for arbitrary prefixes of [addr] for wiki-URLs. *)
-                let ix = String.index_from addr 1 '/' in
-                try_lwt
-                  lwt wiki_info =
-                    try_lwt
-                      Wiki_sql.get_wiki_info_by_pages ~pages:(sub_string ~from:0 ~to_:ix addr)
-                    with Not_found ->
-                      Wiki_sql.get_wiki_info_by_pages ~pages:(sub_string ~from:1 ~to_:ix addr)
-                  in
-                    Result.success_replace "wiki(%s):%s"
-                      (Wiki_types.string_of_wiki wiki_info.Wiki_types.wiki_id)
-                      (sub_string ~from:(ix+1) addr)
-                with Not_found ->
-                  Result.failure_malformed_link pos desugar_param "no wiki at %s"
-                    (sub_string ~to_:ix addr)
-              else
-(*
-                if has_prefix ~prefix:"~/" addr then (* [[~/xyz]] => [[wiki(25)/xyz]] *)
-                  Result.success_replace "wiki(%s):%s"
-                    page_wiki_id_string
-                    (sub_string ~from:1 addr)
-                else
-*)
-                (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
+              if has_prefix ~prefix:"/" addr then (* [[/path]] => [[wiki(ix):page_path]] *)
+                match
+                  list_postfix
+                    ~prefix:(Eliom_request_info.get_site_dir ())
+                    Neturl.(url_path (url_of_string site_url_syntax (sub_string ~from:1 addr)))
+                with
+                  | Some path ->
+                      begin try
+                        let page_wiki, page_path =
+                          let _, page_path as page = Wiki_self_services.get_wiki_page_for_path path in
+                          let _, page_path' as page' = Wiki_self_services.get_wiki_page_for_path ("" :: path) in
+                          if List.(length page_path < length page_path') then page else page'
+                        in
+                        Result.success_replace "wiki(%s):%s"
+                          (Wiki_types.string_of_wiki page_wiki)
+                          (Url.string_of_url_path ~encode:false page_path)
+                      with Not_found ->
+                        Result.failure_malformed_link pos desugar_param "no wiki at %S" addr
+                      end
+                  | None ->
+                      Result.success_replace "href:%s" addr
+              else (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
                   (* Choose reference path for resolving relative link *)
                   (try
                     let rev_ref_path = rev_reference_page_path desugar_param.Wiki_syntax_types.dc_page_path in
@@ -487,8 +516,6 @@ let link_kind addr =
                 with Not_found -> false
               in
               if has_id then
-                Wiki_page (None, page, forceproto)
-              else
                 begin try
                   let wikinum = Netstring_pcre.matched_group result wiki_id_group addr in
                   let wiki = Wiki_types.wiki_of_sql (Int32.of_string wikinum) in
@@ -496,6 +523,8 @@ let link_kind addr =
                 with
                   Failure _ | Not_found -> Wiki_page (None, page, forceproto)
                 end
+              else
+                Wiki_page (None, page, forceproto)
           |  _ -> Absolute addr
 
 let remove_first_slash s =
@@ -916,24 +945,6 @@ module MakeParser(B: RawParser) :
   let preparse_string = preprocess_string preparser
   let desugar_string = preprocess_string desugarer
 end
-
-let site_url_syntax =
-  {
-    Neturl.url_enable_scheme = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_user = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_user_param = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_password = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_host = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_port = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_path = Neturl.Url_part_allowed;
-    Neturl.url_enable_param = Neturl.Url_part_not_recognized;
-    Neturl.url_enable_query = Neturl.Url_part_allowed;
-    Neturl.url_enable_fragment = Neturl.Url_part_allowed;
-    Neturl.url_enable_other = Neturl.Url_part_not_recognized;
-    Neturl.url_accepts_8bits = true;
-    Neturl.url_is_valid = (fun _ -> true);
-    Neturl.url_enable_relative = true;
-  }
 
 let make_href bi addr fragment =
   let aux ~fragment https wiki page =
