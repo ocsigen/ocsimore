@@ -448,7 +448,7 @@ let normalize_link =
                     ~prefix:(Eliom_request_info.get_site_dir ())
                     Neturl.(url_path (url_of_string site_url_syntax (sub_string ~from:1 addr)))
                 with
-                  | Some path ->
+                    Some path -> (* [addr] = site directory / [path] *)
                       begin try
                         let page_wiki, page_path =
                           let _, page_path as page = Wiki_self_services.get_wiki_page_for_path path in
@@ -458,10 +458,10 @@ let normalize_link =
                         Result.success_replace "wiki(%s):%s"
                           (Wiki_types.string_of_wiki page_wiki)
                           (Url.string_of_url_path ~encode:false page_path)
-                      with Not_found ->
-                        Result.failure_malformed_link pos desugar_param "no wiki at %S" addr
+                      with Not_found -> (* No wiki page at [path] *)
+                        Result.success_replace "href:%s" addr
                       end
-                  | None ->
+                  | None -> (* site directory not a prefix of path *)
                       Result.success_replace "href:%s" addr
               else (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
                   (* Choose reference path for resolving relative link *)
