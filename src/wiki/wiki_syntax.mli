@@ -1,6 +1,6 @@
 (* Ocsimore
  * Copyright (C) 2008
- * Laboratoire PPS - Université Paris Diderot - CNRS
+ * Laboratoire PPS - Universitï¿½ Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -130,8 +130,8 @@ val register_wiki_extension :
       'phrasing_without_interactive) ext_wikicreole_parser ->
   name:string ->
   wp_rec:('a HTML5.M.elt list Lwt.t,
-	  'b HTML5.M.elt list Lwt.t,
-	  'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
+          'b HTML5.M.elt list Lwt.t,
+          'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
   ?preparser:preparser ->
   ?ni_plugin:
     ('b HTML5.M.elt list Lwt.t,
@@ -160,8 +160,8 @@ val register_link_extension :
       'phrasing_without_interactive) ext_wikicreole_parser ->
   name:string ->
   wp_rec:('a HTML5.M.elt list Lwt.t,
-	  'b HTML5.M.elt list Lwt.t,
-	  'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
+          'b HTML5.M.elt list Lwt.t,
+          'c HTML5.M.elt list Lwt.t) ext_wikicreole_parser ->
   ?preparser:(Wiki_types.wikibox ->
               Wikicreole.attribs ->
               string option -> string option Lwt.t) ->
@@ -238,8 +238,8 @@ val register_wiki_flow_extension :
 type interactive_wiki_flow_pplugin = {
   ifpp: 'flow 'flow_without_interactive.
     (('flow, 'flow_without_interactive)
-	HTML5_types.between_flow5_and_flow5_without_header_footer
-	HTML5.M.elt list Lwt.t,
+        HTML5_types.between_flow5_and_flow5_without_header_footer
+        HTML5.M.elt list Lwt.t,
      'flow HTML5.M.elt list Lwt.t,
      HTML5_types.phrasing_without_interactive HTML5.M.elt list Lwt.t)
     wiki_plugin
@@ -257,7 +257,7 @@ type link_wiki_flow_pplugin = {
     Wiki_widgets_interface.box_info ->
       Wikicreole.attribs ->
       ([> HTML5_types.flow5_without_interactive_header_footer] as 'flow_without_interactive)
-	HTML5.M.elt list Lwt.t option ->
+        HTML5.M.elt list Lwt.t option ->
       (href * Wikicreole.attribs * 'flow_without_interactive HTML5.M.elt list Lwt.t)
 }
 

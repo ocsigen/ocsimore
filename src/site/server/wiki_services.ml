@@ -99,8 +99,8 @@ let send_wikipage
       let filename = (dir ^"/"^ fst page) in
       if Eliom_output.Files.check_file filename
       then
-	(match_lwt rights#can_view_static_files wiki with (*RRR: This should be generalized and exported *)
-	  | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
+        (match_lwt rights#can_view_static_files wiki with (*RRR: This should be generalized and exported *)
+          | false -> Lwt.fail Ocsimore_common.Permission_denied (* XXX We should send a 403. ? *)
           | true -> Eliom_output.appl_self_redirect Eliom_output.Files.send filename)
       else wiki_page ()
     | None -> wiki_page ()

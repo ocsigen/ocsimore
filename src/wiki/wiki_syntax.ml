@@ -1723,8 +1723,6 @@ let rawtext_content_type =
     (fun _bi s -> Lwt.return [HTML5.M.p [HTML5.M.pcdata s]])
 
 
-(*********************************************************************)
-(* Adding syntax extensions in predefined parsers:                   *)
 
 type (+'flow_without_interactive,
       +'phrasing_without_interactive) non_interactive_simple_plugin =

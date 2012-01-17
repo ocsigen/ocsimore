@@ -111,10 +111,10 @@ module type Xform = sig
 
   val form:
     fallback:('a, unit,
-	      [ `Attached of
-		  ([ `Internal of [< `Coservice | `Service ]], [ `Get ])
-		    Eliom_services.a_s ],
-	      [< Eliom_services.suff ], 'b, unit, [< `Registrable ], M.return)
+              [ `Attached of
+                  ([ `Internal of [< `Coservice | `Service ]], [ `Get ])
+                    Eliom_services.a_s ],
+              [< Eliom_services.suff ], 'b, unit, [< `Registrable ], M.return)
     Eliom_services.service ->
     get_args:'a ->
     page:('a -> error ->
@@ -141,7 +141,7 @@ end) = struct
   type ('content, 'spec, 'html, 'o) u =
       {form : 'content option -> 'spec -> ('html list * 'o outcome) Monad.t;
        params :
-	 Name.t -> ('content, [`WithoutSuffix], 'spec) P.params_type * Name.t}
+         Name.t -> ('content, [`WithoutSuffix], 'spec) P.params_type * Name.t}
 
   type ('html, 'o, 'res) cont =
       {f : 'content 'spec . ('content, 'spec, 'html, 'o) u -> 'res}
@@ -154,12 +154,12 @@ end) = struct
   let opt_outcome x = match x with None -> Redisplay | Some v -> Success v
   let outcome_pair o1 o2 =
     match o1, o2 with
-	Error, _ | _, Error    -> Error
+        Error, _ | _, Error    -> Error
       | Success v1, Success v2 -> Success (v1, v2)
       | _                      -> Redisplay
   let outcome_map f o =
     match o with
-	Error     -> Error
+        Error     -> Error
       | Redisplay -> Redisplay
       | Success v -> Success (f v)
 
@@ -177,11 +177,11 @@ end) = struct
   let string_input ?a value =
     pack
       {form =
-	  (fun v' name ->
+          (fun v' name ->
             return
               ([M.string_input ?a
-		   ~input_type:`Text
-		   ~name ~value:(def value v') ()],
+                   ~input_type:`Text
+                   ~name ~value:(def value v') ()],
                opt_outcome v'));
        params = string_param}
 
@@ -189,10 +189,10 @@ end) = struct
   let text_area ?a ~rows ~cols value =
     pack
       {form =
-	  (fun v' name ->
+          (fun v' name ->
             return
               ([M.textarea ?a
-		   ~rows ~cols ~name ~value:(def value v') ()],
+                   ~rows ~cols ~name ~value:(def value v') ()],
                opt_outcome v'));
        params = string_param}
 
@@ -201,7 +201,7 @@ end) = struct
   let bool_checkbox ?a checked =
     pack
       {form =
-	  (fun v' name ->
+          (fun v' name ->
             return
               ([M.bool_checkbox ?a ~name ~checked ()],
                opt_outcome v'));
@@ -209,12 +209,12 @@ end) = struct
 
   let submit_button_int value =
     {form =
-	(fun v' name ->
+        (fun v' name ->
           return
             ([M.string_input ~input_type:`Submit ~name ~value ()],
              opt_outcome (opt_map (fun v' -> v' <> None) v')));
      params =
-	(fun name -> (P.opt (P.string (Name.to_string name)), Name.next name))}
+        (fun name -> (P.opt (P.string (Name.to_string name)), Name.next name))}
 
   let submit_button value =
     pack (submit_button_int value)
@@ -225,26 +225,26 @@ end) = struct
   let select_single lst value =
     pack
       {form =
-	  (fun v' name ->
+          (fun v' name ->
             let sel = def value v' in
             let lst =
               List.map
-		(fun (l, v) ->
+                (fun (l, v) ->
                   M.Option ([], v, Some (HTML5.M.pcdata l), v = sel)
-		)
-		lst
+                )
+                lst
             in
             return
               (begin match lst with
-		  []       -> []
-		| hd :: tl -> [M.string_select ~name hd tl]
+                  []       -> []
+                | hd :: tl -> [M.string_select ~name hd tl]
                end,
-		opt_outcome v'));
+                opt_outcome v'));
        params = string_param}
 
   let rec mapi_rec f n l =
     match l with
-	[]   -> []
+        []   -> []
       | a::l -> let r = f n a in r :: mapi_rec f (n + 1) l
 
   let mapi f l = mapi_rec f 0 l
@@ -287,12 +287,12 @@ end) = struct
 
   let concat f1 f2 =
     {form =
-	(fun v (name1, name2) ->
+        (fun v (name1, name2) ->
           f1.form (opt_map fst v) name1 >>= fun (l1, r1) ->
           f2.form (opt_map snd v) name2 >>= fun (l2, r2) ->
           return (l1 @ l2, outcome_pair r1 r2));
      params =
-	(fun name ->
+        (fun name ->
           let (p1, name) = f1.params name in
           let (p2, name) = f2.params name in
           (p1 ** p2, name))}
@@ -304,23 +304,23 @@ end) = struct
 
     let (+@) f h =
       unpack f {f = fun f ->
-	pack {f with form = fun v nm ->
+        pack {f with form = fun v nm ->
           f.form v nm >>= fun (l, r) -> return (l @ h, r)}}
 
     let (@+) h f =
       unpack f {f = fun f ->
-	pack {f with form = fun v nm ->
+        pack {f with form = fun v nm ->
           f.form v nm >>= fun (l, r) -> return (h @ l, r)}}
 
     let (|>) f g =
       unpack f {f = fun f ->
-	pack {f with
+        pack {f with
           form = fun v name ->
             f.form v name >>= fun (x, r) -> return (x, outcome_map g r)}}
 
     let (||>) f g =
       unpack f {f = fun f ->
-	pack {f with
+        pack {f with
           form = fun v name ->
             f.form v name >>= fun (x, r) ->
             outcome_map_monad g r >>= fun r ->
@@ -369,12 +369,12 @@ end) = struct
   let list' n f =
     unpack f {f = fun f ->
       pack
-	{form =
-	    (fun v name ->
+        {form =
+            (fun v name ->
               let l =
-		match v with
-		    None -> repeat n None
-		  | Some l -> List.map (fun x -> Some x) l
+                match v with
+                    None -> repeat n None
+                  | Some l -> List.map (fun x -> Some x) l
               in
               name.P.it (fun name v' l ->
                 l >>= fun l ->
@@ -382,12 +382,12 @@ end) = struct
                 return (r :: l)) l (return [])
               >>= fun l ->
               return
-		(List.flatten (List.map fst l),
-		 oc_list (List.map snd l)));
-	 params =
-	    (fun name -> (P.list (Name.to_string name) (fst (f.params Name.first)),
-			  Name.next name))}
-	     }
+                (List.flatten (List.map fst l),
+                 oc_list (List.map snd l)));
+         params =
+            (fun name -> (P.list (Name.to_string name) (fst (f.params Name.first)),
+                          Name.next name))}
+             }
 
   let list' =
     (list' :
@@ -456,43 +456,43 @@ end) = struct
     in
     check (int_input ?format ~a:[HTML5.M.a_maxlength l; HTML5.M.a_size l] i)
       (fun i ->
-	if i < a || i > b then
-	  Some (Format.sprintf "doit être entre %i et %i" a b)
-	else
-	  None)
+        if i < a || i > b then
+          Some (Format.sprintf "doit être entre %i et %i" a b)
+        else
+          None)
 
 (****)
 
   let extensible_list txt default l f =
     (list l f @@
        let button =
-	 wrap_int (fun x -> [HTML5.M.p x]) (submit_button_int txt) in
+         wrap_int (fun x -> [HTML5.M.p x]) (submit_button_int txt) in
        unpack (f default) {f = fun f ->
-	 pack
-	   {form =
+         pack
+           {form =
                (fun v (name1, name2) ->
-		 let (l, b) =
-		   match v with
-		       None -> ([], None)
-		     | Some (l, b) ->
+                 let (l, b) =
+                   match v with
+                       None -> ([], None)
+                     | Some (l, b) ->
                        let l = List.map (fun x -> Some x) l in
                        ((if b <> None then l @ [None] else l), Some b)
-		 in
-		 name1.P.it (fun name v' l ->
+                 in
+                 name1.P.it (fun name v' l ->
                    l >>= fun l ->
                    f.form v' name >>= fun r ->
                    return (r :: l)) l (return [])
-		 >>= fun l ->
-		 button.form b name2 >>= fun (b, _r) ->
-		 return
-		   (List.flatten (List.map fst l) @ b,
-		    oc_list (List.map snd l)));
-	    params =
+                 >>= fun l ->
+                 button.form b name2 >>= fun (b, _r) ->
+                 return
+                   (List.flatten (List.map fst l) @ b,
+                    oc_list (List.map snd l)));
+            params =
                concat_params
-		 (fun name ->
-		   (P.list (Name.to_string name) (fst (f.params Name.first)),
-		    Name.next name))
-		 button.params}})
+                 (fun name ->
+                   (P.list (Name.to_string name) (fst (f.params Name.first)),
+                    Name.next name))
+                 button.params}})
       |> (fun (l1, l2) -> l1 @ l2)
 
   let extensible_list =
@@ -554,10 +554,10 @@ module Xform = struct
     unpack f {f = fun f ->
       let (params, _) = f.params Name.first in
       let service = Eliom_services.post_coservice ~timeout:600. ~fallback
-	~post_params:params ()
+        ~post_params:params ()
       in
       M.post_form ~service (fun names ->
-	M.register ~scope:Eliom_common.session ~service
+        M.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
             match f.form (Some v) names with
               | (x, Success act) ->
@@ -578,8 +578,8 @@ module Xform = struct
                 let error = if err = Error then ErrorNoMsg else NoError in
                 page get_args error form
           );
-	let r, _ = f.form None names in r)
-	get_args}
+        let r, _ = f.form None names in r)
+        get_args}
 
 end
 
@@ -597,10 +597,10 @@ module XformLwt = struct
     unpack f {f = fun f ->
       let (params, _) = f.params Name.first in
       let service = Eliom_services.post_coservice ~timeout:600. ~fallback
-	~post_params:params ()
+        ~post_params:params ()
       in
       M.lwt_post_form ~service (fun names ->
-	M.register ~scope:Eliom_common.session ~service
+        M.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
             f.form (Some v) names >>= function
               | (x, Success act) ->
@@ -621,8 +621,8 @@ module XformLwt = struct
                 let error = if err = Error then ErrorNoMsg else NoError in
                 page get_args error form
           );
-	f.form None names >|= fst)
-	get_args}
+        f.form None names >|= fst)
+        get_args}
 
 end
 

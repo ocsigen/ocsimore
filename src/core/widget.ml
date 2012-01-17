@@ -87,9 +87,9 @@ object(self)
           Lwt.t =
     fun data transform_data ->
       Lwt.catch
-	(fun () -> data >>= transform_data)
-	(fun exc ->
-	  Lwt.return
+        (fun () -> data >>= transform_data)
+        (fun exc ->
+          Lwt.return
             ([error_class],
              [self#display_error_box ~exc ()]))
 

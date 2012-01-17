@@ -75,9 +75,9 @@ object (_self)
         else []
       in
       [ HTML5.M.p
-	  ( num ::
+          ( num ::
               (title @
-		 [ Eliom_output.Html5.textarea ~name:textname ~rows ~cols () ]) );
+                 [ Eliom_output.Html5.textarea ~name:textname ~rows ~cols () ]) );
         HTML5.M.p[ Eliom_output.Html5.string_button ~name:actionnamename
                      ~value:"save" [HTML5.M.pcdata "Send"] ]
       ]
@@ -162,14 +162,14 @@ object (self)
     Lwt.return
       (classes,
        List.flatten
-	 [ admin_line;
-	   (wikiboxsubject :> HTML5_types.flow5_without_header_footer
-	      HTML5.M.elt list);
-	   [ HTML5.M.span ~a:[HTML5.M.a_class ["info_class"]]
+         [ admin_line;
+           (wikiboxsubject :> HTML5_types.flow5_without_header_footer
+              HTML5.M.elt list);
+           [ HTML5.M.span ~a:[HTML5.M.a_class ["info_class"]]
                [ HTML5.M.pcdata
-		   (Format.sprintf "posted by %s %s" author
-		      (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))]];
-	   (wikibox :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) ]
+                   (Format.sprintf "posted by %s %s" author
+                      (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))]];
+           (wikibox :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) ]
       )
 
   method display
@@ -226,18 +226,18 @@ object (self)
     let comment_div =
       HTML5.M.unique
         (HTML5.M.div
-	   ~a:[HTML5.M.a_class [comment_class]]
-	   [ form ])
+           ~a:[HTML5.M.a_class [comment_class]]
+           [ form ])
     in
     let show_form =
       HTML5.M.div
-	~a:[HTML5.M.a_class [comment_button_class];
+        ~a:[HTML5.M.a_class [comment_button_class];
             HTML5.M.a_onclick
               {{ ignore (
                 (Eliom_client.Html5.of_div %comment_div)##classList
                   ##toggle(Js.string "showcomment"):bool Js.t)
               }} ]
-	[HTML5.M.pcdata "Comment" ]
+        [HTML5.M.pcdata "Comment" ]
     in
     Lwt.return [ show_form; comment_div ]
   else Lwt.return []
@@ -265,7 +265,7 @@ object (self)
              print_children ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
              Lwt.return ([(first:>HTML5_types.flow5 HTML5.M.elt)],
-			 (comment_line @ s :> HTML5_types.flow5 HTML5.M.elt list), l))
+                         (comment_line @ s :> HTML5_types.flow5 HTML5.M.elt list), l))
     and print_children ~role ~arborescent ~commentable pid = function
       | [] -> Lwt.return ([], [])
       | ((m::_) as th)
@@ -326,7 +326,7 @@ object (self)
        (fun exc ->
           let e =
             ( [ widget_with_error_box#display_error_box ~exc () ]
-	      :> HTML5_types.flow5 HTML5.M.elt list )
+              :> HTML5_types.flow5 HTML5.M.elt list )
           in
           Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
     >>= fun (classes, c) ->
@@ -385,13 +385,13 @@ object (self)
      else Lwt.return [])
     >>= fun form ->
     Lwt.return (classes,
-		(List.flatten l :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)
-		@ ( form :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
+                (List.flatten l :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)
+                @ ( form :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
 
   method display :
     'a. ?rows:_ -> ?cols:_ -> ?classes:_ -> forum:_ ->
       first:_ -> number:_ -> ?add_message_form:_ -> unit ->
-	([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+        ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
     fun ?(rows : int option) ?(cols : int option) ?(classes=[])
     ~forum ~first ~number ?(add_message_form = true) () ->
     add_forum_css_header ();
@@ -399,7 +399,7 @@ object (self)
       (self#get_message_list ~forum ~first ~number)
       (self#pretty_print_message_list
          ~forum ?rows ?cols ~classes ?add_message_form :>
-	 Forum_data.raw_message list ->
+         Forum_data.raw_message list ->
        (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r

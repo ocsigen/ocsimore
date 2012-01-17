@@ -50,22 +50,22 @@ let rec parse_config = function
       parse_config l
   | (Simplexmlparser.Element ("database", attribs, []))::l ->
     List.iter (function
-		  | "name", name -> Ocsimore_config.db_name := name;
-		  | "user", user -> Ocsimore_config.db_user := user
-		  | "host", host -> Ocsimore_config.db_host := Ocsimore_config.opt host
-		  | "post", port ->
-		    begin try
-		      Ocsimore_config.db_port :=
-			Eliom_pervasives.map_option int_of_string (Ocsimore_config.opt port)
-		      with _ ->
-			raise (Ocsigen_extensions.Error_in_config_file
-				 ("Incorrect attribute inside ocsimore database config: port ("^port^") isn't an integer."))
-		    end
+                  | "name", name -> Ocsimore_config.db_name := name;
+                  | "user", user -> Ocsimore_config.db_user := user
+                  | "host", host -> Ocsimore_config.db_host := Ocsimore_config.opt host
+                  | "post", port ->
+                    begin try
+                      Ocsimore_config.db_port :=
+                        Eliom_pervasives.map_option int_of_string (Ocsimore_config.opt port)
+                      with _ ->
+                        raise (Ocsigen_extensions.Error_in_config_file
+                                 ("Incorrect attribute inside ocsimore database config: port ("^port^") isn't an integer."))
+                    end
                   | "socket_dir", dir ->
-		      Ocsimore_config.db_unix_domain_socket_dir := Ocsimore_config.opt dir
-		  | attrib, _ ->
-		    raise (Ocsigen_extensions.Error_in_config_file
-			     ("Unexpected attribute inside ocsimore database config: "^attrib)))
+                      Ocsimore_config.db_unix_domain_socket_dir := Ocsimore_config.opt dir
+                  | attrib, _ ->
+                    raise (Ocsigen_extensions.Error_in_config_file
+                             ("Unexpected attribute inside ocsimore database config: "^attrib)))
       attribs;
     parse_config l
   | Simplexmlparser.Element (name, _, _) :: _ ->

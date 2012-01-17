@@ -130,7 +130,7 @@ module type Xform = sig
               -> HTML5.M.html Lwt.t)
     -> ?err_handler:(exn -> string option)
     -> (HTML5_types.form_content HTML5.M.elt,
-	unit -> Eliom_output.Html5.page Lwt.t) t
+        unit -> Eliom_output.Html5.page Lwt.t) t
     -> [>HTML5_types.form] HTML5.M.elt monad
 
 end

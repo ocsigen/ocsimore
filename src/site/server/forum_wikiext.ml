@@ -38,10 +38,10 @@ let register_wikiext
               Forum_types.message_of_string (List.assoc "message" args)
          in
          lwt c = message_widget#display
-		?classes
-		~data:message_id ()
-	 in
-	 Lwt.return [c]
+                ?classes
+                ~data:message_id ()
+         in
+         Lwt.return [c]
        with Not_found | Failure _ ->
          let s = Wiki_syntax.string_of_extension "raw" args content in
          Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
@@ -69,9 +69,9 @@ let register_wikiext
            Forum_types.message_of_string (List.assoc "message" args)
          in
          lwt c = thread_widget#display ?commentable:(Some true)
-	   ?rows ?cols ?classes
-	   ~data:message_id () in
-	 Lwt.return [c]
+           ?rows ?cols ?classes
+           ~data:message_id () in
+         Lwt.return [c]
        with Not_found | Failure _ ->
          let s = Wiki_syntax.string_of_extension "raw" args content in
          Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
@@ -115,10 +115,10 @@ let register_wikiext
            Forum_types.forum_of_string (List.assoc "forum" args)
          in
          lwt c = message_list_widget#display
-	   ?rows ?cols ?classes
-	   ~forum  ~first ~number
-	   ?add_message_form () in
-	 Lwt.return [c]
+           ?rows ?cols ?classes
+           ~forum  ~first ~number
+           ?add_message_form () in
+         Lwt.return [c]
        with Not_found | Failure _ ->
          let s = Wiki_syntax.string_of_extension "raw" args content in
          Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]

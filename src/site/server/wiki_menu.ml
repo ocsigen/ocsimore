@@ -78,15 +78,15 @@ let build_node ~create_service (contents: XML.elt list) tree =
     let href = get_href a in
     let wiki, href =
       match Netstring_pcre.string_match link_regexp href 0 with
-	| None -> None,href
-	| Some result ->
-	  let wikinum = Netstring_pcre.matched_group result 1 href in
-	  Some (Wiki_types.wiki_of_sql (Int32.of_string wikinum)),
-	  Netstring_pcre.matched_group result 2 href in
+        | None -> None,href
+        | Some result ->
+          let wikinum = Netstring_pcre.matched_group result 1 href in
+          Some (Wiki_types.wiki_of_sql (Int32.of_string wikinum)),
+          Netstring_pcre.matched_group result 2 href in
     (HTML5.M.totl (get_node_contents a),
      Eliom_tools.Site_tree
        (Eliom_tools.Main_page
-	  (create_service ?wiki (Neturl.split_path href)), tree))
+          (create_service ?wiki (Neturl.split_path href)), tree))
   end
   | contents ->
     (HTML5.M.totl contents,
@@ -104,7 +104,7 @@ let rec parse_nodes ~create_service link_stack tree_acc last nodes =
       let last_tree = build_node ~create_service (List.hd link_stack) (List.rev (List.hd tree_acc)) in
       let link_stack = get_node_contents node :: List.tl link_stack in
       let tree_acc =
-	[] :: (last_tree :: List.hd (List.tl tree_acc)) :: List.tl (List.tl  tree_acc) in
+        [] :: (last_tree :: List.hd (List.tl tree_acc)) :: List.tl (List.tl  tree_acc) in
       parse_nodes ~create_service link_stack tree_acc lvl nodes
     end else (* if lvl < last then *) begin
       get_up ~create_service lvl link_stack tree_acc last (node :: nodes)
@@ -135,10 +135,10 @@ let create_wiki_page_service bi ?(wiki = bi.Wiki_widgets_interface.bi_wiki) page
     match Wiki_self_services.find_servpage wiki with
     | Some s -> s
     | None ->
-	let wiki = Wiki_types.string_of_wiki wiki in
-	Printf.ksprintf Ocsigen_messages.warning
-	  "Wiki_menu: Can't find service for wiki id %s." wiki;
-	raise (Error (Printf.sprintf "Oups ! service not found for id %s." wiki))
+        let wiki = Wiki_types.string_of_wiki wiki in
+        Printf.ksprintf Ocsigen_messages.warning
+          "Wiki_menu: Can't find service for wiki id %s." wiki;
+        raise (Error (Printf.sprintf "Oups ! service not found for id %s." wiki))
   in
   (Eliom_services.preapply ~service page :> Eliom_tools.get_page)
 
@@ -161,19 +161,19 @@ let get_nodes bi args contents =
   try
     let file = List.assoc "file" args in
     match resolve_menu_file
-	(String.split '/' file) with
+        (String.split '/' file) with
     | Ocsigen_local_files.RFile file ->
       Lwt_io.with_file ~mode:Lwt_io.input file
-	(fun ch ->
+        (fun ch ->
           lwt data = Lwt_io.read ch in
           lwt nodes = Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi data in
-	  Lwt.return nodes)
+          Lwt.return nodes)
     | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
   with
   | Not_found ->
       begin match contents with
       | Some c ->
-	  Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
+          Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
       | None -> Lwt.return [] end
   | exc -> Lwt.fail exc (* 404 and so... TODO *)
 
@@ -182,12 +182,12 @@ let get_nodes bi args contents =
   (* with *)
   (* | exc -> *)
       (* let page = *)
-	(* match bi.Wiki_widgets_interface.bi_page with *)
-	(* | _, Some page -> String.concat "/" page *)
-	(* | w, None -> "wiki:" ^ Wiki_types.string_of_wiki w in *)
+        (* match bi.Wiki_widgets_interface.bi_page with *)
+        (* | _, Some page -> String.concat "/" page *)
+        (* | w, None -> "wiki:" ^ Wiki_types.string_of_wiki w in *)
       (* Printf.ksprintf Ocsigen_messages.warning *)
-	(* "Wiki_menu: Can't parse menu, page: %S, exception: %S." *)
-	(* page (Printexc.to_string exc); *)
+        (* "Wiki_menu: Can't parse menu, page: %S, exception: %S." *)
+        (* page (Printexc.to_string exc); *)
       (* Lwt.fail (Error "Can't parse menu (see warning's log)") *)
 
 (** Process extension *)
@@ -217,35 +217,35 @@ let do_wikimenu bi args contents =
   let contents =
     Lwt.catch
       (fun () ->
-	let classe = get_class bi args in
-	let id = get_id bi args in
-	let kind = get_kind bi args in
-	lwt nodes = get_nodes bi args contents in
-	let tree = build_tree ~create_service:(create_wiki_page_service bi) nodes in
-	let menu =
-	  match kind with
-	  | `DepthFirstWhole ->
-	      Eliom_tools.Html5.hierarchical_menu_depth_first
-		?classe ?id
-		(Eliom_tools.Not_clickable, tree)
-		~whole_tree:true
-		?service ()
-	  | `DepthFirst ->
-	      Eliom_tools.Html5.hierarchical_menu_depth_first
-		?classe ?id
-		(Eliom_tools.Not_clickable, tree)
-		~whole_tree:false
-		?service ()
-	  | `BreadthFirst ->
-	      Eliom_tools.Html5.hierarchical_menu_breadth_first
-		?classe ?id
-		(Eliom_tools.Not_clickable, tree)
-		?service () in
-	Lwt.return menu)
+        let classe = get_class bi args in
+        let id = get_id bi args in
+        let kind = get_kind bi args in
+        lwt nodes = get_nodes bi args contents in
+        let tree = build_tree ~create_service:(create_wiki_page_service bi) nodes in
+        let menu =
+          match kind with
+          | `DepthFirstWhole ->
+              Eliom_tools.Html5.hierarchical_menu_depth_first
+                ?classe ?id
+                (Eliom_tools.Not_clickable, tree)
+                ~whole_tree:true
+                ?service ()
+          | `DepthFirst ->
+              Eliom_tools.Html5.hierarchical_menu_depth_first
+                ?classe ?id
+                (Eliom_tools.Not_clickable, tree)
+                ~whole_tree:false
+                ?service ()
+          | `BreadthFirst ->
+              Eliom_tools.Html5.hierarchical_menu_breadth_first
+                ?classe ?id
+                (Eliom_tools.Not_clickable, tree)
+                ?service () in
+        Lwt.return menu)
       (function
-	| (Error msg) -> error (Format.sprintf "Error wikimenu: %s" msg)
-	| exc -> error (Format.sprintf "Error wikimenu: exception %s"
-			  (Printexc.to_string exc)))
+        | (Error msg) -> error (Format.sprintf "Error wikimenu: %s" msg)
+        | exc -> error (Format.sprintf "Error wikimenu: exception %s"
+                          (Printexc.to_string exc)))
   in
   `Flow5 contents
 
@@ -268,5 +268,5 @@ let build_tree_from_file bi ~create_service ~file =
   | Ocsigen_local_files.RFile file ->
     Lwt_io.with_file ~mode:Lwt_io.input file
       (fun ch ->
-	lwt contents = Lwt_io.read ch in
-	build_tree_from_string bi ~create_service ~contents)
+        lwt contents = Lwt_io.read ch in
+        build_tree_from_string bi ~create_service ~contents)

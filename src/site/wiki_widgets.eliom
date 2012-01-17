@@ -113,8 +113,8 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) =
   method display_wikiboxcontent : 'a 'b.
     bi:_ -> classes:_ ->
       ([< HTML5_types.flow5 ] as 'a) HTML5.M.elt list Wiki_types.wikibox_content ->
-	(Wiki_widgets_interface.classes *
-	   ([> HTML5_types.flow5 ] as 'b) HTML5.M.elt list) Lwt.t =
+        (Wiki_widgets_interface.classes *
+           ([> HTML5_types.flow5 ] as 'b) HTML5.M.elt list) Lwt.t =
 
     fun ~bi ~classes (wiki_syntax, content, _ver as wb) ->
     add_wiki_css_header ();
@@ -128,7 +128,7 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) =
   method display_raw_wikiboxcontent : 'a 'b.
     classes:_ ->
       'a HTML5.M.elt list Wiki_types.wikibox_content ->
-	(Wiki_widgets_interface.classes *
+        (Wiki_widgets_interface.classes *
            ([> HTML5_types.pre | HTML5_types.em ] as 'b) HTML5.M.elt list) Lwt.t =
 
     fun ~classes (_content_type, content, _ver) ->
@@ -145,12 +145,12 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) =
   method wrap_error : 'a.
     wb:_ ->
       ([< HTML5_types.div_content_fun > `Div ] as 'a) HTML5.M.elt list ->
-	'a HTML5.M.elt list =
+        'a HTML5.M.elt list =
 
     fun ~wb r ->
     match Wiki_services.get_wikibox_error () with
       | Some (wb', exc) when Some wb = wb' ->
-	  let r = (r :> HTML5_types.div_content_fun HTML5.M.elt list) in
+          let r = (r :> HTML5_types.div_content_fun HTML5.M.elt list) in
           let err_msg = error_box#display_error_box ~exc () in
           [HTML5.M.div (err_msg :: r)]
       | _ -> r
@@ -337,18 +337,18 @@ class dynamic_wikibox
     in
     let menudel =
       (* UNUSED obrowser
-	 let link =
+         let link =
          Eliom_output.Html5.make_string_uri ~service:delete ~sp ()
          in
       *)
       if wbdel
       then Some (delete,
-		 [HTML5.M.span
-		     (* TODO: js_of_ocaml: find a clean way to prevent a event from happening *)
-		     ~a:[HTML5.M.a_onclick {{
-		       Firebug.console##log(Js.string "TODO: prevent default action and ask confirmation");
-		     }}]
-		     [HTML5.M.pcdata "delete"]])
+                 [HTML5.M.span
+                     (* TODO: js_of_ocaml: find a clean way to prevent a event from happening *)
+                     ~a:[HTML5.M.a_onclick {{
+                       Firebug.console##log(Js.string "TODO: prevent default action and ask confirmation");
+                     }}]
+                     [HTML5.M.pcdata "delete"]])
       else None
     in
     let l = Ocsimore_lib.concat_list_opt
@@ -396,9 +396,9 @@ class dynamic_wikibox
   method display_menu_box : 'a 'b.
     bi:_ -> classes:_ ->
       ?active_item:_ -> ?special_box:_ ->
-	?title:_ -> wb:_ ->
+        ?title:_ -> wb:_ ->
           ([< HTML5_types.div_content_fun > `Div ] as 'a) HTML5.M.elt list ->
-	    'a HTML5.M.elt list Lwt.t =
+            'a HTML5.M.elt list Lwt.t =
 
     fun ~bi ~classes
         ?active_item ?special_box
@@ -408,15 +408,15 @@ class dynamic_wikibox
     self#box_menu ~bi ?special_box ?active_item ?title wb >>= fun menu ->
     if menu = [] then
       Lwt.return content
-	(* [HTML5.M.div ~a:[HTML5.M.a_class classes] content] *)
+        (* [HTML5.M.div ~a:[HTML5.M.a_class classes] content] *)
     else
       Lwt.return
-	[HTML5.M.div
+        [HTML5.M.div
             ~a:[HTML5.M.a_class (interactive_class::classes)]
             (  menu
                @ [HTML5.M.div ~a:[HTML5.M.a_class ["boxcontent"]] content]
             )
-	]
+        ]
 
   method draw_edit_form
       ~page
@@ -455,8 +455,8 @@ class dynamic_wikibox
   method display_wikitext_edit_form : 'a.
     bi:_ -> classes:_ ->
       ?rows:_ -> ?cols:_ ->
-	previewonly:_ -> wb:_ -> _ ->
-	   (classes * ([> HTML5_types.form ] as 'a) HTML5.M.elt) Lwt.t =
+        previewonly:_ -> wb:_ -> _ ->
+           (classes * ([> HTML5_types.form ] as 'a) HTML5.M.elt) Lwt.t =
 
     fun ~bi ~classes ?(rows=25) ?(cols=80) ~previewonly ~wb (content, version) ->
     let content = match content with
@@ -495,8 +495,8 @@ class dynamic_wikibox
   method display_wikitext_edit_form_help : 'a.
     bi:_ -> classes:_ ->
       ?rows:_ -> ?cols:_ ->
-	previewonly:_ -> wb:_-> _ ->
-	  (classes * ([> HTML5_types.form | HTML5_types.div ] as 'a) HTML5.M.elt list) Lwt.t =
+        previewonly:_ -> wb:_-> _ ->
+          (classes * ([> HTML5_types.form | HTML5_types.div ] as 'a) HTML5.M.elt list) Lwt.t =
 
      fun ~bi ~classes
          ?rows ?cols
@@ -1150,8 +1150,8 @@ class dynamic_wikibox
   method display_interactive_wikibox_aux : 'a.
     bi:_ -> ?classes:_ ->
       ?rows:_ -> ?cols:_ ->
-	 ?special_box:_ -> _ ->
-	   (([> HTML5_types.div ] as 'a) HTML5.M.elt list * bool) Lwt.t =
+         ?special_box:_ -> _ ->
+           (([> HTML5_types.div ] as 'a) HTML5.M.elt list * bool) Lwt.t =
 
     fun ~bi ?(classes=[]) ?rows ?cols
         ?special_box wb ->
@@ -1182,9 +1182,9 @@ class dynamic_wikibox
   method display_overriden_interactive_wikibox : 'a.
     bi:_ -> ?classes:_ ->
       ?rows:_ -> ?cols:_ ->
-	?special_box:_ -> wb_loc:_ ->
-	  override:_ -> unit ->
-	    (([> `Div | `P ] as 'a) HTML5.M.elt list * bool) Lwt.t =
+        ?special_box:_ -> wb_loc:_ ->
+          override:_ -> unit ->
+            (([> `Div | `P ] as 'a) HTML5.M.elt list * bool) Lwt.t =
 
     fun ~bi ?(classes=[]) ?rows ?cols ?special_box ~wb_loc ~override () ->
     let display_error () =
@@ -1211,7 +1211,7 @@ class dynamic_wikibox
                 >>= (self#menu_edit_wikitext ~bi ?special_box wb_loc)
                 >>= ok
             | false -> display_error ()
-	  )
+          )
 
       | EditCss ((wikipage, wbcss), css) ->
           (bi.bi_rights#can_write_wikibox wbcss >>= function
@@ -1460,8 +1460,8 @@ class dynamic_wikibox
                 gen_box ~sectioning:st ms >>= fun (_, subbox, _, _) ->
                 Lwt.return (Some subbox)
             in
-	    let fsubbox =
-	      (fsubbox :> sectioning:bool -> Wiki_widgets_interface.menu_style ->
+            let fsubbox =
+              (fsubbox :> sectioning:bool -> Wiki_widgets_interface.menu_style ->
                (HTML5_types.flow5 HTML5.M.elt list) option Lwt.t) in
             let bi = { bi with  bi_subbox = fsubbox;
                          bi_page = wiki, Some page_list;
@@ -1501,12 +1501,12 @@ class dynamic_wikibox
           Wiki.default_bi ~wikibox:box ~rights >>= fun bi ->
           let bi = { bi with bi_page = wiki, Some page_list;
                              bi_menu_style = menu_style;
-			     bi_sectioning = sectioning; } in
-	  let bi = match subbox with
-	    | None -> bi
-	    | Some subbox ->
-	      let bi = Wiki_widgets_interface.add_ancestor_bi box bi in
-	      { bi with bi_subbox = subbox bi; } in
+                             bi_sectioning = sectioning; } in
+          let bi = match subbox with
+            | None -> bi
+            | Some subbox ->
+              let bi = Wiki_widgets_interface.add_ancestor_bi box bi in
+              { bi with bi_subbox = subbox bi; } in
           self#display_interactive_wikibox_aux ~bi
             ~special_box:(WikiPageBox (wiki, page)) box
           >>= fun (subbox, allowed) ->
@@ -1568,7 +1568,7 @@ class dynamic_wikibox
    method display_wikipage ~wiki ~sectioning ~menu_style ~page =
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ()
-	:> (sectioning:bool -> Wiki_widgets_interface.menu_style ->
+        :> (sectioning:bool -> Wiki_widgets_interface.menu_style ->
           (Wiki_types.wikibox option *
            HTML5_types.flow5 HTML5.M.elt list *
            Wiki_widgets_interface.page_displayable * string option)
@@ -1585,16 +1585,16 @@ class dynamic_wikibox
        let bi = { bi  with bi_sectioning = sectioning } in
        match file with
        | Ocsigen_local_files.RFile file ->
-	   Lwt_io.with_file ~mode:Lwt_io.input file
-	     (fun ch ->
-	       lwt data = Lwt_io.read ch in
-	       lwt xml = Wiki_syntax.xml_of_wiki
-		 (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser) bi data in
-	       Lwt.return (Some xml))
+           Lwt_io.with_file ~mode:Lwt_io.input file
+             (fun ch ->
+               lwt data = Lwt_io.read ch in
+               lwt xml = Wiki_syntax.xml_of_wiki
+                 (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser) bi data in
+               Lwt.return (Some xml))
        | _ -> Lwt.return None in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
-	:> (sectioning:bool -> Wiki_widgets_interface.menu_style ->
+        :> (sectioning:bool -> Wiki_widgets_interface.menu_style ->
           (Wiki_types.wikibox option *
            HTML5_types.flow5
            Eliom_pervasives.HTML5.M.elt list *
@@ -1609,16 +1609,16 @@ class dynamic_wikibox
      let page = Url.string_of_url_path ~encode:false path, path in
      let subbox bi ~sectioning menu_style =
        let bi = { bi  with bi_sectioning = sectioning;
-		    	   bi_menu_style = menu_style;
-		} in
+                               bi_menu_style = menu_style;
+                } in
        lwt xml =
-	 (self#display_interactive_wikibox bi wb
-	  :> HTML5_types.flow5 HTML5.M.elt list Lwt.t) in
+         (self#display_interactive_wikibox bi wb
+          :> HTML5_types.flow5 HTML5.M.elt list Lwt.t) in
        Lwt.return (Some xml)
      in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
-	:>  (sectioning:bool -> Wiki_widgets_interface.menu_style ->
+        :>  (sectioning:bool -> Wiki_widgets_interface.menu_style ->
          (Wiki_types.wikibox option *
           HTML5_types.flow5 HTML5.M.elt list *
           Wiki_widgets_interface.page_displayable * string option)

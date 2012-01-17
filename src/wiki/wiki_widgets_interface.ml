@@ -195,7 +195,7 @@ object
   method display_raw_wikiboxcontent :
     classes:classes ->
       'a HTML5.M.elt list Wiki_types.wikibox_content ->
-	(classes *
+        (classes *
            [> HTML5_types.pre | HTML5_types.em ] HTML5.M.elt list) Lwt.t
 
   (** If error has is supposed to be displayed for the wikibox [wb],
@@ -204,7 +204,7 @@ object
   method wrap_error :
     'a. wb:wikibox ->
       ([< HTML5_types.flow5 > `Div] as 'a) HTML5.M.elt list ->
-	'a HTML5.M.elt list
+        'a HTML5.M.elt list
 
 end
 
@@ -442,22 +442,22 @@ class type virtual interactive_wikibox =
 
 
     (** Displaying of the content of an template wikipage, with [file]
-	as subbox.  *)
+        as subbox.  *)
     method display_wikifile :
       wiki:wiki ->
       sectioning:bool ->
-	menu_style:menu_style ->
-	  template:string ->
-	    file: Ocsigen_local_files.resolved ->
-	      (HTML5_types.html HTML5.M.elt * int) Lwt.t
+        menu_style:menu_style ->
+          template:string ->
+            file: Ocsigen_local_files.resolved ->
+              (HTML5_types.html HTML5.M.elt * int) Lwt.t
 
     method display_wikibox :
       wiki:wiki ->
       sectioning:bool ->
-	menu_style:menu_style ->
-	  template:string ->
-	    wb: Wiki_types.wikibox ->
-	      (HTML5_types.html HTML5.M.elt * int) Lwt.t
+        menu_style:menu_style ->
+          template:string ->
+            wb: Wiki_types.wikibox ->
+              (HTML5_types.html HTML5.M.elt * int) Lwt.t
 
     (** Display of the list of all the wikis, as well as of some links to edit
         their properties *)

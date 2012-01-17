@@ -46,11 +46,11 @@ let process_wikifile
     with
     | Ocsigen_local_files.Failed_404 | Undefined ->
       Wiki_site.wikibox_widget#display_wikibox
-	~wiki ~sectioning ~menu_style ~template ~wb:wb404
+        ~wiki ~sectioning ~menu_style ~template ~wb:wb404
     | Ocsigen_local_files.NotReadableDirectory
     | Ocsigen_local_files.Failed_403 | Dir ->
       Wiki_site.wikibox_widget#display_wikibox
-	~wiki ~sectioning ~menu_style ~template ~wb:wb403 in
+        ~wiki ~sectioning ~menu_style ~template ~wb:wb403 in
     Lwt.return html
 
 let process_auxfile
@@ -65,11 +65,11 @@ let process_auxfile
   | Ocsigen_local_files.Failed_404 | Undefined ->
     lwt (html, code) =
       Wiki_site.wikibox_widget#display_wikibox
-	~wiki ~sectioning ~menu_style ~template ~wb:wb404 in
+        ~wiki ~sectioning ~menu_style ~template ~wb:wb404 in
     Ocsimore_appl.send ~code:404 html
   | Ocsigen_local_files.NotReadableDirectory
   | Ocsigen_local_files.Failed_403 | Dir ->
     lwt (html, code) =
       Wiki_site.wikibox_widget#display_wikibox
-	~wiki ~sectioning ~menu_style ~template ~wb:wb403 in
+        ~wiki ~sectioning ~menu_style ~template ~wb:wb403 in
     Ocsimore_appl.send ~code:403 html

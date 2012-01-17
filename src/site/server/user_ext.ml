@@ -41,7 +41,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
        let switchtohttps = Ocsimore_lib.list_assoc_opt "switch_to_https" args
        in
        lwt b =
-	 user_widget#display_login_widget
+         user_widget#display_login_widget
            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () in
        Lwt.return [(b : HTML5_types.div HTML5.M.elt :> [>HTML5_types.div] HTML5.M.elt)]) in
 

@@ -64,8 +64,8 @@ type 'a wikicreole_parser = (module Parser with type res = 'a)
 type preparser =
     Wiki_types.wikibox ->
       Wikicreole.attribs ->
-	string option ->
-	  string option Lwt.t
+        string option ->
+          string option Lwt.t
 
 module rec ExtParser : sig
 
@@ -89,19 +89,19 @@ module rec ExtParser : sig
       | `Phrasing_without_interactive of link_content ]
 
     type non_interactive_plugin =
-	(Wiki_widgets_interface.box_info,
-	 non_interactive_syntax_extension) Wikicreole.plugin
+        (Wiki_widgets_interface.box_info,
+         non_interactive_syntax_extension) Wikicreole.plugin
 
     type interactive_syntax_extension =
-	(res,
-	 (href * Wikicreole.attribs * res_without_interactive),
-	 link_content,
-	 (href * Wikicreole.attribs * link_content))
-	  Wikicreole.ext_kind
+        (res,
+         (href * Wikicreole.attribs * res_without_interactive),
+         link_content,
+         (href * Wikicreole.attribs * link_content))
+          Wikicreole.ext_kind
 
     type interactive_plugin =
-	(Wiki_widgets_interface.box_info,
-	 interactive_syntax_extension) Wikicreole.plugin
+        (Wiki_widgets_interface.box_info,
+         interactive_syntax_extension) Wikicreole.plugin
 
     val register_interactive_extension:
       name:string -> wiki_content:bool -> interactive_plugin -> unit
@@ -121,9 +121,9 @@ module rec ExtParser : sig
 
   type ('a, 'b, 'c) ext_wikicreole_parser =
       (module ExtParser
-	with type res = 'a
-	and type res_without_interactive = 'b
-	and type link_content = 'c)
+        with type res = 'a
+        and type res_without_interactive = 'b
+        and type link_content = 'c)
 
 end
 

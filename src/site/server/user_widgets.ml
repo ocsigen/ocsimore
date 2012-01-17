@@ -177,7 +177,7 @@ object (self)
     Lwt.return
       (HTML5.M.tr
          [HTML5.M.td ~a:[HTML5.M.a_class ["role"]] text;
-	  HTML5.M.td ~a:[HTML5.M.a_class ["current_users"]] (members :: add)]
+          HTML5.M.td ~a:[HTML5.M.a_class ["current_users"]] (members :: add)]
       )
 
 
@@ -479,7 +479,7 @@ object (self)
                                    ~name:nuserid
                                    ~value:g.user_id ()
                                 ]
-		    ]
+                    ]
                  ]
               ]
            )

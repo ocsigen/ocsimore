@@ -33,11 +33,11 @@ type menu_item =
 
 val build_tree :
     create_service:
-	(?wiki:Wiki_types.wiki ->
+        (?wiki:Wiki_types.wiki ->
           string list ->
-	  (Eliom_services.get_service_kind,
-	   Eliom_services.registrable,
-	   Eliom_output.non_caml_service)
+          (Eliom_services.get_service_kind,
+           Eliom_services.registrable,
+           Eliom_output.non_caml_service)
             Eliom_tools.one_page) ->
     menu ->
     menu_item list
@@ -45,11 +45,11 @@ val build_tree :
 val build_tree_from_string :
     Wiki_widgets_interface.box_info ->
     create_service:
-	(?wiki:Wiki_types.wiki ->
+        (?wiki:Wiki_types.wiki ->
           string list ->
-	  (Eliom_services.get_service_kind,
-	   Eliom_services.registrable,
-	   Eliom_output.non_caml_service)
+          (Eliom_services.get_service_kind,
+           Eliom_services.registrable,
+           Eliom_output.non_caml_service)
             Eliom_tools.one_page) ->
     contents:string ->
     menu_item list Lwt.t
@@ -57,11 +57,11 @@ val build_tree_from_string :
 val build_tree_from_file :
     Wiki_widgets_interface.box_info ->
     create_service:
-	(?wiki:Wiki_types.wiki ->
+        (?wiki:Wiki_types.wiki ->
           string list ->
-	  (Eliom_services.get_service_kind,
-	   Eliom_services.registrable,
-	   Eliom_output.non_caml_service)
+          (Eliom_services.get_service_kind,
+           Eliom_services.registrable,
+           Eliom_output.non_caml_service)
             Eliom_tools.one_page) ->
     file:Ocsigen_local_files.resolved ->
     menu_item list Lwt.t
@@ -73,7 +73,7 @@ val create_wiki_page_service:
     Wiki_widgets_interface.box_info ->
       ?wiki:Wiki_types.wiki ->
         string list ->
-	  (Eliom_services.get_service_kind,
-	   Eliom_services.registrable,
-	   Eliom_output.non_caml_service)
-	    Eliom_tools.one_page
+          (Eliom_services.get_service_kind,
+           Eliom_services.registrable,
+           Eliom_output.non_caml_service)
+            Eliom_tools.one_page
