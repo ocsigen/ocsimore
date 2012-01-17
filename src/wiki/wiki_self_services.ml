@@ -85,3 +85,43 @@ let find_servpage k =
 let find_servwikicss k =
   try Some (Servpages.find servwikicss k)
   with Not_found -> None
+
+let get_wiki_page_for_path, insert_into_registered_wikis_tree =
+  let module String_map = Map.Make (String) in
+  let module Tree = struct
+    type tree = T of (wiki option * tree String_map.t)
+    let get_map f (T t) = f t
+    let map f t = T (get_map f t)
+  end in
+  let rec find path =
+    Tree.get_map
+      (fun (opt_root_wiki_id, child_trees) ->
+        match path with
+            [] ->
+              begin match opt_root_wiki_id with
+                  Some id -> id, path
+                | None -> raise Not_found
+              end
+          | snippet :: rem_path ->
+              try find rem_path (String_map.find snippet child_trees)
+              with Not_found ->
+                match opt_root_wiki_id with
+                    Some wiki_id -> wiki_id, path
+                  | None -> raise Not_found)
+  in
+  let rec insert wiki_id path =
+    Tree.map
+      (fun (opt_root_wiki_id, child_trees) ->
+        match path with
+            [] -> Some wiki_id, child_trees
+          | snippet :: path ->
+              let child_tree =
+                try String_map.find snippet child_trees
+                with Not_found -> Tree.T (None, String_map.empty)
+              in
+              let child_tree' = String_map.add snippet (insert wiki_id path child_tree) child_trees in
+              opt_root_wiki_id, child_tree')
+  in
+  let registered_wikis = ref (Tree.T (None, String_map.empty)) in
+  (fun path -> find path !registered_wikis),
+  (fun wiki_id path -> Printf.printf "insert at %s\n%!" (String.concat "/" path); registered_wikis := insert wiki_id path !registered_wikis)

@@ -112,13 +112,17 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
   Ocsigen_messages.debug
     (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
        (string_of_wiki wiki) (String.concat "/"  path));
+
+  Wiki_self_services.insert_into_registered_wikis_tree wiki path;
+
   (* Registering the service with suffix for wikipages *)
   (* Note that Eliom will look for the service corresponding to
      the longest prefix. Thus it is possible to register a wiki
      at URL / and another one at URL /wiki and it works,
      whatever be the order of registration *)
   let servpage =
-    Eliom_output.Any.register_service ~path
+    Eliom_output.Any.register_service
+      ~path
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun path () ->
          let page' = Url.string_of_url_path ~encode:false path in
