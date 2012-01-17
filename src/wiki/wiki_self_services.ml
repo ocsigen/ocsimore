@@ -124,4 +124,4 @@ let get_wiki_page_for_path, insert_into_registered_wikis_tree =
   in
   let registered_wikis = ref (Tree.T (None, String_map.empty)) in
   (fun path -> find path !registered_wikis),
-  (fun wiki_id path -> Printf.printf "insert at %s\n%!" (String.concat "/" path); registered_wikis := insert wiki_id path !registered_wikis)
+  (fun wiki_id path -> registered_wikis := insert wiki_id path !registered_wikis)

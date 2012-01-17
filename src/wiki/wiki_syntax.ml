@@ -361,12 +361,6 @@ let list_postfix ~prefix list =
     | x::xs, y::ys when x = y -> aux (xs, ys)
     | _ -> None
   in
-  let string_of_list = String.concat "; " in
-  Printf.printf
-    "list_postfix ~prefix:[%s] [%s] => %s%!\n"
-    (string_of_list prefix)
-    (string_of_list list)
-    (match aux (prefix, list) with Some s -> Printf.sprintf "[%s]" (string_of_list s) | None -> "-/-");
   aux (prefix, list)
 
 (*
