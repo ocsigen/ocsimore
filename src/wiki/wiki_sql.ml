@@ -98,8 +98,7 @@ let get_wikibox_content_ ?version wb =
                             FROM wikiboxescontent
                             WHERE wikibox=$wikibox)"
           | Some version ->
-              PGSQL(db) "SELECT comment, author, content, datetime,
-                             content_type, version
+              PGSQL(db) "SELECT comment, author, content, datetime, content_type, version
                          FROM wikiboxescontent
                          WHERE wikibox=$wikibox AND version=$version")
        >>= function
@@ -108,6 +107,23 @@ let get_wikibox_content_ ?version wb =
              Lwt.return (Some (c,
                                User_sql.Types.userid_from_sql a, v, d, t, ver))
     )
+
+let get_wikiboxes_by_wiki wiki =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+      let wiki = sql_of_wiki wiki in
+      PGSQL (db) "SELECT wikibox, version, author, datetime, content_type, content, comment
+                  FROM (SELECT wci.wikibox,max(wci.version) AS version
+                        FROM (SELECT c.* FROM wikiboxescontent c INNER JOIN wikiboxindex i ON c.wikibox = i.uid WHERE i.wiki = $wiki) AS wci
+                        GROUP BY wci.wikibox) AS newest
+                  INNER JOIN wikiboxescontent
+                  USING (wikibox,version)
+                  ORDER BY wikibox")
+      >|= List.map (function
+          (wikibox, Some version, author, datetime, typ, content, comment) ->
+            (Wiki_types.wikibox_of_sql wikibox, version, User_sql.Types.userid_from_sql author,
+             datetime, Wiki_types.content_type_of_string typ, content, comment : (wikibox * int32 * _ * CalendarLib.Calendar.t * _ Wiki_types.content_type * string option * string))
+         | _ -> assert false)  (* FIXME in the above SQL-query ... *)
 
 let current_wikibox_version_  wb =
   Lwt_pool.use Sql.pool
@@ -160,8 +176,6 @@ let set_wikibox_special_rights_ ?db wb v =
                   SET specialrights = $v
                   WHERE uid = $wb"
     )
-
-
 
 (** Wikipages *)
 

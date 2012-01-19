@@ -509,6 +509,14 @@ and view_wikis = Eliom_services.service
   ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_wikis"]
   ~get_params:Eliom_parameters.unit ()
 
+and view_boxes = Eliom_services.service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_boxes"]
+  ~get_params:eliom_wiki_args ()
+
+and view_box = Eliom_services.service
+  ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_boxes"]
+  ~get_params:(eliom_wikibox_args ** Eliom_parameters.(opt (int32 "version"))) ()
+
 and action_send_wikipage_properties =
   Eliom_output.Any.register_post_coservice'
     ~keep_get_na_params:false ~name:"wikipage_save_properties"

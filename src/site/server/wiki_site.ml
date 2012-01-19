@@ -449,7 +449,75 @@ let edit_wiki =
     );
   Wiki_services.edit_wiki
 
+let view_boxes =
+  let open HTML5.M in
+  let headers = ["wikibox"; "version"; "author"; "datetime"; "content_type"; "comment"] in
+  let render_header_row s = th [pcdata s] in
+  (* wikibox * int32 option * userid * CalendarLib.Calendar.t * string * string option * string *)
+  let render_wikibox_row (wikibox, version, author, datetime, content_type, content, comment) =
+    tr [
+      td [pcdata Wiki_sql.(string_of_wikibox wikibox)];
+      td [pcdata (Int32.to_string version)];
+      td [pcdata author.User_sql.Types.user_fullname];
+      td [pcdata (CalendarLib.Printer.Calendar.to_string datetime)];
+      td [pcdata (Wiki_types.string_of_content_type content_type)];
+      td [pcdata comment];
+      td [Eliom_output.Html5.a ~service:Wiki_services.view_box [Page_site.icon ~path:"viewbox.png" ~text:"View box"] (wikibox, Some version)];
+    ]
+  in
+  let sequence : 'a Lwt.t list -> 'a list Lwt.t =
+    fun lwt_li ->
+      let rec aux sofar = function
+          [] -> Lwt.return (List.rev sofar)
+       | x :: xs ->
+           lwt x' = x in
+           aux (x' :: sofar) xs
+      in aux [] lwt_li
+  in
+  let saturate (wikibox, version, author, datetime, content_type, content, comment) =
+    lwt author = User_sql.get_basicuser_data author in
+    Lwt.return (wikibox, version, author, datetime, content_type, content, comment)
+  in
+  Eliom_output.Html5.register Wiki_services.view_boxes
+    (fun wiki () ->
+      Wiki_sql.get_wikiboxes_by_wiki wiki >>= fun wikiboxes ->
+        lwt wikiboxes = sequence (List.map saturate wikiboxes) in
+        Page_site.admin_page
+          [table
+            (tr (List.map render_header_row headers))
+            (List.map render_wikibox_row wikiboxes)]);
+  Wiki_services.view_boxes
 
+let view_box =
+  let render_version_link wikibox version' (version, comment, author, datetime) = (*int32 * string * (* userid *) int32 * CalendarLib.Calendar.t*)
+    let version_pcdata = HTML5.M.pcdata (Int32.to_string version) in
+    let version_li =
+      if version' <> version then
+        Eliom_output.Html5.a ~service:Wiki_services.view_box [version_pcdata] (wikibox, Some version)
+      else
+        version_pcdata 
+    in
+    HTML5.M.li [version_li]
+  in
+  Eliom_output.Html5.register Wiki_services.view_box
+    (fun (wikibox, version) () ->
+      Wiki_sql.get_wikibox_content ?version wikibox >>= function
+         Some (comment, author, content, datetime, content_type, version) ->
+           Wiki_sql.get_wikibox_history wikibox >>= fun history ->
+           Page_site.admin_page HTML5.M.([
+             ul (List.map (render_version_link wikibox version) history);
+             table 
+               (tr [td [pcdata "wikibox"];
+                    td [pcdata Wiki_sql.(string_of_wikibox wikibox)]])
+               [tr [td [pcdata "version"];
+                    td [pcdata (Int32.to_string version)]];
+                tr [td [pcdata "content_type"];
+                    td [pcdata (Wiki_types.string_of_content_type content_type)]];
+                tr [td [pcdata "content"];
+                td (match content with Some c -> [pre [pcdata c]] | None -> [])]]
+           ])
+       | None -> Lwt.fail Eliom_common.Eliom_404);
+  Wiki_services.view_box
 
 let wiki_root =
   Eliom_services.service

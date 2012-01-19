@@ -1640,6 +1640,10 @@ class dynamic_wikibox
          Eliom_output.Html5.a ~service:Wiki_services.edit_wiki
            (img "imgedit.png" "Edit wiki options") w.wiki_id
        in
+       let view_wikiboxes =
+         Eliom_output.Html5.a ~service:Wiki_services.view_boxes
+          (img "viewboxes.png" "View all boxes") w.wiki_id
+       in
        let edit_perm =
          Eliom_output.Html5.a
            ~service:Wiki_services.edit_wiki_permissions_admin
@@ -1660,6 +1664,7 @@ class dynamic_wikibox
            HTML5.M.td ~a:[HTML5.M.a_class ["wikidescr"]]
              [HTML5.M.pcdata w.wiki_descr];
            HTML5.M.td [edit];
+           HTML5.M.td [view_wikiboxes];
            HTML5.M.td [edit_perm];
            HTML5.M.td page;
           ]
