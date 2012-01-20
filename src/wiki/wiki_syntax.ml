@@ -487,14 +487,15 @@ type link_kind =
 
 let link_kind addr =
   match Netstring_pcre.string_match link_regexp addr 0 with
-    | None -> Wiki_page (None, addr, None) (* FIXME Should be an error. This is for backwards-compatibility *)
+      None ->
+        raise (Failure "Not a valid link")
     | Some result ->
         let forceproto =
           try Some (Netstring_pcre.matched_group result protocol_group addr = "https+")
           with Not_found -> None
         in
         let page = Netstring_pcre.matched_group result page_group addr in
-        match Netstring_pcre.matched_group result prototype_group addr with
+        begin match Netstring_pcre.matched_group result prototype_group addr with
             "href" ->
               Href (page, forceproto)
           | "site" ->
@@ -517,6 +518,7 @@ let link_kind addr =
               else
                 Wiki_page (None, page, forceproto)
           |  _ -> Absolute addr
+        end
 
 let remove_first_slash s =
   let l = String.length s in
@@ -1012,10 +1014,13 @@ let make_href bi addr fragment =
 
 let menu_make_href bi c fragment =
   (* Accept only simple page. Ignore fragment and anything else silently... *)
-  match link_kind c with
-    | Wiki_page (Some wiki,page,None) ->
-        String_href ("wiki(" ^ Wiki_types.string_of_wiki wiki ^ "):" ^ page)
-    | _ -> String_href ""
+  try
+    match link_kind c with
+      | Wiki_page (Some wiki,page,None) ->
+          String_href ("wiki(" ^ Wiki_types.string_of_wiki wiki ^ "):" ^ page)
+      | _ -> String_href ""
+  with Failure msg ->
+    String_href msg
 
 
 
@@ -1239,7 +1244,10 @@ module FlowBuilder = struct
 
   let make_href =
     (fun bi c fragment ->
-      make_href bi (link_kind c) fragment )
+      try
+        make_href bi (link_kind c) fragment
+      with Failure msg ->
+        String_href msg)
 
   let br_elem attribs =
     let a = opt_list (parse_common_attribs attribs) in
