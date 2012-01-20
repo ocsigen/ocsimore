@@ -443,11 +443,19 @@ let edit_wiki =
          | false ->
              Page_site.admin_page
                [HTML5.M.h1 [HTML5.M.pcdata "Insufficient permissions"];
-                HTML5.M.p [HTML5.M.pcdata "You do not have enough rights to \
-                                           edit this wiki"];
+                HTML5.M.p [HTML5.M.pcdata "You do not have enough rights to edit this wiki"];
                ]
     );
   Wiki_services.edit_wiki
+
+let sequence : 'a Lwt.t list -> 'a list Lwt.t =
+  fun lwt_li ->
+    let rec aux sofar = function
+       [] -> Lwt.return (List.rev sofar)
+     | x :: xs ->
+         lwt x' = x in
+         aux (x' :: sofar) xs
+    in aux [] lwt_li
 
 let view_boxes =
   let open HTML5.M in
@@ -465,23 +473,18 @@ let view_boxes =
       td [Eliom_output.Html5.a ~service:Wiki_services.view_box [Page_site.icon ~path:"viewbox.png" ~text:"View box"] (wikibox, Some version)];
     ]
   in
-  let sequence : 'a Lwt.t list -> 'a list Lwt.t =
-    fun lwt_li ->
-      let rec aux sofar = function
-          [] -> Lwt.return (List.rev sofar)
-       | x :: xs ->
-           lwt x' = x in
-           aux (x' :: sofar) xs
-      in aux [] lwt_li
-  in
-  let saturate (wikibox, version, author, datetime, content_type, content, comment) =
-    lwt author = User_sql.get_basicuser_data author in
-    Lwt.return (wikibox, version, author, datetime, content_type, content, comment)
+  let wikibox_extension wikibox =
+    lwt content = Wiki_sql.get_wikibox_content wikibox in
+    match content with
+        Some (comment, author, content, datetime, content_type, version) ->
+          lwt author = User_sql.get_basicuser_data author in
+          Lwt.return (Some (wikibox, version, author, datetime, content_type, content, comment))
+     | None -> Lwt.return None
   in
   Eliom_output.Html5.register Wiki_services.view_boxes
     (fun wiki () ->
       Wiki_sql.get_wikiboxes_by_wiki wiki >>= fun wikiboxes ->
-        lwt wikiboxes = sequence (List.map saturate wikiboxes) in
+        lwt wikiboxes = sequence (List.map wikibox_extension wikiboxes) >|= List.map_filter (fun x -> x) in
         Page_site.admin_page
           [table
             (tr (List.map render_header_row headers))
@@ -490,14 +493,14 @@ let view_boxes =
 
 let view_box =
   let render_version_link wikibox version' (version, comment, author, datetime) = (*int32 * string * (* userid *) int32 * CalendarLib.Calendar.t*)
-    let version_pcdata = HTML5.M.pcdata (Int32.to_string version) in
-    let version_li =
+    let version_elt = HTML5.M.pcdata (Int32.to_string version) in
+    let version_link =
       if version' <> version then
-        Eliom_output.Html5.a ~service:Wiki_services.view_box [version_pcdata] (wikibox, Some version)
+        Eliom_output.Html5.a ~service:Wiki_services.view_box [version_elt] (wikibox, Some version)
       else
-        version_pcdata 
+        version_elt 
     in
-    HTML5.M.li [version_li]
+    HTML5.M.(li [version_link; pcdata comment])
   in
   Eliom_output.Html5.register Wiki_services.view_box
     (fun (wikibox, version) () ->
@@ -518,6 +521,91 @@ let view_box =
            ])
        | None -> Lwt.fail Eliom_common.Eliom_404);
   Wiki_services.view_box
+
+let replace_links =
+  Eliom_services.post_coservice
+    ~fallback:Wiki_services.batch_edit_boxes
+    ~post_params:Eliom_parameters.unit ()
+
+
+let normalize_old_page_link wiki wikibox addr fragment attribs params =
+  let replacement =
+    try
+      ignore (Wiki_syntax.link_kind addr);
+      None
+    with Failure _ ->
+      let rep = Printf.sprintf "wiki(%s):%s" (Wiki_types.string_of_wiki wiki) addr in
+      Printf.eprintf "Replace in %S by %S in wiki %s / wikibox %s\n%!" addr rep (Wiki_types.string_of_wiki wiki) (Wiki_types.string_of_wikibox wikibox);
+      Some (rep)
+  in
+  Lwt.return replacement
+
+let batch_edit_boxes =
+  Eliom_output.Html5.register
+    Wiki_services.batch_edit_boxes
+    (fun () () ->
+      Page_site.admin_page HTML5.M.([
+        Eliom_output.Html5.post_form
+          ~service:replace_links
+          (fun () -> [
+            Eliom_output.Html5.button
+              ~button_type:`Submit
+              [HTML5.M.pcdata"Replace links"]
+          ]) ()
+      ]));
+  Eliom_output.Html5.register
+    replace_links
+    (fun () () ->
+      lwt wikis = Wiki_sql.get_wikis () in
+      let wikibox_content wpp wiki wikibox =
+        lwt c = Wiki_sql.get_wikibox_content wikibox in
+        match c with
+            Some (_comment, _author, Some content, _datetime, content_type, _version) ->
+              lwt content' = Wiki_models.preparse_string ~link_action:(normalize_old_page_link wiki wikibox) wpp wikibox content in
+              if 0 = String.compare content content' then
+                Lwt.return (wikibox, None)
+              else
+                lwt wikibox' =
+                  Wiki_sql.update_wikibox 
+                    ~author:User.admin
+                    ~comment:"Replace old relative links"
+                    ~content:(Some content')
+                    ~content_type
+                    wikibox
+                in
+                Lwt.return (wikibox, Some (wikibox', (content, content')))
+         | _ -> Lwt.return (wikibox, None)
+      in
+      let for_wiki wiki =
+        lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
+        let wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
+        lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
+        lwt wikiboxes_content = sequence (List.map (wikibox_content wpp wiki) wikiboxes) in
+        Lwt.return (wiki_info, wikiboxes_content)
+      in
+      lwt wikiboxes_by_wikis = sequence (List.map for_wiki wikis) in
+      Page_site.admin_page 
+        (List.map
+          (fun (wiki_info, wikiboxes) ->
+            HTML5.M.(
+              div [
+                h4 [pcdata wiki_info.Wiki_types.wiki_title];
+                table
+                  (tr [th [pcdata "wikibox"]; th [pcdata "changes"]])
+                  (List.map_filter
+                     (fun (wikibox, opt_contents) ->
+                       match opt_contents with
+                           Some (wikibox', (old_content, new_content)) ->
+                             let s = if 0 = String.compare old_content new_content then "-" else "some" in
+                             Some (tr [
+                               td [pcdata (Wiki_types.string_of_wikibox wikibox)];
+                               td [pcdata s]
+                             ])
+                         | None -> None)
+                     wikiboxes)
+              ]))
+          wikiboxes_by_wikis));
+  Wiki_services.batch_edit_boxes
 
 let wiki_root =
   Eliom_services.service
