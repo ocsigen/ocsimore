@@ -112,18 +112,27 @@ let get_wikiboxes_by_wiki wiki =
   Lwt_pool.use Sql.pool
     (fun db ->
       let wiki = sql_of_wiki wiki in
+      PGSQL (db) "SELECT uid FROM wikiboxindex WHERE wiki = $wiki"
+      >|= List.map Wiki_types.wikibox_of_sql)
+
+(*
+let get_wikiboxes_by_wiki' wiki =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+      let wiki = sql_of_wiki wiki in
       PGSQL (db) "SELECT wikibox, version, author, datetime, content_type, content, comment
-                  FROM (SELECT wci.wikibox,max(wci.version) AS version
+                  FROM (SELECT wci.wikibox, max(wci.version) AS version
                         FROM (SELECT c.* FROM wikiboxescontent c INNER JOIN wikiboxindex i ON c.wikibox = i.uid WHERE i.wiki = $wiki) AS wci
                         GROUP BY wci.wikibox) AS newest
                   INNER JOIN wikiboxescontent
-                  USING (wikibox,version)
+                  USING (wikibox, version)
                   ORDER BY wikibox")
       >|= List.map (function
           (wikibox, Some version, author, datetime, typ, content, comment) ->
             (Wiki_types.wikibox_of_sql wikibox, version, User_sql.Types.userid_from_sql author,
-             datetime, Wiki_types.content_type_of_string typ, content, comment : (wikibox * int32 * _ * CalendarLib.Calendar.t * _ Wiki_types.content_type * string option * string))
+             datetime, Wiki_types.content_type_of_string typ, content, comment)
          | _ -> assert false)  (* FIXME in the above SQL-query ... *)
+*)
 
 let current_wikibox_version_  wb =
   Lwt_pool.use Sql.pool
@@ -198,6 +207,12 @@ let get_box_for_page_ ~wiki ~page =
                wikipage_uid = sql_to_wikipage uid;
              }
     )
+
+let get_wikis () =
+  Lwt_pool.use Sql.pool
+    (fun db ->
+      PGSQL (db) "SELECT id FROM wikis"
+      >|= List.map Wiki_types.wiki_of_sql)
 
 (* No need for cache, as the page does not exists yet *)
 let create_wikipage ?db ~wiki ~page ~wb =
@@ -480,6 +495,7 @@ let get_wikibox_content ?version wb =
     (match version with
        | None -> cache_wb_content#find wb
        | Some _ -> get_wikibox_content_ ?version wb)
+
 
 let current_wikibox_version = cache_wb_version#find
 

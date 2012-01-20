@@ -62,7 +62,8 @@ val new_wikibox :
 val get_wikibox_history : wb:wikibox ->
   (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
 
-val get_wikiboxes_by_wiki : wiki -> (wikibox * int32 * userid * CalendarLib.Calendar.t * _ Wiki_types.content_type * string option * string) list Lwt.t
+val get_wikiboxes_by_wiki : wiki -> wikibox list Lwt.t
+(* val get_wikiboxes_by_wiki' : wiki -> (wikibox_info, wikibox_content) list Lwt.t *)
 
 (** Wikipages *)
 
@@ -167,6 +168,7 @@ val get_wikibox_content :
   wikibox ->
   (string * userid * string option * CalendarLib.Calendar.t * 'a Wiki_types.content_type * int32) option Lwt.t
 
+val get_wikis : unit -> wiki list Lwt.t
 
 (** Does the wikibox have special permission rights *)
 val set_wikibox_special_rights:
@@ -216,7 +218,6 @@ val iter_wikis :
   ?db: Sql.db_t ->
   (wiki_info -> unit Lwt.t) ->
   unit Lwt.t
-
 
 val get_wikibox_info : wikibox -> wikibox_info Lwt.t
 
