@@ -89,14 +89,14 @@ type wiki_preprocessor = (module Wiki_syntax_types.Preprocessor)
 
 let identity_preprocessor = 
   let module Identity_preprocessor = struct
-    let preparse_string _ s = Lwt.return s
+    let preparse_string ?link_action _ s = Lwt.return s
     let desugar_string _ s = Lwt.return s
   end in
   (module Identity_preprocessor : Wiki_syntax_types.Preprocessor)
 
-let preparse_string wpp p c =
+let preparse_string wpp ?link_action p c =
   let module Preprocessor = (val wpp : Wiki_syntax_types.Preprocessor) in
-  Preprocessor.preparse_string p c
+  Preprocessor.preparse_string ?link_action p c
 
 let desugar_string wpp p c =
   let module Preprocessor = (val wpp : Wiki_syntax_types.Preprocessor) in

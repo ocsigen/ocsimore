@@ -41,7 +41,7 @@ module type Preprocessor = sig
   (* [preparse_string wb content] does possibly some replacements in [content]
      and may have arbitrary side effects in the process (e.g. creating
     wikiboxes etc.). *)
-  val preparse_string: Wiki_types.wikibox -> string -> string Lwt.t
+  val preparse_string : ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t) -> Wiki_types.wikibox -> string -> string Lwt.t
 
 end
 

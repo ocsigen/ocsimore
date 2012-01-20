@@ -323,7 +323,7 @@ let uri_of_href href =
 
 let link_regexp =
   Netstring_pcre.regexp "(http\\+|https\\+)?([a-z|A-Z|0-9]+)(\\((.*)\\))?:(.*)"
-let wiki_title_regexp = Netstring_pcre.regexp "\"([a-z|A-Z][a-z|A-Z|0-9|_]*)\""
+let wiki_title_regexp = Netstring_pcre.regexp "\"([a-z|A-Z|_][a-z|A-Z|_|0-9]*)\""
 let protocol_group = 1
 let prototype_group = 2
 let wiki_id_parentheses_group = 3
@@ -480,7 +480,7 @@ let normalize_link =
       | _ -> Result.no_replacement
 
 type link_kind =
-  | Wiki_page of Wiki_types.wiki option * string * force_https
+    Wiki_page of Wiki_types.wiki option * string * force_https
   | Href of string * force_https
   | Site of string * force_https
   | Absolute of string
@@ -490,10 +490,7 @@ let link_kind addr =
     | None -> Wiki_page (None, addr, None) (* FIXME Should be an error. This is for backwards-compatibility *)
     | Some result ->
         let forceproto =
-          try
-            if Netstring_pcre.matched_group result protocol_group addr = "https+"
-            then Some true
-            else Some false
+          try Some (Netstring_pcre.matched_group result protocol_group addr = "https+")
           with Not_found -> None
         in
         let page = Netstring_pcre.matched_group result page_group addr in
@@ -936,8 +933,17 @@ module MakeParser(B: RawParser) :
       Buffer.add_substring buf content pos (String.length content - pos);
     Lwt.return (Buffer.contents buf)
 
-  let preparse_string = preprocess_string preparser
   let desugar_string = preprocess_string desugarer
+
+  let preparse_string ?link_action wb content =
+    let old_link_action = !link_action_ref in
+    begin match link_action with
+        Some la -> set_link_subst la
+      | None -> ()
+    end;
+    lwt content' = preprocess_string preparser wb content in
+    set_link_subst old_link_action;
+    Lwt.return content'
 end
 
 let make_href bi addr fragment =
@@ -2359,7 +2365,7 @@ let f_menu bi args _c =
          let link =
            match make_href bi (link_kind link) None with
              | String_href addr ->
-               (HTML5.M.a ~a:[HTML5.M.a_href (HTML5.M.uri_of_string addr)] text2)
+                 (HTML5.M.a ~a:[HTML5.M.a_href (HTML5.M.uri_of_string addr)] text2)
              | Service_href href -> a_link_of_href href ~a:[] text2
          in
          let link : HTML5_types.flow5 HTML5.M.elt =

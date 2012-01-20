@@ -405,8 +405,7 @@ val menu_parser :
   ) ext_wikicreole_parser
 
 (** the content type for wikicreole boxes: *)
-val wikicreole_content_type :
-  HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
+val wikicreole_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
 
 (** the content type for reduced_wikicreole_parser0: *)
 val reduced_wikicreole_content_type0 : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type

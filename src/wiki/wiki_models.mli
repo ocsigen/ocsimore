@@ -52,9 +52,9 @@ type wiki_preprocessor = (module Wiki_syntax_types.Preprocessor)
 val identity_preprocessor : wiki_preprocessor
 
 (** See [Wiki_syntax_types.Preprocessor.preparse_string] *)
-val preparse_string: wiki_preprocessor -> Wiki_types.wikibox -> string -> string Lwt.t
+val preparse_string: wiki_preprocessor -> ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t) -> Wiki_types.wikibox -> string -> string Lwt.t
 
-(** See [Wiki_syntax_types.Preprocessor.preparse_string] *)
+(** See [Wiki_syntax_types.Preprocessor.desugar_string] *)
 val desugar_string : wiki_preprocessor -> Wiki_syntax_types.desugar_param -> string -> string Lwt.t
 
 type +'res wiki_parser =
