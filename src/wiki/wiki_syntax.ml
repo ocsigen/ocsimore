@@ -937,12 +937,9 @@ module MakeParser(B: RawParser) :
 
   let desugar_string = preprocess_string desugarer
 
-  let preparse_string ?link_action wb content =
+  let preparse_string ?(link_action=fun _ _ _ _ -> Lwt.return None) wb content =
     let old_link_action = !link_action_ref in
-    begin match link_action with
-        Some la -> set_link_subst la
-      | None -> ()
-    end;
+    set_link_subst link_action;
     lwt content' = preprocess_string preparser wb content in
     set_link_subst old_link_action;
     Lwt.return content'

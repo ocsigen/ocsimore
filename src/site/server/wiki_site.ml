@@ -500,7 +500,7 @@ let view_box =
       else
         version_elt 
     in
-    HTML5.M.(li [version_link; pcdata comment])
+    HTML5.M.(li [version_link; pcdata (if comment = "" then "" else " ("^comment^")")])
   in
   Eliom_output.Html5.register Wiki_services.view_box
     (fun (wikibox, version) () ->
@@ -527,16 +527,21 @@ let replace_links =
     ~fallback:Wiki_services.batch_edit_boxes
     ~post_params:Eliom_parameters.unit ()
 
-
 let normalize_old_page_link wiki wikibox addr fragment attribs params =
   let replacement =
     try
       ignore (Wiki_syntax.link_kind addr);
       None
     with Failure _ ->
-      let rep = Printf.sprintf "wiki(%s):%s" (Wiki_types.string_of_wiki wiki) addr in
-      Printf.eprintf "Replace in %S by %S in wiki %s / wikibox %s\n%!" addr rep (Wiki_types.string_of_wiki wiki) (Wiki_types.string_of_wikibox wikibox);
-      Some (rep)
+      let rep =
+        Printf.sprintf "wiki(%s):%s%s"
+          (Wiki_types.string_of_wiki wiki)
+          addr
+          (match fragment with Some f -> "#"^f | None -> "")
+      in
+      Printf.eprintf ">> Replace in %S by %S in wiki %s / wikibox %s\n%!"
+        addr rep (Wiki_types.string_of_wiki wiki) (Wiki_types.string_of_wikibox wikibox);
+      Some rep
   in
   Lwt.return replacement
 
@@ -560,20 +565,20 @@ let batch_edit_boxes =
       let wikibox_content wpp wiki wikibox =
         lwt c = Wiki_sql.get_wikibox_content wikibox in
         match c with
-            Some (_comment, _author, Some content, _datetime, content_type, _version) ->
-              lwt content' = Wiki_models.preparse_string ~link_action:(normalize_old_page_link wiki wikibox) wpp wikibox content in
-              if 0 = String.compare content content' then
+            Some (_comment, _author, Some old_content, _datetime, content_type, _version) ->
+              lwt new_content = Wiki_models.preparse_string ~link_action:(normalize_old_page_link wiki wikibox) wpp wikibox old_content in
+              if 0 = String.compare old_content new_content then
                 Lwt.return (wikibox, None)
               else
                 lwt wikibox' =
                   Wiki_sql.update_wikibox 
                     ~author:User.admin
-                    ~comment:"Replace old relative links"
-                    ~content:(Some content')
+                    ~comment:"batch_edit_boxes: Replace old relative links"
+                    ~content:(Some new_content)
                     ~content_type
                     wikibox
                 in
-                Lwt.return (wikibox, Some (wikibox', (content, content')))
+                Lwt.return (wikibox, Some (wikibox', (old_content, new_content)))
          | _ -> Lwt.return (wikibox, None)
       in
       let for_wiki wiki =
