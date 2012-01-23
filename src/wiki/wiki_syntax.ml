@@ -781,7 +781,7 @@ let make_href bi addr fragment =
             | None ->
                 let path =
                   Eliom_uri.reconstruct_relative_url_path
-                    (Eliom_request_info.get_original_full_path ())
+                    (Eliom_request_info.get_csp_original_full_path ())
                     path
                 in
                 Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
