@@ -355,47 +355,13 @@ let sub_string ?from ?to_ str =
 let has_prefix ?(offset=0) ~prefix str =
   String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
 
-let list_postfix ~prefix list =
+let list_suffix ~prefix list =
   let rec aux = function
       [], res -> Some res
     | x::xs, y::ys when x = y -> aux (xs, ys)
     | _ -> None
   in
   aux (prefix, list)
-
-(*
-   [resolve_href "../../"] ["c";"b";"a"] => ["a"]
-   [resolve_href "/xyz"] ["c";"b";"a"] => [], "xyz"
- *)
-let resolve_href addr rev_page_path =
-  if has_prefix ~prefix:"/" addr then
-    [], addr
-  else
-    let rec aux offset back_path =
-      if has_prefix ~offset ~prefix:"/" addr then
-        aux (offset + 1) back_path
-      else if has_prefix ~offset ~prefix:"./" addr then
-        aux (offset + 2) back_path
-      else if has_prefix ~offset ~prefix:"../" addr then
-        match back_path with
-            _ :: back_path' -> aux (offset + 3) back_path'
-          | [] ->
-              let msg =
-                Printf.sprintf "cannot access %s from %s"
-                  addr
-                  (String.concat "/" (List.rev rev_page_path))
-              in
-              raise (Failure msg)
-      else
-        let rem_addr = sub_string ~from:offset addr in
-        back_path, rem_addr
-    in aux 0 rev_page_path
-
-let rev_reference_page_path opt_path =
-  match map_option List.rev opt_path with
-      Some (_ :: path) -> path
-    | None -> raise (Failure "relative link not from no page path")
-    | Some [] -> raise (Failure "relative link not from empty page path")
 
 let normalize_link =
   let module Result = struct
@@ -438,56 +404,57 @@ let normalize_link =
             else
               if has_prefix ~prefix:"/" addr then (* [[/path]] => [[wiki(ix):page_path]] *)
                 match
-                  list_postfix
+                  list_suffix
                     ~prefix:(Eliom_request_info.get_site_dir ())
                     Neturl.(url_path (url_of_string site_url_syntax (sub_string ~from:1 addr)))
                 with
-                    Some path -> (* [addr] = site directory / [path] *)
+                    Some path -> (* [addr] = site_dir / [path] *)
                       begin try
                         let page_wiki, page_path =
-                          let _, page_path as page = Wiki_self_services.get_wiki_page_for_path path in
-                          let _, page_path' as page' = Wiki_self_services.get_wiki_page_for_path ("" :: path) in
-                          if List.(length page_path < length page_path') then page else page'
+                          let wiki_page_for_path_option path =
+                            try Some (Wiki_self_services.get_wiki_page_for_path path)
+                            with Not_found -> None
+                          in
+                          match wiki_page_for_path_option path, wiki_page_for_path_option ("" :: path) with
+                            | Some ((_, page_path) as page), Some ((_, page_path') as page') ->
+                                if List.(length page_path < length page_path') then page else page'
+                            | Some page, None | None, Some page -> page
+                            | None, None -> raise Not_found
                         in
                         Result.success_replace "wiki(%s):%s"
                           (Wiki_types.string_of_wiki page_wiki)
                           (Url.string_of_url_path ~encode:false page_path)
                       with Not_found -> (* No wiki page at [path] *)
-                        Result.success_replace "href:%s" addr
+                        Result.success_replace "site:%s" (Url.string_of_url_path ~encode:false path)
                       end
                   | None -> (* site directory not a prefix of path *)
                       Result.success_replace "href:%s" addr
               else (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
-                  (* Choose reference path for resolving relative link *)
-                  (try
-                    let rev_ref_path = rev_reference_page_path desugar_param.Wiki_syntax_types.dc_page_path in
-                    let rev_rem_path, rem_addr = resolve_href addr rev_ref_path in
-                    Lwt.return (Some (List.rev rev_rem_path, rem_addr))
-                  with Failure msg ->
-                    Result.failure_malformed_link' pos desugar_param msg)
-                  (* Resolve addr relative to the reference path *)
-                  >>= begin function
-                      Some (rem_reference_path, rem_addr) ->
-                        Result.success_replace "wiki(%s):%s%s"
-                          page_wiki_id_string
-                          (String.concat "/" rem_reference_path)
-                          (if rem_addr = "" then "" else "/"^rem_addr)
-                    | None -> Lwt.return None
-                  end
+                  let path =
+                    match desugar_param.Wiki_syntax_types.dc_page_path with
+                        Some page_path ->
+                          let open Neturl in
+                          join_path (url_path
+                            (apply_relative_url
+                              (make_url ~path:page_path site_url_syntax)
+                              (url_of_string site_url_syntax addr)))
+                      | None -> addr
+                  in
+                  Result.success_replace "wiki(%s):%s" page_wiki_id_string path
           in
           let append_fragment addr = addr ^ get_map_option ~default:"" ~f:((^) "#") fragment in
           replacement_addr >|= map_option append_fragment
       | _ -> Result.no_replacement
 
 type link_kind =
-    Wiki_page of Wiki_types.wiki option * string * force_https
+  | Wiki_page of Wiki_types.wiki option * string * force_https
   | Href of string * force_https
   | Site of string * force_https
   | Absolute of string
 
 let link_kind addr =
   match Netstring_pcre.string_match link_regexp addr 0 with
-      None ->
+    | None ->
         raise (Failure "Not a valid link")
     | Some result ->
         let forceproto =
@@ -496,7 +463,7 @@ let link_kind addr =
         in
         let page = Netstring_pcre.matched_group result page_group addr in
         begin match Netstring_pcre.matched_group result prototype_group addr with
-            "href" ->
+          | "href" ->
               Href (page, forceproto)
           | "site" ->
               Site (page, forceproto)
@@ -946,7 +913,7 @@ module MakeParser(B: RawParser) :
 end
 
 let make_href bi addr fragment =
-  let aux ~fragment https wiki page =
+  let wiki_page_aux ~fragment https wiki page =
     match Wiki_self_services.find_servpage wiki with
       | Some servpage ->
           let addr =
@@ -958,53 +925,61 @@ let make_href bi addr fragment =
                ?fragment ~service:servpage addr *)
       | None -> String_href "malformed link" (*VVV ??? *)
   in
+  let fix_csp_page_path path =
+    Eliom_uri.reconstruct_relative_url_path
+      (Eliom_request_info.get_csp_original_full_path ())
+      path
+  in
   match addr with
       Wiki_page (None, page, forceproto) ->
         let wiki,_ = bi.Wiki_widgets_interface.bi_page in
-        aux ~fragment forceproto wiki page
+        wiki_page_aux ~fragment forceproto wiki page
     | Wiki_page (Some wiki, page, forceproto) ->
-        aux ~fragment forceproto wiki page
+        wiki_page_aux ~fragment forceproto wiki page
+    | Site (href, forceproto) ->
+        String_href (* CCC could we find a service for the site ? *)
+          (try
+             let url = Neturl.url_of_string site_url_syntax href in
+             let path = Neturl.url_path url in
+             let path =
+               Eliom_request_info.get_site_dir () @ Url.remove_slash_at_beginning path
+             in
+             match forceproto with
+               | None ->
+                   let path = fix_csp_page_path path in
+                   Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
+               | Some https ->
+                   Eliom_output.Html5.make_proto_prefix https ^
+                     (Neturl.string_of_url (Neturl.modify_url ?fragment ~path url))
+           with
+             Neturl.Malformed_URL -> "malformed link")
     | Href (href, forceproto) ->
         String_href
           (match forceproto with
                None ->
-                 href ^ get_map_option ~default:"" ~f:((^) "#") fragment
+                 let path =
+                   let open Neturl in
+                   join_path (match split_path href with
+                                 "" :: path -> fix_csp_page_path path
+                               | path -> path)
+                 in
+                 path ^ get_map_option ~default:"" ~f:((^) "#") fragment
              | Some https ->
                  let path =
                    match Neturl.(url_path (url_of_string site_url_syntax href)) with
                        "" :: path -> path
                      | path ->
-                         (* A relative href and an enforced protocoll: create the complete target path by combining the
-                            current URL-path with the href *)
-                         let prefix = List.rev (Eliom_request_info.get_original_full_path ()) in
+                         (* A relative href and an enforced protocoll: create the complete target
+                            path by combining the current URL-path with the href *)
+                         let prefix = List.rev (Eliom_request_info.get_current_full_path ()) in
                          let prefix = List.rev (match prefix with _ :: xs -> xs | [] -> []) in
                          prefix @ path
                  in
                  let url = Neturl.url_of_string site_url_syntax (Eliom_request_info.get_full_url ()) in
                  Eliom_output.Html5.make_proto_prefix https ^
                    Neturl.(string_of_url (modify_url ?fragment ~path url)))
-    | Site (href, forceproto) ->
-      String_href (* CCC could we find a service for the site ? *)
-        (try
-          let url = Neturl.url_of_string site_url_syntax href in
-          let path = Neturl.url_path url in
-          let path =
-            (Eliom_request_info.get_site_dir ()) @
-              (Url.remove_slash_at_beginning path)
-          in
-          match forceproto with
-            | None ->
-                let path =
-                  Eliom_uri.reconstruct_relative_url_path
-                    (Eliom_request_info.get_original_full_path ())
-                    path
-                in
-                Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
-            | Some https ->
-                (Eliom_output.Html5.make_proto_prefix https)^
-                  (Neturl.string_of_url (Neturl.modify_url ?fragment ~path url))
-        with Neturl.Malformed_URL ->
-          "malformed link")
+    | Absolute addr ->
+        String_href (addr ^ get_map_option ~default:"" ~f:((^) "#") fragment)
 
 (********************************)
 (* builders. Default functions: *)
