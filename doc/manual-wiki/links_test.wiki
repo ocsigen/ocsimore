@@ -1,0 +1,34 @@
+
+= Test links
+
+Site map
+* ##/ocsimore##
+** ##/test## (wiki 4)
+*** ##/a/b/c## (a wikipage with this content)
+** ##/other## (wiki 5)
+
+== Test link kinds
+
+|= target               |= link           |= href on /ocsimore/test/a/b/c  |= href on /ocsimore/other/a/b/c  |
+| {{{[[wiki(4):xyz]]}}} | [[wiki(4):xyz]] | {{{/ocsimore/test/xyz}}}       |                                 |
+| {{{[[wiki:xyz]]}}}    | [[wiki:xyz]]    | {{{/ocsimore/test/xyz}}}       | {{{/ocsimore/other/xyz}}}       |
+| {{{[[href:xyz]]}}}    | [[href:xyz]]    | {{{/ocsimore/test/a/b/xyz}}}   | {{{/ocsimore/other/a/b/xyz}}}   |
+| {{{[[href:/xyz]]}}}   | [[href:/xyz]]   | {{{/xyz}}}                     |                                 |
+| {{{[[site:xyz]]}}}    | [[site:xyz]]    | {{{/ocsimore/xyz}}}            |                                 |
+
+== Test link replacement
+
+On {{{/ocsimore/test/a/b/c}}}
+
+|= original                      |= replacement                |= test                    |= href                          |
+| {{{[[]]}}}                     | {{{[[wiki(4):a/b/c]]}}}     | [[]]                     | {{{/ocsimore/test/a/b/c}}}     |
+| {{{[[#anc]]}}}                 | {{{[[wiki(4):a/b/c#anc]]}}} | [[#anc]]                 | {{{/ocsimore/test/a/b/c#anc}}} |
+| {{{[[xyz]]}}}                  | {{{[[wiki(4):a/b/xyz]]}}}   | [[xyz]]                  | {{{/ocsimore/test/a/b/xyz}}}   |
+| {{{[[c/xyz]]}}}                | {{{[[wiki(4):a/b/c/xyz]]}}} | [[c/xyz]]                | {{{/ocsimore/test/a/b/c/xyz}}} |
+| {{{[[../xyz]]}}}               | {{{[[wiki(4):a/xyz]]}}}     | [[../xyz]]               | {{{/ocsimore/test/a/xyz}}}     |
+| {{{[[/ocsimore/test/a/xyz]]}}} | {{{[[wiki(4):a/xyz]]}}}     | [[/ocsimore/test/a/xyz]] | {{{/ocsimore/test/a/xyz}}}     |
+| {{{[[/ocsimore/other/xyz]]}}}  | {{{[[wiki(5):xyz]]}}}       | [[/ocsimore/other/xyz]]  | {{{/ocsimore/other/xyz}}}      |
+| {{{[[/ocsimore/xyz]]}}}        | {{{[[site:xyz]]}}}          | [[/ocsimore/xyz]]        | {{{/ocsimore/xyz}}}            |
+| {{{[[/alien/xyz]]}}}           | {{{[[href:/alien/xyz]]}}}   | [[/alien/href]]          | {{{/alien/href}}}              |
+| {{{[[wiki("other"):xyz]]}}}    | {{{[[wiki(5):xyz]]}}}       | [[wiki("other"):xyz]]    | {{{/ocsimore/other/xyz}}}      |
+
