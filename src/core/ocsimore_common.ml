@@ -89,3 +89,21 @@ let input_opaque_int32_opt ?value ?(hidden=true) name =
   else
     f ~input_type:`Text ()
 
+module Request_cache = struct
+
+  type 'a t = 'a lazy_t Eliom_references.eref
+
+  let from_fun f =
+    Eliom_references.eref
+      ~scope:Eliom_common.request
+      (Lazy.lazy_from_fun f)
+
+  let get eref =
+    Lwt.map Lazy.force (Eliom_references.get eref)
+
+  let get_lwt : 'a Lwt.t t -> 'a Lwt.t =
+    fun eref ->
+      get eref >>= fun x -> x
+
+end
+

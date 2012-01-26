@@ -42,31 +42,11 @@ exception UseAuth of userid
 let const x _ = x
 let iter_option f = function Some x -> f x | None -> ()
 
-module Request_cache = struct
-
-  type 'a t = 'a lazy_t Eliom_references.eref
-
-  let from_fun : (unit -> 'a) -> 'a t =
-    fun f ->
-      Eliom_references.eref
-        ~scope:Eliom_common.request
-        (Lazy.lazy_from_fun f)
-
-  let get : 'a t -> 'a Lwt.t =
-    fun eref -> 
-      Lazy.force =|< Eliom_references.get eref
-
-  let get_lwt : 'a Lwt.t lazy_t Eliom_references.eref -> 'a Lwt.t =
-    fun eref ->
-      get eref >>= fun x -> x
-
-end
-
+module Request_cache = Ocsimore_common.Request_cache
 
 (* YYY not really sure that all User_sql functions that transforms a
    string/id into a user properly return NotAnUser when they fail.
    Thus we still catch Not_found, just in case... *)
-
 
 (* We might want to simply overwrite incorrect values by the correct ones *)
 let possibly_create ~login ~fullname ?email ?pwd () =

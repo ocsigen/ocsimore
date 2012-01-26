@@ -72,3 +72,14 @@ val input_opaque_int32_opt :
   ?hidden:bool ->
   [< 'a Opaque.int32_t option Eliom_parameters.setoneradio ]
   Eliom_parameters.param_name -> [>HTML5_types.input] HTML5.M.elt
+
+(** Interface for a per-request cache. When a function [f] is chached with a request cache, it is ensured that
+    while calling [Request_cache.get] on the cache, [f] is only evaluated once per request. *)
+module Request_cache : sig
+  type 'a t
+  val from_fun : (unit -> 'a) -> 'a t
+  val get : 'a t -> 'a Lwt.t
+  (** To easily handle request caches containing LWT-values. *)
+  val get_lwt : 'a Lwt.t t -> 'a Lwt.t
+end
+

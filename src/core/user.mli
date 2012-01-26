@@ -33,7 +33,6 @@ val nobody_login: string
 (** A group containing all authenticated users (not groups) *)
 val authenticated_users : userid
 
-
 (** The groups of users that can create new groups *)
 val group_can_create_groups : user
 
@@ -42,9 +41,6 @@ val group_can_create_users : user
 
 (** The group of users that can add or remove people in the given user/group *)
 val group_can_admin_group : [`User] parameterized_group
-
-
-
 
 (** Information about a user. Return [nobody] if the user
     does not currently exists, and raises [User_sql.NotBasicUser]
@@ -62,7 +58,6 @@ val get_user_by_name: string -> user Lwt.t
     [u] is not recognized *)
 val user_list_of_string : string -> user list Lwt.t
 
-
 (** Creates a new user or group with given parameters,
     or returns the existing user without modification
     if [name] is already present. *)
@@ -75,7 +70,6 @@ val create_user:
   unit ->
   userid Lwt.t
 
-
 (** Same as above, except that the function will raise [BadUser] if
     the user already exists *)
 val create_fresh_user:
@@ -86,9 +80,7 @@ val create_fresh_user:
   unit ->
   userid Lwt.t
 
-
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
-
 
 (** Atomic change in one group *)
 val add_to_group : user:user -> group:user -> unit Lwt.t
@@ -97,15 +89,8 @@ val remove_from_group: user:user -> group:user -> unit Lwt.t
 (** Multiple operations on groups *)
 val add_to_groups : user:user -> groups:user list -> unit Lwt.t
 val add_list_to_group : l:user list -> group:user -> unit Lwt.t
-
 val remove_list_from_group : l:user list -> group:user -> unit Lwt.t
-
-
-
-val in_group :
-  ?user:user -> group:user -> unit -> bool Lwt.t
-
-
+val in_group : ?user:user -> group:user -> unit -> bool Lwt.t
 
 (** Informations on the loggued user *)
 

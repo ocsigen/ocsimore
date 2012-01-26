@@ -28,6 +28,6 @@ let crypt_passwd pwd =
 
 let check_passwd ~passwd ~hash =
   lwt () = Lwt_mutex.lock check_mutex in
-    let computed = crypt passwd hash in
-    Lwt_mutex.unlock check_mutex;
-    return (computed = hash)
+  let computed = crypt passwd hash in
+  Lwt_mutex.unlock check_mutex;
+  return (computed = hash)
