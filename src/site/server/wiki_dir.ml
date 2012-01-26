@@ -54,12 +54,12 @@ let process_wikifile
     Lwt.return html
 
 let process_auxfile
-    ~wiki ?(sectioning=false) ?(menu_style=`Linear)
+    ~wiki ?options ?(sectioning=false) ?(menu_style=`Linear)
     ~template ~wb404 ~wb403 resolver file =
   try
     match resolver file with
     | Ocsigen_local_files.RFile file ->
-      Eliom_output.appl_self_redirect Eliom_output.Files.send file
+      Eliom_output.appl_self_redirect (Eliom_output.Files.send ?options) file
     | _ -> raise Dir
   with
   | Ocsigen_local_files.Failed_404 | Undefined ->

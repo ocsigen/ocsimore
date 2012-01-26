@@ -37,6 +37,7 @@ val process_wikifile:
 
 val process_auxfile:
   wiki:Wiki_types.wiki ->
+  ?options:Eliom_output.Files.options ->
   ?sectioning:bool ->
   ?menu_style:Wiki_widgets_interface.menu_style ->
   template:string ->
