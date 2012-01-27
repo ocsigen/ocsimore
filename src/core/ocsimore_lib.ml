@@ -2,8 +2,6 @@ open Eliom_pervasives
 open Lwt
 
 
-let ocsimore_admin_dir = "ocsimoreadmin"
-
       (* USEFUL STUFF *)
 
       (* these operators allow to write something like this:

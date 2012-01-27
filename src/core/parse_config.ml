@@ -48,6 +48,9 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("application_name", ["name", name], _)) :: l ->
       Ocsimore_config.application_name := name;
       parse_config l
+  | (Simplexmlparser.Element ("admin_dir", ["dir", dir], _)) :: l ->
+      Ocsimore_config.admin_dir := dir;
+      parse_config l
   | (Simplexmlparser.Element ("database", attribs, []))::l ->
     List.iter (function
                   | "name", name -> Ocsimore_config.db_name := name;
@@ -75,5 +78,9 @@ let rec parse_config = function
       raise (Ocsigen_extensions.Error_in_config_file
                ("Unexpected pcdata ..."^pcdata^"... inside ocsimore config"))
 
-let () = Ocsigen_extensions.register_extension
-  ~name:"ocsimore" ~init_fun:parse_config ()
+
+let () =
+  Ocsigen_extensions.register_extension
+    ~name:"ocsimore"
+    ~init_fun:parse_config
+    ()

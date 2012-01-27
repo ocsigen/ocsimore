@@ -8,6 +8,8 @@ let db_port = ref (Eliom_pervasives.map_option int_of_string (opt "$pgport"))
 let db_unix_domain_socket_dir = ref (opt "$pg_socket_domain_dir")
 let db_password = ref (opt "$pgpassword")
 
+let admin_dir = ref "ocsimoreadmin"
+
 let application_name = ref "ocsimore"
 
 let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)
