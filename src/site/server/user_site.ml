@@ -149,7 +149,7 @@ None
 
 let users_root =
   Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"users"]
+    ~path:[!Ocsimore_config.admin_dir;"users"]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_output.Html5.register users_root

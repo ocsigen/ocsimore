@@ -70,7 +70,7 @@ let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 (** We register auxiliary services for administration boxes *)
 
 let service_edit_wikibox = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "wiki_edit"]
+  ~path:[!Ocsimore_config.admin_dir; "wiki_edit"]
   ~get_params:Wiki_services.eliom_wikibox_args ()
 
 let () =
@@ -106,7 +106,7 @@ let wiki_admin = Lwt_unix.run
             Wiki.create_wiki
               ~title:Wiki.wiki_admin_name
               ~descr:"Administration boxes"
-              ~path:[Ocsimore_lib.ocsimore_admin_dir]
+              ~path:[!Ocsimore_config.admin_dir]
               ~boxrights:true
               ~author:User.admin
               ~container_text:"= Ocsimore administration\r\n\r\n\
@@ -124,7 +124,7 @@ let wiki_admin = Lwt_unix.run
       | None -> Lwt.return ()
       | Some path ->
           Wiki_sql.update_wiki
-            ~staticdir:(Some path) ~path:(Some Ocsimore_lib.ocsimore_admin_dir)
+            ~staticdir:(Some path) ~path:(Some !Ocsimore_config.admin_dir)
             id.wiki_id
    ) >>=fun () ->
    ((** And give reading rights to the wiki itself. (As usual, this can be
@@ -302,7 +302,7 @@ let create_wiki =
         Some "You do not have sufficient permissions to create wikis"
     | _ -> Some "An unknown error has occurred"
  in
-  let path = [Ocsimore_lib.ocsimore_admin_dir;"create_wiki"] in
+  let path = [!Ocsimore_config.admin_dir;"create_wiki"] in
   let create_wiki = Eliom_services.service ~path
       ~get_params:Eliom_parameters.unit () in
   Eliom_output.Html5.register create_wiki
@@ -614,7 +614,7 @@ let batch_edit_boxes =
 
 let wiki_root =
   Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikis"]
+    ~path:[!Ocsimore_config.admin_dir;"wikis"]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_output.Html5.register wiki_root

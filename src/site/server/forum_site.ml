@@ -58,7 +58,7 @@ let _ = Forum_wikiext.register_wikiext
 
 let forum_root =
   Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"forums"]
+    ~path:[!Ocsimore_config.admin_dir;"forums"]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_output.Html5.register forum_root

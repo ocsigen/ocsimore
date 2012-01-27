@@ -61,7 +61,7 @@ let admin_staticdir =
 
 
 let static_service = Eliom_output.Any.register_service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir ; "static"]
+  ~path:[!Ocsimore_config.admin_dir ; "static"]
   ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "path"))
   (fun path () ->
      let path = admin_staticdir :: path in
@@ -185,7 +185,7 @@ let html_page ?body_classes ?(css=[]) ?(title="Ocsimore") content =
 
 let admin_root =
   Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;""]
+    ~path:[!Ocsimore_config.admin_dir;""]
     ~get_params:Eliom_parameters.unit ()
 
 

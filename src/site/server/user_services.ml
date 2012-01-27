@@ -187,30 +187,30 @@ and action_add_remove_users_from_group =
 *)
 
 and service_view_group = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_group"]
+  ~path:[!Ocsimore_config.admin_dir; "view_group"]
   ~get_params:(Eliom_parameters.string "group") ()
 
 and service_view_groups = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_groups"]
+  ~path:[!Ocsimore_config.admin_dir; "view_groups"]
   ~get_params:(Eliom_parameters.unit) ()
 
 and service_view_users = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_users"]
+  ~path:[!Ocsimore_config.admin_dir; "view_users"]
   ~get_params:(Eliom_parameters.unit) ()
 
 and service_view_roles = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "view_roles"]
+  ~path:[!Ocsimore_config.admin_dir; "view_roles"]
   ~get_params:(Eliom_parameters.unit) ()
 
 and service_login = Eliom_services.service
   ~https:force_secure
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "login"]
+  ~path:[!Ocsimore_config.admin_dir; "login"]
   ~get_params:Eliom_parameters.unit
   ()
 
 and service_create_new_group =
   Eliom_services.service
-    ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_group"])
+    ~path:([!Ocsimore_config.admin_dir; "create_group"])
     ~get_params:unit ()
 
 let action_create_new_group =
@@ -225,7 +225,7 @@ let action_create_new_group =
    option *)
 
 let service_create_new_user = Eliom_services.service
-  ~path:([Ocsimore_lib.ocsimore_admin_dir; "create_user"])
+  ~path:([!Ocsimore_config.admin_dir; "create_user"])
   ~get_params:unit ()
 
 let action_create_new_user =

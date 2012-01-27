@@ -329,7 +329,7 @@ let () =
 
 let users_root =
   Eliom_services.new_service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"wikiperso"]
+    ~path:[!Ocsimore_config.admin_dir;"wikiperso"]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_output.Html5.register users_root

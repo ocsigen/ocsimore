@@ -213,7 +213,7 @@ let eliom_add_remove = Eliom_parameters.user_type
 
 (* Services *)
 
-let path_edit_wiki = [Ocsimore_lib.ocsimore_admin_dir;"edit_wiki"]
+let path_edit_wiki = [!Ocsimore_config.admin_dir;"edit_wiki"]
 
 open Wiki
 
@@ -506,19 +506,19 @@ and edit_wiki = Eliom_services.service
   ~path:path_edit_wiki ~get_params:eliom_wiki_args ()
 
 and view_wikis = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_wikis"]
+  ~path:[!Ocsimore_config.admin_dir;"view_wikis"]
   ~get_params:Eliom_parameters.unit ()
 
 and view_boxes = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_boxes"]
+  ~path:[!Ocsimore_config.admin_dir;"view_boxes"]
   ~get_params:eliom_wiki_args ()
 
 and view_box = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir;"view_boxes"]
+  ~path:[!Ocsimore_config.admin_dir;"view_boxes"]
   ~get_params:(eliom_wikibox_args ** Eliom_parameters.(opt (int32 "version"))) ()
 
 and batch_edit_boxes = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir; "batch_edit_boxes"]
+  ~path:[!Ocsimore_config.admin_dir; "batch_edit_boxes"]
   ~get_params:Eliom_parameters.unit ()
 
 and action_send_wikipage_properties =
@@ -553,5 +553,5 @@ and action_send_wiki_metadata = Eliom_output.Any.register_post_coservice'
   )
 
 and edit_wiki_permissions_admin = Eliom_services.service
-  ~path:[Ocsimore_lib.ocsimore_admin_dir;"edit_wikis_permissions"]
+  ~path:[!Ocsimore_config.admin_dir;"edit_wikis_permissions"]
   ~get_params:eliom_wiki_args ()
