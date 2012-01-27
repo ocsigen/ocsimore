@@ -108,7 +108,7 @@ let edit_forum_form ~serv_path:_ ~service ~arg
     Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
     (p (strong (text (Printf.sprintf "Forum '%s'" info.f_title)) ::
           text (Printf.sprintf " (id %s)" (string_of_forum forum))  @+
-          Opaque.int32_input_xform ~a:[HTML5.M.a_input_type `Hidden] forum) @@
+          Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: none"] forum) @@
        p (text "Title: " @+ string_input title) @@
        p (text "Description: " @+ string_input descr) @@
        p (text "Arborescent: " @+ bool_checkbox arborescent) @@
@@ -156,7 +156,7 @@ let edit_forum =
 
 let forum_empty_menu =
   Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"forums_do_nothing"]
+    ~path:[!Ocsimore_config.admin_dir;"forums_do_nothing"]
     ~get_params:Eliom_parameters.unit ()
 
 let () = Eliom_output.Html5.register forum_empty_menu

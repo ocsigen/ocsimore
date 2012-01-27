@@ -51,22 +51,18 @@ module Header : sig
 
     (** Define a new header *)
     val create_header :
-         (   unit
-          -> HTML5_types.head_content_fun HTML5.M.elt list)
-      -> header
+      (unit -> HTML5_types.head_content_fun HTML5.M.elt list) -> header
 
     (** Call this function every time you need a header to be included
         in the page. If this function is called several times for the same
         page with the same header, the header will be included only once.
     *)
-    val require_header : header -> unit
+    val require_header : header -> unit Lwt.t
 
     (** This function is called to generate the headers for one page.
         Only required headers are included.
     *)
-    val generate_headers :
-      unit
-      -> HTML5_types.head_content_fun HTML5.M.elt list
+    val generate_headers : unit -> HTML5_types.head_content_fun HTML5.M.elt list Lwt.t
 
   end
 
@@ -79,13 +75,13 @@ val add_obrowser_header : sp:Eliom_common.server_params -> unit
 
 (** Function to be called on admin pages, and which add the
     relevant css (including for the admin menu) *)
-val add_admin_pages_header : unit -> unit
+val add_admin_pages_header : unit -> unit Lwt.t
 
 
 (** Registers the string passed as argument so that it is called
     when the onload event on the body tag of the page fires. The
     string must thus be well-formed javascript (without ; at the end) *)
-val add_onload_function: string -> unit
+val add_onload_function: string -> unit Lwt.t
 
 (** Generic headers for an html page. The arguments [css] is added
     after the links resulting from the hooks added by the function

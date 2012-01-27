@@ -50,11 +50,10 @@ object (_self)
 
   method display
     : 'a. ?forum:_ -> ?parent:_ -> ?title:_ -> ?rows:_ -> ?cols:_ -> _ ->
-      ([> HTML5_types.form ] as 'a) HTML5.M.elt =
+      ([> HTML5_types.form ] as 'a) HTML5.M.elt Lwt.t =
     fun ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) () ->
-    add_forum_css_header ();
-    let draw_form (actionnamename,
-                   ((parentname, forumname), (subjectname, textname))) =
+    lwt () = add_forum_css_header () in
+    let draw_form (actionnamename, ((parentname, forumname), (subjectname, textname))) =
       let num =
         match parent, forum with
           | Some p, _ ->
@@ -82,10 +81,11 @@ object (_self)
                      ~value:"save" [HTML5.M.pcdata "Send"] ]
       ]
     in
-    Eliom_output.Html5.post_form
-      ~a:[HTML5.M.a_accept_charset ["utf-8"]]
-      ~service:add_message_service
-      draw_form ()
+    Lwt.return
+      (Eliom_output.Html5.post_form
+        ~a:[HTML5.M.a_accept_charset ["utf-8"]]
+        ~service:add_message_service
+        draw_form ())
 
 end
 
@@ -175,7 +175,7 @@ object (self)
   method display
     : 'a. ?classes:_ -> data:_ -> unit -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
     fun ?(classes=[]) ~data:message_id () ->
-    add_forum_css_header ();
+    lwt () = add_forum_css_header () in
     widget_with_error_box#bind_or_display_error
       (self#get_message ~message_id)
       (self#pretty_print_message ~classes :> Forum_types.message_info ->
@@ -220,7 +220,7 @@ object (self)
   !!(role.Forum.comment_creators) >>= fun comment_creators ->
   if comment_creators
   then
-    let form =
+    lwt form =
       add_message_widget#display ~parent:m.m_id ~title:false ?rows ?cols ()
     in
     let comment_div =
@@ -244,7 +244,7 @@ object (self)
 
   method pretty_print_thread ~classes ~commentable ?rows ?cols thread :
     (string list * (HTML5_types.flow5 HTML5.M.elt list * HTML5_types.flow5 HTML5.M.elt list)) Lwt.t =
-    add_forum_css_header ();
+    lwt () = add_forum_css_header () in
     let rec print_one_message_and_children
         ~role ~arborescent ~commentable thread :
         (HTML5_types.flow5 HTML5.M.elt list * HTML5_types.flow5 HTML5.M.elt list * Forum_types.message_info list) Lwt.t =
@@ -295,7 +295,7 @@ object (self)
       ?classes:_ -> data:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
     fun ?(commentable = true) ?rows ?cols
     ?(classes=[]) ~data:message_id () ->
-    add_forum_css_header ();
+    lwt () = add_forum_css_header () in
     let data = self#get_thread ~message_id in
     let transform_data =
       self#pretty_print_thread ~classes ~commentable ?rows ?cols
@@ -316,7 +316,7 @@ object (self)
         HTML5_types.div Eliom_pervasives.HTML5.M.elt )
     Lwt.t
     =
-    add_forum_css_header ();
+    lwt () = add_forum_css_header () in
     let data = self#get_thread ~message_id in
     let transform_data =
       self#pretty_print_thread ~classes ~commentable ?rows ?cols
@@ -377,16 +377,15 @@ object (self)
      then
        Forum.get_role forum >>= fun role ->
        !!(role.Forum.message_creators) >>= fun message_creators ->
-       Lwt.return
          (if message_creators
           then
-            [ add_message_widget#display ~forum ?rows ?cols () ]
-          else [])
+            add_message_widget#display ~forum ?rows ?cols () >|= Ocsimore_lib.list_singleton
+          else Lwt.return [])
      else Lwt.return [])
     >>= fun form ->
     Lwt.return (classes,
                 (List.flatten l :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)
-                @ ( form :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
+                @ ( form : _ HTML5.M.elt list :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
 
   method display :
     'a. ?rows:_ -> ?cols:_ -> ?classes:_ -> forum:_ ->
@@ -394,7 +393,7 @@ object (self)
         ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
     fun ?(rows : int option) ?(cols : int option) ?(classes=[])
     ~forum ~first ~number ?(add_message_form = true) () ->
-    add_forum_css_header ();
+    lwt () = add_forum_css_header () in
     widget_with_error_box#bind_or_display_error
       (self#get_message_list ~forum ~first ~number)
       (self#pretty_print_message_list

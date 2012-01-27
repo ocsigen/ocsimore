@@ -23,6 +23,7 @@
 *)
 
 open Eliom_pervasives
+open Ocsimore_lib
 open Lwt
 open User_sql.Types
 open Wiki_types
@@ -388,7 +389,7 @@ let edit_wiki_form ~serv_path:_ ~service ~arg
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (p (strong (text (Printf.sprintf "Wiki '%s'" winfo.wiki_title)) ::
           text (Printf.sprintf " (id %s)" (Opaque.int32_t_to_string wiki))  @+
-          Opaque.int32_input_xform ~a:[HTML5.M.a_input_type `Hidden] wiki) @@
+          Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: hidden"] wiki) @@
        p (text "Description: " @+ string_input descr) @@
        p (text "Container wikibox :" @+Opaque.int32_input_opt_xform container)@@
        p (text "Link this wiki to an url: " @+ path_input path +@
@@ -448,15 +449,6 @@ let edit_wiki =
     );
   Wiki_services.edit_wiki
 
-let sequence : 'a Lwt.t list -> 'a list Lwt.t =
-  fun lwt_li ->
-    let rec aux sofar = function
-       [] -> Lwt.return (List.rev sofar)
-     | x :: xs ->
-         lwt x' = x in
-         aux (x' :: sofar) xs
-    in aux [] lwt_li
-
 let view_boxes =
   let open HTML5.M in
   let headers = ["wikibox"; "version"; "author"; "datetime"; "content_type"; "comment"] in
@@ -484,7 +476,7 @@ let view_boxes =
   Eliom_output.Html5.register Wiki_services.view_boxes
     (fun wiki () ->
       Wiki_sql.get_wikiboxes_by_wiki wiki >>= fun wikiboxes ->
-        lwt wikiboxes = sequence (List.map wikibox_extension wikiboxes) >|= List.map_filter (fun x -> x) in
+        lwt wikiboxes = lwt_sequence (List.map wikibox_extension wikiboxes) >|= List.map_filter (fun x -> x) in
         Page_site.admin_page
           [table
             (tr (List.map render_header_row headers))
@@ -585,10 +577,10 @@ let batch_edit_boxes =
         lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
         let wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
         lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
-        lwt wikiboxes_content = sequence (List.map (wikibox_content wpp wiki) wikiboxes) in
+        lwt wikiboxes_content = lwt_sequence (List.map (wikibox_content wpp wiki) wikiboxes) in
         Lwt.return (wiki_info, wikiboxes_content)
       in
-      lwt wikiboxes_by_wikis = sequence (List.map for_wiki wikis) in
+      lwt wikiboxes_by_wikis = lwt_sequence (List.map for_wiki wikis) in
       Page_site.admin_page 
         (List.map
           (fun (wiki_info, wikiboxes) ->

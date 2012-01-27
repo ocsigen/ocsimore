@@ -631,6 +631,5 @@ let user_type = function
   | BasicUser u ->
       (get_basicuser_data u >>= function
          | { user_pwd = Connect_forbidden } -> Lwt.return `Group
-         | _ -> Lwt.return `User
-      )
+         | _ -> Lwt.return `User)
   | NonParameterizedGroup _ | AppliedParameterizedGroup _ -> Lwt.return `Role

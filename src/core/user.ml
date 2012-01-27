@@ -40,7 +40,6 @@ exception UnknownUser of string
 exception UseAuth of userid
 
 let const x _ = x
-let iter_option f = function Some x -> f x | None -> ()
 
 module Request_cache = Ocsimore_common.Request_cache
 
@@ -225,7 +224,7 @@ let create_user, create_fresh_user =
         else
           already_existing u
       in
-      iter_option (add_dyn_group (basic_user u)) test;
+      Ocsimore_lib.iter_option (add_dyn_group (basic_user u)) test;
       Lwt_mutex.unlock mutex_user;
       Lwt.return u
   in

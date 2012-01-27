@@ -37,33 +37,33 @@ class widget_with_error_box :
 
     method error_class : string
 
-    method display_error_message :
-      ?message:string -> ?exc:exn -> unit -> [> `P ] HTML5.M.elt list
-
-    (** Takes a threads that gets data (e.g. from a database),
+    (** Takes a thread that gets data (e.g. from a database),
         then a function that transforms this data into something printable
         of type flows,
         then a function that will build the box with the result, and/or
         possibly also error messages if something went wrong during
         data retrieval.
     *)
-    method bind_or_display_error :
-     'a 'b.
-           'a Lwt.t ->
-           ('a ->
-            (HTML5_types.nmtoken list * ([> HTML5_types.p ] as 'b) Eliom_pervasives.HTML5.M.elt list)
-            Lwt.t) ->
-           (HTML5_types.nmtoken list * 'b Eliom_pervasives.HTML5.M.elt list)
-           Lwt.t
+    method bind_or_display_error : 'data 'at_least_p .
+      'data Lwt.t ->
+      ('data -> ((HTML5_types.nmtoken list * ([> HTML5_types.p ] as 'at_least_p) Eliom_pervasives.HTML5.M.elt list) as 'flows) Lwt.t) ->
+      'flows Lwt.t
 
     method display_error_box :
-      ?classes:string list ->
-      ?message:string ->
-      ?exc:exn ->
-      unit ->
-      [> `P ] HTML5.M.elt
+      ?classes:string list -> ?message:string -> ?exc:exn ->
+      unit -> [> `P ] HTML5.M.elt
 
   end
+
+
+class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
+object
+  inherit widget
+  method private retrieve_data :
+    'param_type -> 'data_type Lwt.t
+  method apply:
+    data:'param_type -> 'result_type
+end
 
 class virtual ['param_type, 'data_type, 'result_type] parametrized_widget :
 object
@@ -82,16 +82,6 @@ object
   method virtual apply :
     data:'param_type -> 'result_type
 end
-
-class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
-object
-  inherit widget
-  method private retrieve_data :
-    'param_type -> 'data_type Lwt.t
-  method apply:
-    data:'param_type -> 'result_type
-end
-
 
 class virtual ['param_type, 'data_type] parametrized_div_widget :
 object

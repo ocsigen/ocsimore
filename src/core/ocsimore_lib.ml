@@ -19,6 +19,10 @@ let ( % ) x y = x,y  (* left assoc, higher precedence *)
 
 let iter_option f o = match o with None -> () | Some x -> f x
 
+let flip f b a = f a b
+
+let list_singleton x = [x]
+
 type 'a tree = Node of 'a * ('a tree list);;
 
     (* A user defined parameter type *)
@@ -34,10 +38,24 @@ and lwt_forest_map (f: 'a -> 'b Lwt.t) (forest: 'a tree list): 'b tree list Lwt.
         Lwt_util.map (fun t -> lwt_tree_map f t) forest
 
 let rec lwt_flatten (l: 'a list list): 'a list Lwt.t =
-match l with
-| [] -> return []
-| h::t -> lwt_flatten t >>=
+  match l with
+  | [] -> return []
+  | h :: t ->
+      lwt_flatten t >>=
         fun ft -> return (List.append h ft);;
+
+let lwt_sequence : 'a Lwt.t list -> 'a list Lwt.t =
+  fun lwt_li ->
+    let rec aux sofar = function
+      | [] -> Lwt.return (List.rev sofar)
+      | x :: xs ->
+          x >>= fun x -> aux (x :: sofar) xs
+    in aux [] lwt_li
+
+let eref_modify : ('a -> 'b) -> 'a Eliom_references.eref -> unit Lwt.t =
+  fun f eref ->
+    lwt content = Eliom_references.get eref in
+    Eliom_references.set eref (f content)
 
 let rec lwt_tree_flatten (tree: 'a tree): 'a list Lwt.t =
 let Node (p, cs) = tree in
@@ -47,6 +65,11 @@ and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
         Lwt_util.map lwt_tree_flatten forest >>=
         fun f -> lwt_flatten f
 
+module Lwt_ops = struct
+  let (>>=) = Lwt.(>>=)
+  let (>|=) = Lwt.(>|=)
+  let (=|<) = Lwt.(=|<)
+end
 
 let list_assoc_opt a l =
   try

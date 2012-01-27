@@ -23,19 +23,17 @@
 let (>>=) = Lwt.bind
 
 let nis_auth ~name ~pwd =
-  Lwt.catch
-    (fun () -> 
-       Nis_chkpwd.check_nis name pwd >>= fun b ->
-       if b
-       then Lwt.return ()
-       else Lwt.fail User.BadPassword
-    )
-    (function
-       | User.BadPassword -> Lwt.fail User.BadPassword
-       | e -> 
-           Ocsigen_messages.debug (fun () -> "Ocsimore_nis: "^
-                                     Printexc.to_string e);
-           Lwt.fail e)
+  try
+    Nis_chkpwd.check_nis name pwd >>= function
+      | true -> Lwt.return ()
+      | false -> Lwt.fail User.BadPassword
+  with
+    | User.BadPassword ->
+        Lwt.fail User.BadPassword
+    | e -> 
+        Ocsigen_messages.debug (fun () -> "Ocsimore_nis: "^
+                                          Printexc.to_string e);
+        Lwt.fail e
 
 
 

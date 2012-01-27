@@ -36,9 +36,6 @@ let valid_emailaddr email =
        ("^[A-Za-z0-9\\._-]+@\\([A-Za-z0-9][A-Za-z0-9_-]+\\.\\)+\\([a-z]+\\)+$"))
     email 0
 
-
-
-
 let generate_password () =
   let chars = "0123456789"^
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"^

@@ -195,9 +195,10 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) =
     as argument all the services needed to save modifications
     or navigate through viewing options *)
 class dynamic_wikibox
-  (error_box : Widget.widget_with_error_box)
-  (user_widgets: User_widgets.user_widget_class) =
-(object (self)
+    (error_box : Widget.widget_with_error_box)
+    (user_widgets: User_widgets.user_widget_class)
+  : interactive_wikibox =
+object (self)
 
   inherit frozen_wikibox error_box
 
@@ -237,63 +238,66 @@ class dynamic_wikibox
     let edit_wikibox_perm =
       (preapply Wiki_services.action_edit_wikibox_permissions wb :> Eliom_tools_common.get_page)
     in
-    (match special_box with
-       | WikiPageBox (w, page) ->
-           (bi.bi_rights#can_create_wikipagecss (w, page) >|= function
+    lwt css =
+      match special_box with
+        | WikiPageBox (w, page) ->
+            (bi.bi_rights#can_create_wikipagecss (w, page) >|= function
+               | true ->
+                   let edit =
+                     (preapply
+                       Wiki_services.action_edit_css_list
+                       (wb, (w, Some page)) :> Eliom_tools_common.get_page)
+                   in
+                   Some (edit, [HTML5.M.pcdata "wikipage css"])
+               | false -> None
+            )
+        | WikiContainerBox w ->
+            (bi.bi_rights#can_create_wikicss w >|= function
+               | true ->
+                   let edit =
+                     (preapply
+                       Wiki_services.action_edit_css_list
+                       (wb, (w, None)) :> Eliom_tools_common.get_page)
+                   in
+                   Some (edit, [HTML5.M.pcdata "wiki css"])
+               | false -> None
+            )
+        | RegularBox -> Lwt.return None
+    in
+    lwt wp_prop =
+      match special_box with
+        | RegularBox | WikiContainerBox _ -> Lwt.return None
+        | WikiPageBox wp ->
+            bi.bi_rights#can_admin_wikipage wp >|= function
               | true ->
-                  let edit =
+                  let edit_wp =
                     (preapply
-                      Wiki_services.action_edit_css_list
-                      (wb, (w, Some page)) :> Eliom_tools_common.get_page)
+                      Wiki_services.action_edit_wikipage_properties
+                      (wb, wp) :> Eliom_tools_common.get_page)
                   in
-                  Some (edit, [HTML5.M.pcdata "wikipage css"])
+                  Some (edit_wp, [HTML5.M.pcdata "edit wikipage options"])
               | false -> None
-           )
-       | WikiContainerBox w ->
-           (bi.bi_rights#can_create_wikicss w >|= function
+    in
+    lwt edit_wiki_perms =
+      match special_box with
+        | RegularBox | WikiPageBox _ ->
+            Lwt.return None
+        | WikiContainerBox w ->
+            lwt b1 = bi.bi_rights#can_set_wiki_permissions w in
+            lwt b2 = bi.bi_rights#can_edit_metadata w in
+            match b1 || b2 with
               | true ->
-                  let edit =
+                  let edit_p =
                     (preapply
-                      Wiki_services.action_edit_css_list
-                      (wb, (w, None)) :> Eliom_tools_common.get_page)
+                       Wiki_services.action_edit_wiki_options
+                       (wb, w) :> Eliom_tools_common.get_page)
                   in
-                  Some (edit, [HTML5.M.pcdata "wiki css"])
-              | false -> None
-           )
-       | RegularBox -> Lwt.return None
-    ) >>= fun css ->
-    (match special_box with
-       | RegularBox | WikiContainerBox _ -> Lwt.return None
-       | WikiPageBox wp ->
-           bi.bi_rights#can_admin_wikipage wp >|= function
-             | true ->
-                 let edit_wp =
-                   (preapply
-                     Wiki_services.action_edit_wikipage_properties
-                     (wb, wp) :> Eliom_tools_common.get_page)
-                 in
-                 Some (edit_wp, [HTML5.M.pcdata "edit wikipage options"])
-             | false -> None
-    ) >>= fun wp_prop ->
-    (match special_box with
-       | RegularBox | WikiPageBox _ -> Lwt.return None
-       | WikiContainerBox w ->
-           bi.bi_rights#can_set_wiki_permissions w >>= fun b1 ->
-           bi.bi_rights#can_edit_metadata w        >>= fun b2 ->
-           match b1 || b2 with
-             | true ->
-                 let edit_p =
-                   (preapply
-                     Wiki_services.action_edit_wiki_options
-                     (wb, w) :> Eliom_tools_common.get_page)
-                 in
-                 Lwt.return
-                   (Some
-                      ((edit_p :> Eliom_tools_common.get_page),
-                       [HTML5.M.pcdata "edit wiki permissions or options"])
-                   )
-             | false -> Lwt.return None
-    ) >>= fun edit_wiki_perms ->
+                  Lwt.return
+                    (Some
+                       ((edit_p :> Eliom_tools_common.get_page),
+                        [HTML5.M.pcdata "edit wiki permissions or options"]))
+              | false -> Lwt.return None
+    in
     (* We choose the button to highlight, which is indicated by the
        [active_item] argument *)
     let service = match active_item with
@@ -1683,12 +1687,13 @@ class dynamic_wikibox
           l;
        ]
 
-end : Wiki_widgets_interface.interactive_wikibox)
+end
 
 class phrasing_wikibox
   (error_box : Widget.widget_with_error_box)
-  (user_widgets: User_widgets.user_widget_class) =
-(object (self)
+  (user_widgets: User_widgets.user_widget_class)
+    : Wiki_widgets_interface.interactive_wikibox =
+object (self)
 
   inherit dynamic_wikibox error_box user_widgets
 
@@ -1730,4 +1735,4 @@ class phrasing_wikibox
     (classes, [f])
 
 
- end : Wiki_widgets_interface.interactive_wikibox)
+ end
