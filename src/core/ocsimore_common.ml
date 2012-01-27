@@ -28,21 +28,18 @@ let (>>=) = Lwt.bind
 
 exception Permission_denied
 
-let action_failure_key = Polytables.make_key ()
+let action_failure_eref = Eliom_references.eref ~scope:Eliom_common.request None
+let set_action_failure p =
+  Eliom_references.set action_failure_eref (Some p)
 
 let catch_action_failure ?(f_exc=fun exn -> exn) f =
-  Lwt.catch
-    f
-    (fun exc ->
-       Polytables.set (Eliom_request_info.get_request_cache ())
-         action_failure_key (f_exc exc);
-       Lwt.return ())
+  try_lwt
+    f ()
+  with exc ->
+    Eliom_references.set action_failure_eref (Some (f_exc exc))
 
 let get_action_failure () =
-  try
-    Some (Polytables.get ~table:(Eliom_request_info.get_request_cache ())
-            ~key:action_failure_key)
-  with Not_found -> None
+  Eliom_references.get action_failure_eref
 
 exception Incorrect_argument
 
@@ -88,22 +85,3 @@ let input_opaque_int32_opt ?value ?(hidden=true) name =
     f ~input_type:`Hidden ()
   else
     f ~input_type:`Text ()
-
-module Request_cache = struct
-
-  type 'a t = 'a lazy_t Eliom_references.eref
-
-  let from_fun f =
-    Eliom_references.eref
-      ~scope:Eliom_common.request
-      (Lazy.lazy_from_fun f)
-
-  let get eref =
-    Lwt.map Lazy.force (Eliom_references.get eref)
-
-  let get_lwt : 'a Lwt.t t -> 'a Lwt.t =
-    fun eref ->
-      get eref >>= fun x -> x
-
-end
-

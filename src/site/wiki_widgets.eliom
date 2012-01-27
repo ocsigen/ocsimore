@@ -100,8 +100,7 @@ let add_wiki_css_header () =
   Page_site.Header.require_header wiki_css_header;
 
 
-class wikibox_aux (error_box : Widget.widget_with_error_box) =
-(object (self)
+class wikibox_aux (error_box : Widget.widget_with_error_box) : Wiki_widgets_interface.wikibox_aux = object (self)
 
   method display_basic_box : 'a 'b.
     _ * ([< HTML5_types.div_content_fun] as 'b) HTML5.M.elt list ->
@@ -117,12 +116,12 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) =
            ([> HTML5_types.flow5 ] as 'b) HTML5.M.elt list) Lwt.t =
 
     fun ~bi ~classes (wiki_syntax, content, _ver as wb) ->
-    add_wiki_css_header ();
+    lwt () = add_wiki_css_header () in
     let wiki_parser = Wiki_models.get_flows_wiki_parser wiki_syntax in
     match content with
       | Some content ->
-          wiki_parser bi content >>= fun x ->
-          Lwt.return (classes, x)
+          wiki_parser bi content >|=
+            fun x -> (classes, x)
       | _ -> self#display_raw_wikiboxcontent ~classes wb
 
   method display_raw_wikiboxcontent : 'a 'b.
@@ -145,17 +144,17 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) =
   method wrap_error : 'a.
     wb:_ ->
       ([< HTML5_types.div_content_fun > `Div ] as 'a) HTML5.M.elt list ->
-        'a HTML5.M.elt list =
+        'a HTML5.M.elt list Lwt.t =
 
     fun ~wb r ->
-    match Wiki_services.get_wikibox_error () with
-      | Some (wb', exc) when Some wb = wb' ->
-          let r = (r :> HTML5_types.div_content_fun HTML5.M.elt list) in
-          let err_msg = error_box#display_error_box ~exc () in
-          [HTML5.M.div (err_msg :: r)]
-      | _ -> r
+      Wiki_services.get_wikibox_error () >|= function
+        | Some (wb', exc) when Some wb = wb' ->
+            let r = (r :> HTML5_types.div_content_fun HTML5.M.elt list) in
+            let err_msg = error_box#display_error_box ~exc () in
+            [HTML5.M.div (err_msg :: r)]
+        | _ -> r
 
- end : Wiki_widgets_interface.wikibox_aux)
+ end
 
 
 class frozen_wikibox (error_box : Widget.widget_with_error_box) =
@@ -170,22 +169,22 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) =
       ([> HTML5_types.div | HTML5_types.p ] as 'a) HTML5.M.elt list Lwt.t =
 
     fun ~bi ?(classes=[]) ~wikibox ->
-    (Lwt.catch
-       (fun () ->
+      (try_lwt
+        lwt res =
          error_box#bind_or_display_error
-           (Wiki_data.wikibox_content bi.bi_rights wikibox)
-           (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
-         >>= self#display_basic_box >|= fun r ->
-           (self#wrap_error ~wb:wikibox [r] :> [ `Div | `P ] HTML5.M.elt list)
-       )
-       (function
-         | Ocsimore_common.Permission_denied ->
-           Lwt.return
-             [error_box#display_error_box
-                 ~classes:(frozen_wb_class::classes)
-                 ~message:"You are not allowed to see this content."
-                 ()]
-         | e -> Lwt.fail e)
+          (Wiki_data.wikibox_content bi.bi_rights wikibox)
+          (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
+        in
+        lwt r = self#display_basic_box res in
+        (self#wrap_error ~wb:wikibox [r] :> [ `Div | `P ] HTML5.M.elt list Lwt.t)
+      with
+        | Ocsimore_common.Permission_denied ->
+          Lwt.return
+            [error_box#display_error_box
+                ~classes:(frozen_wb_class::classes)
+                ~message:"You are not allowed to see this content."
+                ()]
+        | e -> Lwt.fail e
        : [ `Div | `P ] HTML5.M.elt list Lwt.t
        :> [> `Div | `P ] HTML5.M.elt list Lwt.t)
 
@@ -1157,31 +1156,30 @@ object (self)
          ?special_box:_ -> _ ->
            (([> HTML5_types.div ] as 'a) HTML5.M.elt list * bool) Lwt.t =
 
-    fun ~bi ?(classes=[]) ?rows ?cols
-        ?special_box wb ->
+    fun ~bi ?(classes=[]) ?rows ?cols ?special_box wb ->
+      lwt (r, code) =
+        let classes = wikibox_class::classes in
+        Wiki_services.get_override_wikibox () >>= function
+          | Some (wb', override) when wb = wb' ->
+              self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
+                ?special_box ~wb_loc:wb ~override () >|= fun (b, c) ->
+              ([HTML5.M.div ~a:[HTML5.M.a_class ["overridden"]] b], c)
 
-    let classes = wikibox_class::classes in
-    let override = Wiki_services.get_override_wikibox () in
-    (match override with
-       | Some (wb', override) when wb = wb' ->
-           self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
-             ?special_box ~wb_loc:wb ~override () >|= fun (b, c) ->
-           ([HTML5.M.div ~a:[HTML5.M.a_class ["overridden"]] b], c)
-
-       | _ ->
-           Lwt.catch
-             (fun () ->
-                Wiki_data.wikibox_content bi.bi_rights wb >|= fun c ->
-                (Lwt.return c, true)
-             )
-             (fun e -> Lwt.return (Lwt.fail e, false)) >>= fun (c, code) ->
-           error_box#bind_or_display_error c
-             (self#display_wikiboxcontent ~classes
-                ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
-           >>= (self#menu_view ~bi ?special_box wb) >|= fun r ->
-           (r, code)
-    ) >|= fun (r, code) ->
-    ((self#wrap_error ~wb r : [ `Div ] HTML5.M.elt list :> [> `Div ] HTML5.M.elt list), code)
+          | _ ->
+              lwt (c, code) =
+                try_lwt
+                  Wiki_data.wikibox_content bi.bi_rights wb >|= fun c ->
+                  (Lwt.return c, true)
+                with e -> Lwt.return (Lwt.fail e, false)
+              in
+              error_box#bind_or_display_error c
+                (self#display_wikiboxcontent ~classes
+                   ~bi:(Wiki_widgets_interface.add_ancestor_bi wb bi))
+              >>= (self#menu_view ~bi ?special_box wb) >|=
+                fun r -> (r, code)
+      in
+      self#wrap_error ~wb r >|=
+        fun e -> ((e : [ `Div ] HTML5.M.elt list :> [> `Div ] HTML5.M.elt list), code)
 
   method display_overriden_interactive_wikibox : 'a.
     bi:_ -> ?classes:_ ->
@@ -1390,7 +1388,7 @@ object (self)
           ([> `Div ] as 'a) HTML5.M.elt list Lwt.t =
 
      fun ~bi ?(classes=[]) ?rows ?cols ?special_box wb ->
-     add_wiki_css_header ();
+     lwt () = add_wiki_css_header () in
      self#display_interactive_wikibox_aux
        ~bi ?rows ?cols ~classes ?special_box wb
      >|= fst (*fun (r, _allowed) -> Lwt.return r*)
@@ -1450,34 +1448,31 @@ object (self)
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
      gen_box ~sectioning menu_style >>= fun (wbid, subbox, err_code, title) ->
-     Wiki_widgets_interface.set_page_displayable err_code;
+     lwt () = Eliom_references.set Wiki_widgets_interface.page_displayable_eref err_code in
      (* We render the container, if it exists *)
-     (match wb_container with
-        | None -> Lwt.return [HTML5.M.div subbox]
-
-        | Some wb_container ->
-            Wiki.default_bi ~rights ~wikibox:wb_container >>= fun bi ->
-              let fsubbox ~sectioning:st ms =
-              if ms = menu_style && st = sectioning then
-                Lwt.return (Some subbox)
-              else
-                gen_box ~sectioning:st ms >>= fun (_, subbox, _, _) ->
-                Lwt.return (Some subbox)
-            in
-            let fsubbox =
-              (fsubbox :> sectioning:bool -> Wiki_widgets_interface.menu_style ->
-               (HTML5_types.flow5 HTML5.M.elt list) option Lwt.t) in
-            let bi = { bi with  bi_subbox = fsubbox;
-                         bi_page = wiki, Some page_list;
-                         bi_menu_style = menu_style } in
-            self#display_interactive_wikibox ~bi
-              ~classes:[Wiki_syntax.class_wikibox wb_container]
-              ~special_box:(WikiContainerBox wiki) wb_container
-
-     ) >>= fun pagecontent ->
-
-     self#css_header ~page wiki >>= fun css ->
-
+     lwt page_content =
+       match wb_container with
+         | None -> Lwt.return [HTML5.M.div subbox]
+         | Some wb_container ->
+             Wiki.default_bi ~rights ~wikibox:wb_container >>= fun bi ->
+               let fsubbox ~sectioning:st ms =
+               if ms = menu_style && st = sectioning then
+                 Lwt.return (Some subbox)
+               else
+                 gen_box ~sectioning:st ms >>= fun (_, subbox, _, _) ->
+                 Lwt.return (Some subbox)
+             in
+             let fsubbox =
+               (fsubbox :> sectioning:bool -> Wiki_widgets_interface.menu_style ->
+                (HTML5_types.flow5 HTML5.M.elt list) option Lwt.t) in
+             let bi = { bi with  bi_subbox = fsubbox;
+                          bi_page = wiki, Some page_list;
+                          bi_menu_style = menu_style } in
+             self#display_interactive_wikibox ~bi
+               ~classes:[Wiki_syntax.class_wikibox wb_container]
+               ~special_box:(WikiContainerBox wiki) wb_container
+     in
+     lwt css = self#css_header ~page wiki in
      let title = (match title with
                     | Some title -> title
                     | None -> wiki_info.wiki_descr) in
@@ -1486,8 +1481,8 @@ object (self)
        | Wiki_widgets_interface.Page_404 -> 404
        | Wiki_widgets_interface.Page_403 -> 403
      in
-     lwt r = Page_site.html_page ~css ~title (pagecontent:> HTML5_types.body_content Eliom_pervasives.HTML5.M.elt list) in
-     Lwt.return (r, code)
+     Page_site.html_page ~css ~title (page_content :> HTML5_types.body_content Eliom_pervasives.HTML5.M.elt list) >|=
+       fun r -> (r, code)
 
 
    (* Displays the wikibox corresponding to a wikipage. This function, properly

@@ -146,36 +146,36 @@ let create_wiki_page_service bi ?(wiki = bi.Wiki_widgets_interface.bi_wiki) page
 
     File resolver is stored in the request cache. *)
 
-type resolver = string list -> Ocsigen_local_files.resolved
-let menu_resolver: resolver Polytables.key = Polytables.make_key ()
+let menu_resolver_eref = Eliom_references.eref ~scope:Eliom_common.request None
+
 let set_menu_resolver r =
-  let table = Eliom_request_info.get_request_cache () in
-  Polytables.set ~table ~key:menu_resolver ~value:r
-let resolve_menu_file  file =
-  let table = Eliom_request_info.get_request_cache () in
-  (Polytables.get ~table ~key:menu_resolver) file
+  Eliom_references.set menu_resolver_eref (Some r)
+
+let resolve_menu_file file =
+  Eliom_references.get menu_resolver_eref >|= function
+    | Some f -> f file
+    | None -> raise Not_found (* BB this emulate Polytable's behaviour *)
 
 (** Parse wiki from file (or contents) to xml *)
 
 let get_nodes bi args contents =
   try
     let file = List.assoc "file" args in
-    match resolve_menu_file
-        (String.split '/' file) with
-    | Ocsigen_local_files.RFile file ->
-      Lwt_io.with_file ~mode:Lwt_io.input file
-        (fun ch ->
-          lwt data = Lwt_io.read ch in
-          lwt nodes = Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi data in
-          Lwt.return nodes)
-    | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
+    resolve_menu_file (String.split '/' file) >>= function
+      | Ocsigen_local_files.RFile file ->
+        Lwt_io.with_file ~mode:Lwt_io.input file
+          (fun ch ->
+            lwt data = Lwt_io.read ch in
+            lwt nodes = Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi data in
+            Lwt.return nodes)
+      | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
   with
-  | Not_found ->
-      begin match contents with
-      | Some c ->
-          Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
-      | None -> Lwt.return [] end
-  | exc -> Lwt.fail exc (* 404 and so... TODO *)
+    | Not_found ->
+        begin match contents with
+        | Some c ->
+            Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
+        | None -> Lwt.return [] end
+    | exc -> Lwt.fail exc (* 404 and so... TODO *)
 
 (* let typecheck_menu bi xml : menu Lwt.t = *)
   (* try Lwt.return {{ ( xml :? menu ) }} *)

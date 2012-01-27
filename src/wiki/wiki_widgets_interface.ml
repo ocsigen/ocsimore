@@ -147,22 +147,8 @@ type page_displayable =
   | Page_404
   | Page_403
 
-let page_displayable_key : page_displayable Polytables.key =
-  Polytables.make_key ()
-
-let page_displayable () =
-  try
-    Polytables.get
-      ~table:(Eliom_request_info.get_request_cache ())
-      ~key:page_displayable_key
-  with Not_found -> Page_displayable
-
-let set_page_displayable pd =
-  Polytables.set
-    ~table:(Eliom_request_info.get_request_cache ())
-    ~key:page_displayable_key
-    ~value:pd
-
+let page_displayable_eref =
+  Eliom_references.eref ~scope:Eliom_common.request Page_displayable
 
 (*********************************************************************)
 
@@ -204,7 +190,7 @@ object
   method wrap_error :
     'a. wb:wikibox ->
       ([< HTML5_types.flow5 > `Div] as 'a) HTML5.M.elt list ->
-        'a HTML5.M.elt list
+        'a HTML5.M.elt list Lwt.t
 
 end
 

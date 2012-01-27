@@ -22,6 +22,7 @@ let iter_option f o = match o with None -> () | Some x -> f x
 let flip f b a = f a b
 
 let list_singleton x = [x]
+let cons x xs = x :: xs
 
 type 'a tree = Node of 'a * ('a tree list);;
 
@@ -194,3 +195,26 @@ let remove_spaces s =
   match Netstring_pcre.string_match remove_re s 0 with
   | None -> s
   | Some r -> Netstring_pcre.matched_group r 1 s
+
+(** Interface for a per-request cache. When a function [f] is chached with a request cache, it is ensured that
+    while calling [Request_cache.get] on the cache, [f] is only evaluated once per request. *)
+module Request_cache = struct
+
+  type 'a t = 'a lazy_t Eliom_references.eref
+
+  let from_fun f =
+    Eliom_references.eref
+      ~scope:Eliom_common.request
+      (Lazy.lazy_from_fun f)
+
+  let get eref =
+    Lwt.map Lazy.force (Eliom_references.get eref)
+
+  (** To easily handle request caches containing LWT-values. *)
+  let get_lwt : 'a Lwt.t t -> 'a Lwt.t =
+    fun eref ->
+      get eref >>= fun x -> x
+
+end
+
+

@@ -41,7 +41,7 @@ exception UseAuth of userid
 
 let const x _ = x
 
-module Request_cache = Ocsimore_common.Request_cache
+module Request_cache = Ocsimore_lib.Request_cache
 
 (* YYY not really sure that all User_sql functions that transforms a
    string/id into a user properly return NotAnUser when they fail.

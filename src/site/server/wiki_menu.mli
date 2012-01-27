@@ -66,8 +66,7 @@ val build_tree_from_file :
     file:Ocsigen_local_files.resolved ->
     menu_item list Lwt.t
 
-type resolver = string list -> Ocsigen_local_files.resolved
-val set_menu_resolver: resolver -> unit
+val set_menu_resolver: (string list -> Ocsigen_local_files.resolved) -> unit Lwt.t
 
 val create_wiki_page_service:
     Wiki_widgets_interface.box_info ->

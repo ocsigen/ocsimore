@@ -81,44 +81,42 @@ let () =
        Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
        let rights = Wiki_models.get_rights wiki_info.wiki_model in
        let wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
-       Wiki.default_bi ~wikibox:wb ~rights >>= fun bi ->
-       wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb
-       >>= fun page ->
-       wikibox_widget#css_header ?page:None w
-       >>= fun css ->
-       Page_site.add_admin_pages_header ();
+       lwt bi = Wiki.default_bi ~wikibox:wb ~rights in
+       lwt page = wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb in
+       lwt css = wikibox_widget#css_header ?page:None w in
+       lwt () = Page_site.add_admin_pages_header () in
        Page_site.html_page ~css (page :> HTML5_types.body_content Eliom_pervasives.HTML5.M.elt list)
     )
 
 (** We register the service that lists all the wikis *)
-let () =  Eliom_output.Html5.register Wiki_services.view_wikis
+let () =
+  Eliom_output.Html5.register Wiki_services.view_wikis
     (fun () () ->
        wikibox_widget#display_all_wikis >|= body_to_div >>= fun b ->
-       Page_site.admin_page b
-    )
+       Page_site.admin_page b)
 
 
 (** (We create the wiki containing the administration boxes *)
 let wiki_admin = Lwt_unix.run
-  (Lwt.catch
-     (fun () -> Wiki_sql.get_wiki_info_by_name Wiki.wiki_admin_name)
-     (function
-        | Not_found ->
-            Wiki.create_wiki
-              ~title:Wiki.wiki_admin_name
-              ~descr:"Administration boxes"
-              ~path:[!Ocsimore_config.admin_dir]
-              ~boxrights:true
-              ~author:User.admin
-              ~container_text:"= Ocsimore administration\r\n\r\n\
-                               <<loginbox>>\r\n\r\n\
-                               <<content>>"
-              ~model:wikicreole_model
-              ()
-            >>= fun wid ->
-            Wiki_sql.get_wiki_info_by_id wid
-        | e -> Lwt.fail e)
-   >>= fun id ->
+  (lwt id =
+     try_lwt
+       Wiki_sql.get_wiki_info_by_name Wiki.wiki_admin_name
+     with Not_found ->
+       lwt wid =
+         Wiki.create_wiki
+           ~title:Wiki.wiki_admin_name
+           ~descr:"Administration boxes"
+           ~path:[!Ocsimore_config.admin_dir]
+           ~boxrights:true
+           ~author:User.admin
+           ~container_text:"= Ocsimore administration\r\n\r\n\
+                            <<loginbox>>\r\n\r\n\
+                            <<content>>"
+           ~model:wikicreole_model
+           ()
+       in
+       Wiki_sql.get_wiki_info_by_id wid
+   in
 (*
    (** We update the fields [staticdir] and [pages] for the admin wiki *)
    (match admin_staticdir with

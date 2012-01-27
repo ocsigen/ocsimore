@@ -17,22 +17,19 @@
  *)
 
 open Sql
-let (>>=) = Lwt.bind
-
 
 let current_version = Lwt_unix.run
-  (Lwt.catch
-     (fun () ->
-        full_transaction_block
-          (fun db ->
-             PGSQL(db) "SELECT value FROM options WHERE name = 'dbversion'")
-        >>= fun l -> Lwt.return (int_of_string (List.hd l)))
-     (fun e ->
-        Lwt.fail (Failure (Printf.sprintf "Error while reading database version \
-                                           for ocsimore: '%s'"
-                             (Printexc.to_string e)));
-     )
-  )
+  (try_lwt
+     lwt l =
+       full_transaction_block
+         (fun db ->
+            PGSQL(db) "SELECT value FROM options WHERE name = 'dbversion'")
+     in
+     Lwt.return (int_of_string (List.hd l))
+   with exc ->
+      Lwt.fail (Failure (Printf.sprintf "Error while reading database version \
+                                         for ocsimore: '%s'"
+                           (Printexc.to_string exc))))
 
 let update_version db version =
   let ver = string_of_int version in
@@ -43,7 +40,7 @@ let update version f =
     full_transaction_block
       (fun db ->
          Printf.eprintf "Updating Ocsimore database to version %d\n%!" version;
-         f db >>= fun () ->
+         lwt () = f db in
          update_version db version)
   else
     Lwt.return ()

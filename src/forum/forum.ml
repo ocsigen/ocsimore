@@ -493,8 +493,6 @@ module Roles = Map.Make(struct
                           let compare = compare
                         end)
 
-type forum_sd = Forum_types.forum -> role Lwt.t
-
 let default_forum_sd () =
   let cache = ref Roles.empty in
   (* We cache the values to retrieve them only once *)
@@ -507,19 +505,13 @@ let default_forum_sd () =
       Lwt.return v
 
 (** The polytable key for retrieving forum data inside session data *)
-let forum_key : forum_sd Polytables.key = Polytables.make_key ()
+let default_forum_request_cache = Ocsimore_lib.Request_cache.from_fun default_forum_sd
 
 let get_forum_sd () =
-  let rc = Eliom_request_info.get_request_cache () in
-  try
-    Polytables.get ~table:rc ~key:forum_key
-  with Not_found -> 
-    let fsd = default_forum_sd () in
-    Polytables.set rc forum_key fsd;
-    fsd
+  Ocsimore_lib.Request_cache.get default_forum_request_cache
 
 let get_role k =
-  let forum_sd = get_forum_sd () in
+  lwt forum_sd = get_forum_sd () in
   forum_sd k
 
 

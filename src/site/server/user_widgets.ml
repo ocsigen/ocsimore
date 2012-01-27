@@ -368,7 +368,8 @@ object (self)
   method display_login_widget ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps ?(show_ext=true) () =
     User.get_user_data () >>= fun u ->
     User.is_logged_on () >>= fun logged ->
-    (if logged then
+    lwt f =
+      if logged then
        self#display_logout_box ~show_ext u >>= fun f ->
        Lwt.return (
          Eliom_output.Html5.post_form
@@ -377,21 +378,23 @@ object (self)
 
      else
        let f_login error ~a =
-         self#login_box_aux ?user_prompt ?pwd_prompt ?auth_error
-           ?switchtohttps ~show_ext error
-         >>= fun f ->
+         lwt f =
+           self#login_box_aux ?user_prompt ?pwd_prompt ?auth_error
+             ?switchtohttps ~show_ext error
+         in
          Lwt.return
            (Eliom_output.Html5.post_form
               ~service:User_services.action_login ~a f ())
        in
+       lwt login_errors = User_data.get_login_error () in
        if List.exists
           (fun e -> e = User.BadPassword || e = User.BadUser)
-          (User_data.get_login_error ())
+          login_errors
        then (* unsuccessful attempt *)
          f_login true ~a:[HTML5.M.a_class ["logbox"; "error"]]
        else (* no login attempt yet *)
          f_login false ~a:[HTML5.M.a_class ["logbox"; "notlogged"]]
-    ) >>= fun f ->
+    in
     Lwt.return (HTML5.M.div ~a:[HTML5.M.a_class [xhtml_class]] [f])
 
 
@@ -407,18 +410,19 @@ object (self)
       | `User  -> ("User",  "user",  "Name"       )
       | `Group -> ("Group", "group", "Description")
     in
-    let error = match Ocsimore_common.get_action_failure () with
-      | None -> []
-      | Some e -> (* YYY add error handler somewhere *)
-          let msg = match e with
-            | Ocsimore_common.Ok -> "Operation performed"
-            | Ocsimore_common.Permission_denied  ->
-                "Unable to perform operation, insufficient rights"
-            | Failure s -> s
-            | User.UnknownUser u -> "Unknown user/group '" ^ u ^ "'"
-            | _ -> "Error"
-          in
-          [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]] [HTML5.M.pcdata msg]]
+    lwt error =
+      Ocsimore_common.get_action_failure () >|= function
+        | None -> []
+        | Some e -> (* YYY add error handler somewhere *)
+            let msg = match e with
+              | Ocsimore_common.Ok -> "Operation performed"
+              | Ocsimore_common.Permission_denied  ->
+                  "Unable to perform operation, insufficient rights"
+              | Failure s -> s
+              | User.UnknownUser u -> "Unknown user/group '" ^ u ^ "'"
+              | _ -> "Error"
+            in
+            [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]] [HTML5.M.pcdata msg]]
     in
     let head =
       HTML5.M.h1

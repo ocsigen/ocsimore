@@ -2382,10 +2382,10 @@ let () =
 
 let rec eval_cond bi = function
   | ("error", "autherror") ->
+    User_data.get_login_error () >>=
     Lwt_list.exists_s
       (fun e ->
         Lwt.return (e = User.BadPassword || e = User.BadUser))
-      (User_data.get_login_error ())
   | ("ingroup", g) ->
     Lwt.catch
       (fun () ->
@@ -2393,14 +2393,14 @@ let rec eval_cond bi = function
         User.in_group ~group ())
       (function _ -> Lwt.return false)
   | ("http_code", "404") ->
-    Lwt.return (Wiki_widgets_interface.page_displayable () =
-        Wiki_widgets_interface.Page_404)
+    Eliom_references.get Wiki_widgets_interface.page_displayable_eref >|=
+      ((=) Wiki_widgets_interface.Page_404)
   | ("http_code", "403") ->
-    Lwt.return (Wiki_widgets_interface.page_displayable () =
-        Wiki_widgets_interface.Page_403)
+    Eliom_references.get Wiki_widgets_interface.page_displayable_eref >|=
+      ((=) Wiki_widgets_interface.Page_403)
   | ("http_code", "40?") ->
-    Lwt.return (Wiki_widgets_interface.page_displayable () <>
-                  Wiki_widgets_interface.Page_displayable)
+    Eliom_references.get Wiki_widgets_interface.page_displayable_eref >|=
+      ((=) Wiki_widgets_interface.Page_displayable)
   | ("page", page) ->
     Lwt.return
       (match snd (bi.bi_page) with

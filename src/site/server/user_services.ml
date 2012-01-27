@@ -115,25 +115,22 @@ let action_login =
     ~name:"login"  ~keep_get_na_params:false
     ~post_params:(string "usr" ** string "pwd")
     (fun () (name, pwd) ->
-       Lwt.catch
-         (fun () ->
-            User_data.login ~name ~pwd ~external_auth >>= fun () ->
-            Eliom_output.Redirection.send
-              Eliom_services.void_hidden_coservice')
-         (fun e ->
-            Polytables.set (Eliom_request_info.get_request_cache ())
-              User_data.login_error_key [e];
-            Eliom_output.Action.send ()))
+       try_lwt
+          lwt () = User_data.login ~name ~pwd ~external_auth in
+          Eliom_output.Redirection.send
+            Eliom_services.void_hidden_coservice'
+       with exc ->
+          lwt () = User_data.add_login_error exc in
+          Eliom_output.Action.send ())
 
 and action_logout =
   Eliom_output.Any.register_post_coservice'
     ~name:"logoutpost" ~post_params:unit
     ~keep_get_na_params:false
     (fun () () ->
-       User_data.logout () >>= fun () ->
+       lwt () = User_data.logout () in
        Eliom_output.Redirection.send
-         Eliom_services.void_hidden_coservice'
-    )
+         Eliom_services.void_hidden_coservice')
 
 and action_logout_get =
   Eliom_output.Redirection.register_coservice'
@@ -149,15 +146,16 @@ and action_edit_user_data =
                                    (string "pwd2" **
                                       (string "descr" ** string "email"))))
     (fun () (userid, (pwd, (pwd2, (descr, email)))) ->
-       Ocsimore_common.catch_action_failure
-         (fun () ->
-            User_data.change_user_data ~userid ~pwd:(pwd, pwd2)
-              ~fullname:descr ~email >>= fun () ->
-            Polytables.set (Eliom_request_info.get_request_cache ())
-              Ocsimore_common.action_failure_key Ocsimore_common.Ok;
-            Lwt.return ()
-         )
-       >>= fun () ->
+       lwt () =
+         Ocsimore_common.catch_action_failure
+           (fun () ->
+              lwt () =
+                User_data.change_user_data
+                  ~userid ~pwd:(pwd, pwd2)
+                  ~fullname:descr ~email
+              in
+              Ocsimore_common.(set_action_failure Ok))
+       in
        Eliom_output.Action.send ())
 
 (** Groups-related services *)

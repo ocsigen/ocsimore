@@ -24,6 +24,7 @@
 *)
 
 open User_sql.Types
+open Ocsimore_lib
 
 let (>>=) = Lwt.bind
 
@@ -247,11 +248,10 @@ let login ~name ~pwd ~external_auth =
 
 (* Used to store the fact that a login error has occurred, so that
    pages can display an appropriate message *)
-let login_error_key : exn list Polytables.key = Polytables.make_key ()
+let login_error_eref : exn list Eliom_references.eref =
+  Eliom_references.eref ~scope:Eliom_common.request []
 
-let get_login_error () =
-  try
-    Polytables.get
-      ~table:(Eliom_request_info.get_request_cache ())
-      ~key:login_error_key
-  with Not_found -> []
+let get_login_error () = Eliom_references.get login_error_eref
+let add_login_error exn =
+  flip eref_modify login_error_eref
+    (cons exn)

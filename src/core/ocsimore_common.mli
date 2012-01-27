@@ -31,16 +31,12 @@ exception Permission_denied
 
 (** A key that can be used to find inside the session cache an
     exception is raised in an action *)
-val action_failure_key : exn Polytables.key
 
-val catch_action_failure :
-  ?f_exc:(exn -> exn) ->
-  (unit -> unit Lwt.t) ->
-  unit Lwt.t
+val catch_action_failure : ?f_exc:(exn -> exn) -> (unit -> unit Lwt.t) -> unit Lwt.t
 
-val get_action_failure :
-  unit ->
-  exn option
+val get_action_failure : unit -> exn option Lwt.t
+
+val set_action_failure : exn -> unit Lwt.t
 
 
 (** Exception raised when a service is called with incorrect or
@@ -72,14 +68,4 @@ val input_opaque_int32_opt :
   ?hidden:bool ->
   [< 'a Opaque.int32_t option Eliom_parameters.setoneradio ]
   Eliom_parameters.param_name -> [>HTML5_types.input] HTML5.M.elt
-
-(** Interface for a per-request cache. When a function [f] is chached with a request cache, it is ensured that
-    while calling [Request_cache.get] on the cache, [f] is only evaluated once per request. *)
-module Request_cache : sig
-  type 'a t
-  val from_fun : (unit -> 'a) -> 'a t
-  val get : 'a t -> 'a Lwt.t
-  (** To easily handle request caches containing LWT-values. *)
-  val get_lwt : 'a Lwt.t t -> 'a Lwt.t
-end
 

@@ -26,8 +26,13 @@ let ( >>= ) = Lwt.bind
 
 open User_sql.Types
 
-let forum_action_key : Forum.forum_action_info Polytables.key = 
-  Polytables.make_key ()
+let forum_action_eref = Eliom_references.eref ~scope:Eliom_common.request None
+
+let set_forum_action action =
+  Eliom_references.set forum_action_eref (Some action)
+
+let get_forum_action =
+  Eliom_references.get forum_action_eref
 
 let register_services () =
   let add_message_service =
@@ -47,49 +52,36 @@ let register_services () =
   Eliom_output.Any.register 
     ~service:add_message_service
     (fun () (actionname, (parent, (subject, text))) ->
-
-     (match parent with
-        | Eliom_parameters.Inj2 forum -> (* new messages *)
-            Lwt.return (forum, None)
-        | Eliom_parameters.Inj1 parent_id -> (* comment *)
-            (* We do not require the user to be allowed to read the message ... 
-               (Forum_sql.get_message and not Forum_data.get_message) *)
-            Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
-            Lwt.return (m.Forum_types.m_forum, Some parent_id))
-       >>= fun (forum, parent_id) ->
-
-       Forum.get_role forum >>= fun _role -> (* VVV : why is role not used here ? *)
-
-       if actionname = "save" 
-       then
-         (Lwt.catch
-            (fun () ->
-               User.get_user_data () >>= fun u ->
-               Forum_data.new_message ~forum 
-                 ~creator_id:u.user_id ?subject ?parent_id ~text ()
-               >>= fun _ ->
-               Eliom_output.Redirection.send
-                 Eliom_services.void_hidden_coservice'
-            )
-            (function
-               | Ocsimore_common.Permission_denied ->
-                   Polytables.set
-                     (Eliom_request_info.get_request_cache ())
-                     forum_action_key
-                     (Forum.Msg_creation_not_allowed (forum, parent_id))
-                   ;
-                   Eliom_output.Action.send ()
-               | e -> Lwt.fail e)
-         )
-       else begin (* preview *)
-         Polytables.set
-           (Eliom_request_info.get_request_cache ())
-           forum_action_key
-           (Forum.Preview ((forum, parent_id), text));
-         Eliom_output.Action.send ()
-       end
-    );
-
+      lwt (forum, parent_id) =
+        match parent with
+         | Eliom_parameters.Inj2 forum -> (* new messages *)
+             Lwt.return (forum, None)
+         | Eliom_parameters.Inj1 parent_id -> (* comment *)
+             (* We do not require the user to be allowed to read the message ... 
+                (Forum_sql.get_message and not Forum_data.get_message) *)
+             Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
+             Lwt.return (m.Forum_types.m_forum, Some parent_id)
+      in
+      lwt _role = Forum.get_role forum in (* VVV : why is role not used here ? *)
+      if actionname = "save" then
+        try_lwt
+          lwt u = User.get_user_data () in
+          lwt _ =
+            Forum_data.new_message
+              ~forum ~creator_id:u.user_id ?subject ?parent_id ~text ()
+          in
+          Eliom_output.Redirection.send
+            Eliom_services.void_hidden_coservice'
+        with Ocsimore_common.Permission_denied ->
+          lwt () =
+            set_forum_action (Forum.Msg_creation_not_allowed (forum, parent_id))
+          in
+          Eliom_output.Action.send ()
+      else (* preview *)
+        lwt () =
+          set_forum_action (Forum.Preview ((forum, parent_id), text))
+        in
+        Eliom_output.Action.send ());
 
   (* Moderation *)
   let moderate_message_service =
@@ -103,8 +95,7 @@ let register_services () =
   Eliom_output.Action.register 
     ~service:moderate_message_service
     (fun () msg ->
-       Forum_data.set_moderated ~message_id:msg ~moderated:true
-    );
+       Forum_data.set_moderated ~message_id:msg ~moderated:true);
 
 (* AEFF
   (* Deletion *)
