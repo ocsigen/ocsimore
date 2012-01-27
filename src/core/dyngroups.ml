@@ -39,7 +39,8 @@ let rec aux = function
       Lwt.return ()
 
 
-let _ =
+
+let () =
   Lwt_unix.run (aux !Ocsimore_config.dyngroupstobecreated);
   Ocsimore_config.dyngroupstobecreated := [] (* for GC *)
 
