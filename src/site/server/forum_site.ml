@@ -179,3 +179,4 @@ let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
     "View all forums", Forum_services.view_forums, (fun () -> Lwt.return true);
     "empty menu", forum_empty_menu, (fun () -> Lwt.return true);
   ]
+

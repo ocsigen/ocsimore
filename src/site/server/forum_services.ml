@@ -31,9 +31,6 @@ let forum_action_eref = Eliom_references.eref ~scope:Eliom_common.request None
 let set_forum_action action =
   Eliom_references.set forum_action_eref (Some action)
 
-let get_forum_action =
-  Eliom_references.get forum_action_eref
-
 let register_services () =
   let add_message_service =
     Eliom_services.post_coservice'
@@ -117,6 +114,7 @@ let register_services () =
   (add_message_service,
    moderate_message_service)
 
+
 let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
 
 let edit_forum = Eliom_services.service
@@ -126,3 +124,4 @@ let edit_forum = Eliom_services.service
 let view_forums = Eliom_services.service
   ~path:[!Ocsimore_config.admin_dir;"view_forums"]
   ~get_params:Eliom_parameters.unit ()
+

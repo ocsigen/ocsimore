@@ -23,6 +23,7 @@
 
 open Eliom_pervasives
 
+
 let register_wikiext
     ((message_widget : Forum_widgets.message_widget),
      (thread_widget : Forum_widgets.thread_widget),
@@ -125,4 +126,4 @@ let register_wikiext
       )
   in
   Wiki_syntax.register_simple_flow_extension
-    ~name:"forum_message_list" ~reduced:false f_forum_message_list;
+    ~name:"forum_message_list" ~reduced:false f_forum_message_list

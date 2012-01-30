@@ -282,11 +282,11 @@ let get_user_ () =
         end
     | None -> Lwt.return anonymous
 
-let user_request_ref =
+let user_request_cache =
   Request_cache.from_fun get_user_
 
 let get_user_sd () =
-  Request_cache.get_lwt user_request_ref
+  Request_cache.get_lwt user_request_cache
 
 let get_user_id () =
   get_user_sd ()
@@ -298,13 +298,17 @@ let get_user_name () =
   let user_login { user_login } = user_login in
   user_login =|< get_user_data ()
 
-let groups_cache_table_ref =
+let groups_table_request_cache =
   Request_cache.from_fun (fun () -> Hashtbl.create 37)
 
 let in_group_ ~user ~group () =
+  let no_sp = Eliom_common.get_sp_option () = None in
   lwt get_in_cache, update_cache =
-    lwt table = Request_cache.get groups_cache_table_ref in
-    Lwt.return (Hashtbl.find table, Hashtbl.add table)
+    if no_sp then
+      Lwt.return ((fun _ -> raise Not_found), (fun _ _ -> ()))
+    else
+      lwt table = Request_cache.get groups_table_request_cache in
+      Lwt.return (Hashtbl.find table, Hashtbl.add table)
   in
   let return u g v =
     update_cache (u, g) v;
@@ -338,23 +342,26 @@ let in_group_ ~user ~group () =
         | true ->
             return user group true
         | false ->
-            lwt user' = get_user_id () in
-            if user = basic_user user' then
-              return user group =<< fold_dyn_groups
-                (fun k f b ->
-                   b >>= function
-                     | true -> Lwt.return true
-                     | false ->
-                         f () >>= function
-                           | false -> Lwt.return false
-                           | true ->
-                               if k = group then
-                                 Lwt.return true
-                               else
-                                 aux k group)
-                (Lwt.return false)
-            else
+            if no_sp then
               return user group false
+            else
+              lwt user' = get_user_id () in
+              if user = basic_user user' then
+                return user group =<< fold_dyn_groups
+                  (fun k f b ->
+                     b >>= function
+                       | true -> Lwt.return true
+                       | false ->
+                           f () >>= function
+                             | false -> Lwt.return false
+                             | true ->
+                                 if k = group then
+                                   Lwt.return true
+                                 else
+                                   aux k group)
+                  (Lwt.return false)
+              else
+                return user group false
 
 let add_to_group ~(user:user) ~(group:user) =
   lwt { user_dyn = dy } = User_sql.get_user_data group in
@@ -381,7 +388,8 @@ let add_to_group ~(user:user) ~(group:user) =
               ("Circular group when inserting user "^ us ^ " in group "^ gs ^
                ". (ignoring)");
             Lwt.return ()
-        | false -> User_sql.add_to_group user group
+        | false ->
+            User_sql.add_to_group user group
 
 (* XXX Should remove check that we do not remove from a dyn group *)
 let remove_from_group = User_sql.remove_from_group
