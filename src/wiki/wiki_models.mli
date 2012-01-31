@@ -37,7 +37,8 @@ val register_wiki_model :
   name:string ->
   content_type: [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type ->
   rights:Wiki_types.wiki_rights ->
-  widgets:Wiki_widgets_interface.interactive_wikibox -> Wiki_types.wiki_model
+  widgets:Wiki_widgets_interface.interactive_wikibox ->
+  Wiki_types.wiki_model
 
 val get_rights : Wiki_types.wiki_model -> Wiki_types.wiki_rights
 val get_default_content_type :

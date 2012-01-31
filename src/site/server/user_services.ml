@@ -117,8 +117,7 @@ let action_login =
     (fun () (name, pwd) ->
        try_lwt
           lwt () = User_data.login ~name ~pwd ~external_auth in
-          Eliom_output.Redirection.send
-            Eliom_services.void_hidden_coservice'
+          Eliom_output.Redirection.send Eliom_services.void_hidden_coservice'
        with exc ->
           lwt () = User_data.add_login_error exc in
           Eliom_output.Action.send ())

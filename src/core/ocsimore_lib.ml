@@ -68,6 +68,7 @@ and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
 
 module Lwt_ops = struct
   let (>>=) = Lwt.(>>=)
+  let (=<<) = Lwt.(=<<)
   let (>|=) = Lwt.(>|=)
   let (=|<) = Lwt.(=|<)
 end
@@ -202,10 +203,11 @@ module Request_cache = struct
 
   type 'a t = 'a lazy_t Eliom_references.eref
 
-  let from_fun f =
-    Eliom_references.eref
-      ~scope:Eliom_common.request
-      (Lazy.lazy_from_fun f)
+  let from_fun : (unit -> 'a) -> 'a t =
+    fun f ->
+      Eliom_references.eref
+        ~scope:Eliom_common.request
+        (Lazy.lazy_from_fun f)
 
   let get eref =
     Lwt.map Lazy.force (Eliom_references.get eref)
@@ -213,7 +215,7 @@ module Request_cache = struct
   (** To easily handle request caches containing LWT-values. *)
   let get_lwt : 'a Lwt.t t -> 'a Lwt.t =
     fun eref ->
-      get eref >>= fun x -> x
+      lwt x = get eref in x
 
 end
 

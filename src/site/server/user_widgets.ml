@@ -279,27 +279,26 @@ object (self)
     error =
     if (Eliom_request_info.get_ssl ()) || not User_services.force_secure
     then begin
-      (if show_ext
-       then self#login_box_extension
-       else Lwt.return ([]: [`Tr] HTML5.M.elt list)
-      ) >>= fun ext ->
+      lwt ext =
+        if show_ext
+        then self#login_box_extension
+        else Lwt.return ([]: [`Tr] HTML5.M.elt list)
+      in
       Lwt.return (fun (usr, pwd) ->
         [HTML5.M.table ~a:[HTML5.M.a_class ["login_box"]]
            (HTML5.M.tr
               [HTML5.M.td [HTML5.M.pcdata user_prompt];
                HTML5.M.td [str_input usr]])
-           (   HTML5.M.tr
-                 [HTML5.M.td [HTML5.M.pcdata pwd_prompt];
-                  HTML5.M.td [passwd_input pwd]]
+           (HTML5.M.tr
+              [HTML5.M.td [HTML5.M.pcdata pwd_prompt];
+               HTML5.M.td [passwd_input pwd]]
             :: HTML5.M.tr
                  [HTML5.M.td [submit_input "Login"]]
             :: ext
-             @  (if error
-                then [HTML5.M.tr [HTML5.M.td ~a:[HTML5.M.a_colspan 2]
-                                    [HTML5.M.pcdata auth_error]]
-                ]
-                else []
-               )
+            @ (if error
+               then [HTML5.M.tr [HTML5.M.td ~a:[HTML5.M.a_colspan 2]
+                                   [HTML5.M.pcdata auth_error]] ]
+               else [])
            )
         ]
       )

@@ -27,11 +27,7 @@ User management
 
 open Eliom_pervasives
 open User_sql.Types
-
-let (>>=) = Lwt.bind
-let (=|<) = Lwt.(=|<)
-let (>|=) = Lwt.(>|=)
-let (=<<) = Lwt.(=<<)
+open Ocsimore_lib.Lwt_ops
 
 exception ConnectionRefused
 exception BadPassword

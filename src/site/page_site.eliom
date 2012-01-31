@@ -117,9 +117,6 @@ end
 (* special handling for onload functions (?) *)
 let onload_functions_eref = Eliom_references.eref ~scope:Eliom_common.request []
 
-let onload_functions () =
-  Eliom_references.get onload_functions_eref
-
 let add_onload_function ?(first = false) s =
   flip eref_modify onload_functions_eref
     (fun onload_functions ->

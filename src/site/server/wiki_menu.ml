@@ -154,7 +154,7 @@ let set_menu_resolver r =
 let resolve_menu_file file =
   Eliom_references.get menu_resolver_eref >|= function
     | Some f -> f file
-    | None -> raise Not_found (* BB this emulate Polytable's behaviour *)
+    | None -> raise Not_found (* BB this emulates ancient Polytable's behaviour *)
 
 (** Parse wiki from file (or contents) to xml *)
 

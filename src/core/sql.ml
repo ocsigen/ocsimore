@@ -29,7 +29,6 @@ let () = PGOCaml.verbose := 2
 
 open Lwt
 
-
 type db_t = (string, bool) Hashtbl.t PGOCaml.t
 
 let connect () =
@@ -46,15 +45,14 @@ let pool = Lwt_pool.create 16 connect
 
 let transaction_block db f =
   PGOCaml.begin_work db >>= fun _ ->
-  Lwt.catch
-    (fun () ->
-       (* DEBUG print_endline "SQL transaction"; *)
-       f () >>= fun r ->
-       PGOCaml.commit db >>= fun () ->
-       Lwt.return r)
-    (fun e ->
-       PGOCaml.rollback db >>= fun () ->
-       Lwt.fail e)
+  try_lwt
+     (* DEBUG print_endline "SQL transaction"; *)
+     lwt r = f () in
+     lwt () = PGOCaml.commit db in
+     Lwt.return r
+  with e ->
+     lwt () = PGOCaml.rollback db in
+     Lwt.fail e
 
 let full_transaction_block f =
   Lwt_pool.use pool (fun db -> transaction_block db (fun () -> f db))
