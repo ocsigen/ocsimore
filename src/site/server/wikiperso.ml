@@ -46,7 +46,7 @@ open Wiki_types
     An example configuration is given below
 
     <eliommodule module="/path/to/wikiperso.cmo">
-      <options username="~([^/]*).*" wikiroot="~$USER" />
+      <options username="~([^/]* ).*" wikiroot="~$USER" />
     </eliommodule>
 *)
 

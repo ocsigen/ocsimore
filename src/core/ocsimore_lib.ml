@@ -201,21 +201,30 @@ let remove_spaces s =
     while calling [Request_cache.get] on the cache, [f] is only evaluated once per request. *)
 module Request_cache = struct
 
-  type 'a t = 'a lazy_t Eliom_references.eref
+  type 'a t = {
+    eref : 'a option Eliom_references.eref;
+    f : unit -> 'a;
+  }
 
   let from_fun : (unit -> 'a) -> 'a t =
     fun f ->
-      Eliom_references.eref
-        ~scope:Eliom_common.request
-        (Lazy.lazy_from_fun f)
+      let eref =
+        Eliom_references.eref
+          ~scope:Eliom_common.request
+          None
+      in
+      { eref ; f }
 
-  let get eref =
-    Lwt.map Lazy.force (Eliom_references.get eref)
+  let get rc =
+    Eliom_references.get rc.eref >>= function
+      | Some x -> Lwt.return x
+      | None ->
+          let x = rc.f () in
+          lwt () = Eliom_references.set rc.eref (Some x) in
+          Lwt.return x
 
-  (** To easily handle request caches containing LWT-values. *)
-  let get_lwt : 'a Lwt.t t -> 'a Lwt.t =
-    fun eref ->
-      lwt x = get eref in x
+  let set rc value =
+    Eliom_references.set rc.eref (Some value)
 
 end
 
