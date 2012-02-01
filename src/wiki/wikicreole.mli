@@ -23,19 +23,8 @@
    @author Boris Yakobowski
 *)
 
+(** Xml-like attributes for the extension (eg val='foo') *)
 type attribs = (string * string) list
-
-type (+'a, +'b, +'c, +'d) ext_kind =
-  [ `Flow5 of 'a
-  | `Flow5_link of 'b
-  | `Phrasing_without_interactive of 'c
-  | `Phrasing_link of 'd ]
-
-type (-'param, +'res) plugin =
-  'param ->
-    attribs -> (** Xml-like attributes for the extension (eg val='foo') *)
-      string option -> (** content for the extension, after the '|' *)
-        'res
 
 module type RawBuilder = sig
 
@@ -92,23 +81,26 @@ module type RawBuilder = sig
 
 end
 
+(** *)
+type (-'param, +'res) plugin = 'param -> attribs -> string option -> 'res
+
+type plugin_resolver = Resolver of (string -> plugin_resolver option)
+
 module type Builder = sig
 
   include RawBuilder
 
-  (** The syntax of plugins is [<<name arg1=value1 ... argn="valuen >>] or
-      [<<name arg1=value1 ... argn="valuen |content>> ] *)
-  (** Must display sthg (error message?) if the name does not exist. *)
+  type plugin_content =
+    [ `Flow5_link of (href * attribs * flow_without_interactive)
+    | `Phrasing_link of (href * attribs * phrasing_without_interactive)
+    | `Flow5 of flow
+    | `Phrasing_without_interactive of phrasing_without_interactive ]
 
-  type syntax_extension =
-      (flow,
-       (href * attribs * flow_without_interactive),
-       phrasing_without_interactive,
-       (href * attribs * phrasing_without_interactive)) ext_kind
-
-  val plugin : string -> bool * (param, syntax_extension) plugin
-  val plugin_action :  string -> int -> int -> (param, unit) plugin
-  val link_action : string -> string option -> attribs -> int * int -> param -> unit
+  val plugin:
+    string -> plugin_resolver option * (param, plugin_content) plugin
+  val plugin_action: string -> int -> int -> (param, unit) plugin
+  val link_action:
+    string -> string option -> attribs -> int * int -> param -> unit
 
 end
 

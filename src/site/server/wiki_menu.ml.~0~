@@ -170,12 +170,12 @@ let get_nodes bi args contents =
             Lwt.return nodes)
       | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
   with
-  | Not_found ->
-      begin match contents with
-      | Some c ->
-          Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
-      | None -> Lwt.return [] end
-  | exc -> Lwt.fail exc (* 404 and so... TODO *)
+    | Not_found ->
+        begin match contents with
+        | Some c ->
+            Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
+        | None -> Lwt.return [] end
+    | exc -> Lwt.fail exc (* 404 and so... TODO *)
 
 (* let typecheck_menu bi xml : menu Lwt.t = *)
   (* try Lwt.return {{ ( xml :? menu ) }} *)
@@ -250,12 +250,10 @@ let do_wikimenu bi args contents =
   `Flow5 contents
 
 let _ =
-  Wiki_syntax.register_wiki_extension
-    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikimenu"
-    ~wp_rec:Wiki_syntax.menu_parser do_wikimenu;
-  Wiki_syntax.register_wiki_extension
-    ~wp:Wiki_syntax.wikicreole_parser_without_header_footer ~name:"wikimenu"
-    ~wp_rec:Wiki_syntax.menu_parser do_wikimenu
+  Wiki_syntax.raw_register_wiki_extension
+    ~wp:Wiki_syntax.wikicreole_parser ~name:"wikimenu" do_wikimenu;
+  Wiki_syntax.raw_register_wiki_extension
+    ~wp:Wiki_syntax.wikicreole_parser_without_header_footer ~name:"wikimenu" do_wikimenu
 
 
 (** *)

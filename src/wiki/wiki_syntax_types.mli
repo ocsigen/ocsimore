@@ -27,22 +27,30 @@ type desugar_param = {
   mutable dc_warnings : ((int * int) * string) list;
 }
 
+type link_action =
+    string ->
+    string option ->
+    Wikicreole.attribs ->
+    Wiki_types.wikibox -> string option Lwt.t
+
 module type Preprocessor = sig
 
   (** [desugar_string dc content] does some possible syntactical desugaring in
       [content]. It should be safe to call this, i.e. there shall be no side
       effects in it. (The result must still be [Lwt.t] because it may access
       the DB read-only.  *)
-  val desugar_string : desugar_param -> string -> string Lwt.t
+  val desugar_string: desugar_param -> string -> string Lwt.t
 
-  (** [preparse_string wb content] does possibly some replacements in [content]
-      and may have arbitrary side effects in the process (e.g. creating
-      wikiboxes etc.). *)
-  val preparse_string : ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t)
-    -> Wiki_types.wikibox -> string -> string Lwt.t
+  (* [preparse_string wb content] does possibly some replacements in [content]
+     and may have arbitrary side effects in the process (e.g. creating
+    wikiboxes etc.). *)
+  val preparse_string : ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t) -> Wiki_types.wikibox -> string -> string Lwt.t
 
 end
 
+
+(** Module type for representing wikicreole parser whose return type
+    id [ret]. *)
 module type Parser = sig
 
   include Preprocessor
@@ -53,7 +61,7 @@ module type Parser = sig
     sectioning:bool ->
     Wiki_widgets_interface.box_info ->
     string ->
-    res list
+    res HTML5.M.elt list Lwt.t list
 
 end
 
@@ -65,12 +73,25 @@ end
     extensions. *)
 type 'a wikicreole_parser = (module Parser with type res = 'a)
 
+(** Preparser are actually used to rewrite contents of wiki extension
+    when storing a wikipage on the database. This is currently used
+    only for creating wikibox. *)
 type preparser =
     Wiki_types.wikibox ->
-    Wikicreole.attribs ->
-    string option ->
-    string option Lwt.t
+      Wikicreole.attribs ->
+        string option ->
+          string option Lwt.t
 
+type (+'flow_without_interactive,
+      +'phrasing_without_interactive) link_plugin_content =
+  [ `Flow5_link
+      of (href * Wikicreole.attribs * 'flow_without_interactive HTML5.M.elt list Lwt.t)
+  | `Phrasing_link
+      of (href * Wikicreole.attribs * 'phrasing_without_interactive HTML5.M.elt list Lwt.t) ]
+
+
+(** Module type for representing extensible wikicreole parser on which
+    we can register wiki extension. *)
 module rec ExtParser : sig
 
   module type ExtParser = sig
@@ -86,40 +107,98 @@ module rec ExtParser : sig
       sectioning:bool ->
       Wiki_widgets_interface.box_info ->
       string ->
-      res_without_interactive list
+      res_without_interactive HTML5.M.elt list Lwt.t list
 
-    type non_interactive_syntax_extension =
-      [ `Flow5 of res_without_interactive
-      | `Phrasing_without_interactive of link_content ]
+    type simple_plugin =
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        string option ->
+        (res, res_without_interactive, link_content) plugin_content
 
-    type non_interactive_plugin =
-        (Wiki_widgets_interface.box_info,
-         non_interactive_syntax_extension) Wikicreole.plugin
+    type simple_ni_plugin =
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        string option ->
+        (res_without_interactive, link_content) ni_plugin_content
 
-    type interactive_syntax_extension =
-        (res,
-         (href * Wikicreole.attribs * res_without_interactive),
-         link_content,
-         (href * Wikicreole.attribs * link_content))
-          Wikicreole.ext_kind
+    type 'a wiki_plugin =
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        'a HTML5.M.elt list Lwt.t option ->
+        (res, res_without_interactive, link_content) plugin_content
 
-    type interactive_plugin =
-        (Wiki_widgets_interface.box_info,
-         interactive_syntax_extension) Wikicreole.plugin
+    type 'a wiki_ni_plugin =
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        'a HTML5.M.elt list Lwt.t option ->
+        (res_without_interactive, link_content) ni_plugin_content
 
-    val register_interactive_extension:
-      name:string -> wiki_content:bool -> interactive_plugin -> unit
-    val register_non_interactive_extension:
-      name:string -> wiki_content:bool -> non_interactive_plugin -> unit
-    val register_subst: name:string -> preparser -> unit
+    type 'a link_plugin =
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        'a HTML5.M.elt list Lwt.t option ->
+        (res_without_interactive, link_content) link_plugin_content
 
-    val set_link_subst:
-      (string ->
-       string option ->
-       Wikicreole.attribs ->
-       Wiki_types.wikibox ->
-       string option Lwt.t) ->
-      unit
+    (* Module to encode existential type parameter of the recursive wikiparser.
+       Could be replaced by a GADT with Ocaml 3.13. *)
+    module type WikiPlugin = sig
+
+      type rec_res
+      type rec_res_without_interactive
+      type rec_link_content
+
+      val wikiparser:
+        (rec_res,
+         rec_res_without_interactive,
+         rec_link_content) ExtParser.ext_wikicreole_parser
+      val update_context:
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        Wiki_widgets_interface.box_info
+      val plugin: rec_res wiki_plugin
+      val ni_plugin: rec_res_without_interactive wiki_ni_plugin option
+
+    end
+
+    module type LinkPlugin = sig
+
+      type rec_res
+      type rec_res_without_interactive
+      type rec_link_content
+
+      val wikiparser:
+        (rec_res,
+         rec_res_without_interactive,
+         rec_link_content) ExtParser.ext_wikicreole_parser
+      val update_context:
+        Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
+        Wiki_widgets_interface.box_info
+      val plugin: rec_res_without_interactive link_plugin
+
+    end
+
+    module type RawWikiPlugin = sig
+
+      type rec_res
+      type rec_res_without_interactive
+      type rec_link_content
+
+      val wikiparser:
+        (rec_res,
+         rec_res_without_interactive,
+         rec_link_content) ExtParser.ext_wikicreole_parser
+      val plugin: rec_res wikicreole_parser -> simple_plugin
+      val ni_plugin:
+        (rec_res_without_interactive wikicreole_parser -> simple_ni_plugin) option
+
+    end
+
+
+    type plugin =
+      | SimplePlugin of simple_plugin * simple_ni_plugin option
+      | WikiPlugin of (module WikiPlugin)
+      | LinkPlugin of (module LinkPlugin)
+      | RawWikiPlugin of (module RawWikiPlugin)
+
+    val register_extension: name:string -> ?preparser:preparser -> plugin -> unit
+
+    (**/**)
+    val plugin_resolver: Wikicreole.plugin_resolver
+    (**/**)
 
   end
 

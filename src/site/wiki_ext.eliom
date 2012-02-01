@@ -112,17 +112,9 @@ let register_wikibox_syntax_extensions
                   ~message:"Wiki error: error in wikibox extension" ()])
   in
 
-  let preparse_wikibox wp wb args c =
+  let preparse_wikibox wb args c =
     (* There are two parts in the extension : we try to create boxes if the
-       box='' argument of wikibox is missing. We also recursively parse the
-       content c of the extension *)
-    (* Parsing of c : *)
-    lwt c = match c with
-      | None -> Lwt.return None
-      | Some c ->
-          Wiki_models.preparse_string (Wiki_syntax.preprocess_extension (Wiki_syntax.cast_wp wp)) wb c
-          >|= fun c -> Some c
-    in
+       box='' argument of wikibox is missing. *)
     (* Adding the 'box=' argument *)
     lwt (args, c) = try
        lwt wid = Wiki_sql.wikibox_wiki wb in
@@ -171,10 +163,11 @@ let register_wikibox_syntax_extensions
   in
 
   let add_wikibox wp =
-    Wiki_syntax.raw_register_wiki_extension ~wp ~name:"wikibox"
-      ~preparser:(preparse_wikibox wp)
-      ~ni_plugin:(f_wikibox (Wiki_syntax.cast_niwp wp))
-      (f_wikibox (Wiki_syntax.cast_wp wp)) in
+    Wiki_syntax.register_raw_wiki_extension ~wp ~name:"wikibox"
+      ~wp_rec:wp
+      ~preparser:preparse_wikibox
+      ~ni_plugin:f_wikibox
+      f_wikibox in
   add_wikibox Wiki_syntax.wikicreole_parser;
   add_wikibox Wiki_syntax.wikicreole_parser_without_header_footer;
 
@@ -293,7 +286,7 @@ let register_wikibox_syntax_extensions
   in
   Wiki_syntax.register_simple_phrasing_extension  ~name:"switchmenu" f_switchmenu;
 
-  let f_outline bi (args: (string * string) list) c =
+  let f_outline wp bi (args: (string * string) list) c =
     `Flow5
       (let elem =
          try
@@ -308,9 +301,7 @@ let register_wikibox_syntax_extensions
        lwt content = match c with
          | None -> Lwt.return []
          | Some c ->
-           Wiki_syntax.xml_of_wiki
-             (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser)
-             bi c
+           (Wiki_syntax.xml_of_wiki wp bi c :> HTML5_types.flow5 HTML5.M.elt list Lwt.t)
        in
        let ignore =
          try List.map String.lowercase (String.split ~multisep:true ' ' (List.assoc "ignore" args))
@@ -368,9 +359,11 @@ let register_wikibox_syntax_extensions
      }};
      Lwt.return [nav] )
   in
-  Wiki_syntax.raw_register_wiki_extension ~name:"outline"
+  Wiki_syntax.register_raw_wiki_extension ~name:"outline"
     ~wp:Wiki_syntax.wikicreole_parser
+    ~wp_rec:Wiki_syntax.wikicreole_parser
     f_outline;
-  Wiki_syntax.raw_register_wiki_extension ~name:"outline"
+  Wiki_syntax.register_raw_wiki_extension ~name:"outline"
     ~wp:Wiki_syntax.wikicreole_parser_without_header_footer
+    ~wp_rec:Wiki_syntax.wikicreole_parser_without_header_footer
     f_outline

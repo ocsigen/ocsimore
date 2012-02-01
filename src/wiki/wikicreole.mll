@@ -28,23 +28,17 @@ exception Unrecognized_char
 
 type attribs = (string * string) list
 
-type (+'a, +'b, +'c, +'d) ext_kind =
-  [ `Flow5 of 'a
-  | `Flow5_link of 'b
-  | `Phrasing_without_interactive of 'c
-  | `Phrasing_link of 'd ]
-
 type style =
     Bold | Italic | Underlined | Linethrough |
         Monospace | Superscripted | Subscripted
 
 type list_kind = Unordered | Ordered
 
-type (-'param, +'res) plugin =
-  'param ->
-    attribs -> (** Xml-like attributes for the extension (eg val='foo') *)
-      string option -> (** content for the extension, after the '|' *)
-        'res
+
+(* module type BuilderType = sig *)
+
+
+(* end *)
 
 module type RawBuilder = sig
 
@@ -55,6 +49,8 @@ module type RawBuilder = sig
   type flow
   type flow_without_interactive
   type uo_list
+  (* module BuilderType : BuilderType *)
+  (* open BuilderType *)
 
   val chars : string -> phrasing_without_interactive
   val strong_elem : attribs -> phrasing list -> phrasing_without_interactive
@@ -101,19 +97,29 @@ module type RawBuilder = sig
 
 end
 
+(** *)
+type (-'param, +'res) plugin = 'param -> attribs -> string option -> 'res
+
+type plugin_resolver = Resolver of (string -> plugin_resolver option)
+
+(* REMOVE TODO *)
+let resolve_plugin (Resolver f) name = f name
+
 module type Builder = sig
 
   include RawBuilder
 
-  type syntax_extension =
-      (flow,
-       (href * attribs * flow_without_interactive),
-       phrasing_without_interactive,
-       (href * attribs * phrasing_without_interactive)) ext_kind
+  type plugin_content =
+    [ `Flow5_link of (href * attribs * flow_without_interactive)
+    | `Phrasing_link of (href * attribs * phrasing_without_interactive)
+    | `Flow5 of flow
+    | `Phrasing_without_interactive of phrasing_without_interactive ]
 
-  val plugin : string -> bool * (param, syntax_extension) plugin
-  val plugin_action :  string -> int -> int -> (param, unit) plugin
-  val link_action : string -> string option -> attribs -> int * int -> param -> unit
+  val plugin:
+    string -> plugin_resolver option * (param, plugin_content) plugin
+  val plugin_action: string -> int -> int -> (param, unit) plugin
+  val link_action:
+    string -> string option -> attribs -> int * int -> param -> unit
 
 end
 
@@ -181,7 +187,7 @@ let rec end_section c lvl =
   match c.flow with
   | (lvl', flow) :: flows when lvl <= lvl' ->
       c.flow <- flows;
-      push_flow c (B.flow (B.section_elem [(* TODO*)] (List.rev flow)));
+      push_flow c (B.flow (B.section_elem [(* TODO attribs ?? *)] (List.rev flow)));
       end_section c lvl
   | _ -> ()
 
@@ -670,12 +676,12 @@ and parse_rem c =
       let l = String.length s in
       let name = String.sub s 2 (l - 2) in
       let start = Lexing.lexeme_start lexbuf in
-      let (wiki_content, ext_info) = B.plugin name in
+      let (plugin_resolver, plugin_builder) = B.plugin name in
       let content, args =
-        parse_extension start name wiki_content [] c lexbuf in
+        parse_extension start name plugin_resolver [] c lexbuf in
       B.plugin_action name start (Lexing.lexeme_end lexbuf)
         c.param (List.rev args) content;
-      match ext_info c.param args content with
+      match plugin_builder c.param args content with
       | `Phrasing_without_interactive i ->
           push c i;
           parse_rem c lexbuf
@@ -867,18 +873,20 @@ and parse_nowiki c attribs =
       parse_nowiki c attribs lexbuf
     }
 
-and parse_extension start name wiki_content args c =
+and parse_extension start name rec_plugin args c =
     parse
     | '|' {
-        if wiki_content
-        then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
-        else ((parse_extension_content_nowiki start true "" c lexbuf), args)
+        match rec_plugin with
+        | None ->
+            ((parse_extension_content_nowiki start true "" c lexbuf), args)
+        | Some rec_plugin ->
+            ((parse_extension_content_wiki start rec_plugin [] "" c lexbuf), args)
       }
     | (">>" | eof) {
         (None, args)
       }
     |  ';'* | (white_space *) | (line_break *) {
-        parse_extension start name wiki_content args c lexbuf
+        parse_extension start name rec_plugin args c lexbuf
       }
     | (not_line_break # white_space # '=' # '>') * '='
         ((white_space | line_break) *) (('\'' | '"') as quote) {
@@ -886,74 +894,68 @@ and parse_extension start name wiki_content args c =
         let i = String.index s '=' in
         let arg_name = String.sub s 0 i in
         let arg_value = parse_arg_value quote "" c lexbuf in
-        parse_extension start name wiki_content
+        parse_extension start name rec_plugin
           ((arg_name, arg_value)::args) c lexbuf
       }
     | _ {
         ignore
-          (if wiki_content
-           then ((parse_extension_content_wiki start 0 false "" c lexbuf), args)
-           else
-             ((parse_extension_content_nowiki start true "" c lexbuf), args));
-        (Some ("Syntax error in extension "^name), args)
+          (match rec_plugin with
+           | None ->
+             ((parse_extension_content_nowiki start true "" c lexbuf), args)
+           | Some rec_plugin ->
+             ((parse_extension_content_wiki start rec_plugin [] "" c lexbuf), args));
+      (Some ("Syntax error in extension "^name), args)
       }
 
-and parse_extension_content_wiki start lev nowiki beg c =
+and parse_extension_content_wiki start rec_plugin lev beg c =
     parse
       | '~' (('<' | '>' | '~') as ch) {
           parse_extension_content_wiki
-            start lev nowiki (beg^"~"^(String.make 1 ch)) c lexbuf
+            start rec_plugin lev (beg^"~"^(String.make 1 ch)) c lexbuf
         }
       | "<<" ((not_line_break # white_space) # ['|' '>']) * {
           let s = Lexing.lexeme lexbuf in
-          if nowiki
-          then parse_extension_content_wiki start lev nowiki (beg^s) c lexbuf
-          else
-            let l = String.length s in
-            let name = String.sub s 2 (l - 2) in
-            let (wiki_content, _) = B.plugin name in
-            if wiki_content
-            then
+          let l = String.length s in
+          let name = String.sub s 2 (l - 2) in
+          match resolve_plugin rec_plugin name with
+          | Some rec_plugin' ->
               parse_extension_content_wiki
-                start (lev+1) false (beg^s) c lexbuf
-            else
+                start rec_plugin' (rec_plugin::lev) (beg^s) c lexbuf
+          | None ->
               let s =
-                match
-                  parse_extension_content_nowiki start false (beg^s) c lexbuf
-                with None -> ">>"
-                  | Some s -> s^">>"
+                parse_extension_content_nowiki start false (beg^s) c lexbuf
               in
-              parse_extension_content_wiki start lev false s c lexbuf
+              let s = match s with
+                | None -> ">>"
+                | Some s -> s^">>"
+              in
+              parse_extension_content_wiki start rec_plugin lev s c lexbuf
         }
       | "{{{" {
           parse_extension_content_wiki
-            start lev true (beg^"{{{") c lexbuf
+            start rec_plugin lev (beg^"{{{") c lexbuf
         }
       | "}}}" {
 (*VVV Warning: not quotable! *)
-          parse_extension_content_wiki start lev false (beg^"}}}") c lexbuf
+          parse_extension_content_wiki start rec_plugin lev (beg^"}}}") c lexbuf
         }
       | ">>" {
-          if nowiki
-          then
-            parse_extension_content_wiki start lev nowiki (beg^">>") c lexbuf
-          else
-            if lev>0
-            then
+          match lev with
+          | [] -> Some beg
+          | rec_plugin :: lev ->
               parse_extension_content_wiki
-                start (lev-1) nowiki (beg^">>") c lexbuf
-            else Some beg
+                start rec_plugin lev (beg^">>") c lexbuf
         }
       | eof {
           Some (beg^" syntax error in wikisyntax") (* or error ?? *)
         }
       | [^ '~' '>' '<' '{' '}' ]+ {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_wiki start lev nowiki (beg^s) c lexbuf
+          parse_extension_content_wiki start rec_plugin lev (beg^s) c lexbuf
         }
       | [ '>' '<' '~' '{' '}' ] {
           let s = Lexing.lexeme lexbuf in
-          parse_extension_content_wiki start lev nowiki (beg^s) c lexbuf
+          parse_extension_content_wiki start rec_plugin lev (beg^s) c lexbuf
         }
       | _ {
           Ocsigen_messages.warning
