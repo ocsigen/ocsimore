@@ -148,33 +148,29 @@ let wiki_admin_id = wiki_admin.wiki_id
     exists, and returns a function giving the current value of the
     corresponding wikibox *)
 let register_named_wikibox ~page ~content ~content_type ~comment =
-  Lwt_unix.run(
-    Lwt.catch
-      (fun () ->
-         Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page
-         >>= fun _ -> Lwt.return ()
-      )
-      (function Not_found ->
-         Sql.full_transaction_block (fun db ->
-           Wiki_sql.new_wikibox ~db
-             ~wiki:wiki_admin_id ~comment ~content ~content_type
-             ~author:User.admin ()
-           >>= fun box ->
-           Wiki_sql.create_wikipage ~db ~wiki:wiki_admin_id ~page ~wb:box
-           )
-       | e -> Lwt.fail e)
+  Lwt_unix.run (
+    try_lwt
+      lwt _ = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
+      Lwt.return ()
+    with Not_found ->
+      Sql.full_transaction_block
+        (fun db ->
+          lwt box =
+            Wiki_sql.new_wikibox ~db
+              ~wiki:wiki_admin_id ~comment ~content ~content_type
+              ~author:User.admin ()
+          in
+          Wiki_sql.create_wikipage ~db ~wiki:wiki_admin_id ~page ~wb:box)
   );
   (fun () ->
-     Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page
-     >>= fun { wikipage_wikibox = wb} ->
-     Wiki_sql.get_wikibox_content wb
-     >>= function
+     lwt { wikipage_wikibox = wb} = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
+     Wiki_sql.get_wikibox_content wb >|= function
      | Some (_, _, Some content, _, _, _) ->
-         Lwt.return content
+         content
      | None | Some (_, _, None, _, _, _) ->
          (* fallback, should not happen if the wikiadmin is not corrupted
          or if the templates are not deleted *)
-         Lwt.return content)
+         content)
 
 
 (** We create the page for the help on the syntax of the wiki *)
@@ -365,7 +361,7 @@ let create_wiki =
   create_wiki
 
 
-let edit_wiki_form ~serv_path:_ ~service ~arg
+let edit_wiki_form ~service ~arg
       ~(wiki:wiki) ~descr ~path ~boxrights ~staticdir ~container ~model ~siteid
       ?err_handler cont =
   let page _arg error form =
@@ -421,7 +417,7 @@ let edit_wiki =
        let rights = Wiki_models.get_rights info.wiki_model in
        rights#can_create_wiki () >>= function
          | true ->
-             edit_wiki_form ~serv_path:Wiki_services.path_edit_wiki
+             edit_wiki_form
                ~service:Wiki_services.view_wikis ~arg:()
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
@@ -607,24 +603,24 @@ let wiki_root =
     ~path:[!Ocsimore_config.admin_dir;"wikis"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_output.Html5.register wiki_root
-  (fun () () ->
-     Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
-       [HTML5.M.h1 [HTML5.M.pcdata "Wiki module"];
-        HTML5.M.p
-          [HTML5.M.pcdata "This is the Ocsimore admin page for the wiki \
-                           module. The links on the right will help you \
-                           configure your installation." ];
-       ]
-  )
-
+let () =
+  Eliom_output.Html5.register
+    wiki_root
+    (fun () () ->
+       Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
+         [HTML5.M.h1 [HTML5.M.pcdata "Wiki module"];
+          HTML5.M.p
+            [HTML5.M.pcdata "This is the Ocsimore admin page for the wiki \
+                             module. The links on the right will help you \
+                             configure your installation." ];
+         ])
 
 
 let () = Eliom_output.Html5.register Wiki_services.edit_wiki_permissions_admin
   (fun wiki () ->
-     wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki
-     >>= fun (_, form) ->
-     Page_site.admin_page ~service:Wiki_services.view_wikis
+     lwt _, form = wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki in
+     Page_site.admin_page
+       ~service:Wiki_services.view_wikis
        [HTML5.M.div form]
   )
 

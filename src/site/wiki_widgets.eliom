@@ -53,8 +53,7 @@ let hidden_page_inputs (page_wiki, page_path) (page_wiki_name, (empty_page_path_
            ~value:()
            ~input_type:`Hidden ()]
 
-class wikibox_error_box =
-object
+class wikibox_error_box = object
 
   inherit Widget.widget_with_error_box as error_box
 
@@ -157,8 +156,7 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) : Wiki_widgets_inte
  end
 
 
-class frozen_wikibox (error_box : Widget.widget_with_error_box) =
-(object (self)
+class frozen_wikibox (error_box : Widget.widget_with_error_box) : Wiki_widgets_interface.frozen_wikibox = object (self)
 
   inherit wikibox_aux error_box
 
@@ -188,7 +186,7 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) =
        : [ `Div | `P ] HTML5.M.elt list Lwt.t
        :> [> `Div | `P ] HTML5.M.elt list Lwt.t)
 
- end : Wiki_widgets_interface.frozen_wikibox )
+ end
 
 (** Displaying of a wikibox with viewing and/or editing rights. Takes
     as argument all the services needed to save modifications
@@ -196,8 +194,7 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) =
 class dynamic_wikibox
     (error_box : Widget.widget_with_error_box)
     (user_widgets: User_widgets.user_widget_class)
-  : interactive_wikibox =
-object (self)
+  : interactive_wikibox = object (self)
 
   inherit frozen_wikibox error_box
 

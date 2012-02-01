@@ -26,7 +26,6 @@ open User_sql.Types
 open Wiki_types
 open Wiki_widgets_interface
 
-let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 
 (* Helper functions for the syntax extensions below *)

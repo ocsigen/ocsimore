@@ -52,7 +52,8 @@ let set_override_wikibox v =
   Eliom_references.set override_wikibox_eref (Some v)
 
 
-let wikibox_error_eref = Eliom_references.eref ~scope:Eliom_common.request None
+let wikibox_error_eref =
+  Eliom_references.eref ~scope:Eliom_common.request None
 
 (** The error to display in the wikibox *)
 let get_wikibox_error () =
@@ -192,7 +193,6 @@ let eliom_add_remove = Eliom_parameters.user_type
 
 (* Services *)
 
-let path_edit_wiki = [!Ocsimore_config.admin_dir;"edit_wiki"]
 
 open Wiki
 
@@ -468,7 +468,8 @@ and action_send_css_options = Eliom_output.Any.register_post_coservice'
   )
 
 and edit_wiki = Eliom_services.service
-  ~path:path_edit_wiki ~get_params:eliom_wiki_args ()
+  ~path:[!Ocsimore_config.admin_dir;"edit_wiki"]
+  ~get_params:eliom_wiki_args ()
 
 and view_wikis = Eliom_services.service
   ~path:[!Ocsimore_config.admin_dir;"view_wikis"]
