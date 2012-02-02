@@ -1,5 +1,9 @@
 open Eliom_pervasives
 
+(** *)
+
+(* BB XXX why not type service_href = { a_link : ...; uri : HTML5.M.uri } *)
+
 module type Service_href = sig
 
   val a_link :
@@ -17,13 +21,6 @@ type href =
   | String_href of string
   | Service_href of service_href
 
-(* A wikicreole_parser is essentially a [Wikicreole.builder] object
-   but easily extensible. That is, the fields [plugin] and
-   [plugin_action] of [Wikicreole.builder], which are supposed to be
-   functions, are here represented as association tables. Thus, it
-   becomes easy (and, more importantly, not costly) to add
-   extensions. *)
-
 type desugar_param = {
   dc_page_wiki : Wiki_types.wiki;
   dc_page_path : string list option;
@@ -38,15 +35,17 @@ module type Preprocessor = sig
       the DB read-only.  *)
   val desugar_string : desugar_param -> string -> string Lwt.t
 
-  (* [preparse_string wb content] does possibly some replacements in [content]
-     and may have arbitrary side effects in the process (e.g. creating
-    wikiboxes etc.). *)
+  (** [preparse_string wb content] does possibly some replacements in [content]
+      and may have arbitrary side effects in the process (e.g. creating
+      wikiboxes etc.). *)
   val preparse_string : ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t)
     -> Wiki_types.wikibox -> string -> string Lwt.t
 
 end
 
 module type Parser = sig
+
+  include Preprocessor
 
   type res
 
@@ -56,17 +55,21 @@ module type Parser = sig
     string ->
     res list
 
-  include Preprocessor
-
 end
 
+(** A wikicreole_parser is essentially a [Wikicreole.builder] object
+    but easily extensible. That is, the fields [plugin] and
+    [plugin_action] of [Wikicreole.builder], which are supposed to be
+    functions, are here represented as association tables. Thus, it
+    becomes easy (and, more importantly, not costly) to add
+    extensions. *)
 type 'a wikicreole_parser = (module Parser with type res = 'a)
 
 type preparser =
     Wiki_types.wikibox ->
-      Wikicreole.attribs ->
-        string option ->
-          string option Lwt.t
+    Wikicreole.attribs ->
+    string option ->
+    string option Lwt.t
 
 module rec ExtParser : sig
 

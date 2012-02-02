@@ -151,7 +151,7 @@ val wikipage_css :
 
 
 
-(** Same as [Wiki_sql.update_wiki, except that this function fails
+(** Same as [Wiki_sql.update_wiki], except that this function fails
     with [Permission_denied] if the user has not enough rights to edit a wiki *)
 val update_wiki :
  (?container:wikibox option->

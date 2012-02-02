@@ -23,8 +23,6 @@ Parsing the global Ocsimore configuration
 @author Vincent Balat
 *)
 
-let (>>=) = Lwt.bind
-
 let rec parse_config = function
   | [] -> ()
   | (Simplexmlparser.Element ("passwordfile", [("name", name)], []))::l ->

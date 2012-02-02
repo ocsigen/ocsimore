@@ -20,8 +20,6 @@
    @author Vincent Balat
 *)
 
-let (>>=) = Lwt.bind
-
 let mutex = Lwt_mutex.create ()
 
 let pam_auth ?(service = "") ~name ~pwd =

@@ -21,8 +21,7 @@
 
 
 (**
-These are all the services related to wikis
-
+  These are all the services related to wikis
 *)
 
 open Eliom_pervasives
@@ -36,9 +35,6 @@ let unopt_media_type = function
   | Some x -> x
   | None -> raise (Invalid_argument "media_type_elem_of_string")
 
-(** Polymorphic keys and subsequent functions to govern the display
-    of wikiboxes *)
-
 let desugar_messages = Eliom_references.eref ~scope:Eliom_common.request []
 
 let override_wikibox_eref = Eliom_references.eref ~scope:Eliom_common.request None
@@ -50,7 +46,6 @@ let get_override_wikibox () =
 
 let set_override_wikibox v =
   Eliom_references.set override_wikibox_eref (Some v)
-
 
 let wikibox_error_eref =
   Eliom_references.eref ~scope:Eliom_common.request None

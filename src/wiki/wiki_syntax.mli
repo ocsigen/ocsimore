@@ -462,13 +462,13 @@ val parse_common_attribs :
 
 type force_https = bool option
 
-(** Returns the type of URL.
-    # [Wiki_page (None, path, _)] means the page of the currently display wiki at the given path.
-    # [Wiki_page (Some wiki, path, _)] means a page in the providede wiki at the given path.
-    # [Href path] means a link relative to the the domain if starting with a '/' or relative to the current URL
+(** Type of wiki link:
+    - [Wiki_page (None, path, _)] means the page of the currently display wiki at the given path.
+    - [Wiki_page (Some wiki, path, _)] means a page in the providede wiki at the given path.
+    - [Href path] means a link relative to the the domain if starting with a '/' or relative to the current URL
       otherwise.
-    # [Site path] means a link relative the Ocsigen application site.
-    # [Absolute] means an absolute URL ([<otherscheme>:href]).
+    - [Site path] means a link relative the Ocsigen application site.
+    - [Absolute] means an absolute URL ([<otherscheme>:href]).
 *)
 type link_kind =
   | Wiki_page of Wiki_types.wiki option * string * force_https

@@ -22,8 +22,6 @@
 open Eliom_pervasives
 open Wiki_types
 
-let (>>=) = Lwt.bind
-
 (** This module declares the interface for the widget that is used
     to display wikiboxes, as well a few related types and functions.
     The widget itself is defined in wiki_widgets.ml

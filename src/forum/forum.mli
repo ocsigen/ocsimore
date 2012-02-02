@@ -28,6 +28,7 @@ open User_sql.Types
 open Forum_types
 
 (** {2 Forum related groups} *)
+
 val message_creators : Wiki_types.wiki_arg parameterized_group
 val message_creators_notmod : Wiki_types.wiki_arg parameterized_group
 val message_moderators : Wiki_types.wiki_arg parameterized_group
@@ -118,7 +119,7 @@ val get_role :
 
 
 
-(** {2 } *)
+(** {2 ...} *)
 type forum_action_info =
   | Preview of ((Forum_types.forum *
                    Forum_types.message option (* parent *)) * string)
@@ -159,7 +160,7 @@ val eliom_message_button :
   [> HTML5_types.button ] HTML5.M.elt
 
 
-(** {2 } *)
+(** {2 ...} *)
 
 class wiki_rights : Wiki_types.wiki_rights
 

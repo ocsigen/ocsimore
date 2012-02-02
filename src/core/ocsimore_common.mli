@@ -29,14 +29,9 @@ exception Ok
 *)
 exception Permission_denied
 
-(** A key that can be used to find inside the session cache an
-    exception is raised in an action *)
-
-val catch_action_failure : ?f_exc:(exn -> exn) -> (unit -> unit Lwt.t) -> unit Lwt.t
-
 val get_action_failure : unit -> exn option Lwt.t
-
 val set_action_failure : exn -> unit Lwt.t
+val catch_action_failure : ?f_exc:(exn -> exn) -> (unit -> unit Lwt.t) -> unit Lwt.t
 
 
 (** Exception raised when a service is called with incorrect or

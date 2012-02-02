@@ -24,11 +24,13 @@ open Eliom_pervasives
 
 exception Ok
 
-let (>>=) = Lwt.bind
-
 exception Permission_denied
 
 let action_failure_eref = Eliom_references.eref ~scope:Eliom_common.request None
+
+let get_action_failure () =
+  Eliom_references.get action_failure_eref
+
 let set_action_failure p =
   Eliom_references.set action_failure_eref (Some p)
 
@@ -37,9 +39,6 @@ let catch_action_failure ?(f_exc=fun exn -> exn) f =
     f ()
   with exc ->
     Eliom_references.set action_failure_eref (Some (f_exc exc))
-
-let get_action_failure () =
-  Eliom_references.get action_failure_eref
 
 exception Incorrect_argument
 

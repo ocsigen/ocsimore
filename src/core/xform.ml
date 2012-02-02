@@ -148,8 +148,11 @@ end) = struct
 
   type (+'html, 'o) t = {unpack : 'res . ('html, 'o, 'res) cont -> 'res}
 
-  let pack f = {unpack = fun g -> g.f f}
-  let unpack f = f.unpack
+  let pack : (_, _, 'html, 'o) u -> ('html, 'o) t =
+    fun f -> {unpack = fun g -> g.f f}
+
+  let unpack : ('html, 'o) t -> ('html, 'o, 'res) cont -> 'res =
+    fun { unpack } -> unpack
 
   let opt_outcome x = match x with None -> Redisplay | Some v -> Success v
   let outcome_pair o1 o2 =

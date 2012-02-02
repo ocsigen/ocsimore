@@ -384,8 +384,11 @@ type role =
 
 let get_role ~forum =
   User.get_user_id () >>= fun u ->
-  let aux g id = User.in_group
-    ~user:(User_sql.Types.basic_user u) ~group:(g $ id) () 
+  let aux g id =
+    User.in_group
+      ~user:(User_sql.Types.basic_user u)
+      ~group:(g $ id)
+      ()
   in
   let noright = lazy (Lwt.return false) in
 
