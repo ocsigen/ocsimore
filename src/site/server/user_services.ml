@@ -22,13 +22,6 @@
    @author Boris Yakobowski
 *)
 
-
-open Eliom_pervasives
-open Eliom_parameters
-open Lwt
-open User_sql.Types
-
-
 type user_creation =
   | NoUserCreation
   | UserCreation of User_data.user_creation
@@ -36,7 +29,6 @@ type user_creation =
 type external_auth = NoExternalAuth | Nis | Pam of string option
 
 let default_data = (NoExternalAuth, NoUserCreation, true)
-
 
 let (auth, basicusercreation, force_secure) =
   let rec find_data ((auth, basicusercreation, secure) as data) = function
@@ -69,22 +61,23 @@ let (auth, basicusercreation, force_secure) =
         and non_admin =
           Ocsimore_lib.list_assoc_default "non_admin" atts ""
         in
-        (try
-          User.user_list_of_string (List.assoc "groups" atts)
-        with Not_found -> Lwt.return [basic_user User.authenticated_users])
-        >>= fun default_groups ->
-        find_data
-          (auth,
-           UserCreation {
-             User_data.mail_from = registration_mail_from;
-             mail_addr = registration_mail_addr;
-             mail_subject = registration_mail_subject;
-             new_user_groups = default_groups;
-             non_admin_can_create = (non_admin = "true");
-           },
-           secure
-          )
-          l
+        lwt default_groups =
+          try
+            User.user_list_of_string (List.assoc "groups" atts)
+          with Not_found -> Lwt.return [User_sql.Types.basic_user User.authenticated_users]
+        in
+        let data =
+          auth,
+          UserCreation {
+            User_data.mail_from = registration_mail_from;
+            mail_addr = registration_mail_addr;
+            mail_subject = registration_mail_subject;
+            new_user_groups = default_groups;
+            non_admin_can_create = (non_admin = "true");
+          },
+          secure
+        in
+        find_data data l
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                        ("Unexpected content inside User_site config"))
@@ -104,11 +97,15 @@ let external_auth = match auth with
 
 
 
+open Eliom_pervasives
+open Eliom_parameters
+open Lwt
+open User_sql.Types
 
+(**/**)
 let eliom_user : userid Ocsimore_common.eliom_usertype =
   Ocsimore_common.eliom_opaque_int32 "userid"
-
-
+(**/**)
 
 let action_login =
   Eliom_output.Any.register_post_coservice'  ~https:force_secure
@@ -116,7 +113,7 @@ let action_login =
     ~post_params:(string "usr" ** string "pwd")
     (fun () (name, pwd) ->
        try_lwt
-          lwt () = User_data.login ~name ~pwd ~external_auth in
+          lwt () = User_data.login ~name ~pwd ~external_auth:external_auth in
           Eliom_output.Redirection.send Eliom_services.void_hidden_coservice'
        with exc ->
           lwt () = User_data.add_login_error exc in
@@ -226,7 +223,8 @@ let service_create_new_user = Eliom_services.service
   ~get_params:unit ()
 
 let action_create_new_user =
-  Eliom_services.post_coservice ~fallback:service_create_new_user
+  Eliom_services.post_coservice
+    ~fallback:service_create_new_user
     ~https:force_secure
     ~post_params:(string "usr" ** (string "descr" **
                                      (string "email" **
@@ -307,7 +305,7 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
                User.create_fresh_user ~name ~fullname ~email
                  ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
                >>= fun userid ->
-               User.add_to_groups (basic_user userid)
+               User.add_to_groups (User_sql.Types.basic_user userid)
                  options.User_data.new_user_groups
                >>= fun () ->
                Page_site.admin_page

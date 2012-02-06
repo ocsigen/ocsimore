@@ -25,8 +25,7 @@
 
 open User_sql.Types
 open Ocsimore_lib
-
-let (>>=) = Lwt.bind
+open Ocsimore_lib.Lwt_ops
 
 let valid_username usr =
   Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
@@ -47,6 +46,7 @@ let generate_password () =
     done;
     pwd
 
+(** {2 User creation} *)
 
 (** Options for the creation of a new user *)
 type user_creation = {
@@ -74,27 +74,32 @@ let create_group ~name ~descr =
         if not (valid_username name) then
           Lwt.fail (Failure "ERROR: Bad character(s) in group name!")
         else
-          User.create_fresh_user ~name ~fullname:descr
-            ~pwd:Connect_forbidden ()
-          >>= fun groupid ->
-          User.get_user_id () >>= fun userid ->
-          User.add_to_group ~user:(basic_user userid)
-            ~group:(User.group_can_admin_group $ groupid) >>= fun () ->
+          lwt groupid =
+            User.create_fresh_user
+              ~name
+              ~fullname:descr
+              ~pwd:Connect_forbidden ()
+          in
+          lwt userid = User.get_user_id () in
+          lwt () =
+            User.add_to_group
+              ~user:(basic_user userid)
+              ~group:(User.group_can_admin_group $ groupid)
+          in
           Lwt.return groupid
     | false ->
         Lwt.fail Ocsimore_common.Permission_denied
 
 
-(** Change user information *)
+(** {2 Change user information} *)
 
 let can_change_user_data_by_userid userid =
-  User.get_user_id () >>= fun lu ->
+  lwt lu = User.get_user_id () in
   Lwt.return ((lu = userid && lu <> User.nobody) || lu = User.admin)
 
 let can_change_user_data_by_user user =
-  User_sql.get_user_data user >>= fun ud ->
+  lwt ud = User_sql.get_user_data user in
   can_change_user_data_by_userid ud.user_id
-
 
 let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
   can_change_user_data_by_userid userid >>= function
@@ -104,21 +109,22 @@ let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
         else if pwd <> pwd2 then
           Lwt.fail (Failure "ERROR: Passwords don't match!")
         else
-          User_sql.get_basicuser_data userid >>= fun user ->
+          lwt user = User_sql.get_basicuser_data userid in
           Ocsigen_messages.debug2 (Printf.sprintf "Updating user '%s'"fullname);
-          let pwd = match user.user_pwd with
-            | Connect_forbidden (* Should never happen, the user cannot
-                                   be logged *) -> None
+          let pwd =
+            match user.user_pwd with
+              | Connect_forbidden (* Should never happen, the user cannot
+                                     be logged *) -> None
 
-            | External_Auth (* We cannot change this password, we should not
-                               leave the possibility to the user. The
-                               form does not allow this anyhow *) ->
-                failwith
-                     "ERROR: Cannot change NIS or PAM users from Ocsimore!"
-            | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
-                (* We always use crypted passwords, even if the user
-                   previously unencrypted ones *)
-                if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
+              | External_Auth (* We cannot change this password, we should not
+                                 leave the possibility to the user. The
+                                 form does not allow this anyhow *) ->
+                  failwith
+                       "ERROR: Cannot change NIS or PAM users from Ocsimore!"
+              | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
+                  (* We always use crypted passwords, even if the user
+                     previously unencrypted ones *)
+                  if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
           in
           User_sql.update_data ~userid ~fullname ~email
             ?password:pwd()
@@ -126,7 +132,7 @@ let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-(** Edition of groups *)
+(** {2 Edition of groups} *)
 
 
 let can_admin_group, add_group_admin_function =
@@ -154,8 +160,6 @@ let can_admin_group, add_group_admin_function =
            in aux !hooks_admin
   ),
   (fun f -> hooks_admin := f :: !hooks_admin)
-
-
 
 let add_remove_users_from_group group (add, rem) =
   User.get_user_by_name group >>= fun group ->
@@ -191,7 +195,8 @@ let add_remove_user_from_groups sp user (add, rem) =
 *)
 
 
-(** Login and logout *)
+(** {2 Login and logout} *)
+
 open User_external_auth
 
 let logout () =
@@ -199,16 +204,17 @@ let logout () =
   Eliom_request_info.clean_request_cache ();
   Lwt.return ()
 
+(**/**)
 module Throttle = Lwt_throttle.Make(struct
                                       type t = string
                                       let equal (x: string) y = x = y
                                       let hash = Hashtbl.hash
                                     end)
+(**/**)
 
 
 let th_login = Throttle.create ~rate:1 ~max:1 ~n:10
 let th_ip = Throttle.create ~rate:1 ~max:1 ~n:10
-
 
 let login ~name ~pwd ~external_auth =
   lwt () = Eliom_state.discard ~scope:Eliom_common.session () in
@@ -242,7 +248,7 @@ let login ~name ~pwd ~external_auth =
   else
     Lwt.fail User.ConnectionRefused
 
-
+(** {2 Login error tracking} *)
 
 (* Used to store the fact that a login error has occurred, so that
    pages can display an appropriate message *)

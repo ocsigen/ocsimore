@@ -16,6 +16,9 @@ let ( ^? ) (cond, x) xs = if cond then x::xs else xs (* right assoc *)
 let ( ^: ) x xs = x :: xs (* right assoc, same precedence of ^? *)
 let ( % ) x y = x,y  (* left assoc, higher precedence *)
 
+let eliom_inline_class = HTML5.M.a_class ["eliom_inline"]
+let accept_charset_utf8 = HTML5.M.a_accept_charset ["utf-8"]
+let unopt_str = function | None -> "" | Some s -> s
 
 let iter_option f o = match o with None -> () | Some x -> f x
 
@@ -227,5 +230,4 @@ module Request_cache = struct
     Eliom_references.set rc.eref (Some value)
 
 end
-
 

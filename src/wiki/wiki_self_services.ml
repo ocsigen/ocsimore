@@ -86,6 +86,9 @@ let find_servwikicss k =
   try Some (Servpages.find servwikicss k)
   with Not_found -> None
 
+(** [get_wiki_page_for_path path] finds a wiki which belongs to the longest prefix
+    in [path] and the remaining path.
+  *)
 let get_wiki_page_for_path, insert_into_registered_wikis_tree =
   let module String_map = Map.Make (String) in
   let module Tree = struct

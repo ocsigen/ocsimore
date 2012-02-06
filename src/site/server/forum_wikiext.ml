@@ -17,6 +17,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
+   Provides a function to register the wikicreole extensions for forums.
    @author Vincent Balat
    @author Boris Yakobowski
 *)
@@ -24,6 +25,11 @@
 open Eliom_pervasives
 
 
+(** This function registers the following wiki extensions:
+     - [<<forum_message>>]
+     - [<<forum_thread>>]
+     - [<<forum_message_list>>]
+  *)
 let register_wikiext
     ((message_widget : Forum_widgets.message_widget),
      (thread_widget : Forum_widgets.thread_widget),

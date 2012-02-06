@@ -25,15 +25,8 @@
 
 open Eliom_pervasives
 open User_sql.Types
-
-let (>>=) = Lwt.(>>=)
-let (>|=) = Lwt.(>|=)
-
-(*TODO: relocate*)
-let eliom_inline_class = HTML5.M.a_class ["eliom_inline"]
-let accept_charset_utf8 = HTML5.M.a_accept_charset ["utf-8"]
-let unopt_str = function | None -> "" | Some s -> s
-
+open Ocsimore_lib
+open Ocsimore_lib.Lwt_ops
 
 let str_input ?(value="") ?(visible=true) name =
   Eliom_output.Html5.string_input ~name ~value

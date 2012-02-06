@@ -17,6 +17,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 (**
+   Provides a function to register the wikicreole extensions for wikis.
+
    @author Vincent Balat
    @author Boris Yakobowski
 *)
@@ -50,7 +52,16 @@ and extract_https args =
   with Not_found -> None
 
 
-
+(** This function registers the following wiki extensions:
+      - [<<wikibox>>]
+      - [<<link>>], [<<link-inline>>]
+      - [<<nonattachedlink>>], [<<nonattachedlink-inline>>]
+      - [<<cancellink>>], [<<cancellink-inline>>]
+      - [<<object>>]
+      - [<<img>>]
+      - [<<switchmenu>>]
+      - [<<outline>>]
+  *)
 let register_wikibox_syntax_extensions
     (error_box : Widget.widget_with_error_box) =
 

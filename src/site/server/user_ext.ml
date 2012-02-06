@@ -16,12 +16,15 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
+
 (**
+   Provides a function to register the wikicreole extensions for user management
+   (i.e. login, logout, username).
+
    @author Piero Furiesi
    @author Jaap Boender
    @author Vincent Balat
 *)
-
 
 open Eliom_pervasives
 open Eliom_parameters
@@ -31,6 +34,12 @@ open Wiki_widgets_interface
 let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 
+(** Registers the following wiki creole extensions
+    - [<<username>>]
+    - [<<loginbox>>]
+    - [<<logoutbutton>>]
+    - [<<logoutlink>>]
+  *)
 let register_user_extensions (user_widget : User_widgets.user_widget_class) =
 
   let f_loginbox bi args _c =

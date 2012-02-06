@@ -31,6 +31,8 @@ open Wiki_types
 let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
 
+(**/**)
+
 let unopt_media_type = function
   | Some x -> x
   | None -> raise (Invalid_argument "media_type_elem_of_string")
@@ -56,6 +58,8 @@ let get_wikibox_error () =
 
 let set_wikibox_error v =
   Eliom_references.set wikibox_error_eref (Some v)
+
+(**/**)
 
 let send_wikipage
   ~(rights : Wiki_types.wiki_rights)
@@ -84,7 +88,7 @@ let send_wikipage
     | None -> wiki_page ()
 
 
-(* Register the services for the wiki [wiki] *)
+(** Register the services for the wiki [wiki] *)
 let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
   if fst siteids = snd siteids then (
   Ocsigen_messages.debug

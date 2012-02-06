@@ -29,7 +29,6 @@ open Forum_types
 let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 
-
 let forum_css_header =
   Page_site.Header.create_header
     (fun () ->

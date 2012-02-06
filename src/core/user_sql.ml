@@ -112,8 +112,8 @@ let user_is_applied_parameterized_group ~user ~pgroup =
     grp_writer: 'a parameterized_group;
     grp_reader: 'a parameterized_group;
   }
-
 end
+
 open Types
 
 
