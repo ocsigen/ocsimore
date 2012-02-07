@@ -28,8 +28,7 @@ open Eliom_pervasives
 open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
-let (>>=) = Lwt.bind
-let (>|=) = Lwt.(>|=)
+open Ocsimore_lib.Lwt_ops
 
 (**/**)
 

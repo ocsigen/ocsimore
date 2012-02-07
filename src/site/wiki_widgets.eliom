@@ -1674,6 +1674,10 @@ class dynamic_wikibox
              [HTML5.M.th [HTML5.M.pcdata "Id"];
               HTML5.M.th [HTML5.M.pcdata "Wiki"];
               HTML5.M.th [HTML5.M.pcdata "Description"];
+              HTML5.M.th [HTML5.M.pcdata ""];
+              HTML5.M.th [HTML5.M.pcdata ""];
+              HTML5.M.th [HTML5.M.pcdata ""];
+              HTML5.M.th [HTML5.M.pcdata ""];
              ]
           )
           l;

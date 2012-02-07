@@ -18,6 +18,7 @@ module type Xform = sig
 
   type (+'html, +'o) t
 
+  val id : (_, _) t -> string
 
   val string_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list
@@ -109,6 +110,13 @@ module type Xform = sig
   val text : string -> [> HTML5_types.pcdata ] HTML5.M.elt list
   val strong : [< HTML5_types.strong_content_fun ] HTML5.M.elt list -> [> HTML5_types.strong ] HTML5.M.elt
   val p : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.p] HTML5.M.elt, 'b) t
+  val table : ([< HTML5_types.table_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.table] HTML5.M.elt, 'b) t
+  val tr : ([< HTML5_types.tr_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.tr] HTML5.M.elt, 'b) t
+  val td : ([< HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.td] HTML5.M.elt, 'b) t
+  val fieldset :
+    ?legend:[`Legend] HTML5.M.elt ->
+    ([<HTML5_types.flow5] HTML5.M.elt, 'b) t ->
+    ([>HTML5_types.fieldset] HTML5.M.elt, 'b) t
 
   val form:
     fallback:(

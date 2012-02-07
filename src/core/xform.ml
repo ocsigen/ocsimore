@@ -8,6 +8,12 @@ let def d v = match v with None -> d | Some v -> v
 let opt_map f v = match v with None -> None | Some v -> Some (f v)
 let opt_bind v f = match v with None -> None | Some v -> f v
 
+let fresh_id =
+  let counter = ref 0 in
+  fun () ->
+    "xform_id_"^string_of_int (incr counter; !counter)
+
+
 type error =
   | NoError
   | ErrorNoMsg
@@ -39,6 +45,7 @@ module type Xform = sig
 
   type (+'html, +'o) t
 
+  val id : (_, _) t -> string
 
   val string_input :
     ?a:HTML5_types.input_attrib HTML5.M.attrib list -> string -> ([> HTML5_types.input] HTML5.M.elt, string) t
@@ -108,6 +115,13 @@ module type Xform = sig
   val text : string -> [> HTML5_types.pcdata ] HTML5.M.elt list
   val strong : [< HTML5_types.strong_content_fun ] HTML5.M.elt list -> [> HTML5_types.strong ] HTML5.M.elt
   val p : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.p] HTML5.M.elt, 'b) t
+  val table : ([< HTML5_types.table_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.table] HTML5.M.elt, 'b) t
+  val tr : ([< HTML5_types.tr_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.tr] HTML5.M.elt, 'b) t
+  val td : ([< HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.td] HTML5.M.elt, 'b) t
+  val fieldset :
+    ?legend:[`Legend] HTML5.M.elt ->
+    ([<HTML5_types.flow5] HTML5.M.elt, 'b) t ->
+    ([>HTML5_types.fieldset] HTML5.M.elt, 'b) t
 
   val form:
     fallback:('a, unit,
@@ -141,7 +155,8 @@ end) = struct
   type ('content, 'spec, 'html, 'o) u =
       {form : 'content option -> 'spec -> ('html list * 'o outcome) Monad.t;
        params :
-         Name.t -> ('content, [`WithoutSuffix], 'spec) P.params_type * Name.t}
+         Name.t -> ('content, [`WithoutSuffix], 'spec) P.params_type * Name.t;
+       id : string}
 
   type ('html, 'o, 'res) cont =
       {f : 'content 'spec . ('content, 'spec, 'html, 'o) u -> 'res}
@@ -153,6 +168,9 @@ end) = struct
 
   let unpack : ('html, 'o) t -> ('html, 'o, 'res) cont -> 'res =
     fun { unpack } -> unpack
+
+  let id x =
+    unpack x {f = fun { id } -> id }
 
   let opt_outcome x = match x with None -> Redisplay | Some v -> Success v
   let outcome_pair o1 o2 =
@@ -178,46 +196,54 @@ end) = struct
     (P.string (Name.to_string name), Name.next name)
 
   let string_input ?a value =
+    let id = fresh_id () in
     pack
       {form =
           (fun v' name ->
             return
-              ([M.string_input ?a
+              ([M.string_input ~a:(HTML5.M.a_id id :: def [] a)
                    ~input_type:`Text
                    ~name ~value:(def value v') ()],
                opt_outcome v'));
-       params = string_param}
+       params = string_param;
+       id}
 
 
   let text_area ?a ~rows ~cols value =
+    let id = fresh_id () in
     pack
       {form =
           (fun v' name ->
             return
-              ([M.textarea ?a
+              ([M.textarea ~a:(HTML5.M.a_id id :: def [] a)
                    ~rows ~cols ~name ~value:(def value v') ()],
                opt_outcome v'));
-       params = string_param}
+       params = string_param;
+       id}
 
-  let v = M.bool_checkbox
+(*   let v = M.bool_checkbox *)
 
   let bool_checkbox ?a checked =
+    let id = fresh_id () in
     pack
       {form =
           (fun v' name ->
             return
-              ([M.bool_checkbox ?a ~name ~checked ()],
+              ([M.bool_checkbox ~a:(HTML5.M.a_id id :: def [] a) ~name ~checked ()],
                opt_outcome v'));
-       params = fun name -> (P.bool (Name.to_string name), Name.next name)}
+       params = (fun name -> (P.bool (Name.to_string name), Name.next name));
+       id}
 
   let submit_button_int value =
+    let id = fresh_id () in
     {form =
         (fun v' name ->
           return
-            ([M.string_input ~input_type:`Submit ~name ~value ()],
+            ([M.string_input ~a:[HTML5.M.a_id id] ~input_type:`Submit ~name ~value ()],
              opt_outcome (opt_map (fun v' -> v' <> None) v')));
      params =
-        (fun name -> (P.opt (P.string (Name.to_string name)), Name.next name))}
+        (fun name -> (P.opt (P.string (Name.to_string name)), Name.next name));
+     id}
 
   let submit_button value =
     pack (submit_button_int value)
@@ -226,6 +252,7 @@ end) = struct
 
 (* JJJ Validate results*)
   let select_single lst value =
+    let id = fresh_id () in
     pack
       {form =
           (fun v' name ->
@@ -240,10 +267,11 @@ end) = struct
             return
               (begin match lst with
                   []       -> []
-                | hd :: tl -> [M.string_select ~name hd tl]
+                | hd :: tl -> [M.string_select ~a:[HTML5.M.a_id id] ~name hd tl]
                end,
                 opt_outcome v'));
-       params = string_param}
+       params = string_param;
+       id}
 
   let rec mapi_rec f n l =
     match l with
@@ -298,7 +326,8 @@ end) = struct
         (fun name ->
           let (p1, name) = f1.params name in
           let (p2, name) = f2.params name in
-          (p1 ** p2, name))}
+          (p1 ** p2, name));
+     id = fresh_id ()}
 
   module Ops = struct
 
@@ -328,7 +357,6 @@ end) = struct
             f.form v name >>= fun (x, r) ->
             outcome_map_monad g r >>= fun r ->
             return (x, r)}}
-
   end
 
   open Ops
@@ -346,7 +374,8 @@ end) = struct
 
   let empty_list =
     pack {form = (fun v _name -> return ([], opt_outcome v));
-          params = (fun name -> (P.unit, name))}
+          params = (fun name -> (P.unit, name));
+          id = fresh_id ()}
       |> (fun () -> [])
 
   let list l f :
@@ -389,8 +418,9 @@ end) = struct
                  oc_list (List.map snd l)));
          params =
             (fun name -> (P.list (Name.to_string name) (fst (f.params Name.first)),
-                          Name.next name))}
-             }
+                          Name.next name));
+         id = fresh_id ()}
+    }
 
   let list' =
     (list' :
@@ -444,6 +474,18 @@ end) = struct
     wrap (fun x -> [HTML5.M.div ~a:[HTML5.M.a_style "display:none"] x])
       (x: (HTML5_types.phrasing HTML5.M.elt,'a) t :>(HTML5_types.flow5 HTML5.M.elt,'a) t)
 
+  let table rows =
+    wrap (function row :: rows -> [HTML5.M.table row rows] | [] -> []) rows
+
+  let tr cells =
+    wrap (fun cells -> [HTML5.M.tr cells]) cells
+
+  let td xs =
+    wrap (fun xs -> [HTML5.M.td xs]) xs
+
+  let fieldset ?legend x =
+    wrap (fun x -> [HTML5.M.fieldset ?legend x]) x
+
 (****)
 
 
@@ -495,7 +537,8 @@ end) = struct
                  (fun name ->
                    (P.list (Name.to_string name) (fst (f.params Name.first)),
                     Name.next name))
-                 button.params}})
+                 button.params;
+            id = fresh_id ()}})
       |> (fun (l1, l2) -> l1 @ l2)
 
   let extensible_list =
