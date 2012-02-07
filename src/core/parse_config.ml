@@ -46,7 +46,7 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("application_name", ["name", name], _)) :: l ->
       Ocsimore_config.application_name := name;
       parse_config l
-  | (Simplexmlparser.Element ("admin_dir", ["dir", dir], _)) :: l ->
+  | (Simplexmlparser.Element ("admin-dir", ["dir", dir], _)) :: l ->
       Ocsimore_config.admin_dir := dir;
       parse_config l
   | (Simplexmlparser.Element ("database", attribs, []))::l ->
