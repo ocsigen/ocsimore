@@ -338,7 +338,7 @@ let () = Eliom_output.Html5.register users_root
      User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->
      Page_site.admin_page ~sp
        ~title:"Ocsimore - Wikiperso module"
-       [HTML5.M.h1 [HTML5.M.pcdata "Wikiperso module"];
+       [HTML5.M.h2 [HTML5.M.pcdata "Wikiperso module"];
         HTML5.M.p [HTML5.M.pcdata "This is the Ocsimore admin page for the \
                                    wikiperso module. Wikipersos are wikis that \
                                    are automatically created for each Ocsimore \

@@ -126,11 +126,24 @@ val admin_page:
   ?service:menu_link_service ->
   ?body_classes:string list ->
   ?css:HTML5_types.link HTML5.M.elt list ->
-  ?title:string ->
-  ?allow_unlogged:bool ->
+  title:string ->
   HTML5_types.flow5 HTML5.M.elt list ->
   HTML5.M.html Lwt.t
 
+val body_to_div : HTML5_types.body_content HTML5.M.elt list -> HTML5_types.flow5 HTML5.M.elt list
+
+val userid_permissions : (User_sql.Types.userid -> bool Lwt.t) -> bool Lwt.t
+
+val no_permission : unit -> HTML5_types.body_content HTML5.M.elt list Lwt.t
+
+(** Display a [widget#display] as a [admin_page] under certain [permissions]. Also, some parameters of [admin_page] are
+    made available here. *)
+val admin_body_content_with_permission_handler :
+  title:('get_params -> 'post_params -> string Lwt.t) ->
+  ?service:('get_params -> 'post_params -> menu_link_service Lwt.t) ->
+  permissions:('get_params -> 'post_params -> bool Lwt.t) ->
+  display:('get_params -> 'post_params -> [< HTML5_types.body_content] HTML5.M.elt list Lwt.t) ->
+  'get_params -> 'post_params -> HTML5.M.html Lwt.t
 
 val icon:
   path:string ->

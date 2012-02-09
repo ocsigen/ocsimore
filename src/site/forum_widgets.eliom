@@ -428,12 +428,12 @@ object (self)
      in
      let l = List.map line forums in
      Lwt.return
-       [HTML5.M.h1 [HTML5.M.pcdata "Existing Ocsimore forums"];
-        HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
+       [ HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
           (HTML5.M.tr
              [HTML5.M.th [HTML5.M.pcdata "Id"];
               HTML5.M.th [HTML5.M.pcdata "Forum"];
               HTML5.M.th [HTML5.M.pcdata "Description"];
+              HTML5.M.th [];
              ]
           )
           l;

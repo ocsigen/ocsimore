@@ -49,6 +49,9 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("admin-dir", ["dir", dir], _)) :: l ->
       Ocsimore_config.admin_dir := dir;
       parse_config l
+  | (Simplexmlparser.Element ("mailer", ["bin", mailer], _)) :: l ->
+      Ocsimore_config.mailer := mailer;
+      parse_config l
   | (Simplexmlparser.Element ("database", attribs, []))::l ->
     List.iter (function
                   | "name", name -> Ocsimore_config.db_name := name;

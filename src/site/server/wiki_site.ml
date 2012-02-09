@@ -61,7 +61,7 @@ let wiki_rights = new Wiki.wiki_rights
 
 
 let wikibox_widget =
- new Wiki_widgets.dynamic_wikibox error_box User_site.user_widgets
+ new Wiki_widgets.dynamic_wikibox error_box User_site.user_widget
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =
@@ -98,9 +98,10 @@ let () =
 (** We register the service that lists all the wikis *)
 let () =
   Eliom_output.Html5.register Wiki_services.view_wikis
-    (fun () () ->
-       wikibox_widget#display_all_wikis >|= body_to_div >>= fun b ->
-       Page_site.admin_page b)
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun()()->Lwt.return "View wikis")
+       ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
+       ~display:(fun _ _ -> wikibox_widget#display_all_wikis))
 
 
 (** (We create the wiki containing the administration boxes *)
@@ -241,58 +242,45 @@ let model_input ?a model =
   string_input ?a (Wiki_types.string_of_wiki_model model)
   |> Wiki_types.wiki_model_of_string
 
-let row label ?description input =
-  let lbl = text label in
-  let a = [HTML5.M.a_for (id input)] in
-  let row = [HTML5.M.td [HTML5.M.label ~a lbl]] @+ td input in
-  let row =
-    match description with
-      | None -> row
-      | Some description ->
-          row +@ [HTML5.M.(td ~a:[a_class ["description"]] (text description))]
-  in
-  tr row
-
 let create_wiki_form ~serv_path:_ ~service ~arg
     ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
     ~siteid
     ?err_handler cont =
-  let page _arg error form =
-    let title = match error with
+  let page _arg error frm =
+    let ttl = match error with
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
-    Page_site.admin_page ~service:(cast_service service) ~title
-      (HTML5.M.h1 [HTML5.M.pcdata title] ::
-       (match error with
-          | Xform.ErrorMsg err ->
-              [HTML5.M.p
-                 ~a:[HTML5.M.a_class ["errmsg"]]
-                 [HTML5.M.pcdata err]
-              ]
-          | _ -> []
-       ) @
-       [form])
+    Page_site.admin_page ~service:(cast_service service) ~title:ttl
+      HTML5.M.(
+        (match error with
+           | Xform.ErrorMsg err ->
+               [p ~a:[a_class ["errmsg"]]
+                  [pcdata err] ]
+           | _ -> []
+        ) @
+        [frm]
+      )
   in
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (table
-         (row "Title"
+         (label_input_tr ~label:"Title"
             ~description:"used to identify the wiki in the database"
             (string_input title) @@
-          row "Description" (string_input descr) @@
-          row "Link this wiki to an url: " (path_input path) @@
-          row "Authorize special permissions on wikiboxes" (bool_checkbox boxrights) @@
-          row "Serve static files from a local directory" (staticdir_input staticdir) @@
-          row "Wiki admin"
+          label_input_tr ~label:"Description" (string_input descr) @@
+          label_input_tr ~label:"Link this wiki to an url: " (path_input path) @@
+          label_input_tr ~label:"Authorize special permissions on wikiboxes" (bool_checkbox boxrights) @@
+          label_input_tr ~label:"Serve static files from a local directory" (staticdir_input staticdir) @@
+          label_input_tr ~label:"Wiki admin"
             (extensible_list "Add wiki admin" "" admins
                (fun adm ->
                   p (convert (string_input adm) User.user_from_userlogin_xform))) @@
-          row "Wiki reader"
+          label_input_tr ~label:"Wiki reader"
             (extensible_list "Add wiki admin" "" admins
                (fun reader ->
                   p (convert (string_input reader) User.user_from_userlogin_xform))) @@
-          row "Container text" (text_area ~cols:80 ~rows:20 container) @@
-          row "Wiki model" ~description:"For advanced users" (model_input model) @@
-          row "Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
+          label_input_tr ~label:"Container text" (text_area ~cols:80 ~rows:20 container) @@
+          label_input_tr ~label:"Wiki model" ~description:"For advanced users" (model_input model) @@
+          label_input_tr ~label:"Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
           tr (td (submit_button "Create")))
       |> cont)
   >>= fun form ->
@@ -357,20 +345,17 @@ let create_wiki =
                   let msg = (Printf.sprintf "You have created wiki %s"
                                    (string_of_wiki wid))
                   in
-                  Page_site.admin_page ~service:create_wiki
-                    (   HTML5.M.h1 [HTML5.M.pcdata "Wiki sucessfully created"]
-                     :: HTML5.M.p [HTML5.M.pcdata msg]
-                     :: link
-                    )
+                  Page_site.admin_page
+                    ~title:"Wiki created"
+                    ~service:create_wiki
+                    (HTML5.M.p [HTML5.M.pcdata msg] :: link)
                )
          | false ->
-             Page_site.admin_page ~service:create_wiki
-               [HTML5.M.p
-                  [HTML5.M.pcdata "You are not allowed to create wikis. \
-                                   If you have not already done so, \
-                                   try to login."
-                  ]
-               ]
+             lwt no_permission = Page_site.no_permission () in
+             Page_site.admin_page
+               ~title:"Wiki creation"
+               ~service:create_wiki
+               no_permission
     );
   create_wiki
 
@@ -383,8 +368,7 @@ let edit_wiki_form ~service ~arg
       | Xform.NoError -> "Wiki edition "^wiki_naming
       | _ -> "Error editing "^wiki_naming in
     Page_site.admin_page ~service:(cast_service service) ~title
-      (   HTML5.M.h1 [HTML5.M.pcdata title]
-       :: (match error with
+      ((match error with
              | Xform.ErrorMsg err ->
                  [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
                     [HTML5.M.pcdata err]
@@ -396,17 +380,18 @@ let edit_wiki_form ~service ~arg
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (table
          (tr (td (Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: none"] wiki)) @@
-          row "Description" (string_input descr) @@
-          row "Container wikibox" (Opaque.int32_input_opt_xform container) @@
-          row "Link this wiki to an url"
+          label_input_tr ~label:"Description" (string_input descr) @@
+          label_input_tr ~label:"Container wikibox" (Opaque.int32_input_opt_xform container) @@
+          label_input_tr
+            ~label:"Link this wiki to an url"
             ~description:"Changing this option will only take effect after the server \
                           is restarted; use '/' for the root URL, or nothing if you do not \
                           want to bind the wiki"
             (path_input path) @@
-          row "Authorize special permissions on wikiboxes" (bool_checkbox boxrights) @@
-          row "Serve static files from a local directory" (staticdir_input staticdir) @@
-          row "Wiki model (for rights and wiki syntax)" (model_input model) @@
-          row "Site id (for conditional loading of wikis)" (string_opt_input siteid) @@
+          label_input_tr ~label:"Authorize special permissions on wikiboxes" (bool_checkbox boxrights) @@
+          label_input_tr ~label:"Serve static files from a local directory" (staticdir_input staticdir) @@
+          label_input_tr ~label:"Wiki model (for rights and wiki syntax)" (model_input model) @@
+          label_input_tr ~label:"Site id (for conditional loading of wikis)" (string_opt_input siteid) @@
           tr (td (submit_button "Save")))
       |> cont)
   >>= fun form ->
@@ -438,16 +423,13 @@ let edit_wiki =
                   Wiki_data.update_wiki ~rights ~descr ~path ~boxrights
                     ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
-                  Page_site.admin_page ~service:Wiki_services.view_wikis
-                    [HTML5.M.h1
-                       [HTML5.M.pcdata "Wiki information sucessfully edited"]
-                    ]
+                  Page_site.admin_page
+                    ~service:Wiki_services.view_wikis
+                    ~title:(Printf.sprintf "Edit wiki %S" wiki_info.wiki_title)
+                    HTML5.M.([h2 [pcdata "Wiki information sucessfully edited"]])
                )
          | false ->
-             Page_site.admin_page
-               [HTML5.M.h1 [HTML5.M.pcdata "Insufficient permissions"];
-                HTML5.M.p [HTML5.M.pcdata "You do not have enough rights to edit this wiki"];
-               ]
+             Page_site.no_permission () >>= Page_site.admin_page ~title:"Edid wiki"
     )
 
 let _ =
@@ -481,8 +463,8 @@ let _ =
       lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
       lwt title = wiki_naming wiki >|= ((^) "Wiki boxes of wiki ") in
       Page_site.admin_page
-        [HTML5.M.h1 [HTML5.M.pcdata title];
-         table ~a:[a_class ["table_admin"]]
+        ~title
+        [table ~a:[a_class ["table_admin"]]
           (tr (List.map render_header_row headers))
           (List.map render_wikibox_row wikiboxes)])
 
@@ -504,25 +486,26 @@ let _ =
            lwt history = Wiki_sql.get_wikibox_history wikibox in
            lwt { Wiki_types.wikibox_wiki = wiki } = Wiki_sql.get_wikibox_info wikibox in
            lwt wiki_name = wiki_naming wiki in
-           let heading =
+           let title =
              Printf.sprintf "View wiki box %s version %s in wiki %s"
                (Wiki_types.string_of_wikibox wikibox)
                (Int32.to_string version)
                wiki_name
            in
-           Page_site.admin_page HTML5.M.([
-             HTML5.M.h1 [HTML5.M.pcdata heading];
-             ul (List.map (render_version_link wikibox version) history);
-             table 
-               (tr [td [pcdata "wikibox"];
-                    td [pcdata Wiki_sql.(string_of_wikibox wikibox)]])
-               [tr [td [pcdata "version"];
-                    td [pcdata (Int32.to_string version)]];
-                tr [td [pcdata "content_type"];
-                    td [pcdata (Wiki_types.string_of_content_type content_type)]];
-                tr [td [pcdata "content"];
-                td (match content with Some c -> [pre [pcdata c]] | None -> [])]]
-           ])
+           Page_site.admin_page
+             ~title
+             HTML5.M.([
+               ul (List.map (render_version_link wikibox version) history);
+               table 
+                 (tr [td [pcdata "wikibox"];
+                      td [pcdata Wiki_sql.(string_of_wikibox wikibox)]])
+                 [tr [td [pcdata "version"];
+                      td [pcdata (Int32.to_string version)]];
+                  tr [td [pcdata "content_type"];
+                      td [pcdata (Wiki_types.string_of_content_type content_type)]];
+                  tr [td [pcdata "content"];
+                  td (match content with Some c -> [pre [pcdata c]] | None -> [])]]
+             ])
        | None -> Lwt.fail Eliom_common.Eliom_404)
 
 let replace_links =
@@ -552,15 +535,17 @@ let _ =
   Eliom_output.Html5.register
     Wiki_services.batch_edit_boxes
     (fun () () ->
-      Page_site.admin_page HTML5.M.([
-        Eliom_output.Html5.post_form
-          ~service:replace_links
-          (fun () -> [
-            Eliom_output.Html5.button
-              ~button_type:`Submit
-              [HTML5.M.pcdata "Replace links"]
-          ]) ()
-      ]));
+      Page_site.admin_page
+        ~title:"Batch edit boxes"
+        HTML5.M.([
+          Eliom_output.Html5.post_form
+            ~service:replace_links
+            (fun () -> [
+              Eliom_output.Html5.button
+                ~button_type:`Submit
+                [HTML5.M.pcdata "Replace links"]
+            ]) ()
+        ]));
   Eliom_output.Html5.register
     replace_links
     (fun () () ->
@@ -592,7 +577,8 @@ let _ =
         Lwt.return (wiki_info, wikiboxes_content)
       in
       lwt wikiboxes_by_wikis = lwt_sequence (List.map for_wiki wikis) in
-      Page_site.admin_page 
+      Page_site.admin_page
+        ~title:"Replace links"
         (List.map
           (fun (wiki_info, wikiboxes) ->
             HTML5.M.(
@@ -624,8 +610,7 @@ let () =
     wiki_root
     (fun () () ->
        Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
-         [HTML5.M.h1 [HTML5.M.pcdata "Wiki module"];
-          HTML5.M.p
+         [ HTML5.M.p
             [HTML5.M.pcdata "This is the Ocsimore admin page for the wiki \
                              module. The links on the right will help you \
                              configure your installation." ];
@@ -635,7 +620,9 @@ let () =
 let () = Eliom_output.Html5.register Wiki_services.edit_wiki_permissions_admin
   (fun wiki () ->
      lwt _, form = wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki in
+     lwt wiki_name = Wiki_sql.get_wiki_info_by_id ~id:wiki >|= fun { Wiki_types.wiki_title } -> wiki_title in
      Page_site.admin_page
+       ~title:(Printf.sprintf "Edit permissions of wiki %S" wiki_name)
        ~service:Wiki_services.view_wikis
        [HTML5.M.div form]
   )
@@ -648,20 +635,21 @@ let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
 
 let () =
   Eliom_output.set_exn_handler
-    (function | Eliom_common.Eliom_404 ->
-         Eliom_output.Html5.send
-           ~code:404
-           HTML5.M.(
-             html
-               (head (title (pcdata "Page not found - 404")) [])
-               (body [
-                 h1 [pcdata "Page not found - 404"];
-                 p [
-                   pcdata "You may first create a wiki in the ";
-                   Eliom_output.Html5.a ~service:create_wiki [pcdata "Ocsimore administration"] ();
-                   pcdata ".";
-                 ]
-               ])
-           )
+    (function
+       | Eliom_common.Eliom_404 ->
+           Eliom_output.Html5.send
+             ~code:404
+             HTML5.M.(
+               html
+                 (head (title (pcdata "Page not found - 404")) [])
+                 (body [
+                   h1 [pcdata "Page not found - 404"];
+                   p [
+                     pcdata "Actually, no wiki found. You may create one in the ";
+                     Eliom_output.Html5.a ~service:create_wiki [pcdata "Ocsimore administration"] ();
+                     pcdata ".";
+                   ]
+                 ])
+             )
        | e -> Lwt.fail e)
 

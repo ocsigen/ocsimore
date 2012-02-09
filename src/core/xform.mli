@@ -113,6 +113,7 @@ module type Xform = sig
   val table : ([< HTML5_types.table_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.table] HTML5.M.elt, 'b) t
   val tr : ([< HTML5_types.tr_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.tr] HTML5.M.elt, 'b) t
   val td : ([< HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.td] HTML5.M.elt, 'b) t
+  val label_input_tr : label:string -> ?description:string -> ([<HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> (HTML5_types.tr HTML5.M.elt, 'b) t
   val fieldset :
     ?legend:[`Legend] HTML5.M.elt ->
     ([<HTML5_types.flow5] HTML5.M.elt, 'b) t ->
@@ -145,3 +146,4 @@ end
 
 module Xform: Xform with type 'a monad = 'a
 module XformLwt : Xform with type 'a monad = 'a Lwt.t
+

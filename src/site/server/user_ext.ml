@@ -52,7 +52,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
        lwt b =
          user_widget#display_login_widget
            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () in
-       Lwt.return [(b : HTML5_types.div HTML5.M.elt :> [>HTML5_types.div] HTML5.M.elt)]) in
+       Lwt.return (b :> [>HTML5_types.div] HTML5.M.elt list)) in
 
   Wiki_syntax.register_interactive_simple_flow_extension
     ~name:"loginbox" ~reduced:false f_loginbox;

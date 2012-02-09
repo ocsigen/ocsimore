@@ -22,6 +22,7 @@
 *)
 
 open Eliom_pervasives
+open Ocsimore_lib
 
 let forum_wiki_rights = new Forum.wiki_rights
 
@@ -37,7 +38,7 @@ let wikicreole_forum_model =
 
 let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model
 let wiki_phrasing_widgets =
-  new Wiki_widgets.phrasing_wikibox Wiki_site.error_box User_site.user_widgets
+  new Wiki_widgets.phrasing_wikibox Wiki_site.error_box User_site.user_widget
 let services = Forum_services.register_services ()
 let widget_err = new Widget.widget_with_error_box
 let add_message_widget = new Forum_widgets.add_message_widget services
@@ -64,8 +65,7 @@ let forum_root =
 let () = Eliom_output.Html5.register forum_root
   (fun () () ->
      Page_site.admin_page ~service:forum_root ~title:"Ocsimore - Forum module"
-       [HTML5.M.h1 [HTML5.M.pcdata "Forum module"];
-        HTML5.M.p
+       [ HTML5.M.p
           [HTML5.M.pcdata "This is the Ocsimore admin page for the forum \
                            module. The links on the right will help you \
                            configure your installation." ];
@@ -84,13 +84,15 @@ let edit_forum_form ~serv_path:_ ~service ~arg
     ~(forum:Forum_types.forum) ~title ~descr ~arborescent
     ~title_syntax ~messages_wiki ~comments_wiki
     ?err_handler cont =
+  let open Forum_types in
+  lwt info = Forum_data.get_forum ~forum () in
   let page _arg error form =
     let title = match error with
-      | Xform.NoError -> "Forum edition"
+      | Xform.NoError ->
+          Printf.sprintf "Forum '%s' (ID %s)" info.f_title (string_of_forum forum)
       | _ -> "Error" in
     Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
-      ( HTML5.M.h1 [HTML5.M.pcdata title]
-       :: (match error with
+      ((match error with
              | Xform.ErrorMsg err ->
                  [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
                     [HTML5.M.pcdata err]
@@ -99,24 +101,21 @@ let edit_forum_form ~serv_path:_ ~service ~arg
        @  [form]
       )
   in
-  lwt info = Forum_data.get_forum ~forum () in
-  let open Forum_types in
   let open Xform.XformLwt in
   let open Xform.XformLwt.Ops in
   (* TODO: allow editing other fields *)
   lwt form =
     Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
-    (p (strong (text (Printf.sprintf "Forum '%s'" info.f_title)) ::
-          text (Printf.sprintf " (id %s)" (string_of_forum forum))  @+
-          Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: none"] forum) @@
-       p (text "Title: " @+ string_input title) @@
-       p (text "Description: " @+ string_input descr) @@
-       p (text "Arborescent: " @+ bool_checkbox arborescent) @@
-       p (text "Comments wiki: "  @+ Opaque.int32_input_xform comments_wiki) @@
-       p (text "Messages wiki: "  @+ Opaque.int32_input_xform messages_wiki) @@
-       p (text "Title syntax: " @+ content_type_input title_syntax) @@
-       p (submit_button "Save")
-      |> cont)
+      Xform.(table
+         (tr (td (Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: none"] forum)) @@
+          label_input_tr ~label:"Title" (string_input title) @@
+          label_input_tr ~label:"Description" (string_input descr) @@
+          label_input_tr ~label:"Arborescent" (bool_checkbox arborescent) @@
+          label_input_tr ~label:"Comments wiki" (Opaque.int32_input_xform comments_wiki) @@
+          label_input_tr ~label:"Messages wiki" (Opaque.int32_input_xform messages_wiki) @@
+          label_input_tr ~label:"Title syntax" (content_type_input title_syntax) @@
+          tr (td (submit_button "Save")))
+     |> cont)
   in
   page arg Xform.NoError form
 
@@ -131,6 +130,7 @@ let edit_forum =
     (fun forum () ->
       lwt info = Forum_data.get_forum ~forum () in
       let open Forum_types in
+      let title = "Edit forum" in
       match_lwt User.in_group ~group:(Forum.forum_admin $ forum) () with
         | true ->
           edit_forum_form ~serv_path:Forum_services.path_edit_forum
@@ -145,14 +145,12 @@ let edit_forum =
               lwt () = Forum_data.update_forum ~title ~descr
                 ~arborescent ~comments_wiki ~messages_wiki
                 ~title_syntax forum in
-              Page_site.admin_page ~service:Forum_services.view_forums
-                [HTML5.M.h1
-                [HTML5.M.pcdata "Forum information sucessfully edited"]])
+              Page_site.admin_page
+                ~service:Forum_services.view_forums
+                ~title
+                [HTML5.M.(p [pcdata "Forum information sucessfully edited"])])
         | false ->
-          Page_site.admin_page
-            [HTML5.M.h1 [HTML5.M.pcdata "Insufficient permissions"];
-             HTML5.M.p [HTML5.M.pcdata "You do not have enough rights to \
-                                           edit this forum"];])
+            Page_site.(no_permission () >>= admin_page ~title))
 
 let forum_empty_menu =
   Eliom_services.service
@@ -162,17 +160,19 @@ let forum_empty_menu =
 let () = Eliom_output.Html5.register forum_empty_menu
   (fun () () ->
     Page_site.admin_page ~service:forum_empty_menu
-      [HTML5.M.h1 [HTML5.M.pcdata "An empty configuration page for forums"];
-       HTML5.M.p
+      ~title:"Forum empty menu"
+      [ HTML5.M.p
          [HTML5.M.pcdata "This is empty and do nothing." ];
       ]
   )
 
 (** We register the service that lists all the forums *)
-let () =  Eliom_output.Html5.register Forum_services.view_forums
-    (fun () () ->
-      lwt body = forum_widget#display_all_forums in
-      Page_site.admin_page body)
+let () =
+  Eliom_output.Html5.register Forum_services.view_forums
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun () () -> Lwt.return "View forums")
+       ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
+       ~display:(fun () () -> forum_widget#display_all_forums))
 
 let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
   ~links:[

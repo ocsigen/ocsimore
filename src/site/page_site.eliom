@@ -138,20 +138,25 @@ let admin_pages_header =
 let add_admin_pages_header () =
   Header.require_header admin_pages_header
 
-let html_page ?body_classes ?(css=[]) ?(title="Ocsimore") content =
+let html_page ?body_classes ?(css=[]) ?title:ttl content =
   lwt headers = Header.generate_headers () in
   let body_attrs =
     match body_classes with
       | None -> [HTML5.M.a_id "body"]
       | Some l -> [HTML5.M.a_id "body"; HTML5.M.a_class l]
   in
-  Lwt.return
-    (HTML5.M.html
-       (HTML5.M.head
-          (HTML5.M.title (HTML5.M.pcdata title))
-          ((css :> HTML5_types.head_content_fun HTML5.M.elt list)
-           @ headers @ [Ocsimore_appl.application_script ~async:true ()]))
-       (HTML5.M.body ~a:body_attrs content))
+  Lwt.return HTML5.M.(
+    html
+     (head
+        (title (pcdata (Ocsimore_lib.get_opt ~default:"Ocsimore" ttl)))
+        ((css :> HTML5_types.head_content_fun elt list)
+         @ headers
+         @ [Ocsimore_appl.application_script ~async:true ()]))
+     (body ~a:body_attrs 
+        (get_opt ~default:[]
+           (map_option (fun ttl -> [h1 ~a:[a_class ["html_page_heading"]] [pcdata ttl]]) ttl)
+         @ content))
+  )
 
 (** Admin page *)
 
@@ -209,23 +214,45 @@ let admin_page
       ?service
       ?(body_classes =[])
       ?(css=[])
-      ?(title="Ocsimore")
-      ?(allow_unlogged=false)
+      ~title
       content =
   lwt menu = admin_menu ?service () in
   lwt status = status_text () in
   lwt usr_id = User.get_user_id () in
-  let content =
-    if usr_id <> User.anonymous || allow_unlogged
-    then content
-    else access_denied
-  in
   html_page ~title ~css ~body_classes:("admin" :: body_classes)
     (  menu ()
-     @ [HTML5.M.div ~a:[HTML5.M.a_id "admin_body"] content;
-        HTML5.M.div ~a:[HTML5.M.a_id "admin_status"] status]
+     @ HTML5.M.div ~a:[HTML5.M.a_id "admin_body"] content
+     :: HTML5.M.div ~a:[HTML5.M.a_id "admin_status"] status
+     :: []
     )
 
+let body_to_div x =
+  (x : HTML5_types.body_content HTML5.M.elt list
+     :> HTML5_types.flow5 HTML5.M.elt list)
+
+(** Dummy content to show when access is denied in [admin_body_content_with_permission_handler]. *)
+let no_permission () =
+  Lwt.return HTML5.M.([h1 [pcdata "No permission"]])
+
+let userid_permissions test = User.get_user_id () >>= test
+
+let admin_body_content_with_permission_handler ~title ?service ~permissions ~display =
+  fun get_args post_args ->
+    lwt content =
+      permissions get_args post_args >>= function
+        | true ->
+            begin try_lwt
+              (display get_args post_args :> HTML5_types.body_content HTML5.M.elt list Lwt.t)
+            with Failure msg ->
+              Lwt.return HTML5.M.([h2 [pcdata "Error"]; p [pcdata msg]])
+            end
+        | false ->
+            no_permission ()
+    in
+    let content = body_to_div content in
+    lwt service = match service with Some s -> (s get_args post_args : menu_link_service Lwt.t) >|= Ocsimore_lib.some | None -> Lwt.return None in
+    lwt title = title get_args post_args in
+    (admin_page ~title ?service content : HTML5.M.html Lwt.t)
 
 let icon ~path ~text =
   let src = static_file_uri [path] in
@@ -244,4 +271,5 @@ let ocsimore_admin_greetings =
 let () =
   Eliom_output.Html5.register admin_root
     (fun () () ->
-       admin_page ~service:admin_root ~title:"Ocsimore" ocsimore_admin_greetings)
+       admin_page ~service:admin_root ~title:"Ocsimore" ocsimore_admin_greetings);
+  ()

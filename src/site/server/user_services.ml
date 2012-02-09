@@ -58,8 +58,8 @@ let (auth, basicusercreation, force_secure) =
         and registration_mail_subject =
           Ocsimore_lib.list_assoc_default "registration_mail_subject" atts
             "Ocsimore registration"
-        and non_admin =
-          Ocsimore_lib.list_assoc_default "non_admin" atts ""
+        and non_admin_can_create =
+          Ocsimore_lib.list_assoc_default "non_admin" atts "" = "true"
         in
         lwt default_groups =
           try
@@ -73,7 +73,7 @@ let (auth, basicusercreation, force_secure) =
             mail_addr = registration_mail_addr;
             mail_subject = registration_mail_subject;
             new_user_groups = default_groups;
-            non_admin_can_create = (non_admin = "true");
+            non_admin_can_create;
           },
           secure
         in
@@ -263,25 +263,22 @@ end
 
 let mail_user_creation ~name ~email ~from_name ~from_addr ~subject ~uri =
   (* TODO with fork ou mieux en utilisant l'event loop de ocamlnet *)
-  Lwt.catch
-    (fun () ->
-(*       Lwt_preemptive.detach
-         (fun () -> *)
-            ignore(Netaddress.parse email);
-            Netsendmail.sendmail
-              ~mailer:"/usr/sbin/sendmail"
-              (Netsendmail.compose
-                 ~from_addr:(from_name, from_addr)
-                 ~to_addrs:[(name, email)]
-                 ~subject
-                 ("This is an auto-generated message. "
-                  ^ "Please do not reply to it.\n"
-                  ^ "\n"
-                  ^ "To activate your Ocsimore account, please visit the \
-                     following link: " ^ uri));
-            Lwt.return true
-    ) (* ()) *)
-    (function _ -> Lwt.return false)
+  try_lwt
+    ignore (Netaddress.parse email);
+    Netsendmail.sendmail
+      ~mailer:!Ocsimore_config.mailer
+      (Netsendmail.compose
+         ~from_addr:(from_name, from_addr)
+         ~to_addrs:[(name, email)]
+         ~subject
+         ("This is an auto-generated message. "
+          ^ "Please do not reply to it.\n"
+          ^ "\n"
+          ^ "To activate your Ocsimore account, please visit the \
+             following link: " ^ uri));
+    Lwt.return true
+  with _ ->
+    Lwt.return false
 
 
 let create_user ~name ~fullname ~email ?pwd ~options () =
@@ -301,42 +298,49 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
             ~get_params:Eliom_parameters.unit ()
           in
           Eliom_output.Html5.register ~service
-            (fun () () ->
-               User.create_fresh_user ~name ~fullname ~email
-                 ~pwd:(User_sql.Types.Ocsimore_user_crypt pwd) ()
-               >>= fun userid ->
-               User.add_to_groups (User_sql.Types.basic_user userid)
-                 options.User_data.new_user_groups
-               >>= fun () ->
-               Page_site.admin_page
-                 ~title:"Ocsimore - User creation"
-                 [ HTML5.M.h1 [HTML5.M.pcdata "User created"];
-                   HTML5.M.p [
-                     HTML5.M.pcdata "Your account has been created, and you \
-                                     can now ";
-                     Eliom_output.Html5.a
-                       ~service:service_login
-                       [HTML5.M.pcdata "login"] ();
-                   ];
-                 ]
-            );
+            (Page_site.admin_body_content_with_permission_handler
+               ~title:(fun () () -> Lwt.return "Ocsimore - User creation")
+               ~permissions:(fun () () -> Lwt.return true)
+               ~display:(fun () () ->
+                 try_lwt
+                   lwt userid =
+                     let pwd = User_sql.Types.Ocsimore_user_crypt pwd in
+                     User.create_fresh_user ~name ~fullname ~email ~pwd ()
+                   in
+                   lwt () =
+                     User.add_to_groups
+                       (User_sql.Types.basic_user userid)
+                       options.User_data.new_user_groups
+                   in
+                   Lwt.return HTML5.M.([
+                     h2 [pcdata "User created"];
+                     p [ pcdata "Your account has been created, and you can now ";
+                         Eliom_output.Html5.a
+                           ~service:service_login
+                           [HTML5.M.pcdata "login"] ()];
+                   ])
+                 with User.BadUser ->
+                   Lwt.return HTML5.M.([
+                     h2 [pcdata "Error while creating"];
+                     p [ pcdata "Bad user (the login may be already existing)"; ]
+                   ])
+               ));
           let uri =
             Eliom_output.Html5.make_string_uri ~service ~absolute:true ()
           in
-          Lwt.catch (fun () ->
-              mail_user_creation ~name ~email ~uri
-                ~subject:options.User_data.mail_subject
-                ~from_name:options.User_data.mail_from
-                ~from_addr:options.User_data.mail_addr
-              >>= function
-                | true -> Lwt.return ()
-                | false ->
-                    Lwt.fail (Failure
-                          "Registration failed: cannot send confirmation email")
-          )
-          (function
+          begin try_lwt
+            mail_user_creation ~name ~email ~uri
+              ~subject:options.User_data.mail_subject
+              ~from_name:options.User_data.mail_from
+              ~from_addr:options.User_data.mail_addr
+            >>= function
+              | true -> Lwt.return ()
+              | false ->
+                  Lwt.fail (Failure
+                        "Registration failed: cannot send confirmation email")
+          with
              | User.BadUser ->
                  Lwt.fail (Failure "ERROR: This login already exists")
-             | e -> Lwt.fail e)
+          end
     | false ->
         Lwt.fail Ocsimore_common.Permission_denied

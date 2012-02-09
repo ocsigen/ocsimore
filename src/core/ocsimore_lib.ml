@@ -16,16 +16,28 @@ let ( ^? ) (cond, x) xs = if cond then x::xs else xs (* right assoc *)
 let ( ^: ) x xs = x :: xs (* right assoc, same precedence of ^? *)
 let ( % ) x y = x,y  (* left assoc, higher precedence *)
 
+let ( |- ) f g = fun x -> g (f x)
+let ( -| ) f g = fun x -> f (g x)
+let ( **> ) f x = f x
+let ( |> ) x f = f x
+
 let eliom_inline_class = HTML5.M.a_class ["eliom_inline"]
 let accept_charset_utf8 = HTML5.M.a_accept_charset ["utf-8"]
 let unopt_str = function | None -> "" | Some s -> s
 
 let iter_option f o = match o with None -> () | Some x -> f x
+let some x = Some x
+let get_opt ~default = function Some x -> x | None -> default
 
 let flip f b a = f a b
 
 let list_singleton x = [x]
 let cons x xs = x :: xs
+
+let fresh_id =
+  let counter = ref 0 in
+  fun ?(prefix="id_") () ->
+    prefix^string_of_int (incr counter; !counter)
 
 type 'a tree = Node of 'a * ('a tree list);;
 

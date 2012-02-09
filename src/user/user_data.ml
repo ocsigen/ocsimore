@@ -93,6 +93,13 @@ let create_group ~name ~descr =
 
 (** {2 Change user information} *)
 
+let can_view_users () =
+  User.in_group ~group:User.group_can_create_users ()
+let can_view_groups () =
+  User.in_group ~group:User.group_can_create_groups ()
+let can_view_roles () =
+  User.in_group ~group:User.group_can_create_groups ()
+
 let can_change_user_data_by_userid userid =
   lwt lu = User.get_user_id () in
   Lwt.return ((lu = userid && lu <> User.nobody) || lu = User.admin)

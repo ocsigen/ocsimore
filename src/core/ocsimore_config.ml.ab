@@ -10,6 +10,8 @@ let db_password = ref (opt "$pgpassword")
 
 let admin_dir = ref "ocsimoreadmin"
 
+let mailer = ref "/usr/sbin/sendmail"
+
 let application_name = ref "ocsimore"
 
 let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)

@@ -658,8 +658,7 @@ class dynamic_wikibox
     Wiki_sql.get_wiki_info_by_id wiki
         >>= fun { wiki_descr = descr; wiki_container = container } ->
     let form (wbname, (wikiname, (descrname, containername))) =
-      [HTML5.M.h2 [HTML5.M.pcdata "Wiki properties"];
-       HTML5.M.p
+      [ HTML5.M.p
          (List.flatten
             [[Ocsimore_common.input_opaque_int32 ~value:wiki wikiname];
              (match wb with
@@ -735,8 +734,7 @@ class dynamic_wikibox
                                                                   >>= fun f11 ->
 
     let form =
-      [HTML5.M.h2
-         [HTML5.M.pcdata ("Permissions for wiki " ^ string_of_wiki wiki)];
+      [
        HTML5.M.p
          [HTML5.M.em [HTML5.M.pcdata "(inherited permissions are not shown)"]];
        HTML5.M.table
@@ -1668,8 +1666,7 @@ class dynamic_wikibox
      in
      let l = List.map line l in
      Lwt.return
-       [HTML5.M.h1 [HTML5.M.pcdata "Existing Ocsimore wikis"];
-        HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
+       [ HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
           (HTML5.M.tr
              [HTML5.M.th [HTML5.M.pcdata "Id"];
               HTML5.M.th [HTML5.M.pcdata "Wiki"];

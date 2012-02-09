@@ -28,120 +28,108 @@ open Lwt
 
 let ( ** ) = Eliom_parameters.prod
 
+let user_widget =
+  match User_services.basicusercreation with
+    | User_services.NoUserCreation ->
+        Eliom_output.Html5.register
+          ~service:User_services.service_create_new_user
+          (Page_site.admin_body_content_with_permission_handler
+             ~title:(fun () () -> Lwt.return "Create new user")
+             ~permissions:(fun () () -> Lwt.return true)
+             ~display:(fun () () ->
+                         Lwt.return HTML5.M.([
+                           h2 [pcdata "Error"];
+                           p [pcdata "User creation is disabled"];
+                         ])));
+        (new User_widgets.user_widget : User_widgets.user_widget_class)
+    | User_services.UserCreation options ->
+        let user_widget_creation =
+          object
+            inherit User_widgets.user_widget
+            inherit User_widgets.user_widget_user_creation options
+          end
+        in
+        Eliom_output.Html5.register
+          ~service:User_services.service_create_new_user
+          (Page_site.admin_body_content_with_permission_handler
+             ~title:(fun () () -> Lwt.return "Create new user")
+             ~permissions:(fun () () -> User_data.can_create_user ~options)
+             ~display:(fun () () -> user_widget_creation#display_user_creation ()));
+        Eliom_output.Html5.register
+          ~service:User_services.action_create_new_user
+          (Page_site.admin_body_content_with_permission_handler
+             ~title:(fun () _ -> Lwt.return "Created new user")
+             ~service:(fun () _ -> Lwt.return User_services.service_create_new_user)
+             ~permissions:(fun () _ -> User_data.can_create_user ~options)
+             ~display:(fun () (name, (fullname, (email, pwd))) ->
+                         user_widget_creation#display_user_creation_done
+                           ~name ~fullname ~email ~pwd));
+        (user_widget_creation :> User_widgets.user_widget_class)
 
-let user_widgets = new User_widgets.user_widget
-
-let body_to_div x =
-  (x : HTML5_types.body_content HTML5.M.elt list
-     :> HTML5_types.flow5 HTML5.M.elt list
-  )
 
 let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
 
   Eliom_output.Html5.register User_services.service_view_group
-    (fun g () ->
-       User.get_user_by_name g  >>= fun group ->
-       (if group = basic_user User.nobody && g <> User.nobody_login then
-          Lwt.return
-            [HTML5.M.p
-               ~a:[HTML5.M.a_class ["errmsg"]]
-               [HTML5.M.pcdata ("Unknown group " ^ g)]
-            ]
-        else
-          user_widgets#display_group (group, g)
-       ) >>= fun body ->
-       User_sql.user_type group >>= fun gtype ->
-       let service = match gtype with
+    (let service g _ =
+       User.get_user_by_name g >>= User_sql.user_type >|= function 
          | `Group -> User_services.service_view_groups
          | `User -> User_services.service_view_users
          | `Role -> User_services.service_view_roles
-       in
-       Page_site.admin_page ~service (body_to_div body)
-    );
+     in
+     let display g _ =
+       lwt group = User.get_user_by_name g in
+       if group = basic_user User.nobody && g <> User.nobody_login then
+         Lwt.fail (Failure ("Unknown group "^g))
+       else
+         user_widget#display_group (group, g)
+     in
+     Page_site.admin_body_content_with_permission_handler
+       ~title:(fun g _ -> Lwt.return (Printf.sprintf "View group %S" g))
+       ~permissions:(fun _ _ -> User_data.can_view_groups ())
+       ~service
+       ~display);
 
   Eliom_output.Html5.register User_services.service_view_groups
-    (fun () () ->
-       user_widgets#display_groups >|= body_to_div
-       >>= Page_site.admin_page
-    );
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun _ _ -> Lwt.return "View groups")
+       ~permissions:(fun _ _ -> User_data.can_view_groups ())
+       ~display:(fun _ _ -> user_widget#display_groups));
 
   Eliom_output.Html5.register User_services.service_view_users
-    (fun () () ->
-       user_widgets#display_users >|= body_to_div
-       >>= Page_site.admin_page
-    );
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun _ _ -> Lwt.return "View groups")
+       ~permissions:(fun _ _ -> User_data.can_view_users ())
+       ~display:(fun _ _ -> user_widget#display_users));
 
   Eliom_output.Html5.register User_services.service_view_roles
-    (fun () () ->
-       user_widgets#display_roles >|= body_to_div
-       >>= Page_site.admin_page
-    );
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun _ _ -> Lwt.return "View roles")
+       ~permissions:(fun _ _ -> User_data.can_view_roles ())
+       ~display:(fun _ _ -> user_widget#display_roles));
 
   Eliom_output.Html5.register User_services.service_login
-    (fun () () ->
-       user_widgets#display_login_widget () >>= fun body ->
-       Page_site.admin_page ~allow_unlogged:true
-         [HTML5.M.h1 [HTML5.M.pcdata "Login page"];
-          (body: HTML5_types.div HTML5.M.elt
-               :> [> HTML5_types.div] HTML5.M.elt)
-         ]
-    );
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun _ _ -> Lwt.return "Login")
+       ~permissions:(fun _ _ -> Lwt.return true)
+       ~display:(fun _ _ -> user_widget#display_login_widget ()));
 
   Eliom_output.Html5.register ~service:User_services.service_create_new_group
-    (fun () () ->
-       user_widgets#display_group_creation ~err:"" () >|= body_to_div
-       >>= Page_site.admin_page
-    );
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun _ _ -> Lwt.return "Create new group")
+       ~permissions:(fun _ _ -> User_data.can_create_group ())
+       ~display:(fun _ _ -> user_widget#display_group_creation ()));
 
   Eliom_output.Html5.register ~service:User_services.action_create_new_group
-    (fun () args ->
-       user_widgets#display_group_creation_done () args >|= body_to_div
-       >>= (Page_site.admin_page
-              ~service:User_services.service_create_new_group)
-    );
-
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun _ _ -> Lwt.return"Create new group")
+       ~permissions:(fun _ _ -> User_data.can_create_group ())
+       ~display:(user_widget#display_group_creation_done)
+       ~service:(fun _ _ -> Lwt.return User_services.service_create_new_group));
 
   (* We register the syntax extensions *)
-  User_ext.register_user_extensions user_widgets
-
-
-
-let user_creation_widgets = match User_services.basicusercreation with
-  | User_services.UserCreation user_creation_options ->
-      let user_widget_creation = new User_widgets.user_widget_user_creation
-        user_creation_options in
-
-        (* We register the user creation services *)
-        Eliom_output.Html5.register ~service:User_services.service_create_new_user
-          (fun () () ->
-             user_widget_creation#display_user_creation ~err:"" () >|= body_to_div
-             >>= Page_site.admin_page
-          );
-
-        Eliom_output.Html5.register ~service:User_services.action_create_new_user
-          (fun () (name, (fullname, (email, pwd))) ->
-             user_widget_creation#display_user_creation_done
-               ~name ~fullname ~email ~pwd >|= body_to_div
-             >>= (Page_site.admin_page
-                    ~service:User_services.service_create_new_user)
-          );
-
-        Some user_widget_creation
-
-    | User_services.NoUserCreation ->
-
-        Eliom_output.Html5.register ~service:User_services.service_create_new_user
-          (fun () () ->
-             Page_site.admin_page
-               [HTML5.M.h1 [HTML5.M.pcdata "Error"];
-                HTML5.M.p [HTML5.M.pcdata "User creation is disabled"];
-               ]
-          );
-
-None
-
+  User_ext.register_user_extensions user_widget
 
 
 
@@ -156,11 +144,9 @@ let () = Eliom_output.Html5.register users_root
   (fun () () ->
      Page_site.admin_page
        ~title:"Ocsimore - Users module"
-       [HTML5.M.h1 [HTML5.M.pcdata "Users module"];
-        HTML5.M.p [HTML5.M.pcdata "This is the Ocsimore admin page for the \
-                                   users module." ];
-       ]
-  )
+       HTML5.M.([
+         p [pcdata "This is the Ocsimore admin page for the users module." ];
+       ]))
 
 
 
@@ -184,7 +170,7 @@ let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
 let () =
   Page_site.add_status_function
     (fun () ->
-       user_widgets#status_text >|= fun f ->
+       user_widget#status_text >|= fun f ->
        HTML5.M.div f
     )
 
