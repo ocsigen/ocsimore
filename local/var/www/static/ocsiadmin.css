@@ -122,12 +122,12 @@ body.admin {
     font-family: Verdana,sans-serif;
 }
 
-body.admin h1 {
+body.admin h1.html_page_heading {
   background-color: #3860AA;
   color: white;
-  padding: .5em;
   margin-left: -10px;
-  margin-bottom: 1.5em
+  margin-bottom: 1.5em;
+  padding: 0.5em 0.5em 0.5em 250px;
 }
 
 #admin_status {
@@ -161,3 +161,8 @@ div.user_block {
 #admin_status .login_box td {
     padding: 0;
 }
+
+form > table > tr > td.description {
+  font-size: small;
+}
+
