@@ -23,6 +23,7 @@
 
 open Eliom_pervasives
 open Ocsimore_lib
+open Lwt_ops
 
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
@@ -30,8 +31,6 @@ type menu_link_service =
      [ `Unregistrable | `Registrable ],
     Eliom_output.non_caml_service)
     Eliom_tools.one_page
-
-open Lwt_ops
 
 let admin_staticdir =
   let rec find_wikidata (_staticadm  as data) = function
@@ -203,13 +202,6 @@ let add_status_function, status_text =
   (fun e -> l := e :: !l),
   (fun () -> Lwt_list.map_s (fun x -> x ()) !l)
 
-(*TODO: find a better place for [access_denied]'s definition and make customizable *)
-let access_denied =
-  let open HTML5.M in [
-    h1 [pcdata "Access denied"];
-    pcdata "You are not allowed to access this content. Please login.";
-  ]
-
 let admin_page
       ?service
       ?(body_classes =[])
@@ -232,7 +224,16 @@ let body_to_div x =
 
 (** Dummy content to show when access is denied in [admin_body_content_with_permission_handler]. *)
 let no_permission () =
-  Lwt.return HTML5.M.([h1 [pcdata "No permission"]])
+  lwt userid = User.get_user_id () in
+  Lwt.return HTML5.M.(
+    h1 [pcdata "No permission"] ::
+    if userid = User.anonymous then
+      [p [
+        pcdata "You may want to login.";
+(*         Eliom_output.Html5.a ~service:User_services.service_login [pcdata "login"] () *)
+      ]]
+    else []
+  )
 
 let userid_permissions test = User.get_user_id () >>= test
 
