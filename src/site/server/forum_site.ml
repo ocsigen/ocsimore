@@ -150,19 +150,61 @@ let edit_forum =
         | false ->
             Page_site.(no_permission () >>= admin_page ~title))
 
-let forum_empty_menu =
-  Eliom_services.service
-    ~path:[Ocsimore_lib.ocsimore_admin_dir;"forums_do_nothing"]
-    ~get_params:Eliom_parameters.unit ()
+let create_forum_form ~serv_path:_ ~service ~arg
+    ?err_handler cont =
+  let page _arg error form =
+    let title = match error with
+      | Xform.NoError -> "New forum"
+      | _ -> "Error" in
+    Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
+      ((match error with
+             | Xform.ErrorMsg err ->
+                 [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
+                    [HTML5.M.pcdata err]
+                 ]
+             | _ -> [])
+       @  [form] )
+  in
+  let open Forum_types in
+  let open Xform.XformLwt in
+  let open Xform.XformLwt.Ops in
+  lwt form =
+    Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
+     (table
+       (label_input_tr ~label:"Title" (string_input "") @@
+        label_input_tr ~label:"Description" (string_input "") @@
+        label_input_tr ~label:"Arborescent" (bool_checkbox true) @@
+        label_input_tr ~label:"Title syntax" (content_type_input title_syntax) @@
+        tr (td (submit_button "Create")))
+       |> cont)
+  in
+  page arg Xform.NoError form
 
-let () = Eliom_output.Html5.register forum_empty_menu
-  (fun () () ->
-    Page_site.admin_page ~service:forum_empty_menu
-      [HTML5.M.h1 [HTML5.M.pcdata "An empty configuration page for forums"];
-       HTML5.M.p
-         [HTML5.M.pcdata "This is empty and do nothing." ];
-      ]
-  )
+let create_forum =
+  let err_handler = function
+    | Ocsimore_common.Permission_denied ->
+        Some "You do not have sufficient permissions to create forums"
+    | _ -> Some "An unknown error has occurred"
+  in
+  Eliom_output.Html5.register Forum_services.create_forum
+    (fun () () ->
+      let open Forum_types in
+      match_lwt User.in_group ~group:Forum.forum_creators () with
+        | true ->
+          create_forum_form
+            ~serv_path:Forum_services.path_create_forum
+            ~service:Forum_services.view_forums ~arg:()
+            ~err_handler
+            (fun (title, (descr, (arborescent,
+               (title_syntax, (_ : bool))))) () ->
+              lwt _ = Forum.create_forum ~title ~descr
+                ~arborescent ~title_syntax
+                ~wiki_model:Wiki_site.wikicreole_model () in
+              Page_site.admin_page ~service:Forum_services.view_forums
+                ~title:"Create forum"
+                HTML5.M.([h2 [pcdata "Forum information sucessfully created"]]))
+        | false ->
+            Page_site.(no_permission () >>= admin_page ~title:"Create forum"))
 
 (** We register the service that lists all the forums *)
 let () =

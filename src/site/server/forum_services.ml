@@ -114,7 +114,8 @@ let register_services () =
   (add_message_service,
    moderate_message_service)
 
-let path_edit_forum = [Ocsimore_lib.ocsimore_admin_dir;"edit_forum"]
+let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
+let path_create_forum = [!Ocsimore_config.admin_dir;"create_forum"]
 
 let edit_forum = Eliom_services.service
   ~path:path_edit_forum
