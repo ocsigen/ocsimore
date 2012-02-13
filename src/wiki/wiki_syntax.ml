@@ -1287,28 +1287,9 @@ let make_href bi addr fragment =
                  let url = Neturl.url_of_string site_url_syntax (Eliom_request_info.get_full_url ()) in
                  Eliom_output.Html5.make_proto_prefix https ^
                    Neturl.(string_of_url (modify_url ?fragment ~path url)))
-    | Site (href, forceproto) ->
-      String_href (* CCC could we find a service for the site ? *)
-        (try
-          let url = Neturl.url_of_string site_url_syntax href in
-          let path = Neturl.url_path url in
-          let path =
-            (Eliom_request_info.get_site_dir ()) @
-              (Url.remove_slash_at_beginning path)
-          in
-          match forceproto with
-            | None ->
-                let path =
-                  Eliom_uri.reconstruct_relative_url_path
-                    (Eliom_request_info.get_original_full_path ())
-                    path
-                in
-                Neturl.string_of_url (Neturl.modify_url ?fragment ~path url)
-            | Some https ->
-                (Eliom_output.Html5.make_proto_prefix https)^
-                  (Neturl.string_of_url (Neturl.modify_url ?fragment ~path url))
-        with Neturl.Malformed_URL ->
-          "malformed link")
+    | Absolute addr ->
+        String_href (addr ^ get_map_option ~default:"" ~f:((^) "#") fragment)
+
 
 (********************************)
 (* builders. Default functions: *)
