@@ -154,7 +154,7 @@ let create_forum_form ~serv_path:_ ~service ~arg
     ?err_handler cont =
   let page _arg error form =
     let title = match error with
-      | Xform.NoError -> "New forum"
+      | Xform.NoError -> "Create forum"
       | _ -> "Error" in
     Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
       ((match error with
@@ -217,7 +217,7 @@ let () =
 let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
   ~links:[
     "View all forums", Forum_services.view_forums, (fun () -> Lwt.return true);
-    "create forum", Forum_services.create_forum,
+    "Create forum", Forum_services.create_forum,
     (fun () -> User.in_group ~group:Forum.forum_creators ());
   ]
 

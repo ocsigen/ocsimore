@@ -186,12 +186,10 @@ let _ = register_named_wikibox
   ~page:Wiki_widgets_interface.wikisyntax_help_name
   ~content_type:Wiki_syntax.wikicreole_content_type
   ~comment:"Wikisyntax help"
-  ~content:(Printf.sprintf
-              "===Wiki syntax===\r\n\r\n\
-               This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s \
-               syntax, with a few extensions.\r\n\r\n\
-               {{wiki(%ld):creole_cheat_sheet.png|Wikicreole's syntax}}"
-  (Opaque.t_int32 wiki_admin_id))
+  ~content:"===Wiki syntax===\r\n\r\n\
+            This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s \
+            syntax, with a few extensions.\r\n\r\n\
+            {{site:creole_cheat_sheet.png|Wikicreole's syntax}}"
 
 
 (** We register the existing wikis of the database, but only those that

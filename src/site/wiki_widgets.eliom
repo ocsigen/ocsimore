@@ -336,11 +336,6 @@ class dynamic_wikibox
       else None
     in
     let menudel =
-      (* UNUSED obrowser
-         let link =
-         Eliom_output.Html5.make_string_uri ~service:delete ~sp ()
-         in
-      *)
       if wbdel
       then Some (delete,
                  [HTML5.M.span
@@ -358,7 +353,7 @@ class dynamic_wikibox
     match l, wbdel with
       | [], false -> Lwt.return [] (* empty list => no menu *)
       | _ ->
-          Wiki.wiki_admin_page_link ["crayon.png"] >>= fun img ->
+          let img = Page_site.static_file_uri ["crayon.png"] in
           let menu = Eliom_tools.Html5.menu
                        ~classe:["wikiboxmenu"]
                        ((view, [HTML5.M.pcdata "view"]) :: l)
@@ -428,7 +423,8 @@ class dynamic_wikibox
       content
       previewonly
       (actionname, (page_wiki_path_names, ((wbname, versionname), contentname))) =
-    [HTML5.M.p
+    [HTML5.M.(h4 ~a:[a_class ["override_heading"]] [pcdata (Printf.sprintf "Edit wikibox %s" (Wiki_types.string_of_wikibox wb))]);
+     HTML5.M.p
        (  warning1
         @ Ocsimore_common.input_opaque_int32 ~value:wb wbname
         :: hidden_page_inputs page page_wiki_path_names
@@ -1154,12 +1150,11 @@ class dynamic_wikibox
     fun ~bi ?(classes=[]) ?rows ?cols ?special_box wb ->
       lwt (r, code) =
         let classes = wikibox_class::classes in
-        Wiki_services.get_override_wikibox () >>= function
+        match_lwt Wiki_services.get_override_wikibox () with
           | Some (wb', override) when wb = wb' ->
               self#display_overriden_interactive_wikibox ~bi ~classes ?rows ?cols
                 ?special_box ~wb_loc:wb ~override () >|= fun (b, c) ->
               ([HTML5.M.div ~a:[HTML5.M.a_class ["overridden"]] b], c)
-
           | _ ->
               lwt (c, code) =
                 try_lwt
@@ -1487,12 +1482,13 @@ class dynamic_wikibox
      let rights = Wiki_models.get_rights wiki_info.wiki_model
      and wb_container = wiki_info.wiki_container in
      Lwt.return
-     (fun ~sectioning menu_style -> Lwt.catch
-       (fun () ->
+     (fun ~sectioning menu_style -> 
+       try_lwt
           (* We render the wikibox for the page *)
-          Wiki_sql.get_wikipage_info wiki page
-          >>= fun { wikipage_wikibox = box; wikipage_title = title } ->
-          Wiki.default_bi ~wikibox:box ~rights >>= fun bi ->
+          lwt { wikipage_wikibox = box; wikipage_title = title } =
+            Wiki_sql.get_wikipage_info wiki page
+          in
+          lwt bi = Wiki.default_bi ~wikibox:box ~rights in
           let bi = { bi with bi_page = wiki, Some page_list;
                              bi_menu_style = menu_style;
                              bi_sectioning = sectioning; } in
@@ -1501,59 +1497,56 @@ class dynamic_wikibox
             | Some subbox ->
               let bi = Wiki_widgets_interface.add_ancestor_bi box bi in
               { bi with bi_subbox = subbox bi; } in
-          self#display_interactive_wikibox_aux ~bi
-            ~special_box:(WikiPageBox (wiki, page)) box
-          >>= fun (subbox, allowed) ->
+          lwt (subbox, allowed) =
+            self#display_interactive_wikibox_aux ~bi
+              ~special_box:(WikiPageBox (wiki, page)) box
+          in
           Lwt.return (Some box,
                       subbox,
                       (if allowed
                        then Wiki_widgets_interface.Page_displayable
                        else Wiki_widgets_interface.Page_403),
                       title)
-       )
-       (function
-          | Not_found ->
-              (* No wikibox. We create a default page, to insert into the
-                 container *)
-              let draw_form (wbname, (wikiidname, pagename)) =
-                [HTML5.M.p
-                  (List.flatten
-                     [[Ocsimore_common.input_opaque_int32 ~value:wiki wikiidname
-                      ];
-                       (* Used to know where to display errors (only possible
-                          if there is a container, otherwise we don't know
-                          what to override *)
-                      (match wb_container with
-                         | None -> []
-                         | Some container ->
-                             [Ocsimore_common.input_opaque_int32
-                                   ~value:container wbname]
-                      );
-                      [Eliom_output.Html5.string_input ~name:pagename
-                         ~input_type:`Hidden ~value:page ();
-                       Eliom_output.Html5.string_input
-                         ~input_type:`Submit ~value:"Create it!" ();
-                      ];
-                     ]
-                  )
+        with Not_found ->
+            (* No wikibox. We create a default page, to insert into the
+               container *)
+            let draw_form (wbname, (wikiidname, pagename)) =
+              [HTML5.M.p
+                (List.flatten
+                   [[Ocsimore_common.input_opaque_int32 ~value:wiki wikiidname
+                    ];
+                     (* Used to know where to display errors (only possible
+                        if there is a container, otherwise we don't know
+                        what to override) *)
+                    (match wb_container with
+                       | None -> []
+                       | Some container ->
+                           [Ocsimore_common.input_opaque_int32
+                                 ~value:container wbname]
+                    );
+                    [Eliom_output.Html5.string_input ~name:pagename
+                       ~input_type:`Hidden ~value:page ();
+                     Eliom_output.Html5.string_input
+                       ~input_type:`Submit ~value:"Create it!" ();
+                    ];
+                   ]
+                )
+              ]
+            in
+            lwt c = rights#can_create_wikipages wiki in
+            let form =
+              if c then
+                [Eliom_output.Html5.post_form
+                   ~service:Wiki_services.action_create_page draw_form ()
                 ]
-              in
-              rights#can_create_wikipages wiki >>= fun c ->
-              let form =
-                if c then
-                  [Eliom_output.Html5.post_form
-                     ~service:Wiki_services.action_create_page draw_form ()
-                  ]
-                else []
-              and err_msg = !Language.messages.Language.page_does_not_exist
-              in
-              Lwt.return
-                (None,
-                 (HTML5.M.p [HTML5.M.pcdata err_msg] :: form),
-                 Wiki_widgets_interface.Page_404,
-                 None)
-          | e -> Lwt.fail e
-       )
+              else []
+            and err_msg = !Language.messages.Language.page_does_not_exist
+            in
+            Lwt.return
+              (None,
+               (HTML5.M.p [HTML5.M.pcdata err_msg] :: form),
+               Wiki_widgets_interface.Page_404,
+               None)
      )
 
 
@@ -1695,7 +1688,7 @@ object (self)
          wb warning1 warning2 curversion content
          previewonly
          (actionname, (page_wiki_path_names, ((wbname, versionname), contentname))) =
-    [HTML5.M.p
+    [ HTML5.M.p
        (List.flatten
           [warning1;
            hidden_page_inputs page page_wiki_path_names;

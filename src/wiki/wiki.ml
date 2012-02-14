@@ -41,25 +41,22 @@ let wiki_admin_name = "Adminwiki"
 exception No_admin_wiki
 
 let get_admin_wiki () =
-  Lwt.catch
-    (fun () -> Wiki_sql.get_wiki_info_by_name wiki_admin_name)
-    (function
-       | Not_found -> raise No_admin_wiki
-       | e -> Lwt.fail e)
+  try_lwt
+    Wiki_sql.get_wiki_info_by_name wiki_admin_name
+  with Not_found ->
+    raise No_admin_wiki
 
 
 let wiki_admin_servpage () =
-  get_admin_wiki () >>= fun wadmin ->
-  Lwt.return (match Wiki_self_services.find_servpage wadmin.wiki_id with
-                | None -> raise No_admin_wiki
-                | Some service -> service)
+  get_admin_wiki () >|= fun { wiki_id } ->
+    match Wiki_self_services.find_servpage wiki_id with
+      | Some service -> service
+      | None -> raise No_admin_wiki
 
 
 let wiki_admin_page_link page =
-  wiki_admin_servpage () >>= fun service ->
-  Lwt.return (Eliom_output.Html5.make_uri ~service page)
-
-
+  wiki_admin_servpage () >|= fun service ->
+    Eliom_output.Html5.make_uri ~service page
 
 
 (** Wiki groups *)

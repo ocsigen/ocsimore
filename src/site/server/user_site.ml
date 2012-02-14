@@ -151,7 +151,8 @@ let () = Eliom_output.Html5.register users_root
 
 
 
-let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
+let () =
+  Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
   ~links:([
     "View users", User_services.service_view_users, (fun _ -> Lwt.return true);
     "View groups", User_services.service_view_groups,(fun _ -> Lwt.return true);

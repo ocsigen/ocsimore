@@ -38,12 +38,12 @@ let passwd_input ?a ?(value="") name =
     ~input_type:`Password
     ~name
     ~value ()
-let submit_input value =
-  Eliom_output.Html5.string_input ~input_type:`Submit ~value ()
+let submit_input ?a value =
+  Eliom_output.Html5.string_input ?a ~input_type:`Submit ~value ()
 
 
 class type user_widget_class = object
-  method login_box_extension : HTML5_types.tr HTML5.M.elt list Lwt.t
+  method login_box_extension : HTML5_types.div_content_fun HTML5.M.elt list Lwt.t
   method display_roles :
     Eliom_output.Blocks5.page Lwt.t
   method display_groups :
@@ -134,7 +134,7 @@ class type user_widget_user_creation_class = object
     pwd:string*string ->
     Eliom_output.Blocks5.page Lwt.t
 
-  method login_box_extension : HTML5_types.tr HTML5.M.elt list Lwt.t
+  method login_box_extension : HTML5_types.div_content_fun HTML5.M.elt list Lwt.t
 end
 
 
@@ -279,25 +279,24 @@ object (self)
       lwt ext =
         if show_ext
         then self#login_box_extension
-        else Lwt.return ([]: [`Tr] HTML5.M.elt list)
+        else Lwt.return ([]: HTML5_types.div_content_fun HTML5.M.elt list)
       in
       let open HTML5.M in
       Lwt.return (fun (usr, pwd) ->
-        [table ~a:[a_class ["login_box"]]
-           (tr
-              [td [pcdata user_prompt];
-               td [str_input usr]])
-           (tr
-              [td [HTML5.M.pcdata pwd_prompt];
-               td [passwd_input pwd]]
-            :: tr [td [submit_input "Login"]]
+        let user_input_id = fresh_id () in
+        let password_input_id = fresh_id () in
+        [div ~a:[a_class ["login_box"]]
+           (table 
+             (tr
+                [td [label ~a:[a_for user_input_id] [pcdata user_prompt]];
+                 td [str_input ~a:[a_id user_input_id] usr]])
+             ([tr [td [label ~a:[a_for password_input_id] [pcdata pwd_prompt]];
+                   td [passwd_input ~a:[a_id password_input_id] pwd]];
+               tr [td [];
+                   td [submit_input "Login"]]])
             :: ext
-            @ (if error
-               then [tr [td ~a:[a_colspan 2]
-                           [pcdata auth_error]] ]
-               else [])
-           )
-        ]
+            @ (if error then [pcdata auth_error] else [])
+           )]
       )
     end
     else
@@ -310,30 +309,24 @@ object (self)
       )
 
   method private display_logout_box ?(show_ext=true) u =
-    lwt ext =
-      if show_ext
-      then self#logout_box_extension
-      else Lwt.return []
-    in
     let open HTML5.M in
+    let user_name =
+      span ~a:[a_class ["user_name"]]
+        [pcdata u.user_fullname]
+    in
     Lwt.return
-      [table ~a:[a_class["login_box"]]
-         (tr [td [pcdata (Printf.sprintf "You are logged as %s" u.user_fullname)]])
-         (tr [td [submit_input "logout"]]
-          :: ext)
-    ]
+      [div ~a:[a_class ["login_box"]]
+         [ pcdata "You are logged as ";
+           if show_ext then
+             Eliom_output.Html5.a
+               User_services.service_view_group
+               [user_name]
+               u.user_login
+           else
+             user_name ];
+       submit_input ~a:[a_class ["logout"]] "logout" ]
 
   method private login_box_extension = Lwt.return []
-
-  method private logout_box_extension =
-    User.get_user_data () >|= fun ud ->
-    [HTML5.M.tr
-       [HTML5.M.td
-          [Eliom_output.Html5.a
-             User_services.service_view_group
-             [HTML5.M.pcdata "Manage your account"] ud.user_login
-          ]]
-    ]
 
   method display_logout_button
     : 'a. _ -> ([> HTML5_types.form ] as 'a) HTML5.M.elt Lwt.t =
@@ -666,11 +659,9 @@ object (self)
   method login_box_extension =
     User_data.can_create_user ~options:user_creation_options >|= function
       | true ->
-          [HTML5.M.tr
-             [HTML5.M.td ~a:[HTML5.M.a_colspan 2]
-                [Eliom_output.Html5.a
-                   User_services.service_create_new_user
-                   [HTML5.M.pcdata "New user? Register now!" ] () ] ] ]
+          [Eliom_output.Html5.a
+             User_services.service_create_new_user
+             [HTML5.M.pcdata "New user? Register now!" ] () ]
 (*
             << <tr>
               <td colspan="2">

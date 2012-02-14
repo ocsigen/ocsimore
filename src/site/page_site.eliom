@@ -58,18 +58,20 @@ let admin_staticdir =
         raise No_admin_staticdir
 
 
-let static_service = Eliom_output.Any.register_service
-  ~path:[!Ocsimore_config.admin_dir ; "static"]
-  ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "path"))
-  (fun path () ->
-     let path = admin_staticdir :: path in
-     let file = Ocsigen_pervasives.Url.string_of_url_path ~encode:false path in
-     Eliom_output.Files.send ~options:(3600 * 24 * 7) file
-     (* TODO: parametrize cache duration... *)
-  )
+let static_service =
+  Eliom_output.Any.register_service
+    ~path:[!Ocsimore_config.admin_dir ; "static"]
+    ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "path"))
+    (fun path () ->
+       let path = admin_staticdir :: path in
+       let file = Ocsigen_pervasives.Url.string_of_url_path ~encode:false path in
+       Eliom_output.Files.send ~options:(3600 * 24 * 7) file
+       (* TODO: parametrize cache duration... *)
+    )
 
 
-let static_file_uri ~path = Eliom_output.Html5.make_uri ~service:static_service path
+let static_file_uri ~path =
+  Eliom_output.Html5.make_uri ~service:static_service path
 
 module Header : sig
   type header
@@ -182,10 +184,10 @@ let admin_menu ?service () =
            (fun r me ->
               menu_link me >|= function None -> r | Some me -> me :: r)
            [] links >|= fun links ->
-           ([HTML5.M.span
-               ~a:[HTML5.M.a_class ["admin-menu-root"]]
-               [HTML5.M.pcdata name]],
-           Eliom_tools.Site_tree (Eliom_tools.Main_page root, List.rev links)))
+           [HTML5.M.span
+              ~a:[HTML5.M.a_class ["admin-menu-root"]]
+              [HTML5.M.pcdata name]],
+           Eliom_tools.Site_tree (Eliom_tools.Main_page root, List.rev links))
       !admin_menu
   in
   let menu = Eliom_tools.Main_page admin_root, admin_menu in
