@@ -551,7 +551,7 @@ let _ =
         lwt c = Wiki_sql.get_wikibox_content wikibox in
         match c with
             Some (_comment, _author, Some old_content, _datetime, content_type, _version) ->
-              lwt new_content = Wiki_models.preparse_string ~link_action:(normalize_old_page_link wiki wikibox) wpp wikibox old_content in
+              lwt new_content = Wiki_models.preparse_string ~href_action:(normalize_old_page_link wiki wikibox) wpp wikibox old_content in
               if 0 = String.compare old_content new_content then
                 Lwt.return (wikibox, None)
               else

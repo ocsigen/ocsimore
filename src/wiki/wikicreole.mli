@@ -101,6 +101,8 @@ module type Builder = sig
   val plugin_action: string -> int -> int -> (param, unit) plugin
   val link_action:
     string -> string option -> attribs -> int * int -> param -> unit
+  val href_action:
+    string -> string option -> attribs -> int * int -> param -> unit
 
 end
 

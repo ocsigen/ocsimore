@@ -235,7 +235,7 @@ let register_wikibox_syntax_extensions
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
         and atts = Wiki_syntax.parse_common_attribs args in
         let url = Wiki_syntax.make_href
-          bi (Wiki_syntax.link_kind page) fragment
+          bi (try Wiki_syntax.link_kind page with Failure msg -> debug "%s" msg; Wiki_syntax.Href ("???", None)) fragment
         in
         Lwt.return
           [HTML5.M.object_

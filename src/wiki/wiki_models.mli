@@ -54,6 +54,7 @@ val identity_preprocessor : wiki_preprocessor
 
 (** See [Wiki_syntax_types.Preprocessor.preparse_string] *)
 val preparse_string:
+  ?href_action:Wiki_syntax_types.link_action ->
   ?link_action:Wiki_syntax_types.link_action ->
   wiki_preprocessor -> Wiki_types.wikibox -> string -> string Lwt.t
 

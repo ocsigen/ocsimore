@@ -451,7 +451,7 @@ type link_kind =
 let link_kind addr =
   match Netstring_pcre.string_match link_regexp addr 0 with
     | None ->
-        raise (Failure "Not a valid link")
+        failwith (Printf.sprintf "Not a valid link: %S" addr);
     | Some result ->
         let forceproto =
           try Some (Netstring_pcre.matched_group result protocol_group addr = "https+")
@@ -866,6 +866,7 @@ module MakeParser(B: RawParser) :
 
     let plugin_action _ _ _ _ _ _ = ()
     let link_action _ _ _ _ _ = ()
+    let href_action _ _ _ _ _ = ()
 
   end
 
@@ -985,6 +986,7 @@ module MakeParser(B: RawParser) :
 
     let plugin_action _ _ _ _ _ _ = ()
     let link_action _ _ _ _ _ = ()
+    let href_action _ _ _ _ _ = ()
   end
 
   let non_interactive_builder =
@@ -1075,6 +1077,7 @@ module MakeParser(B: RawParser) :
   type substitutions = (int * int * string option Lwt.t) list ref
 
   let link_action_ref = ref (fun _ _ _ _ -> Lwt.return None)
+  let href_action_ref = ref (fun _ _ _ _ -> Lwt.return None)
 
   let preparser =
     let module Preparser = struct
@@ -1129,13 +1132,19 @@ module MakeParser(B: RawParser) :
                   try !link_action_ref addr fragment attribs params
                   with _ -> Lwt.return None) ::!subst
 
+      let href_action addr fragment attribs (start, end_) (subst, params) =
+        subst := (start,
+                  end_,
+                  try !href_action_ref addr fragment attribs params
+                  with _ -> Lwt.return None) ::!subst
+
 
     end in
     (module Preparser : Wikicreole.Builder
       with type param = substitutions * Wiki_types.wikibox
       and type flow = unit)
 
-  let normalize_link_ref = ref normalize_link
+  let normalize_href_ref = ref normalize_link
 
   let desugarer =
     let module Desugarer = struct
@@ -1175,10 +1184,13 @@ module MakeParser(B: RawParser) :
         with _ (* was Not_found *) -> ()
 
       let link_action : string -> string option -> _ -> int * int -> param -> unit =
+        fun _ _ _ _ _ -> ()
+
+      let href_action : string -> string option -> _ -> int * int -> param -> unit =
         fun addr fragment attribs ((start, end_) as pos) (subst, wikipage) ->
           subst := (start,
                     end_,
-                    try !normalize_link_ref pos addr fragment wikipage
+                    try !normalize_href_ref pos addr fragment wikipage
                     with _ -> Lwt.return None) ::!subst
     end in
     (module Desugarer : Wikicreole.Builder
@@ -1209,14 +1221,17 @@ module MakeParser(B: RawParser) :
 
   let desugar_string wb content = preprocess_string desugarer wb content
 
-  let preparse_string ?link_action wb content =
+  let preparse_string ?href_action ?link_action wb content =
     (* No mutex required: the "lexer" do not cooperate and any access
        to the reference take place before the call to [apply_subst] *)
     let old_link_action = !link_action_ref in
+    let old_href_action = !href_action_ref in
     (match link_action with Some f -> link_action_ref := f | None -> ());
+    (match href_action with Some f -> href_action_ref := f | None -> ());
     let subst = ref [] in
     ignore (Wikicreole.from_string (subst, wb) preparser content : unit list);
     link_action_ref := old_link_action;
+    href_action_ref := old_href_action;
     apply_subst (List.rev !subst) content
 
 end
@@ -1301,8 +1316,8 @@ let menu_make_href bi c fragment =
       | Wiki_page (Some wiki,page,None) ->
           String_href ("wiki(" ^ Wiki_types.string_of_wiki wiki ^ "):" ^ page)
       | _ -> String_href ""
-  with Failure msg ->
-    String_href msg
+  with Failure _ ->
+    String_href c
 
 
 
@@ -1445,7 +1460,8 @@ module FlowBuilder = struct
       try
         make_href bi (link_kind c) fragment
       with Failure msg ->
-        String_href msg)
+        debug "%s" msg;
+        String_href "???")
 
   let br_elem attribs =
     let a = opt_list (parse_common_attribs attribs) in
@@ -2619,7 +2635,8 @@ let f_menu bi args _c =
          Lwt.return (HTML5.M.li ~a:[classe] text2)
        else
          let link =
-           match make_href bi (link_kind link) None with
+           let kind = try link_kind link with Failure msg -> debug "%s" msg; Href ("???", None) in
+           match make_href bi kind None with
              | String_href addr ->
                  (HTML5.M.a ~a:[HTML5.M.a_href (HTML5.M.uri_of_string addr)] text2)
              | Service_href href -> a_link_of_href href ~a:[] text2

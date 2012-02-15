@@ -120,6 +120,8 @@ module type Builder = sig
   val plugin_action: string -> int -> int -> (param, unit) plugin
   val link_action:
     string -> string option -> attribs -> int * int -> param -> unit
+  val href_action :
+    string -> string option -> attribs -> int * int -> param -> unit
 
 end
 
@@ -670,7 +672,7 @@ and parse_rem c =
       parse_rem c lexbuf
     }
   | "{{" (("@@" ?) as att)
-      { parse_image c (read_attribs att parse_attribs c lexbuf) lexbuf }
+      { parse_image (Lexing.lexeme_start lexbuf) c (read_attribs att parse_attribs c lexbuf) lexbuf }
   | "<<" ((not_line_break # white_space) # ['|' '>']) * {
       let s = Lexing.lexeme lexbuf in
       let l = String.length s in
@@ -789,6 +791,8 @@ and parse_link beg begaddr fragment c attribs =
         push_string c lb
       end
       else begin
+        B.href_action begaddr fragment attribs
+          (beg+2, Lexing.lexeme_start lexbuf) c.param;
         B.link_action begaddr fragment attribs
           (beg+2, Lexing.lexeme_start lexbuf) c.param;
         let addr = B.make_href c.param begaddr fragment in
@@ -827,14 +831,24 @@ and parse_link beg begaddr fragment c attribs =
           in parse_link beg begaddr (Some "") c attribs lexbuf }
 
 
-and parse_image c attribs =
+and parse_image beg c attribs =
     parse
      (not_line_break # ['|' '{']) (not_line_break # '|') * '|'
          ('}' ? (not_line_break # '}')) * "}}" {
       let s = Lexing.lexeme lexbuf in
       let i = String.index s '|' in
-      let url = B.make_href c.param (String.sub s 0 i) None in
+      let addr = String.sub s 0 i in
+      let url = B.make_href c.param addr None in
       let alt = String.sub s (i + 1) (String.length s - i - 3) in
+      (let begaddr, fragment =
+         try
+           let i = String.index addr '#' in
+           String.sub addr 0 i, Some (String.sub addr (succ i) (String.length addr - i))
+         with Not_found ->
+           addr, None
+       in
+       B.href_action begaddr fragment attribs
+       (beg+2, beg+2+String.length addr) c.param);
       push c (B.img_elem attribs url alt);
       parse_rem c lexbuf
     }
