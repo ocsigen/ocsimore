@@ -44,7 +44,10 @@ module type Preprocessor = sig
       [content]. It should be safe to call this, i.e. there shall be no side
       effects in it. (The result must still be [Lwt.t] because it may access
       the DB read-only.  *)
-  val desugar_string: desugar_param -> string -> string Lwt.t
+  val desugar_string :
+    ?href_action:link_action ->
+    ?link_action:link_action ->
+    desugar_param -> string -> string Lwt.t
 
   (* [preparse_string wb content] does possibly some replacements in [content]
      and may have arbitrary side effects in the process (e.g. creating

@@ -59,7 +59,10 @@ val preparse_string:
   wiki_preprocessor -> Wiki_types.wikibox -> string -> string Lwt.t
 
 (** See [Wiki_syntax_types.Preprocessor.desugar_string] *)
-val desugar_string : wiki_preprocessor -> Wiki_syntax_types.desugar_param -> string -> string Lwt.t
+val desugar_string : 
+  ?href_action:Wiki_syntax_types.link_action ->
+  ?link_action:Wiki_syntax_types.link_action ->
+  wiki_preprocessor -> Wiki_syntax_types.desugar_param -> string -> string Lwt.t
 
 type +'res wiki_parser =
   Wiki_widgets_interface.box_info -> string -> 'res Lwt.t (* pretty printer *)

@@ -1214,25 +1214,31 @@ module MakeParser(B: RawParser) :
       Buffer.add_substring buf content pos (String.length content - pos);
     Lwt.return (Buffer.contents buf)
 
-  let preprocess_string parser_ wb content =
-    let subst = ref [] in
-    ignore (Wikicreole.from_string (subst, wb) parser_ content : unit list);
-    apply_subst (List.rev !subst) content
-
-  let desugar_string wb content = preprocess_string desugarer wb content
-
-  let preparse_string ?href_action ?link_action wb content =
+  let with_actions ?href_action ?link_action f =
     (* No mutex required: the "lexer" do not cooperate and any access
        to the reference take place before the call to [apply_subst] *)
     let old_link_action = !link_action_ref in
     let old_href_action = !href_action_ref in
     (match link_action with Some f -> link_action_ref := f | None -> ());
     (match href_action with Some f -> href_action_ref := f | None -> ());
-    let subst = ref [] in
-    ignore (Wikicreole.from_string (subst, wb) preparser content : unit list);
+    let res = f () in
     link_action_ref := old_link_action;
     href_action_ref := old_href_action;
-    apply_subst (List.rev !subst) content
+    res
+
+  let desugar_string ?href_action ?link_action wb content =
+    with_actions ?href_action ?link_action
+      (fun () ->
+         let subst = ref [] in
+         ignore (Wikicreole.from_string (subst, wb) desugarer content : unit list);
+         apply_subst (List.rev !subst) content)
+
+  let preparse_string ?href_action ?link_action wb content =
+    with_actions ?href_action ?link_action
+      (fun () ->
+         let subst = ref [] in
+         ignore (Wikicreole.from_string (subst, wb) preparser content : unit list);
+         apply_subst (List.rev !subst) content)
 
 end
 

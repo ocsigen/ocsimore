@@ -90,7 +90,7 @@ type wiki_preprocessor = (module Wiki_syntax_types.Preprocessor)
 let identity_preprocessor =
   let module Identity_preprocessor = struct
     let preparse_string ?href_action ?link_action _ s = Lwt.return s
-    let desugar_string _ s = Lwt.return s
+    let desugar_string ?href_action ?link_action _ s = Lwt.return s
   end in
   (module Identity_preprocessor : Wiki_syntax_types.Preprocessor)
 
@@ -98,9 +98,9 @@ let preparse_string ?href_action ?link_action wpp p c =
   let module Preprocessor = (val wpp : Wiki_syntax_types.Preprocessor) in
   Preprocessor.preparse_string ?href_action ?link_action p c
 
-let desugar_string wpp p c =
+let desugar_string ?href_action ?link_action wpp p c =
   let module Preprocessor = (val wpp : Wiki_syntax_types.Preprocessor) in
-  Preprocessor.desugar_string p c
+  Preprocessor.desugar_string ?href_action ?link_action p c
 
 type +'res wiki_parser =
     Wiki_widgets_interface.box_info -> string -> 'res Lwt.t

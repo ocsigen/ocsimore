@@ -847,8 +847,9 @@ and parse_image beg c attribs =
          with Not_found ->
            addr, None
        in
-       B.href_action begaddr fragment attribs
-       (beg+2, beg+2+String.length addr) c.param);
+       let beg = beg + 2 in
+       let end_ = beg + String.length addr in
+       B.href_action begaddr fragment attribs (beg, end_) c.param);
       push c (B.img_elem attribs url alt);
       parse_rem c lexbuf
     }
