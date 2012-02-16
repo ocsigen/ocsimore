@@ -1151,35 +1151,32 @@ module MakeParser(B: RawParser) :
       type param = substitutions * Wiki_syntax_types.desugar_param
       include UnitBuilder
 
-      let plugin_action name start end_ (subst, wb) attribs content =
+      let plugin_action : string -> int -> int -> (param, unit) Wikicreole.plugin =
+        fun name start end_ (subst, wb) attribs content ->
+        let aux desugar_string_with_parser =
+          match content with
+            | None ->
+                Lwt.return None
+            | Some content ->
+                lwt content' = desugar_string_with_parser wb content in
+                Lwt.return (
+                  if content == content' then
+                    None
+                  else Some (string_of_extension name attribs (Some content'))
+                )
+        in
         try
           let plugin, preparser = Hashtbl.find plugin_assoc name in
-          let content' = match plugin with
-            | SimplePlugin _ ->
-                Lwt.return (Some (string_of_extension name attribs content))
-            | WikiPlugin p ->
-              ( let module Plugin = (val p: WikiPlugin) in
-                match content with
-                | None -> Lwt.return None
-                | Some content ->
-                    lwt content' =
-                      desugar_string Plugin.wikiparser wb content in
-                    if content == content' then
-                      Lwt.return None
-                    else
-                      Lwt.return (Some (string_of_extension name attribs (Some content'))) )
-            | LinkPlugin p -> Lwt.return None
-            | RawWikiPlugin p ->
-              ( let module Plugin = (val p: RawWikiPlugin) in
-                match content with
-                | None -> Lwt.return None
-                | Some content ->
-                    lwt content' =
-                      desugar_string Plugin.wikiparser wb content in
-                    if content == content' then
-                      Lwt.return None
-                    else
-                      Lwt.return (Some (string_of_extension name attribs (Some content'))) )
+          let content' =
+            match plugin with
+              | SimplePlugin _ ->
+                  Lwt.return None
+              | WikiPlugin p ->
+                  aux (let module Plugin = (val p: WikiPlugin) in desugar_string Plugin.wikiparser)
+              | LinkPlugin p ->
+                  aux (let module Plugin = (val p: LinkPlugin) in desugar_string Plugin.wikiparser)
+              | RawWikiPlugin p ->
+                  aux (let module Plugin = (val p: RawWikiPlugin) in desugar_string Plugin.wikiparser)
           in
           subst := (start, end_, content') :: !subst
         with _ (* was Not_found *) -> ()
