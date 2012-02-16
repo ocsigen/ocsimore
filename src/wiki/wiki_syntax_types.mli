@@ -1,9 +1,7 @@
 open Eliom_pervasives
 
-(** *)
 
 (* BB XXX why not type service_href = { a_link : ...; uri : HTML5.M.uri } *)
-
 module type Service_href = sig
 
   val a_link :
@@ -49,10 +47,13 @@ module type Preprocessor = sig
     ?link_action:link_action ->
     desugar_param -> string -> string Lwt.t
 
-  (* [preparse_string wb content] does possibly some replacements in [content]
-     and may have arbitrary side effects in the process (e.g. creating
-    wikiboxes etc.). *)
-  val preparse_string : ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t) -> Wiki_types.wikibox -> string -> string Lwt.t
+  (** [preparse_string wb content] does possibly some replacements in
+      [content] and may have arbitrary side effects in the process
+      (e.g. creating wikiboxes etc.). *)
+  val preparse_string:
+    ?href_action:link_action ->
+    ?link_action:link_action ->
+    Wiki_types.wikibox -> string -> string Lwt.t
 
 end
 
