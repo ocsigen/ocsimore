@@ -78,9 +78,32 @@ type 'a wikicreole_parser = (module Parser with type res = 'a)
     only for creating wikibox. *)
 type preparser =
     Wiki_types.wikibox ->
-      Wikicreole.attribs ->
-        string option ->
-          string option Lwt.t
+    Wikicreole.attribs ->
+    string option ->
+    string option Lwt.t
+
+type desugarer =
+    desugar_param ->
+    Wikicreole.attribs ->
+    string option ->
+    string option Lwt.t
+
+type (+'flow,
+      +'flow_without_interactive,
+      +'phrasing_without_interactive) plugin_content =
+  [ `Flow5_link
+      of (href * Wikicreole.attribs * 'flow_without_interactive HTML5.M.elt list Lwt.t)
+  | `Phrasing_link
+      of (href * Wikicreole.attribs * 'phrasing_without_interactive HTML5.M.elt list Lwt.t)
+  | `Flow5 of 'flow HTML5.M.elt list Lwt.t
+  | `Phrasing_without_interactive
+      of 'phrasing_without_interactive HTML5.M.elt list Lwt.t ]
+
+type (+'flow_without_interactive,
+      +'phrasing_without_interactive) ni_plugin_content =
+  [ `Flow5 of 'flow_without_interactive HTML5.M.elt list Lwt.t
+  | `Phrasing_without_interactive
+      of 'phrasing_without_interactive HTML5.M.elt list Lwt.t ]
 
 type (+'flow_without_interactive,
       +'phrasing_without_interactive) link_plugin_content =

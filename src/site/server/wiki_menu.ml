@@ -170,12 +170,11 @@ let get_nodes bi args contents =
             Lwt.return nodes)
       | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
   with
-  | Not_found ->
-      begin match contents with
-      | Some c ->
-          Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi c
-      | None -> Lwt.return [] end
-  | exc -> Lwt.fail exc (* 404 and so... TODO *)
+    | Not_found ->
+        begin match contents with
+      | Some c -> c
+        | None -> Lwt.return [] end
+    | exc -> Lwt.fail exc (* 404 and so... TODO *)
 
 (* let typecheck_menu bi xml : menu Lwt.t = *)
   (* try Lwt.return {{ ( xml :? menu ) }} *)
