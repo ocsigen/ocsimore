@@ -1155,7 +1155,8 @@ module MakeParser(B: RawParser) :
         try
           let plugin, preparser = Hashtbl.find plugin_assoc name in
           let content' = match plugin with
-            | SimplePlugin _ -> Lwt.return content
+            | SimplePlugin _ ->
+                Lwt.return (Some (string_of_extension name attribs content))
             | WikiPlugin p ->
               ( let module Plugin = (val p: WikiPlugin) in
                 match content with
