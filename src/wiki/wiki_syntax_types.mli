@@ -27,6 +27,11 @@ type desugar_param = {
   mutable dc_warnings : ((int * int) * string) list;
 }
 
+(** Type of an action executed on a link in a [Preprocessor.preparse_string]. If
+    it returns [Some address] (in LWT), the original address of the link is
+    replaced by [address]. The address of the link is kept when the
+    [link_action] return [None.]
+  *)
 type link_action =
     string ->
     string option ->
@@ -41,10 +46,12 @@ module type Preprocessor = sig
       the DB read-only.  *)
   val desugar_string: desugar_param -> string -> string Lwt.t
 
-  (* [preparse_string wb content] does possibly some replacements in [content]
-     and may have arbitrary side effects in the process (e.g. creating
-    wikiboxes etc.). *)
-  val preparse_string : ?link_action:(string -> string option -> Wikicreole.attribs -> Wiki_types.wikibox -> string option Lwt.t) -> Wiki_types.wikibox -> string -> string Lwt.t
+  (** [preparse_string wb content] does possibly some replacements in
+      [content] and may have arbitrary side effects in the process
+      (e.g. creating wikiboxes etc.). *)
+  val preparse_string:
+    ?link_action:link_action ->
+    Wiki_types.wikibox -> string -> string Lwt.t
 
 end
 

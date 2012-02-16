@@ -429,7 +429,6 @@ let edit_wiki =
          | false ->
              Page_site.no_permission () >>= Page_site.admin_page ~title:"Edid wiki"
     )
-
 let _ =
   let open HTML5.M in
   let headers = ["wikibox"; "version"; "author"; "datetime"; "content_type"; "comment"; ""] in
@@ -456,13 +455,15 @@ let _ =
   in
   Eliom_output.Html5.register Wiki_services.view_boxes
     (fun wiki () ->
-      Wiki_sql.get_wikiboxes_by_wiki wiki >>= fun wikiboxes ->
-        lwt wikiboxes = sequence (List.map wikibox_extension wikiboxes) >|= List.map_filter (fun x -> x) in
-        Page_site.admin_page
-          [table
-            (tr (List.map render_header_row headers))
-            (List.map render_wikibox_row wikiboxes)]);
-  Wiki_services.view_boxes
+      lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
+      lwt wikiboxes = Lwt_list.map_s wikibox_extension wikiboxes >|= List.map_filter (fun x -> x) in
+      lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
+      lwt title = wiki_naming wiki >|= ((^) "Wiki boxes of wiki ") in
+      Page_site.admin_page
+        ~title
+        [table ~a:[a_class ["table_admin"]]
+          (tr (List.map render_header_row headers))
+          (List.map render_wikibox_row wikiboxes)])
 
 let _ =
   let render_version_link wikibox version' (version, comment, author, datetime) =
@@ -569,10 +570,10 @@ let _ =
         lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
         let wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
         lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
-        lwt wikiboxes_content = sequence (List.map (wikibox_content wpp wiki) wikiboxes) in
+        lwt wikiboxes_content = Lwt_list.map_s (wikibox_content wpp wiki) wikiboxes in
         Lwt.return (wiki_info, wikiboxes_content)
       in
-      lwt wikiboxes_by_wikis = sequence (List.map for_wiki wikis) in
+      lwt wikiboxes_by_wikis = Lwt_list.map_s for_wiki wikis in
       Page_site.admin_page
         ~title:"Replace links"
         (List.map
