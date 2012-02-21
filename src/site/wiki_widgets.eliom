@@ -25,9 +25,8 @@ open Eliom_pervasives
 open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
+open Ocsimore_lib.Lwt_ops
 
-let (>>=) = Lwt.bind
-let (>|=) = Lwt.(>|=)
 
 (* TODO Handle wikiboxes with multiple media (i.e. "screen print" or even "all") carefully! *)
 let grouped_by_media wblist_with_media =
@@ -226,8 +225,7 @@ class dynamic_wikibox
       | `None -> Lwt.return []
       | `Pencil | `Linear as menu_style ->
 
-    let history  =
-      (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
+    let history  = (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
     let edit     = (preapply Wiki_services.action_edit_wikibox wb :> Eliom_tools_common.get_page) in
     let delete   = (preapply Wiki_services.action_delete_wikibox wb :> Eliom_tools_common.get_page) in
     let view     = (Eliom_services.void_coservice' :> Eliom_tools_common.get_page) in
@@ -1379,9 +1377,8 @@ class dynamic_wikibox
 
      fun ~bi ?(classes=[]) ?rows ?cols ?special_box wb ->
      lwt () = add_wiki_css_header () in
-     self#display_interactive_wikibox_aux
-       ~bi ?rows ?cols ~classes ?special_box wb
-     >|= fst (*fun (r, _allowed) -> Lwt.return r*)
+     fst =|< self#display_interactive_wikibox_aux
+               ~bi ?rows ?cols ~classes ?special_box wb
 
 
    method css_header : 'a.
@@ -1435,8 +1432,8 @@ class dynamic_wikibox
 
      fun ~wiki ~sectioning ~menu_style ~page:(page, page_list) ~gen_box ->
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-     let rights = Wiki_models.get_rights wiki_info.wiki_model
-     and wb_container = wiki_info.wiki_container in
+     lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+     let wb_container = wiki_info.wiki_container in
      gen_box ~sectioning menu_style >>= fun (wbid, subbox, err_code, title) ->
      lwt () = Eliom_references.set Wiki_widgets_interface.page_displayable_eref err_code in
      (* We render the container, if it exists *)
@@ -1479,8 +1476,8 @@ class dynamic_wikibox
       applied, is suitable for use with [display_container]. *)
    method private display_wikipage_wikibox ~wiki ~page:(page, page_list) ?subbox () =
      Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-     let rights = Wiki_models.get_rights wiki_info.wiki_model
-     and wb_container = wiki_info.wiki_container in
+     lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+     let wb_container = wiki_info.wiki_container in
      Lwt.return
      (fun ~sectioning menu_style -> 
        try_lwt
@@ -1562,8 +1559,7 @@ class dynamic_wikibox
           Lwt.t)
          Lwt.t)
      in
-     self#display_container ~wiki ~sectioning ~menu_style ~page
-       ~gen_box
+     self#display_container ~wiki ~sectioning ~menu_style ~page ~gen_box
 
    method display_wikifile ~wiki ~sectioning ~menu_style ~template ~file =
      let path = Url.remove_slash_at_beginning (Neturl.split_path template) in

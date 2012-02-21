@@ -92,8 +92,8 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
   let parent_id = sql_of_message_option parent_id in
   let forum_id = sql_of_forum forum in
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-  let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
-  let content_type = 
+  lwt rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
+  lwt content_type = 
     Wiki_models.get_default_content_type wiki_info.Wiki_types.wiki_model
   in
   Sql.full_transaction_block

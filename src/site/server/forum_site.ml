@@ -36,27 +36,6 @@ let wikicreole_forum_model =
     ~widgets:Wiki_site.wikibox_widget
 
 
-let wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model
-let wiki_phrasing_widgets =
-  new Wiki_widgets.phrasing_wikibox Wiki_site.error_box User_site.user_widget
-let services = Forum_services.register_services ()
-let widget_err = new Widget.widget_with_error_box
-let add_message_widget = new Forum_widgets.add_message_widget services
-let message_widget =
-  new Forum_widgets.message_widget
-    widget_err wiki_widgets wiki_phrasing_widgets services
-let thread_widget =
-  new Forum_widgets.thread_widget
-    widget_err message_widget add_message_widget services
-let message_list_widget =
-  new Forum_widgets.message_list_widget
-    widget_err message_widget add_message_widget
-let forum_widget =
-  new Forum_widgets.forum_widget widget_err
-
-let _ = Forum_wikiext.register_wikiext
-  (message_widget, thread_widget, message_list_widget)
-
 let forum_root =
   Eliom_services.service
     ~path:[!Ocsimore_config.admin_dir;"forums"]
@@ -197,9 +176,10 @@ let create_forum =
             ~err_handler
             (fun (title, (descr, (arborescent,
                (title_syntax, (_ : bool))))) () ->
+              lwt wiki_model = Wiki_site.wikicreole_model in
               lwt _ = Forum.create_forum ~title ~descr
                 ~arborescent ~title_syntax
-                ~wiki_model:Wiki_site.wikicreole_model () in
+                ~wiki_model () in
               Page_site.admin_page ~service:Forum_services.view_forums
                 ~title:"Create forum"
                 HTML5.M.([h2 [pcdata "Forum information sucessfully created"]]))
@@ -207,12 +187,34 @@ let create_forum =
             Page_site.(no_permission () >>= admin_page ~title:"Create forum"))
 
 (** We register the service that lists all the forums *)
-let () =
-  Eliom_output.Html5.register Forum_services.view_forums
-    (Page_site.admin_body_content_with_permission_handler
-       ~title:(fun () () -> Lwt.return "View forums")
-       ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
-       ~display:(fun () () -> forum_widget#display_all_forums))
+
+let _ =
+  Lwt_main.run (
+    lwt model = wikicreole_forum_model in
+    lwt wiki_widgets = Wiki_models.get_widgets model in
+    let wiki_phrasing_widgets = new Wiki_widgets.phrasing_wikibox Wiki_site.error_box User_site.user_widget in
+    let services = Forum_services.register_services () in
+    let widget_err = new Widget.widget_with_error_box in
+    let add_message_widget = new Forum_widgets.add_message_widget services in
+    let message_widget =
+      new Forum_widgets.message_widget
+        widget_err wiki_widgets wiki_phrasing_widgets services in
+    let thread_widget =
+      new Forum_widgets.thread_widget
+        widget_err message_widget add_message_widget services in
+    let message_list_widget =
+      new Forum_widgets.message_list_widget
+        widget_err message_widget add_message_widget in
+    let forum_widget =
+      new Forum_widgets.forum_widget widget_err in
+    let () = Forum_wikiext.register_wikiext (message_widget, thread_widget, message_list_widget) in
+    Eliom_output.Html5.register Forum_services.view_forums
+      (Page_site.admin_body_content_with_permission_handler
+         ~title:(fun () () -> Lwt.return "View forums")
+         ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
+         ~display:(fun () () -> forum_widget#display_all_forums));
+    Lwt.return ()
+  )
 
 let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
   ~links:[

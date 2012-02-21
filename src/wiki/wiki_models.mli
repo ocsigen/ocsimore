@@ -38,13 +38,13 @@ val register_wiki_model :
   content_type: [< HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type ->
   rights:Wiki_types.wiki_rights ->
   widgets:Wiki_widgets_interface.interactive_wikibox ->
-  Wiki_types.wiki_model
+  Wiki_types.wiki_model Lwt.t
 
-val get_rights : Wiki_types.wiki_model -> Wiki_types.wiki_rights
+val get_rights : Wiki_types.wiki_model -> Wiki_types.wiki_rights Lwt.t
 val get_default_content_type :
   Wiki_types.wiki_model ->
-  [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type
-val get_widgets : Wiki_types.wiki_model -> Wiki_widgets_interface.interactive_wikibox
+  [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type Lwt.t
+val get_widgets : Wiki_types.wiki_model -> Wiki_widgets_interface.interactive_wikibox Lwt.t
 
 (** Table of wiki syntaxes. *)
 exception Content_type_does_not_exist of string
@@ -109,7 +109,7 @@ val get_phrasings_wiki_preprocessor :
 
 (** default wikiparser for one wiki model *)
 val get_default_wiki_parser :
-  Wiki_types.wiki_model -> [> HTML5_types.flow5] HTML5.M.elt list wiki_parser
-val get_default_wiki_preprocessor : Wiki_types.wiki_model -> wiki_preprocessor
+  Wiki_types.wiki_model -> [> HTML5_types.flow5] HTML5.M.elt list wiki_parser Lwt.t
+val get_default_wiki_preprocessor : Wiki_types.wiki_model -> wiki_preprocessor Lwt.t
 
 val css_content_type : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type

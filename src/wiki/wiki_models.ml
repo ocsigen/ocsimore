@@ -23,9 +23,8 @@
 
 open Eliom_pervasives
 open Opaque
+open Ocsimore_lib.Lwt_ops
 
-let (>>=) = Lwt.bind
-let (>|=) = Lwt.(>|=)
 
 (** Table of wiki models.
     Each wikis belongs to a "model" describing
@@ -45,29 +44,36 @@ type wiki_model =
     }
 
 let register_wiki_model, get_rights, get_default_content_type, get_widgets =
-  let module H = Hashtbl.Make(struct
-                                type t = Wiki_types.wiki_model
-                                let equal = (=)
-                                let hash = Hashtbl.hash
-                              end)
+  let get_table =
+    let table_eref = Eliom_references.eref ~scope:Eliom_common.site None in
+    fun () ->
+      match_lwt Eliom_references.get table_eref with
+        | Some table -> Lwt.return table
+        | None ->
+            let table = Hashtbl.create 10 in
+            lwt () = Eliom_references.set table_eref (Some table) in
+            Lwt.return table
   in
-  let t = H.create 10 in
   ((fun ~name:k ~content_type:wm_syntax ~rights:wm_rights ~widgets:wm_widgets ->
+      lwt t = get_table () in
       let k = Wiki_types.wiki_model_of_string k in
-      H.add t k {wm_syntax; wm_rights; wm_widgets;};
-      k),
+      Hashtbl.add t k {wm_syntax; wm_rights; wm_widgets;};
+      Lwt.return k),
    (fun k ->
-      try (H.find t k).wm_rights
+      lwt t = get_table () in
+      try Lwt.return (Hashtbl.find t k).wm_rights
       with Not_found ->
-        raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
+        Lwt.fail (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
    (fun k ->
-      try (H.find t k).wm_syntax
+      lwt t = get_table () in
+      try Lwt.return (Hashtbl.find t k).wm_syntax
       with Not_found ->
-        raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
+        Lwt.fail (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
    (fun k ->
-      try (H.find t k).wm_widgets
+      lwt t = get_table () in
+      try Lwt.return (Hashtbl.find t k).wm_widgets
       with Not_found ->
-        raise (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k)))
+        Lwt.fail (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k)))
   )
 
 (* Opening types... *)
@@ -78,9 +84,9 @@ let register_wiki_model ~name ~content_type ~rights ~widgets =
        :> HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type) in
   register_wiki_model ~name ~content_type ~rights ~widgets
 let get_default_content_type k =
-  (get_default_content_type k
-     : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
-     :> [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type)
+  get_default_content_type k >|=
+    (fun x -> (x : HTML5_types.flow5 HTML5.M.elt list Wiki_types.content_type
+              :> [> HTML5_types.flow5] HTML5.M.elt list Wiki_types.content_type))
 
 (** Table of wiki syntaxes. *)
 exception Content_type_does_not_exist of string
@@ -243,10 +249,10 @@ let get_phrasings_wiki_preprocessor k =
 
 
 let get_default_wiki_parser s =
-  get_flows_wiki_parser (get_default_content_type s)
+  get_flows_wiki_parser =|< (get_default_content_type s)
 
 let get_default_wiki_preprocessor s =
-  get_flows_wiki_preprocessor (get_default_content_type s)
+  get_flows_wiki_preprocessor =|< (get_default_content_type s)
 
 let css_content_type =
   register_flows_wiki_parser

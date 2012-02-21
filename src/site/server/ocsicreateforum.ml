@@ -46,8 +46,9 @@ let forum_data =
 
 let _ =
   Lwt_unix.run (
+    lwt wiki_model = Wiki_site.wikicreole_model in
      Forum.create_forum
-       ~wiki_model:Wiki_site.wikicreole_model
+       ~wiki_model
        ~title_syntax:Forum_site.title_syntax
        ~title:forum_data.title
        ~descr:forum_data.descr

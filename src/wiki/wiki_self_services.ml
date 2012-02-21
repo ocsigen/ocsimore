@@ -78,7 +78,8 @@ let servwikicss :
 let add_naservpage = Servpages.add naservpages
 let add_servpage = Servpages.add servpages
 let add_servwikicss = Servpages.add servwikicss
-let find_naservpage = Servpages.find naservpages
+let find_naservpage k =
+  Servpages.find naservpages k
 let find_servpage k =
   try Some (Servpages.find servpages k)
   with Not_found -> None

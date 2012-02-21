@@ -1,10 +1,10 @@
 # OASIS_START
-# DO NOT EDIT (digest: 1570c238e084e9b30e36c4766b8b6223)
-server/Wiki_site
+# DO NOT EDIT (digest: c71c9a25f2cf0bf118e856cb7853e273)
 server/HTML5outliner
 server/Wiki_ext
 server/Wiki_services
 server/Wiki_widgets
+server/Wiki_site
 server/Wiki_menu
 server/Wiki_dir
 # OASIS_STOP

@@ -146,7 +146,7 @@ object (self)
     in
     Wiki_sql.wikibox_wiki m.m_wikibox >>= fun wiki ->
     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-    let rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
+    lwt rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
     Wiki.default_bi ~wikibox:m.m_wikibox ~rights >>= fun bi ->
     (match m.m_subject with
        | None -> Lwt.return []
@@ -223,10 +223,7 @@ object (self)
       add_message_widget#display ~parent:m.m_id ~title:false ?rows ?cols ()
     in
     let comment_div =
-      HTML5.M.unique
-        (HTML5.M.div
-           ~a:[HTML5.M.a_class [comment_class]]
-           [ form ])
+      HTML5.div ~a:[HTML5.a_class [comment_class]] [ form ]
     in
     let show_form =
       HTML5.M.div

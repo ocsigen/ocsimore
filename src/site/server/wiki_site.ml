@@ -86,8 +86,8 @@ let () =
     (fun wb () ->
        Wiki_sql.wikibox_wiki wb >>= fun w ->
        Wiki_sql.get_wiki_info_by_id w >>= fun wiki_info ->
-       let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       let wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
+       lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+       lwt wikibox_widget = Wiki_models.get_widgets wiki_info.wiki_model in
        lwt bi = Wiki.default_bi ~wikibox:wb ~rights in
        lwt page = wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb in
        lwt css = wikibox_widget#css_header ?page:None w in
@@ -110,6 +110,7 @@ let wiki_admin = Lwt_unix.run
      try_lwt
        Wiki_sql.get_wiki_info_by_name Wiki.wiki_admin_name
      with Not_found ->
+       lwt model = wikicreole_model in
        lwt wid =
          Wiki.create_wiki
            ~title:Wiki.wiki_admin_name
@@ -120,7 +121,7 @@ let wiki_admin = Lwt_unix.run
            ~container_text:"= Ocsimore administration\r\n\r\n\
                             <<loginbox>>\r\n\r\n\
                             <<content>>"
-           ~model:wikicreole_model
+           ~model
            ()
        in
        Wiki_sql.get_wiki_info_by_id wid
@@ -304,11 +305,12 @@ let create_wiki =
     (fun () () ->
        wiki_rights#can_create_wiki () >>= function
          | true ->
-             User.get_user_name () >>= fun u ->
+             lwt u = User.get_user_name () in
+             lwt model = wikicreole_model in
              create_wiki_form ~serv_path:path ~service:create_wiki ~arg:()
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
-               ~container:Wiki.default_container_page ~model:wikicreole_model
+               ~container:Wiki.default_container_page ~model
                ~siteid ~err_handler
                (fun (title, (descr, (path, (boxrights,
                      (staticdir, (admins, (readers, (container,
@@ -317,10 +319,11 @@ let create_wiki =
                     | None -> None
                     | Some p -> Some (Neturl.split_path p)
                   in
-                  Wiki_data.create_wiki ~title ~descr ?path ~boxrights
-                    ?staticdir ~admins ~readers
-                    ~container_text:container ~model ~rights:wiki_rights ()
-                  >>= fun wid ->
+                  lwt wid =
+                    Wiki_data.create_wiki ~title ~descr ?path ~boxrights
+                      ?staticdir ~admins ~readers
+                      ~container_text:container ~model ~rights:wiki_rights ()
+                  in
                   let link = match path with
                     | None -> []
                     | Some path ->
@@ -405,7 +408,7 @@ let edit_wiki =
   Eliom_output.Html5.register Wiki_services.edit_wiki
     (fun wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
-       let rights = Wiki_models.get_rights info.wiki_model in
+       lwt rights = Wiki_models.get_rights info.wiki_model in
        rights#can_create_wiki () >>= function
          | true ->
              edit_wiki_form
@@ -417,7 +420,7 @@ let edit_wiki =
                (fun (wiki, (descr, (container, (path, (boxrights, (staticdir,
                      (model, (siteid, (_ : bool))))))))) () ->
                   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-                  let rights = Wiki_models.get_rights wiki_info.wiki_model in
+                  lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
                   Wiki_data.update_wiki ~rights ~descr ~path ~boxrights
                     ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
@@ -574,7 +577,7 @@ let _ =
       in
       let for_wiki wiki =
         lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
-        let wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
+        lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
         lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
         lwt wikiboxes_content = Lwt_list.map_s (wikibox_content wpp wiki) wikiboxes in
         Lwt.return (wiki_info, wikiboxes_content)

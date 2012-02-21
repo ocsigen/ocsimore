@@ -208,7 +208,7 @@ open User_external_auth
 
 let logout () =
   Eliom_state.discard ~scope:Eliom_common.session () >>= fun () ->
-  Eliom_request_info.clean_request_cache ();
+  Eliom_state.discard ~scope:Eliom_common.request () >>= fun () ->
   Lwt.return ()
 
 (**/**)

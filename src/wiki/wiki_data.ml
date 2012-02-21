@@ -176,8 +176,7 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
              | Not_found ->
                  User.get_user_id () >>= fun user ->
                  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
-                 let content_type = Wiki_models.get_default_content_type
-                   wiki_info.wiki_model in
+                 lwt content_type = Wiki_models.get_default_content_type wiki_info.wiki_model in
                  Sql.full_transaction_block (fun db ->
                    new_wikitextbox ~rights ~content_type ~wiki ~author:user
                      ~comment:(Printf.sprintf "wikipage %s in wiki %s"

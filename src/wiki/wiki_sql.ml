@@ -341,9 +341,8 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
           | Some content ->
               let comment = Printf.sprintf "Container box for wiki %ld"
                 wiki_sql in
-              new_wikibox ~db ~wiki ~author ~comment ~content
-                ~content_type:(Wiki_models.get_default_content_type model) ()
-              >>= fun container ->
+              lwt content_type = Wiki_models.get_default_content_type model in
+              lwt container = new_wikibox ~db ~wiki ~author ~comment ~content ~content_type () in
               (* No problem wrt. wiki cache, as wiki is not yet cached *)
               update_wiki_ ~db ~container:(Some container) wiki >>= fun () ->
                 Lwt.return (Some container)

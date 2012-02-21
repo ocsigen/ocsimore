@@ -1463,8 +1463,7 @@ module FlowBuilder = struct
     (fun bi c fragment ->
       try
         make_href bi (link_kind c) fragment
-      with Failure msg ->
-        debug "%s" msg;
+      with Failure _ ->
         String_href "???")
 
   let br_elem attribs =
@@ -2639,7 +2638,7 @@ let f_menu bi args _c =
          Lwt.return (HTML5.M.li ~a:[classe] text2)
        else
          let link =
-           let kind = try link_kind link with Failure msg -> debug "%s" msg; Href ("???", None) in
+           let kind = try link_kind link with Failure _ -> Href ("???", None) in
            match make_href bi kind None with
              | String_href addr ->
                  (HTML5.M.a ~a:[HTML5.M.a_href (HTML5.M.uri_of_string addr)] text2)

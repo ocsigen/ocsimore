@@ -87,7 +87,7 @@ let register_wikibox_syntax_extensions
            in
            lwt wiki = Wiki_sql.wikibox_wiki box in
            lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
-           let widget = Wiki_models.get_widgets wiki_info.wiki_model in
+           lwt widget = Wiki_models.get_widgets wiki_info.wiki_model in
            let class_box = Wiki_syntax.class_wikibox box in
            widget#display_interactive_wikibox
              ?rows:(Ocsimore_lib.int_of_string_opt
@@ -121,8 +121,8 @@ let register_wikibox_syntax_extensions
        (* The user can specify the wiki, or we deduce it from the context. *)
        let wid = extract_wiki_id args wid in
        lwt wiki_info = Wiki_sql.get_wiki_info_by_id wid in
-       let rights = Wiki_models.get_rights wiki_info.wiki_model in
-       let content_type =
+       lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+       lwt content_type =
          Wiki_models.get_default_content_type wiki_info.wiki_model
        in
        try (* If a wikibox is already specified, there is nothing to change *)
@@ -235,7 +235,7 @@ let register_wikibox_syntax_extensions
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
         and atts = Wiki_syntax.parse_common_attribs args in
         let url = Wiki_syntax.make_href
-          bi (try Wiki_syntax.link_kind page with Failure msg -> debug "%s" msg; Wiki_syntax.Href ("???", None)) fragment
+          bi (try Wiki_syntax.link_kind page with Failure _ -> Wiki_syntax.Href ("???", None)) fragment
         in
         Lwt.return
           [HTML5.M.object_
@@ -312,7 +312,7 @@ let register_wikibox_syntax_extensions
          || List.mem_assoc "div" args in
 
        let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
-       let nav = HTML5.M.unique ((if div then HTML5.M.div else HTML5.M.nav) ~a content) in
+       let nav = (if div then HTML5.div else HTML5.nav) ~a content in
        Eliom_services.onload {{
 
          let nav = (Eliom_client.Html5.of_element %nav :> Dom.node Js.t)  in
