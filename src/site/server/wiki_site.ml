@@ -65,12 +65,13 @@ let wikibox_widget =
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =
-  Wiki_models.register_wiki_model
-    ~name:"wikicreole"
-    ~content_type:Wiki_syntax.wikicreole_content_type
-    ~rights:wiki_rights
-    ~widgets:wikibox_widget
-
+  Lwt_unix.run (
+    Wiki_models.register_wiki_model
+      ~name:"wikicreole"
+      ~content_type:Wiki_syntax.wikicreole_content_type
+      ~rights:wiki_rights
+      ~widgets:wikibox_widget
+  )
 
 let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
@@ -110,7 +111,6 @@ let wiki_admin = Lwt_unix.run
      try_lwt
        Wiki_sql.get_wiki_info_by_name Wiki.wiki_admin_name
      with Not_found ->
-       lwt model = wikicreole_model in
        lwt wid =
          Wiki.create_wiki
            ~title:Wiki.wiki_admin_name
@@ -121,7 +121,7 @@ let wiki_admin = Lwt_unix.run
            ~container_text:"= Ocsimore administration\r\n\r\n\
                             <<loginbox>>\r\n\r\n\
                             <<content>>"
-           ~model
+           ~model:wikicreole_model
            ()
        in
        Wiki_sql.get_wiki_info_by_id wid
@@ -306,11 +306,10 @@ let create_wiki =
        wiki_rights#can_create_wiki () >>= function
          | true ->
              lwt u = User.get_user_name () in
-             lwt model = wikicreole_model in
              create_wiki_form ~serv_path:path ~service:create_wiki ~arg:()
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
-               ~container:Wiki.default_container_page ~model
+               ~container:Wiki.default_container_page ~model:wikicreole_model
                ~siteid ~err_handler
                (fun (title, (descr, (path, (boxrights,
                      (staticdir, (admins, (readers, (container,
