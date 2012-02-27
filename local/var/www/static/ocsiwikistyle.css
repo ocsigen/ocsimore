@@ -236,3 +236,11 @@ table.table_admin th {
   background-color: #E0E9FB;
   padding: 5px;
 }
+
+.logbox {
+  float: right;
+  outline: 1px solid #eeeeee;
+}
+.logbox .logout {
+  display: inline;
+}

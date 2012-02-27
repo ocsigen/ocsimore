@@ -1,60 +1,82 @@
 1. Requirements
- - postgresql >= 8.2 (even for compiling)
- - ocaml
- - ocamlduce
- - ocsigen and eliom with compiled ocamlduce support
- - pgocaml >= 1.2
- - ocamlpam
+
+* postgresql >= 8.2 (even for compiling)
+* ocaml
+* ocamlduce
+* ocsigen and eliom with compiled ocamlduce support
+* pgocaml >= 1.2
+* ocamlpam
 
 2. Run 
 
-sh configure <password>
+{{{
+  $ sh configure <password>
+}}}
 
    where password is the password for database user ocsimore (see below).
 
 
-3. Create a postgresql user with that name (here ocsimore).
+3. Create a postgresql user with that name (here 'ocsimore').
 The new user needs no special role.
+{{{
+  $ sudo -u postgres createuser -P ocsimore
+}}}
 
-sudo -u postgres createuser -P ocsimore
-
-Adapt /etc/postgresql/.../pg_hba.conf to give Ident access
+Adapt {{{/etc/postgresql/.../pg_hba.conf}}}} to give ident access
 for user ocsimore by copying the following line at the right place
 (usually before the "local all all ident sameuser" line):
-
- local ocsimore ocsimore password
+{{{
+  local ocsimore ocsimore password
+}}}
 
 Restart postgresql, for example:
-sudo /etc/init.d/postgresql restart
+{{{
+  $ sudo /etc/init.d/postgresql restart
+}}}
 
 
 4. Create a database called ocsimore and add the language plpgsql
-
-sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
-createlang -U ocsimore plpgsql ocsimore
+{{{
+  $ sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
+  $ createlang -U ocsimore plpgsql ocsimore
+}}}
 
 Then populate the database:
-psql -U ocsimore -f createdb.sql ocsimore
+{{{
+  $ psql -U ocsimore -f createdb.sql ocsimore
+}}}
 
 If something goes wrong, you can delete the database by typing:
-sudo -u postgres dropdb ocsimore
+{{{
+  $ sudo -u postgres dropdb ocsimore
+}}}
 
-
-5. Install pgocaml with lwt support (lwt branch of cvs)
-http://merjis.com/developers/pgocaml
-Make sure to properly set DEFAULT_UNIX_DOMAIN_SOCKET_DIR in
-pgocaml's Makefile.config, depending on your installation
+5. Install pgocaml with LWT-support (LWT branch of cvs)
+##http://merjis.com/developers/pgocaml##
+Make sure to properly set ##DEFAULT_UNIX_DOMAIN_SOCKET_DIR## in
+pgocaml's ##Makefile.config##, depending on your installation
 
 6. Compile ocsimore
-make
+{{{
+  $ make
+}}}
 
 7. If you want system wide install:
  - Become root and install:
-sudo make install
- - Adapt /etc/ocsimore.conf
+{{{
+  $ sudo make install
+}}}
+ - Adapt ##/etc/ocsimore.conf##
  - Run Ocsigen, for example:
-sudo ocsigen -c /etc/ocsimore.conf
+{{{
+  $ ocsigenserver -c /etc/ocsimore.conf
+}}}
 
-8. To run ocsimore from the source directory:
+8. Initially, as there is no wiki registered, you have to go to Ocsimore's
+   administration interface (by default on your site on path ##/ocsimoreadmin##)
+   and create one.
 
-CAML_LD_LIBRARY_PATH=nis_chkpwd ocsigen -c ocsimore.conf.local
+9. To run ocsimore from the source directory
+{{{
+  $ CAML_LD_LIBRARY_PATH=nis_chkpwd ocsigen -c ocsimore.conf.local
+}}}
