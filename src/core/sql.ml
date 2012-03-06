@@ -29,7 +29,7 @@ let () = PGOCaml.verbose := 2
 
 open Lwt
 
-type db_t = (string, bool) Hashtbl.t PGOCaml.t
+type db_t = PGOCaml.pa_pg_data PGOCaml.t
 
 let connect () =
   PGOCaml.connect
@@ -40,8 +40,14 @@ let connect () =
     ~database:!Ocsimore_config.db_name
     ~user:!Ocsimore_config.db_user
 
+let validate db =
+  try
+    lwt () = PGOCaml.ping db in
+    Lwt.return true
+  with _ ->
+    Lwt.return false
 
-let pool = Lwt_pool.create 16 connect
+let pool = Lwt_pool.create 16 ~validate connect
 
 let transaction_block db f =
   PGOCaml.begin_work db >>= fun _ ->
