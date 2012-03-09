@@ -43,7 +43,7 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
       Language.messages := Language.messages_english;
       parse_config l
-  | (Simplexmlparser.Element ("application_name", ["name", name], _)) :: l ->
+  | (Simplexmlparser.Element ("application-name", ["name", name], _)) :: l ->
       Ocsimore_config.application_name := name;
       parse_config l
   | (Simplexmlparser.Element ("admin-dir", ["dir", dir], _)) :: l ->
