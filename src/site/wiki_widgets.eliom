@@ -1460,9 +1460,7 @@ class dynamic_wikibox
                ~special_box:(WikiContainerBox wiki) wb_container
      in
      lwt css = self#css_header ~page wiki in
-     let title = (match title with
-                    | Some title -> title
-                    | None -> wiki_info.wiki_descr) in
+     let title = match title with Some title -> title | None -> wiki_info.wiki_descr in
      let code = match err_code with
        | Wiki_widgets_interface.Page_displayable -> 200
        | Wiki_widgets_interface.Page_404 -> 404

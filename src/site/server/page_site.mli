@@ -91,6 +91,7 @@ val html_page :
   ?body_classes:HTML5_types.nmtokens ->
   ?css:HTML5_types.link HTML5.M.elt list->
   ?title:string ->
+  ?heading:string ->
   HTML5_types.body_content HTML5.M.elt list ->
   HTML5.M.html Lwt.t
 

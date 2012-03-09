@@ -139,7 +139,7 @@ let admin_pages_header =
 let add_admin_pages_header () =
   Header.require_header admin_pages_header
 
-let html_page ?body_classes ?(css=[]) ?title:ttl content =
+let html_page ?body_classes ?(css=[]) ?title:(title'="Ocsimore") ?heading content =
   lwt headers = Header.generate_headers () in
   let body_attrs =
     match body_classes with
@@ -149,13 +149,13 @@ let html_page ?body_classes ?(css=[]) ?title:ttl content =
   Lwt.return HTML5.M.(
     html
      (head
-        (title (pcdata (Ocsimore_lib.get_opt ~default:"Ocsimore" ttl)))
+        (title (pcdata title'))
         ((css :> HTML5_types.head_content_fun elt list)
          @ headers
          @ [Ocsimore_appl.application_script ~async:true ()]))
      (body ~a:body_attrs 
         (get_opt ~default:[]
-           (map_option (fun ttl -> [h1 ~a:[a_class ["html_page_heading"]] [pcdata ttl]]) ttl)
+           (map_option (fun heading -> [h1 ~a:[a_class ["html_page_heading"]] [pcdata heading]]) heading)
          @ content))
   )
 
@@ -213,7 +213,7 @@ let admin_page
   lwt menu = admin_menu ?service () in
   lwt status = status_text () in
   lwt usr_id = User.get_user_id () in
-  html_page ~title ~css ~body_classes:("admin" :: body_classes)
+  html_page ~title:"Ocsimoreadmin" ~heading:title ~css ~body_classes:("admin" :: body_classes)
     (  menu ()
      @ HTML5.M.div ~a:[HTML5.M.a_id "admin_body"] content
      :: HTML5.M.div ~a:[HTML5.M.a_id "admin_status"] status

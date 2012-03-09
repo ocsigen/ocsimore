@@ -107,7 +107,7 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
       ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "page"))
       (fun path () ->
          let page' = Url.string_of_url_path ~encode:false path in
-         send_wikipage ~menu_style:`Pencil ~rights ~wiki ~page:(page', path) ()
+         send_wikipage (* ~menu_style:`Pencil *) ~rights ~wiki ~page:(page', path) ()
       )
   in
   Wiki_self_services.add_servpage wiki servpage;
@@ -122,7 +122,7 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
            Url.remove_slash_at_beginning (Neturl.split_path page)
          in
          let page' = Url.string_of_url_path ~encode:false path in
-         send_wikipage ~menu_style:`Pencil ~rights ~wiki ~page:(page', path) ()
+         send_wikipage (* ~menu_style:`Pencil *) ~rights ~wiki ~page:(page', path) ()
       )
   in
   Wiki_self_services.add_naservpage wiki naservpage;
