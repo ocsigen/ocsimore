@@ -508,15 +508,14 @@ let default_forum_sd () =
       Lwt.return v
 
 (** The polytable key for retrieving forum data inside session data *)
-let default_forum_request_cache = Ocsimore_lib.Request_cache.from_fun default_forum_sd
+let default_forum_request_cache = Eliom_references.eref_from_fun ~scope:Eliom_common.request default_forum_sd
 
 let get_forum_sd () =
-  Ocsimore_lib.Request_cache.get default_forum_request_cache
+  Eliom_references.get default_forum_request_cache
 
 let get_role k =
   lwt forum_sd = get_forum_sd () in
   forum_sd k
-
 
 
 (** {2 } *)

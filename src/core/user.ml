@@ -266,10 +266,10 @@ let get_user_ () =
           lwt () = Eliom_state.discard ~scope:Eliom_common.request () in
           Lwt.return anonymous
 
-let user_request_cache = Request_cache.from_fun get_user_
+let user_request_cache = Eliom_references.eref_from_fun ~scope:Eliom_common.request get_user_
 
 let get_user_sd () =
-  Request_cache.get user_request_cache >>= fun x -> x
+  Eliom_references.get user_request_cache >>= fun x -> x
 
 let get_user_id () =
   get_user_sd ()
@@ -280,7 +280,7 @@ let get_user_data () =
 let get_user_name () =
   get_user_data () >|= function { user_login } -> user_login
 
-let groups_table_request_cache = Request_cache.from_fun (fun () -> Hashtbl.create 37)
+let groups_table_request_cache = Eliom_references.eref_from_fun ~scope:Eliom_common.request (fun () -> Hashtbl.create 37)
 
 let in_group_ ~user ~group () =
   let no_sp = Eliom_common.get_sp_option () = None in
@@ -288,7 +288,7 @@ let in_group_ ~user ~group () =
     if no_sp then
       Lwt.return ((fun _ -> raise Not_found), (fun _ _ -> ()))
     else
-      lwt table = Request_cache.get groups_table_request_cache in
+      lwt table = Eliom_references.get groups_table_request_cache in
       Lwt.return (Hashtbl.find table, Hashtbl.add table)
   in
   let return u g v =
@@ -445,7 +445,7 @@ let external_users =
 
 
 let set_session_data (user_id, username) =
-  lwt () = Request_cache.set user_request_cache (Lwt.return user_id) in
+  lwt () = Eliom_references.set user_request_cache (Lwt.return user_id) in
   lwt () =
     Eliom_state.set_persistent_data_session_group
       ~scope:Eliom_common.session

@@ -211,35 +211,3 @@ let remove_spaces s =
   match Netstring_pcre.string_match remove_re s 0 with
   | None -> s
   | Some r -> Netstring_pcre.matched_group r 1 s
-
-(** Interface for a per-request cache. When a function [f] is chached with a request cache, it is ensured that
-    while calling [Request_cache.get] on the cache, [f] is only evaluated once per request. *)
-module Request_cache = struct
-
-  type 'a t = {
-    eref : 'a option Eliom_references.eref;
-    f : unit -> 'a;
-  }
-
-  let from_fun : (unit -> 'a) -> 'a t =
-    fun f ->
-      let eref =
-        Eliom_references.eref
-          ~scope:Eliom_common.request
-          None
-      in
-      { eref ; f }
-
-  let get rc =
-    Eliom_references.get rc.eref >>= function
-      | Some x -> Lwt.return x
-      | None ->
-          let x = rc.f () in
-          lwt () = Eliom_references.set rc.eref (Some x) in
-          Lwt.return x
-
-  let set rc value =
-    Eliom_references.set rc.eref (Some value)
-
-end
-
