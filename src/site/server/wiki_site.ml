@@ -531,79 +531,88 @@ let normalize_old_page_link wiki wikibox addr fragment attribs params =
   Lwt.return replacement
 
 let _ =
+  let is_allowed () = (=) User.admin =|< User.get_user_id () in
   Eliom_output.Html5.register
     Wiki_services.batch_edit_boxes
     (fun () () ->
-      Page_site.admin_page
-        ~title:"Batch edit boxes"
-        HTML5.M.([
-          Eliom_output.Html5.post_form
-            ~service:replace_links
-            (fun () -> [
-              Eliom_output.Html5.button
-                ~button_type:`Submit
-                [HTML5.M.pcdata "Replace links"]
-            ]) ()
-        ]));
+       lwt is_allowed = is_allowed () in
+       if is_allowed then
+        Page_site.admin_page
+          ~title:"Batch edit boxes"
+          HTML5.M.([
+            Eliom_output.Html5.post_form
+              ~service:replace_links
+              (fun () -> [
+                Eliom_output.Html5.button
+                  ~button_type:`Submit
+                  [HTML5.M.pcdata "Replace links"]
+              ]) ()
+          ])
+      else
+        Page_site.no_permission () >>= Page_site.admin_page ~title:"Batch edit boxes");
   Eliom_output.Html5.register
     replace_links
     (fun () () ->
-      lwt wikis = Wiki_sql.get_wikis () in
-      let wikibox_content wpp wiki wikibox =
-        lwt c = Wiki_sql.get_wikibox_content wikibox in
-        match c with
-            Some (_comment, _author, Some old_content, _datetime, content_type, _version) ->
-              let href_action = normalize_old_page_link wiki wikibox in
-              let desugar_param = Wiki_syntax_types.({
-                dc_page_wiki = wiki;
-                dc_page_path = None;
-                dc_warnings = [];
-              }) in
-              lwt new_content = Wiki_models.desugar_string ~href_action wpp desugar_param old_content in
-              if 0 = String.compare old_content new_content then
-                Lwt.return (wikibox, None)
-              else
-                lwt wikibox' =
-                  Wiki_sql.update_wikibox 
-                    ~author:User.admin
-                    ~comment:"batch_edit_boxes: Replace old relative links"
-                    ~content:(Some new_content)
-                    ~content_type
-                    wikibox
-                in
-                Lwt.return (wikibox, Some (wikibox', (old_content, new_content)))
-         | _ -> Lwt.return (wikibox, None)
-      in
-      let for_wiki wiki =
-        lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
-        lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
-        lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
-        lwt wikiboxes_content = Lwt_list.map_s (wikibox_content wpp wiki) wikiboxes in
-        Lwt.return (wiki_info, wikiboxes_content)
-      in
-      lwt wikiboxes_by_wikis = Lwt_list.map_s for_wiki wikis in
-      Page_site.admin_page
-        ~title:"Replace links"
-        (List.map
-          (fun (wiki_info, wikiboxes) ->
-            HTML5.M.(
-              div [
-                h4 [pcdata wiki_info.Wiki_types.wiki_title];
-                table
-                  (tr [th [pcdata "wikibox"]; th [pcdata "changes"]])
-                  (List.map_filter
-                     (fun (wikibox, opt_contents) ->
-                       match opt_contents with
-                           Some (wikibox', (old_content, new_content)) ->
-                             let s = if 0 = String.compare old_content new_content then "-" else "some" in
-                             Some (tr [
-                               td [pcdata (Wiki_types.string_of_wikibox wikibox)];
-                               td [pcdata s]
-                             ])
-                         | None -> None)
-                     wikiboxes)
-              ]))
-          wikiboxes_by_wikis))
+      lwt is_allowed = is_allowed () in
+      if is_allowed then
+        lwt wikis = Wiki_sql.get_wikis () in
+        let wikibox_content wpp wiki wikibox =
+          lwt c = Wiki_sql.get_wikibox_content wikibox in
+          match c with
+              Some (_comment, _author, Some old_content, _datetime, content_type, _version) ->
+                let href_action = normalize_old_page_link wiki wikibox in
+                let desugar_param = Wiki_syntax_types.({
+                  dc_page_wiki = wiki;
+                  dc_page_path = None;
+                  dc_warnings = [];
+                }) in
+                lwt new_content = Wiki_models.desugar_string ~href_action wpp desugar_param old_content in
+                if 0 = String.compare old_content new_content then
+                  Lwt.return (wikibox, None)
+                else
+                  lwt wikibox' =
+                    Wiki_sql.update_wikibox 
+                      ~author:User.admin
+                      ~comment:"batch_edit_boxes: Replace old relative links"
+                      ~content:(Some new_content)
+                      ~content_type
+                      wikibox
+                  in
+                  Lwt.return (wikibox, Some (wikibox', (old_content, new_content)))
+           | _ -> Lwt.return (wikibox, None)
+        in
+        let for_wiki wiki =
+          lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
+          lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
+          lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
+          lwt wikiboxes_content = Lwt_list.map_s (wikibox_content wpp wiki) wikiboxes in
+          Lwt.return (wiki_info, wikiboxes_content)
+        in
+        lwt wikiboxes_by_wikis = Lwt_list.map_s for_wiki wikis in
+        Page_site.admin_page
+          ~title:"Replace links"
+          (List.map
+            (fun (wiki_info, wikiboxes) ->
+              HTML5.M.(
+                div [
+                  h4 [pcdata wiki_info.Wiki_types.wiki_title];
+                  table
+                    (tr [th [pcdata "wikibox"]; th [pcdata "changes"]])
+                    (List.map_filter
+                       (fun (wikibox, opt_contents) ->
+                         match opt_contents with
+                             Some (wikibox', (old_content, new_content)) ->
+                               let s = if 0 = String.compare old_content new_content then "-" else "some" in
+                               Some (tr [
+                                 td [pcdata (Wiki_types.string_of_wikibox wikibox)];
+                                 td [pcdata s]
+                               ])
+                           | None -> None)
+                       wikiboxes)
+                ]))
+            wikiboxes_by_wikis)
+        else
+          Page_site.no_permission () >>= Page_site.admin_page ~title:"Replace links")
 
 let wiki_root =
   Eliom_services.service
