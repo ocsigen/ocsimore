@@ -57,7 +57,7 @@ let rec parse_config = function
                   | "name", name -> Ocsimore_config.db_name := name;
                   | "user", user -> Ocsimore_config.db_user := user
                   | "host", host -> Ocsimore_config.db_host := Ocsimore_config.opt host
-                  | "post", port ->
+                  | "port", port ->
                     begin try
                       Ocsimore_config.db_port :=
                         Eliom_pervasives.map_option int_of_string (Ocsimore_config.opt port)
