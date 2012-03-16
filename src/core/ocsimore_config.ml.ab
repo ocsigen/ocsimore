@@ -14,4 +14,6 @@ let mailer = ref "/usr/sbin/sendmail"
 
 let application_name = ref "ocsimore"
 
+let aggregate_css = ref true
+
 let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)

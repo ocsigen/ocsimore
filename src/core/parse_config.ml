@@ -43,15 +43,31 @@ let rec parse_config = function
   | (Simplexmlparser.Element ("language", [("lang", "english")], []))::l ->
       Language.messages := Language.messages_english;
       parse_config l
-  | (Simplexmlparser.Element ("application-name", ["name", name], _)) :: l ->
-      Ocsimore_config.application_name := name;
-      parse_config l
   | (Simplexmlparser.Element ("admin-dir", ["dir", dir], _)) :: l ->
       Ocsimore_config.admin_dir := dir;
       parse_config l
   | (Simplexmlparser.Element ("mailer", ["bin", mailer], _)) :: l ->
       Ocsimore_config.mailer := mailer;
       parse_config l
+  | (Simplexmlparser.Element ("internals", attrs, []))::l ->
+       List.iter
+         (function
+            | "application-name", name ->
+                Ocsimore_config.application_name := name
+            | "aggregate-css", str_value ->
+                let value =
+                  match str_value with
+                    | "yes" -> true
+                    | "no" -> false
+                    | _ -> raise (Ocsigen_extensions.Error_in_config_file
+                                    "Incorrect value for attribute 'aggregate-css'")
+                in
+                Ocsimore_config.aggregate_css := value
+            | attr, _ ->
+                raise (Ocsigen_extensions.Error_in_config_file
+                         ("Unexpected attribute inside ocsimore 'internals' config: "^attr)))
+         attrs;
+       parse_config l
   | (Simplexmlparser.Element ("database", attribs, []))::l ->
     List.iter (function
                   | "name", name -> Ocsimore_config.db_name := name;
@@ -65,7 +81,7 @@ let rec parse_config = function
                         raise (Ocsigen_extensions.Error_in_config_file
                                  ("Incorrect attribute inside ocsimore database config: port ("^port^") isn't an integer."))
                     end
-                  | "socket_dir", dir ->
+                  | "socket-dir", dir ->
                       Ocsimore_config.db_unix_domain_socket_dir := Ocsimore_config.opt dir
                   | attrib, _ ->
                     raise (Ocsigen_extensions.Error_in_config_file

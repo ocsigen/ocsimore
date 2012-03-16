@@ -1408,17 +1408,25 @@ class dynamic_wikibox
         | None -> Lwt.return []
         | Some wikicss_service ->
             lwt wb_list_with_media = Wiki_sql.get_css_wikibox_for_wiki wiki in
+            if !Ocsimore_config.aggregate_css then
               Lwt_list.map_s
                 (fun (media, wb_list) ->
                    Lwt_list.map_s add_version wb_list >|= fun wb_version_list ->
                      css_url_service wikicss_service wb_version_list media)
                 (grouped_by_media wb_list_with_media)
+            else
+              Lwt_list.map_s
+                (fun (wikibox, media, _) ->
+                   add_version wikibox >|= fun wikibox_version ->
+                     css_url_service wikicss_service [wikibox_version] media)
+                wb_list_with_media
      in
      match page with
        | None -> Lwt.return css
        | Some page ->
            lwt wb_list_with_media = Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page in
            lwt ll =
+             if !Ocsimore_config.aggregate_css then
                Lwt_list.map_s
                  (fun (media, wb_list) ->
                    Lwt_list.map_s add_version wb_list >|= fun wb_version_list ->
@@ -1427,6 +1435,15 @@ class dynamic_wikibox
                       ((wiki, page), wb_version_list)
                       media)
                  (grouped_by_media wb_list_with_media)
+             else
+               Lwt_list.map_s
+                 (fun (wikibox, media, _) ->
+                    add_version wikibox >|= fun wikibox_version ->
+                      css_url_service
+                        Wiki_services.pagecss_service
+                        ((wiki, page), [wikibox_version])
+                        media)
+                 wb_list_with_media
            in
            Lwt.return (css @ ll)
 

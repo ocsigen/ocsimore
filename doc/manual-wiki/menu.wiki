@@ -5,3 +5,4 @@
 ==[[user|Users and groups]]
 ==[[misc|Misc]]
 ==[[guidelines|Writing extensions for Ocsimore]]
+==[[config|Configuration options]]

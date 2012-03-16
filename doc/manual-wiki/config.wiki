@@ -1,0 +1,43 @@
+
+= Configuring Ocsimore
+
+Ocsimore can be configured by providing tags to the extension of Ocsigenserver which loads Ocsimore:
+{{
+    <extension module="_build/src/core/ocsimore.cma">
+    </extension>
+}}}
+
+== The ##database##-tag
+
+All attributes of the ##database##-tag are optional:
+
+{{{
+    <extension module="ocsimore.cma">
+      <database
+        name="..."
+        user="..."
+        host="..."
+        port="..."
+        socket-dir="..." />
+    </extension>
+}}}
+
+== The ##internals##-tag
+
+Attributes
+
+ ; ##aggregate-css="yes"|"no"##
+ : Allows you to prevent Ocsimore from aggregating the CSS files of a wiki into a single request.
+   The default ##"yes"##.
+ ; ##application-name=<name>##
+ : Specifies the name of the Eliom-application.
+
+{{{
+    <extension module="ocsimore.cma">
+      <internals
+        application-name="..."
+        aggregate-css="..." />
+    </extension>
+}}}
+
+
