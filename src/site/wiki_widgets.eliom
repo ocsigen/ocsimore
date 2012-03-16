@@ -29,13 +29,13 @@ open Ocsimore_lib.Lwt_ops
 
 
 (* TODO Handle wikiboxes with multiple media (i.e. "screen print" or even "all") carefully! *)
-let grouped_by_media wblist_with_media =
+let grouped_by_media wb_list_with_media =
   let rec insert_by_media ((wb, media, _) as wb_media) = function
       [] -> [media, [wb]]
     | (media', wblist) :: rest when media = media' ->
         (media, wb :: wblist) :: rest
     | pair :: rest -> pair :: insert_by_media wb_media rest in
-  List.fold_right insert_by_media wblist_with_media []
+  List.fold_right insert_by_media wb_list_with_media []
 
 
 let hidden_page_inputs (page_wiki, page_path) (page_wiki_name, (empty_page_path_name, page_path_name)) =
@@ -1386,36 +1386,47 @@ class dynamic_wikibox
        ([> HTML5_types.link] as 'a) HTML5.M.elt list Lwt.t =
 
      fun ?page wiki ->
-     let css_url_service service args media =
+     let css_url_service service arg media =
        Eliom_output.Html5.css_link
          ?a:(if media = []
              then None
              else Some [HTML5.M.a_media media])
-         ~uri:(Eliom_output.Html5.make_uri ~service args)
+         ~uri:(Eliom_output.Html5.make_uri ~service arg)
        ()
      in
-     (match Wiki_self_services.find_servwikicss wiki with
+     (* BB It is necessary to add the versions of the CSS wikiboxes to the
+      * service to prevent caching when the content has changed (at least for
+      * XHR request to the CSS). We are also sending links CSS wikiboxes with
+      * current version = None because we want 404 error to happen in
+      * [Wiki_self_services.pagecss_service]. *)
+     let add_version wb =
+       Wiki_sql.current_wikibox_version wb
+         >|= fun version -> wb, version
+     in
+     lwt css =
+       match Wiki_self_services.find_servwikicss wiki with
         | None -> Lwt.return []
         | Some wikicss_service ->
-            Wiki_sql.get_css_wikibox_for_wiki wiki >|= fun wblist_with_media ->
-            List.map
-              (fun (media, wblist) -> css_url_service wikicss_service wblist media)
-              (grouped_by_media wblist_with_media)
-     )
-     >>= fun css ->
+            lwt wb_list_with_media = Wiki_sql.get_css_wikibox_for_wiki wiki in
+              Lwt_list.map_s
+                (fun (media, wb_list) ->
+                   Lwt_list.map_s add_version wb_list >|= fun wb_version_list ->
+                     css_url_service wikicss_service wb_version_list media)
+                (grouped_by_media wb_list_with_media)
+     in
      match page with
        | None -> Lwt.return css
        | Some page ->
-           Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun wblist_with_media ->
-           let ll =
-             List.map
-               (fun (media, wblist) ->
-                  css_url_service
-                    Wiki_services.pagecss_service
-                    ((wiki, page), wblist)
-                    media
-               )
-               (grouped_by_media wblist_with_media)
+           lwt wb_list_with_media = Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page in
+           lwt ll =
+               Lwt_list.map_s
+                 (fun (media, wb_list) ->
+                   Lwt_list.map_s add_version wb_list >|= fun wb_version_list ->
+                    css_url_service
+                      Wiki_services.pagecss_service
+                      ((wiki, page), wb_version_list)
+                      media)
+                 (grouped_by_media wb_list_with_media)
            in
            Lwt.return (css @ ll)
 

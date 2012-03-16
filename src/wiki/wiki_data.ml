@@ -28,9 +28,8 @@ Access to wiki data with permission checks
 
 open Wiki_types
 open User_sql.Types
+open Ocsimore_lib.Lwt_ops
 
-
-let (>>=) = Lwt.bind
 
 type 'a rights =
   rights:Wiki_types.wiki_rights ->
@@ -120,22 +119,25 @@ let create_wiki ~(rights : Wiki_types.wiki_rights)
         Lwt.fail Ocsimore_common.Permission_denied
 
 
-let css_aux ~(rights : Wiki_types.wiki_rights) l =
-  Lwt_util.fold_left
-    (fun l (wb, media_type, rank) ->
-       wikibox_content rights wb >>= function
-         | (_, Some cont, _) -> Lwt.return ((wb, (cont, media_type, rank)) :: l)
-         | (_, None, _) -> Lwt.return l
-    ) [] l
+let css_aux ~(rights : Wiki_types.wiki_rights) ~available ~wikibox_version_list =
+  Lwt_list.fold_right_s
+    (fun (wikibox, version) sofar ->
+         if List.exists (fun (wikibox', _, _) -> wikibox = wikibox') available then
+           wikibox_content ~rights ~version wikibox >|= function
+             | _, Some cont, _ ->
+                 (wikibox, cont) :: sofar
+             | _, None, _ ->
+                 sofar
+         else Lwt.fail Not_found)
+    wikibox_version_list []
 
+let wiki_css_boxes_with_content ~(rights : Wiki_types.wiki_rights) ~wiki wikibox_version_list =
+  lwt available = Wiki_sql.get_css_wikibox_for_wiki wiki in
+  css_aux ~rights ~available ~wikibox_version_list
 
-let wiki_css ~(rights : Wiki_types.wiki_rights) ~wiki =
-  Wiki_sql.get_css_wikibox_for_wiki wiki >>= fun l ->
-  css_aux ~rights l
-
-let wikipage_css ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
-  Wiki_sql.get_css_wikibox_for_wikipage wiki page >>= fun l ->
-  css_aux ~rights l
+let wikipage_css_boxes_with_content ~(rights : Wiki_types.wiki_rights) ~wiki ~page wikibox_version_list =
+  lwt available = Wiki_sql.get_css_wikibox_for_wikipage wiki page in
+  css_aux ~rights ~available ~wikibox_version_list
 
 
 

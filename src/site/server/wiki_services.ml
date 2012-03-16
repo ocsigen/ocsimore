@@ -32,6 +32,22 @@ open Ocsimore_lib.Lwt_ops
 
 (**/**)
 
+let ( ** ) = Eliom_parameters.prod
+
+let eliom_wiki : string -> wiki Ocsimore_common.eliom_usertype =
+  Ocsimore_common.eliom_opaque_int32
+let eliom_wikibox : string -> wikibox Ocsimore_common.eliom_usertype =
+  Ocsimore_common.eliom_opaque_int32
+
+let eliom_wiki_args = eliom_wiki "wid"
+let eliom_wikibox_args = eliom_wikibox "wbid"
+let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
+let eliom_wikibox_version_args = eliom_wikibox_args ** Eliom_parameters.(opt (int32 "version"))
+let eliom_css_args =
+  (eliom_wiki "widcss" **
+   Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
+  ** eliom_wikibox "wbcss"
+
 let unopt_media_type = function
   | Some x -> x
   | None -> invalid_arg "media_type_elem_of_string"
@@ -130,14 +146,20 @@ let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
   let wikicss_service =
     Eliom_output.CssText.register_service
       ~path:(path@["__wikicss"])
-      ~get_params:(Eliom_parameters.list "wblist" (Ocsimore_common.eliom_opaque_int32 "wb"))
+      ~get_params:(Eliom_parameters.list "wblist" eliom_wikibox_version_args)
       ~options:(3600 * 24 * 7) (* TODO parametrize *)
-      (fun wblist () ->
-         Wiki_data.wiki_css rights wiki >>= fun l ->
-         let get_content wb = let (v, _, _) = List.assoc wb l in v in
-         try Lwt.return (String.concat "\n\n" (List.map get_content wblist))
-         with Not_found -> Lwt.fail Eliom_common.Eliom_404
-      )
+      (fun wb_version_list () ->
+         try
+           try_lwt
+             let wb_version_list =
+               List.map
+                 (function (wikibox, Some version) -> wikibox, version | _ -> raise Not_found)
+                 wb_version_list
+             in
+             lwt csss = Wiki_data.wiki_css_boxes_with_content ~rights ~wiki wb_version_list in
+             Lwt.return (String.concat "\n\n" (List.map snd csss))
+           with Not_found -> Lwt.fail Eliom_common.Eliom_404
+         with Not_found -> Lwt.fail Eliom_common.Eliom_404)
   in
   Wiki_self_services.add_servwikicss wiki wikicss_service
   )
@@ -162,21 +184,6 @@ let error_handler_wb_opt wb e =
 
 let error_handler_wb wb = error_handler_wb_opt (Some wb)
 
-
-let ( ** ) = Eliom_parameters.prod
-
-let eliom_wiki : string -> wiki Ocsimore_common.eliom_usertype =
-  Ocsimore_common.eliom_opaque_int32
-let eliom_wikibox : string -> wikibox Ocsimore_common.eliom_usertype =
-  Ocsimore_common.eliom_opaque_int32
-
-let eliom_wiki_args = eliom_wiki "wid"
-let eliom_wikibox_args = eliom_wikibox "wbid"
-let eliom_wikipage_args = eliom_wiki_args ** (Eliom_parameters.string "page")
-let eliom_css_args =
-  (eliom_wiki "widcss" **
-   Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
-  ** eliom_wikibox "wbcss"
 
 let add_remove_to_string = function
   | `Add -> "add"
@@ -384,16 +391,22 @@ and action_set_wikibox_special_permissions =
 (* This is a non attached coservice, so that the css is in the same
    directory as the page. Important for relative links inside the css. *)
 and pagecss_service = Eliom_output.CssText.register_coservice'
-  ~name:"pagecss" ~get_params:(eliom_wikipage_args ** Eliom_parameters.list "wblist" eliom_wikibox_args)
+  ~name:"pagecss" ~get_params:(eliom_wikipage_args ** Eliom_parameters.list "wblist" eliom_wikibox_version_args)
   ~options:(3600 * 24 * 7) (* TODO parametrize *)
-  (fun ((wiki, page), wblist) () ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+  (fun ((wiki, page), wb_version_list) () ->
+     lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
-     Wiki_data.wikipage_css rights wiki page >>= fun l ->
-     let get_content wb = let (v, _, _) = List.assoc wb l in v in
-     try Lwt.return (String.concat "\n\n" (List.map get_content wblist))
-     with Not_found -> Lwt.fail Eliom_common.Eliom_404
-  )
+     try
+       try_lwt
+         let wb_version_list =
+           List.map
+             (function (wikibox, Some version) -> wikibox, version | _ -> raise Not_found)
+             wb_version_list
+         in
+         lwt csss = Wiki_data.wikipage_css_boxes_with_content ~rights ~wiki ~page wb_version_list in
+         Lwt.return (String.concat "\n\n" (List.map snd csss))
+       with Not_found -> Lwt.fail Eliom_common.Eliom_404
+     with Not_found -> Lwt.fail Eliom_common.Eliom_404)
 
 and action_create_page = Eliom_output.Action.register_post_coservice'
   ~name:"wiki_page_create"

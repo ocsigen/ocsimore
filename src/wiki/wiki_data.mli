@@ -140,14 +140,13 @@ val wikibox_history :
 
 (** Returns the css for the specified wiki or the wikipage. The CSS are
     filtered for the ones the user can read *)
-val wiki_css :
- (wiki:wiki ->
-  (wikibox * (string * media_type * int32)) list Lwt.t) rights
+val wiki_css_boxes_with_content :
+ (wiki:wiki -> (wikibox * int32) list -> (wikibox * string) list Lwt.t) rights
 
 (** Same thing for a wikipage *)
-val wikipage_css :
- (wiki:wiki -> page:string ->
-  (wikibox * (string * media_type * int32)) list Lwt.t) rights
+val wikipage_css_boxes_with_content :
+ (wiki:wiki -> page:string -> (wikibox * int32) list ->
+  (wikibox * string) list Lwt.t) rights
 
 
 
