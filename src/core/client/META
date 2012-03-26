@@ -1,0 +1,18 @@
+# OASIS_START
+# DO NOT EDIT (digest: 7a5543b1afab4e37497c2754a7e7394f)
+version = "0.5"
+description = "Core Ocsimore client part"
+requires = "eliom.client"
+archive(byte) = "ocsimore_client.cma"
+archive(native) = "ocsimore_client.cmxa"
+exists_if = "ocsimore_client.cma"
+package "site" (
+ version = "0.5"
+ description = "some extensions"
+ requires = "eliom.client"
+ archive(byte) = "core_site_client.cma"
+ archive(native) = "core_site_client.cmxa"
+ exists_if = "core_site_client.cma"
+)
+# OASIS_STOP
+

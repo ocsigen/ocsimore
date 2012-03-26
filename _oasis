@@ -12,7 +12,7 @@ Authors:
   Plein de monde a mettre
 Homepage: http://ocsigen.org/ocsimore
 BuildTools: ocamlbuild
-Plugins: DevFiles (0.2), META (0.2)
+Plugins: DevFiles (0.3), META (0.3)
 Synopsis: Ocsimore lib for eliom
 Description:
   A nice description
@@ -46,6 +46,14 @@ Library "ocsimore"
   XMETADescription: Core Ocsimore
   BuildDepends: camlp4, lwt.syntax, pgocaml.syntax, eliom.server, threads
   XMETARequires: pgocaml, eliom.server, threads
+
+Library "ocsimore_client"
+  Path: src/core/client
+  Modules:
+  XMETADescription: Core Ocsimore client part
+  BuildDepends:
+    camlp4, lwt.syntax, eliom.client, eliom.syntax
+  XMETARequires: eliom.client
 
 Library "user"
   Path: src/user
@@ -113,8 +121,8 @@ Library "core_site"
 
 Library "core_site_client"
   Path: src/site/client
-  FindlibName: site_client
-  FindlibParent: ocsimore
+  FindlibName: site
+  FindlibParent: ocsimore_client
   Modules:
     Page_site,
     HTML5outliner,
