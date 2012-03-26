@@ -125,6 +125,7 @@ Other optional arguments are possible:
 *{{{cols='i'}}} (number of columns of the edition window)
 *{{{rows='i'}}} (number of rows of the edition window)
 *{{{class='...'}}} (class xml attribute to use for the box)
+*{{{delayed=''}}} to delay the loading of the wikibox content
 
 If you want to create a new wikibox, do not put the box argument.
 A wikibox may be a container. Just put {{{<<content>>}}} inside it.

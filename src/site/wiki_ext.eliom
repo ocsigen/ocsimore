@@ -76,32 +76,54 @@ let register_wikibox_syntax_extensions
              [error_box#display_error_box
                  ~message:"Wiki error: loop of wikiboxes" ()]
          else
-           let fsubbox ~sectioning menu_style = match c with
-             | None -> Lwt.return None
-             | Some c ->
-               let bi =
-                 { bi with bi_menu_style = menu_style;
-                   bi_sectioning = sectioning; } in
-               lwt r = Wiki_syntax.xml_of_wiki wp bi c in
-               Lwt.return (Some (r :> HTML5_types.flow5 HTML5.M.elt list))
-           in
-           lwt wiki = Wiki_sql.wikibox_wiki box in
-           lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
-           lwt widget = Wiki_models.get_widgets wiki_info.wiki_model in
-           let class_box = Wiki_syntax.class_wikibox box in
-           widget#display_interactive_wikibox
-             ?rows:(Ocsimore_lib.int_of_string_opt
-                      (Ocsimore_lib.list_assoc_opt "rows" args))
-             ?cols:(Ocsimore_lib.int_of_string_opt
-                      (Ocsimore_lib.list_assoc_opt "cols" args))
-             ?classes:(try Some [List.assoc "class" args; class_box]
-               with Not_found -> Some [class_box])
-             ~bi:{bi with
-               bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
-               bi_box = box;
-               bi_wiki = wiki;
-               bi_subbox = fsubbox }
-             box
+           if (try ignore (List.assoc "delayed" args); true with | Not_found -> false)
+           then
+             lwt override = Wiki_services.get_override_wikibox () in
+             let page = bi.bi_page in
+             let box_replacer_id = HTML5.new_elt_id ~global:false () in
+             let box_replacer = HTML5.create_named_elt ~id:box_replacer_id
+               (HTML5.M.div
+                  ~a:[HTML5.M.a_onload {{
+                    ignore (
+                      match_lwt Eliom_client.call_caml_service ~keep_get_na_params:true
+                        ~service:( %Wiki_services.wikibox_contents )
+                        ( %box, %page, %override ) () with
+                        | None ->
+                          debug "box not allowed for display";
+                          Lwt.return ()
+                        | Some box_content ->
+                          Eliom_dom.Named.replaceAllChild %box_replacer_id box_content;
+                          Lwt.return ())
+                  }}]
+                  [HTML5.M.pcdata "loading"]) in
+             Lwt.return [box_replacer] (* CCC if we add a ( :'a) type constraint, it fails type checking... *)
+           else
+             let fsubbox ~sectioning menu_style = match c with
+               | None -> Lwt.return None
+               | Some c ->
+                 let bi =
+                   { bi with bi_menu_style = menu_style;
+                     bi_sectioning = sectioning; } in
+                 lwt r = Wiki_syntax.xml_of_wiki wp bi c in
+                 Lwt.return (Some (r :> HTML5_types.flow5 HTML5.M.elt list))
+             in
+             lwt wiki = Wiki_sql.wikibox_wiki box in
+             lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+             lwt widget = Wiki_models.get_widgets wiki_info.wiki_model in
+             let class_box = Wiki_syntax.class_wikibox box in
+             widget#display_interactive_wikibox
+               ?rows:(Ocsimore_lib.int_of_string_opt
+                        (Ocsimore_lib.list_assoc_opt "rows" args))
+               ?cols:(Ocsimore_lib.int_of_string_opt
+                        (Ocsimore_lib.list_assoc_opt "cols" args))
+               ?classes:(try Some [List.assoc "class" args; class_box]
+                 with Not_found -> Some [class_box])
+               ~bi:{bi with
+                 bi_ancestors = Ancestors.add_ancestor box bi.bi_ancestors;
+                 bi_box = box;
+                 bi_wiki = wiki;
+                 bi_subbox = fsubbox }
+               box
         with
         | Not_found ->
             Lwt.return

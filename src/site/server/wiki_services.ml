@@ -102,6 +102,23 @@ let send_wikipage
       else wiki_page ()
     | None -> wiki_page ()
 
+let send_wikibox
+    ~(rights : Wiki_types.wiki_rights)
+    ~wiki
+    ?(menu_style=`Linear)
+    ?(page=(wiki,None))
+    ~wb
+    () =
+  lwt bi = Wiki.default_bi ~wikibox:wb ~rights in
+  let bi = { bi with bi_page = page;
+    bi_menu_style = menu_style;
+    bi_sectioning = false } in
+  lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+  lwt widgets = Wiki_models.get_widgets wiki_info.wiki_model in
+  lwt (content,allowed) = widgets#display_interactive_wikibox_aux ~bi wb in
+  if allowed
+  then Lwt.return (Some content)
+  else Lwt.return None
 
 (** Register the services for the wiki [wiki] *)
 let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
@@ -532,3 +549,35 @@ and action_send_wiki_metadata = Eliom_output.Any.register_post_coservice'
 and edit_wiki_permissions_admin = Eliom_services.service
   ~path:[!Ocsimore_config.admin_dir;"edit_wikis_permissions"]
   ~get_params:eliom_wiki_args ()
+
+(** a service serving the content of wikiboxes: *)
+and wikibox_contents :
+    (Wiki_types.wikibox *
+     (wiki * string list option) *
+     (Wiki_types.wikibox * Wiki_widgets_interface.wikibox_override) option,
+     unit, Eliom_services.service_kind,
+     [ `WithoutSuffix ],
+     [ `One of
+	 (Wiki_types.wikibox *
+	  (wiki * string list option) *
+          (Wiki_types.wikibox * Wiki_widgets_interface.wikibox_override)
+           option) Eliom_parameters.caml ]
+       Eliom_parameters.param_name, unit,
+     [Eliom_services.registrable ],
+     [ HTML5_types.div ] Eliom_pervasives.HTML5.M.elt list option
+       Eliom_parameters.caml)
+  Eliom_services.service =
+  Eliom_output.Caml.register_coservice'
+    ~name:("wikibox_contents")
+    ~get_params:(Eliom_parameters.(
+      caml "override" Json.t< wikibox *
+	(wiki * string list option) *
+	(wikibox * wikibox_override) option>))
+    (fun (wb,page,override) () ->
+      lwt wiki = Wiki_sql.wikibox_wiki wb in
+      lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+      lwt () = match override with
+        | None -> Lwt.return ()
+        | Some override -> set_override_wikibox override in
+      send_wikibox ~rights ~page ~wiki ~wb ())
