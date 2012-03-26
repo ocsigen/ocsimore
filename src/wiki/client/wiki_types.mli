@@ -20,12 +20,13 @@
    @author Vincent Balat
 *)
 
+(* server only
 open User_sql.Types
-
+*)
 
 (** Semi-abstract type for a wiki *)
-type wiki_arg = [ `Wiki ]
-type wiki = wiki_arg Opaque.int32_t
+type wiki_arg = [ `Wiki ] deriving (Json)
+type wiki = wiki_arg Opaque.int32_t deriving (Json)
 
 (** Conversions from a wiki index *)
 val string_of_wiki : wiki -> string
@@ -33,16 +34,16 @@ val wiki_of_string : string -> wiki
 val sql_of_wiki : wiki -> int32
 val wiki_of_sql : int32 -> wiki
 
-type wikibox_arg = [ `Wikibox ]
-type wikibox = wikibox_arg Opaque.int32_t
+type wikibox_arg = [ `Wikibox ] deriving (Json)
+type wikibox = wikibox_arg Opaque.int32_t deriving (Json)
 
 val sql_of_wikibox : wikibox -> int32
 val wikibox_of_sql : int32 -> wikibox
 val string_of_wikibox : wikibox -> string
 
-type wikipage = wiki * string
-type wikipage_arg = [ `Wikipage ]
-type wikipage_uid = wikipage_arg Opaque.int32_t
+type wikipage = wiki * string deriving (Json)
+type wikipage_arg = [ `Wikipage ] deriving (Json)
+type wikipage_uid = wikipage_arg Opaque.int32_t deriving (Json)
 
 type wiki_model
 type +'a content_type (** The parameter is the type of the content,
@@ -53,6 +54,7 @@ val wiki_model_of_string : string -> wiki_model
 val string_of_content_type : 'a content_type -> string
 val content_type_of_string : string -> 'a content_type
 
+(* server only
 (** Fields for a wiki *)
 type wiki_info = {
   wiki_id : wiki;
@@ -148,3 +150,4 @@ val raw_of_wikibox_data :
     ->
   (string * userid * string option * CalendarLib.Calendar.t *
      string * int32) option Lwt.t
+*)

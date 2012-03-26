@@ -24,7 +24,7 @@ functions as in [let port : port = int_t 0].
 
 open Eliom_pervasives
 
-type 'a int_t
+type 'a int_t deriving (Json)
 (** data of type ['a int_t] has the same internal representation
    as type [int]. *)
 
@@ -55,7 +55,7 @@ val print_int_t : 'a int_t -> unit
 
 (** {6 Opaque [int32]s } *)
 
-type 'a int32_t
+type 'a int32_t deriving (Json)
 (** data of type ['a int21_t] has the same internal representation
    as type [int32]. *)
 
@@ -75,6 +75,7 @@ val int32_t_to_string : 'a int32_t -> string
 
 
 (** Xform inputs *)
+(* not on client side
 val int32_input_aux_xform :
   ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
   string -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t) Xform.XformLwt.t
@@ -91,11 +92,11 @@ val int32_input_opt_xform :
   ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
   'a int32_t option ->
   ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t
-
+*)
 
 (** {6 Opaque [string]s } *)
 
-type 'a string_t
+type 'a string_t deriving (Json)
 (** data of type ['a string_t] has the same internal representation
    as type [string]. *)
 

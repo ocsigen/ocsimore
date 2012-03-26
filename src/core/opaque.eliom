@@ -1,7 +1,8 @@
+{shared{
 open Eliom_pervasives
 external identity : 'a -> 'a = "%identity"
 
-type 'a int_t = int
+type 'a int_t = int deriving (Json)
 let int_t = identity
 let t_int = identity
 let int_t_option = identity
@@ -20,7 +21,7 @@ let increment = incr
 
 let print_int_t = print_int
 
-type 'a int32_t = int32
+type 'a int32_t = int32 deriving (Json)
 
 let int32_t = identity
 let t_int32 = identity
@@ -35,7 +36,7 @@ let t_int32_list = identity
 let print_int32_t i = print_string (Int32.to_string i)
 let int32_t_to_string = Int32.to_string
 
-type 'a string_t = string
+type 'a string_t = string deriving (Json)
 let string_t = identity
 let t_string = identity
 let string_t_option = identity
@@ -46,7 +47,7 @@ let concat = ( ^ )
 let concat_list = String.concat
 
 let print_string_t = print_string
-
+}}
 
 open Xform.XformLwt
 
@@ -76,3 +77,4 @@ let int32_input_opt_aux_xform ?a s =
 let int32_input_opt_xform ?a : 'a int32_t option -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t = function
   | None -> int32_input_opt_aux_xform ?a ""
   | Some v -> int32_input_opt_aux_xform ?a (Int32.to_string  v)
+

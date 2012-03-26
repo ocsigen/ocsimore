@@ -1,17 +1,17 @@
 # OASIS_START
-# DO NOT EDIT (digest: 576928839ec2f5f781b54aca5172e05e)
-Crypt
-Language
-Dyngroups
-Ocsimore_common
-Ocsimore_config
-Ocsimore_lib
-Opaque
-Parse_config
-Sql
-Updatedb_sql
-User
-User_sql
-Widget
-Xform
+# DO NOT EDIT (digest: 03bb4b0a4c446505c67eaca14b24812f)
+server/Crypt
+server/Language
+server/Dyngroups
+server/Ocsimore_common
+server/Ocsimore_config
+server/Ocsimore_lib
+server/Opaque
+server/Parse_config
+server/Sql
+server/Updatedb_sql
+server/User
+server/User_sql
+server/Widget
+server/Xform
 # OASIS_STOP

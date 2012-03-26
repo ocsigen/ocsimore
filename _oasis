@@ -17,7 +17,7 @@ Synopsis: Ocsimore lib for eliom
 Description:
   A nice description
 
-FilesAB: src/core/ocsimore_config.ml.ab
+FilesAB: src/core/server/ocsimore_config.ml.ab
 
 # +-------------------------------------------------------------------+
 # | Libraries                                                         |
@@ -26,30 +26,33 @@ FilesAB: src/core/ocsimore_config.ml.ab
 Library "ocsimore"
   Path: src/core
   Modules:
-    Crypt,
-    Language,
-    Dyngroups,
-    Ocsimore_common,
-    Ocsimore_config,
-    Ocsimore_lib,
-    Opaque,
-    Parse_config,
-    Sql,
-    Updatedb_sql,
-    User,
-    User_sql,
-    Widget,
-    Xform
+    server/Crypt,
+    server/Language,
+    server/Dyngroups,
+    server/Ocsimore_common,
+    server/Ocsimore_config,
+    server/Ocsimore_lib,
+    server/Opaque,
+    server/Parse_config,
+    server/Sql,
+    server/Updatedb_sql,
+    server/User,
+    server/User_sql,
+    server/Widget,
+    server/Xform
   CSources:
     crypt_stubs.c
   CCLib: -lcrypt
   XMETADescription: Core Ocsimore
-  BuildDepends: camlp4, lwt.syntax, pgocaml.syntax, eliom.server, threads
+  BuildDepends:
+    camlp4, lwt.syntax, pgocaml.syntax,
+    eliom.server, threads, js_of_ocaml.deriving.syntax
   XMETARequires: pgocaml, eliom.server, threads
 
 Library "ocsimore_client"
   Path: src/core/client
   Modules:
+    Opaque
   XMETADescription: Core Ocsimore client part
   BuildDepends:
     camlp4, lwt.syntax, eliom.client, eliom.syntax
@@ -75,22 +78,34 @@ Library "wiki"
   FindlibName: wiki
   FindlibParent: ocsimore
   Modules:
-    Wikicreole,
-    Wiki_data,
-    Wiki_models,
-    Wiki_self_services,
-    Wiki_sql,
-    Wiki_syntax,
-    Wiki_types,
-    Wiki_widgets_interface,
-    Wiki
+    server/Wikicreole,
+    server/Wiki_data,
+    server/Wiki_models,
+    server/Wiki_self_services,
+    server/Wiki_sql,
+    server/Wiki_syntax,
+    server/Wiki_types,
+    server/Wiki_widgets_interface,
+    server/Wiki
   XMETADescription: Wiki stuffs
   DataFiles:
     ../../local/var/www/static/*.css,
     ../../local/var/www/static/*.png ($prefix/var/www/$pkg_name)
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.user
+    camlp4, lwt.syntax, ocsimore.user, js_of_ocaml.deriving.syntax
   XMETARequires: ocsimore.user
+
+Library "wiki_client"
+  Path: src/wiki/client
+  FindlibName: wiki_client
+  FindlibParent: ocsimore
+  Modules:
+    Wiki_types,
+    Wiki_widgets_interface
+  XMETADescription: Wiki stuffs client side part
+  BuildDepends:
+    camlp4, lwt.syntax, eliom.client, eliom.syntax
+  XMETARequires: eliom.client
 
 Library "forum"
   Path: src/forum

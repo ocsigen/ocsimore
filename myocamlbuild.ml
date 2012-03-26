@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: e84dfd8c1cdc95625759aa63fc00a12d) *)
+(* DO NOT EDIT (digest: fa7e95d089392a73d5a9cbcfe7594942) *)
 module OASISGettext = struct
 # 21 "/home/chambart/bordel/oasis/oasis/src/oasis/OASISGettext.ml"
   
@@ -548,11 +548,12 @@ let package_default =
   {
      MyOCamlbuildBase.lib_ocaml =
        [
-          ("ocsimore", ["src/core"]);
+          ("ocsimore", ["src/core"; "src/core/server"]);
           ("user", ["src/user"]);
-          ("wiki", ["src/wiki"]);
+          ("wiki", ["src/wiki"; "src/wiki/server"]);
           ("core_site", ["src/site"; "src/site/server"]);
           ("forum", ["src/forum"]);
+          ("wiki_client", ["src/wiki/client"]);
           ("user_site", ["src/site"; "src/site/server"]);
           ("forum_site", ["src/site"; "src/site/server"]);
           ("ocsimore_client", ["src/core/client"]);
@@ -569,20 +570,37 @@ let package_default =
        ];
      includes =
        [
-          ("src/wiki", ["src/user"]);
-          ("src/user", ["src/core"]);
+          ("src/wiki/server", ["src/user"; "src/wiki"]);
+          ("src/wiki", ["src/user"; "src/wiki/server"]);
+          ("src/user", ["src/core"; "src/core/server"]);
           ("src/site/server",
-            ["src/core"; "src/forum"; "src/site"; "src/wiki"]);
+            [
+               "src/core";
+               "src/core/server";
+               "src/forum";
+               "src/site";
+               "src/wiki";
+               "src/wiki/server"
+            ]);
           ("src/site",
-            ["src/core"; "src/forum"; "src/site/server"; "src/wiki"]);
-          ("src/forum", ["src/wiki"])
+            [
+               "src/core";
+               "src/core/server";
+               "src/forum";
+               "src/site/server";
+               "src/wiki";
+               "src/wiki/server"
+            ]);
+          ("src/forum", ["src/wiki"; "src/wiki/server"]);
+          ("src/core/server", ["src/core"]);
+          ("src/core", ["src/core/server"])
        ];
      }
   ;;
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 586 "myocamlbuild.ml"
+# 604 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 Ocamlbuild_pack.Log.classic_display := true;;
@@ -695,12 +713,14 @@ let () =
 	 | Before_options ->
 	   tag_eliom_files ()
          | After_rules ->
-	   Pathname.define_context "src/wiki" ["src/core"];
-	   Pathname.define_context "src/site/server" ["src/wiki";"src/user";"src/core";"src/forum"];
-	   Pathname.define_context "src/site/client" ["src/wiki";"src/user";"src/core";"src/forum"];
-	   Pathname.define_context "src/site/type" ["src/wiki";"src/user";"src/core";"src/forum"];
-	   Pathname.define_context "src/forum" ["src/wiki";"src/user"];
-	   Pathname.define_context "src/user" ["src/core"];
+	   Pathname.define_context "src/wiki/type"   ["src/core/server"; "src/user"];
+	   Pathname.define_context "src/wiki/client" ["src/core/client"];
+	   Pathname.define_context "src/wiki/server" ["src/core/server"; "src/user"];
+	   Pathname.define_context "src/site/type"   ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
+	   Pathname.define_context "src/site/server" ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
+	   Pathname.define_context "src/site/client" ["src/wiki/client";"src/core/client"];
+	   Pathname.define_context "src/forum" ["src/wiki/server";"src/core/server";"src/user"];
+	   Pathname.define_context "src/user" ["src/core/server"];
 	   (* only works in subdirectories: no source at toplevel *)
 	   copy_rule "shared/*.ml -> client/*.ml"
 	     "%(path)/shared/%(file).ml" "%(path)/client/%(file).ml";

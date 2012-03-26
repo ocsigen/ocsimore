@@ -19,6 +19,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+{shared{
 open Eliom_pervasives
 open Wiki_types
 
@@ -88,6 +89,7 @@ the CSS is for the wiki, [Some page] if it is for the page [page]
 of the wiki. The [wikibox] argument contains the wikibox which holds
 the css *)
 and css_wikibox = (wiki * string option) * wikibox
+deriving (Json)
 
 (*********************************************************************)
 
@@ -108,7 +110,7 @@ let no_ancestors : ancestors = []
 let add_ancestor x (a : ancestors) = x::a
 
 end
-
+}}
 
 (*********************************************************************)
 

@@ -21,27 +21,28 @@
    @author Boris Yakobowski
 *)
 
+{shared{
 open Eliom_pervasives
 open Opaque
-type wiki_arg = [ `Wiki ]
-type wiki = [`Wiki] int32_t
+type wiki_arg = [ `Wiki ] deriving (Json)
+type wiki = [`Wiki] int32_t deriving (Json)
 let wiki_of_sql (i : int32) = (int32_t i : wiki)
 let sql_of_wiki (i : wiki) = t_int32 i
 let string_of_wiki i = Int32.to_string (sql_of_wiki i)
 let wiki_of_string s = (Opaque.int32_t (Int32.of_string s) : wiki)
 
 
-type wikibox_arg = [ `Wikibox ]
-type wikibox = wikibox_arg Opaque.int32_t
+type wikibox_arg = [ `Wikibox ] deriving (Json)
+type wikibox = wikibox_arg Opaque.int32_t deriving (Json)
 
 let wikibox_of_sql (i : int32) = (int32_t i : wikibox)
 let sql_of_wikibox (i : wikibox) = t_int32 i
 let string_of_wikibox i = Int32.to_string (sql_of_wikibox i)
 
-type wikipage = wiki * string
+type wikipage = wiki * string deriving (Json)
 
-type wikipage_arg = [ `Wikipage ]
-type wikipage_uid = wikipage_arg Opaque.int32_t
+type wikipage_arg = [ `Wikipage ] deriving (Json)
+type wikipage_uid = wikipage_arg Opaque.int32_t deriving (Json)
 
 type +'a content_type = string
 type wiki_model = string
@@ -130,6 +131,7 @@ let filter_map f xs =
 let media_type_of_string s =
   filter_map media_type_elem_of_string (String.split ' ' s)
 
+}}
 
 type 'a rights_aux = 'a -> bool Lwt.t
 
