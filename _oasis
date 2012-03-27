@@ -98,7 +98,7 @@ Library "wiki"
 Library "wiki_client"
   Path: src/wiki/client
   FindlibName: wiki_client
-  FindlibParent: ocsimore
+  FindlibParent: ocsimore_client
   Modules:
     Wiki_types,
     Wiki_widgets_interface

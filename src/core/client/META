@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 7a5543b1afab4e37497c2754a7e7394f)
+# DO NOT EDIT (digest: 661f8e23b7bfcb675424ece5072a15be)
 version = "0.5"
 description = "Core Ocsimore client part"
 requires = "eliom.client"
@@ -13,6 +13,15 @@ package "site" (
  archive(byte) = "core_site_client.cma"
  archive(native) = "core_site_client.cmxa"
  exists_if = "core_site_client.cma"
+)
+
+package "wiki_client" (
+ version = "0.5"
+ description = "Wiki stuffs client side part"
+ requires = "eliom.client"
+ archive(byte) = "wiki_client.cma"
+ archive(native) = "wiki_client.cmxa"
+ exists_if = "wiki_client.cma"
 )
 # OASIS_STOP
 
