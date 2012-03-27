@@ -227,11 +227,20 @@ class dynamic_wikibox
 
     let history  = (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
     let edit     = (preapply Wiki_services.action_edit_wikibox wb :> Eliom_tools_common.get_page) in
-    let delete   = (preapply Wiki_services.action_delete_wikibox wb :> Eliom_tools_common.get_page) in
+    let delete_service   = preapply Wiki_services.action_delete_wikibox wb in
+    let delete_onclick = {{
+      let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in
+      if Js.to_bool answer then
+        let service = %delete_service in
+        Eliom_client.exit_to ~service () ()
+      else
+        debug "Canceled delete"
+    }} in
     let view     = (Eliom_services.void_coservice' :> Eliom_tools_common.get_page) in
     let edit_wikibox_perm =
       (preapply Wiki_services.action_edit_wikibox_permissions wb :> Eliom_tools_common.get_page)
     in
+    lwt current_override = Wiki_services.get_override_wikibox () in
     lwt css =
       match special_box with
         | WikiPageBox (w, page) ->
@@ -242,7 +251,8 @@ class dynamic_wikibox
                        Wiki_services.action_edit_css_list
                        (wb, (w, Some page)) :> Eliom_tools_common.get_page)
                    in
-                   Some (edit, [HTML5.M.pcdata "wikipage css"])
+                   let is_current = current_override = Some (wb, EditCssList (w, Some page)) in
+                   Some (Right (edit, is_current), [HTML5.M.pcdata "wikipage css"])
                | false -> None
             )
         | WikiContainerBox w ->
@@ -253,7 +263,8 @@ class dynamic_wikibox
                        Wiki_services.action_edit_css_list
                        (wb, (w, None)) :> Eliom_tools_common.get_page)
                    in
-                   Some (edit, [HTML5.M.pcdata "wiki css"])
+                   let is_current = current_override = Some (wb, EditCssList (w, None)) in
+                   Some (Right (edit, is_current), [HTML5.M.pcdata "wiki css"])
                | false -> None
             )
         | RegularBox -> Lwt.return None
@@ -269,7 +280,8 @@ class dynamic_wikibox
                       Wiki_services.action_edit_wikipage_properties
                       (wb, wp) :> Eliom_tools_common.get_page)
                   in
-                  Some (edit_wp, [HTML5.M.pcdata "edit wikipage options"])
+                  let is_current = current_override = Some (wb, EditWikipageProperties wp) in
+                  Some (Right (edit_wp, is_current), [HTML5.M.pcdata "edit wikipage options"])
               | false -> None
     in
     lwt edit_wiki_perms =
@@ -286,32 +298,12 @@ class dynamic_wikibox
                        Wiki_services.action_edit_wiki_options
                        (wb, w) :> Eliom_tools_common.get_page)
                   in
+                  let is_current = current_override = Some (wb, EditWikiOptions w) in
                   Lwt.return
                     (Some
-                       ((edit_p :> Eliom_tools_common.get_page),
+                       (Right ((edit_p :> Eliom_tools_common.get_page), is_current),
                         [HTML5.M.pcdata "edit wiki permissions or options"]))
               | false -> Lwt.return None
-    in
-    (* We choose the button to highlight, which is indicated by the
-       [active_item] argument *)
-    let service = match active_item with
-      | None -> None
-      | Some Menu_View -> Some view
-      | Some Menu_Edit -> Some edit
-      | Some Menu_EditWikiboxPerms -> Some edit_wikibox_perm
-      | Some Menu_EditWikiOptions ->
-          (match edit_wiki_perms with
-             | Some (edit_wiki_perms, _) -> Some edit_wiki_perms
-             | None -> None)
-      | Some Menu_History -> Some history
-      | Some Menu_Css ->
-          (match css with
-             | Some (css, _) -> Some css
-             | None -> None)
-      | Some Menu_WikipageProperties ->
-          (match wp_prop with
-             | Some (s, _) -> Some s
-             | None -> None)
     in
     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
     bi.bi_rights#can_delete_wikiboxes wiki >>= fun wbdel ->
@@ -320,42 +312,64 @@ class dynamic_wikibox
     bi.bi_rights#can_set_wikibox_specific_permissions wb >>= fun  wbperm ->
     let menuedit =
       if wbwr
-      then Some (edit, [HTML5.M.pcdata "edit"])
+      then
+        let is_current = current_override = Some (wb, EditWikitext wb) in
+        Some (Right (edit, is_current), [HTML5.M.pcdata "edit"])
       else None
     in
     let menuperm =
       if wbperm
-      then Some (edit_wikibox_perm, [HTML5.M.pcdata "edit permissions"])
+      then
+        let is_current = current_override = Some (wb, EditWikiboxPerms wb) in
+        Some (Right (edit_wikibox_perm, is_current), [HTML5.M.pcdata "edit permissions"])
       else None
     in
     let menuhist =
       if wbhist
-      then Some (history, [HTML5.M.pcdata "history"])
+      then
+        let is_current = current_override = Some (wb, History wb) in
+        Some (Right (history, is_current), [HTML5.M.pcdata "history"])
       else None
     in
     let menudel =
       if wbdel
-      then Some (delete,
-                 [HTML5.M.span
-                     (* TODO: js_of_ocaml: find a clean way to prevent a event from happening *)
-                     ~a:[HTML5.M.a_onclick {{
-                       Firebug.console##log(Js.string "TODO: prevent default action and ask confirmation");
-                     }}]
-                     [HTML5.M.pcdata "delete"]])
+      then Some (Left delete_onclick, [HTML5.M.span [HTML5.M.pcdata "delete"]])
       else None
     in
-    let l = Ocsimore_lib.concat_list_opt
+    let menuview =
+      let is_current = match current_override with None -> true | Some (wb', _) when wb <> wb' -> true | _ -> false in
+      Right (view, is_current), [HTML5.M.pcdata "view"]
+    in
+    let menu_entries = Ocsimore_lib.concat_list_opt
       [menuedit; menudel; menuperm; menuhist; wp_prop; edit_wiki_perms; css]
       []
     in
-    match l, wbdel with
+    match menu_entries, wbdel with
       | [], false -> Lwt.return [] (* empty list => no menu *)
       | _ ->
           let img = Page_site.static_file_uri ["crayon.png"] in
-          let menu = Eliom_tools.Html5.menu
-                       ~classe:["wikiboxmenu"]
-                       ((view, [HTML5.M.pcdata "view"]) :: l)
-                       ?service ()
+          let menu =
+            let is_first =
+              let first = ref true in
+              fun () ->
+                if !first then
+                  (first := false; ["eliomtools_first"])
+                else []
+            in
+            HTML5.M.ul ~a:[HTML5.a_class ["wikiboxmenu"; "eliomtools_menu"]]
+              (List.map
+                 (function (Left onclick, content) ->
+                      HTML5.(li ~a:[a_class (is_first ())] [
+                               a ~a:[a_onclick onclick; a_href (XML.uri_of_string "#")]
+                                 content])
+                  | (Right (service, is_current), content) ->
+                      if is_current then
+                        HTML5.M.(li ~a:[a_class ("eliomtools_current" :: is_first ())]
+                                 content)
+                      else
+                        HTML5.M.(li ~a:[a_class (is_first ())]
+                                 [Eliom_output.Html5.a ~service content ()]))
+                 (menuview :: menu_entries))
           in
           match menu_style with
             | `Pencil ->

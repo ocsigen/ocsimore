@@ -297,14 +297,17 @@ let register_wikibox_syntax_extensions
     `Phrasing_without_interactive
       (let atts = Wiki_syntax.parse_common_attribs args in
        Lwt.return
-         [HTML5.M.span
-             [HTML5.M.a ~a:((( HTML5.M.a_onclick
-                                 {{ ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"):bool Js.t) }} )
-                             :: atts))
-                 [HTML5.M.span ~a:[ HTML5.M.a_class ["btmenu"] ] []]
-             ]
-         ]
-      )
+         [HTML5.M.(span ~a:atts
+             [a [span ~a:[
+                  a_class ["btmenu"];
+                  a_onclick {{
+                    ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"))
+                  }}
+                 ] [
+                   span ~a:[a_class ["show_menus_label"]] [pcdata "Show menus"];
+                   span ~a:[a_class ["hide_menus_label"]] [pcdata "Hide menus"];
+                 ]]
+             ])])
   in
   Wiki_syntax.register_simple_phrasing_extension  ~name:"switchmenu" f_switchmenu;
 

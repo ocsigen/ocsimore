@@ -3,15 +3,21 @@
 
 .btmenu {
     text-decoration: underline;
-    content
+    cursor: pointer;
 }
 
-body.nomenu span.btmenu:before {
-    content:"Show menus";
+span.show_menus_label {
+  display: none;
+}
+span.hide_menus_label {
+  display: inline;
 }
 
-span.btmenu:before {
-    content:"Hide menus";
+body.nomenu span.show_menus_label {
+  display: inline;
+}
+body.nomenu span.hide_menus_label {
+  display: none;
 }
 
 /* Menu in linear mode */
