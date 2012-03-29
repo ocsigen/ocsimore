@@ -111,8 +111,17 @@ let register_services () =
     );
 *)
 
-  (add_message_service,
-   moderate_message_service)
+  (** Atom feed services *)
+
+  let thread_feed_service = Eliom_services.service
+    ~path:["thread_feed"]
+    ~get_params:(Forum.eliom_message "message") () in
+
+  let forum_feed_service = Eliom_services.service
+    ~path:["forum_feed"]
+    ~get_params:(Forum.eliom_forum "forum") () in
+
+  { Forum_types.add_message_service; moderate_message_service; thread_feed_service; forum_feed_service }
 
 let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
 let path_create_forum = [!Ocsimore_config.admin_dir;"create_forum"]

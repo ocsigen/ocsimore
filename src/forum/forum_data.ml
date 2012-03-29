@@ -195,79 +195,90 @@ let get_message ~message_id =
   then Lwt.return m
   else Lwt.fail Ocsimore_common.Permission_denied
 
+let filter_descendents ?(add_parent=false) ~parent childs =
+  lwt _ = Forum_sql.get_forum ~forum:parent.m_forum () in
+  (* get_forum only to verify that the forum is not deleted *)
+  lwt role = Forum.get_role parent.m_forum in
+
+  lwt has_special_rights = !!(parent.m_has_special_rights) in
+
+  let (moderated_message_readers,
+       moderated_comment_readers,
+       message_readers_evennotmoderated,
+       comment_readers_evennotmoderated) =
+    if has_special_rights
+    then
+      let rm =
+        lazy (User.in_group
+                ~group:(Forum.thread_moderated_readers $ parent.m_root_id) ())
+      in
+      let rnm =
+        lazy
+          (User.in_group
+             ~group:(Forum.thread_readers_evennotmoderated $ parent.m_root_id)
+             ())
+      in
+      (rm, rm, rnm,rnm)
+    else
+      (role.moderated_message_readers,
+       role.moderated_comment_readers,
+       role.message_readers_evennotmoderated,
+       role.comment_readers_evennotmoderated)
+  in
+
+  lwt moderated_message_readers = !!moderated_message_readers in
+  lwt moderated_comment_readers = !!moderated_comment_readers in
+  lwt message_readers_evennotmoderated = !!message_readers_evennotmoderated in
+  lwt comment_readers_evennotmoderated = !!comment_readers_evennotmoderated in
+
+  let comment_filter l =
+    let rec aux min = function
+      | [] -> []
+      | c::l ->
+        if c.m_tree_min < min
+        then aux min l
+        else if (*AEFF c.m_deleted || *) c.m_moderated
+        then c::aux min l
+        else aux c.m_tree_max l
+    in
+    if moderated_comment_readers
+    then begin
+      if comment_readers_evennotmoderated
+      then l
+      else aux parent.m_tree_min l (* only moderated comments *)
+    end
+    else raise Ocsimore_common.Permission_denied
+  in
+  let childs = List.map get_message_info childs in
+
+  if add_parent
+  then
+    let first_msg = parent.m_parent_id = None in
+    try_lwt
+      Lwt.return
+        (if first_msg
+         then
+            if message_readers_evennotmoderated ||
+              (moderated_message_readers && parent.m_moderated)
+            then parent::(comment_filter childs)
+            else raise Ocsimore_common.Permission_denied
+         else comment_filter (parent::childs))
+    with e -> raise_lwt e
+  else
+    Lwt.return (comment_filter childs)
+
+let get_childs ~message_id =
+  lwt childs = Forum_sql.get_childs ~message_id () in
+  lwt parent = Forum_sql.get_message ~message_id () in
+  filter_descendents ~parent childs
 
 let get_thread ~message_id =
-  Forum_sql.get_thread ~message_id ()
-  >>= function
+  match_lwt Forum_sql.get_thread ~message_id () with
     | [] -> Lwt.fail Not_found
-    | (m::l) as th ->
-        let m = get_message_info m in
-        assert (message_id = m.m_id);
-        Forum_sql.get_forum ~forum:m.m_forum () >>= fun _ ->
-        (* get_forum only to verify that the forum is not deleted *)
-        Forum.get_role m.m_forum >>= fun role ->
-        let first_msg = m.m_parent_id = None in
-        !!(m.m_has_special_rights) >>= fun has_special_rights ->
-
-        let (moderated_message_readers, 
-             moderated_comment_readers,
-             message_readers_evennotmoderated, 
-             comment_readers_evennotmoderated) =
-          if has_special_rights
-          then
-            let rm = 
-              lazy (User.in_group
-                      ~group:(Forum.thread_moderated_readers $ m.m_root_id) ())
-            in
-            let rnm =
-              lazy 
-                (User.in_group
-                   ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id)
-                   ())
-            in
-            (rm, rm, rnm,rnm)
-          else
-            (role.moderated_message_readers,
-             role.moderated_comment_readers,
-             role.message_readers_evennotmoderated,
-             role.comment_readers_evennotmoderated)
-        in
-
-        !!moderated_message_readers >>= fun moderated_message_readers ->
-        !!moderated_comment_readers >>= fun moderated_comment_readers ->
-        !!message_readers_evennotmoderated >>= fun message_readers_evennotmoderated ->
-        !!comment_readers_evennotmoderated >>= fun comment_readers_evennotmoderated ->
-
-        let comment_filter l =
-          let rec aux min = function
-            | [] -> []
-            | c::l ->
-                let c = get_message_info c in
-                if c.m_tree_min < min
-                then aux min l
-                else if (*AEFF c.m_deleted || *) c.m_moderated
-                then c::aux min l    
-                else aux c.m_tree_max l
-          in
-          if moderated_comment_readers
-          then begin
-            if comment_readers_evennotmoderated
-            then List.map get_message_info l
-            else aux m.m_tree_min l (* only moderated comments *)
-          end
-          else raise Ocsimore_common.Permission_denied
-        in
-
-        try
-          Lwt.return
-            (if first_msg
-             then 
-               if message_readers_evennotmoderated || 
-                 (moderated_message_readers && m.m_moderated)
-               then m::(comment_filter l)
-               else raise Ocsimore_common.Permission_denied
-             else comment_filter th)
-        with e -> Lwt.fail e
+    | m::childs ->
+      let parent = get_message_info m in
+      assert (message_id = parent.m_id);
+      filter_descendents ~add_parent:true ~parent childs
 
 type raw_message = Forum_types.raw_message_info
 

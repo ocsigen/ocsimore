@@ -162,10 +162,10 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) : Wiki_widgets_i
   val frozen_wb_class = "frozen_wikibox"
 
   method display_frozen_wikibox : 'a.
-    bi:_ -> ?classes:_ -> wikibox:_ ->
+    bi:_ -> ?classes:_ -> _ ->
       ([> HTML5_types.div | HTML5_types.p ] as 'a) HTML5.M.elt list Lwt.t =
 
-    fun ~bi ?(classes=[]) ~wikibox ->
+    fun ~bi ?(classes=[]) wikibox ->
       (try_lwt
         lwt res =
          error_box#bind_or_display_error

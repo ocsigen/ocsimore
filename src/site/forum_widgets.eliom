@@ -40,9 +40,12 @@ let forum_css_header =
 let add_forum_css_header () =
   Page_site.Header.require_header forum_css_header
 
+let last_msg_date msg_list =
+  let max_date t1 t2 = if CalendarLib.Calendar.compare t1 t2 < 0 then t2 else t1 in
+  List.fold_left (fun acc m -> max_date acc m.m_datetime)
+    (CalendarLib.Calendar.from_jd 0.) msg_list
 
-class add_message_widget
-  (add_message_service, moderate_message_service) =
+class add_message_widget services =
 object (_self)
 
   val add_msg_class = "ocsiforum_add_message_form"
@@ -83,7 +86,7 @@ object (_self)
     Lwt.return
       (Eliom_output.Html5.post_form
         ~a:[HTML5.M.a_accept_charset ["utf-8"]]
-        ~service:add_message_service
+        ~service:services.add_message_service
         draw_form ())
 
 end
@@ -92,7 +95,30 @@ class message_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
   (wiki_phrasing_widgets : Wiki_widgets_interface.interactive_wikibox)
-  (add_message_service, moderate_message_service) =
+  services =
+
+  let xhtml_of_wb wiki wikibox =
+    lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+    lwt rights = Wiki_models.get_rights
+      wiki_info.Wiki_types.wiki_model in
+    lwt bi = Wiki.default_bi ~wikibox ~rights in
+    lwt content =
+      wiki_widgets#display_frozen_wikibox
+        ~bi
+        wikibox
+    in
+    (*!!! ugly cast: html5 to xhtml !!!*)
+    Lwt.return ( XHTML.M.totl (HTML5.M.toeltl content) )
+  in
+
+  let atom_title forum_info msg_info =
+    match msg_info.m_subject with
+      | None -> Lwt.return (Atom_feed.plain "")
+      | Some subject ->
+        lwt subject = xhtml_of_wb forum_info.f_comments_wiki subject in
+        Lwt.return (Atom_feed.xhtml subject)
+  in
+
 object (self)
 
   val msg_class = "ocsiforum_msg"
@@ -127,7 +153,7 @@ object (self)
       if moderator
       then
         let form = Eliom_output.Html5.post_form
-          ~service:moderate_message_service
+          ~service:services.moderate_message_service
           draw_moderate_form ()
         in
         Lwt.return [ HTML5.M.pcdata s; form ]
@@ -182,13 +208,45 @@ object (self)
          Lwt.t)
     >>= fun (classes, r) -> self#display_message ~classes r
 
+  (** atom feed generation *)
+
+  method atom_entry msg_info =
+    lwt forum_info = Forum_data.get_forum ~forum:msg_info.m_forum () in
+    lwt title = atom_title forum_info msg_info in
+    lwt content =
+      lwt content = xhtml_of_wb forum_info.f_messages_wiki
+        msg_info.m_wikibox in
+      Lwt.return (Atom_feed.xhtmlC content)
+    in
+    let id = XML.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 message)) in
+    Lwt.return
+      ( Atom_feed.entry ~updated:msg_info.m_datetime ~id ~title [content] )
+
+  method atom_entries msg_list =
+    try_lwt
+      Lwt_list.map_s (fun msg_info -> self#atom_entry msg_info) msg_list
+    with
+      | Ocsimore_common.Permission_denied -> Lwt.return []
+      | e -> Lwt.fail e
+
+  method atom_childs ~message =
+    lwt msg_list = Forum_data.get_childs ~message_id:message in
+    let id = XML.uri_of_fun
+      (fun () -> "message_"^(Int32.to_string (Opaque.t_int32 msg_info.m_id))) in
+    lwt entries = self#atom_entries msg_list in
+    let updated = last_msg_date msg_list in
+    lwt msg_info = Forum_data.get_message ~message_id:message in
+    lwt forum_info = Forum_data.get_forum ~forum:msg_info.m_forum () in
+    lwt title = atom_title forum_info msg_info in
+    Lwt.return (Atom_feed.feed ~id ~updated ~title entries)
+
 end
 
 class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget)
   (add_message_widget : add_message_widget)
-  (add_message_service, moderate_message_service) =
+  services =
 object (self)
 
   val thr_class = "ocsiforum_thread"
@@ -398,6 +456,23 @@ object (self)
        (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
          Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
+
+  method atom_message_list ?(number=10) forum =
+    lwt forum_info = Forum_data.get_forum ~forum () in
+    lwt msg_list = Forum_data.get_message_list ~forum ~first:1L ~number:(Int64.of_int number) () in
+    lwt msg_list = Lwt_list.map_s
+      Forum_data.message_info_of_raw_message msg_list in
+    lwt entries = message_widget#atom_entries msg_list in
+    let id = XML.uri_of_fun
+      (fun () -> "forum_"^(Int32.to_string (Opaque.t_int32 forum_info.f_id))) in
+    let title = Atom_feed.plain forum_info.f_title in
+    let updated = last_msg_date msg_list in
+    Lwt.return (Atom_feed.feed
+                  ~id
+                  ~updated
+                  ~title
+                  entries)
+
 end
 
 class forum_widget

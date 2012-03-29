@@ -208,7 +208,7 @@ object
   method display_frozen_wikibox :
     bi:box_info ->
     ?classes:string list ->
-    wikibox:wikibox ->
+    wikibox ->
     [> HTML5_types.flow5 | `Div | `P ] HTML5.M.elt list Lwt.t
 
 end

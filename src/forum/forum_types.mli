@@ -81,3 +81,9 @@ open User_sql.Types
   val get_forum_info : raw_forum_info -> forum_info
   val get_message_info : raw_message_info -> message_info
 
+  type ('a,'b,'c,'d) forum_services = {
+    add_message_service : 'a;
+    moderate_message_service : 'b;
+    thread_feed_service : 'c;
+    forum_feed_service : 'd;
+  }

@@ -114,6 +114,12 @@ val get_thread :
   message_id:Forum_types.message -> 
   Forum_types.message_info list Lwt.t
   
+(** returns a list of all the direct childs of messages [~message_id].
+    Only readable messages comments are returned.*)
+val get_childs :
+  message_id:Forum_types.message ->
+  Forum_types.message_info list Lwt.t
+
 type raw_message
 
 (** returns the list of messages (without comments) in a forum. 

@@ -214,6 +214,19 @@ let get_forums_list ?(not_deleted_only = true) () =
                     title_syntax, messages_wiki, comments_wiki \
              FROM forums"))
 
+let get_childs ~message_id () =
+  let message_id = sql_of_message message_id in
+  Sql.full_transaction_block
+    (fun db ->
+      PGSQL(db)
+        "SELECT id, creator_id, datetime, parent_id, \
+                root_id, forum_id, subject, wikibox, \
+                moderated, sticky, special_rights, \
+                tree_min, tree_max \
+         FROM forums_messages \
+         WHERE parent_id= $message_id \
+         ORDER BY tree_min")
+
 let get_message ~message_id () =
   let message_id = sql_of_message message_id in
   Forum_sql0.get_message_raw ~message_id ()

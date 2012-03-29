@@ -105,7 +105,14 @@ val get_thread :
   message_id:message -> 
   unit ->
   raw_message_info list Lwt.t
-  
+
+(** returns a list of all the direct childs of messages [~message_id].
+    The list is not filtered and also contains deleted messages.
+    The result is ordered according to tree_min. *)
+val get_childs :
+  message_id:message ->
+  unit ->
+  raw_message_info list Lwt.t
 
 (** returns the list of messages (without comments) in a forum.
     If [moderated_only] is true, will return:
