@@ -218,7 +218,7 @@ object (self)
         msg_info.m_wikibox in
       Lwt.return (Atom_feed.xhtmlC content)
     in
-    let id = XML.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 message)) in
+    let id = XML.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 msg_info.m_id)) in
     Lwt.return
       ( Atom_feed.entry ~updated:msg_info.m_datetime ~id ~title [content] )
 
@@ -232,7 +232,7 @@ object (self)
   method atom_childs ~message =
     lwt msg_list = Forum_data.get_childs ~message_id:message in
     let id = XML.uri_of_fun
-      (fun () -> "message_"^(Int32.to_string (Opaque.t_int32 msg_info.m_id))) in
+      (fun () -> "message_"^(Int32.to_string (Opaque.t_int32 message))) in
     lwt entries = self#atom_entries msg_list in
     let updated = last_msg_date msg_list in
     lwt msg_info = Forum_data.get_message ~message_id:message in
