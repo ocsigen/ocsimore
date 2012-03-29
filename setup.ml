@@ -5979,8 +5979,8 @@ let setup () = BaseSetup.setup setup_t;;
 let () =
   InternalInstallPlugin.lib_hook :=
     fun (cs, bs, lib) ->
-      match lib.OASISTypes.lib_findlib_name with
-        | Some "site_client" ->
+      match lib.OASISTypes.lib_findlib_name, lib.OASISTypes.lib_findlib_parent with
+        | Some "site", Some "ocsimore_client" ->
 	  (cs, bs, lib, ["_build/src/site/client/ocsimore.js"])
         | _ ->
           (cs, bs, lib, [])
