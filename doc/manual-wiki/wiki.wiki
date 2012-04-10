@@ -35,11 +35,11 @@ Examples:
 
 {{{*@@...attributes for full list...@...attributes for item...@@ text}}}
 
-===== Links =====
+==== Links ====
 
-Links are created with the syntax {{{[[target]]}}} or {{{target|content}}} where
-{{{target}}} is the target of the link and {{{content}}} is the optional content
-of the link.
+Links are created with the syntax {{{[[target]]}}} or {{{[[target|content]]}}}
+where {{{target}}} is the target of the link and {{{content}}} is the optional
+content of the link.
 
 There are five kinds for the target of a link which might occur in the database.
 
@@ -64,7 +64,7 @@ Additionally, you can create an absolute link towards web site by putting the
 whole URL in double brackets, for example: {{{[[http://server/page|...]]}}}
 //Warning: it is recommended to use absolute URLs only for external links!//
 
-====== Abbreviations for links ======
+===== Abbreviations for links =====
 
 Additionally, there are abbreviation for easily creating (relative) links. Those are
 replaced by the above forms //when creating the preview of wikibox// or before
@@ -98,7 +98,7 @@ path {{{/a/b/c}}}.
     ** {{{[[wiki("title"):path]]}}} => {{{[[wiki(ix):path]]}}}
   where {{{"title"}}} is the title of the wiki with index {{{ix}}}
 
-=====Additions=====
+====Additions====
 
 |{{{--}}}| -- (en dash)|
 |{{{---}}}| --- (em dash)|
