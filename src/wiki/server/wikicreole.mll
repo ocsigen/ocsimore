@@ -23,6 +23,7 @@
    @author Vincent Balat
 *)
 
+
 exception Eof
 exception Unrecognized_char
 
@@ -922,6 +923,16 @@ and parse_extension start name rec_plugin args c =
       (Some ("Syntax error in extension "^name), args)
       }
 
+and parse_extension_content_wiki_nowiki str =
+  parse
+    | "}}}" {
+      str^Lexing.lexeme lexbuf
+    }
+    | _ {
+      let s = Lexing.lexeme lexbuf in
+      parse_extension_content_wiki_nowiki (str^s) lexbuf
+    }
+
 and parse_extension_content_wiki start rec_plugin lev beg c =
     parse
       | '~' (('<' | '>' | '~') as ch) {
@@ -947,8 +958,9 @@ and parse_extension_content_wiki start rec_plugin lev beg c =
               parse_extension_content_wiki start rec_plugin lev s c lexbuf
         }
       | "{{{" {
-          parse_extension_content_wiki
-            start rec_plugin lev (beg^"{{{") c lexbuf
+        let s = Lexing.lexeme lexbuf in
+        let nowiki = parse_extension_content_wiki_nowiki "" lexbuf in
+        parse_extension_content_wiki start rec_plugin lev (beg^s^nowiki) c lexbuf
         }
       | "}}}" {
 (*VVV Warning: not quotable! *)
