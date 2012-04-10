@@ -36,3 +36,25 @@ setup.data:
 .PHONY: build doc test all install uninstall reinstall clean distclean configure
 
 # OASIS_STOP
+
+run: install-data
+	ocsigenserver -c local/etc/ocsigen/ocsimore.conf
+
+restart: install-data
+	echo restart > /tmp/cpipe
+
+.PHONY:
+install-data: /tmp/static
+	cp \
+	   ./_build/src/site/client/ocsimore.js \
+	   ./local/var/www/static/ocsiwikistyle.css \
+	   ./local/var/www/static/preview.png \
+	   ./local/var/www/static/creole_cheat_sheet.png \
+	   ./local/var/www/static/ocsiadmin.css \
+	   $^
+
+/tmp/static:
+	mkdir $@
+
+/tmp/static/css:
+	mkdir $@
