@@ -27,6 +27,8 @@ open Wiki_widgets_interface
 open Wiki_types
 open Ocsimore_lib.Lwt_ops
 
+let preview_wikibox_content : (wikibox * string) option Eliom_references.Volatile.eref =
+  Eliom_references.Volatile.eref ~scope:Eliom_common.request None
 
 (* TODO Handle wikiboxes with multiple media (i.e. "screen print" or even "all") carefully! *)
 let grouped_by_media wb_list_with_media =
@@ -193,7 +195,10 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) : Wiki_widgets_i
 class dynamic_wikibox
     (error_box : Widget.widget_with_error_box)
     (user_widgets: User_widgets.user_widget_class)
-  : interactive_wikibox = object (self)
+  : interactive_wikibox =
+  let textarea_id = "preview_textarea" in
+  let save_id = "preview_save" in
+object (self)
 
   inherit frozen_wikibox error_box
 
@@ -212,6 +217,28 @@ class dynamic_wikibox
   val wikipage_properties_class = "wikipageproperties"
 
 
+  val edit_service =
+    Ocsimore_appl.register_coservice'
+      ~get_params:Eliom_parameters.(caml "wikibox" Json.t<wikibox>)
+      (fun wb () ->
+         lwt wiki = Wiki_sql.wikibox_wiki wb in
+         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+         lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+         let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
+         lwt typ, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
+         let content = match opt_content with | Some c -> c | None -> "DELETED" in
+         lwt () = add_wiki_css_header () in
+         lwt headers = Page_site.Header.generate_headers () in
+         Lwt.return HTML5.(
+           html
+             (head (title (pcdata heading)) headers)
+             (body ~a:[a_class ["dialog"]] [
+               h1 [pcdata heading];
+               textarea ~a:[a_id textarea_id; a_class ["wikitextarea"]; a_rows 25; a_cols 80] (pcdata content);
+               input ~a:[a_id save_id; a_input_type `Submit; a_value "Save"] ();
+             ])
+         ))
+
   method private box_menu
     ~bi
     ?(special_box=RegularBox)
@@ -226,13 +253,90 @@ class dynamic_wikibox
       | `Pencil | `Linear as menu_style ->
 
     let history  = (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
-    let edit     = (preapply Wiki_services.action_edit_wikibox wb :> Eliom_tools_common.get_page) in
+    let edit_onclick wb =
+      let wiki_page =
+        match bi.bi_page with
+          | wiki, Some path -> wiki, path
+          | wiki, None -> wiki, []
+      in
+      {{
+      let onload edit_window ev =
+        let get_elt id coerce =
+          Js.Opt.get
+            (Js.Opt.bind
+               (edit_window##document##querySelector(Js.string ("#"^id)))
+               coerce)
+            (fun () -> raise Not_found)
+        in
+        let textarea = get_elt %textarea_id Dom_html.CoerceTo.textarea in
+        ignore
+          (let send_content content =
+             debug "SEND CONTENT %S" content;
+             Lwt.ignore_result
+               (Eliom_client.change_page
+                  ~service: %Wiki_services.preview_service
+                  () ( %wiki_page, ( %wb, content)))
+           in
+           let timeout = ref None in
+           Dom_html.addEventListener
+             textarea
+             Dom_html.Event.keypress
+             (Dom.handler
+               (fun ev ->
+                  (match !timeout with
+                    | Some timeout ->
+                        Dom_html.window##clearTimeout(timeout)
+                    | None -> ());
+                  let callback =
+                    Js.wrap_callback
+                      (fun () -> send_content (Js.to_string textarea##value))
+                  in
+                  timeout := Some (Dom_html.window##setTimeout(callback, 1000.0));
+                  Js._true))
+             Js._false);
+        edit_window##onbeforeunload <-
+          Dom.handler
+            (fun _ ->
+               debug "BEFORE UNLOAD";
+               Lwt.ignore_result
+                 (Eliom_client.change_page
+                   ~service:Eliom_services.void_coservice'
+                   () ());
+               Js._true);
+        ignore
+          (Dom_html.addEventListener
+             (get_elt %save_id Dom_html.CoerceTo.input)
+             Dom_html.Event.click
+             (Dom.handler
+                (fun ev ->
+                  debug "SAVE";
+                  edit_window##onbeforeunload <- Dom.no_handler;
+                  edit_window##close ();
+                  Lwt.ignore_result
+                    (lwt _version =
+                       Eliom_client.call_caml_service
+                         ~service: %Wiki_services.API.set_wikibox_content
+                         () ( %wb, (Js.to_string textarea##value))
+                     in
+                     Eliom_client.change_page ~service:Eliom_services.void_coservice' () ());
+                  Js._true))
+             Js._false);
+        Js._true
+      in
+      let _edit_window =
+        Eliom_client.window_open
+          ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
+          ~onload:(Dom.full_handler onload)
+          ~window_features:(Js.string "alwaysRaised=yes,width=420,height=230,location=no,dependent=yes")
+          ~service:( %edit_service )
+          %wb
+      in ()
+    }} in
     let delete_service   = preapply Wiki_services.action_delete_wikibox wb in
     let delete_onclick = {{
       let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in
       if Js.to_bool answer then
-        let service = %delete_service in
-        Eliom_client.exit_to ~service () ()
+        Eliom_client.exit_to ~service: %delete_service () ()
       else
         debug "Canceled delete"
     }} in
@@ -313,8 +417,7 @@ class dynamic_wikibox
     let menuedit =
       if wbwr
       then
-        let is_current = current_override = Some (wb, EditWikitext wb) in
-        Some (Right (edit, is_current), [HTML5.M.pcdata "edit"])
+        Some (Left (edit_onclick wb), [HTML5.M.pcdata "edit"])
       else None
     in
     let menuperm =
@@ -1173,6 +1276,20 @@ class dynamic_wikibox
                   Wiki_data.wikibox_content bi.bi_rights wb >|= fun c ->
                   (Lwt.return c, true)
                 with e -> Lwt.return (Lwt.fail e, false)
+              in
+              let c =
+                try_lwt
+                  lwt (typ, _, version) = c in
+                  match Eliom_references.Volatile.get preview_wikibox_content with
+                    | Some (wb', c') when wb = wb' ->
+                        Lwt.return (typ, Some c', version)
+                    | _ -> c
+                with e -> c
+              in
+              let classes =
+                match Eliom_references.Volatile.get preview_wikibox_content with
+                  | Some (wb', _) when wb = wb' -> "preview" :: classes
+                  | _ -> classes
               in
               error_box#bind_or_display_error c
                 (self#display_wikiboxcontent ~classes

@@ -150,7 +150,6 @@
 "src/core": -include
 
 # build ocsimore.js
-"src/site/client/ocsimore.byte": use_core_site_client
 "src/site/client/ocsimore.byte": pkg_lwt.syntax
 "src/site/client/ocsimore.byte": pkg_eliom.syntax
 "src/site/client/ocsimore.byte": pkg_eliom.client

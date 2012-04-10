@@ -218,8 +218,6 @@ let eliom_add_remove = Eliom_parameters.user_type
 
 open Wiki
 
-
-
 let action_edit_css = Eliom_output.Action.register_coservice'
   ~name:"css_edit"
   ~get_params:(eliom_wikibox_args **
@@ -330,14 +328,14 @@ and action_send_wikiboxtext =
        (* We always show a preview before saving. Moreover, we check that the
           wikibox that the wikibox has not been modified in parallel of our
           modifications. If this is the case, we also show a warning *)
-       Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       lwt wiki = Wiki_sql.wikibox_wiki wb in
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
        lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
-       Wiki_data.wikibox_content rights wb >>= fun (content_type, _, _) ->
+       lwt content_type, _, _ = Wiki_data.wikibox_content rights wb in
        lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
-       Wiki.modified_wikibox wb boxversion >>= fun modified ->
+       lwt modified = Wiki.modified_wikibox wb boxversion in
        if actionname = "save" && modified = None then (
-         Wiki_models.preparse_string wpp wb content >>= fun content ->
+         lwt content = Wiki_models.preparse_string wpp wb content in
          save_then_redirect ~error:(error_handler_wb wb) `BasePage
            (fun () -> Wiki_data.save_wikitextbox ~rights
               ~content_type ~wb ~content:(Some content))
@@ -347,9 +345,9 @@ and action_send_wikiboxtext =
            dc_page_path = Eliom_parameters.(match page_path with Inj1 _ -> None | Inj2 path -> Some path);
            dc_warnings = [];
          } in
-         Wiki_models.desugar_string wpp desugar_context content >>= fun content ->
+         lwt content = Wiki_models.desugar_string wpp desugar_context content in
          Printf.eprintf "There are %d warnings" (List.length desugar_context.Wiki_syntax_types.dc_warnings);
-         Eliom_references.set desugar_messages desugar_context.Wiki_syntax_types.dc_warnings >>= fun () ->
+         lwt () = Eliom_references.set desugar_messages desugar_context.Wiki_syntax_types.dc_warnings in
          lwt () = set_override_wikibox (wb, PreviewWikitext (wb, (content, boxversion))) in
          Eliom_output.Action.send ()
        )
@@ -581,3 +579,32 @@ and wikibox_contents :
         | None -> Lwt.return ()
         | Some override -> set_override_wikibox override in
       send_wikibox ~rights ~page ~wiki ~wb ())
+
+let preview_service =
+  let post_params =
+    Eliom_parameters.(
+      (caml "wiki" Json.t<wiki> ** list "path" (string "snippet")) **
+      (caml "wikibox" Json.t<wikibox> ** string "content")
+    ) in
+  Eliom_services.post_coservice'
+    ~post_params
+    ()
+
+(** This module exports methods of [[Wiki_data]] et al. for direct usage from
+    client side programs. *)
+module API = struct
+
+  let set_wikibox_content =
+    let post_params = Eliom_parameters.(
+      caml "wb" Json.t<wikibox> ** string "content"
+    ) in
+    Eliom_output.Caml.register_post_coservice'
+      ~post_params
+      (fun () (wb, content) ->
+         lwt wiki = Wiki_sql.wikibox_wiki wb in
+         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+         lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+         lwt content_type, _, _ = Wiki_data.wikibox_content rights wb in
+         Wiki_data.save_wikitextbox ~rights ~content_type ~wb ~content:(Some content))
+
+end

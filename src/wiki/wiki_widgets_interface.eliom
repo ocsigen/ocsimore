@@ -234,6 +234,7 @@ type special_box =
   | RegularBox
   | WikiContainerBox of wiki
   | WikiPageBox of wikipage
+  deriving (Json)
 
 (** A wikibox with which the user can interact *)
 class type virtual interactive_wikibox =

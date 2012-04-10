@@ -648,6 +648,27 @@ let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
   ]
 
 let () =
+  Eliom_output.Any.register
+    ~service:Wiki_services.preview_service
+    (fun () ((wiki, path), (wikibox, content)) ->
+       let desugar_context = {
+         Wiki_syntax_types.dc_page_wiki = wiki;
+         dc_page_path = Some path;
+         dc_warnings = [];
+       } in
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+       lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
+       lwt content' = Wiki_models.desugar_string wpp desugar_context content in
+       Eliom_references.Volatile.set Wiki_widgets.preview_wikibox_content (Some (wikibox, content'));
+       let page' = Url.string_of_url_path ~encode:false path in
+       lwt rights =
+         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+         Wiki_models.get_rights wiki_info.wiki_model
+       in
+       Wiki_services.send_wikipage ~rights ~wiki ~page:(page', path) ())
+
+
+let () =
   Eliom_output.set_exn_handler
     (function
        | Eliom_common.Eliom_404 ->
@@ -659,7 +680,9 @@ let () =
                  (body [
                    h1 [pcdata "Page not found - 404"];
                    p [
-                     pcdata "Actually, no wiki found. You may create one in the ";
+                     pcdata "Actually... no ";
+                     em [pcdata "wiki"];
+                     pcdata " found. You may create one in the ";
                      Eliom_output.Html5.a ~service:create_wiki [pcdata "Ocsimore administration"] ();
                      pcdata ".";
                    ]
