@@ -43,6 +43,13 @@ let unexpected_attribute ~in_tag attr =
   Ocsigen_extensions.Error_in_config_file
     ("Unexpected attribute \""^attr^"\" inside tag \""^in_tag^"\"")
 
+let parse_yesno ~in_attribute yesno =
+  match yesno with
+    | "yes" -> true
+    | "no" -> false
+    | _ -> raise (Ocsigen_extensions.Error_in_config_file
+                    ("Incorrect value for attribute '"^in_attribute^"'"))
+
 let rec parse_config = function
   | [] -> ()
   | (Simplexmlparser.Element ("internationalization" as in_tag, attrs, content)) :: l ->
@@ -84,15 +91,8 @@ let rec parse_config = function
          (function
             | "application-name", name ->
                 Ocsimore_config.application_name := name
-            | "aggregate-css", str_value ->
-                let value =
-                  match str_value with
-                    | "yes" -> true
-                    | "no" -> false
-                    | _ -> raise (Ocsigen_extensions.Error_in_config_file
-                                    "Incorrect value for attribute 'aggregate-css'")
-                in
-                Ocsimore_config.aggregate_css := value
+            | "aggregate-css" as in_attribute, yesno ->
+                Ocsimore_config.aggregate_css := parse_yesno ~in_attribute yesno
             | attr, _ ->
                 raise (unexpected_attribute ~in_tag attr))
          attrs;
@@ -140,6 +140,12 @@ let rec parse_config = function
     if content <> [] then
       raise (unexpected_content ~in_tag);
     parse_config l
+  | (Simplexmlparser.Element ("wiki" as in_tag, attrs, content)) :: l ->
+    List.iter
+      (function | "headings-backref" as in_attribute, yesno ->
+           Ocsimore_config.wiki_headings_backref := parse_yesno ~in_attribute yesno
+         | attr, _ -> raise (unexpected_attribute ~in_tag attr))
+      attribs;
   | Simplexmlparser.Element (name, _, _) :: _ ->
       raise (unexpected_tag ~in_tag:"ocsimore module" name)
   | Simplexmlparser.PCData pcdata :: _ ->

@@ -8,7 +8,7 @@ Ocsimore can be configured by providing tags to the extension of Ocsigenserver w
     </extension>
 }}}
 
-== The ##database##-tag ==
+== The Database ==
 
 The database connection of Ocsimore (PSQL) is configured by the ##database##-tag
 which allows the following optional attributes:
@@ -26,7 +26,20 @@ which allows the following optional attributes:
     </extension>
 }}}
 
-== The ##admininistration##-tag ==
+== The Wiki ==
+
+The Wiki is configured by the ##wiki##-tag. It allows the following attributes:
+
+* ##headings-backref="yes|no"##: If ##yes##, for all headings which have
+  an ##id##- attribute, a ¶-symbol is appended to all headings (##h1##,
+  ..., ##h6##) which have an ##id##-attribute. The symbol acts as a link to the
+  heading.
+
+{{{
+  <wiki headings-backref="yes|no" />
+}}}
+
+== The Administration Interface ==
 
 Ocsimore's administration interface is configured by the content of
 the ##administration##-tag. It allows the following attributes:

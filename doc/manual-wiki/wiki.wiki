@@ -109,7 +109,6 @@ path {{{/a/b/c}}}.
 |{{{/-Line-through-/}}}|/-Line-through-/|
 |{{{;title1}}}\\{{{:definition1}}}\\{{{;title2}}}\\{{{:definition2}}}|//Definition list//|
 
-
 ====Predefined extensions====
 
 {{{<<div class='...' id='...' |data>>}}}

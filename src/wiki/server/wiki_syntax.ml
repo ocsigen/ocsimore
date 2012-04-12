@@ -1532,35 +1532,43 @@ module FlowBuilder = struct
       [(HTML5.M.pre ?a [HTML5.M.pcdata (String.concat "" content)]
           : [>`Pre] HTML5.M.elt)]
 
+  let add_backref attribs r =
+    try
+      let id = List.assoc "id" attribs in
+      let open HTML5.M in
+      let a' = [a_class ["backref"]; a_href (uri_of_string ("#"^id))] in
+      r @ [ pcdata " "; a ~a:a' [entity "#182"] ]
+    with Not_found -> r
+
   let h1_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-      [(HTML5.M.h1 ?a r : [>`H1] HTML5.M.elt)]
+      [(HTML5.M.h1 ?a (add_backref attribs r) : [>`H1] HTML5.M.elt)]
 
   let h2_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-      [(HTML5.M.h2 ?a r : [>`H2] HTML5.M.elt)]
+      [(HTML5.M.h2 ?a (add_backref attribs r) : [>`H2] HTML5.M.elt)]
 
   let h3_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-      [(HTML5.M.h3 ?a r : [>`H3] HTML5.M.elt)]
+      [(HTML5.M.h3 ?a (add_backref attribs r) : [>`H3] HTML5.M.elt)]
 
   let h4_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-      [(HTML5.M.h4 ?a r : [>`H4] HTML5.M.elt)]
+      [(HTML5.M.h4 ?a (add_backref attribs r) : [>`H4] HTML5.M.elt)]
 
   let h5_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-      [(HTML5.M.h5 ?a r : [>`H5] HTML5.M.elt)]
+      [(HTML5.M.h5 ?a (add_backref attribs r) : [>`H5] HTML5.M.elt)]
 
   let h6_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
-      [(HTML5.M.h6 ?a r : [>`H6] HTML5.M.elt)]
+      [(HTML5.M.h6 ?a (add_backref attribs r) : [>`H6] HTML5.M.elt)]
 
   let section_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in
