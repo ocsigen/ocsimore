@@ -1174,7 +1174,6 @@ module MakeParser(B: RawParser) :
           in
           Lwt.return (
             if attribs' <> attribs then
-              let () = print_endline ("Desugar plugin "^name^": "^String.concat ", " (List.map (fun (x,y) -> x^": "^y) attribs')) in
               Some (string_of_extension name attribs' content)
             else
               None

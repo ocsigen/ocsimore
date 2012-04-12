@@ -196,7 +196,7 @@ class dynamic_wikibox
     (error_box : Widget.widget_with_error_box)
     (user_widgets: User_widgets.user_widget_class)
   : interactive_wikibox =
-  let textarea_id = "preview_textarea" in
+  let preview_textarea_id = "preview_textarea" in
   let save_id = "preview_save" in
 object (self)
 
@@ -232,9 +232,13 @@ object (self)
          Lwt.return HTML5.(
            html
              (head (title (pcdata heading)) headers)
-             (body ~a:[a_class ["dialog"]] [
+             (body [
                h1 [pcdata heading];
-               textarea ~a:[a_id textarea_id; a_class ["wikitextarea"]; a_rows 25; a_cols 80] (pcdata content);
+               textarea ~a:[
+                 a_id preview_textarea_id;
+                 a_class ["wikitextarea"];
+                 a_rows 25; a_cols 80;
+               ] (pcdata content);
                input ~a:[a_id save_id; a_input_type `Submit; a_value "Save"] ();
              ])
          ))
@@ -256,7 +260,7 @@ object (self)
     let edit_onclick wb =
       let wiki_page = bi.bi_page in
       {{
-      let onload edit_window ev =
+      let onload edit_window _ =
         let get_elt id coerce =
           Js.Opt.get
             (Js.Opt.bind
@@ -264,10 +268,9 @@ object (self)
                coerce)
             (fun () -> raise Not_found)
         in
-        let textarea = get_elt %textarea_id Dom_html.CoerceTo.textarea in
+        let textarea = get_elt %preview_textarea_id Dom_html.CoerceTo.textarea in
         ignore
           (let send_content content =
-             debug "SEND CONTENT %S" content;
              Lwt.ignore_result
                (Eliom_client.change_page
                   ~service: %Wiki_services.preview_service
@@ -293,11 +296,8 @@ object (self)
         edit_window##onbeforeunload <-
           Dom.handler
             (fun _ ->
-               debug "BEFORE UNLOAD";
                Lwt.ignore_result
-                 (Eliom_client.change_page
-                   ~service:Eliom_services.void_coservice'
-                   () ());
+                 (Eliom_client.change_page ~service:Eliom_services.void_coservice' () ());
                Js._true);
         ignore
           (Dom_html.addEventListener
@@ -305,7 +305,6 @@ object (self)
              Dom_html.Event.click
              (Dom.handler
                 (fun ev ->
-                  debug "SAVE";
                   edit_window##onbeforeunload <- Dom.no_handler;
                   edit_window##close ();
                   Lwt.ignore_result
@@ -319,14 +318,14 @@ object (self)
              Js._false);
         Js._true
       in
-      let _edit_window =
+      let edit_window =
         Eliom_client.window_open
           ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
-          ~onload:(Dom.full_handler onload)
           ~window_features:(Js.string "alwaysRaised=yes,width=420,height=230,location=no,dependent=yes")
           ~service:( %edit_service )
           %wb
-      in ()
+      in
+      edit_window##onload <- Dom.full_handler onload
     }} in
     let delete_service = preapply Wiki_services.action_delete_wikibox wb in
     let delete_onclick = {{
