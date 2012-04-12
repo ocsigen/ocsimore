@@ -254,11 +254,7 @@ object (self)
 
     let history  = (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
     let edit_onclick wb =
-      let wiki_page =
-        match bi.bi_page with
-          | wiki, Some path -> wiki, path
-          | wiki, None -> wiki, []
-      in
+      let wiki_page = bi.bi_page in
       {{
       let onload edit_window ev =
         let get_elt id coerce =
@@ -316,7 +312,7 @@ object (self)
                     (lwt _version =
                        Eliom_client.call_caml_service
                          ~service: %Wiki_services.API.set_wikibox_content
-                         () ( %wb, (Js.to_string textarea##value))
+                         () ( %wiki_page, ( %wb, Js.to_string textarea##value))
                      in
                      Eliom_client.change_page ~service:Eliom_services.void_coservice' () ());
                   Js._true))
@@ -332,7 +328,7 @@ object (self)
           %wb
       in ()
     }} in
-    let delete_service   = preapply Wiki_services.action_delete_wikibox wb in
+    let delete_service = preapply Wiki_services.action_delete_wikibox wb in
     let delete_onclick = {{
       let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in
       if Js.to_bool answer then
@@ -462,9 +458,9 @@ object (self)
             HTML5.M.ul ~a:[HTML5.a_class ["wikiboxmenu"; "eliomtools_menu"]]
               (List.map
                  (function (Left onclick, content) ->
-                      HTML5.(li ~a:[a_class (is_first ())] [
-                               a ~a:[a_onclick onclick; a_href (XML.uri_of_string "#")]
-                                 content])
+                      HTML5.(
+                        li ~a:[a_class (is_first ())] [
+                          a ~a:[a_onclick onclick] content ])
                   | (Right (service, is_current), content) ->
                       if is_current then
                         HTML5.M.(li ~a:[a_class ("eliomtools_current" :: is_first ())]

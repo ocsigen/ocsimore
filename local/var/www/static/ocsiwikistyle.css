@@ -135,6 +135,7 @@ ul.wikiboxmenu a{
     background-color: #f1f1f1;
     padding: 0px 6px;
     text-decoration: none;
+  cursor: pointer;
 }
 
 ul.wikiboxmenu a:hover{

@@ -1153,16 +1153,43 @@ module MakeParser(B: RawParser) :
 
       let plugin_action : string -> int -> int -> (param, unit) Wikicreole.plugin =
         fun name start end_ (subst, wb) attribs content ->
-        let aux desugar_string_with_parser =
+        let desugar_attributes () =
+          lwt attribs' =
+            let f = function
+              | "item", it ->
+                  lwt it' =
+                    let link, text =
+                      try String.sep '|' it
+                      with Not_found -> it, it
+                    in
+                    match_lwt !normalize_href_ref (0,0) link None wb with
+                      | Some link' ->
+                          Lwt.return (link'^"|"^text)
+                      | None -> Lwt.return it
+                  in
+                  Lwt.return ("item", it')
+              | x -> Lwt.return x
+            in
+            Lwt_list.map_s f attribs
+          in
+          Lwt.return (
+            if attribs' <> attribs then
+              let () = print_endline ("Desugar plugin "^name^": "^String.concat ", " (List.map (fun (x,y) -> x^": "^y) attribs')) in
+              Some (string_of_extension name attribs' content)
+            else
+              None
+          )
+        in
+        let desugar_content desugar_string_with_parser =
           match content with
             | None ->
                 Lwt.return None
             | Some content ->
                 lwt content' = desugar_string_with_parser wb content in
                 Lwt.return (
-                  if content == content' then
-                    None
-                  else Some (string_of_extension name attribs (Some content'))
+                  if content' <> content then
+                    Some (string_of_extension name attribs (Some content'))
+                  else None
                 )
         in
         try
@@ -1170,13 +1197,13 @@ module MakeParser(B: RawParser) :
           let content' =
             match plugin with
               | SimplePlugin _ ->
-                  Lwt.return None
+                  desugar_attributes ()
               | WikiPlugin p ->
-                  aux (let module Plugin = (val p: WikiPlugin) in desugar_string Plugin.wikiparser)
+                  desugar_content (let module Plugin = (val p: WikiPlugin) in desugar_string Plugin.wikiparser)
               | LinkPlugin p ->
-                  aux (let module Plugin = (val p: LinkPlugin) in desugar_string Plugin.wikiparser)
+                  desugar_content (let module Plugin = (val p: LinkPlugin) in desugar_string Plugin.wikiparser)
               | RawWikiPlugin p ->
-                  aux (let module Plugin = (val p: RawWikiPlugin) in desugar_string Plugin.wikiparser)
+                  desugar_content (let module Plugin = (val p: RawWikiPlugin) in desugar_string Plugin.wikiparser)
           in
           subst := (start, end_, content') :: !subst
         with _ (* was Not_found *) -> ()

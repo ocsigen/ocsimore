@@ -650,21 +650,24 @@ let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
 let () =
   Eliom_output.Any.register
     ~service:Wiki_services.preview_service
-    (fun () ((wiki, path), (wikibox, content)) ->
-       let desugar_context = {
-         Wiki_syntax_types.dc_page_wiki = wiki;
-         dc_page_path = Some path;
-         dc_warnings = [];
-       } in
+    (fun () ((page_wiki, page_path), (wb, content)) ->
+       lwt wiki = Wiki_sql.wikibox_wiki wb in
        lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
        lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
-       lwt content' = Wiki_models.desugar_string wpp desugar_context content in
-       Eliom_references.Volatile.set Wiki_widgets.preview_wikibox_content (Some (wikibox, content'));
-       let page' = Url.string_of_url_path ~encode:false path in
+       lwt content' =
+         let desugar_context = {
+           Wiki_syntax_types.dc_page_wiki = page_wiki;
+           dc_page_path = page_path;
+           dc_warnings = [];
+         } in
+         Wiki_models.desugar_string wpp desugar_context content in
+       Eliom_references.Volatile.set Wiki_widgets.preview_wikibox_content (Some (wb, content'));
        lwt rights =
          lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
          Wiki_models.get_rights wiki_info.wiki_model
        in
+       let path = match page_path with Some p -> p | None -> [] in
+       let page' = Url.string_of_url_path ~encode:false path in
        Wiki_services.send_wikipage ~rights ~wiki ~page:(page', path) ())
 
 

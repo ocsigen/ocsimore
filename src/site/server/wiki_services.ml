@@ -311,15 +311,15 @@ and action_send_wikiboxtext =
   let post_params =
     let open Eliom_parameters in
     let action = string "actionname" in
+    let wb = eliom_wikibox_args in
+    let boxversion = int32 "boxversion" in
+    let content = string "content" in
     let page_wiki = eliom_wiki "page_wiki" in
-    let page_path = 
+    let page_path =
       let none_page_path = user_type (fun _ -> ()) (fun _ -> "") "empty_page_path" in
       let some_page_path = list "page_path" (string "page_path_snippet") in
       sum none_page_path some_page_path
     in
-    let wb = eliom_wikibox_args in
-    let boxversion = int32 "boxversion" in
-    let content = string "content" in
     action ** ((page_wiki ** page_path) ** ((wb ** boxversion) ** content))
   in
   Eliom_output.Any.register_post_coservice'
@@ -580,12 +580,16 @@ and wikibox_contents :
         | Some override -> set_override_wikibox override in
       send_wikibox ~rights ~page ~wiki ~wb ())
 
+
+let wiki_page_args =
+  let open Eliom_parameters in
+  caml "wiki" Json.t<wiki> ** caml "path" Json.t<string list option>
+
 let preview_service =
   let post_params =
-    Eliom_parameters.(
-      (caml "wiki" Json.t<wiki> ** list "path" (string "snippet")) **
-      (caml "wikibox" Json.t<wikibox> ** string "content")
-    ) in
+    let open Eliom_parameters in
+    wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
+  in
   Eliom_services.post_coservice'
     ~post_params
     ()
@@ -595,16 +599,25 @@ let preview_service =
 module API = struct
 
   let set_wikibox_content =
-    let post_params = Eliom_parameters.(
-      caml "wb" Json.t<wikibox> ** string "content"
-    ) in
+    let post_params =
+      let open Eliom_parameters in
+      wiki_page_args ** (caml "wb" Json.t<wikibox> ** string "content")
+    in
     Eliom_output.Caml.register_post_coservice'
       ~post_params
-      (fun () (wb, content) ->
+      (fun () ((page_wiki, page_path), (wb, content)) ->
          lwt wiki = Wiki_sql.wikibox_wiki wb in
          lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
          lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
          lwt content_type, _, _ = Wiki_data.wikibox_content rights wb in
-         Wiki_data.save_wikitextbox ~rights ~content_type ~wb ~content:(Some content))
+         lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
+         let desugar_context = {
+           Wiki_syntax_types.dc_page_wiki = page_wiki;
+           dc_page_path = page_path;
+           dc_warnings = [];
+         } in
+         lwt content = Wiki_models.desugar_string wpp desugar_context content in
+         lwt content' = Wiki_models.preparse_string wpp wb content in
+         Wiki_data.save_wikitextbox ~rights ~content_type ~wb ~content:(Some content'))
 
 end
