@@ -1532,12 +1532,14 @@ module FlowBuilder = struct
           : [>`Pre] HTML5.M.elt)]
 
   let add_backref attribs r =
-    try
-      let id = List.assoc "id" attribs in
-      let open HTML5.M in
-      let a' = [a_class ["backref"]; a_href (uri_of_string ("#"^id))] in
-      r @ [ pcdata " "; a ~a:a' [entity "#182"] ]
-    with Not_found -> r
+    if !Ocsimore_config.wiki_headings_backref then
+      try
+        let id = List.assoc "id" attribs in
+        let open HTML5.M in
+        let a' = [a_class ["backref"]; a_href (uri_of_string ("#"^id))] in
+        r @ [ pcdata " "; a ~a:a' [entity "#182"] ]
+      with Not_found -> r
+    else r
 
   let h1_elem attribs content =
     let a = opt_list (parse_common_attribs attribs) in

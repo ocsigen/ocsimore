@@ -16,4 +16,6 @@ let application_name = ref "ocsimore"
 
 let aggregate_css = ref true
 
+let wiki_headings_backref = ref true
+
 let dyngroupstobecreated = ref ([] : (string * Simplexmlparser.xml) list)

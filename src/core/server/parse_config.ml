@@ -140,12 +140,15 @@ let rec parse_config = function
     if content <> [] then
       raise (unexpected_content ~in_tag);
     parse_config l
-  | (Simplexmlparser.Element ("wiki" as in_tag, attrs, content)) :: l ->
+  | (Simplexmlparser.Element ("wiki" as in_tag, attribs, content)) :: l ->
     List.iter
       (function | "headings-backref" as in_attribute, yesno ->
            Ocsimore_config.wiki_headings_backref := parse_yesno ~in_attribute yesno
          | attr, _ -> raise (unexpected_attribute ~in_tag attr))
       attribs;
+    if content <> [] then
+      raise (unexpected_content ~in_tag);
+    parse_config l
   | Simplexmlparser.Element (name, _, _) :: _ ->
       raise (unexpected_tag ~in_tag:"ocsimore module" name)
   | Simplexmlparser.PCData pcdata :: _ ->
