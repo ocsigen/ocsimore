@@ -252,11 +252,12 @@ table.table_admin th {
   display: inline;
 }
 
-h1 .backref, h2 .backref, h3 .backref, h4 .backref, h5 .backref, h6 .backref {
+.backref {
   display: none;
-  text-decoration: none;
-  color: #bbb;
 }
+
 h1:hover .backref, h2:hover .backref, h3:hover .backref, h4:hover .backref, h5:hover .backref, h6:hover .backref {
   display: inline;
+  text-decoration: none;
+  color: #bbb;
 }
