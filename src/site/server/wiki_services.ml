@@ -48,6 +48,11 @@ let eliom_css_args =
    Eliom_parameters.opt (Eliom_parameters.string "pagecss"))
   ** eliom_wikibox "wbcss"
 
+(* IDs *)
+
+let preview_textarea_id = "preview_textarea"
+let save_id = "preview_save"
+
 let unopt_media_type = function
   | Some x -> x
   | None -> invalid_arg "media_type_elem_of_string"
@@ -593,6 +598,54 @@ let preview_service =
   Eliom_services.post_coservice'
     ~post_params
     ()
+
+let wiki_css_header =
+  Page_site.Header.create_header
+    (fun sp ->
+       [Eliom_output.Html5.css_link
+          (Page_site.static_file_uri ["ocsiwikistyle.css"])
+          ()
+       ]
+    )
+
+let add_wiki_css_header () =
+  Page_site.Header.require_header wiki_css_header;
+
+module UI = struct
+
+  let edit_service =
+    Ocsimore_appl.register_coservice'
+      ~get_params:Eliom_parameters.(caml "wikibox" Json.t<wikibox>)
+      (fun wb () ->
+         lwt wiki = Wiki_sql.wikibox_wiki wb in
+         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+         lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+         let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
+         lwt typ, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
+         let content = match opt_content with | Some c -> c | None -> "DELETED" in
+         lwt () = add_wiki_css_header () in
+         lwt headers = Page_site.Header.generate_headers () in
+         Lwt.return HTML5.(
+           html
+             (head (title (pcdata heading)) headers)
+             (body [
+               h1 [pcdata heading];
+               textarea ~a:[
+                 a_id preview_textarea_id;
+                 a_class ["wikitextarea"];
+                 a_rows 25; a_cols 80;
+               ] (pcdata content);
+               input ~a:[a_id save_id; a_input_type `Submit; a_value "Save"] ();
+             ])
+         ))
+
+  let edit_css_service =
+    Ocsimore_appl.register_coservice'
+      ~get_params:Eliom_parameters.(caml "wikibox" Json.t<wikibox>)
+      (fun wb () ->
+         Lwt.fail (Failure "Not implemented"))
+
+end
 
 (** This module exports methods of [[Wiki_data]] et al. for direct usage from
     client side programs. *)

@@ -87,18 +87,6 @@ end
 
 
 
-let wiki_css_header =
-  Page_site.Header.create_header
-    (fun sp ->
-       [Eliom_output.Html5.css_link
-          (Page_site.static_file_uri ["ocsiwikistyle.css"])
-          ()
-       ]
-    )
-
-let add_wiki_css_header () =
-  Page_site.Header.require_header wiki_css_header;
-
 
 class wikibox_aux (error_box : Widget.widget_with_error_box) : Wiki_widgets_interface.wikibox_aux = object (self)
 
@@ -116,7 +104,7 @@ class wikibox_aux (error_box : Widget.widget_with_error_box) : Wiki_widgets_inte
            ([> HTML5_types.flow5 ] as 'b) HTML5.M.elt list) Lwt.t =
 
     fun ~bi ~classes (wiki_syntax, content, _ver as wb) ->
-    lwt () = add_wiki_css_header () in
+    lwt () = Wiki_services.add_wiki_css_header () in
     let wiki_parser = Wiki_models.get_flows_wiki_parser wiki_syntax in
     match content with
       | Some content ->
@@ -196,8 +184,6 @@ class dynamic_wikibox
     (error_box : Widget.widget_with_error_box)
     (user_widgets: User_widgets.user_widget_class)
   : interactive_wikibox =
-  let preview_textarea_id = "preview_textarea" in
-  let save_id = "preview_save" in
 object (self)
 
   inherit frozen_wikibox error_box
@@ -217,32 +203,6 @@ object (self)
   val wikipage_properties_class = "wikipageproperties"
 
 
-  val edit_service =
-    Ocsimore_appl.register_coservice'
-      ~get_params:Eliom_parameters.(caml "wikibox" Json.t<wikibox>)
-      (fun wb () ->
-         lwt wiki = Wiki_sql.wikibox_wiki wb in
-         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
-         lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
-         let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
-         lwt typ, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
-         let content = match opt_content with | Some c -> c | None -> "DELETED" in
-         lwt () = add_wiki_css_header () in
-         lwt headers = Page_site.Header.generate_headers () in
-         Lwt.return HTML5.(
-           html
-             (head (title (pcdata heading)) headers)
-             (body [
-               h1 [pcdata heading];
-               textarea ~a:[
-                 a_id preview_textarea_id;
-                 a_class ["wikitextarea"];
-                 a_rows 25; a_cols 80;
-               ] (pcdata content);
-               input ~a:[a_id save_id; a_input_type `Submit; a_value "Save"] ();
-             ])
-         ))
-
   method private box_menu
     ~bi
     ?(special_box=RegularBox)
@@ -257,7 +217,7 @@ object (self)
       | `Pencil | `Linear as menu_style ->
 
     let history  = (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
-    let edit_onclick wb =
+    let edit_onclick wb _id =
       let wiki_page = bi.bi_page in
       {{
       let onload edit_window _ =
@@ -268,7 +228,7 @@ object (self)
                coerce)
             (fun () -> raise Not_found)
         in
-        let textarea = get_elt %preview_textarea_id Dom_html.CoerceTo.textarea in
+        let textarea = get_elt %Wiki_services.preview_textarea_id Dom_html.CoerceTo.textarea in
         ignore
           (let send_content content =
              Lwt.ignore_result
@@ -301,7 +261,7 @@ object (self)
                Js._true);
         ignore
           (Dom_html.addEventListener
-             (get_elt %save_id Dom_html.CoerceTo.input)
+             (get_elt %Wiki_services.save_id Dom_html.CoerceTo.input)
              Dom_html.Event.click
              (Dom.handler
                 (fun ev ->
@@ -318,17 +278,18 @@ object (self)
              Js._false);
         Js._true
       in
+      (** TODO Disable button *)
       let edit_window =
         Eliom_client.window_open
           ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
           ~window_features:(Js.string "alwaysRaised=yes,width=420,height=230,location=no,dependent=yes")
-          ~service:( %edit_service )
+          ~service:( %Wiki_services.UI.edit_service )
           %wb
       in
       edit_window##onload <- Dom.full_handler onload
     }} in
     let delete_service = preapply Wiki_services.action_delete_wikibox wb in
-    let delete_onclick = {{
+    let delete_onclick _id = {{
       let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in
       if Js.to_bool answer then
         Eliom_client.exit_to ~service: %delete_service () ()
@@ -457,9 +418,11 @@ object (self)
             HTML5.M.ul ~a:[HTML5.a_class ["wikiboxmenu"; "eliomtools_menu"]]
               (List.map
                  (function (Left onclick, content) ->
-                      HTML5.(
+                      let id = HTML5.new_elt_id () in
+                      HTML5.M.(
                         li ~a:[a_class (is_first ())] [
-                          a ~a:[a_onclick onclick] content ])
+                          HTML5.create_named_elt ~id (a ~a:[a_onclick (onclick id)] content)
+                        ])
                   | (Right (service, is_current), content) ->
                       if is_current then
                         HTML5.M.(li ~a:[a_class ("eliomtools_current" :: is_first ())]
@@ -1502,7 +1465,7 @@ object (self)
           ([> `Div ] as 'a) HTML5.M.elt list Lwt.t =
 
      fun ~bi ?(classes=[]) ?rows ?cols ?special_box wb ->
-     lwt () = add_wiki_css_header () in
+     lwt () = Wiki_services.add_wiki_css_header () in
      fst =|< self#display_interactive_wikibox_aux
                ~bi ?rows ?cols ~classes ?special_box wb
 
