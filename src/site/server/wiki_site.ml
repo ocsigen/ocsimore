@@ -649,15 +649,15 @@ let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
 
 let () =
   Eliom_output.Any.register
-    ~service:Wiki_services.preview_service
-    (fun () ((page_wiki, page_path), (wb, content)) ->
+    ~service:Wiki_services.Ui.preview_service
+    (fun () (wiki_page, (wb, content)) ->
        lwt wiki = Wiki_sql.wikibox_wiki wb in
        lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
        lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
        lwt content' =
          let desugar_context = {
-           Wiki_syntax_types.dc_page_wiki = page_wiki;
-           dc_page_path = page_path;
+           Wiki_syntax_types.dc_page_wiki = fst wiki_page;
+           dc_page_path = snd wiki_page;
            dc_warnings = [];
          } in
          Wiki_models.desugar_string wpp desugar_context content in
@@ -666,9 +666,9 @@ let () =
          lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
          Wiki_models.get_rights wiki_info.wiki_model
        in
-       let path = match page_path with Some p -> p | None -> [] in
+       let path = match snd wiki_page with Some p -> p | None -> [] in
        let page' = Url.string_of_url_path ~encode:false path in
-       Wiki_services.send_wikipage ~rights ~wiki ~page:(page', path) ())
+       Wiki_services.send_wikipage ~rights ~wiki:(fst wiki_page) ~page:(page', path) ())
 
 
 let () =

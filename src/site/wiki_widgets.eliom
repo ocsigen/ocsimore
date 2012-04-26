@@ -233,7 +233,7 @@ object (self)
           (let send_content content =
              Lwt.ignore_result
                (Eliom_client.change_page
-                  ~service: %Wiki_services.preview_service
+                  ~service: %Wiki_services.Ui.preview_service
                   () ( %wiki_page, ( %wb, content)))
            in
            let timeout = ref None in
@@ -283,7 +283,7 @@ object (self)
         Eliom_client.window_open
           ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
           ~window_features:(Js.string "alwaysRaised=yes,width=420,height=230,location=no,dependent=yes")
-          ~service:( %Wiki_services.UI.edit_service )
+          ~service:( %Wiki_services.Ui.edit_service )
           %wb
       in
       edit_window##onload <- Dom.full_handler onload

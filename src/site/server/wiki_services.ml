@@ -586,19 +586,6 @@ and wikibox_contents :
       send_wikibox ~rights ~page ~wiki ~wb ())
 
 
-let wiki_page_args =
-  let open Eliom_parameters in
-  caml "wiki" Json.t<wiki> ** caml "path" Json.t<string list option>
-
-let preview_service =
-  let post_params =
-    let open Eliom_parameters in
-    wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
-  in
-  Eliom_services.post_coservice'
-    ~post_params
-    ()
-
 let wiki_css_header =
   Page_site.Header.create_header
     (fun sp ->
@@ -609,9 +596,23 @@ let wiki_css_header =
     )
 
 let add_wiki_css_header () =
-  Page_site.Header.require_header wiki_css_header;
+  Page_site.Header.require_header wiki_css_header
 
-module UI = struct
+let wiki_page_args =
+  let open Eliom_parameters in
+  (caml "wiki" Json.t<wiki> ** caml "path" Json.t<string list option>)
+
+module Ui = struct
+
+  let preview_service =
+    let post_params =
+      let open Eliom_parameters in
+      wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
+    in
+    Eliom_services.post_coservice'
+      ~post_params
+      ~name:"preview_service"
+      ()
 
   let edit_service =
     Ocsimore_appl.register_coservice'
