@@ -610,12 +610,13 @@ module Ui = struct
       wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
     in
     Eliom_services.post_coservice'
-      ~post_params
       ~name:"preview_service"
+      ~post_params
       ()
 
   let edit_service =
     Ocsimore_appl.register_coservice'
+      ~name:"edit_service"
       ~get_params:Eliom_parameters.(caml "wikibox" Json.t<wikibox>)
       (fun wb () ->
          lwt wiki = Wiki_sql.wikibox_wiki wb in
@@ -642,6 +643,7 @@ module Ui = struct
 
   let edit_css_service =
     Ocsimore_appl.register_coservice'
+      ~name:"edit_css_service"
       ~get_params:Eliom_parameters.(caml "wikibox" Json.t<wikibox>)
       (fun wb () ->
          Lwt.fail (Failure "Not implemented"))
@@ -658,6 +660,7 @@ module API = struct
       wiki_page_args ** (caml "wb" Json.t<wikibox> ** string "content")
     in
     Eliom_output.Caml.register_post_coservice'
+      ~name:"set_wikibox_content"
       ~post_params
       (fun () ((page_wiki, page_path), (wb, content)) ->
          lwt wiki = Wiki_sql.wikibox_wiki wb in
