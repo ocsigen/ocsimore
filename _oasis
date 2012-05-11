@@ -196,6 +196,18 @@ Library "forum_site"
     camlp4, lwt.syntax, ocsimore.site, ocsimore.forum
   XMETARequires:
 
+Library "wiki_perso"
+  Path: src/site
+  FindlibName: wiki_perso
+  FindlibParent: ocsimore
+  Modules:
+    server/Wikiperso
+  XMETADescription: some extensions
+  BuildDepends:
+    camlp4, lwt.syntax, ocsimore.site
+  XMETARequires:
+
+
 Test "all"
   Command: ocsigenserver -c ./local/etc/ocsigen/ocsimore.conf
 

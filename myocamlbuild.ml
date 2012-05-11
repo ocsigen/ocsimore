@@ -1,7 +1,7 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: fa7e95d089392a73d5a9cbcfe7594942) *)
+(* DO NOT EDIT (digest: 76522f87d096b99bf549758ef8686738) *)
 module OASISGettext = struct
-# 21 "/home/chambart/bordel/oasis/oasis/src/oasis/OASISGettext.ml"
+# 21 "/opt/src/ocsigen-bundle-2.1a/others/oasis-0.3.0~rc3/src/oasis/OASISGettext.ml"
   
   let ns_ str =
     str
@@ -24,7 +24,7 @@ module OASISGettext = struct
 end
 
 module OASISExpr = struct
-# 21 "/home/chambart/bordel/oasis/oasis/src/oasis/OASISExpr.ml"
+# 21 "/opt/src/ocsigen-bundle-2.1a/others/oasis-0.3.0~rc3/src/oasis/OASISExpr.ml"
   
   
   
@@ -115,7 +115,7 @@ end
 
 
 module BaseEnvLight = struct
-# 21 "/home/chambart/bordel/oasis/oasis/src/base/BaseEnvLight.ml"
+# 21 "/opt/src/ocsigen-bundle-2.1a/others/oasis-0.3.0~rc3/src/base/BaseEnvLight.ml"
   
   module MapString = Map.Make(String)
   
@@ -212,7 +212,7 @@ end
 
 
 module MyOCamlbuildFindlib = struct
-# 21 "/home/chambart/bordel/oasis/oasis/src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml"
+# 21 "/opt/src/ocsigen-bundle-2.1a/others/oasis-0.3.0~rc3/src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml"
   
   (** OCamlbuild extension, copied from 
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
@@ -321,7 +321,7 @@ module MyOCamlbuildFindlib = struct
 end
 
 module MyOCamlbuildBase = struct
-# 21 "/home/chambart/bordel/oasis/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
+# 21 "/opt/src/ocsigen-bundle-2.1a/others/oasis-0.3.0~rc3/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
   
   (** Base functions for writing myocamlbuild.ml
       @author Sylvain Le Gall
@@ -337,7 +337,7 @@ module MyOCamlbuildBase = struct
   type name = string 
   type tag = string 
   
-# 56 "/home/chambart/bordel/oasis/oasis/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
+# 56 "/opt/src/ocsigen-bundle-2.1a/others/oasis-0.3.0~rc3/src/plugins/ocamlbuild/MyOCamlbuildBase.ml"
   
   type t =
       {
@@ -557,6 +557,7 @@ let package_default =
           ("user_site", ["src/site"; "src/site/server"]);
           ("forum_site", ["src/site"; "src/site/server"]);
           ("ocsimore_client", ["src/core/client"]);
+          ("wiki_perso", ["src/site"; "src/site/server"]);
           ("wiki_site", ["src/site"; "src/site/server"]);
           ("core_site_client", ["src/site/client"])
        ];
@@ -600,7 +601,7 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 604 "myocamlbuild.ml"
+# 605 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 Ocamlbuild_pack.Log.classic_display := true;;

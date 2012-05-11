@@ -22,6 +22,7 @@
 *)
 
 open Lwt
+open Eliom_pervasives
 open Ocsigen_extensions
 open Simplexmlparser
 open User_sql.Types
@@ -192,10 +193,10 @@ let cannot_have_wikiperso =
        ~descr:"are forbidden to have a wikiperso"
     )
 
-let f_can_have_wikiperso sp user =
-  User.in_group ~sp ~user ~group:can_have_wikiperso () >>= function
+let f_can_have_wikiperso user =
+  User.in_group ~user ~group:can_have_wikiperso () >>= function
     | true ->
-        User.in_group ~sp ~user ~group:cannot_have_wikiperso () >>= fun b ->
+        User.in_group ~user ~group:cannot_have_wikiperso () >>= fun b ->
         Lwt.return (not b)
     | false -> Lwt.return false
 
@@ -204,13 +205,13 @@ let f_can_have_wikiperso sp user =
 (* We override all the standard wiki rights, so that anonymous
    has no write or admin rights at all *)
 class wikiperso_rights =
-  let is_not_anonymous sp =
-    User.get_user_id sp >>= fun u -> Lwt.return (u <> User.anonymous) in
+  let is_not_anonymous () =
+    User.get_user_id () >>= fun u -> Lwt.return (u <> User.anonymous) in
 
-  let perm f ~sp arg =
-    is_not_anonymous sp >>= function
+  let perm f arg =
+    is_not_anonymous () >>= function
       | false -> Lwt.return false
-      | true -> f ~sp arg
+      | true -> f arg
   in
 object
   inherit Wiki.wiki_rights as super
@@ -248,8 +249,8 @@ let wikiperso_model =
 
 
 (** The function that answers for the extension. *)
-let gen sp =
-  let ri = Eliom_sessions.get_ri sp in
+let gen () =
+  let ri = Eliom_request_info.get_ri () in
   (* We check that the url corresponds to a wiki *)
   match extract_user_name ri.ri_sub_path_string with
     | Some user ->
@@ -268,14 +269,14 @@ let gen sp =
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
-                        (f_can_have_wikiperso sp (basic_user userid) >>=function
+                        (f_can_have_wikiperso (basic_user userid) >>=function
                            | true ->
-                               let model = wikiperso_model in
+                               lwt model = wikiperso_model in
                                User_sql.get_basicuser_data userid >>= fun ud ->
                                create_wikiperso ~model ~wiki_title ~userdata:ud
                                >>= fun wiki ->
                                (* We then register the wiki at the correct url*)
-                               Wiki_services.register_wiki ~sp ~wiki:wiki ()
+                               Wiki_services.register_wiki ~wiki:wiki ()
                                  ~rights:Wiki_site.wiki_rights
                                  ~path:(wiki_path ud.user_login)
                                  ~siteids:(siteid, Wiki_site.siteid);
@@ -287,10 +288,10 @@ let gen sp =
           (* In all cases, we just tell Eliom to continue. It will answer with
              the wiki if it has been successfully created *)
          return
-           (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
+           (Ext_next (Eliom_request_info.get_previous_extension_error_code ()))
 
     | None -> return
-        (Ext_next (Eliom_sessions.get_previous_extension_error_code sp))
+        (Ext_next (Eliom_request_info.get_previous_extension_error_code ()))
 
 
 (* We load the existing wikipersos at the correct path *)
@@ -328,15 +329,15 @@ let () =
 *)
 
 let users_root =
-  Eliom_services.new_service
+  Eliom_services.service
     ~path:[!Ocsimore_config.admin_dir;"wikiperso"]
     ~get_params:Eliom_parameters.unit ()
 
-let () = Eliom_output.Html5.register users_root
-  (fun sp () () ->
+let () = Ocsimore_appl.register users_root
+  (fun () () ->
      User_sql.user_to_string can_have_wikiperso >>= fun s1 ->
      User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->
-     Page_site.admin_page ~sp
+     Page_site.admin_page
        ~title:"Ocsimore - Wikiperso module"
        [HTML5.M.h2 [HTML5.M.pcdata "Wikiperso module"];
         HTML5.M.p [HTML5.M.pcdata "This is the Ocsimore admin page for the \
@@ -350,10 +351,10 @@ let () = Eliom_output.Html5.register users_root
                         can have wikipersos by adding users or groups inside \
                         the following roles:";
         Eliom_output.Html5.a ~service:User_services.service_view_group
-          ~sp [HTML5.M.pcdata "users that can have a wikiperso"] s1;
+          [HTML5.M.pcdata "users that can have a wikiperso"] s1;
         HTML5.M.pcdata " and ";
         Eliom_output.Html5.a ~service:User_services.service_view_group
-          ~sp [HTML5.M.pcdata "users that cannot have a wikiperso"] s2;
+          [HTML5.M.pcdata "users that cannot have a wikiperso"] s2;
         HTML5.M.pcdata ".";
        ]
   )

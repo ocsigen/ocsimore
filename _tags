@@ -8,7 +8,7 @@
 <src/core/type/*>: thread, use_ocsimore
 
 # OASIS_START
-# DO NOT EDIT (digest: df34dcd971d947168de43be7554b4378)
+# DO NOT EDIT (digest: 6fda987370df6390a929fe59199c1ce9)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -110,6 +110,8 @@
 <src/core/client/*.ml{,i}>: pkg_eliom.syntax
 <src/core/client/*.ml{,i}>: pkg_eliom.client
 <src/core/client/*.ml{,i}>: pkg_camlp4
+# Library wiki_perso
+"src/site/wiki_perso.cmxs": use_wiki_perso
 # Library wiki_site
 "src/site/wiki_site.cmxs": use_wiki_site
 <src/site/*.ml{,i}>: use_core_site
