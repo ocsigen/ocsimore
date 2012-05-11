@@ -252,7 +252,7 @@ let register_wikibox_syntax_extensions
 
   let f_object bi args _c =
     `Phrasing_without_interactive
-      ((* no more in HTML5 let type_ = Ocsimore_lib.list_assoc_default "type" args "" *)
+       (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
         let page = Ocsimore_lib.list_assoc_default "data" args ""
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
         and atts = Wiki_syntax.parse_common_attribs args in
@@ -263,8 +263,8 @@ let register_wikibox_syntax_extensions
           [HTML5.M.object_
               ~a:(   (HTML5.M.a_data (Wiki_syntax.uri_of_href url)
                         : [>HTML5_types.common | `Data ] HTML5.M.attrib)
-                   (*:: (HTML5.M.a_type type_
-                     : [>HTML5_types.common | `Data ] HTML5.M.attrib) *)
+                     :: (HTML5.M.a_type type_
+                     : [>HTML5_types.common | `Data ] HTML5.M.attrib)
                      :: (atts
                            : HTML5_types.common HTML5.M.attrib list
                          :> [>HTML5_types.common | `Data ] HTML5.M.attrib list)
