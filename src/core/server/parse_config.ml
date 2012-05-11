@@ -109,8 +109,6 @@ let rec parse_config = function
             | Simplexmlparser.PCData pcdata ->
                 raise (unexpected_pcdata ~in_tag pcdata))
          content;
-       if content <> [] then
-         raise (Ocsigen_extensions.Error_in_config_file "Unexpected content in tag \"internals\"");
        parse_config l
   | (Simplexmlparser.Element ("database" as in_tag, attribs, content))::l ->
     List.iter
