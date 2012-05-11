@@ -253,7 +253,7 @@ let register_wikibox_syntax_extensions
   let f_object bi args _c =
     `Phrasing_without_interactive
        (let type_ = Ocsimore_lib.list_assoc_default "type" args ""
-        let page = Ocsimore_lib.list_assoc_default "data" args ""
+        and page = Ocsimore_lib.list_assoc_default "data" args ""
         and fragment = Ocsimore_lib.list_assoc_opt "fragment" args
         and atts = Wiki_syntax.parse_common_attribs args in
         let url = Wiki_syntax.make_href
