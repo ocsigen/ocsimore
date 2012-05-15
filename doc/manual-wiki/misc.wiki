@@ -23,11 +23,35 @@ Configuration file example:
 }}}
 
 
+====LDAP authentication:====
+
+Configuration file example:
+{{{
+      <extension findlib-package="ocamldap"/>
+
+...
+
+      <eliommodule findlib-package="ocsimore.user_site">
+        <ldap base="ou=blah,ou=users,dc=blih,dc=plop,dc=fr" uri="ldaps://my-ldap-server.com:636/" />
+      </eliom>
+}}}
+
+//Warning:// Only {{{Ldap_funclient}}} and dependencies is actually needed
+(not the whole ocamldap cma). This cma has other dependencies that you may need
+to load. (e.g. {{{<extension module="/usr/lib/ocaml/toplevellib.cma"/>}}}). Would be great to split the cma into at least two
+(client and server).
+
+
+
 ====PAM authentication:====
 
 Configuration file example:
 {{{
-      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+      <extension findlib-package="pam"/>
+
+...
+
+      <eliommodule findlib-package="ocsimore.user_site">
         <pam service="ocsimore" />
       </eliom>
 }}}
@@ -38,6 +62,9 @@ Here the service name must correspond to a file in {{{/etc/pam.d}}}.
 authentication based on {{{/etc/shadow}}} (using pam_unix), because
 Ocsigen does not have read access to this file
 (would be dangerous to give access to that file to a web server).
+
+//Warning:// The PAM authentication relies on ocamlpam binding,
+which is known to be buggy. It causes crashes (at least in version 1.1).
 
 ===Clear the cache
 
