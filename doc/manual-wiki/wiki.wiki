@@ -183,9 +183,9 @@ class, id
 parameters. Use it if you want to cancel the edition of a page for example.
 The text after the vertical bar is the text of the link.
 
-//deprecated! now use the extended syntax for links// {{{<<link wiki='...' page='...'|...>>}}} is like 
+{{{<<link wiki='...' page='...'|...>>}}} is like 
 {{{[[...|...]]}}} for links,
-but allows links towards other wikis.
+but for block level links.
 The wiki argument is optional.
 other optional arguments:
 protocol="https" or protocol="http" (will create absolute links)

@@ -244,10 +244,6 @@ table.table_admin th {
   padding: 5px;
 }
 
-.logbox {
-  float: right;
-  outline: 1px solid #eeeeee;
-}
 .logbox .logout {
   display: inline;
 }
