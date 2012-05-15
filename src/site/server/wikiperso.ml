@@ -351,10 +351,10 @@ let () = Ocsimore_appl.register users_root
                         can have wikipersos by adding users or groups inside \
                         the following roles:";
         Eliom_output.Html5.a ~service:User_services.service_view_group
-          [HTML5.M.pcdata "users that can have a wikiperso"] s1;
+          [HTML5.M.pcdata "users who can have a wikiperso"] s1;
         HTML5.M.pcdata " and ";
         Eliom_output.Html5.a ~service:User_services.service_view_group
-          [HTML5.M.pcdata "users that cannot have a wikiperso"] s2;
+          [HTML5.M.pcdata "users who cannot have a wikiperso"] s2;
         HTML5.M.pcdata ".";
        ]
   )

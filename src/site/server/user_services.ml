@@ -26,7 +26,8 @@ type user_creation =
   | NoUserCreation
   | UserCreation of User_data.user_creation
 
-type external_auth = NoExternalAuth | Nis | Pam of string option
+type external_auth =
+    NoExternalAuth | Nis | Pam of string option | Ldap of (string * string)
 
 let default_data = (NoExternalAuth, NoUserCreation, true)
 
@@ -42,6 +43,9 @@ let (auth, basicusercreation, force_secure) =
 
     | (Simplexmlparser.Element ("pam", [], []))::l ->
         find_data (Pam None, basicusercreation, secure) l
+
+    | (Simplexmlparser.Element ("ldap", [("base", b); ("uri", u)], []))::l ->
+        find_data (Ldap (b, u), basicusercreation, secure) l
 
     | (Simplexmlparser.Element ("notsecure", [], []))::l ->
         find_data (auth, basicusercreation, false) l
@@ -90,10 +94,15 @@ let external_auth = match auth with
   | NoExternalAuth -> None
   | Nis -> Some User_external_auth.external_auth_nis
   | Pam service ->
-      match !User_external_auth.external_auth_pam with
+      (match !User_external_auth.external_auth_pam with
         | Some pam -> Some (pam ?service ())
         | None -> raise (Ocsigen_config.Config_file_error
-                           "Ocsimore compiled without PAM support")
+                           "Ocsimore compiled without PAM support"))
+  | Ldap (base, uri) ->
+      (match !User_external_auth.external_auth_ldap with
+        | Some f -> Some (f base uri)
+        | None -> raise (Ocsigen_config.Config_file_error
+                           "Ocsimore compiled without LDAP support"))
 
 
 

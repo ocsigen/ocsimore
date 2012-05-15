@@ -32,11 +32,15 @@ type external_auth = {
   ext_auth_fullname: string -> string Lwt.t;
 }
 
-(** Pam authentification, updated by [Ocsimore_pam] if it is loaded *)
+(** PAM authentification, updated by [Ocsimore_pam] if it is loaded *)
 let external_auth_pam =
   ref (None : (?service:string -> unit -> external_auth) option)
 
+(** LDAP authentification, updated by [Ocsimore_ldap] if it is loaded *)
+let external_auth_ldap =
+  ref (None : (string -> string -> external_auth) option)
 
+(** NIS authentification *)
 let external_auth_nis = {
   ext_auth_authenticate = Ocsimore_nis.nis_auth;
   ext_auth_fullname = (fun usr -> Nis_chkpwd.userinfo usr >>= function

@@ -66,12 +66,13 @@ Library "user"
     Nis_chkpwd,
     Ocsimore_nis,
     Ocsimore_pam,
+    Ocsimore_ldap,
     User_data,
     User_external_auth
   XMETADescription: User stuffs
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore, pam
-  XMETARequires: ocsimore, pam
+    camlp4, lwt.syntax, ocsimore, pam, ocamldap
+  XMETARequires: ocsimore, pam, ocamldap
 
 Library "wiki"
   Path: src/wiki
