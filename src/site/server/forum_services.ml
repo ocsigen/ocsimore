@@ -21,28 +21,28 @@
    @author Boris Yakobowski
 *)
 
-let ( ** ) = Eliom_parameters.prod
+let ( ** ) = Eliom_parameter.prod
 let ( >>= ) = Lwt.bind
 
 open User_sql.Types
 
-let forum_action_eref = Eliom_references.eref ~scope:Eliom_common.request None
+let forum_action_eref = Eliom_reference.eref ~scope:Eliom_common.request None
 
 let set_forum_action action =
-  Eliom_references.set forum_action_eref (Some action)
+  Eliom_reference.set forum_action_eref (Some action)
 
 let register_services () =
   let add_message_service =
-    Eliom_services.post_coservice'
+    Eliom_service.post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_add"
       ~post_params:
-      (Eliom_parameters.string "actionname" **
-         ((Eliom_parameters.sum
+      (Eliom_parameter.string "actionname" **
+         ((Eliom_parameter.sum
              (Forum.eliom_message "parent")
              (Forum.eliom_forum "forum")) **
-            (Eliom_parameters.opt (Eliom_parameters.string "subject") **
-               Eliom_parameters.string "content")))
+            (Eliom_parameter.opt (Eliom_parameter.string "subject") **
+               Eliom_parameter.string "content")))
       ()
   in
 
@@ -51,9 +51,9 @@ let register_services () =
     (fun () (actionname, (parent, (subject, text))) ->
       lwt (forum, parent_id) =
         match parent with
-         | Eliom_parameters.Inj2 forum -> (* new messages *)
+         | Eliom_parameter.Inj2 forum -> (* new messages *)
              Lwt.return (forum, None)
-         | Eliom_parameters.Inj1 parent_id -> (* comment *)
+         | Eliom_parameter.Inj1 parent_id -> (* comment *)
              (* We do not require the user to be allowed to read the message ... 
                 (Forum_sql.get_message and not Forum_data.get_message) *)
              Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
@@ -68,7 +68,7 @@ let register_services () =
               ~forum ~creator_id:u.user_id ?subject ?parent_id ~text ()
           in
           Eliom_output.Redirection.send
-            Eliom_services.void_hidden_coservice'
+            Eliom_service.void_hidden_coservice'
         with Ocsimore_common.Permission_denied ->
           lwt () =
             set_forum_action (Forum.Msg_creation_not_allowed (forum, parent_id))
@@ -82,7 +82,7 @@ let register_services () =
 
   (* Moderation *)
   let moderate_message_service =
-    Eliom_services.post_coservice'
+    Eliom_service.post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_moderate"
       ~post_params:(Forum.eliom_message "msg")
@@ -97,7 +97,7 @@ let register_services () =
 (* AEFF
   (* Deletion *)
   let delete_message_service =
-    Eliom_services.new_post_coservice'
+    Eliom_service.new_post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_delete_message"
       ~post_params:(Forum.eliom_message "msg")
@@ -113,11 +113,11 @@ let register_services () =
 
   (** Atom feed services *)
 
-  let thread_feed_service = Eliom_services.service
+  let thread_feed_service = Eliom_service.service
     ~path:["thread_feed"]
     ~get_params:(Forum.eliom_message "message") () in
 
-  let forum_feed_service = Eliom_services.service
+  let forum_feed_service = Eliom_service.service
     ~path:["forum_feed"]
     ~get_params:(Forum.eliom_forum "forum") () in
 
@@ -126,15 +126,15 @@ let register_services () =
 let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
 let path_create_forum = [!Ocsimore_config.admin_dir;"create_forum"]
 
-let edit_forum = Eliom_services.service
+let edit_forum = Eliom_service.service
   ~path:path_edit_forum
   ~get_params:(Forum.eliom_forum "forum") ()
 
-let create_forum = Eliom_services.service
+let create_forum = Eliom_service.service
   ~path:path_create_forum
-  ~get_params:Eliom_parameters.unit ()
+  ~get_params:Eliom_parameter.unit ()
 
-let view_forums = Eliom_services.service
+let view_forums = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir;"view_forums"]
-  ~get_params:Eliom_parameters.unit ()
+  ~get_params:Eliom_parameter.unit ()
 

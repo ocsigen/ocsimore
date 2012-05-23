@@ -18,6 +18,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
+open Eliom_content
+
 type 'a resolver = 'a -> Ocsigen_local_files.resolved
 
 exception Undefined
@@ -33,11 +35,11 @@ val process_wikifile:
   wb404:Wiki_types.wikibox ->
   wb403:Wiki_types.wikibox ->
   ('a -> Ocsigen_local_files.resolved) ->
-  'a -> HTML5_types.html Eliom_pervasives.HTML5.M.elt Lwt.t
+  'a -> Html5_types.html Html5.F.elt Lwt.t
 
 val process_auxfile:
   wiki:Wiki_types.wiki ->
-  ?options:Eliom_output.Files.options ->
+  ?options:Eliom_output.File.options ->
   ?sectioning:bool ->
   ?menu_style:Wiki_widgets_interface.menu_style ->
   template:string ->

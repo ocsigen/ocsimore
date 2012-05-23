@@ -18,25 +18,25 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Eliom_pervasives
+open Eliom_content
 
 
 type menu =
-  [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] HTML5.M.elt list
+  [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] Html5.F.elt list
 
 type menu_item =
-   HTML5_types.a_content HTML5.M.elt list *
-      (Eliom_services.get_service_kind,
-       Eliom_services.registrable,
-       HTML5_types.a_content HTML5.M.elt list)
+   Html5_types.a_content Html5.F.elt list *
+      (Eliom_service.get_service_kind,
+       Eliom_service.registrable,
+       Html5_types.a_content Html5.F.elt list)
       Eliom_tools.hierarchical_site_item
 
 val build_tree :
     create_service:
         (?wiki:Wiki_types.wiki ->
           string list ->
-          (Eliom_services.get_service_kind,
-           Eliom_services.registrable,
+          (Eliom_service.get_service_kind,
+           Eliom_service.registrable,
            Eliom_output.non_caml_service)
             Eliom_tools.one_page) ->
     menu ->
@@ -47,8 +47,8 @@ val build_tree_from_string :
     create_service:
         (?wiki:Wiki_types.wiki ->
           string list ->
-          (Eliom_services.get_service_kind,
-           Eliom_services.registrable,
+          (Eliom_service.get_service_kind,
+           Eliom_service.registrable,
            Eliom_output.non_caml_service)
             Eliom_tools.one_page) ->
     contents:string ->
@@ -59,8 +59,8 @@ val build_tree_from_file :
     create_service:
         (?wiki:Wiki_types.wiki ->
           string list ->
-          (Eliom_services.get_service_kind,
-           Eliom_services.registrable,
+          (Eliom_service.get_service_kind,
+           Eliom_service.registrable,
            Eliom_output.non_caml_service)
             Eliom_tools.one_page) ->
     file:Ocsigen_local_files.resolved ->
@@ -72,7 +72,7 @@ val create_wiki_page_service:
     Wiki_widgets_interface.box_info ->
       ?wiki:Wiki_types.wiki ->
         string list ->
-          (Eliom_services.get_service_kind,
-           Eliom_services.registrable,
+          (Eliom_service.get_service_kind,
+           Eliom_service.registrable,
            Eliom_output.non_caml_service)
             Eliom_tools.one_page

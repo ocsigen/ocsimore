@@ -1,5 +1,5 @@
 {shared{
-open Eliom_pervasives
+open Eliom_content
 external identity : 'a -> 'a = "%identity"
 
 type 'a int_t = int deriving (Json)
@@ -60,7 +60,7 @@ let int32_input_aux_xform ?a s =
        ))
 
 let int32_input_xform ?a (i : 'a int32_t) :
-    ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t) Xform.XformLwt.t =
+    ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t) Xform.XformLwt.t =
   int32_input_aux_xform ?a (Int32.to_string i)
 
 let int32_input_opt_aux_xform ?a s =
@@ -74,7 +74,7 @@ let int32_input_opt_aux_xform ?a s =
            with Failure _ -> Xform.ConvError ("Invalid value " ^ s)
        ))
 
-let int32_input_opt_xform ?a : 'a int32_t option -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t = function
+let int32_input_opt_xform ?a : 'a int32_t option -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t option) Xform.XformLwt.t = function
   | None -> int32_input_opt_aux_xform ?a ""
   | Some v -> int32_input_opt_aux_xform ?a (Int32.to_string  v)
 

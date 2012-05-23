@@ -23,7 +23,7 @@ Creating dynamic groups if needed
 @author Vincent Balat
 *)
 
-let (>>=) = Lwt.bind
+open Eliom_lib.Lwt_ops
 
 let rec aux = function
   | [] -> Lwt.return ()

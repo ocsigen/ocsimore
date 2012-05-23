@@ -1,8 +1,10 @@
-open Eliom_pervasives
+
+open Eliom_lib
+open Lwt_ops
+open Eliom_content
 open CalendarLib
 open Ocsimore_lib
-module P = Eliom_parameters
-module M = Eliom_output.Html5
+module P = Eliom_parameter
 let ( ** ) = P.( ** )
 
 let def d v = match v with None -> d | Some v -> v
@@ -43,44 +45,44 @@ module type Xform = sig
   val id : (_, _) t -> string
 
   val string_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> string -> ([> HTML5_types.input] HTML5.M.elt, string) t
+    ?a:Html5_types.input_attrib Html5.F.attrib list -> string -> ([> Html5_types.input] Html5.F.elt, string) t
   val string_opt_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
-    string option -> ([> HTML5_types.input] HTML5.M.elt, string option) t
+    ?a:Html5_types.input_attrib Html5.F.attrib list ->
+    string option -> ([> Html5_types.input] Html5.F.elt, string option) t
   val int_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> ?format:(int -> string) ->
-    int -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, int) t
+    ?a:Html5_types.input_attrib Html5.F.attrib list -> ?format:(int -> string) ->
+    int -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, int) t
   val bounded_int_input :
-    ?format:(int -> string) -> int -> int -> int -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, int) t
+    ?format:(int -> string) -> int -> int -> int -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, int) t
   val bool_checkbox :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list -> bool -> ([> HTML5_types.input] HTML5.M.elt, bool) t
+    ?a:Html5_types.input_attrib Html5.F.attrib list -> bool -> ([> Html5_types.input] Html5.F.elt, bool) t
   val text_area :
-    ?a:HTML5_types.textarea_attrib HTML5.M.attrib list ->
-    rows:int -> cols:int -> string -> ([> HTML5_types.textarea] HTML5.M.elt, string) t
-  val submit_button : string -> ([> HTML5_types.input ] HTML5.M.elt, bool) t
-  val select_single : (string * string) list -> string -> ([> HTML5_types.select] HTML5.M.elt, string) t
-(*val select_single : (string * 'a) list -> 'a -> (HTML5_types.phrasing HTML5.M.elt, 'a) t*)
+    ?a:Html5_types.textarea_attrib Html5.F.attrib list ->
+    rows:int -> cols:int -> string -> ([> Html5_types.textarea] Html5.F.elt, string) t
+  val submit_button : string -> ([> Html5_types.input ] Html5.F.elt, bool) t
+  val select_single : (string * string) list -> string -> ([> Html5_types.select] Html5.F.elt, string) t
+(*val select_single : (string * 'a) list -> 'a -> (Html5_types.phrasing Html5.F.elt, 'a) t*)
 (*val list : int -> ('a list, 'b) t -> ('a list, 'b list) t*)
   val list :
     'i list
-    -> ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t)
-    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
+    -> ('i -> ([< Html5_types.form_content] Html5.F.elt, 'o) t)
+    -> ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
   val list' :
     int
-    -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t
-    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
+    -> ([< Html5_types.form_content] Html5.F.elt, 'o) t
+    -> ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
   val extensible_list :
     string -> 'i -> 'i list ->
-    ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t) ->
-    ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
+    ('i -> ([< Html5_types.form_content] Html5.F.elt, 'o) t) ->
+    ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
   val opt_input:
-    input:('a -> (HTML5_types.input HTML5.M.elt, 'b) t) ->
+    input:('a -> (Html5_types.input Html5.F.elt, 'b) t) ->
     default:'a ->
     'a option ->
-    ([> HTML5_types.input] HTML5.M.elt, 'b option) t
+    ([> Html5_types.input] Html5.F.elt, 'b option) t
 
 
   module Ops : sig
@@ -96,43 +98,43 @@ module type Xform = sig
   val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
   val check :
-    (([> HTML5_types.span] as 'b) HTML5.M.elt, 'a) t ->
+    (([> Html5_types.span] as 'b) Html5.F.elt, 'a) t ->
     ('a -> string option) ->
-    ('b HTML5.M.elt, 'a) t
+    ('b Html5.F.elt, 'a) t
 
   val convert :
-    (([> HTML5_types.span] as 'c) HTML5.M.elt, 'a) t -> ('a -> 'b convert monad) -> ('c HTML5.M.elt, 'b) t
+    (([> Html5_types.span] as 'c) Html5.F.elt, 'a) t -> ('a -> 'b convert monad) -> ('c Html5.F.elt, 'b) t
 
-  val hour_input : int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int) t
-  val day_input : int -> int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int * int) t
-  val date_input : Calendar.t -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, Calendar.t) t
+  val hour_input : int -> int -> ([> Html5_types.input | Html5_types.pcdata | Html5_types.span ] Html5.F.elt, int * int) t
+  val day_input : int -> int -> int -> ([> Html5_types.input | Html5_types.pcdata | Html5_types.span ] Html5.F.elt, int * int * int) t
+  val date_input : Calendar.t -> ([> Html5_types.input | Html5_types.pcdata | Html5_types.span ] Html5.F.elt, Calendar.t) t
 
-  val text : string -> [> HTML5_types.pcdata ] HTML5.M.elt list
-  val strong : [< HTML5_types.strong_content_fun ] HTML5.M.elt list -> [> HTML5_types.strong ] HTML5.M.elt
-  val p : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.p] HTML5.M.elt, 'b) t
-  val table : ([< HTML5_types.table_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.table] HTML5.M.elt, 'b) t
-  val tr : ([< HTML5_types.tr_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.tr] HTML5.M.elt, 'b) t
-  val td : ([< HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.td] HTML5.M.elt, 'b) t
-  val label_input_tr : label:string -> ?description:string -> ([<HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> (HTML5_types.tr HTML5.M.elt, 'b) t
+  val text : string -> [> Html5_types.pcdata ] Html5.F.elt list
+  val strong : [< Html5_types.strong_content_fun ] Html5.F.elt list -> [> Html5_types.strong ] Html5.F.elt
+  val p : ([< Html5_types.p_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.p] Html5.F.elt, 'b) t
+  val table : ([< Html5_types.table_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.table] Html5.F.elt, 'b) t
+  val tr : ([< Html5_types.tr_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.tr] Html5.F.elt, 'b) t
+  val td : ([< Html5_types.td_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.td] Html5.F.elt, 'b) t
+  val label_input_tr : label:string -> ?description:string -> ([<Html5_types.td_content_fun] Html5.F.elt, 'b) t -> (Html5_types.tr Html5.F.elt, 'b) t
   val fieldset :
-    ?legend:[`Legend] HTML5.M.elt ->
-    ([<HTML5_types.flow5] HTML5.M.elt, 'b) t ->
-    ([>HTML5_types.fieldset] HTML5.M.elt, 'b) t
+    ?legend:[`Legend] Html5.F.elt ->
+    ([<Html5_types.flow5] Html5.F.elt, 'b) t ->
+    ([>Html5_types.fieldset] Html5.F.elt, 'b) t
 
   val form:
     fallback:('a, unit,
               [ `Attached of
                   ([ `Internal of [< `Coservice | `Service ]], [ `Get ])
-                    Eliom_services.a_s ],
-              [< Eliom_services.suff ], 'b, unit, [< `Registrable ], M.return)
-    Eliom_services.service ->
+                    Eliom_service.a_s ],
+              [< Eliom_service.suff ], 'b, unit, [< `Registrable ], Eliom_output.Html5.return)
+    Eliom_service.service ->
     get_args:'a ->
     page:('a -> error ->
-          [>HTML5_types.form] HTML5.M.elt -> HTML5.M.html Lwt.t) ->
+          [>Html5_types.form] Html5.F.elt -> Html5.F.html Lwt.t) ->
     ?err_handler:(exn -> string option) ->
-    (HTML5_types.form_content HTML5.M.elt,
+    (Html5_types.form_content Html5.F.elt,
      unit -> Eliom_output.Html5.page Lwt.t) t ->
-    [> HTML5_types.form] HTML5.M.elt monad
+    [> Html5_types.form] Html5.F.elt monad
 
 
 end
@@ -197,7 +199,7 @@ end) = struct
       {form =
           (fun v' name ->
             return
-              ([M.string_input ~a:(HTML5.M.a_id id :: def [] a)
+              ([Html5.F.string_input ~a:(Html5.F.a_id id :: def [] a)
                    ~input_type:`Text
                    ~name ~value:(def value v') ()],
                opt_outcome v'));
@@ -211,8 +213,8 @@ end) = struct
       {form =
           (fun v' name ->
             return
-              ([M.textarea ~a:(HTML5.M.a_id id :: def [] a)
-                   ~rows ~cols ~name ~value:(def value v') ()],
+              ([Html5.F.textarea ~a:(Html5.F.a_id id :: def [] a)
+                   ~name ~value:(def value v') ()],
                opt_outcome v'));
        params = string_param;
        id}
@@ -225,7 +227,7 @@ end) = struct
       {form =
           (fun v' name ->
             return
-              ([M.bool_checkbox ~a:(HTML5.M.a_id id :: def [] a) ~name ~checked ()],
+              ([Html5.F.bool_checkbox ~a:(Html5.F.a_id id :: def [] a) ~name ~checked ()],
                opt_outcome v'));
        params = (fun name -> (P.bool (Name.to_string name), Name.next name));
        id}
@@ -235,7 +237,7 @@ end) = struct
     {form =
         (fun v' name ->
           return
-            ([M.string_input ~a:[HTML5.M.a_id id] ~input_type:`Submit ~name ~value ()],
+            ([Html5.F.string_input ~a:[Html5.F.a_id id] ~input_type:`Submit ~name ~value ()],
              opt_outcome (opt_map (fun v' -> v' <> None) v')));
      params =
         (fun name -> (P.opt (P.string (Name.to_string name)), Name.next name));
@@ -256,14 +258,14 @@ end) = struct
             let lst =
               List.map
                 (fun (l, v) ->
-                  M.Option ([], v, Some (HTML5.M.pcdata l), v = sel)
+                  Html5.F.Option ([], v, Some (Html5.F.pcdata l), v = sel)
                 )
                 lst
             in
             return
               (begin match lst with
                   []       -> []
-                | hd :: tl -> [M.string_select ~a:[HTML5.M.a_id id] ~name hd tl]
+                | hd :: tl -> [Html5.F.string_select ~a:[Html5.F.a_id id] ~name hd tl]
                end,
                 opt_outcome v'));
        params = string_param;
@@ -287,12 +289,12 @@ end) = struct
   mapi
   (fun i (l, _) ->
   let is = string_of_int i in
-  M.Option ({{ {} }}, is, Some (str l), is = sel))
+  Html5.F.Option ({{ {} }}, is, Some (str l), is = sel))
   lst
   in
   (begin match l with
   []       -> []
-  | hd :: tl -> [M.string_select ~name hd tl]
+  | hd :: tl -> [Html5.F.string_select ~name hd tl]
   end,
   opt_outcome
   (opt_map (fun v' -> snd (List.nth lst (int_of_string v'))) v')));
@@ -375,17 +377,17 @@ end) = struct
       |> (fun () -> [])
 
   let list l f :
-    (HTML5_types.form_content Eliom_pervasives.HTML5.M.elt, 'a list) t =
+    (Html5_types.form_content Html5.F.elt, 'a list) t =
     List.fold_right (fun v r -> f v @@ r |> (fun (x, l) -> x :: l)) l empty_list
 
   let list =
     (list :
     'a list ->
-         ('a -> (HTML5_types.form_content Eliom_pervasives.HTML5.M.elt, 'b) t) ->
-         (HTML5_types.form_content Eliom_pervasives.HTML5.M.elt, 'b list) t :>
+         ('a -> (Html5_types.form_content Html5.F.elt, 'b) t) ->
+         (Html5_types.form_content Html5.F.elt, 'b list) t :>
     'a list ->
-         ('a -> ([< HTML5_types.form_content] Eliom_pervasives.HTML5.M.elt, 'b) t) ->
-         ([> HTML5_types.form_content] Eliom_pervasives.HTML5.M.elt, 'b list) t)
+         ('a -> ([< Html5_types.form_content] Html5.F.elt, 'b) t) ->
+         ([> Html5_types.form_content] Html5.F.elt, 'b list) t)
 
   let rec repeat n v = if n = 0 then [] else v :: repeat (n - 1) v
 
@@ -421,15 +423,15 @@ end) = struct
   let list' =
     (list' :
     int
-    -> (HTML5_types.form_content HTML5.M.elt, 'o) t
-    -> (HTML5_types.form_content HTML5.M.elt, 'o list) t :>
+    -> (Html5_types.form_content Html5.F.elt, 'o) t
+    -> (Html5_types.form_content Html5.F.elt, 'o list) t :>
     int
-    -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t
-    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t)
+    -> ([< Html5_types.form_content] Html5.F.elt, 'o) t
+    -> ([> Html5_types.form_content] Html5.F.elt, 'o list) t)
 
 (****)
 
-  let error s = [HTML5.M.span ~a:[HTML5.M.a_class ["errmsg"]] [HTML5.M.pcdata s]]
+  let error s = [Html5.F.span ~a:[Html5.F.a_class ["errmsg"]] [Html5.F.pcdata s]]
 
   let check f tst =
     unpack f {f = fun f ->
@@ -462,35 +464,43 @@ end) = struct
 
 (****)
 
-  let text s = [HTML5.M.pcdata s]
-  let strong l = HTML5.M.strong l
-  let p (x : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t) =
-    wrap (fun x -> [HTML5.M.p x]) x
-  let hidden (x : (HTML5_types.phrasing HTML5.M.elt, 'b) t) =
-    wrap (fun x -> [HTML5.M.div ~a:[HTML5.M.a_style "display:none"] x])
-      (x: (HTML5_types.phrasing HTML5.M.elt,'a) t :>(HTML5_types.flow5 HTML5.M.elt,'a) t)
+  let text s = [Html5.F.pcdata s]
+  let strong l = Html5.F.strong l
+  let p (x : ([< Html5_types.p_content_fun] Html5.F.elt, 'b) t) =
+    wrap (fun x -> [Html5.F.p x]) x
+
+  type +'a e = 'a Html5.F.elt
+
+  let f x = (x: Html5_types.phrasing :> Html5_types.flow5)
+  let g x = (x: Html5_types.phrasing Html5.elt :> Html5_types.flow5 Html5.elt)
+
+  let hidden x =
+    wrap
+      (fun x -> [Html5.F.div ~a:[Html5.F.a_style "display:none"] x])
+      (x: (Html5_types.phrasing Html5.F.elt, 'a) t :> (Html5_types.flow5 Html5.F.elt, 'a) t)
+
 
   let table rows =
-    wrap (function row :: rows -> [HTML5.M.table row rows] | [] -> []) rows
+    wrap (function row :: rows -> [Html5.F.table row rows] | [] -> []) rows
 
   let tr cells =
-    wrap (fun cells -> [HTML5.M.tr cells]) cells
+    wrap (fun cells -> [Html5.F.tr cells]) cells
 
   let td xs =
-    wrap (fun xs -> [HTML5.M.td xs]) xs
+    wrap (fun xs -> [Html5.F.td xs]) xs
 
   let fieldset ?legend x =
-    wrap (fun x -> [HTML5.M.fieldset ?legend x]) x
+    wrap (fun x -> [Html5.F.fieldset ?legend x]) x
 
   let label_input_tr ~label ?description input =
     let lbl = text label in
-    let a = [HTML5.M.a_for (id input)] in
-    let row = [HTML5.M.td [HTML5.M.label ~a lbl]] @+ td input in
+    let a = [Html5.F.Raw.a_for (id input)] in
+    let row = [Html5.F.td [Html5.F.label ~a lbl]] @+ td input in
     let row =
       match description with
         | None -> row
         | Some description ->
-            row +@ [HTML5.M.(td ~a:[a_class ["description"]] (text description))]
+            row +@ [Html5.F.(td ~a:[a_class ["description"]] (text description))]
     in
     tr row
 
@@ -507,7 +517,7 @@ end) = struct
     let l =
       max (String.length (string_of_int a)) (String.length (string_of_int b))
     in
-    check (int_input ?format ~a:[HTML5.M.a_maxlength l; HTML5.M.a_size l] i)
+    check (int_input ?format ~a:[Html5.F.a_maxlength l; Html5.F.a_size l] i)
       (fun i ->
         if i < a || i > b then
           Some (Format.sprintf "doit être entre %i et %i" a b)
@@ -519,7 +529,7 @@ end) = struct
   let extensible_list txt default l f =
     (list l f @@
        let button =
-         wrap_int (fun x -> [HTML5.M.p x]) (submit_button_int txt) in
+         wrap_int (fun x -> [Html5.F.p x]) (submit_button_int txt) in
        unpack (f default) {f = fun f ->
          pack
            {form =
@@ -552,11 +562,11 @@ end) = struct
   let extensible_list =
     (extensible_list
     : string -> 'i -> 'i list ->
-     ('i -> (HTML5_types.form_content HTML5.M.elt, 'o) t) ->
-     (HTML5_types.form_content HTML5.M.elt, 'o list) t
+     ('i -> (Html5_types.form_content Html5.F.elt, 'o) t) ->
+     (Html5_types.form_content Html5.F.elt, 'o list) t
     :> string -> 'i -> 'i list ->
-     ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t) ->
-     ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t)
+     ('i -> ([< Html5_types.form_content] Html5.F.elt, 'o) t) ->
+     ([> Html5_types.form_content] Html5.F.elt, 'o list) t)
 
 (****)
 
@@ -607,11 +617,11 @@ module Xform = struct
     let f = hidden (submit_button "Submit") @@ f |> snd in
     unpack f {f = fun f ->
       let (params, _) = f.params Name.first in
-      let service = Eliom_services.post_coservice ~timeout:600. ~fallback
+      let service = Eliom_service.post_coservice ~timeout:600. ~fallback
         ~post_params:params ()
       in
-      M.post_form ~service (fun names ->
-        M.register ~scope:Eliom_common.session ~service
+      Html5.F.post_form ~service (fun names ->
+        Eliom_output.Html5.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
             match f.form (Some v) names with
               | (x, Success act) ->
@@ -621,14 +631,14 @@ module Xform = struct
                     match err_handler e with
                       | None -> Lwt.fail e
                       | Some err ->
-                        let form = M.post_form ~service
+                        let form = Html5.F.post_form ~service
                           (fun _ -> x) get_args in
                         page get_args (ErrorMsg err) form
                   )
-              | ((x : HTML5_types.form_content HTML5.M.elt list),
+              | ((x : Html5_types.form_content Html5.F.elt list),
                  (Error | Redisplay as err))     ->
                 let form =
-                  M.post_form ~service (fun _ -> x) get_args in
+                  Html5.F.post_form ~service (fun _ -> x) get_args in
                 let error = if err = Error then ErrorNoMsg else NoError in
                 page get_args error form
           );
@@ -650,11 +660,11 @@ module XformLwt = struct
     let f = hidden (submit_button "Submit") @@ f |> snd in
     unpack f {f = fun f ->
       let (params, _) = f.params Name.first in
-      let service = Eliom_services.post_coservice ~timeout:600. ~fallback
+      let service = Eliom_service.post_coservice ~timeout:600. ~fallback
         ~post_params:params ()
       in
-      M.lwt_post_form ~service (fun names ->
-        M.register ~scope:Eliom_common.session ~service
+      Html5.F.lwt_post_form ~service (fun names ->
+        Eliom_output.Html5.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
             f.form (Some v) names >>= function
               | (x, Success act) ->
@@ -664,14 +674,14 @@ module XformLwt = struct
                     match err_handler e with
                       | None -> Lwt.fail e
                       | Some err ->
-                        let form = M.post_form ~service
+                        let form = Html5.F.post_form ~service
                           (fun _ -> x) get_args in
                         page get_args (ErrorMsg err) form
                   )
-              | ((x : HTML5_types.form_content HTML5.M.elt list),
+              | ((x : Html5_types.form_content Html5.F.elt list),
                  (Error | Redisplay as err))     ->
                 let form =
-                  M.post_form ~service (fun _ -> x) get_args in
+                  Html5.F.post_form ~service (fun _ -> x) get_args in
                 let error = if err = Error then ErrorNoMsg else NoError in
                 page get_args error form
           );

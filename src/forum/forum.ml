@@ -23,11 +23,12 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_lib
+open Lwt_ops
+open Eliom_content
 open User_sql.Types
 open Forum_types
 
-let (>>=) = Lwt.bind
 let ($) = User_sql.Types.apply_parameterized_group
 
 
@@ -508,10 +509,10 @@ let default_forum_sd () =
       Lwt.return v
 
 (** The polytable key for retrieving forum data inside session data *)
-let default_forum_request_cache = Eliom_references.eref_from_fun ~scope:Eliom_common.request default_forum_sd
+let default_forum_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request default_forum_sd
 
 let get_forum_sd () =
-  Eliom_references.get default_forum_request_cache
+  Eliom_reference.get default_forum_request_cache
 
 let get_role k =
   lwt forum_sd = get_forum_sd () in
@@ -529,19 +530,19 @@ type forum_action_info =
 (** {2 Eliom related values} *)
 
 let eliom_forum =
-  Eliom_parameters.user_type
+  Eliom_parameter.user_type
     ~of_string:forum_of_string ~to_string:string_of_forum 
 
 let eliom_message = 
-  Eliom_parameters.user_type
+  Eliom_parameter.user_type
     ~of_string:message_of_string ~to_string:string_of_message 
 
 let eliom_forum_input ?a ~input_type ?name ?value () = 
-  Eliom_output.Html5.user_type_input string_of_forum ?a ~input_type ?name ?value ()
+  Html5.D.user_type_input string_of_forum ?a ~input_type ?name ?value ()
 let eliom_message_input ?a ~input_type ?name ?value () = 
-  Eliom_output.Html5.user_type_input string_of_message ?a ~input_type ?name ?value ()
+  Html5.D.user_type_input string_of_message ?a ~input_type ?name ?value ()
 let eliom_message_button ?a ~name ~value v =
-  Eliom_output.Html5.user_type_button string_of_message ?a ~name ~value v
+  Html5.D.user_type_button string_of_message ?a ~name ~value v
 
 
 (** {2 Right model for forum's wikis} *)

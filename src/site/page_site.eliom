@@ -21,13 +21,13 @@
 *)
 
 
-open Eliom_pervasives
+open Eliom_content
 open Ocsimore_lib
 open Lwt_ops
 
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
-    (Eliom_services.get_service_kind,
+    (Eliom_service.get_service_kind,
      [ `Unregistrable | `Registrable ],
     Eliom_output.non_caml_service)
     Eliom_tools.one_page
@@ -61,23 +61,23 @@ let admin_staticdir =
 let static_service =
   Eliom_output.Any.register_service
     ~path:[!Ocsimore_config.admin_dir ; "static"]
-    ~get_params:(Eliom_parameters.suffix (Eliom_parameters.all_suffix "path"))
+    ~get_params:(Eliom_parameter.suffix (Eliom_parameter.all_suffix "path"))
     (fun path () ->
        let path = admin_staticdir :: path in
-       let file = Ocsigen_pervasives.Url.string_of_url_path ~encode:false path in
-       Eliom_output.Files.send ~options:(3600 * 24 * 7) file
+       let file = Eliom_lib.Url.string_of_url_path ~encode:false path in
+       Eliom_output.File.send ~options:(3600 * 24 * 7) file
        (* TODO: parametrize cache duration... *)
     )
 
 
 let static_file_uri ~path =
-  Eliom_output.Html5.make_uri ~service:static_service path
+  Eliom_content.Html5.F.make_uri ~service:static_service path
 
 module Header : sig
   type header
 
   (** Define a new header *)
-  val create_header : ( unit -> HTML5_types.head_content_fun HTML5.M.elt list ) -> header
+  val create_header : ( unit -> Html5_types.head_content_fun Html5.F.elt list ) -> header
 
   (** Call this function every time you need a header to be included
       in the page. If this function is called several times for the same
@@ -88,27 +88,27 @@ module Header : sig
   (** This function is called to generate the headers for one page.
       Only required headers are included.
   *)
-  val generate_headers : unit -> HTML5_types.head_content_fun HTML5.M.elt list Lwt.t
+  val generate_headers : unit -> Html5_types.head_content_fun Html5.F.elt list Lwt.t
 
 end = struct
 
-  type header = bool Eliom_references.eref
+  type header = bool Eliom_reference.eref
 
   let header_table = ref []
 
   let create_header header_content =
-    let header_ref = Eliom_references.eref ~scope:Eliom_common.request false in
+    let header_ref = Eliom_reference.eref ~scope:Eliom_common.request false in
     header_table := (header_ref, header_content) :: !header_table;
     header_ref
 
   let require_header header_ref =
-    Eliom_references.set header_ref true
+    Eliom_reference.set header_ref true
 
   let generate_headers () =
     List.(fun xs -> flatten (map_filter (fun x -> x) xs)) =|< lwt_sequence
       (List.map
         (fun (header_ref, header_content) ->
-           Eliom_references.get header_ref >|= function
+           Eliom_reference.get header_ref >|= function
              | true -> Some (header_content ())
              | false -> None)
         !header_table)
@@ -116,7 +116,7 @@ end = struct
 end
 
 (* special handling for onload functions (?) *)
-let onload_functions_eref = Eliom_references.eref ~scope:Eliom_common.request []
+let onload_functions_eref = Eliom_reference.eref ~scope:Eliom_common.request []
 
 let add_onload_function ?(first = false) s =
   flip eref_modify onload_functions_eref
@@ -131,7 +131,7 @@ let add_onload_function = add_onload_function ~first:false
 let admin_pages_header =
   Header.create_header
     (fun () ->
-       [Eliom_output.Html5.css_link
+       [Eliom_content.Html5.F.css_link
           (static_file_uri ["ocsiadmin.css"]) ()])
 
 (* shortcuts: *)
@@ -143,34 +143,34 @@ let html_page ?body_classes ?(css=[]) ?title:(title'="Ocsimore") ?heading conten
   lwt headers = Header.generate_headers () in
   let body_attrs =
     match body_classes with
-      | None -> [HTML5.M.a_id "body"]
-      | Some l -> [HTML5.M.a_id "body"; HTML5.M.a_class l]
+      | None -> [Html5.F.a_id "body"]
+      | Some l -> [Html5.F.a_id "body"; Html5.F.a_class l]
   in
-  Lwt.return HTML5.M.(
+  Lwt.return Html5.F.(
     html
      (head
         (title (pcdata title'))
-        ((css :> HTML5_types.head_content_fun elt list)
+        ((css :> Html5_types.head_content_fun elt list)
          @ headers
          @ [Ocsimore_appl.application_script ~async:true ()]))
      (body ~a:body_attrs 
         (get_opt ~default:[]
-           (map_option (fun heading -> [h1 ~a:[a_class ["html_page_heading"]] [pcdata heading]]) heading)
+           (Eliom_lib.Option.map (fun heading -> [h1 ~a:[a_class ["html_page_heading"]] [pcdata heading]]) heading)
          @ content))
   )
 
 (** Admin page *)
 
 let admin_root =
-  Eliom_services.service
+  Eliom_service.service
     ~path:[!Ocsimore_config.admin_dir;""]
-    ~get_params:Eliom_parameters.unit ()
+    ~get_params:Eliom_parameter.unit ()
 
 let admin_menu = ref []
 
 let menu_link (text, service, f) =
   f () >|= function
-    | true -> Some ([HTML5.M.pcdata text], Eliom_tools.Site_tree (Eliom_tools.Main_page service, []))
+    | true -> Some ([Html5.F.pcdata text], Eliom_tools.Site_tree (Eliom_tools.Main_page service, []))
     | false -> None
 
 let add_to_admin_menu ~name ~links ~root =
@@ -184,9 +184,9 @@ let admin_menu ?service () =
            (fun r me ->
               menu_link me >|= function None -> r | Some me -> me :: r)
            [] links >|= fun links ->
-           [HTML5.M.span
-              ~a:[HTML5.M.a_class ["admin-menu-root"]]
-              [HTML5.M.pcdata name]],
+           [Html5.F.span
+              ~a:[Html5.F.a_class ["admin-menu-root"]]
+              [Html5.F.pcdata name]],
            Eliom_tools.Site_tree (Eliom_tools.Main_page root, List.rev links))
       !admin_menu
   in
@@ -215,24 +215,24 @@ let admin_page
   lwt usr_id = User.get_user_id () in
   html_page ~title:"Ocsimoreadmin" ~heading:title ~css ~body_classes:("admin" :: body_classes)
     (  menu ()
-     @ HTML5.M.div ~a:[HTML5.M.a_id "admin_body"] content
-     :: HTML5.M.div ~a:[HTML5.M.a_id "admin_status"] status
+     @ Html5.F.div ~a:[Html5.F.a_id "admin_body"] content
+     :: Html5.F.div ~a:[Html5.F.a_id "admin_status"] status
      :: []
     )
 
 let body_to_div x =
-  (x : HTML5_types.body_content HTML5.M.elt list
-     :> HTML5_types.flow5 HTML5.M.elt list)
+  (x : Html5_types.body_content Html5.F.elt list
+     :> Html5_types.flow5 Html5.F.elt list)
 
 (** Dummy content to show when access is denied in [admin_body_content_with_permission_handler]. *)
 let no_permission () =
   lwt userid = User.get_user_id () in
-  Lwt.return HTML5.M.(
+  Lwt.return Html5.F.(
     h1 [pcdata "No permission"] ::
     if userid = User.anonymous then
       [p [
         pcdata "You may want to login.";
-(*         Eliom_output.Html5.a ~service:User_services.service_login [pcdata "login"] () *)
+(*         Html5.D.a ~service:User_services.service_login [pcdata "login"] () *)
       ]]
     else []
   )
@@ -245,9 +245,9 @@ let admin_body_content_with_permission_handler ~title ?service ~permissions ~dis
       permissions get_args post_args >>= function
         | true ->
             begin try_lwt
-              (display get_args post_args :> HTML5_types.body_content HTML5.M.elt list Lwt.t)
+              (display get_args post_args :> Html5_types.body_content Html5.F.elt list Lwt.t)
             with Failure msg ->
-              Lwt.return HTML5.M.([h2 [pcdata "Error"]; p [pcdata msg]])
+              Lwt.return Html5.F.([h2 [pcdata "Error"]; p [pcdata msg]])
             end
         | false ->
             no_permission ()
@@ -255,15 +255,15 @@ let admin_body_content_with_permission_handler ~title ?service ~permissions ~dis
     let content = body_to_div content in
     lwt service = match service with Some s -> (s get_args post_args : menu_link_service Lwt.t) >|= Ocsimore_lib.some | None -> Lwt.return None in
     lwt title = title get_args post_args in
-    (admin_page ~title ?service content : HTML5.M.html Lwt.t)
+    (admin_page ~title ?service content : Html5.F.html Lwt.t)
 
 let icon ~path ~text =
   let src = static_file_uri [path] in
-  HTML5.M.img ~src ~alt:text ~a:[HTML5.M.a_title text] ()
+  Html5.F.img ~src ~alt:text ~a:[Html5.F.a_title text] ()
 
 
 let ocsimore_admin_greetings =
-  let open HTML5.M in [
+  let open Html5.F in [
     h1 [pcdata "Ocsimore"];
     p [pcdata
        "This is the Ocsimore root admin page. The links on the left will \

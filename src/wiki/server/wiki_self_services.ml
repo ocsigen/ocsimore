@@ -45,36 +45,36 @@ module Servpages =
 let naservpages :
     (string,
      unit,
-     [ `Nonattached of [ `Get ] Eliom_services.na_s ],
+     [ `Nonattached of [ `Get ] Eliom_service.na_s ],
      [ `WithoutSuffix ],
-     [ `One of string ] Eliom_parameters.param_name,
+     [ `One of string ] Eliom_parameter.param_name,
      unit,
      [`Registrable ],
      Eliom_output.appl_service
-    ) Eliom_services.service Servpages.t = Servpages.create 5
+    ) Eliom_service.service Servpages.t = Servpages.create 5
 let servpages :
     (string list,
      unit,
-     Eliom_services.get_service_kind,
+     Eliom_service.get_service_kind,
      [ `WithSuffix ],
-     [ `One of string list ] Eliom_parameters.param_name,
+     [ `One of string list ] Eliom_parameter.param_name,
      unit,
      [ `Registrable ],
      Eliom_output.appl_service
-    ) Eliom_services.service Servpages.t = Servpages.create 5
+    ) Eliom_service.service Servpages.t = Servpages.create 5
 let servwikicss :
     ((Wiki_types.wikibox * int32 option) list,
      unit,
      [ `Attached of
          ([ `Internal of [ `Service | `Coservice ] | `External ],
-          [`Get]) Eliom_services.a_s ],
+          [`Get]) Eliom_service.a_s ],
      [ `WithoutSuffix ],
-     ([ `One of Wiki_types.wikibox ] Eliom_parameters.param_name *
-      [ `One of int32 ] Eliom_parameters.param_name) Eliom_parameters.listnames,
+     ([ `One of Wiki_types.wikibox ] Eliom_parameter.param_name *
+      [ `One of int32 ] Eliom_parameter.param_name) Eliom_parameter.listnames,
      unit,
      [ `Registrable ],
      Eliom_output.CssText.return
-    ) Eliom_services.service Servpages.t = Servpages.create 5
+    ) Eliom_service.service Servpages.t = Servpages.create 5
 
 let add_naservpage = Servpages.add naservpages
 let add_servpage = Servpages.add servpages

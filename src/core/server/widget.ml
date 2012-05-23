@@ -21,7 +21,8 @@
 @author Jaap Boender
 @author Vincent Balat
 *)
-open Eliom_pervasives
+open Eliom_content
+open Eliom_lib.Lwt_ops
 open Eliom_output.Html5
 open Ocsimore_lib
 
@@ -30,9 +31,9 @@ class widget = object end
 (* let bind_or_display_error *)
     (* (error_class : string) *)
     (* (display_error_box : *)
-       (* ?classes:HTML5_types.nmtoken list -> *)
+       (* ?classes:Html5_types.nmtoken list -> *)
      (* ?message:string -> *)
-     (* ?exc:exn -> unit -> [> HTML5_types.p ] Eliom_pervasives.HTML5.M.elt) *)
+     (* ?exc:exn -> unit -> [> Html5_types.p ] Eliom_content.Html5.F.elt) *)
     (* data transform_data = *)
 
 class widget_with_error_box =
@@ -44,33 +45,33 @@ object(self)
 
   method display_error_box : 'a.
     ?classes:string list -> ?message:string -> ?exc:exn ->
-    unit -> ([> `P ] as 'a) HTML5.M.elt
+    unit -> ([> `P ] as 'a) Html5.F.elt
   = fun ?(classes=[]) ?(message = "Error") ?exc () ->
       let classes = error_class :: classes in
       let message =
         match exc with
           | None ->
-              HTML5.M.strong [HTML5.M.pcdata message]
+              Html5.F.strong [Html5.F.pcdata message]
           | Some Ocsimore_common.Permission_denied ->
-              HTML5.M.strong
-                [HTML5.M.pcdata "You are not allowed to see this content"]
+              Html5.F.strong
+                [Html5.F.pcdata "You are not allowed to see this content"]
           | Some exc ->
               if Ocsigen_config.get_debugmode () then
-                HTML5.M.strong [
-                  HTML5.M.pcdata message;
-                  HTML5.M.br ();
-                  HTML5.M.pcdata (Printexc.to_string exc);
-                  HTML5.M.br ();
-                  HTML5.M.em [HTML5.M.pcdata "Ocisgen running in debug mode"];
+                Html5.F.strong [
+                  Html5.F.pcdata message;
+                  Html5.F.br ();
+                  Html5.F.pcdata (Printexc.to_string exc);
+                  Html5.F.br ();
+                  Html5.F.em [Html5.F.pcdata "Ocisgen running in debug mode"];
                 ]
               else
-                HTML5.M.strong [HTML5.M.pcdata message]
+                Html5.F.strong [Html5.F.pcdata message]
       in
-      HTML5.M.p ~a:[HTML5.M.a_class classes] [message]
+      Html5.F.p ~a:[Html5.F.a_class classes] [message]
 
   method bind_or_display_error : 'a 'b.
     'a Lwt.t ->
-    ('a -> ((HTML5_types.nmtoken list * ([> HTML5_types.p ] as 'b) Eliom_pervasives.HTML5.M.elt list) as 'c) Lwt.t) ->
+    ('a -> ((Html5_types.nmtoken list * ([> Html5_types.p ] as 'b) Html5.F.elt list) as 'c) Lwt.t) ->
     'c Lwt.t
   = fun data transform_data ->
     try_lwt
@@ -101,13 +102,13 @@ end
 
 class virtual ['param, 'data] parametrized_div_widget =
 object
-  inherit ['param, 'data, [`Div] HTML5.M.elt Lwt.t] parametrized_widget
+  inherit ['param, 'data, [`Div] Html5.F.elt Lwt.t] parametrized_widget
   val! xhtml_class = "parametrized_div_widget"
 end
 
 
 class type ['param, 'data] parametrized_div_widget_t =
-    ['param, 'data, [`Div] HTML5.M.elt Lwt.t] parametrized_widget_t
+    ['param, 'data, [`Div] Html5.F.elt Lwt.t] parametrized_widget_t
 
 
 class virtual ['param, 'result] parametrized_unit_widget = object
@@ -121,13 +122,13 @@ class type ['param, 'result] parametrized_unit_widget_t =
 
 class virtual ['param] parametrized_unit_div_widget = object
   inherit ['param, unit] parametrized_div_widget
-  inherit ['param, [`Div] HTML5.M.elt Lwt.t] parametrized_unit_widget
+  inherit ['param, [`Div] Html5.F.elt Lwt.t] parametrized_unit_widget
   val! xhtml_class = "parametrized_unit_div_widget"
   method private retrieve_data _ = Lwt.return ()
 end
 
 class type ['param] parametrized_unit_div_widget_t =
-    ['param, unit, [`Div] HTML5.M.elt Lwt.t] parametrized_widget_t
+    ['param, unit, [`Div] Html5.F.elt Lwt.t] parametrized_widget_t
 
 
 (*
@@ -137,8 +138,8 @@ object
 
   val xhtml_class = "list"
 
-  method display : [`Div] HTML5.M.elt Lwt.t =
-    Lwt.return (HTML5.M.div ~a:[HTML5.M.a_class [xhtml_class]] [])
+  method display : [`Div] Html5.F.elt Lwt.t =
+    Lwt.return (Html5.F.div ~a:[Html5.F.a_class [xhtml_class]] [])
 
 end
 *)

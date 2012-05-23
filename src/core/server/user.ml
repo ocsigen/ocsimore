@@ -25,10 +25,11 @@ User management
 @author Vincent Balat
 *)
 
-open Eliom_pervasives
+open Eliom_content
+open Eliom_lib
+open Lwt_ops
 open User_sql.Types
 open Ocsimore_lib
-open Lwt_ops
 
 exception ConnectionRefused
 exception BadPassword
@@ -177,7 +178,7 @@ let user_list_of_string s =
        else Lwt.return (v::beg)
     with | User_sql.NotAnUser -> Lwt.fail (UnknownUser a)
   in
-  let r = String.split '\n' s in
+  let r = Eliom_lib.String.split '\n' s in
   List.fold_left f (Lwt.return []) r
 
 
@@ -248,13 +249,13 @@ let authenticate ~name ~pwd =
 (** {2 Session data} *)
 
 let user_ref =
-  Eliom_references.eref
+  Eliom_reference.eref
     ~scope:Eliom_common.session
     ~persistent:"ocsimore_user_table_v2"
     None
 
 let get_user_ () =
-  Eliom_references.get user_ref >>= function
+  Eliom_reference.get user_ref >>= function
     | None ->
         Lwt.return anonymous
     | Some u ->
@@ -266,10 +267,10 @@ let get_user_ () =
           lwt () = Eliom_state.discard ~scope:Eliom_common.request () in
           Lwt.return anonymous
 
-let user_request_cache = Eliom_references.eref_from_fun ~scope:Eliom_common.request get_user_
+let user_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request get_user_
 
 let get_user_sd () =
-  Eliom_references.get user_request_cache >>= fun x -> x
+  Eliom_reference.get user_request_cache >>= fun x -> x
 
 let get_user_id () =
   get_user_sd ()
@@ -280,7 +281,7 @@ let get_user_data () =
 let get_user_name () =
   get_user_data () >|= function { user_login } -> user_login
 
-let groups_table_request_cache = Eliom_references.eref_from_fun ~scope:Eliom_common.request (fun () -> Hashtbl.create 37)
+let groups_table_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request (fun () -> Hashtbl.create 37)
 
 let in_group_ ~user ~group () =
   let no_sp = Eliom_common.get_sp_option () = None in
@@ -288,7 +289,7 @@ let in_group_ ~user ~group () =
     if no_sp then
       Lwt.return ((fun _ -> raise Not_found), (fun _ _ -> ()))
     else
-      lwt table = Eliom_references.get groups_table_request_cache in
+      lwt table = Eliom_reference.get groups_table_request_cache in
       Lwt.return (Hashtbl.find table, Hashtbl.add table)
   in
   let return u g v =
@@ -445,7 +446,7 @@ let external_users =
 
 
 let set_session_data (user_id, username) =
-  lwt () = Eliom_references.set user_request_cache (Lwt.return user_id) in
+  lwt () = Eliom_reference.set user_request_cache (Lwt.return user_id) in
   lwt () =
     Eliom_state.set_persistent_data_session_group
       ~scope:Eliom_common.session
@@ -454,7 +455,7 @@ let set_session_data (user_id, username) =
   (* We store the user_id inside Eliom. Alternatively, we could
      just use the session group (and not create a table inside Eliom
      at all), but we would just obtain a string, not an userid *)
-  Eliom_references.set user_ref (Some user_id)
+  Eliom_reference.set user_ref (Some user_id)
 
 
 let in_group ?user ~group () =

@@ -23,11 +23,10 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_lib.Lwt_ops
 open User_sql.Types
 open Sql.PGOCaml
 open Sql
-
-let (>>=) = Lwt.bind
 
 let get_message_raw ~message_id () =
   Lwt_pool.use Sql.pool 

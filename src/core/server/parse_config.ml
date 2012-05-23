@@ -22,6 +22,7 @@ Parsing the global Ocsimore configuration
 
 @author Vincent Balat
 *)
+open Eliom_content
 
 let unexpected_pcdata ~in_tag pcdata =
   Ocsigen_extensions.Error_in_config_file
@@ -118,7 +119,7 @@ let rec parse_config = function
          | "port", port ->
            begin try
              Ocsimore_config.db_port :=
-               Eliom_pervasives.map_option int_of_string (Ocsimore_config.opt port)
+               Eliom_lib.Option.map int_of_string (Ocsimore_config.opt port)
              with _ ->
                raise (Ocsigen_extensions.Error_in_config_file
                         ("Incorrect attribute inside ocsimore database config: port ("^port^") isn't an integer."))

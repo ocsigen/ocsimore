@@ -23,7 +23,7 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 open User_sql.Types
 open Wiki_types
 open Wiki_widgets_interface
@@ -80,10 +80,10 @@ let register_wikibox_syntax_extensions
            then
              lwt override = Wiki_services.get_override_wikibox () in
              let page = bi.bi_page in
-             let box_replacer_id = HTML5.new_elt_id ~global:false () in
-             let box_replacer = HTML5.create_named_elt ~id:box_replacer_id
-               (HTML5.M.div
-                  ~a:[HTML5.M.a_onload {{
+             let box_replacer_id = Html5.Id.new_elt_id ~global:false () in
+             let box_replacer = Html5.Id.create_named_elt ~id:box_replacer_id
+               (Html5.F.div
+                  ~a:[Html5.F.a_onload {{
                     ignore (
                       match_lwt Eliom_client.call_caml_service ~keep_get_na_params:true
                         ~service:( %Wiki_services.wikibox_contents )
@@ -92,10 +92,10 @@ let register_wikibox_syntax_extensions
                           debug "box not allowed for display";
                           Lwt.return ()
                         | Some box_content ->
-                          Eliom_dom.Named.replaceAllChild %box_replacer_id box_content;
+                          Eliom_content.Html5.Manip.Named.replaceAllChild %box_replacer_id box_content;
                           Lwt.return ())
                   }}]
-                  [HTML5.M.pcdata "loading"]) in
+                  [Html5.F.pcdata "loading"]) in
              Lwt.return [box_replacer] (* CCC if we add a ( :'a) type constraint, it fails type checking... *)
            else
              let fsubbox ~sectioning menu_style = match c with
@@ -105,7 +105,7 @@ let register_wikibox_syntax_extensions
                    { bi with bi_menu_style = menu_style;
                      bi_sectioning = sectioning; } in
                  lwt r = Wiki_syntax.xml_of_wiki wp bi c in
-                 Lwt.return (Some (r :> HTML5_types.flow5 HTML5.M.elt list))
+                 Lwt.return (Some (r :> Html5_types.flow5 Html5.F.elt list))
              in
              lwt wiki = Wiki_sql.wikibox_wiki box in
              lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
@@ -127,7 +127,7 @@ let register_wikibox_syntax_extensions
         with
         | Not_found ->
             Lwt.return
-              [HTML5.M.code [HTML5.M.pcdata "<<wikibox>>" ]]
+              [Html5.F.code [Html5.F.pcdata "<<wikibox>>" ]]
         | _ ->
             Lwt.return
               [error_box#display_error_box
@@ -200,7 +200,7 @@ let register_wikibox_syntax_extensions
     let content =
       match c with
         | Some c -> c
-        | None -> Lwt.return [HTML5.M.pcdata page]
+        | None -> Lwt.return [Html5.F.pcdata page]
     in
     (* class and id attributes will be taken by Wiki_syntax.a_elem *)
     let wiki = extract_wiki_id args bi.bi_wiki in
@@ -218,7 +218,7 @@ let register_wikibox_syntax_extensions
     let content =
       match c with
       | Some c -> c
-      | None -> Lwt.return [HTML5.M.pcdata href]
+      | None -> Lwt.return [Html5.F.pcdata href]
     in
     let wiki_id = extract_wiki_id args bi.bi_wiki in
     (Wiki_syntax.Service_href
@@ -236,11 +236,11 @@ let register_wikibox_syntax_extensions
   let f_cancellink bi args c =
     let content = match c with
       | Some c -> c
-      | None -> Lwt.return [HTML5.M.pcdata "Cancel"]
+      | None -> Lwt.return [Html5.F.pcdata "Cancel"]
     in
     (Wiki_syntax.Service_href
        (Wiki_syntax.service_href
-          Eliom_services.void_coservice' ()),
+          Eliom_service.void_coservice' ()),
      args,
      content)
   in
@@ -260,14 +260,14 @@ let register_wikibox_syntax_extensions
           bi (try Wiki_syntax.link_kind page with Failure _ -> Wiki_syntax.Href ("???", None)) fragment
         in
         Lwt.return
-          [HTML5.M.object_
-              ~a:(   (HTML5.M.a_data (Wiki_syntax.uri_of_href url)
-                        : [>HTML5_types.common | `Data ] HTML5.M.attrib)
-                     :: (HTML5.M.a_mime_type type_
-                     : [>HTML5_types.common | `Data ] HTML5.M.attrib)
+          [Html5.F.object_
+              ~a:(   (Html5.F.a_data (Wiki_syntax.uri_of_href url)
+                        : [>Html5_types.common | `Data ] Html5.F.attrib)
+                     :: (Html5.F.a_mime_type type_
+                     : [>Html5_types.common | `Data ] Html5.F.attrib)
                      :: (atts
-                           : HTML5_types.common HTML5.M.attrib list
-                         :> [>HTML5_types.common | `Data ] HTML5.M.attrib list)
+                           : Html5_types.common Html5.F.attrib list
+                         :> [>Html5_types.common | `Data ] Html5.F.attrib list)
               )
               []
           ]
@@ -288,7 +288,7 @@ let register_wikibox_syntax_extensions
               bi (Wiki_syntax.Wiki_page (Some wiki, page, https)) None)
        in
        Lwt.return
-         [HTML5.M.img ~src:url ~alt ~a:atts ()]
+         [Html5.F.img ~src:url ~alt ~a:atts ()]
       )
   in
   Wiki_syntax.register_simple_flow_extension ~name:"img" ~reduced:false f_img;
@@ -297,8 +297,8 @@ let register_wikibox_syntax_extensions
     `Phrasing_without_interactive
       (let atts = Wiki_syntax.parse_common_attribs args in
        Lwt.return
-         [HTML5.M.(span ~a:atts
-             [a [span ~a:[
+         [Html5.F.(span ~a:atts
+             [Raw.a [span ~a:[
                   a_class ["btmenu"];
                   a_onclick {{
                     ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"))
@@ -326,7 +326,7 @@ let register_wikibox_syntax_extensions
        lwt content = match c with
          | None -> Lwt.return []
          | Some c ->
-           (Wiki_syntax.xml_of_wiki wp bi c :> HTML5_types.flow5 HTML5.M.elt list Lwt.t)
+           (Wiki_syntax.xml_of_wiki wp bi c :> Html5_types.flow5 Html5.F.elt list Lwt.t)
        in
        let ignore =
          try List.map String.lowercase (String.split ~multisep:true ' ' (List.assoc "ignore" args))
@@ -337,10 +337,10 @@ let register_wikibox_syntax_extensions
          || List.mem_assoc "div" args in
 
        let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
-       let nav = (if div then HTML5.div else HTML5.nav) ~a content in
-       Eliom_services.onload {{
+       let nav = (if div then Html5.D.div else Html5.D.nav) ~a content in
+       Eliom_service.onload {{
 
-         let nav = (Eliom_client.Html5.of_element %nav :> Dom.node Js.t)  in
+         let nav = (Eliom_content.Html5.To_dom.of_element %nav :> Dom.node Js.t)  in
 
          let ignore = (fun (n: Dom.node Js.t) ->
            let tag = String.lowercase (Js.to_string n##nodeName) in

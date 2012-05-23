@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Eliom_pervasives
+open Eliom_content
 
 exception Undefined
 
@@ -59,7 +59,7 @@ let process_auxfile
   try
     match resolver file with
     | Ocsigen_local_files.RFile file ->
-      Eliom_output.appl_self_redirect (Eliom_output.Files.send ?options) file
+      Eliom_output.appl_self_redirect (Eliom_output.File.send ?options) file
     | _ -> raise Dir
   with
   | Ocsigen_local_files.Failed_404 | Undefined ->

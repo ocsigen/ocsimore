@@ -23,7 +23,7 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 open Forum_types
 
 let (>>=) = Lwt.bind
@@ -32,7 +32,7 @@ let (!!) = Lazy.force
 let forum_css_header =
   Page_site.Header.create_header
     (fun () ->
-       [Eliom_output.Html5.css_link
+       [Html5.D.css_link
           (Page_site.static_file_uri ["ocsiforumstyle.css"]) ()
        ]
     )
@@ -52,7 +52,7 @@ object (_self)
 
   method display
     : 'a. ?forum:_ -> ?parent:_ -> ?title:_ -> ?rows:_ -> ?cols:_ -> _ ->
-      ([> HTML5_types.form ] as 'a) HTML5.M.elt Lwt.t =
+      ([> Html5_types.form ] as 'a) Html5.F.elt Lwt.t =
     fun ?forum ?parent ?(title = true) ?(rows = 3) ?(cols = 50) () ->
     lwt () = add_forum_css_header () in
     let draw_form (actionnamename, ((parentname, forumname), (subjectname, textname))) =
@@ -69,23 +69,23 @@ object (_self)
       let title =
         if title
         then
-          [ HTML5.M.pcdata "Title:";
-            Eliom_output.Html5.string_input ~input_type:`Text
+          [ Html5.F.pcdata "Title:";
+            Html5.D.string_input ~input_type:`Text
               ~name:subjectname ();
-            HTML5.M.br () ]
+            Html5.F.br () ]
         else []
       in
-      [ HTML5.M.p
+      [ Html5.F.p
           ( num ::
               (title @
-                 [ Eliom_output.Html5.textarea ~name:textname ~rows ~cols () ]) );
-        HTML5.M.p[ Eliom_output.Html5.string_button ~name:actionnamename
-                     ~value:"save" [HTML5.M.pcdata "Send"] ]
+                 [ Html5.D.textarea ~name:textname () ]) );
+        Html5.F.p[ Html5.D.string_button ~name:actionnamename
+                     ~value:"save" [Html5.F.pcdata "Send"] ]
       ]
     in
     Lwt.return
-      (Eliom_output.Html5.post_form
-        ~a:[HTML5.M.a_accept_charset ["utf-8"]]
+      (Html5.D.post_form
+        ~a:[Html5.F.a_accept_charset ["utf-8"]]
         ~service:services.add_message_service
         draw_form ())
 
@@ -108,7 +108,7 @@ class message_widget
         wikibox
     in
     (*!!! ugly cast: html5 to xhtml !!!*)
-    Lwt.return ( XHTML.M.totl (HTML5.M.toeltl content) )
+    Lwt.return ( Xhtml.F.totl (Html5.F.toeltl content) )
   in
 
   let atom_title forum_info msg_info =
@@ -129,17 +129,17 @@ object (self)
     Forum_data.get_message ~message_id
 
   method display_message
-    : 'a. classes:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    : 'a. classes:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
     fun ~classes content ->
     let classes = msg_class::classes in
     Lwt.return
-      (HTML5.M.div ~a:[HTML5.M.a_class classes] content)
+      (Html5.F.div ~a:[Html5.F.a_class classes] content)
 
   method display_admin_line ~role m =
 
     let draw_moderate_form name =
-      [HTML5.M.p [Forum.eliom_message_button ~name:name
-                     ~value:m.m_id [HTML5.M.pcdata "Accept message"]]]
+      [Html5.F.p [Forum.eliom_message_button ~name:name
+                     ~value:m.m_id [Html5.F.pcdata "Accept message"]]]
     in
 
     let first_msg = m.m_parent_id = None in
@@ -152,12 +152,12 @@ object (self)
       in
       if moderator
       then
-        let form = Eliom_output.Html5.post_form
+        let form = Html5.D.post_form
           ~service:services.moderate_message_service
           draw_moderate_form ()
         in
-        Lwt.return [ HTML5.M.pcdata s; form ]
-      else Lwt.return [ HTML5.M.pcdata s ]
+        Lwt.return [ Html5.F.pcdata s; form ]
+      else Lwt.return [ Html5.F.pcdata s ]
     end
     else Lwt.return []) >>= fun moderation_line ->
     Lwt.return moderation_line
@@ -188,23 +188,23 @@ object (self)
       (classes,
        List.flatten
          [ admin_line;
-           (wikiboxsubject :> HTML5_types.flow5_without_header_footer
-              HTML5.M.elt list);
-           [ HTML5.M.span ~a:[HTML5.M.a_class ["info_class"]]
-               [ HTML5.M.pcdata
+           (wikiboxsubject :> Html5_types.flow5_without_header_footer
+              Html5.F.elt list);
+           [ Html5.F.span ~a:[Html5.F.a_class ["info_class"]]
+               [ Html5.F.pcdata
                    (Format.sprintf "posted by %s %s" author
                       (CalendarLib.Printer.CalendarPrinter.to_string m.m_datetime))]];
-           (wikibox :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) ]
+           (wikibox :> Html5_types.flow5_without_header_footer Html5.F.elt list) ]
       )
 
   method display
-    : 'a. ?classes:_ -> data:_ -> unit -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    : 'a. ?classes:_ -> data:_ -> unit -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
     fun ?(classes=[]) ~data:message_id () ->
     lwt () = add_forum_css_header () in
     widget_with_error_box#bind_or_display_error
       (self#get_message ~message_id)
       (self#pretty_print_message ~classes :> Forum_types.message_info ->
-         (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+         (string list * Html5_types.flow5 Html5.F.elt list)
          Lwt.t)
     >>= fun (classes, r) -> self#display_message ~classes r
 
@@ -218,7 +218,7 @@ object (self)
         msg_info.m_wikibox in
       Lwt.return (Atom_feed.xhtmlC content)
     in
-    let id = XML.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 msg_info.m_id)) in
+    let id = Xml.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 msg_info.m_id)) in
     Lwt.return
       ( Atom_feed.entry ~updated:msg_info.m_datetime ~id ~title [content] )
 
@@ -231,7 +231,7 @@ object (self)
 
   method atom_childs ~message =
     lwt msg_list = Forum_data.get_childs ~message_id:message in
-    let id = XML.uri_of_fun
+    let id = Xml.uri_of_fun
       (fun () -> "message_"^(Int32.to_string (Opaque.t_int32 message))) in
     lwt entries = self#atom_entries msg_list in
     let updated = last_msg_date msg_list in
@@ -260,18 +260,18 @@ object (self)
     Forum_data.get_thread ~message_id
 
   method display_thread :
-    'a. classes:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
-    fun ~classes ((first : HTML5_types.flow5 HTML5.M.elt list), coms) ->
+    'a. classes:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
+    fun ~classes ((first : Html5_types.flow5 Html5.F.elt list), coms) ->
     let classes = thr_class::classes in
     Lwt.return
-      (HTML5.M.div ~a:[HTML5.M.a_class classes] ( first @ coms ))
+      (Html5.F.div ~a:[Html5.F.a_class classes] ( first @ coms ))
 
-  method display_thread_splitted ~classes ((first : HTML5_types.flow5 HTML5.M.elt list ), coms) =
+  method display_thread_splitted ~classes ((first : Html5_types.flow5 Html5.F.elt list ), coms) =
     let classes1 = (main_msg_class::classes) in
     let classes2 = (comments_class::classes) in
     Lwt.return
-      (HTML5.M.div ~a:[HTML5.M.a_class classes1] first,
-       HTML5.M.div ~a:[HTML5.M.a_class classes2] coms)
+      (Html5.F.div ~a:[Html5.F.a_class classes1] first,
+       Html5.F.div ~a:[Html5.F.a_class classes2] coms)
 
   method display_comment_line ~role ?rows ?cols m =
   !!(role.Forum.comment_creators) >>= fun comment_creators ->
@@ -281,27 +281,27 @@ object (self)
       add_message_widget#display ~parent:m.m_id ~title:false ?rows ?cols ()
     in
     let comment_div =
-      HTML5.div ~a:[HTML5.a_class [comment_class]] [ form ]
+      Html5.D.div ~a:[Html5.D.a_class [comment_class]] [ form ]
     in
     let show_form =
-      HTML5.M.div
-        ~a:[HTML5.M.a_class [comment_button_class];
-            HTML5.M.a_onclick
+      Html5.F.div
+        ~a:[Html5.F.a_class [comment_button_class];
+            Html5.F.a_onclick
               {{ ignore (
-                (Eliom_client.Html5.of_div %comment_div)##classList
+                (Eliom_content.Html5.To_dom.of_div %comment_div)##classList
                   ##toggle(Js.string "showcomment"):bool Js.t)
               }} ]
-        [HTML5.M.pcdata "Comment" ]
+        [Html5.F.pcdata "Comment" ]
     in
     Lwt.return [ show_form; comment_div ]
   else Lwt.return []
 
   method pretty_print_thread ~classes ~commentable ?rows ?cols thread :
-    (string list * (HTML5_types.flow5 HTML5.M.elt list * HTML5_types.flow5 HTML5.M.elt list)) Lwt.t =
+    (string list * (Html5_types.flow5 Html5.F.elt list * Html5_types.flow5 Html5.F.elt list)) Lwt.t =
     lwt () = add_forum_css_header () in
     let rec print_one_message_and_children
         ~role ~arborescent ~commentable thread :
-        (HTML5_types.flow5 HTML5.M.elt list * HTML5_types.flow5 HTML5.M.elt list * Forum_types.message_info list) Lwt.t =
+        (Html5_types.flow5 Html5.F.elt list * Html5_types.flow5 Html5.F.elt list * Forum_types.message_info list) Lwt.t =
       (match thread with
          | [] -> Lwt.return ([], [], [])
          | m::l ->
@@ -315,11 +315,11 @@ object (self)
              (if draw_comment_form
               then self#display_comment_line ~role ?rows ?cols m
               else Lwt.return []) >>= fun comment_line ->
-             message_widget#display_message ~classes (msg_info:> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)  >>= fun first ->
+             message_widget#display_message ~classes (msg_info:> Html5_types.flow5 Html5.F.elt list)  >>= fun first ->
              print_children ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
-             Lwt.return ([(first:>HTML5_types.flow5 HTML5.M.elt)],
-                         (comment_line @ s :> HTML5_types.flow5 HTML5.M.elt list), l))
+             Lwt.return ([(first:>Html5_types.flow5 Html5.F.elt)],
+                         (comment_line @ s :> Html5_types.flow5 Html5.F.elt list), l))
     and print_children ~role ~arborescent ~commentable pid = function
       | [] -> Lwt.return ([], [])
       | ((m::_) as th)
@@ -328,7 +328,7 @@ object (self)
            >>= fun (b, c, l) ->
            print_children ~role ~arborescent ~commentable pid l
            >>= fun (s, l) ->
-           Lwt.return (( (b @ c @ s)  : HTML5_types.flow5 HTML5.M.elt list), l))
+           Lwt.return (( (b @ c @ s)  : Html5_types.flow5 Html5.F.elt list), l))
       | l -> Lwt.return ([], l)
     in
     match thread with
@@ -346,7 +346,7 @@ object (self)
 
   method display :
     'a. ?commentable:_ -> ?rows:_ -> ?cols:_ ->
-      ?classes:_ -> data:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+      ?classes:_ -> data:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
     fun ?(commentable = true) ?rows ?cols
     ?(classes=[]) ~data:message_id () ->
     lwt () = add_forum_css_header () in
@@ -366,8 +366,8 @@ object (self)
 
   method display_splitted ?(commentable = true) ?rows ?cols
     ?(classes=[]) ~data:message_id () :
-    ( HTML5_types.div Eliom_pervasives.HTML5.M.elt *
-        HTML5_types.div Eliom_pervasives.HTML5.M.elt )
+    ( Html5_types.div Html5.F.elt *
+        Html5_types.div Html5.F.elt )
     Lwt.t
     =
     lwt () = add_forum_css_header () in
@@ -380,7 +380,7 @@ object (self)
        (fun exc ->
           let e =
             ( [ widget_with_error_box#display_error_box ~exc () ]
-              :> HTML5_types.flow5 HTML5.M.elt list )
+              :> Html5_types.flow5 Html5.F.elt list )
           in
           Lwt.return ([widget_with_error_box#error_class], (e, e)) ))
     >>= fun (classes, c) ->
@@ -402,11 +402,11 @@ object (self)
     Forum_data.get_message_list ~forum ~first ~number ()
 
   method display_message_list :
-    'a. classes:_ -> _ -> ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+    'a. classes:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
     fun ~classes content ->
     let classes = (ml_class::classes) in
     Lwt.return
-      (HTML5.M.div ~a:[HTML5.M.a_class classes] content)
+      (Html5.F.div ~a:[Html5.F.a_class classes] content)
 
   method pretty_print_message_list ~forum ?rows ?cols ~classes
     ~add_message_form list =
@@ -418,7 +418,7 @@ object (self)
             >>= fun m ->
             message_widget#pretty_print_message ~classes:[] m
             >>= fun (classes, content) ->
-            message_widget#display_message ~classes (content:> HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list) >>= fun m ->
+            message_widget#display_message ~classes (content:> Html5_types.flow5 Html5.F.elt list) >>= fun m ->
             Lwt.return [ m ]
          )
          (function
@@ -438,13 +438,13 @@ object (self)
      else Lwt.return [])
     >>= fun form ->
     Lwt.return (classes,
-                (List.flatten l :> HTML5_types.flow5_without_header_footer HTML5.M.elt list)
-                @ ( form : _ HTML5.M.elt list :> HTML5_types.flow5_without_header_footer HTML5.M.elt list) )
+                (List.flatten l :> Html5_types.flow5_without_header_footer Html5.F.elt list)
+                @ ( form : _ Html5.F.elt list :> Html5_types.flow5_without_header_footer Html5.F.elt list) )
 
   method display :
     'a. ?rows:_ -> ?cols:_ -> ?classes:_ -> forum:_ ->
       first:_ -> number:_ -> ?add_message_form:_ -> unit ->
-        ([> HTML5_types.div ] as 'a) HTML5.M.elt Lwt.t =
+        ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
     fun ?(rows : int option) ?(cols : int option) ?(classes=[])
     ~forum ~first ~number ?(add_message_form = true) () ->
     lwt () = add_forum_css_header () in
@@ -453,7 +453,7 @@ object (self)
       (self#pretty_print_message_list
          ~forum ?rows ?cols ~classes ?add_message_form :>
          Forum_data.raw_message list ->
-       (string list * HTML5_types.flow5 Eliom_pervasives.HTML5.M.elt list)
+       (string list * Html5_types.flow5 Html5.F.elt list)
          Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
 
@@ -463,7 +463,7 @@ object (self)
     lwt msg_list = Lwt_list.map_s
       Forum_data.message_info_of_raw_message msg_list in
     lwt entries = message_widget#atom_entries msg_list in
-    let id = XML.uri_of_fun
+    let id = Xml.uri_of_fun
       (fun () -> "forum_"^(Int32.to_string (Opaque.t_int32 forum_info.f_id))) in
     let title = Atom_feed.plain forum_info.f_title in
     let updated = last_msg_date msg_list in
@@ -479,33 +479,33 @@ class forum_widget
   (widget_with_error_box : Widget.widget_with_error_box) =
 object (self)
 
-     method display_all_forums : HTML5_types.flow5 HTML5.M.elt list Lwt.t =
+     method display_all_forums : Html5_types.flow5 Html5.F.elt list Lwt.t =
      lwt forums = Forum_data.get_forums_list () in
      let line forum_info =
        let open Forum_types in
          let id = string_of_forum forum_info.f_id in
          let edit =
-           Eliom_output.Html5.a ~service:Forum_services.edit_forum
+           Html5.D.a ~service:Forum_services.edit_forum
              [Page_site.icon ~path:"imgedit.png" ~text:"Edit wiki options"]
              forum_info.f_id
          in
-         (HTML5.M.tr
-            [HTML5.M.td ~a:[HTML5.M.a_class ["forumid"]] [HTML5.M.pcdata id];
-             HTML5.M.td ~a:[HTML5.M.a_class ["forumname"]]
-               [HTML5.M.strong [HTML5.M.pcdata forum_info.f_title]];
-             HTML5.M.td ~a:[HTML5.M.a_class ["forumdescr"]]
-               [HTML5.M.pcdata forum_info.f_descr];
-             HTML5.M.td [edit];
+         (Html5.F.tr
+            [Html5.F.td ~a:[Html5.F.a_class ["forumid"]] [Html5.F.pcdata id];
+             Html5.F.td ~a:[Html5.F.a_class ["forumname"]]
+               [Html5.F.strong [Html5.F.pcdata forum_info.f_title]];
+             Html5.F.td ~a:[Html5.F.a_class ["forumdescr"]]
+               [Html5.F.pcdata forum_info.f_descr];
+             Html5.F.td [edit];
             ])
      in
      let l = List.map line forums in
      Lwt.return
-       [ HTML5.M.table ~a:[HTML5.M.a_class ["table_admin"]]
-          (HTML5.M.tr
-             [HTML5.M.th [HTML5.M.pcdata "Id"];
-              HTML5.M.th [HTML5.M.pcdata "Forum"];
-              HTML5.M.th [HTML5.M.pcdata "Description"];
-              HTML5.M.th [];
+       [ Html5.F.table ~a:[Html5.F.a_class ["table_admin"]]
+          (Html5.F.tr
+             [Html5.F.th [Html5.F.pcdata "Id"];
+              Html5.F.th [Html5.F.pcdata "Forum"];
+              Html5.F.th [Html5.F.pcdata "Description"];
+              Html5.F.th [];
              ]
           )
           l;

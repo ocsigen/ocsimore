@@ -1,4 +1,8 @@
 
+{shared{
+  open Eliom_content
+}}
+
 {client{
 
   exception Not_implemented
@@ -218,7 +222,7 @@
       | None -> List.iter (Dom.appendChild li) heading;
       | Some fragment ->
         let a = Dom_html.createA Dom_html.document in
-        let uri = Eliom_uri.make_string_uri ~service:Eliom_services.void_coservice' ~fragment () in
+        let uri = Eliom_uri.make_string_uri ~service:Eliom_service.void_coservice' ~fragment () in
         a##setAttribute(Js.string "href", Js.string uri);
           List.iter (Dom.appendChild a) heading;
           Dom.appendChild li a );

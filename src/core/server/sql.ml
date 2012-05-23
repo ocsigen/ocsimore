@@ -18,6 +18,7 @@
 
 (** PostgreSQL database operations via PGOCaml library. *)
 
+open Eliom_lib
 open Parse_config (* To force Parse_config to be linked early enough, as it
                      triggers the reading of the password file *)
 
@@ -27,7 +28,7 @@ module PGOCaml =
 
 let () = PGOCaml.verbose := 2
 
-open Lwt
+open Lwt_ops
 
 type db_t = PGOCaml.pa_pg_data PGOCaml.t
 

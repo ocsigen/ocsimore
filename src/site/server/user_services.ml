@@ -106,8 +106,8 @@ let external_auth = match auth with
 
 
 
-open Eliom_pervasives
-open Eliom_parameters
+open Eliom_content
+open Eliom_parameter
 open Lwt
 open User_sql.Types
 
@@ -123,7 +123,7 @@ let action_login =
     (fun () (name, pwd) ->
        try_lwt
           lwt () = User_data.login ~name ~pwd ~external_auth:external_auth in
-          Eliom_output.Redirection.send Eliom_services.void_hidden_coservice'
+          Eliom_output.Redirection.send Eliom_service.void_hidden_coservice'
        with exc ->
           lwt () = User_data.add_login_error exc in
           Eliom_output.Action.send ())
@@ -135,14 +135,14 @@ and action_logout =
     (fun () () ->
        lwt () = User_data.logout () in
        Eliom_output.Redirection.send
-         Eliom_services.void_hidden_coservice')
+         Eliom_service.void_hidden_coservice')
 
 and action_logout_get =
   Eliom_output.Redirection.register_coservice'
     ~name:"logout" ~get_params:unit
     (fun () () ->
        User_data.logout () >>= fun () ->
-       Lwt.return Eliom_services.void_coservice')
+       Lwt.return Eliom_service.void_coservice')
 
 and action_edit_user_data =
   Eliom_output.Any.register_post_coservice'
@@ -168,14 +168,14 @@ and action_edit_user_data =
 and action_add_remove_users_from_group =
   Eliom_output.Any.register_post_coservice'
     ~name:"add_remove_users_from_group"
-    ~post_params:(Eliom_parameters.string "group" **
-                    (Eliom_parameters.string "add" **
-                       Eliom_parameters.string "rem"))
+    ~post_params:(Eliom_parameter.string "group" **
+                    (Eliom_parameter.string "add" **
+                       Eliom_parameter.string "rem"))
     (fun () (g, (add, rem)) ->
        Ocsimore_common.catch_action_failure
          (fun () -> User_data.add_remove_users_from_group g (add, rem))
        >>= fun () -> Eliom_output.Redirection.send
-       Eliom_services.void_hidden_coservice'
+       Eliom_service.void_hidden_coservice'
     )
 
 (*
@@ -189,35 +189,35 @@ and action_add_remove_users_from_group =
       )
 *)
 
-and service_view_group = Eliom_services.service
+and service_view_group = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "view_group"]
-  ~get_params:(Eliom_parameters.string "group") ()
+  ~get_params:(Eliom_parameter.string "group") ()
 
-and service_view_groups = Eliom_services.service
+and service_view_groups = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "view_groups"]
-  ~get_params:(Eliom_parameters.unit) ()
+  ~get_params:(Eliom_parameter.unit) ()
 
-and service_view_users = Eliom_services.service
+and service_view_users = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "view_users"]
-  ~get_params:(Eliom_parameters.unit) ()
+  ~get_params:(Eliom_parameter.unit) ()
 
-and service_view_roles = Eliom_services.service
+and service_view_roles = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "view_roles"]
-  ~get_params:(Eliom_parameters.unit) ()
+  ~get_params:(Eliom_parameter.unit) ()
 
-and service_login = Eliom_services.service
+and service_login = Eliom_service.service
   ~https:force_secure
   ~path:[!Ocsimore_config.admin_dir; "login"]
-  ~get_params:Eliom_parameters.unit
+  ~get_params:Eliom_parameter.unit
   ()
 
 and service_create_new_group =
-  Eliom_services.service
+  Eliom_service.service
     ~path:([!Ocsimore_config.admin_dir; "create_group"])
     ~get_params:unit ()
 
 let action_create_new_group =
-  Eliom_services.post_coservice
+  Eliom_service.post_coservice
     ~fallback:service_create_new_group
     ~post_params:(string "usr" ** string "descr") ()
 
@@ -227,12 +227,12 @@ let action_create_new_group =
    To be done when Ocaml has first-class modules, by returning a module
    option *)
 
-let service_create_new_user = Eliom_services.service
+let service_create_new_user = Eliom_service.service
   ~path:([!Ocsimore_config.admin_dir; "create_user"])
   ~get_params:unit ()
 
 let action_create_new_user =
-  Eliom_services.post_coservice
+  Eliom_service.post_coservice
     ~fallback:service_create_new_user
     ~https:force_secure
     ~post_params:(string "usr" ** (string "descr" **
@@ -248,20 +248,20 @@ module type ServicesCreationUser = sig
 val service_create_new_user :
   (unit, unit,
    [> `Attached of
-        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_services.a_s ],
+        [> `Internal of [> `Service ] * [> `Get ] ] Eliom_service.a_s ],
    [ `WithoutSuffix ], unit, unit, [> `Registrable ])
-  Eliom_services.service
+  Eliom_service.service
 
 val action_create_new_user :
   (unit, string * (string * string),
    [> `Attached of
-        [> `Internal of [> `Coservice ] * [> `Post ] ] Eliom_services.a_s ],
+        [> `Internal of [> `Coservice ] * [> `Post ] ] Eliom_service.a_s ],
    [ `WithoutSuffix ], unit,
-   [ `One of string ] Eliom_parameters.param_name *
-   ([ `One of string ] Eliom_parameters.param_name *
-    [ `One of string ] Eliom_parameters.param_name),
+   [ `One of string ] Eliom_parameter.param_name *
+   ([ `One of string ] Eliom_parameter.param_name *
+    [ `One of string ] Eliom_parameter.param_name),
    [> `Registrable ])
-  Eliom_services.service
+  Eliom_service.service
 
 end
 *)
@@ -302,9 +302,9 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
             | None -> User_data.generate_password ()
             | Some pwd -> pwd
           in
-          let service = Eliom_services.coservice ~max_use:1
+          let service = Eliom_service.coservice ~max_use:1
             ~fallback:service_create_new_user
-            ~get_params:Eliom_parameters.unit ()
+            ~get_params:Eliom_parameter.unit ()
           in
           Eliom_output.Html5.register ~service
             (Page_site.admin_body_content_with_permission_handler
@@ -321,21 +321,19 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
                        (User_sql.Types.basic_user userid)
                        options.User_data.new_user_groups
                    in
-                   Lwt.return HTML5.M.([
+                   Lwt.return Html5.F.([
                      h2 [pcdata "User created"];
                      p [ pcdata "Your account has been created, and you can now ";
-                         Eliom_output.Html5.a
-                           ~service:service_login
-                           [HTML5.M.pcdata "login"] ()];
+                         a ~service:service_login [Html5.F.pcdata "login"] ()];
                    ])
                  with User.BadUser ->
-                   Lwt.return HTML5.M.([
+                   Lwt.return Html5.F.([
                      h2 [pcdata "Error while creating"];
                      p [ pcdata "Bad user (the login may be already existing)"; ]
                    ])
                ));
           let uri =
-            Eliom_output.Html5.make_string_uri ~service ~absolute:true ()
+            Html5.F.make_string_uri ~service ~absolute:true ()
           in
           begin try_lwt
             mail_user_creation ~name ~email ~uri

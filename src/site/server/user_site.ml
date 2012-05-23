@@ -22,11 +22,11 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 open User_sql.Types
 open Lwt
 
-let ( ** ) = Eliom_parameters.prod
+let ( ** ) = Eliom_parameter.prod
 
 let user_widget =
   match User_services.basicusercreation with
@@ -37,7 +37,7 @@ let user_widget =
              ~title:(fun () () -> Lwt.return "Create new user")
              ~permissions:(fun () () -> Lwt.return true)
              ~display:(fun () () ->
-                         Lwt.return HTML5.M.([
+                         Lwt.return Html5.F.([
                            h2 [pcdata "Error"];
                            p [pcdata "User creation is disabled"];
                          ])));
@@ -136,15 +136,15 @@ let () =
 (* We create the admin menu for the extension *)
 
 let users_root =
-  Eliom_services.service
+  Eliom_service.service
     ~path:[!Ocsimore_config.admin_dir;"users"]
-    ~get_params:Eliom_parameters.unit ()
+    ~get_params:Eliom_parameter.unit ()
 
 let () = Eliom_output.Html5.register users_root
   (fun () () ->
      Page_site.admin_page
        ~title:"Ocsimore - Users module"
-       HTML5.M.([
+       Html5.F.([
          p [pcdata "This is the Ocsimore admin page for the users module." ];
        ]))
 
@@ -172,6 +172,6 @@ let () =
   Page_site.add_status_function
     (fun () ->
        user_widget#status_text >|= fun f ->
-       HTML5.M.div f
+       Html5.F.div f
     )
 

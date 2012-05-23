@@ -23,7 +23,8 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_lib
+open Eliom_content
 open Ocsimore_lib
 open Lwt
 open User_sql.Types
@@ -36,8 +37,8 @@ let wiki_naming wiki =
       (Wiki_types.string_of_wiki wiki_info.wiki_id)
 
 let body_to_div x =
-  (x : HTML5_types.body_content HTML5.M.elt list
-     :> HTML5_types.flow5 HTML5.M.elt list
+  (x : Html5_types.body_content Html5.F.elt list
+     :> Html5_types.flow5 Html5.F.elt list
   )
 
 let siteid =
@@ -78,7 +79,7 @@ let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
 (** We register auxiliary services for administration boxes *)
 
-let service_edit_wikibox = Eliom_services.service
+let service_edit_wikibox = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "wiki_edit"]
   ~get_params:Wiki_services.eliom_wikibox_args ()
 
@@ -93,7 +94,7 @@ let () =
        lwt page = wikibox_widget#display_interactive_wikibox ~bi ~rows:30 wb in
        lwt css = wikibox_widget#css_header ?page:None w in
        lwt () = Page_site.add_admin_pages_header () in
-       Page_site.html_page ~css (page :> HTML5_types.body_content Eliom_pervasives.HTML5.M.elt list)
+       Page_site.html_page ~css (page :> Html5_types.body_content Html5.F.elt list)
     )
 
 (** We register the service that lists all the wikis *)
@@ -250,7 +251,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg
       | Xform.NoError -> "Wiki creation"
       | _ -> "Error" in
     Page_site.admin_page ~service:(cast_service service) ~title:ttl
-      HTML5.M.(
+      Html5.F.(
         (match error with
            | Xform.ErrorMsg err ->
                [p ~a:[a_class ["errmsg"]]
@@ -299,8 +300,8 @@ let create_wiki =
     | _ -> Some "An unknown error has occurred"
  in
   let path = [!Ocsimore_config.admin_dir;"create_wiki"] in
-  let create_wiki = Eliom_services.service ~path
-      ~get_params:Eliom_parameters.unit () in
+  let create_wiki = Eliom_service.service ~path
+      ~get_params:Eliom_parameter.unit () in
   Eliom_output.Html5.register create_wiki
     (fun () () ->
        wiki_rights#can_create_wiki () >>= function
@@ -332,13 +333,13 @@ let create_wiki =
                           | None -> (* should never happen, but this is not
                                        really important *) []
                           | Some service ->
-                              let link = Eliom_output.Html5.a
-                                ~service [HTML5.M.pcdata "root page"] []
+                              let link = Html5.D.a
+                                ~service [Html5.F.pcdata "root page"] []
                               in
-                              [HTML5.M.p
-                                 [HTML5.M.pcdata "you can go to the ";
+                              [Html5.F.p
+                                 [Html5.F.pcdata "you can go to the ";
                                   link;
-                                  HTML5.M.pcdata " of this wiki.";
+                                  Html5.F.pcdata " of this wiki.";
                                  ]
                               ]
                   in
@@ -348,7 +349,7 @@ let create_wiki =
                   Page_site.admin_page
                     ~title:"Wiki created"
                     ~service:create_wiki
-                    (HTML5.M.p [HTML5.M.pcdata msg] :: link)
+                    (Html5.F.p [Html5.F.pcdata msg] :: link)
                )
          | false ->
              lwt no_permission = Page_site.no_permission () in
@@ -370,8 +371,8 @@ let edit_wiki_form ~service ~arg
     Page_site.admin_page ~service:(cast_service service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
-                 [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
-                    [HTML5.M.pcdata err]
+                 [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
+                    [Html5.F.pcdata err]
                  ]
              | _ -> [])
        @  [form]
@@ -379,7 +380,7 @@ let edit_wiki_form ~service ~arg
   in
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (table
-         (tr (td (Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: none"] wiki)) @@
+         (tr (td (Opaque.int32_input_xform ~a:[Html5.F.a_style "display: none"] wiki)) @@
           label_input_tr ~label:"Description" (string_input descr) @@
           label_input_tr ~label:"Container wikibox" (Opaque.int32_input_opt_xform container) @@
           label_input_tr
@@ -426,13 +427,13 @@ let edit_wiki =
                   Page_site.admin_page
                     ~service:Wiki_services.view_wikis
                     ~title:(Printf.sprintf "Edit wiki %S" wiki_info.wiki_title)
-                    HTML5.M.([h2 [pcdata "Wiki information sucessfully edited"]])
+                    Html5.F.([h2 [pcdata "Wiki information sucessfully edited"]])
                )
          | false ->
              Page_site.no_permission () >>= Page_site.admin_page ~title:"Edid wiki"
     )
 let _ =
-  let open HTML5.M in
+  let open Html5.F in
   let headers = ["wikibox"; "version"; "author"; "datetime"; "content_type"; "comment"; ""] in
   let render_header_row s = th [pcdata s] in
   (* wikibox * int32 option * userid * CalendarLib.Calendar.t * string * string option * string *)
@@ -444,7 +445,7 @@ let _ =
       td [pcdata (CalendarLib.Printer.Calendar.to_string datetime)];
       td [pcdata (Wiki_types.string_of_content_type content_type)];
       td [pcdata comment];
-      td [Eliom_output.Html5.a ~service:Wiki_services.view_box [Page_site.icon ~path:"viewbox.png" ~text:"View box"] (wikibox, Some version)];
+      td [Html5.D.a ~service:Wiki_services.view_box [Page_site.icon ~path:"viewbox.png" ~text:"View box"] (wikibox, Some version)];
     ]
   in
   let wikibox_extension wikibox =
@@ -469,14 +470,14 @@ let _ =
 
 let _ =
   let render_version_link wikibox version' (version, comment, author, datetime) =
-    let version_elt = HTML5.M.pcdata (Int32.to_string version) in
+    let version_elt = Html5.F.pcdata (Int32.to_string version) in
     let version_link =
       if version' <> version then
-        Eliom_output.Html5.a ~service:Wiki_services.view_box [version_elt] (wikibox, Some version)
+        Html5.D.a ~service:Wiki_services.view_box [version_elt] (wikibox, Some version)
       else
         version_elt 
     in
-    HTML5.M.(li [version_link; pcdata (if comment = "" then "" else " ("^comment^")")])
+    Html5.F.(li [version_link; pcdata (if comment = "" then "" else " ("^comment^")")])
   in
   Eliom_output.Html5.register Wiki_services.view_box
     (fun (wikibox, version) () ->
@@ -493,7 +494,7 @@ let _ =
            in
            Page_site.admin_page
              ~title
-             HTML5.M.([
+             Html5.F.([
                ul (List.map (render_version_link wikibox version) history);
                table 
                  (tr [td [pcdata "wikibox"];
@@ -508,9 +509,9 @@ let _ =
        | None -> Lwt.fail Eliom_common.Eliom_404)
 
 let replace_links =
-  Eliom_services.post_coservice
+  Eliom_service.post_coservice
     ~fallback:Wiki_services.batch_edit_boxes
-    ~post_params:Eliom_parameters.unit ()
+    ~post_params:Eliom_parameter.unit ()
 
 let normalize_old_page_link wiki wikibox addr fragment attribs params =
   let replacement =
@@ -539,13 +540,13 @@ let _ =
        if is_allowed then
         Page_site.admin_page
           ~title:"Batch edit boxes"
-          HTML5.M.([
-            Eliom_output.Html5.post_form
+          Html5.F.([
+            Html5.D.post_form
               ~service:replace_links
               (fun () -> [
-                Eliom_output.Html5.button
+                Html5.D.button
                   ~button_type:`Submit
-                  [HTML5.M.pcdata "Replace links"]
+                  [Html5.F.pcdata "Replace links"]
               ]) ()
           ])
       else
@@ -593,7 +594,7 @@ let _ =
           ~title:"Replace links"
           (List.map
             (fun (wiki_info, wikiboxes) ->
-              HTML5.M.(
+              Html5.F.(
                 div [
                   h4 [pcdata wiki_info.Wiki_types.wiki_title];
                   table
@@ -615,17 +616,17 @@ let _ =
           Page_site.no_permission () >>= Page_site.admin_page ~title:"Replace links")
 
 let wiki_root =
-  Eliom_services.service
+  Eliom_service.service
     ~path:[!Ocsimore_config.admin_dir;"wikis"]
-    ~get_params:Eliom_parameters.unit ()
+    ~get_params:Eliom_parameter.unit ()
 
 let () =
   Eliom_output.Html5.register
     wiki_root
     (fun () () ->
        Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
-         [ HTML5.M.p
-            [HTML5.M.pcdata "This is the Ocsimore admin page for the wiki \
+         [ Html5.F.p
+            [Html5.F.pcdata "This is the Ocsimore admin page for the wiki \
                              module. The links on the right will help you \
                              configure your installation." ];
          ])
@@ -638,7 +639,7 @@ let () = Eliom_output.Html5.register Wiki_services.edit_wiki_permissions_admin
      Page_site.admin_page
        ~title:(Printf.sprintf "Edit permissions of wiki %S" wiki_name)
        ~service:Wiki_services.view_wikis
-       [HTML5.M.div form]
+       [Html5.F.div form]
   )
 
 let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
@@ -661,7 +662,7 @@ let () =
            dc_warnings = [];
          } in
          Wiki_models.desugar_string wpp desugar_context content in
-       Eliom_references.Volatile.set Wiki_widgets.preview_wikibox_content (Some (wb, content'));
+       Eliom_reference.Volatile.set Wiki_widgets.preview_wikibox_content (Some (wb, content'));
        lwt rights =
          lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
          Wiki_models.get_rights wiki_info.wiki_model
@@ -677,7 +678,7 @@ let () =
        | Eliom_common.Eliom_404 ->
            Eliom_output.Html5.send
              ~code:404
-             HTML5.M.(
+             Html5.F.(
                html
                  (head (title (pcdata "Page not found - 404")) [])
                  (body [
@@ -686,7 +687,7 @@ let () =
                      pcdata "Actually... no ";
                      em [pcdata "wiki"];
                      pcdata " found. You may create one in the ";
-                     Eliom_output.Html5.a ~service:create_wiki [pcdata "Ocsimore administration"] ();
+                     Html5.D.a ~service:create_wiki [pcdata "Ocsimore administration"] ();
                      pcdata ".";
                    ]
                  ])

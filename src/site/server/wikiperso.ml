@@ -22,7 +22,8 @@
 *)
 
 open Lwt
-open Eliom_pervasives
+open Eliom_lib
+open Eliom_content
 open Ocsigen_extensions
 open Simplexmlparser
 open User_sql.Types
@@ -329,9 +330,9 @@ let () =
 *)
 
 let users_root =
-  Eliom_services.service
+  Eliom_service.service
     ~path:[!Ocsimore_config.admin_dir;"wikiperso"]
-    ~get_params:Eliom_parameters.unit ()
+    ~get_params:Eliom_parameter.unit ()
 
 let () = Ocsimore_appl.register users_root
   (fun () () ->
@@ -339,23 +340,23 @@ let () = Ocsimore_appl.register users_root
      User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->
      Page_site.admin_page
        ~title:"Ocsimore - Wikiperso module"
-       [HTML5.M.h2 [HTML5.M.pcdata "Wikiperso module"];
-        HTML5.M.p [HTML5.M.pcdata "This is the Ocsimore admin page for the \
+       [Html5.F.h2 [Html5.F.pcdata "Wikiperso module"];
+        Html5.F.p [Html5.F.pcdata "This is the Ocsimore admin page for the \
                                    wikiperso module. Wikipersos are wikis that \
                                    are automatically created for each Ocsimore \
                                    user, and on which the user has write \
                                    access."];
-        HTML5.M.br (); HTML5.M.br ();
-        HTML5.M.pcdata "Most of the configuration is done through the Ocsigen \
+        Html5.F.br (); Html5.F.br ();
+        Html5.F.pcdata "Most of the configuration is done through the Ocsigen \
                         configuration file. You can however choose which users \
                         can have wikipersos by adding users or groups inside \
                         the following roles:";
-        Eliom_output.Html5.a ~service:User_services.service_view_group
-          [HTML5.M.pcdata "users who can have a wikiperso"] s1;
-        HTML5.M.pcdata " and ";
-        Eliom_output.Html5.a ~service:User_services.service_view_group
-          [HTML5.M.pcdata "users who cannot have a wikiperso"] s2;
-        HTML5.M.pcdata ".";
+        Html5.D.a ~service:User_services.service_view_group
+          [Html5.F.pcdata "users who can have a wikiperso"] s1;
+        Html5.F.pcdata " and ";
+        Html5.D.a ~service:User_services.service_view_group
+          [Html5.F.pcdata "users who cannot have a wikiperso"] s2;
+        Html5.F.pcdata ".";
        ]
   )
 
@@ -364,4 +365,4 @@ let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Wikiperso" ~links:[
 
 
 
-let _ = Eliom_extensions.register_eliom_extension gen
+let _ = Eliom_extension.register_eliom_extension gen

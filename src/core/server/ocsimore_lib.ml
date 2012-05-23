@@ -1,4 +1,5 @@
-open Eliom_pervasives
+open Eliom_lib
+open Eliom_content
 open Lwt
 
 
@@ -21,8 +22,8 @@ let ( -| ) f g = fun x -> f (g x)
 let ( **> ) f x = f x
 let ( |> ) x f = f x
 
-let eliom_inline_class = HTML5.M.a_class ["eliom_inline"]
-let accept_charset_utf8 = HTML5.M.a_accept_charset ["utf-8"]
+let eliom_inline_class = Html5.F.a_class ["eliom_inline"]
+let accept_charset_utf8 = Html5.F.a_accept_charset ["utf-8"]
 let unopt_str = function | None -> "" | Some s -> s
 
 let iter_option f o = match o with None -> () | Some x -> f x
@@ -68,10 +69,10 @@ let lwt_sequence : 'a Lwt.t list -> 'a list Lwt.t =
           x >>= fun x -> aux (x :: sofar) xs
     in aux [] lwt_li
 
-let eref_modify : ('a -> 'b) -> 'a Eliom_references.eref -> unit Lwt.t =
+let eref_modify : ('a -> 'b) -> 'a Eliom_reference.eref -> unit Lwt.t =
   fun f eref ->
-    lwt content = Eliom_references.get eref in
-    Eliom_references.set eref (f content)
+    lwt content = Eliom_reference.get eref in
+    Eliom_reference.set eref (f content)
 
 let rec lwt_tree_flatten (tree: 'a tree): 'a list Lwt.t =
 let Node (p, cs) = tree in
@@ -80,13 +81,6 @@ let Node (p, cs) = tree in
 and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
         Lwt_util.map lwt_tree_flatten forest >>=
         fun f -> lwt_flatten f
-
-module Lwt_ops = struct
-  let (>>=) = Lwt.(>>=)
-  let (=<<) = Lwt.(=<<)
-  let (>|=) = Lwt.(>|=)
-  let (=|<) = Lwt.(=|<)
-end
 
 let list_assoc_opt a l =
   try
@@ -179,7 +173,7 @@ let remove_prefix ~s ~prefix =
   let slen = String.length s
   and preflen = String.length prefix in
   let preflast = preflen - 1 in
-  let first_diff = Eliom_pervasives.String.first_diff prefix s 0 preflen in
+  let first_diff = Eliom_lib.String.first_diff prefix s 0 preflen in
   if first_diff = preflen
   then Some (String.sub s preflen (slen - preflen))
   else if first_diff = preflast && slen = preflast
@@ -195,15 +189,15 @@ let remove_begin_slash s =
 
 let hidden_bool_input :
   value:bool ->
-  [< bool Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  [>HTML5_types.input] HTML5.M.elt
+  [< bool Eliom_parameter.setoneradio ] Eliom_parameter.param_name ->
+  [>Html5_types.input] Html5.F.elt
  = fun ~value name ->
-   Eliom_output.Html5.user_type_input string_of_bool
+   Html5.D.user_type_input string_of_bool
      ~input_type:`Hidden ~value ~name ()
 
 
 let eliom_bool =
-  Eliom_parameters.user_type ~to_string:string_of_bool ~of_string:bool_of_string
+  Eliom_parameter.user_type ~to_string:string_of_bool ~of_string:bool_of_string
 
 
 let remove_re = Netstring_pcre.regexp "(?s-m)\\A\\s*(\\S(.*\\S)?)\\s*\\z"

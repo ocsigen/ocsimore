@@ -20,40 +20,40 @@
    @author Vincent Balat
 *)
 
-open Eliom_pervasives
+open Eliom_content
 
 exception Ok
 
 exception Permission_denied
 
-let action_failure_eref = Eliom_references.eref ~scope:Eliom_common.request None
+let action_failure_eref = Eliom_reference.eref ~scope:Eliom_common.request None
 
 let get_action_failure () =
-  Eliom_references.get action_failure_eref
+  Eliom_reference.get action_failure_eref
 
 let set_action_failure p =
-  Eliom_references.set action_failure_eref (Some p)
+  Eliom_reference.set action_failure_eref (Some p)
 
 let catch_action_failure ?(f_exc=fun exn -> exn) f =
   try_lwt
     f ()
   with exc ->
-    Eliom_references.set action_failure_eref (Some (f_exc exc))
+    Eliom_reference.set action_failure_eref (Some (f_exc exc))
 
 exception Incorrect_argument
 
 type 'a eliom_usertype =
-    ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameters.param_name)
-    Eliom_parameters.params_type
+    ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameter.param_name)
+    Eliom_parameter.params_type
 
 let eliom_opaque_int32 s =
-  Eliom_parameters.user_type
+  Eliom_parameter.user_type
     (fun s -> Opaque.int32_t (Int32.of_string s))
     (fun i -> Int32.to_string (Opaque.t_int32 i)) s
 
 
 let eliom_opaque_int32_opt s =
-  Eliom_parameters.user_type
+  Eliom_parameter.user_type
     (fun s ->
        if s = "" then None
        else Some (Opaque.int32_t (Int32.of_string s)))
@@ -63,7 +63,7 @@ let eliom_opaque_int32_opt s =
 
 
 let input_opaque_int32 ?value ?(hidden=true) name =
-  let f = Eliom_output.Html5.user_type_input
+  let f = Eliom_content.Html5.D.user_type_input
     (fun v -> Int32.to_string (Opaque.t_int32 v)) ~name ?value
   in
   if hidden then
@@ -73,7 +73,7 @@ let input_opaque_int32 ?value ?(hidden=true) name =
 
 let input_opaque_int32_opt ?value ?(hidden=true) name =
   let f =
-    Eliom_output.Html5.user_type_input
+    Eliom_content.Html5.D.user_type_input
       (fun v -> match v with
          | None -> ""
          | Some v -> Int32.to_string (Opaque.t_int32 v))

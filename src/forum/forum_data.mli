@@ -22,7 +22,7 @@
 *)
 
 
-
+open Eliom_content
 
 
 (** {2 Database access with verification of permissions} *)
@@ -35,7 +35,7 @@ val new_forum :
   title:string -> 
   descr:string -> 
   ?arborescent:bool -> 
-  title_syntax: HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type ->
+  title_syntax: Html5_types.phrasing Html5.F.elt list Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
   unit ->

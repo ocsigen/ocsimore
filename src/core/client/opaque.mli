@@ -22,7 +22,7 @@ functions as in [let port : port = int_t 0].
 
 (** {6 Opaque [int]s } *)
 
-open Eliom_pervasives
+open Eliom_content
 
 type 'a int_t deriving (Json)
 (** data of type ['a int_t] has the same internal representation
@@ -77,21 +77,21 @@ val int32_t_to_string : 'a int32_t -> string
 (** Xform inputs *)
 (* not on client side
 val int32_input_aux_xform :
-  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
-  string -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t) Xform.XformLwt.t
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  string -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_xform :
-  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
-  'a int32_t -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t) Xform.XformLwt.t
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  'a int32_t -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t) Xform.XformLwt.t
 
 val int32_input_opt_aux_xform :
-  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
-  string -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  string -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t option) Xform.XformLwt.t
 
 val int32_input_opt_xform :
-  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
   'a int32_t option ->
-  ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, 'a int32_t option) Xform.XformLwt.t
+  ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t option) Xform.XformLwt.t
 *)
 
 (** {6 Opaque [string]s } *)

@@ -18,20 +18,22 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Eliom_pervasives
+open Eliom_content
+open Eliom_lib
+open Lwt_ops
 
 (* let (>>=) = Lwt.bind *)
 (* let (>|=) m f = Lwt.map f m *)
 
 exception Error of string
 let error (msg:string) =
-  Lwt.return [HTML5.M.div ~a:[HTML5.M.a_class ["error"]] [HTML5.M.pcdata msg]]
+  Lwt.return [Html5.F.div ~a:[Html5.F.a_class ["error"]] [Html5.F.pcdata msg]]
 
 type menu_item =
-   HTML5_types.a_content HTML5.M.elt list *
-      (Eliom_services.get_service_kind,
-       Eliom_services.registrable,
-       HTML5_types.a_content HTML5.M.elt list)
+   Html5_types.a_content Html5.F.elt list *
+      (Eliom_service.get_service_kind,
+       Eliom_service.registrable,
+       Html5_types.a_content Html5.F.elt list)
       Eliom_tools.hierarchical_site_item
 
 (** Parse menu in wiki syntax *)
@@ -39,40 +41,40 @@ type menu_item =
 (* Expected XML type *)
 
 type menu =
-  [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] HTML5.M.elt list
+  [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] Html5.F.elt list
 
 (* Build hierarchical menu from XML sequence *)
 
 let link_regexp =
   Netstring_pcre.regexp "wiki\\((.*)\\):(.*)"
 
-let is_a node = match XML.content node with
-  | XML.Node ("a", _, _) -> true
+let is_a node = match Xml.content node with
+  | Xml.Node ("a", _, _) -> true
   | _ -> false
 
-let get_href node = match XML.content node with
-  | XML.Node ("a", attribs, _) -> begin
-    let a_href = List.find (fun a -> XML.aname a = "href") attribs in
-    match XML.acontent a_href with
-      | XML.AStr href -> href
+let get_href node = match Xml.content node with
+  | Xml.Node ("a", attribs, _) -> begin
+    let a_href = List.find (fun a -> Xml.aname a = "href") attribs in
+    match Xml.acontent a_href with
+      | Xml.AStr href -> href
       | _ -> assert false
   end
   | _ -> assert false
 
-let get_node_contents node = match XML.content node with
-  | XML.Node (_, _, contents) -> contents
+let get_node_contents node = match Xml.content node with
+  | Xml.Node (_, _, contents) -> contents
   | _ -> assert false
 
-let rec get_headline_level node = match XML.content node with
-    | XML.Node (name, _, _) when name = "h6" -> 6
-    | XML.Node (name, _, _) when name = "h5" -> 5
-    | XML.Node (name, _, _) when name = "h4" -> 4
-    | XML.Node (name, _, _) when name = "h3" -> 3
-    | XML.Node (name, _, _) when name = "h2" -> 2
-    | XML.Node (name, _, _) when name = "h1" -> 1
+let rec get_headline_level node = match Xml.content node with
+    | Xml.Node (name, _, _) when name = "h6" -> 6
+    | Xml.Node (name, _, _) when name = "h5" -> 5
+    | Xml.Node (name, _, _) when name = "h4" -> 4
+    | Xml.Node (name, _, _) when name = "h3" -> 3
+    | Xml.Node (name, _, _) when name = "h2" -> 2
+    | Xml.Node (name, _, _) when name = "h1" -> 1
     | _ -> assert false
 
-let build_node ~create_service (contents: XML.elt list) tree =
+let build_node ~create_service (contents: Xml.elt list) tree =
   match contents with
   | [a] when is_a a -> begin
     let href = get_href a in
@@ -83,13 +85,13 @@ let build_node ~create_service (contents: XML.elt list) tree =
           let wikinum = Netstring_pcre.matched_group result 1 href in
           Some (Wiki_types.wiki_of_sql (Int32.of_string wikinum)),
           Netstring_pcre.matched_group result 2 href in
-    (HTML5.M.totl (get_node_contents a),
+    (Html5.F.totl (get_node_contents a),
      Eliom_tools.Site_tree
        (Eliom_tools.Main_page
           (create_service ?wiki (Neturl.split_path href)), tree))
   end
   | contents ->
-    (HTML5.M.totl contents,
+    (Html5.F.totl contents,
      Eliom_tools.Site_tree (Eliom_tools.Not_clickable, tree))
 
 let rec parse_nodes ~create_service link_stack tree_acc last nodes =
@@ -124,9 +126,9 @@ and get_up ~create_service lvl link_stack tree_acc last nodes =
 
 let build_tree
     ~create_service
-    (nodes : [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] Eliom_pervasives.HTML5.M.elt list)
+    (nodes : [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] Html5.F.elt list)
     : menu_item list =
-  parse_nodes ~create_service [] [[]] 0 (HTML5.M.toeltl nodes)
+  parse_nodes ~create_service [] [[]] 0 (Html5.F.toeltl nodes)
 
 (** How to create service for hierarchical menu ? *)
 
@@ -140,19 +142,19 @@ let create_wiki_page_service bi ?(wiki = bi.Wiki_widgets_interface.bi_wiki) page
           "Wiki_menu: Can't find service for wiki id %s." wiki;
         raise (Error (Printf.sprintf "Oups ! service not found for id %s." wiki))
   in
-  (Eliom_services.preapply ~service page :> Eliom_tools.get_page)
+  (Eliom_service.preapply ~service page :> Eliom_tools.get_page)
 
 (** How to resolve the optional "file" attribute.
 
     File resolver is stored in the request cache. *)
 
-let menu_resolver_eref = Eliom_references.eref ~scope:Eliom_common.request None
+let menu_resolver_eref = Eliom_reference.eref ~scope:Eliom_common.request None
 
 let set_menu_resolver r =
-  Eliom_references.set menu_resolver_eref (Some r)
+  Eliom_reference.set menu_resolver_eref (Some r)
 
 let resolve_menu_file file =
-  Eliom_references.get menu_resolver_eref >|= function
+  Eliom_reference.get menu_resolver_eref >|= function
     | Some f -> f file
     | None -> raise Not_found (* BB this emulates ancient Polytable's behaviour *)
 

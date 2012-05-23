@@ -17,7 +17,7 @@
  *)
 
 
-open Eliom_pervasives
+open Eliom_content
 open Lwt
 
 (**
@@ -46,12 +46,12 @@ class widget_with_error_box :
     *)
     method bind_or_display_error : 'data 'at_least_p .
       'data Lwt.t ->
-      ('data -> ((HTML5_types.nmtoken list * ([> HTML5_types.p ] as 'at_least_p) Eliom_pervasives.HTML5.M.elt list) as 'flows) Lwt.t) ->
+      ('data -> ((Html5_types.nmtoken list * ([> Html5_types.p ] as 'at_least_p) Html5.F.elt list) as 'flows) Lwt.t) ->
       'flows Lwt.t
 
     method display_error_box :
       ?classes:string list -> ?message:string -> ?exc:exn ->
-      unit -> [> `P ] HTML5.M.elt
+      unit -> [> `P ] Html5.F.elt
 
   end
 
@@ -85,11 +85,11 @@ end
 
 class virtual ['param_type, 'data_type] parametrized_div_widget :
 object
-  inherit ['param_type, 'data_type, [`Div] HTML5.M.elt Lwt.t] parametrized_widget
+  inherit ['param_type, 'data_type, [`Div] Html5.F.elt Lwt.t] parametrized_widget
 end
 
 class type ['param_type, 'data_type] parametrized_div_widget_t =
-          ['param_type, 'data_type, [`Div] HTML5.M.elt Lwt.t] parametrized_widget_t
+          ['param_type, 'data_type, [`Div] Html5.F.elt Lwt.t] parametrized_widget_t
 
 class virtual ['param_type, 'result_type] parametrized_unit_widget :
 object
@@ -104,13 +104,13 @@ class type ['param_type, 'result_type] parametrized_unit_widget_t =
 class virtual ['param_type] parametrized_unit_div_widget :
 object
   inherit ['param_type, unit] parametrized_div_widget
-  inherit ['param_type, [`Div] HTML5.M.elt Lwt.t] parametrized_unit_widget
+  inherit ['param_type, [`Div] Html5.F.elt Lwt.t] parametrized_unit_widget
   method private retrieve_data :
     'a -> unit Lwt.t
 end
 
 class type ['param_type] parametrized_unit_div_widget_t =
-          ['param_type, unit, [`Div] HTML5.M.elt Lwt.t] parametrized_widget_t
+          ['param_type, unit, [`Div] Html5.F.elt Lwt.t] parametrized_widget_t
 
 (*
 (** The base parametrized_widget list class *)
@@ -123,7 +123,7 @@ object
      Calls the display procedure for every item of the
      contents in turn.
   *)
-  method display : [`Div] HTML5.M.elt Lwt.t
+  method display : [`Div] Html5.F.elt Lwt.t
 
 
 end;;

@@ -21,7 +21,6 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
 open Opaque
 open Lwt
 open Sql.PGOCaml
@@ -217,7 +216,7 @@ let get_wikis () =
 
 (* No need for cache, as the page does not exists yet *)
 let create_wikipage ?db ~wiki ~page ~wb =
-  let page = Ocsigen_pervasives.Url.remove_end_slash page in
+  let page = Eliom_lib.Url.remove_end_slash page in
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
@@ -537,11 +536,11 @@ let cache_wp = new CWp.cache
 
 
 let get_wikipage_info ~wiki ~page =
-  let page = Ocsigen_pervasives.Url.remove_end_slash page in
+  let page = Eliom_lib.Url.remove_end_slash page in
   cache_wp#find (wiki, page)
 
 let set_wikipage_properties ?db ~wiki ~page ?title ?newpage ?wb () =
-  let page = Ocsigen_pervasives.Url.remove_end_slash page in
+  let page = Eliom_lib.Url.remove_end_slash page in
   cache_wp#remove (wiki, page);
   set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb ()
 
@@ -623,7 +622,7 @@ let get_css_wikibox_for_wiki ~wiki =
   get_css_wikibox ~wiki ~page:None
 
 let get_css_wikibox_for_wikipage ~wiki ~page =
-  let page = Ocsigen_pervasives.Url.remove_end_slash page in
+  let page = Eliom_lib.Url.remove_end_slash page in
   get_css_wikibox ~wiki ~page:(Some page)
 
 let get_css_aux ~wiki ~page =
@@ -638,7 +637,7 @@ let get_css_aux ~wiki ~page =
     ) [] l
 
 let get_css_for_wikipage ~wiki ~page =
-  let page = Ocsigen_pervasives.Url.remove_end_slash page in
+  let page = Eliom_lib.Url.remove_end_slash page in
   get_css_aux ~wiki ~page:(Some page)
 
 let get_css_for_wiki ~wiki =
@@ -704,7 +703,7 @@ let set_css_aux ?db ~wiki ~page ~author content =
     )
 
 let set_css_for_wikipage ?db ~wiki ~page ~author content =
-  let page = Ocsigen_lib.remove_end_slash page in
+  let page = Eliom_lib.remove_end_slash page in
   set_css_aux ?db ~wiki ~page:(Some page) ~author content
 
 let set_css_for_wiki ?db ~wiki ~author content =

@@ -24,7 +24,9 @@
     a default implemenetation of a [Wiki_types.Wiki_rights] structure,
     and a few other misc definitions *)
 
-open Eliom_pervasives
+open Eliom_lib
+open Lwt_ops
+open Eliom_content
 open User_sql.Types
 open Wiki_types
 
@@ -56,7 +58,7 @@ let wiki_admin_servpage () =
 
 let wiki_admin_page_link page =
   wiki_admin_servpage () >|= fun service ->
-    Eliom_output.Html5.make_uri ~service page
+    Eliom_content.Html5.F.make_uri ~service page
 
 
 (** Wiki groups *)

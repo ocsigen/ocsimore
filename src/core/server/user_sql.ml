@@ -22,7 +22,7 @@
    @author Vincent Balat
 *)
 
-let (>>=)= Lwt.bind
+open Eliom_lib.Lwt_ops
 
 open Sql.PGOCaml
 open Ocsimore_lib

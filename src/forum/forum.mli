@@ -23,7 +23,7 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 open User_sql.Types
 open Forum_types
 
@@ -66,7 +66,7 @@ val thread_readers_evennotmoderated  : message_arg parameterized_group
     if it already exists. *)
 val create_forum :
   wiki_model:Wiki_types.wiki_model ->
-  title_syntax:HTML5_types.phrasing HTML5.M.elt list Wiki_types.content_type ->
+  title_syntax:Html5_types.phrasing Html5.F.elt list Wiki_types.content_type ->
   title:string ->
   descr:string ->
   ?arborescent:bool ->
@@ -131,33 +131,33 @@ type forum_action_info =
 
 (** Eliom parameter type for forums *)
 val eliom_forum :
-  string -> (forum, [`WithoutSuffix], [`One of forum] Eliom_parameters.param_name) Eliom_parameters.params_type
+  string -> (forum, [`WithoutSuffix], [`One of forum] Eliom_parameter.param_name) Eliom_parameter.params_type
 
 (** Eliom parameter type for messages *)
 val eliom_message :
-  string -> (message, [`WithoutSuffix], [`One of message] Eliom_parameters.param_name) Eliom_parameters.params_type
+  string -> (message, [`WithoutSuffix], [`One of message] Eliom_parameter.param_name) Eliom_parameter.params_type
 
 (** Eliom input field for forums *)
 val eliom_forum_input :
-  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
   input_type:[< `Hidden | `Password | `Submit | `Text ] ->
-  ?name:[< Forum_types.forum Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  ?value:Forum_types.forum -> unit -> [> HTML5_types.input ] HTML5.M.elt
+  ?name:[< Forum_types.forum Eliom_parameter.setoneradio ] Eliom_parameter.param_name ->
+  ?value:Forum_types.forum -> unit -> [> Html5_types.input ] Html5.F.elt
 
 (** Eliom input field for messages *)
 val eliom_message_input :
-  ?a:HTML5_types.input_attrib HTML5.M.attrib list ->
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
   input_type:[< `Hidden | `Password | `Submit | `Text ] ->
-  ?name:[< Forum_types.message Eliom_parameters.setoneradio ] Eliom_parameters.param_name ->
-  ?value:Forum_types.message -> unit -> [> HTML5_types.input ] HTML5.M.elt
+  ?name:[< Forum_types.message Eliom_parameter.setoneradio ] Eliom_parameter.param_name ->
+  ?value:Forum_types.message -> unit -> [> Html5_types.input ] Html5.F.elt
 
 (** Eliom button for messages *)
 val eliom_message_button :
-  ?a:HTML5_types.button_attrib HTML5.M.attrib list ->
-  name:[< Forum_types.message Eliom_parameters.setone ] Eliom_parameters.param_name ->
+  ?a:Html5_types.button_attrib Html5.F.attrib list ->
+  name:[< Forum_types.message Eliom_parameter.setone ] Eliom_parameter.param_name ->
   value:Forum_types.message ->
-  HTML5_types.button_content HTML5.M.elt list ->
-  [> HTML5_types.button ] HTML5.M.elt
+  Html5_types.button_content Html5.F.elt list ->
+  [> Html5_types.button ] Html5.F.elt
 
 
 (** {2 ...} *)

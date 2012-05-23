@@ -25,7 +25,7 @@
 
 open User_sql.Types
 open Ocsimore_lib
-open Ocsimore_lib.Lwt_ops
+open Eliom_lib.Lwt_ops
 
 let valid_username usr =
   Str.string_match (Str.regexp "^[A-Za-z0-9]+$") usr 0
@@ -259,10 +259,10 @@ let login ~name ~pwd ~external_auth =
 
 (* Used to store the fact that a login error has occurred, so that
    pages can display an appropriate message *)
-let login_error_eref : exn list Eliom_references.eref =
-  Eliom_references.eref ~scope:Eliom_common.request []
+let login_error_eref : exn list Eliom_reference.eref =
+  Eliom_reference.eref ~scope:Eliom_common.request []
 
-let get_login_error () = Eliom_references.get login_error_eref
+let get_login_error () = Eliom_reference.get login_error_eref
 let add_login_error exn =
   flip eref_modify login_error_eref
     (cons exn)

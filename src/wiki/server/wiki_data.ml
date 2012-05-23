@@ -26,9 +26,10 @@ Access to wiki data with permission checks
 *)
 
 
+open Eliom_lib
+open Lwt_ops
 open Wiki_types
 open User_sql.Types
-open Ocsimore_lib.Lwt_ops
 
 
 type 'a rights =

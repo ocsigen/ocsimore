@@ -22,7 +22,7 @@
 *)
 
 {shared{
-open Eliom_pervasives
+open Eliom_content
 open Opaque
 type wiki_arg = [ `Wiki ] deriving (Json)
 type wiki = [`Wiki] int32_t deriving (Json)
@@ -91,7 +91,7 @@ type media_type_elem =
     | `Speech
     | `TTY
     | `TV ]
-type media_type = HTML5_types.mediadesc
+type media_type = Html5_types.mediadesc
 let string_of_media_type_elem = function
   | `All -> "All"
   | `Aural -> "Aural"

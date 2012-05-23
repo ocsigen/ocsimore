@@ -21,10 +21,11 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_lib
+open Lwt_ops
 open Forum
 open Forum_types
 
-let (>>=) = Lwt.bind
 let (!!) = Lazy.force
 let ($) = User_sql.Types.apply_parameterized_group
 

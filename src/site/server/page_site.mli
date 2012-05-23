@@ -20,11 +20,11 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
-    (Eliom_services.get_service_kind,
+    (Eliom_service.get_service_kind,
      [ `Unregistrable | `Registrable ],
      Eliom_output.non_caml_service)
     Eliom_tools_common.one_page
@@ -33,15 +33,15 @@ type menu_link_service =
 
 (** The service that answers for Ocsimore static files. *)
 val static_service :
-  ((string list, unit, Eliom_services.get_service_kind, [ `WithSuffix ],
-    [ `One of string list ] Eliom_parameters.param_name, unit,
+  ((string list, unit, Eliom_service.get_service_kind, [ `WithSuffix ],
+    [ `One of string list ] Eliom_parameter.param_name, unit,
     [ `Registrable ], Eliom_output.http_service)
-   Eliom_services.service)
+   Eliom_service.service)
 
 (** Path to a static file, suitable for inclusion in a <a> tag *)
 val static_file_uri :
   path:string list
-  -> HTML5.M.uri
+  -> Html5.F.uri
 
 
 (** Allows to add HTML headers required by page components *)
@@ -51,7 +51,7 @@ module Header : sig
 
     (** Define a new header *)
     val create_header :
-      (unit -> HTML5_types.head_content_fun HTML5.M.elt list) -> header
+      (unit -> Html5_types.head_content_fun Html5.F.elt list) -> header
 
     (** Call this function every time you need a header to be included
         in the page. If this function is called several times for the same
@@ -62,7 +62,7 @@ module Header : sig
     (** This function is called to generate the headers for one page.
         Only required headers are included.
     *)
-    val generate_headers : unit -> HTML5_types.head_content_fun HTML5.M.elt list Lwt.t
+    val generate_headers : unit -> Html5_types.head_content_fun Html5.F.elt list Lwt.t
 
   end
 
@@ -88,12 +88,12 @@ val add_onload_function: string -> unit Lwt.t
     [add_html_header_hook] above. The argument [body_classes] is
     used for the classes of the [body] html element. *)
 val html_page :
-  ?body_classes:HTML5_types.nmtokens ->
-  ?css:HTML5_types.link HTML5.M.elt list->
+  ?body_classes:Html5_types.nmtokens ->
+  ?css:Html5_types.link Html5.F.elt list->
   ?title:string ->
   ?heading:string ->
-  HTML5_types.body_content HTML5.M.elt list ->
-  HTML5.M.html Lwt.t
+  Html5_types.body_content Html5.F.elt list ->
+  Html5.F.html Lwt.t
 
 (** Functions related to the administration menu *)
 
@@ -117,7 +117,7 @@ val add_to_admin_menu :
 val admin_menu:
   ?service:menu_link_service ->
   Eliom_common.server_params ->
-  HTML5_types.block HTML5.M.elt list Lwt.t
+  Html5_types.block Html5.F.elt list Lwt.t
 *)
 
 (** Displays a complete admin page, with the admin menu and the status bar.
@@ -126,16 +126,16 @@ val admin_menu:
 val admin_page:
   ?service:menu_link_service ->
   ?body_classes:string list ->
-  ?css:HTML5_types.link HTML5.M.elt list ->
+  ?css:Html5_types.link Html5.F.elt list ->
   title:string ->
-  HTML5_types.flow5 HTML5.M.elt list ->
-  HTML5.M.html Lwt.t
+  Html5_types.flow5 Html5.F.elt list ->
+  Html5.F.html Lwt.t
 
-val body_to_div : HTML5_types.body_content HTML5.M.elt list -> HTML5_types.flow5 HTML5.M.elt list
+val body_to_div : Html5_types.body_content Html5.F.elt list -> Html5_types.flow5 Html5.F.elt list
 
 val userid_permissions : (User_sql.Types.userid -> bool Lwt.t) -> bool Lwt.t
 
-val no_permission : unit -> HTML5_types.body_content HTML5.M.elt list Lwt.t
+val no_permission : unit -> Html5_types.body_content Html5.F.elt list Lwt.t
 
 (** Display a [widget#display] as a [admin_page] under certain [permissions]. Also, some parameters of [admin_page] are
     made available here. *)
@@ -143,17 +143,17 @@ val admin_body_content_with_permission_handler :
   title:('get_params -> 'post_params -> string Lwt.t) ->
   ?service:('get_params -> 'post_params -> menu_link_service Lwt.t) ->
   permissions:('get_params -> 'post_params -> bool Lwt.t) ->
-  display:('get_params -> 'post_params -> [< HTML5_types.body_content] HTML5.M.elt list Lwt.t) ->
-  'get_params -> 'post_params -> HTML5.M.html Lwt.t
+  display:('get_params -> 'post_params -> [< Html5_types.body_content] Html5.F.elt list Lwt.t) ->
+  'get_params -> 'post_params -> Html5.F.html Lwt.t
 
 val icon:
   path:string ->
   text:string ->
-  [> `Img ] HTML5.M.elt
+  [> `Img ] Html5.F.elt
 
 
 val add_status_function:
   (unit
-   -> HTML5_types.flow5 HTML5.M.elt Lwt.t)
+   -> Html5_types.flow5 Html5.F.elt Lwt.t)
    -> unit
 

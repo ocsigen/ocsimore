@@ -1,4 +1,4 @@
-open Eliom_pervasives
+open Eliom_content
 open CalendarLib
 
 
@@ -21,63 +21,63 @@ module type Xform = sig
   val id : (_, _) t -> string
 
   val string_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list
+    ?a:Html5_types.input_attrib Html5.F.attrib list
     -> string
-    -> ([> HTML5_types.input ] HTML5.M.elt, string) t
+    -> ([> Html5_types.input ] Html5.F.elt, string) t
 
   (** Maps the empty list to None, and all the others lists to Some *)
   val string_opt_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list
+    ?a:Html5_types.input_attrib Html5.F.attrib list
     -> string option
-    -> ([> HTML5_types.input] HTML5.M.elt, string option) t
+    -> ([> Html5_types.input] Html5.F.elt, string option) t
 
   val int_input :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list
+    ?a:Html5_types.input_attrib Html5.F.attrib list
     -> ?format:(int -> string)
     -> int
-    -> ([> HTML5_types.input | HTML5_types.span ] HTML5.M.elt, int) t
+    -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, int) t
   val bounded_int_input :
     ?format:(int -> string)
     -> int -> int -> int
-    -> ([> HTML5_types.input | HTML5_types.span] HTML5.M.elt, int) t
+    -> ([> Html5_types.input | Html5_types.span] Html5.F.elt, int) t
 
   val bool_checkbox :
-    ?a:HTML5_types.input_attrib HTML5.M.attrib list
+    ?a:Html5_types.input_attrib Html5.F.attrib list
     -> bool
-    -> ([> HTML5_types.input] HTML5.M.elt, bool) t
+    -> ([> Html5_types.input] Html5.F.elt, bool) t
 
   val text_area :
-    ?a:HTML5_types.textarea_attrib HTML5.M.attrib list
+    ?a:Html5_types.textarea_attrib Html5.F.attrib list
     -> rows:int -> cols:int -> string
-    -> ([> HTML5_types.textarea] HTML5.M.elt, string) t
+    -> ([> Html5_types.textarea] Html5.F.elt, string) t
 
-  val submit_button : string -> ([> HTML5_types.input ] HTML5.M.elt, bool) t
+  val submit_button : string -> ([> Html5_types.input ] Html5.F.elt, bool) t
 
   val select_single :
     (string * string) list -> string
-    -> ([> HTML5_types.select] HTML5.M.elt, string) t
+    -> ([> Html5_types.select] Html5.F.elt, string) t
 
   val list :
     'i list
-    -> ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t)
-    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
+    -> ('i -> ([< Html5_types.form_content] Html5.F.elt, 'o) t)
+    -> ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
   val list' :
     int
-    -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t
-    -> ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
+    -> ([< Html5_types.form_content] Html5.F.elt, 'o) t
+    -> ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
   val extensible_list :
     string -> 'i -> 'i list ->
-    ('i -> ([< HTML5_types.form_content] HTML5.M.elt, 'o) t) ->
-    ([> HTML5_types.form_content] HTML5.M.elt, 'o list) t
+    ('i -> ([< Html5_types.form_content] Html5.F.elt, 'o) t) ->
+    ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
 (* Displays the input control for 'a, and a checkbox to encode Some/None *)
   val opt_input:
-    input:('a -> (HTML5_types.input HTML5.M.elt, 'b) t) ->
+    input:('a -> (Html5_types.input Html5.F.elt, 'b) t) ->
     default:'a ->
     'a option ->
-    ([> HTML5_types.input] HTML5.M.elt, 'b option) t
+    ([> Html5_types.input] Html5.F.elt, 'b option) t
 
 
   module Ops : sig
@@ -93,31 +93,31 @@ module type Xform = sig
   val wrap : ('html1 list -> 'html2 list) -> ('html1, 'o) t -> ('html2, 'o) t
 
   val check :
-    (([> HTML5_types.span] as 'b) HTML5.M.elt, 'a) t ->
+    (([> Html5_types.span] as 'b) Html5.F.elt, 'a) t ->
     ('a -> string option) ->
-    ('b HTML5.M.elt, 'a) t
+    ('b Html5.F.elt, 'a) t
 
   val convert :
-   (([> HTML5_types.span] as 'c) HTML5.M.elt, 'a) t ->
+   (([> Html5_types.span] as 'c) Html5.F.elt, 'a) t ->
     ('a -> 'b convert monad) ->
-    ('c HTML5.M.elt, 'b) t
+    ('c Html5.F.elt, 'b) t
 
-  val hour_input : int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int) t
+  val hour_input : int -> int -> ([> Html5_types.input | Html5_types.pcdata | Html5_types.span ] Html5.F.elt, int * int) t
   val day_input :
-    int -> int -> int -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, int * int * int) t
-  val date_input : Calendar.t -> ([> HTML5_types.input | HTML5_types.pcdata | HTML5_types.span ] HTML5.M.elt, Calendar.t) t
+    int -> int -> int -> ([> Html5_types.input | Html5_types.pcdata | Html5_types.span ] Html5.F.elt, int * int * int) t
+  val date_input : Calendar.t -> ([> Html5_types.input | Html5_types.pcdata | Html5_types.span ] Html5.F.elt, Calendar.t) t
 
-  val text : string -> [> HTML5_types.pcdata ] HTML5.M.elt list
-  val strong : [< HTML5_types.strong_content_fun ] HTML5.M.elt list -> [> HTML5_types.strong ] HTML5.M.elt
-  val p : ([< HTML5_types.p_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.p] HTML5.M.elt, 'b) t
-  val table : ([< HTML5_types.table_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.table] HTML5.M.elt, 'b) t
-  val tr : ([< HTML5_types.tr_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.tr] HTML5.M.elt, 'b) t
-  val td : ([< HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> ([> HTML5_types.td] HTML5.M.elt, 'b) t
-  val label_input_tr : label:string -> ?description:string -> ([<HTML5_types.td_content_fun] HTML5.M.elt, 'b) t -> (HTML5_types.tr HTML5.M.elt, 'b) t
+  val text : string -> [> Html5_types.pcdata ] Html5.F.elt list
+  val strong : [< Html5_types.strong_content_fun ] Html5.F.elt list -> [> Html5_types.strong ] Html5.F.elt
+  val p : ([< Html5_types.p_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.p] Html5.F.elt, 'b) t
+  val table : ([< Html5_types.table_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.table] Html5.F.elt, 'b) t
+  val tr : ([< Html5_types.tr_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.tr] Html5.F.elt, 'b) t
+  val td : ([< Html5_types.td_content_fun] Html5.F.elt, 'b) t -> ([> Html5_types.td] Html5.F.elt, 'b) t
+  val label_input_tr : label:string -> ?description:string -> ([<Html5_types.td_content_fun] Html5.F.elt, 'b) t -> (Html5_types.tr Html5.F.elt, 'b) t
   val fieldset :
-    ?legend:[`Legend] HTML5.M.elt ->
-    ([<HTML5_types.flow5] HTML5.M.elt, 'b) t ->
-    ([>HTML5_types.fieldset] HTML5.M.elt, 'b) t
+    ?legend:[`Legend] Html5.F.elt ->
+    ([<Html5_types.flow5] Html5.F.elt, 'b) t ->
+    ([>Html5_types.fieldset] Html5.F.elt, 'b) t
 
   val form:
     fallback:(
@@ -125,22 +125,22 @@ module type Xform = sig
       unit,
       [ `Attached of
           ([`Internal of [< `Coservice | `Service ]], [ `Get ])
-            Eliom_services.a_s ],
-      [< Eliom_services.suff ],
+            Eliom_service.a_s ],
+      [< Eliom_service.suff ],
       'b,
       unit,
       [< `Registrable ],
       Eliom_output.http_service)
-    Eliom_services.service
+    Eliom_service.service
     -> get_args:'a
     -> page:( 'a
               -> error
-              -> [>HTML5_types.form] HTML5.M.elt
-              -> HTML5.M.html Lwt.t)
+              -> [>Html5_types.form] Html5.F.elt
+              -> Html5.F.html Lwt.t)
     -> ?err_handler:(exn -> string option)
-    -> (HTML5_types.form_content HTML5.M.elt,
+    -> (Html5_types.form_content Html5.F.elt,
         unit -> Eliom_output.Html5.page Lwt.t) t
-    -> [>HTML5_types.form] HTML5.M.elt monad
+    -> [>Html5_types.form] Html5.F.elt monad
 
 end
 

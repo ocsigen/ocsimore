@@ -20,7 +20,7 @@
    @author Vincent Balat
 *)
 
-open Eliom_pervasives
+open Eliom_content
 
 exception Ok
 
@@ -40,8 +40,8 @@ exception Incorrect_argument
 
 
 type 'a eliom_usertype =
-    ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameters.param_name)
-    Eliom_parameters.params_type
+    ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameter.param_name)
+    Eliom_parameter.params_type
 
 val eliom_opaque_int32 :
   string ->
@@ -55,12 +55,12 @@ val eliom_opaque_int32_opt :
 val input_opaque_int32 :
   ?value:'a Opaque.int32_t ->
   ?hidden:bool ->
-  [< 'a Opaque.int32_t Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> [>HTML5_types.input] HTML5.M.elt
+  [< 'a Opaque.int32_t Eliom_parameter.setoneradio ]
+  Eliom_parameter.param_name -> [>Html5_types.input] Html5.F.elt
 
 val input_opaque_int32_opt :
   ?value:'a Opaque.int32_t option ->
   ?hidden:bool ->
-  [< 'a Opaque.int32_t option Eliom_parameters.setoneradio ]
-  Eliom_parameters.param_name -> [>HTML5_types.input] HTML5.M.elt
+  [< 'a Opaque.int32_t option Eliom_parameter.setoneradio ]
+  Eliom_parameter.param_name -> [>Html5_types.input] Html5.F.elt
 

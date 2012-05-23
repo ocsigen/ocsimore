@@ -22,7 +22,7 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 
 
 (** This function registers the following wiki extensions:
@@ -51,7 +51,7 @@ let register_wikiext
          Lwt.return [c]
        with Not_found | Failure _ ->
          let s = Wiki_syntax.string_of_extension "raw" args content in
-         Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
+         Lwt.return [Html5.F.b [Html5.F.pcdata s]]
       )
   in
   Wiki_syntax.register_simple_flow_extension
@@ -81,7 +81,7 @@ let register_wikiext
          Lwt.return [c]
        with Not_found | Failure _ ->
          let s = Wiki_syntax.string_of_extension "raw" args content in
-         Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
+         Lwt.return [Html5.F.b [Html5.F.pcdata s]]
       ) in
 
 
@@ -128,7 +128,7 @@ let register_wikiext
          Lwt.return [c]
        with Not_found | Failure _ ->
          let s = Wiki_syntax.string_of_extension "raw" args content in
-         Lwt.return [HTML5.M.b [HTML5.M.pcdata s]]
+         Lwt.return [Html5.F.b [Html5.F.pcdata s]]
       )
   in
   Wiki_syntax.register_simple_flow_extension

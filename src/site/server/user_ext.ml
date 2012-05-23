@@ -26,8 +26,8 @@
    @author Vincent Balat
 *)
 
-open Eliom_pervasives
-open Eliom_parameters
+open Eliom_content
+open Eliom_parameter
 open User_sql.Types
 open Wiki_widgets_interface
 
@@ -52,7 +52,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
        lwt b =
          user_widget#display_login_widget
            ?user_prompt ?pwd_prompt ?auth_error ?switchtohttps () in
-       Lwt.return (b :> [>HTML5_types.div] HTML5.M.elt list)) in
+       Lwt.return (b :> [>Html5_types.div] Html5.F.elt list)) in
 
   Wiki_syntax.register_interactive_simple_flow_extension
     ~name:"loginbox" ~reduced:false f_loginbox;
@@ -61,7 +61,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
     `Flow5
       (lwt content = match c with
         | Some c -> c
-        | None -> Lwt.return [HTML5.M.pcdata "logout"]
+        | None -> Lwt.return [Html5.F.pcdata "logout"]
        in
        lwt f = user_widget#display_logout_button content in
        Lwt.return [f]) in
@@ -75,7 +75,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
   let f_username bi _args _c =
     `Phrasing_without_interactive
       (lwt user_data = User.get_user_data () in
-       Lwt.return [HTML5.M.pcdata user_data.user_fullname]) in
+       Lwt.return [Html5.F.pcdata user_data.user_fullname]) in
 
   Wiki_syntax.register_simple_flow_extension ~name:"username" f_username;
   Wiki_syntax.register_simple_phrasing_extension ~name:"username" f_username;
@@ -83,7 +83,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
   let f_logoutlink bi args c =
       (let content = match c with
          | Some c -> c
-         | None -> Lwt.return [HTML5.M.pcdata "logout"]
+         | None -> Lwt.return [Html5.F.pcdata "logout"]
        in
        (user_widget#logout_uri,
         args,

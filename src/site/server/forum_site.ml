@@ -21,8 +21,10 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_pervasives
+open Eliom_content
 open Ocsimore_lib
+open Eliom_lib
+open Lwt_ops
 
 let forum_wiki_rights = new Forum.wiki_rights
 
@@ -38,15 +40,15 @@ let wikicreole_forum_model =
   )
 
 let forum_root =
-  Eliom_services.service
+  Eliom_service.service
     ~path:[!Ocsimore_config.admin_dir;"forums"]
-    ~get_params:Eliom_parameters.unit ()
+    ~get_params:Eliom_parameter.unit ()
 
 let () = Eliom_output.Html5.register forum_root
   (fun () () ->
      Page_site.admin_page ~service:forum_root ~title:"Ocsimore - Forum module"
-       [ HTML5.M.p
-          [HTML5.M.pcdata "This is the Ocsimore admin page for the forum \
+       [ Html5.F.p
+          [Html5.F.pcdata "This is the Ocsimore admin page for the forum \
                            module. The links on the right will help you \
                            configure your installation." ];
        ]
@@ -74,8 +76,8 @@ let edit_forum_form ~serv_path:_ ~service ~arg
     Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
-                 [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
-                    [HTML5.M.pcdata err]
+                 [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
+                    [Html5.F.pcdata err]
                  ]
              | _ -> [])
        @  [form]
@@ -86,7 +88,7 @@ let edit_forum_form ~serv_path:_ ~service ~arg
   lwt form =
     Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
       Xform.(table
-         (tr (td (Opaque.int32_input_xform ~a:[HTML5.M.a_style "display: none"] forum)) @@
+         (tr (td (Opaque.int32_input_xform ~a:[Html5.F.a_style "display: none"] forum)) @@
           label_input_tr ~label:"Title" (string_input title) @@
           label_input_tr ~label:"Description" (string_input descr) @@
           label_input_tr ~label:"Arborescent" (bool_checkbox arborescent) @@
@@ -126,7 +128,7 @@ let edit_forum =
               Page_site.admin_page
                 ~service:Forum_services.view_forums
                 ~title
-                [HTML5.M.(p [pcdata "Forum information sucessfully edited"])])
+                [Html5.F.(p [pcdata "Forum information sucessfully edited"])])
         | false ->
             Page_site.(no_permission () >>= admin_page ~title))
 
@@ -139,8 +141,8 @@ let create_forum_form ~serv_path:_ ~service ~arg
     Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
-                 [HTML5.M.p ~a:[HTML5.M.a_class ["errmsg"]]
-                    [HTML5.M.pcdata err]
+                 [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
+                    [Html5.F.pcdata err]
                  ]
              | _ -> [])
        @  [form] )
@@ -183,7 +185,7 @@ let create_forum =
                   ~wiki_model:Wiki_site.wikicreole_model () in
               Page_site.admin_page ~service:Forum_services.view_forums
                 ~title:"Create forum"
-                HTML5.M.([h2 [pcdata "Forum information sucessfully created"]]))
+                Html5.F.([h2 [pcdata "Forum information sucessfully created"]]))
         | false ->
             Page_site.(no_permission () >>= admin_page ~title:"Create forum"))
 
