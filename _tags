@@ -8,7 +8,7 @@
 <src/core/type/*>: thread, use_ocsimore
 
 # OASIS_START
-# DO NOT EDIT (digest: 0f2157aab90d73e8a2dfed08da45ca12)
+# DO NOT EDIT (digest: e35236cc012826c33b85d2fe23ce8cdf)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -61,7 +61,6 @@
 <src/user/*.ml{,i}>: pkg_lwt.syntax
 <src/user/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/user/*.ml{,i}>: pkg_pam
-<src/user/*.ml{,i}>: pkg_ocamldap
 <src/user/*.ml{,i}>: pkg_pgocaml.syntax
 <src/user/*.ml{,i}>: pkg_eliom.server
 <src/user/*.ml{,i}>: pkg_threads
@@ -73,7 +72,6 @@
 <src/wiki/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/wiki/*.ml{,i}>: pkg_pam
-<src/wiki/*.ml{,i}>: pkg_ocamldap
 <src/wiki/*.ml{,i}>: pkg_pgocaml.syntax
 <src/wiki/*.ml{,i}>: pkg_eliom.server
 <src/wiki/*.ml{,i}>: pkg_threads
@@ -83,7 +81,6 @@
 <src/wiki/server/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/wiki/server/*.ml{,i}>: pkg_pam
-<src/wiki/server/*.ml{,i}>: pkg_ocamldap
 <src/wiki/server/*.ml{,i}>: pkg_pgocaml.syntax
 <src/wiki/server/*.ml{,i}>: pkg_eliom.server
 <src/wiki/server/*.ml{,i}>: pkg_threads
@@ -102,7 +99,6 @@
 <src/forum/*.ml{,i}>: pkg_lwt.syntax
 <src/forum/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/forum/*.ml{,i}>: pkg_pam
-<src/forum/*.ml{,i}>: pkg_ocamldap
 <src/forum/*.ml{,i}>: pkg_pgocaml.syntax
 <src/forum/*.ml{,i}>: pkg_eliom.server
 <src/forum/*.ml{,i}>: pkg_threads
@@ -132,7 +128,6 @@
 <src/site/*.ml{,i}>: pkg_lwt.syntax
 <src/site/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/site/*.ml{,i}>: pkg_pam
-<src/site/*.ml{,i}>: pkg_ocamldap
 <src/site/*.ml{,i}>: pkg_pgocaml.syntax
 <src/site/*.ml{,i}>: pkg_eliom.server
 <src/site/*.ml{,i}>: pkg_threads
@@ -144,7 +139,6 @@
 <src/site/server/*.ml{,i}>: pkg_lwt.syntax
 <src/site/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/site/server/*.ml{,i}>: pkg_pam
-<src/site/server/*.ml{,i}>: pkg_ocamldap
 <src/site/server/*.ml{,i}>: pkg_pgocaml.syntax
 <src/site/server/*.ml{,i}>: pkg_eliom.server
 <src/site/server/*.ml{,i}>: pkg_threads
