@@ -353,6 +353,8 @@ let sub_string ?from ?to_ str =
 let has_prefix ?(offset=0) ~prefix str =
   String.(length str - offset > length prefix && sub str offset (length prefix) = prefix)
 
+(** If [list] starts with [prefix] and ends with [res] (i.e. [list = prefix @ res]
+    [list_suffix ~prefix list] return [Some res], otherwise [None].  *)
 let list_suffix ~prefix list =
   let rec aux = function
       [], res -> Some res
@@ -395,18 +397,18 @@ let normalize_link =
       | None -> (* [addr] is no [link_regexp] *)
           let replacement_addr =
             let page_wiki_id_string = Wiki_types.string_of_wiki desugar_param.dc_page_wiki in
-            if String.length addr = 0 then (* 1. *)
+            if String.length addr = 0 then (* [[]] => [[wiki(25):a/b/c]] *)
               Result.success_replace "wiki(%s):%s"
                 page_wiki_id_string
                 (get_map_option ~default:"" ~f:(String.concat "/") desugar_param.dc_page_path)
             else
-              if has_prefix ~prefix:"/" addr then (* [[/path]] => [[wiki(ix):page_path]] *)
+              if has_prefix ~prefix:"/" addr then (* [[/a/b/c]] => [[wiki(ix):e/f]] *)
                 match
                   list_suffix
                     ~prefix:(Eliom_request_info.get_site_dir ())
                     Neturl.(url_path (url_of_string site_url_syntax (sub_string ~from:1 addr)))
                 with
-                    Some path -> (* [addr] = site_dir / [path] *)
+                    Some path -> (* [addr = site_dir / path] *)
                       begin try
                         let page_wiki, page_path =
                           let wiki_page_for_path_option path =

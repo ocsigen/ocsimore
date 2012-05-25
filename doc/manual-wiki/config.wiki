@@ -70,12 +70,12 @@ creation). The program is provided by the ##bin##-attribute:
 == The ##internationalization##-tag ==
 
 This tag allowes to configure the internationalization of Ocsimore. The language
-of Ocsimore messages is set through the attribute ##lang##.  Currently
+of Ocsimore messages is set through the attribute ##language##.  Currently
 ##"english"## or ##"francais"## are allowed.
 
 {{{
   <extension findlib-package="ocsimore">
-    <internationalization lang="..."/>
+    <internationalization language="..."/>
     ...
   </extension>
 }}}
