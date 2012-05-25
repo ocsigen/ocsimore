@@ -255,5 +255,6 @@ table.table_admin th {
 h1:hover .backref, h2:hover .backref, h3:hover .backref, h4:hover .backref, h5:hover .backref, h6:hover .backref {
   display: inline;
   text-decoration: none;
-  color: #bbb;
+  color: inherit;
+  opacity: 0.3;
 }
