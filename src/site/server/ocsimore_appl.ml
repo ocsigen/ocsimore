@@ -1,7 +1,7 @@
 
 (*
 let appl_ref :
-    (module Eliom_output.Eliom_appl) option ref
+    (module Eliom_registration.App) option ref
     = ref None
 
 let appl = Eliom_common.lazy_site_value_from_fun
@@ -18,45 +18,45 @@ let register_appl reg_appl =
 
 let eliom_appl () = Eliom_common.force_lazy_site_value appl
 
-module Default_param : Eliom_output.APPL_PARAMS =
+module Default_param : Eliom_registration.APPL_PARAMS =
 struct
   let application_name = "ocsimore"
 end
 
 let default_appl =
-  (module Eliom_output.Eliom_appl(Default_param) : Eliom_output.Eliom_appl)
+  (module Eliom_registration.App(Default_param) : Eliom_registration.App)
 
 let register ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register ?scope
 
 let register_service ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register_service ?scope
 
 let register_coservice ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register_coservice ?scope
 
 let register_coservice' ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register_coservice' ?scope
 
 let register_post_service ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register_post_service ?scope
 
 let register_post_coservice ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register_post_coservice ?scope
 
 let register_post_coservice' ?scope =
-  let module Appl = (val (eliom_appl ()) : Eliom_output.Eliom_appl) in
+  let module Appl = (val (eliom_appl ()) : Eliom_registration.App) in
   Appl.register_post_coservice' ?scope
 *)
 
-module Default_param : Eliom_output.APPL_PARAMS = struct
+module Default_param : Eliom_registration.APPL_PARAMS = struct
   let application_name = !Ocsimore_config.application_name
 end
 
-include (Eliom_output.Eliom_appl(Default_param))
+include (Eliom_registration.App(Default_param))

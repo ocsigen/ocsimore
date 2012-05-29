@@ -31,7 +31,7 @@ let ( ** ) = Eliom_parameter.prod
 let user_widget =
   match User_services.basicusercreation with
     | User_services.NoUserCreation ->
-        Eliom_output.Html5.register
+        Eliom_registration.Html5.register
           ~service:User_services.service_create_new_user
           (Page_site.admin_body_content_with_permission_handler
              ~title:(fun () () -> Lwt.return "Create new user")
@@ -49,13 +49,13 @@ let user_widget =
             inherit User_widgets.user_widget_user_creation options
           end
         in
-        Eliom_output.Html5.register
+        Eliom_registration.Html5.register
           ~service:User_services.service_create_new_user
           (Page_site.admin_body_content_with_permission_handler
              ~title:(fun () () -> Lwt.return "Create new user")
              ~permissions:(fun () () -> User_data.can_create_user ~options)
              ~display:(fun () () -> user_widget_creation#display_user_creation ()));
-        Eliom_output.Html5.register
+        Eliom_registration.Html5.register
           ~service:User_services.action_create_new_user
           (Page_site.admin_body_content_with_permission_handler
              ~title:(fun () _ -> Lwt.return "Created new user")
@@ -71,7 +71,7 @@ let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
 
-  Eliom_output.Html5.register User_services.service_view_group
+  Eliom_registration.Html5.register User_services.service_view_group
     (let service g _ =
        User.get_user_by_name g >>= User_sql.user_type >|= function 
          | `Group -> User_services.service_view_groups
@@ -91,37 +91,37 @@ let () =
        ~service
        ~display);
 
-  Eliom_output.Html5.register User_services.service_view_groups
+  Eliom_registration.Html5.register User_services.service_view_groups
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View groups")
        ~permissions:(fun _ _ -> User_data.can_view_groups ())
        ~display:(fun _ _ -> user_widget#display_groups));
 
-  Eliom_output.Html5.register User_services.service_view_users
+  Eliom_registration.Html5.register User_services.service_view_users
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View groups")
        ~permissions:(fun _ _ -> User_data.can_view_users ())
        ~display:(fun _ _ -> user_widget#display_users));
 
-  Eliom_output.Html5.register User_services.service_view_roles
+  Eliom_registration.Html5.register User_services.service_view_roles
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View roles")
        ~permissions:(fun _ _ -> User_data.can_view_roles ())
        ~display:(fun _ _ -> user_widget#display_roles));
 
-  Eliom_output.Html5.register User_services.service_login
+  Eliom_registration.Html5.register User_services.service_login
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "Login")
        ~permissions:(fun _ _ -> Lwt.return true)
        ~display:(fun _ _ -> user_widget#display_login_widget ()));
 
-  Eliom_output.Html5.register ~service:User_services.service_create_new_group
+  Eliom_registration.Html5.register ~service:User_services.service_create_new_group
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "Create new group")
        ~permissions:(fun _ _ -> User_data.can_create_group ())
        ~display:(fun _ _ -> user_widget#display_group_creation ()));
 
-  Eliom_output.Html5.register ~service:User_services.action_create_new_group
+  Eliom_registration.Html5.register ~service:User_services.action_create_new_group
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return"Create new group")
        ~permissions:(fun _ _ -> User_data.can_create_group ())
@@ -140,7 +140,7 @@ let users_root =
     ~path:[!Ocsimore_config.admin_dir;"users"]
     ~get_params:Eliom_parameter.unit ()
 
-let () = Eliom_output.Html5.register users_root
+let () = Eliom_registration.Html5.register users_root
   (fun () () ->
      Page_site.admin_page
        ~title:"Ocsimore - Users module"

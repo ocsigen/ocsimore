@@ -126,14 +126,14 @@ module type Xform = sig
               [ `Attached of
                   ([ `Internal of [< `Coservice | `Service ]], [ `Get ])
                     Eliom_service.a_s ],
-              [< Eliom_service.suff ], 'b, unit, [< `Registrable ], Eliom_output.Html5.return)
+              [< Eliom_service.suff ], 'b, unit, [< `Registrable ], Eliom_registration.Html5.return)
     Eliom_service.service ->
     get_args:'a ->
     page:('a -> error ->
           [>Html5_types.form] Html5.F.elt -> Html5.F.html Lwt.t) ->
     ?err_handler:(exn -> string option) ->
     (Html5_types.form_content Html5.F.elt,
-     unit -> Eliom_output.Html5.page Lwt.t) t ->
+     unit -> Eliom_registration.Html5.page Lwt.t) t ->
     [> Html5_types.form] Html5.F.elt monad
 
 
@@ -621,7 +621,7 @@ module Xform = struct
         ~post_params:params ()
       in
       Html5.F.post_form ~service (fun names ->
-        Eliom_output.Html5.register ~scope:Eliom_common.session ~service
+        Eliom_registration.Html5.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
             match f.form (Some v) names with
               | (x, Success act) ->
@@ -664,7 +664,7 @@ module XformLwt = struct
         ~post_params:params ()
       in
       Html5.F.lwt_post_form ~service (fun names ->
-        Eliom_output.Html5.register ~scope:Eliom_common.session ~service
+        Eliom_registration.Html5.register ~scope:Eliom_common.session ~service
           (fun get_args v ->
             f.form (Some v) names >>= function
               | (x, Success act) ->

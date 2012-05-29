@@ -287,7 +287,7 @@ type ('a,'b, 'kind, 'suff, 'reg, 'appl) wiki_service =
      [< Eliom_service.suff] as 'suff,
      'b, unit,
      [< Eliom_service.registrable] as 'reg,
-     [< Eliom_output.appl_service] as 'appl) Eliom_service.service
+     [< Eliom_registration.appl_service] as 'appl) Eliom_service.service
 
 (* We need existential types to be able to parametrise service_href by
    the service and its parameter without showing the type of the
@@ -1279,7 +1279,7 @@ let make_href bi addr fragment =
             (Neturl.split_path page)
         in
         Service_href (service_href ?fragment ?https servpage addr)
-      (* Eliom_output.Html5.make_string_uri ?https
+      (* Eliom_registration.Html5.make_string_uri ?https
          ?fragment ~service:servpage addr *)
       | None -> String_href "malformed link" (*VVV ??? *)
   in

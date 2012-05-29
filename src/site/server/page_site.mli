@@ -26,7 +26,7 @@ open Eliom_content
 type menu_link_service =
     (Eliom_service.get_service_kind,
      [ `Unregistrable | `Registrable ],
-     Eliom_output.non_caml_service)
+     Eliom_registration.non_caml_service)
     Eliom_tools_common.one_page
 
 
@@ -35,7 +35,7 @@ type menu_link_service =
 val static_service :
   ((string list, unit, Eliom_service.get_service_kind, [ `WithSuffix ],
     [ `One of string list ] Eliom_parameter.param_name, unit,
-    [ `Registrable ], Eliom_output.http_service)
+    [ `Registrable ], Eliom_registration.http_service)
    Eliom_service.service)
 
 (** Path to a static file, suitable for inclusion in a <a> tag *)

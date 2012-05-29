@@ -39,7 +39,7 @@ val process_wikifile:
 
 val process_auxfile:
   wiki:Wiki_types.wiki ->
-  ?options:Eliom_output.File.options ->
+  ?options:Eliom_registration.File.options ->
   ?sectioning:bool ->
   ?menu_style:Wiki_widgets_interface.menu_style ->
   template:string ->
@@ -47,5 +47,5 @@ val process_auxfile:
   wb403:Wiki_types.wikibox ->
   ('a -> Ocsigen_local_files.resolved) ->
   'a ->
-  (Ocsimore_appl.appl Eliom_output.application_content,
-   Eliom_output.appl_service) Eliom_output.kind Lwt.t
+  (Ocsimore_appl.appl Eliom_registration.application_content,
+   Eliom_registration.appl_service) Eliom_registration.kind Lwt.t

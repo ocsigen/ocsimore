@@ -44,7 +44,7 @@ let forum_root =
     ~path:[!Ocsimore_config.admin_dir;"forums"]
     ~get_params:Eliom_parameter.unit ()
 
-let () = Eliom_output.Html5.register forum_root
+let () = Eliom_registration.Html5.register forum_root
   (fun () () ->
      Page_site.admin_page ~service:forum_root ~title:"Ocsimore - Forum module"
        [ Html5.F.p
@@ -106,7 +106,7 @@ let edit_forum =
         Some "You do not have sufficient permissions to edit forums"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_output.Html5.register Forum_services.edit_forum
+  Eliom_registration.Html5.register Forum_services.edit_forum
     (fun forum () ->
       lwt info = Forum_data.get_forum ~forum () in
       let open Forum_types in
@@ -168,7 +168,7 @@ let create_forum =
         Some "You do not have sufficient permissions to create forums"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_output.Html5.register Forum_services.create_forum
+  Eliom_registration.Html5.register Forum_services.create_forum
     (fun () () ->
       let open Forum_types in
       match_lwt User.in_group ~group:Forum.forum_creators () with
@@ -209,7 +209,7 @@ let _ =
   let forum_widget =
     new Forum_widgets.forum_widget widget_err in
   let () = Forum_wikiext.register_wikiext (message_widget, thread_widget, message_list_widget) in
-  Eliom_output.Html5.register Forum_services.view_forums
+  Eliom_registration.Html5.register Forum_services.view_forums
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun () () -> Lwt.return "View forums")
        ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))

@@ -29,7 +29,7 @@ open Lwt_ops
 type menu_link_service =
     (Eliom_service.get_service_kind,
      [ `Unregistrable | `Registrable ],
-    Eliom_output.non_caml_service)
+    Eliom_registration.non_caml_service)
     Eliom_tools.one_page
 
 let admin_staticdir =
@@ -59,13 +59,13 @@ let admin_staticdir =
 
 
 let static_service =
-  Eliom_output.Any.register_service
+  Eliom_registration.Any.register_service
     ~path:[!Ocsimore_config.admin_dir ; "static"]
     ~get_params:(Eliom_parameter.suffix (Eliom_parameter.all_suffix "path"))
     (fun path () ->
        let path = admin_staticdir :: path in
        let file = Eliom_lib.Url.string_of_url_path ~encode:false path in
-       Eliom_output.File.send ~options:(3600 * 24 * 7) file
+       Eliom_registration.File.send ~options:(3600 * 24 * 7) file
        (* TODO: parametrize cache duration... *)
     )
 
@@ -272,7 +272,7 @@ let ocsimore_admin_greetings =
   ]
 
 let () =
-  Eliom_output.Html5.register admin_root
+  Eliom_registration.Html5.register admin_root
     (fun () () ->
        admin_page ~service:admin_root ~title:"Ocsimore" ocsimore_admin_greetings);
   ()

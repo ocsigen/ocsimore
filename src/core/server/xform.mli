@@ -130,7 +130,7 @@ module type Xform = sig
       'b,
       unit,
       [< `Registrable ],
-      Eliom_output.http_service)
+      Eliom_registration.http_service)
     Eliom_service.service
     -> get_args:'a
     -> page:( 'a
@@ -139,7 +139,7 @@ module type Xform = sig
               -> Html5.F.html Lwt.t)
     -> ?err_handler:(exn -> string option)
     -> (Html5_types.form_content Html5.F.elt,
-        unit -> Eliom_output.Html5.page Lwt.t) t
+        unit -> Eliom_registration.Html5.page Lwt.t) t
     -> [>Html5_types.form] Html5.F.elt monad
 
 end

@@ -59,7 +59,7 @@ let process_auxfile
   try
     match resolver file with
     | Ocsigen_local_files.RFile file ->
-      Eliom_output.appl_self_redirect (Eliom_output.File.send ?options) file
+      Eliom_registration.appl_self_redirect (Eliom_registration.File.send ?options) file
     | _ -> raise Dir
   with
   | Ocsigen_local_files.Failed_404 | Undefined ->

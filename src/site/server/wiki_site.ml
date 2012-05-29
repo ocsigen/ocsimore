@@ -99,7 +99,7 @@ let () =
 
 (** We register the service that lists all the wikis *)
 let () =
-  Eliom_output.Html5.register Wiki_services.view_wikis
+  Eliom_registration.Html5.register Wiki_services.view_wikis
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun()()->Lwt.return "View wikis")
        ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
@@ -302,7 +302,7 @@ let create_wiki =
   let path = [!Ocsimore_config.admin_dir;"create_wiki"] in
   let create_wiki = Eliom_service.service ~path
       ~get_params:Eliom_parameter.unit () in
-  Eliom_output.Html5.register create_wiki
+  Eliom_registration.Html5.register create_wiki
     (fun () () ->
        wiki_rights#can_create_wiki () >>= function
          | true ->
@@ -405,7 +405,7 @@ let edit_wiki =
         Some "You do not have sufficient permissions to edit wikis"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_output.Html5.register Wiki_services.edit_wiki
+  Eliom_registration.Html5.register Wiki_services.edit_wiki
     (fun wiki () ->
        Wiki_sql.get_wiki_info_by_id wiki >>= fun info ->
        lwt rights = Wiki_models.get_rights info.wiki_model in
@@ -456,7 +456,7 @@ let _ =
           Lwt.return (Some (wikibox, version, author, datetime, content_type, content, comment))
      | None -> Lwt.return None
   in
-  Eliom_output.Html5.register Wiki_services.view_boxes
+  Eliom_registration.Html5.register Wiki_services.view_boxes
     (fun wiki () ->
       lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
       lwt wikiboxes = Lwt_list.map_s wikibox_extension wikiboxes >|= List.map_filter (fun x -> x) in
@@ -479,7 +479,7 @@ let _ =
     in
     Html5.F.(li [version_link; pcdata (if comment = "" then "" else " ("^comment^")")])
   in
-  Eliom_output.Html5.register Wiki_services.view_box
+  Eliom_registration.Html5.register Wiki_services.view_box
     (fun (wikibox, version) () ->
       Wiki_sql.get_wikibox_content ?version wikibox >>= function
          Some (comment, author, content, datetime, content_type, version) ->
@@ -533,7 +533,7 @@ let normalize_old_page_link wiki wikibox addr fragment attribs params =
 
 let _ =
   let is_allowed () = (=) User.admin =|< User.get_user_id () in
-  Eliom_output.Html5.register
+  Eliom_registration.Html5.register
     Wiki_services.batch_edit_boxes
     (fun () () ->
        lwt is_allowed = is_allowed () in
@@ -551,7 +551,7 @@ let _ =
           ])
       else
         Page_site.no_permission () >>= Page_site.admin_page ~title:"Batch edit boxes");
-  Eliom_output.Html5.register
+  Eliom_registration.Html5.register
     replace_links
     (fun () () ->
       lwt is_allowed = is_allowed () in
@@ -621,7 +621,7 @@ let wiki_root =
     ~get_params:Eliom_parameter.unit ()
 
 let () =
-  Eliom_output.Html5.register
+  Eliom_registration.Html5.register
     wiki_root
     (fun () () ->
        Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
@@ -632,7 +632,7 @@ let () =
          ])
 
 
-let () = Eliom_output.Html5.register Wiki_services.edit_wiki_permissions_admin
+let () = Eliom_registration.Html5.register Wiki_services.edit_wiki_permissions_admin
   (fun wiki () ->
      lwt _, form = wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki in
      lwt wiki_name = Wiki_sql.get_wiki_info_by_id ~id:wiki >|= fun { Wiki_types.wiki_title } -> wiki_title in
@@ -649,7 +649,7 @@ let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
   ]
 
 let () =
-  Eliom_output.Any.register
+  Eliom_registration.Any.register
     ~service:Wiki_services.Ui.preview_service
     (fun () (wiki_page, (wb, content)) ->
        lwt wiki = Wiki_sql.wikibox_wiki wb in
@@ -673,10 +673,10 @@ let () =
 
 
 let () =
-  Eliom_output.set_exn_handler
+  Eliom_registration.set_exn_handler
     (function
        | Eliom_common.Eliom_404 ->
-           Eliom_output.Html5.send
+           Eliom_registration.Html5.send
              ~code:404
              Html5.F.(
                html

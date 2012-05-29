@@ -117,35 +117,35 @@ let eliom_user : userid Ocsimore_common.eliom_usertype =
 (**/**)
 
 let action_login =
-  Eliom_output.Any.register_post_coservice'  ~https:force_secure
+  Eliom_registration.Any.register_post_coservice'  ~https:force_secure
     ~name:"login"  ~keep_get_na_params:false
     ~post_params:(string "usr" ** string "pwd")
     (fun () (name, pwd) ->
        try_lwt
           lwt () = User_data.login ~name ~pwd ~external_auth:external_auth in
-          Eliom_output.Redirection.send Eliom_service.void_hidden_coservice'
+          Eliom_registration.Redirection.send Eliom_service.void_hidden_coservice'
        with exc ->
           lwt () = User_data.add_login_error exc in
-          Eliom_output.Action.send ())
+          Eliom_registration.Action.send ())
 
 and action_logout =
-  Eliom_output.Any.register_post_coservice'
+  Eliom_registration.Any.register_post_coservice'
     ~name:"logoutpost" ~post_params:unit
     ~keep_get_na_params:false
     (fun () () ->
        lwt () = User_data.logout () in
-       Eliom_output.Redirection.send
+       Eliom_registration.Redirection.send
          Eliom_service.void_hidden_coservice')
 
 and action_logout_get =
-  Eliom_output.Redirection.register_coservice'
+  Eliom_registration.Redirection.register_coservice'
     ~name:"logout" ~get_params:unit
     (fun () () ->
        User_data.logout () >>= fun () ->
        Lwt.return Eliom_service.void_coservice')
 
 and action_edit_user_data =
-  Eliom_output.Any.register_post_coservice'
+  Eliom_registration.Any.register_post_coservice'
     ~https:force_secure
     ~post_params:(eliom_user ** (string "pwd" **
                                    (string "pwd2" **
@@ -161,12 +161,12 @@ and action_edit_user_data =
               in
               Ocsimore_common.(set_action_failure Ok))
        in
-       Eliom_output.Action.send ())
+       Eliom_registration.Action.send ())
 
 (** Groups-related services *)
 
 and action_add_remove_users_from_group =
-  Eliom_output.Any.register_post_coservice'
+  Eliom_registration.Any.register_post_coservice'
     ~name:"add_remove_users_from_group"
     ~post_params:(Eliom_parameter.string "group" **
                     (Eliom_parameter.string "add" **
@@ -174,18 +174,18 @@ and action_add_remove_users_from_group =
     (fun () (g, (add, rem)) ->
        Ocsimore_common.catch_action_failure
          (fun () -> User_data.add_remove_users_from_group g (add, rem))
-       >>= fun () -> Eliom_output.Redirection.send
+       >>= fun () -> Eliom_registration.Redirection.send
        Eliom_service.void_hidden_coservice'
     )
 
 (*
   and action_add_remove_user_from_groups =
-    Eliom_output.Any.register_new_post_coservice'
+    Eliom_registration.Any.register_new_post_coservice'
       ~name:"add_remove_user_from_groups" ~post_params:params_groups
       (fun sp () (u, (add, rem)) ->
          Ocsimore_common.catch_action_failure ~sp
            (fun () -> User_data.add_remove_user_from_groups sp u (add, rem))
-         >>= fun () -> Eliom_output.Action.send ~sp ()
+         >>= fun () -> Eliom_registration.Action.send ~sp ()
       )
 *)
 
@@ -306,7 +306,7 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameter.unit ()
           in
-          Eliom_output.Html5.register ~service
+          Eliom_registration.Html5.register ~service
             (Page_site.admin_body_content_with_permission_handler
                ~title:(fun () () -> Lwt.return "Ocsimore - User creation")
                ~permissions:(fun () () -> Lwt.return true)

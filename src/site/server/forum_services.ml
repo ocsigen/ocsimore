@@ -46,7 +46,7 @@ let register_services () =
       ()
   in
 
-  Eliom_output.Any.register 
+  Eliom_registration.Any.register 
     ~service:add_message_service
     (fun () (actionname, (parent, (subject, text))) ->
       lwt (forum, parent_id) =
@@ -67,18 +67,18 @@ let register_services () =
             Forum_data.new_message
               ~forum ~creator_id:u.user_id ?subject ?parent_id ~text ()
           in
-          Eliom_output.Redirection.send
+          Eliom_registration.Redirection.send
             Eliom_service.void_hidden_coservice'
         with Ocsimore_common.Permission_denied ->
           lwt () =
             set_forum_action (Forum.Msg_creation_not_allowed (forum, parent_id))
           in
-          Eliom_output.Action.send ()
+          Eliom_registration.Action.send ()
       else (* preview *)
         lwt () =
           set_forum_action (Forum.Preview ((forum, parent_id), text))
         in
-        Eliom_output.Action.send ());
+        Eliom_registration.Action.send ());
 
   (* Moderation *)
   let moderate_message_service =
@@ -89,7 +89,7 @@ let register_services () =
       ()
   in
 
-  Eliom_output.Action.register 
+  Eliom_registration.Action.register 
     ~service:moderate_message_service
     (fun () msg ->
        Forum_data.set_moderated ~message_id:msg ~moderated:true);
