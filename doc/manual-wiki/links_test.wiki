@@ -3,9 +3,11 @@
 
 Site map
 * ##/ocsimore##
-** ##/test## (wiki 4)
-*** ##/a/b/c## (a wikipage with this content)
-** ##/other## (wiki 5)
+** ##test## (wiki 4)
+*** ##a/b/c## (a wikipage with this content)
+*** ##a/b/sub## (wiki 6)
+**** ##d## (wiki 6)
+** ##other## (wiki 5)
 
 == Test link kinds
 
@@ -25,6 +27,7 @@ On {{{/ocsimore/test/a/b/c}}}
 | {{{[[#anc]]}}}                 | {{{[[wiki(4):a/b/c#anc]]}}} | [[#anc]]                 | {{{/ocsimore/test/a/b/c#anc}}} |
 | {{{[[xyz]]}}}                  | {{{[[wiki(4):a/b/xyz]]}}}   | [[xyz]]                  | {{{/ocsimore/test/a/b/xyz}}}   |
 | {{{[[c/xyz]]}}}                | {{{[[wiki(4):a/b/c/xyz]]}}} | [[c/xyz]]                | {{{/ocsimore/test/a/b/c/xyz}}} |
+| {{{[[sub/d]]}}}                | {{{[[wiki(6):d]]}}}         | [[sub/d]]                | {{{/ocsimore/test/a/b/sub/d}}} |
 | {{{[[../xyz]]}}}               | {{{[[wiki(4):a/xyz]]}}}     | [[../xyz]]               | {{{/ocsimore/test/a/xyz}}}     |
 | {{{[[/ocsimore/test/a/xyz]]}}} | {{{[[wiki(4):a/xyz]]}}}     | [[/ocsimore/test/a/xyz]] | {{{/ocsimore/test/a/xyz}}}     |
 | {{{[[/ocsimore/other/xyz]]}}}  | {{{[[wiki(5):xyz]]}}}       | [[/ocsimore/other/xyz]]  | {{{/ocsimore/other/xyz}}}      |

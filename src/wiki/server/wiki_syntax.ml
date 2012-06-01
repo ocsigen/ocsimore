@@ -402,45 +402,49 @@ let normalize_link =
                 page_wiki_id_string
                 (get_map_option ~default:"" ~f:(String.concat "/") desugar_param.dc_page_path)
             else
-              if has_prefix ~prefix:"/" addr then (* [[/a/b/c]] => [[wiki(ix):e/f]] *)
-                match
-                  list_suffix
-                    ~prefix:(Eliom_request_info.get_site_dir ())
-                    Neturl.(url_path (url_of_string site_url_syntax (sub_string ~from:1 addr)))
-                with
-                    Some path -> (* [addr = site_dir / path] *)
-                      begin try
-                        let page_wiki, page_path =
-                          let wiki_page_for_path_option path =
-                            try Some (Wiki_self_services.get_wiki_page_for_path path)
-                            with Not_found -> None
-                          in
-                          match wiki_page_for_path_option path, wiki_page_for_path_option ("" :: path) with
-                            | Some ((_, page_path) as page), Some ((_, page_path') as page') ->
-                                if List.(length page_path < length page_path') then page else page'
-                            | Some page, None | None, Some page -> page
-                            | None, None -> raise Not_found
-                        in
-                        Result.success_replace "wiki(%s):%s"
-                          (Wiki_types.string_of_wiki page_wiki)
-                          (Url.string_of_url_path ~encode:false page_path)
-                      with Not_found -> (* No wiki page at [path] *)
-                        Result.success_replace "site:%s" (Url.string_of_url_path ~encode:false path)
-                      end
-                  | None -> (* site directory not a prefix of path *)
-                      Result.success_replace "href:%s" addr
-              else (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
-                  let path =
+              let path_or_link =
+                if has_prefix ~prefix:"/" addr then (* [[/a/b/c]] => [[wiki(ix):e/f]] *)
+                  match
+                    list_suffix
+                      ~prefix:(Eliom_request_info.get_site_dir ())
+                      Neturl.(url_path (url_of_string site_url_syntax (sub_string ~from:1 addr)))
+                  with
+                    | Some path -> (* [addr = site_dir / path] *)
+                        `Path path
+                    | None -> (* addr does not denote something in the ocsigen site *)
+                        `Link (Result.success_replace "href:%s" addr)
+                else
+                  let url =
+                    let relative_url = Neturl.url_of_string site_url_syntax addr in
                     match desugar_param.Wiki_syntax_types.dc_page_path with
-                        Some page_path ->
-                          let open Neturl in
-                          join_path (url_path
-                            (apply_relative_url
-                              (make_url ~path:page_path site_url_syntax)
-                              (url_of_string site_url_syntax addr)))
-                      | None -> addr
-                  in
-                  Result.success_replace "wiki(%s):%s" page_wiki_id_string path
+                      | Some page_path ->
+                          Neturl.apply_relative_url
+                            (Neturl.make_url ~path:page_path site_url_syntax)
+                            relative_url
+                      | None -> relative_url
+                  in `Path (Neturl.url_path url)
+              in
+              match path_or_link with
+                | `Path path -> (* [[xyz]] => [[wiki(25):a/b/xyz]] et al. *)
+                    begin try
+                      let page_wiki, page_path =
+                        let wiki_page_for_path_option path =
+                          try Some (Wiki_self_services.get_wiki_page_for_path path)
+                          with Not_found -> None
+                        in
+                        match wiki_page_for_path_option path, wiki_page_for_path_option ("" :: path) with
+                          | Some ((_, page_path) as page), Some ((_, page_path') as page') ->
+                              if List.(length page_path < length page_path') then page else page'
+                          | Some page, None | None, Some page -> page
+                          | None, None -> raise Not_found
+                      in
+                      Result.success_replace "wiki(%s):%s"
+                        (Wiki_types.string_of_wiki page_wiki)
+                        (Url.string_of_url_path ~encode:false page_path)
+                    with Not_found -> (* No wiki page at [path] *)
+                      Result.success_replace "site:%s" (Url.string_of_url_path ~encode:false path)
+                    end
+                | `Link res -> res
           in
           let append_fragment addr = addr ^ get_map_option ~default:"" ~f:((^) "#") fragment in
           replacement_addr >|= Option.map append_fragment
