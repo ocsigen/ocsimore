@@ -902,6 +902,7 @@ module MakeParser(B: RawParser) :
     let hr_elem = B.hr_elem
     let pre_elem = B.pre_elem
     let make_href = B.make_href
+    let string_of_href = B.string_of_href
     let emdash = B.emdash
     let endash = B.endash
     let nbsp = B.nbsp
@@ -1055,6 +1056,8 @@ module MakeParser(B: RawParser) :
     let make_href _ a fragment = match fragment with
       | None -> a
       | Some f -> a ^"#"^f
+
+    let string_of_href x = x
 
     type plugin_content =
       [ `Flow5_link of (href * Wikicreole.attribs * flow_without_interactive)
@@ -1499,6 +1502,12 @@ module FlowBuilder = struct
         make_href bi (link_kind c) fragment
       with Failure _ ->
         String_href "???")
+
+  let string_of_href = function
+    | String_href str -> str
+    | Service_href service_href ->
+        let module Service_href = (val service_href : Wiki_syntax_types.Service_href) in
+        Html5.F.string_of_uri Service_href.uri
 
   let br_elem attribs =
     let a = opt_list (parse_common_attribs attribs) in

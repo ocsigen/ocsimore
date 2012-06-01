@@ -70,6 +70,7 @@ module type RawBuilder = sig
   val a_elem_phrasing : attribs -> href -> phrasing_without_interactive list -> phrasing
   val a_elem_flow : attribs -> href -> flow_without_interactive list -> flow
   val make_href : param -> string -> string option -> href
+  val string_of_href : href -> string
   (** the string option is the fragment part of the URL (#...)*)
   val p_elem : attribs -> phrasing list -> flow_without_interactive
   val pre_elem : attribs -> string list -> flow_without_interactive
@@ -803,13 +804,9 @@ and parse_link beg begaddr fragment c attribs =
           c.link <- true
         end
         else
-          let text = match fragment with
-            | None -> begaddr
-            | Some f -> begaddr^"#"^f
-          in
           c.phrasing_mix <-
-            B.a_elem_phrasing
-            attribs addr [B.chars text] :: c.phrasing_mix;
+            B.a_elem_phrasing attribs addr [B.chars (B.string_of_href addr)]
+              :: c.phrasing_mix;
       end;
       parse_rem c lexbuf
   }

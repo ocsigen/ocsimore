@@ -54,6 +54,7 @@ module type RawBuilder = sig
   val a_elem_flow : attribs -> href -> flow_without_interactive list -> flow
   val make_href : param -> string -> string option -> href
   (** the string option is the fragment part of the URL (#...)*)
+  val string_of_href : href -> string
   val p_elem : attribs -> phrasing list -> flow_without_interactive
   val pre_elem : attribs -> string list -> flow_without_interactive
   val h1_elem : attribs -> phrasing list -> flow_without_interactive
