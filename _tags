@@ -8,7 +8,7 @@
 <src/core/type/*>: thread, use_ocsimore
 
 # OASIS_START
-# DO NOT EDIT (digest: e35236cc012826c33b85d2fe23ce8cdf)
+# DO NOT EDIT (digest: 8947f25d3614771a541b2dd5b3d8d2a0)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -33,19 +33,19 @@
 <src/core/*.ml{,i}>: pkg_camlp4
 <src/core/*.ml{,i}>: pkg_lwt.syntax
 <src/core/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/core/*.ml{,i}>: pkg_pgocaml.syntax
+<src/core/*.ml{,i}>: pkg_macaque.syntax
 <src/core/*.ml{,i}>: pkg_eliom.server
 <src/core/*.ml{,i}>: pkg_threads
 <src/core/server/*.ml{,i}>: pkg_camlp4
 <src/core/server/*.ml{,i}>: pkg_lwt.syntax
 <src/core/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/core/server/*.ml{,i}>: pkg_pgocaml.syntax
+<src/core/server/*.ml{,i}>: pkg_macaque.syntax
 <src/core/server/*.ml{,i}>: pkg_eliom.server
 <src/core/server/*.ml{,i}>: pkg_threads
 "src/core/crypt_stubs.c": pkg_camlp4
 "src/core/crypt_stubs.c": pkg_lwt.syntax
 "src/core/crypt_stubs.c": pkg_js_of_ocaml.deriving.syntax
-"src/core/crypt_stubs.c": pkg_pgocaml.syntax
+"src/core/crypt_stubs.c": pkg_macaque.syntax
 "src/core/crypt_stubs.c": pkg_eliom.server
 "src/core/crypt_stubs.c": pkg_threads
 # Library ocsimore_client
@@ -61,7 +61,7 @@
 <src/user/*.ml{,i}>: pkg_lwt.syntax
 <src/user/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/user/*.ml{,i}>: pkg_pam
-<src/user/*.ml{,i}>: pkg_pgocaml.syntax
+<src/user/*.ml{,i}>: pkg_macaque.syntax
 <src/user/*.ml{,i}>: pkg_eliom.server
 <src/user/*.ml{,i}>: pkg_threads
 # Library wiki
@@ -72,7 +72,7 @@
 <src/wiki/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/wiki/*.ml{,i}>: pkg_pam
-<src/wiki/*.ml{,i}>: pkg_pgocaml.syntax
+<src/wiki/*.ml{,i}>: pkg_macaque.syntax
 <src/wiki/*.ml{,i}>: pkg_eliom.server
 <src/wiki/*.ml{,i}>: pkg_threads
 <src/wiki/server/*.ml{,i}>: use_user
@@ -81,7 +81,7 @@
 <src/wiki/server/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/wiki/server/*.ml{,i}>: pkg_pam
-<src/wiki/server/*.ml{,i}>: pkg_pgocaml.syntax
+<src/wiki/server/*.ml{,i}>: pkg_macaque.syntax
 <src/wiki/server/*.ml{,i}>: pkg_eliom.server
 <src/wiki/server/*.ml{,i}>: pkg_threads
 # Library wiki_client
@@ -99,7 +99,7 @@
 <src/forum/*.ml{,i}>: pkg_lwt.syntax
 <src/forum/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/forum/*.ml{,i}>: pkg_pam
-<src/forum/*.ml{,i}>: pkg_pgocaml.syntax
+<src/forum/*.ml{,i}>: pkg_macaque.syntax
 <src/forum/*.ml{,i}>: pkg_eliom.server
 <src/forum/*.ml{,i}>: pkg_threads
 # Library core_site
@@ -128,7 +128,7 @@
 <src/site/*.ml{,i}>: pkg_lwt.syntax
 <src/site/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/site/*.ml{,i}>: pkg_pam
-<src/site/*.ml{,i}>: pkg_pgocaml.syntax
+<src/site/*.ml{,i}>: pkg_macaque.syntax
 <src/site/*.ml{,i}>: pkg_eliom.server
 <src/site/*.ml{,i}>: pkg_threads
 <src/site/server/*.ml{,i}>: use_core_site
@@ -139,7 +139,7 @@
 <src/site/server/*.ml{,i}>: pkg_lwt.syntax
 <src/site/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 <src/site/server/*.ml{,i}>: pkg_pam
-<src/site/server/*.ml{,i}>: pkg_pgocaml.syntax
+<src/site/server/*.ml{,i}>: pkg_macaque.syntax
 <src/site/server/*.ml{,i}>: pkg_eliom.server
 <src/site/server/*.ml{,i}>: pkg_threads
 # OASIS_STOP
