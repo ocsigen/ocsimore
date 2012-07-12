@@ -22,9 +22,10 @@ open Eliom_lib
 open Parse_config (* To force Parse_config to be linked early enough, as it
                      triggers the reading of the password file *)
 
-
+module Lwt_fonct = struct include Lwt include Lwt_chan end
 module PGOCaml =
-  PGOCaml_generic.Make (struct include Lwt include Lwt_chan end)
+  PGOCaml_generic.Make (Lwt_fonct)
+module PGOCamlQuery = Query.Make_with_Db(Lwt_fonct)(PGOCaml)
 
 let () = PGOCaml.verbose := 2
 
@@ -48,7 +49,7 @@ let validate db =
   with _ ->
     Lwt.return false
 
-let pool = Lwt_pool.create 16 ~validate connect
+let pool = Lwt_pool.create 16 (*~validate*) connect
 
 let transaction_block db f =
   PGOCaml.begin_work db >>= fun _ ->

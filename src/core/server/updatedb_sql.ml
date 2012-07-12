@@ -16,16 +16,22 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Sql
+open Ocsi_sql
+
+(* BEWARE: This is going to raise an exception ! *)
+let options = <:table< options (
+  name text NOT NULL,
+  value text NOT NULL
+) >>
 
 let current_version = Lwt_unix.run
   (try_lwt
      lwt l =
        full_transaction_block
-         (fun db ->
-            PGSQL(db) "SELECT value FROM options WHERE name = 'dbversion'")
-     in
-     Lwt.return (int_of_string (List.hd l))
+         (fun db -> PGOCamlQuery.view db (
+           <:view< {opt.value} | opt in $options$; opt.name = "dbversion" >>))
+   in
+    Lwt.return (int_of_string ((List.hd l)#!value))
    with exc ->
       Lwt.fail (Failure (Printf.sprintf "Error while reading database version \
                                          for ocsimore: '%s'"
@@ -33,7 +39,7 @@ let current_version = Lwt_unix.run
 
 let update_version db version =
   let ver = string_of_int version in
-  PGSQL(db) "UPDATE options SET value = $ver WHERE name = 'dbversion'"
+  PGOCamlQuery.query db (<:update< opt in $options$ := { value = $string:ver$ } | opt.name = "dbversion">>)
 
 let update version f =
   if current_version < version then
@@ -45,10 +51,10 @@ let update version f =
   else
     Lwt.return ()
 
-
+(*
 let () =
   Lwt_unix.run begin
-   lwt () = update 2 (fun db -> PGSQL(db) "ALTER TABLE options ADD PRIMARY KEY (name)") in
+   lwt () = update 2 (fun db -> "ALTER TABLE options ADD PRIMARY KEY (name)") [] in
    lwt () = update 3 (fun db -> PGSQL(db) "ALTER TABLE wikis ADD COLUMN hostid text") in
    lwt () = update 4 (fun db -> PGSQL(db) "ALTER TABLE wikis RENAME COLUMN hostid TO siteid") in
    lwt () = update 5 (fun db -> PGSQL(db) "ALTER TABLE wikiboxescontent ADD COLUMN ip text") in
@@ -58,4 +64,4 @@ let () =
         PGSQL(db) "ALTER TABLE wikis ADD CONSTRAINT wikis_title_unique UNIQUE (title,siteid)")
    in Lwt.return ()
  end
-
+*)

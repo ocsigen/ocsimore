@@ -24,10 +24,10 @@
 
 open Eliom_lib.Lwt_ops
 
-open Sql.PGOCaml
+open Ocsi_sql.PGOCaml
 open Ocsimore_lib
 open CalendarLib
-open Sql
+open Ocsi_sql
 
 module Types = struct
 
@@ -132,7 +132,8 @@ let sql_from_user = function
   | NonParameterizedGroup u ->
       (sql_from_userid u, Some ct_non_parameterized_group)
 
-let user_from_sql = function
+let user_from_sql data =
+  match (data#!id, data#?idarg) with
   | (u, None) -> BasicUser (userid_from_sql u)
   | (u, Some v) ->
       if v = ct_non_parameterized_group
@@ -162,22 +163,30 @@ let pass_authtype_from_pass pwd = match pwd with
       fun crypt ->
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
 
+(* BEWARE !!!! See: update_db.ml *)
+let userrights = <:table< userrights (
+  id integer NOT NULL,
+  groupid integer NOT NULL,
+  idarg integer,
+  groupidarg integer
+) >>
+
+let bind_option_int32 = function
+  | (Some x) -> Some <:value< $int32:x$ >>
+  | None -> None
 
 let remove_from_group_aux db (u, vu) (g, vg) =
-  PGSQL(db) "DELETE FROM userrights
-             WHERE id = $u AND groupid = $g
-             AND idarg IS NOT DISTINCT FROM $?vu
-             AND groupidarg IS NOT DISTINCT FROM $?vg"
-
+  PGOCamlQuery.query db (<:delete< d in $userrights$ |
+      d.id = $int32:u$; d.groupid = $int32:g$; d.idarg = of_option $bind_option_int32 vu$; d.groupidarg = of_option $bind_option_int32 vg$ >>)
 
 let remove_from_group_ ~user ~group =
-  Lwt_pool.use Sql.pool (fun db -> remove_from_group_aux db
+  Lwt_pool.use Ocsi_sql.pool (fun db -> remove_from_group_aux db
                            (sql_from_user user) (sql_from_user group))
 
 let add_to_group_aux db (u, vu) (g, vg) =
   remove_from_group_aux db (u, vu) (g, vg) >>= fun () ->
-  PGSQL(db) "INSERT INTO userrights (id, groupid, idarg, groupidarg)
-             VALUES ($u, $g, $?vu, $?vg)"
+  PGOCamlQuery.query db (<:insert< $userrights$ :=
+    {id = $int32:u$; groupid = $int32:g$; idarg = of_option $bind_option_int32 vu$; groupidarg = of_option $bind_option_int32 vg$} >>)
 
 let populate_groups db user groups =
   let (u, vu) = sql_from_user user in
@@ -185,13 +194,13 @@ let populate_groups db user groups =
     groups
 
 let add_to_group_ ~user ~group =
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        add_to_group_aux db (sql_from_user user) (sql_from_user group))
 
 
 let add_generic_inclusion_ ~subset ~superset =
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let subset = sql_from_userid subset
        and superset = sql_from_userid superset in
@@ -199,25 +208,36 @@ let add_generic_inclusion_ ~subset ~superset =
          (superset, Some ct_parameterized_edge)
     )
 
+let id_seq = <:sequence< serial "test_id_seq" >>
+
+let users = <:table< users (
+  id integer NOT NULL, (* Test if we can put a DEFAULT instead *)
+  login text NOT NULL,
+  password text DEFAULT(null),
+  fullname text NOT NULL,
+  email text DEFAULT(null),
+  dyn boolean NOT NULL,
+  authtype text NOT NULL
+) >>
 
 let new_user ~name ~password ~fullname ~email ~dyn =
   pass_authtype_from_pass password
   >>= fun (pwd, (password, authtype)) ->
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        (match password, email with
           | None, None ->
-              PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
-                    VALUES ($name, $fullname, $dyn, $authtype)"
+            PGOCamlQuery.query db (<:insert< $users$ :=
+              {id = nextval $id_seq$; login = $string:name$; password = users?password; email = users?email; fullname = $string:fullname$; dyn = $bool:dyn$; authtype = $string:authtype$} >>)
           | Some pwd, None ->
-              PGSQL(db) "INSERT INTO users (login, password, fullname, dyn, authtype) \
-                    VALUES ($name, $pwd, $fullname, $dyn, $authtype)"
+            PGOCamlQuery.query db (<:insert< $users$ :=
+              {id = nextval $id_seq$; login = $string:name$; password = $string:pwd$; fullname = $string:fullname$; email = users?email; dyn = $bool:dyn$; authtype = $string:authtype$} >>)
           | None, Some email ->
-              PGSQL(db) "INSERT INTO users (login, fullname, email, dyn, authtype) \
-                    VALUES ($name, $fullname, $email, $dyn, $authtype)"
+            PGOCamlQuery.query db (<:insert< $users$ :=
+              {id = nextval $id_seq$; login = $string:name$; password = users?password; fullname = $string:fullname$; email = $string:email$; dyn = $bool:dyn$; authtype = $string:authtype$} >>)
           | Some pwd, Some email ->
-              PGSQL(db) "INSERT INTO users (login, password, fullname, email, dyn, authtype) \
-                    VALUES ($name, $pwd, $fullname, $email, $dyn, $authtype)"
+            PGOCamlQuery.query db (<:insert< $users$ :=
+              {id = nextval $id_seq$; login = $string:name$; password = $string:pwd$; fullname = $string:fullname$; email = $string:email$; dyn = $bool:dyn$; authtype = $string:authtype$} >>)
        ) >>= fun () ->
        serial4 db "users_id_seq"
        >>= fun id ->
@@ -228,10 +248,10 @@ let new_user ~name ~password ~fullname ~email ~dyn =
 exception NotAnUser
 
 let find_userid_by_name_aux_ db name =
-  PGSQL(db) "SELECT id FROM users WHERE login = $name"
+  PGOCamlQuery.view db (<:view< {u.id} | u in $users$; u.login = $string:name$ >>)
   >>= function
     | [] -> Lwt.fail NotAnUser
-    | r :: _ -> Lwt.return (userid_from_sql r)
+    | r :: _ -> Lwt.return (userid_from_sql (r#!id))
 
 
 let new_group authtype find_param ~prefix ~name ~descr =
@@ -239,18 +259,17 @@ let new_group authtype find_param ~prefix ~name ~descr =
   (match find_param with
      | None -> ()
      | Some v -> Hashtbl.add hash_find_param name v);
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        Lwt.catch
          (fun () -> find_userid_by_name_aux_ db name >>= fun user ->
-                    let u = sql_from_userid user in
-                    PGSQL(db) "UPDATE users
-                               SET fullname=$descr WHERE id = $u" >>=
+                    let us = sql_from_userid user in
+                    PGOCamlQuery.query db (<:update< u in $users$
+          := {fullname = $string:descr$} | u.id = $int32:us$ >>) >>=
                     fun () -> Lwt.return user)
          (function
             | NotAnUser ->
-                PGSQL(db) "INSERT INTO users (login, fullname, dyn, authtype)\
-                           VALUES ($name, $descr, FALSE, $authtype)"
+              PGOCamlQuery.query db (<:insert< $users$ := {id = nextval $id_seq$; login = $string:name$; password = users?password; fullname = $string:descr$; email = users?email; dyn = false; authtype = $string:authtype$} >>)
                 >>= fun () ->
                 serial4 db "users_id_seq"
                 >>= fun id -> Lwt.return (userid_from_sql id)
@@ -263,88 +282,87 @@ let new_nonparameterized_group ~prefix ~name ~descr =
   new_group "h" None ~prefix ~name ~descr >>= fun id ->
   Lwt.return (NonParameterizedGroup id)
 
-let wrap_userdata (id, login, pwd, name, email, dyn, authtype) =
-  let password = match authtype, pwd with
+let wrap_userdata userdata =
+  let password = match userdata#!authtype, userdata#?password with
     | "p", _ -> External_Auth
     | "c", Some p -> Ocsimore_user_crypt p
     | "l", Some p -> Ocsimore_user_plain p
     | _ -> Connect_forbidden
   in
-  { user_id = userid_from_sql id; user_login = login;
-    user_pwd = password; user_fullname = name;
-    user_email = email; user_dyn = dyn;
+  { user_id = userid_from_sql userdata#!id; user_login = userdata#!login;
+    user_pwd = password; user_fullname = userdata#!fullname;
+    user_email = userdata#?email; user_dyn = userdata#!dyn;
     user_kind =
-      match authtype with
+      match userdata#!authtype with
         | "g" -> `ParameterizedGroup
-            (try Some (Hashtbl.find hash_find_param login)
+            (try Some (Hashtbl.find hash_find_param userdata#!login)
              with Not_found -> None)
         | "h" -> `NonParameterizedGroup
         | _ -> `BasicUser}
 
 
 let find_user_by_name_ name =
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-       PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
-                  FROM users WHERE login = $name"
+      PGOCamlQuery.view db (<:view< u | u in $users$; u.login = $string:name$ >>)
        >>= function
          | [] -> Lwt.fail NotAnUser
          | r :: _ -> Lwt.return (wrap_userdata r))
 
 let find_userid_by_name_ name =
-  Lwt_pool.use Sql.pool (fun db -> find_userid_by_name_aux_ db name)
+  Lwt_pool.use Ocsi_sql.pool (fun db -> find_userid_by_name_aux_ db name)
 
 
 let find_user_by_id_ id =
   let id = sql_from_userid id in
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-       PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
-                  FROM users WHERE id = $id"
+      PGOCamlQuery.view db (<:view< u | u in $users$; u.id = $int32:id$ >>)
        >>= function
          | [] -> Lwt.fail NotAnUser
          | r :: _ -> Lwt.return (wrap_userdata r))
 
 let all_groups () =
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-       PGSQL(db) "SELECT id, login, password, fullname, email, dyn, authtype \
-                  FROM users"
+      PGOCamlQuery.view db (<:view< u | u in $users$ >>)
        >>= fun l -> Lwt.return (List.map wrap_userdata l))
 
 
 let delete_user_ ~userid =
   let userid = sql_from_userid userid in
-  Lwt_pool.use Sql.pool (fun db ->
-  PGSQL(db) "DELETE FROM users WHERE id = $userid")
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.query db (<:delete< d in $users$ | d.id = $int32:userid$ >>))
 
+let bind_option_string = function
+  | (Some x) -> Some <:value< $string:x$ >>
+  | None -> None
 
 let update_data_ ~userid ?password ?fullname ?email ?dyn () =
   let userid = sql_from_userid userid in
-  Sql.full_transaction_block
+  Ocsi_sql.full_transaction_block
     (fun db ->
        (match password with
           | None -> Lwt.return ()
           | Some pwd ->
               pass_authtype_from_pass pwd
               >>= fun (_pwd, (password, authtype)) ->
-              PGSQL(db) "UPDATE users
-                         SET password = $?password, authtype = $authtype
-                         WHERE id = $userid"
+              PGOCamlQuery.query db (<:update< u in $users$ :=
+                          {password = of_option $bind_option_string password$; authtype = $string:authtype$} | u.id = $int32:userid$ >>)
        ) >>= fun () ->
        (match fullname with
           | None -> Lwt.return ()
-          | Some fullname -> PGSQL(db)
-              "UPDATE users SET fullname = $fullname WHERE id = $userid"
+          | Some fullname ->
+            PGOCamlQuery.query db (<:update< u in $users$ := {fullname = $string:fullname$} | u.id = $int32:userid$ >>)
        ) >>= fun () ->
        (match email with
           | None -> Lwt.return ()
-          | Some email -> PGSQL(db)
-              "UPDATE users SET email = $email WHERE id = $userid"
+          | Some email ->
+            PGOCamlQuery.query db (<:update< u in $users$ := {email = of_option $bind_option_string email$} | u.id = $int32:userid$ >>)
        ) >>= fun () ->
        (match dyn with
-          | Some dyn -> PGSQL(db)
-              "UPDATE users SET dyn = $dyn WHERE id = $userid"
+          | Some dyn ->
+            PGOCamlQuery.query db (<:update< u in $users$ := {dyn = $bool:dyn$} | u.id = $int32:userid$ >>)
           | None -> Lwt.return ()
        )
     )
@@ -355,28 +373,27 @@ let convert_group_list = List.map user_from_sql
 let convert_generic_lists r1 r2 v =
   let l1 = convert_group_list r1
   and l2 = List.map (fun g ->
-                       AppliedParameterizedGroup (userid_from_sql g, v)) r2 in
+                       AppliedParameterizedGroup (userid_from_sql g#!id, v)) r2 in
   l1 @ l2
 
 
 let groups_of_user_ ~user =
   let u, vu = sql_from_user user in
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        (match vu with
           | None ->
-              PGSQL(db) "SELECT groupid, groupidarg FROM userrights
-                         WHERE id = $u AND idarg IS NULL"
+            PGOCamlQuery.view db (<:view< {id = ur.groupid; idarg = ur.groupidarg} |
+                ur in $userrights$; ur.id = $int32:u$; ur.idarg = null >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vu ->
               (* Standard inclusions *)
-              PGSQL(db) "SELECT groupid, groupidarg FROM userrights
-                         WHERE id = $u AND idarg = $vu"
+            PGOCamlQuery.view db (<:view< {id = ur.groupid; idarg = ur.groupidarg} |
+                ur in $userrights$; ur.id = $int32:u$; ur.idarg = nullable $int32:vu$ >>)
               >>= fun r1 ->
               (* Generic edges. If the database is correct, groupidarg
                  is always [ct_parameterized_edge] *)
-              PGSQL(db) "SELECT groupid FROM userrights
-                         WHERE id = $u AND idarg = $ct_parameterized_edge"
+              PGOCamlQuery.view db (<:view< {id = ur.groupid} | ur in $userrights$; ur.id = $int32:u$; ur.idarg = nullable $int32:ct_parameterized_edge$ >>)
               >>= fun r2 ->
               Lwt.return (convert_generic_lists r1 r2 vu)
        )
@@ -385,20 +402,17 @@ let groups_of_user_ ~user =
 (* as above *)
 let users_in_group_ ?(generic=true) ~group =
   let g, vg = sql_from_user group in
-  Lwt_pool.use Sql.pool
+  Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        (match vg with
           | None ->
-              PGSQL(db) "SELECT id, idarg FROM userrights
-                         WHERE groupid = $g AND groupidarg IS NULL"
+            PGOCamlQuery.view db (<:view< {ur.id; ur.idarg} | ur in $userrights$; ur.groupid = $int32:g$; ur.groupidarg = null >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vg ->
-              PGSQL(db) "SELECT id, idarg FROM userrights
-                         WHERE groupid = $g AND groupidarg = $vg"
+            PGOCamlQuery.view db (<:view< {ur.id; ur.idarg} | ur in $userrights$; ur.groupid = $int32:g$; ur.groupidarg = nullable $int32:vg$ >>)
               >>= fun r1 ->
               (if generic then
-                 PGSQL(db) "SELECT id FROM userrights
-                            WHERE groupid = $g AND groupidarg = $ct_parameterized_edge"
+                  PGOCamlQuery.view db (<:view< {ur.id} | ur in $userrights$; ur.groupid = $int32:g$; ur.groupidarg = nullable $int32:ct_parameterized_edge$ >>)
                else
                  Lwt.return []
               )

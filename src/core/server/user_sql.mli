@@ -160,7 +160,7 @@ val update_data:
   userid:userid ->
   ?password:pwd ->
   ?fullname:string ->
-  ?email:string ->
+  ?email:string option ->
   ?dyn:bool ->
   unit ->
   unit Lwt.t
