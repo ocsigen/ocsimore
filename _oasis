@@ -34,7 +34,7 @@ Library "ocsimore"
     server/Ocsimore_lib,
     server/Opaque,
     server/Parse_config,
-    server/Sql,
+    server/Ocsi_sql,
     server/Updatedb_sql,
     server/User,
     server/User_sql,
