@@ -45,9 +45,9 @@ Library "ocsimore"
   CCLib: -lcrypt
   XMETADescription: Core Ocsimore
   BuildDepends:
-    camlp4, lwt.syntax, pgocaml.syntax,
+    camlp4, lwt.syntax, macaque.syntax,
     eliom.server, threads, js_of_ocaml.deriving.syntax
-  XMETARequires: pgocaml, eliom.server, threads
+  XMETARequires: macaque, eliom.server, threads
 
 Library "ocsimore_client"
   Path: src/core/client
