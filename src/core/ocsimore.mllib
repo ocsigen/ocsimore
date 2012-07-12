@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 03bb4b0a4c446505c67eaca14b24812f)
+# DO NOT EDIT (digest: bd3bb6a7501b018de1852f83abc3135a)
 server/Crypt
 server/Language
 server/Dyngroups
@@ -8,7 +8,7 @@ server/Ocsimore_config
 server/Ocsimore_lib
 server/Opaque
 server/Parse_config
-server/Sql
+server/Ocsi_sql
 server/Updatedb_sql
 server/User
 server/User_sql
