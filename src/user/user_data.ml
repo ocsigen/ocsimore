@@ -133,7 +133,7 @@ let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
                      previously unencrypted ones *)
                   if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
           in
-          User_sql.update_data ~userid ~fullname ~email
+          User_sql.update_data ~userid ~fullname ~email: (Some email)
             ?password:pwd()
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied

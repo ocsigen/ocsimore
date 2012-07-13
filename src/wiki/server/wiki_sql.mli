@@ -34,7 +34,7 @@ exception Unknown_Css of wikibox
     (which is returned along the index of the new wiki). The [author]
     argument is used when creating the wikibox for the container. *)
 val new_wiki :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   title:string ->
   descr:string ->
   pages:string option ->
@@ -49,7 +49,7 @@ val new_wiki :
 (** Inserts a new wikibox in an existing wiki and return the id of the
     wikibox. *)
 val new_wikibox :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   author:userid ->
   comment:string ->
@@ -70,7 +70,7 @@ val get_wikiboxes_by_wiki : wiki -> wikibox list Lwt.t
 (** Links the wikibox [wb] to the page [page] of wiki [wiki]. Fails
     if there already exists a wikibox linked to this wikipage *)
 val create_wikipage :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   page:string ->
   wb:wikibox ->
@@ -84,7 +84,7 @@ val get_wikipage_info : wiki:wiki -> page:string -> wikipage_info Lwt.t
     (just as if it is [None]). If [wb] is [None], the page is deleted.
 *)
 val set_wikipage_properties :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   page:string ->
   ?title:string ->
@@ -107,7 +107,7 @@ val get_css_for_wiki : wiki:wiki ->
     In both cases, the wikibox containing the CSS is returned.
 *)
 val add_css_aux:
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   page:string option ->
   author:userid ->
@@ -118,13 +118,13 @@ val add_css_aux:
   wikibox Lwt.t
 
 val remove_css_wiki :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   wikibox ->
   unit Lwt.t
 
 val remove_css_wikipage :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   page:string ->
   wikibox ->
@@ -141,7 +141,7 @@ val get_css_wikibox_for_wiki : wiki:wiki -> (wikibox * media_type * int32) list 
 
 
 val update_css_wikibox_aux:
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wiki:wiki ->
   page:string option ->
   oldwb:wikibox ->
@@ -172,7 +172,7 @@ val get_wikis : unit -> wiki list Lwt.t
 
 (** Does the wikibox have special permission rights *)
 val set_wikibox_special_rights:
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   wb:wikibox ->
   bool ->
   unit Lwt.t
@@ -190,7 +190,7 @@ val current_wikibox_version :
 (** Inserts a new version of an existing wikibox in a wiki
     and return its version number. *)
 val update_wikibox :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   author:userid ->
   comment:string ->
   content:string option ->
@@ -202,7 +202,7 @@ val update_wikibox :
 (** Update the information of a wiki. All arguments not passed are left
     unchanged *)
 val update_wiki :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   ?container:wikibox option ->
   ?staticdir:string option ->
   ?path:string option ->
@@ -215,7 +215,7 @@ val update_wiki :
 
 (** Iterator on all the wikis  *)
 val iter_wikis :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   (wiki_info -> unit Lwt.t) ->
   unit Lwt.t
 
@@ -226,7 +226,7 @@ val get_wikibox_info : wikibox -> wikibox_info Lwt.t
     the database (including the old versions) according to the function
     passed as argument, which must return the updated content, or None *)
 val update_wikiboxes :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   (wikibox:wikibox ->
    version:int32 ->
    content:string option ->
@@ -236,7 +236,7 @@ val update_wikiboxes :
 
 
 val rewrite_wikipages :
-  ?db: Sql.db_t ->
+  ?db: Ocsi_sql.db_t ->
   oldwiki:wiki ->
   newwiki:wiki ->
   path:string ->

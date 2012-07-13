@@ -145,7 +145,7 @@ let wikipage_css_boxes_with_content ~(rights : Wiki_types.wiki_rights) ~wiki ~pa
 let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~wb  ~special_rights =
   rights#can_set_wikibox_specific_permissions wb >>= function
     | true ->
-        Sql.full_transaction_block (fun _db -> (*YYY should be made atomic... *)
+        Ocsi_sql.full_transaction_block (fun _db -> (*YYY should be made atomic... *)
           (if special_rights then
              (* When the wikibox starts using specific permissions, we
                 automatically add the wiki defaults to the wikibox rights *)
@@ -180,7 +180,7 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
                  User.get_user_id () >>= fun user ->
                  Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
                  lwt content_type = Wiki_models.get_default_content_type wiki_info.wiki_model in
-                 Sql.full_transaction_block (fun db ->
+                 Ocsi_sql.full_transaction_block (fun db ->
                    new_wikitextbox ~rights ~content_type ~wiki ~author:user
                      ~comment:(Printf.sprintf "wikipage %s in wiki %s"
                                  page (string_of_wiki wiki))
