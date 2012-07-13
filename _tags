@@ -157,3 +157,8 @@
 "src/site/client/ocsimore.byte": pkg_eliom.client
 "src/site/client/ocsimore.byte": pkg_camlp4
 <src/site/wiki_site.cm{a,xa}>: js_core_site_client
+
+# Fix oasis bugs:
+<src/user/*.ml{,i}>: -pkg_macaque.syntax
+<src/wiki/server/*.ml{,i}>: -pkg_macaque.syntax
+"src/wiki/server/wiki_sql.ml": pkg_macaque.syntax
