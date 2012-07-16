@@ -425,12 +425,14 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
   Ocsi_sql.full_transaction_block
     (fun db ->
        if moderated_only
-       then raw_message_from_sql ( (* limit $int32:number$ offset $int32:offset$ *)
-         PGOCamlQuery.view db (<:view< f order by f.tree_min desc |
+       then raw_message_from_sql (
+         PGOCamlQuery.view db (<:view< f order by f.tree_min desc
+                                  limit $int64:number$ offset $int64:offset$ |
              f in $forums_messages$; f.forum_id = $int32:forum$; is_null f.parent_id; (f.moderated = true) || (f.special_rights = true) >>)
        )
        else raw_message_from_sql (
-         PGOCamlQuery.view db (<:view< f order by f.datetime desc |
+         PGOCamlQuery.view db (<:view< f order by f.datetime desc
+                                  limit $int64:number$ offset $int64:offset$ |
              f in $forums_messages$; f.forum_id = $int32:forum$; is_null f.parent_id >>)
        )
     )
