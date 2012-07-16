@@ -163,7 +163,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
       lwt _ = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
       Lwt.return ()
     with Not_found ->
-      Sql.full_transaction_block
+      Ocsi_sql.full_transaction_block
         (fun db ->
           lwt box =
             Wiki_sql.new_wikibox ~db
@@ -475,7 +475,7 @@ let _ =
       if version' <> version then
         Html5.D.a ~service:Wiki_services.view_box [version_elt] (wikibox, Some version)
       else
-        version_elt 
+        version_elt
     in
     Html5.F.(li [version_link; pcdata (if comment = "" then "" else " ("^comment^")")])
   in
@@ -496,7 +496,7 @@ let _ =
              ~title
              Html5.F.([
                ul (List.map (render_version_link wikibox version) history);
-               table 
+               table
                  (tr [td [pcdata "wikibox"];
                       td [pcdata Wiki_sql.(string_of_wikibox wikibox)]])
                  [tr [td [pcdata "version"];
@@ -572,7 +572,7 @@ let _ =
                   Lwt.return (wikibox, None)
                 else
                   lwt wikibox' =
-                    Wiki_sql.update_wikibox 
+                    Wiki_sql.update_wikibox
                       ~author:User.admin
                       ~comment:"batch_edit_boxes: Replace old relative links"
                       ~content:(Some new_content)

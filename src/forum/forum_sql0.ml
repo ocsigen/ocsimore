@@ -25,19 +25,66 @@
 
 open Eliom_lib.Lwt_ops
 open User_sql.Types
-open Sql.PGOCaml
-open Sql
+open Ocsi_sql.PGOCaml
+open Ocsi_sql
+
+let forums_messages = (<:table< forums_messages (
+  id integer NOT NULL,
+  creator_id integer NOT NULL,
+  datetime timestamp NOT NULL,
+  parent_id integer,
+  root_id integer NOT NULL,
+  forum_id integer NOT NULL,
+  subject integer,
+  wikibox integer NOT NULL,
+  moderated boolean NOT NULL,
+  sticky boolean NOT NULL,
+  special_rights boolean NOT NULL,
+  tree_min integer NOT NULL,
+  tree_max integer NOT NULL
+) >>)
+
+let raw_message_from_sql sql =
+  sql >>= (Lwt_list.map_p (fun sql ->
+    Lwt.return (
+      sql#!id,
+      sql#!creator_id,
+      sql#!datetime,
+      sql#?parent_id,
+      sql#!root_id,
+      sql#!forum_id,
+      sql#?subject,
+      sql#!wikibox,
+      sql#!moderated,
+      sql#!sticky,
+      sql#!special_rights,
+      sql#!tree_min,
+      sql#!tree_max
+    )
+  ))
 
 let get_message_raw ~message_id () =
-  Lwt_pool.use Sql.pool 
-    (fun db ->
-       (* tree_min and tree_max are here only for the interface to be 
+  Lwt_pool.use Ocsi_sql.pool
+    (fun db -> raw_message_from_sql (
+       (* tree_min and tree_max are here only for the interface to be
           compatible with get_thread *)
-       PGSQL(db) "SELECT id, creator_id, datetime, parent_id, 
-                         root_id, forum_id, subject, wikibox, \
-                         moderated, sticky, special_rights, tree_min, tree_max \
-                  FROM forums_messages \
-                  WHERE forums_messages.id = $message_id")
+      PGOCamlQuery.view db (<:view< {
+        f.id;
+        f.creator_id;
+        f.datetime;
+        f.parent_id;
+        f.root_id;
+        f.forum_id;
+        f.subject;
+        f.wikibox;
+        f.moderated;
+        f.sticky;
+        f.special_rights;
+        f.tree_min;
+        f.tree_max
+      } | f in $forums_messages$; f.id = $int32:message_id$ >>)
+     )
+    )
   >>= function
     | [] -> Lwt.fail Not_found
     | x :: _ -> Lwt.return x
