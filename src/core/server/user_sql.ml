@@ -177,7 +177,7 @@ let bind_option_int32 = function
 
 let remove_from_group_aux db (u, vu) (g, vg) =
   PGOCamlQuery.query db (<:delete< d in $userrights$ |
-      d.id = $int32:u$; d.groupid = $int32:g$; d.idarg = of_option $bind_option_int32 vu$; d.groupidarg = of_option $bind_option_int32 vg$ >>)
+      d.id = $int32:u$; d.groupid = $int32:g$; is_not_distinct_from d.idarg (of_option $bind_option_int32 vu$); is_not_distinct_from d.groupidarg (of_option $bind_option_int32 vg$) >>)
 
 let remove_from_group_ ~user ~group =
   Lwt_pool.use Ocsi_sql.pool (fun db -> remove_from_group_aux db
@@ -384,7 +384,7 @@ let groups_of_user_ ~user =
        (match vu with
           | None ->
             PGOCamlQuery.view db (<:view< {id = ur.groupid; idarg = ur.groupidarg} |
-                ur in $userrights$; ur.id = $int32:u$; ur.idarg = null >>)
+                ur in $userrights$; ur.id = $int32:u$; is_null ur.idarg >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vu ->
               (* Standard inclusions *)
@@ -406,7 +406,7 @@ let users_in_group_ ?(generic=true) ~group =
     (fun db ->
        (match vg with
           | None ->
-            PGOCamlQuery.view db (<:view< {ur.id; ur.idarg} | ur in $userrights$; ur.groupid = $int32:g$; ur.groupidarg = null >>)
+            PGOCamlQuery.view db (<:view< {ur.id; ur.idarg} | ur in $userrights$; ur.groupid = $int32:g$; is_null ur.groupidarg >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vg ->
             PGOCamlQuery.view db (<:view< {ur.id; ur.idarg} | ur in $userrights$; ur.groupid = $int32:g$; ur.groupidarg = nullable $int32:vg$ >>)
