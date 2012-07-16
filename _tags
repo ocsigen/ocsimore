@@ -162,3 +162,7 @@
 <src/user/*.ml{,i}>: -pkg_macaque.syntax
 <src/wiki/server/*.ml{,i}>: -pkg_macaque.syntax
 "src/wiki/server/wiki_sql.ml": pkg_macaque.syntax
+<src/forum/*.ml{,i}>: -pkg_macaque.syntax
+"src/forum/forum_sql0.ml": pkg_macaque.syntax
+"src/forum/forum_sql.ml": pkg_macaque.syntax
+<src/site/server/*.ml{,i}>: -pkg_macaque.syntax
