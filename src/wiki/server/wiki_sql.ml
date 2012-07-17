@@ -244,7 +244,7 @@ let wikis = (<:table< wikis (
   siteid text
 ) >>)
 
-let wikis_id_seq = (<:sequence< serial "wikis_is_seq" >>)
+let wikis_id_seq = (<:sequence< serial "wikis_id_seq" >>)
 
 let get_wikis () =
   Lwt_pool.use Ocsi_sql.pool

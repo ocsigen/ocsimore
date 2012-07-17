@@ -208,7 +208,7 @@ let add_generic_inclusion_ ~subset ~superset =
          (superset, Some ct_parameterized_edge)
     )
 
-let id_seq = <:sequence< serial "test_id_seq" >>
+let id_seq = <:sequence< serial "users_id_seq" >>
 
 let users = <:table< users (
   id integer NOT NULL, (* Test if we can put a DEFAULT instead *)
