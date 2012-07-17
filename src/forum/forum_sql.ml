@@ -34,7 +34,7 @@ open Forum_types
 let forums = (<:table< forums (
   id integer NOT NULL,
   title text NOT NULL DEFAULT(""),
-  descr' text NOT NULL DEFAULT(""),
+  descri text NOT NULL DEFAULT(""),
   arborescent boolean NOT NULL DEFAULT(true),
   deleted boolean NOT NULL DEFAULT(false),
   title_syntax text NOT NULL,
@@ -55,7 +55,7 @@ let new_forum
       PGOCamlQuery.query db (<:insert< $forums$ := {
         id = nextval $forums_id_seq$;
         title = $string:title$;
-        descr' = $string:descr$;
+        descri = $string:descr$;
         arborescent = $bool:arborescent$;
         deleted = forums?deleted;
         title_syntax = $string:title_syntax$;
@@ -82,7 +82,7 @@ let update_forum ?title ?descr ?arborescent ?title_syntax
         | None -> Lwt.return ()
         | Some descr ->
           PGOCamlQuery.query db (<:update< f in $forums$ := {
-            descr' = $string:descr$
+            descri = $string:descr$
           } | f.id = $int32:forum_id$ >>)
       ) in
       lwt () = (match arborescent with
@@ -246,7 +246,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
        PGOCamlQuery.view db (<:view< {
          f.id;
          f.title;
-         f.descr';
+         f.descri;
          f.arborescent;
          f.deleted;
          f.title_syntax;
@@ -257,7 +257,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
        PGOCamlQuery.view db (<:view< {
          f.id;
          f.title;
-         f.descr';
+         f.descri;
          f.arborescent;
          f.deleted;
          f.title_syntax;
@@ -268,7 +268,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
        PGOCamlQuery.view db (<:view< {
          f.id;
          f.title;
-         f.descr';
+         f.descri;
          f.arborescent;
          f.deleted;
          f.title_syntax;
@@ -283,7 +283,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
          then Lwt.fail Not_found
          else Lwt.return
            (get_forum_info
-              (a#!id, a#!title, a#!descr', a#!arborescent, a#!deleted, a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
+              (a#!id, a#!title, a#!descri, a#!arborescent, a#!deleted, a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
            )
      | a::_ ->
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
@@ -291,7 +291,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
          then Lwt.fail Not_found
          else Lwt.return
            (get_forum_info
-              (a#!id, a#!title, a#!descr', a#!arborescent, a#!deleted, a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
+              (a#!id, a#!title, a#!descri, a#!arborescent, a#!deleted, a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
            )
      | _ -> Lwt.fail Not_found)
 
@@ -300,7 +300,7 @@ let raw_forum_from_sql sql =
     Lwt.return (
       sql#!id,
       sql#!title,
-      sql#!descr',
+      sql#!descri,
       sql#!arborescent,
       sql#!deleted,
       sql#!title_syntax,
@@ -317,7 +317,7 @@ let get_forums_list ?(not_deleted_only = true) () =
           PGOCamlQuery.view db (<:view< {
             f.id;
             f.title;
-            f.descr';
+            f.descri;
             f.arborescent;
             f.deleted;
             f.title_syntax;
@@ -329,7 +329,7 @@ let get_forums_list ?(not_deleted_only = true) () =
           PGOCamlQuery.view db (<:view< {
             f.id;
             f.title;
-            f.descr';
+            f.descri;
             f.arborescent;
             f.deleted;
             f.title_syntax;
