@@ -235,7 +235,7 @@ let get_box_for_page_ ~wiki ~page =
 let wikis = (<:table< wikis (
   id integer NOT NULL,
   title text NOT NULL DEFAULT(""),
-  descr text NOT NULL DEFAULT(""), (* descr and desc can't be a row name... *)
+  descr text NOT NULL DEFAULT(""),
   pages text,
   boxrights boolean NOT NULL,
   container integer,
