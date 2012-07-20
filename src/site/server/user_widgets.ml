@@ -51,6 +51,13 @@ class type user_widget_class = object
   method display_users :
     Eliom_registration.Block5.page Lwt.t
 
+  method display_users_settings :
+    Eliom_registration.Block5.page Lwt.t
+  method display_users_settings_done :
+    unit ->
+      (bool * (string * (string * (string * bool)))) ->
+      Eliom_registration.Block5.page Lwt.t
+
   method display_group :
     user * string -> Eliom_registration.Block5.page Lwt.t
 
@@ -472,6 +479,102 @@ object (self)
            div ~a:[a_class ["user_block"]] f2;
          ])
 
+  method display_users_settings = Lwt.return [
+    (* TODO: Disable dynamicaly if checkbox is false *)
+    Html5.F.post_form
+      ~service: User_services.action_users_settings
+      (fun (enable, (mail_from, (mail_addr, (mail_subject, non_admin)))) -> [
+        Html5.F.table
+          (Html5.F.tr [
+            Html5.F.td [
+              Html5.F.label [
+                Html5.F.pcdata "Enable users creation:"
+              ]
+            ];
+            Html5.F.td [
+              Html5.F.bool_checkbox
+                ~checked: (User_services.can_create_users ())
+                ~name: enable ()
+            ]
+           ]
+          ) [
+            Html5.F.tr [
+              Html5.F.td [
+                Html5.F.label [
+                  Html5.F.pcdata "Registration mail from:"
+                ]
+              ];
+              Html5.F.td [
+                str_input mail_from
+              ]
+            ];
+            Html5.F.tr [
+              Html5.F.td [
+                Html5.F.label [
+                  Html5.F.pcdata "Registration mail address:"
+                ]
+              ];
+              Html5.F.td [
+                str_input mail_addr
+              ]
+            ];
+            Html5.F.tr [
+              Html5.F.td [
+                Html5.F.label [
+                  Html5.F.pcdata "Registration mail subject:"
+                ]
+              ];
+              Html5.F.td [
+                str_input mail_subject
+              ]
+            ];
+            Html5.F.tr [
+              Html5.F.td [
+                Html5.F.label [
+                  Html5.F.pcdata "Non-admin can create user:"
+                ]
+              ];
+              Html5.F.td [
+                Html5.F.bool_checkbox ~name: non_admin ()
+              ]
+            ];
+            Html5.F.tr [
+              Html5.F.td [
+                submit_input "Send"
+              ]
+            ]
+          ]
+       ]
+      ) ()
+  ]
+
+  method display_users_settings_done () (basicusercreation,
+                                         (registration_mail_from,
+                                         (registration_mail_addr,
+                                         (registration_mail_subject,
+                                         non_admin_can_create)))) =
+    let users_settings = {
+      User_sql.basicusercreation = basicusercreation;
+      registration_mail_from = Some registration_mail_from;
+      registration_mail_addr = Some registration_mail_addr;
+      registration_mail_subject = Some registration_mail_subject;
+      non_admin_can_create = non_admin_can_create
+    } in
+    (if basicusercreation then (
+      match registration_mail_from with
+        | "" -> Lwt.fail (Failure "Missing registration_mail_from attribute")
+        | registration_mail_from -> (
+          match registration_mail_addr with (* TODO: Match for non-valide email *)
+            | "" -> Lwt.fail (Failure "Missing registration_mail_addr attribute")
+            | registration_mail_addr ->
+              Lwt.return ()
+        )
+     )
+     else
+        Lwt.return ()
+    ) >>= (fun () -> User_sql.set_users_settings users_settings) >>= (fun () ->
+      Lwt.return [Html5.F.p [Html5.F.pcdata "Done !"]]
+     )
 
   method display_users =
     User_sql.all_groups () >>= fun l ->

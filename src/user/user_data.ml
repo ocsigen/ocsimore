@@ -67,6 +67,9 @@ let can_create_user ~options =
 let can_create_group () =
   User.in_group ~group:User.group_can_create_groups ()
 
+let can_admin_users () =
+  User.in_group ~group:User.group_can_admin_users ()
+
 
 let create_group ~name ~descr =
   can_create_group () >>= function

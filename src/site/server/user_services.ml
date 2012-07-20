@@ -29,66 +29,82 @@ type user_creation =
 type external_auth =
     NoExternalAuth | Nis | Pam of string option | Ldap of (string * string)
 
-let default_data = (NoExternalAuth, NoUserCreation, true)
+let default_data = (NoExternalAuth, true)
 
-let (auth, basicusercreation, force_secure) =
-  let rec find_data ((auth, basicusercreation, secure) as data) = function
+let (>>=) = Lwt.bind
+
+let (auth, force_secure) =
+  let rec find_data ((auth, secure) as data) = function
     | [] -> Lwt.return data
 
     | (Simplexmlparser.Element ("nis", [], []))::l ->
-        find_data (Nis, basicusercreation, secure) l
+        find_data (Nis, secure) l
 
     | (Simplexmlparser.Element ("pam", ["service", s], []))::l ->
-        find_data (Pam (Some s), basicusercreation, secure) l
+        find_data (Pam (Some s), secure) l
 
     | (Simplexmlparser.Element ("pam", [], []))::l ->
-        find_data (Pam None, basicusercreation, secure) l
+        find_data (Pam None, secure) l
 
     | (Simplexmlparser.Element ("ldap", [("base", b); ("uri", u)], []))::l ->
-        find_data (Ldap (b, u), basicusercreation, secure) l
+        find_data (Ldap (b, u), secure) l
 
     | (Simplexmlparser.Element ("notsecure", [], []))::l ->
-        find_data (auth, basicusercreation, false) l
+        find_data (auth, false) l
 
-    | (Simplexmlparser.Element ("basicusercreation", atts, []))::l ->
-        let registration_mail_from =
-          Ocsimore_lib.list_assoc_exn "registration_mail_from" atts
-            (Ocsigen_config.Config_file_error
-               "Missing registration_mail_from attribute inside <basicusercreation>")
-        and registration_mail_addr =
-          Ocsimore_lib.list_assoc_exn "registration_mail_addr" atts
-            (Ocsigen_config.Config_file_error
-               "Missing registration_mail_addr attribute inside <basicusercreation>")
-        and registration_mail_subject =
-          Ocsimore_lib.list_assoc_default "registration_mail_subject" atts
-            "Ocsimore registration"
-        and non_admin_can_create =
-          Ocsimore_lib.list_assoc_default "non_admin" atts "" = "true"
-        in
-        lwt default_groups =
-          try
-            User.user_list_of_string (List.assoc "groups" atts)
-          with Not_found -> Lwt.return [User_sql.Types.basic_user User.authenticated_users]
-        in
-        let data =
-          auth,
-          UserCreation {
-            User_data.mail_from = registration_mail_from;
-            mail_addr = registration_mail_addr;
-            mail_subject = registration_mail_subject;
-            new_user_groups = default_groups;
-            non_admin_can_create;
-          },
-          secure
-        in
-        find_data data l
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
-                       ("Unexpected content inside User_site config"))
-  in
+                    ("Unexpected content inside User_site config")) in
   let c = Eliom_config.get_config () in
   Lwt_unix.run (find_data default_data c)
 
+
+
+(*
+              Lwt.try_bind
+                (User.user_list_of_string (List.assoc "groups" atts))
+                (fun x -> x)
+                (fun Not_found ->
+                  Lwt.return [
+                    User_sql.Types.basic_user User.authenticated_users
+                  ]
+                ) >>= (fun default_groups -> *)
+let basicusercreation () =
+  (* FIXME: HORRIBLE, I'm sorry. *)
+  let ret = ref NoUserCreation in
+  User_sql.get_users_settings () >>= (fun data ->
+    if data.User_sql.basicusercreation then (
+      match data.User_sql.registration_mail_from with
+        | None -> Lwt.fail (Failure "Missing registration_mail_from attribute")
+        | (Some x) -> (
+          match data.User_sql.registration_mail_addr with
+            | None -> Lwt.fail (Failure "Missing registration_mail_addr attribute")
+            | (Some y) -> (
+              let tmp = UserCreation {
+                User_data.mail_from = x;
+                mail_addr = y;
+                mail_subject =
+                  (match data.User_sql.registration_mail_subject with
+                    | None -> ""
+                    | (Some x) -> x
+                  );
+                new_user_groups = [
+                  User_sql.Types.basic_user User.authenticated_users
+                ];
+                non_admin_can_create = data.User_sql.non_admin_can_create
+              } in
+              ret := tmp;
+              Lwt.return tmp
+            )
+        )
+    )
+    else
+      Lwt.return NoUserCreation
+  ) >>= (fun _ -> Lwt.return ());
+  !ret
+
+let can_create_users () =
+  basicusercreation () <> NoUserCreation
 
 let external_auth = match auth with
   | NoExternalAuth -> None
@@ -238,6 +254,19 @@ let action_create_new_user =
     ~post_params:(string "usr" ** (string "descr" **
                                      (string "email" **
                                         string "pass1" ** string "pass2"))) ()
+
+let service_users_settings = Eliom_service.service
+  ~path: [!Ocsimore_config.admin_dir; "users_settings"]
+  ~get_params: unit ()
+
+let action_users_settings =
+  Eliom_service.post_coservice
+    ~fallback:service_users_settings
+    ~post_params:((bool "enable") **
+                    (string "mail_from") **
+                    (string "mail_addr") **
+                    (string "mail_subject") **
+                    (bool "non_admin")) ()
 
 
 

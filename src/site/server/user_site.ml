@@ -29,7 +29,7 @@ open Lwt
 let ( ** ) = Eliom_parameter.prod
 
 let user_widget =
-  match User_services.basicusercreation with
+  match User_services.basicusercreation () with
     | User_services.NoUserCreation ->
         Eliom_registration.Html5.register
           ~service:User_services.service_create_new_user
@@ -90,6 +90,20 @@ let () =
        ~permissions:(fun _ _ -> User_data.can_view_groups ())
        ~service
        ~display);
+
+  Eliom_registration.Html5.register User_services.service_users_settings
+    (Page_site.admin_body_content_with_permission_handler
+       ~title: (fun _ _ -> Lwt.return "Users settings")
+       ~permissions: (fun _ _ -> User_data.can_admin_users ())
+       ~display: (fun _ _ -> user_widget#display_users_settings)
+    );
+
+  Eliom_registration.Html5.register User_services.action_users_settings
+    (Page_site.admin_body_content_with_permission_handler
+       ~title: (fun _ _ -> Lwt.return "Users settings")
+       ~permissions: (fun _ _ -> User_data.can_admin_users ())
+       ~display: (user_widget#display_users_settings_done)
+    );
 
   Eliom_registration.Html5.register User_services.service_view_groups
     (Page_site.admin_body_content_with_permission_handler
@@ -154,14 +168,16 @@ let () = Eliom_registration.Html5.register users_root
 let () =
   Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
   ~links:([
+    "Users settings", User_services.service_users_settings, (fun _ -> Lwt.return true);
     "View users", User_services.service_view_users, (fun _ -> Lwt.return true);
     "View groups", User_services.service_view_groups,(fun _ -> Lwt.return true);
     "View roles", User_services.service_view_roles, (fun _ -> Lwt.return true);
     "Users creation", User_services.service_create_new_user,
-            (fun _ -> match User_services.basicusercreation with
-               | User_services.UserCreation options ->
-                   User_data.can_create_user ~options
-               | User_services.NoUserCreation -> Lwt.return false);
+            (fun _ -> match User_services.basicusercreation () with
+              | User_services.UserCreation options ->
+                User_data.can_create_user ~options
+              | User_services.NoUserCreation -> Lwt.return false
+            );
     "Groups creation", User_services.service_create_new_group,
             (fun _ -> User_data.can_create_group ());
           ]

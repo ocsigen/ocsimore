@@ -39,6 +39,9 @@ val group_can_create_groups : user
 (** Same thing with users *)
 val group_can_create_users : user
 
+(** The groups of users that can modify the users settings *)
+val group_can_admin_users : user
+
 (** The group of users that can add or remove people in the given user/group *)
 val group_can_admin_group : [`User] parameterized_group
 

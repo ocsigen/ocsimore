@@ -647,3 +647,53 @@ let user_type = function
          | { user_pwd = Connect_forbidden } -> Lwt.return `Group
          | _ -> Lwt.return `User)
   | NonParameterizedGroup _ | AppliedParameterizedGroup _ -> Lwt.return `Role
+
+(** Users settings *)
+
+let users_settings = (<:table< users_settings (
+  basicusercreation boolean NOT NULL,
+  registration_mail_from text,
+  registration_mail_addr text,
+  registration_mail_subject text,
+  non_admin_can_create boolean NOT NULL
+) >>)
+
+type user_settings = {
+  basicusercreation : bool;
+  registration_mail_from : string option;
+  registration_mail_addr : string option;
+  registration_mail_subject : string option;
+  non_admin_can_create : bool
+}
+
+let get_users_settings () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view_one db (<:view< u | u in $users_settings$ >>) >>= (fun data ->
+      Lwt.return {
+        basicusercreation = data#!basicusercreation;
+        registration_mail_from = data#?registration_mail_from;
+        registration_mail_addr = data#?registration_mail_addr;
+        registration_mail_subject = data#?registration_mail_subject;
+        non_admin_can_create = data#!non_admin_can_create
+      }
+    )
+  )
+
+let set_users_settings data =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.query db (<:insert< $users_settings$ := {
+      basicusercreation = $bool:data.basicusercreation$;
+      registration_mail_from = of_option $bind_option_string data.registration_mail_from$;
+      registration_mail_addr = of_option $bind_option_string data.registration_mail_addr$;
+      registration_mail_subject = of_option $bind_option_string data.registration_mail_subject$;
+      non_admin_can_create = $bool:data.non_admin_can_create$
+    } >>)
+  )
+
+let _ = set_users_settings {
+  basicusercreation = false;
+  registration_mail_from = None;
+  registration_mail_addr = None;
+  registration_mail_subject = None;
+  non_admin_can_create = false
+}

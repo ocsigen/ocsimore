@@ -153,6 +153,13 @@ let group_can_create_users =
     (User_sql.new_nonparameterized_group ~prefix:"users" ~name:"GroupsCreators"
        ~descr:"can create new Ocsimore users")
 
+let group_can_admin_users =
+  Lwt_unix.run
+    (User_sql.new_nonparameterized_group ~prefix:"users"
+       ~name:"admin"
+       ~descr:"can admin users"
+    )
+
 
 
 
