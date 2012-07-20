@@ -261,7 +261,7 @@ SELECT pg_catalog.setval('css_uid_seq', 1, false);
 CREATE TABLE forums (
     id integer NOT NULL,
     title text DEFAULT ''::text NOT NULL,
-    descri text DEFAULT ''::text NOT NULL,
+    descr text DEFAULT ''::text NOT NULL,
     arborescent boolean DEFAULT true NOT NULL,
     deleted boolean DEFAULT false NOT NULL,
     title_syntax text NOT NULL,
@@ -280,10 +280,10 @@ COMMENT ON COLUMN forums.title IS 'Title of the forum. Sometimes used to find th
 
 
 --
--- Name: COLUMN forums.descri; Type: COMMENT; Schema: public; Owner: ocsimore
+-- Name: COLUMN forums.descr; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
-COMMENT ON COLUMN forums.descri IS 'Description of the forum. By default, used as the title of the forum pages';
+COMMENT ON COLUMN forums.descr IS 'Description of the forum. By default, used as the title of the forum pages';
 
 
 --
@@ -651,7 +651,7 @@ SELECT pg_catalog.setval('wikipages_uid_seq', 1, false);
 CREATE TABLE wikis (
     id integer NOT NULL,
     title text DEFAULT ''::text NOT NULL,
-    descri text DEFAULT ''::text NOT NULL,
+    descr text DEFAULT ''::text NOT NULL,
     pages text,
     boxrights boolean NOT NULL,
     container integer,
@@ -671,10 +671,10 @@ COMMENT ON COLUMN wikis.title IS 'Title of the wiki. Sometimes used to find the 
 
 
 --
--- Name: COLUMN wikis.descri; Type: COMMENT; Schema: public; Owner: ocsimore
+-- Name: COLUMN wikis.descr; Type: COMMENT; Schema: public; Owner: ocsimore
 --
 
-COMMENT ON COLUMN wikis.descri IS 'Description of the wiki. By default, used as the title of the wiki pages';
+COMMENT ON COLUMN wikis.descr IS 'Description of the wiki. By default, used as the title of the wiki pages';
 
 
 --
@@ -848,7 +848,7 @@ COPY css (wiki, page, wikibox, specialrights, uid, rank, mediatype) FROM stdin;
 -- Data for Name: forums; Type: TABLE DATA; Schema: public; Owner: ocsimore
 --
 
-COPY forums (id, title, descri, arborescent, deleted, title_syntax, messages_wiki, comments_wiki) FROM stdin;
+COPY forums (id, title, descr, arborescent, deleted, title_syntax, messages_wiki, comments_wiki) FROM stdin;
 \.
 
 
@@ -913,7 +913,7 @@ COPY wikipages (wiki, wikibox, pagename, title, uid) FROM stdin;
 -- Data for Name: wikis; Type: TABLE DATA; Schema: public; Owner: ocsimore
 --
 
-COPY wikis (id, title, descri, pages, boxrights, container, staticdir, model, siteid) FROM stdin;
+COPY wikis (id, title, descr, pages, boxrights, container, staticdir, model, siteid) FROM stdin;
 \.
 
 

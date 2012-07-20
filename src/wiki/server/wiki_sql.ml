@@ -235,7 +235,7 @@ let get_box_for_page_ ~wiki ~page =
 let wikis = (<:table< wikis (
   id integer NOT NULL,
   title text NOT NULL DEFAULT(""),
-  descri text NOT NULL DEFAULT(""), (* descr and desc can't be a row name... *)
+  descr text NOT NULL DEFAULT(""), (* descr and desc can't be a row name... *)
   pages text,
   boxrights boolean NOT NULL,
   container integer,
@@ -294,7 +294,7 @@ let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
 let reencapsulate_wiki data =
   { wiki_id = wiki_of_sql data#!id;
     wiki_title = data#!title;
-    wiki_descr = data#!descri;
+    wiki_descr = data#!descr;
     wiki_pages = data#?pages;
     wiki_boxrights = data#!boxrights;
     wiki_container =
@@ -335,7 +335,7 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?sitei
        (match descr with
           | None -> Lwt.return ()
           | Some descr ->
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {descri = $string:descr$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {descr = $string:descr$} | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match boxrights with
           | None -> Lwt.return ()
@@ -359,7 +359,7 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
   wrap db
     (fun db ->
        let model_sql = Wiki_types.string_of_wiki_model model in (* WTF IS CONTAINER ??? *)
-       PGOCamlQuery.query db (<:insert< $wikis$ := {id = nextval $wikis_id_seq$; title = $string:title$; descri = $string:descr$; pages = of_option $bind_option_string pages$; boxrights = $bool:boxrights$; container = 0; staticdir = of_option $bind_option_string staticdir$; model = $string:model_sql$; siteid = null} >>) (* WHY SITEID IS SET ??? *)
+       PGOCamlQuery.query db (<:insert< $wikis$ := {id = nextval $wikis_id_seq$; title = $string:title$; descr = $string:descr$; pages = of_option $bind_option_string pages$; boxrights = $bool:boxrights$; container = 0; staticdir = of_option $bind_option_string staticdir$; model = $string:model_sql$; siteid = null} >>) (* WHY SITEID IS SET ??? *)
        >>= fun () ->
        serial4 db "wikis_id_seq" >>= fun wiki_sql ->
        let wiki = wiki_of_sql wiki_sql in
