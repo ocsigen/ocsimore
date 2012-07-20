@@ -49,7 +49,7 @@ let validate db =
   with _ ->
     Lwt.return false
 
-let pool = Lwt_pool.create 16 (*~validate*) connect
+let pool = Lwt_pool.create 16 ~validate connect
 
 let transaction_block db f =
   PGOCaml.begin_work db >>= fun _ ->

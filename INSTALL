@@ -3,6 +3,7 @@
 * postgresql >= 8.2 (even for compiling)
 * ocaml
 * ocamlduce
+* lwt >= 2.4.0
 * ocsigen and eliom with compiled ocamlduce support
 * pgocaml >= 1.2
 * ocamlpam
