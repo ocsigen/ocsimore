@@ -153,7 +153,7 @@ let html_page ?body_classes ?(css=[]) ?title:(title'="Ocsimore") ?heading conten
         ((css :> Html5_types.head_content_fun elt list)
          @ headers
          @ [Ocsimore_appl.application_script ~async:true ()]))
-     (body ~a:body_attrs 
+     (body ~a:body_attrs
         (get_opt ~default:[]
            (Eliom_lib.Option.map (fun heading -> [h1 ~a:[a_class ["html_page_heading"]] [pcdata heading]]) heading)
          @ content))

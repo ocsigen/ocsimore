@@ -112,7 +112,7 @@ let admin =
         | "Y"|"y" -> print_endline "\n Thank you."; Some email
         | _ -> print_endline "\n"; ask_email()
   in
-  possibly_create ~login:"admin" ~fullname:"Admin"
+  possibly_create ~login:admin_login ~fullname:"Admin"
     ~pwd:ask_pwd ~email:ask_email ()
 
 let admin' = basic_user admin
@@ -219,7 +219,7 @@ let create_user, create_fresh_user =
     else
       lwt () = Lwt_mutex.lock mutex_user in
       lwt u = get_basicuser_by_login name in
-      lwt u = 
+      lwt u =
         if (u = nobody) && (name != nobody_login)
         then (* the user does not exist *)
           let dyn = not (test = None) in

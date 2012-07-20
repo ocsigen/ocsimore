@@ -62,7 +62,7 @@ let wiki_rights = new Wiki.wiki_rights
 
 
 let wikibox_widget =
- new Wiki_widgets.dynamic_wikibox error_box User_site.user_widget
+  new Wiki_widgets.dynamic_wikibox error_box User_site.user_widget
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =

@@ -293,7 +293,7 @@ object (self)
         let user_input_id = fresh_id () in
         let password_input_id = fresh_id () in
         [div ~a:[a_class ["login_box"]]
-           (table 
+           (table
              (tr
                 [td [label ~a:[Raw.a_for user_input_id] [pcdata user_prompt]];
                  td [str_input ~a:[a_id user_input_id] usr]])
@@ -415,7 +415,7 @@ object (self)
             [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]] [Html5.F.pcdata msg]]
     in
     (* Adding groups to the group *)
-    lwt f1 = 
+    lwt f1 =
       self#form_edit_group ~show_edit:true ~group
         ~text:[Html5.F.p ~a:[eliom_inline_class]
                  [Html5.F.strong
@@ -587,14 +587,14 @@ object (self)
 
   method display_groups =
     lwt l =
-      User_sql.all_groups () >|= 
+      User_sql.all_groups () >|=
       List.filter
         (fun {user_kind = u; user_pwd = a} ->
            u = `BasicUser && a = Connect_forbidden ) >|=
       List.sort
         (fun u1 u2 -> compare u1.user_login u2.user_login)
     in
-    self#display_users_groups ~show_auth:false ~l ~utype:`Group 
+    self#display_users_groups ~show_auth:false ~l ~utype:`Group
       >|= list_singleton
 
   (* Parameterized users *)

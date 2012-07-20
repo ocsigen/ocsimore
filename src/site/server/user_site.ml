@@ -73,7 +73,7 @@ let () =
 
   Eliom_registration.Html5.register User_services.service_view_group
     (let service g _ =
-       User.get_user_by_name g >>= User_sql.user_type >|= function 
+       User.get_user_by_name g >>= User_sql.user_type >|= function
          | `Group -> User_services.service_view_groups
          | `User -> User_services.service_view_users
          | `Role -> User_services.service_view_roles
@@ -190,4 +190,3 @@ let () =
        user_widget#status_text >|= fun f ->
        Html5.F.div f
     )
-
