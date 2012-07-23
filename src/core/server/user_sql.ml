@@ -651,6 +651,7 @@ let user_type = function
 (** Users settings *)
 
 let users_settings = (<:table< users_settings (
+  id integer NOT NULL,
   basicusercreation boolean NOT NULL,
   registration_mail_from text,
   registration_mail_addr text,
@@ -667,7 +668,7 @@ type user_settings = {
 }
 
 let get_users_settings () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
+  Lwt_pool.use Ocsi_sql.pool (fun db -> (* TODO: Remove id from the selection *)
     PGOCamlQuery.view_one db (<:view< u | u in $users_settings$ >>) >>= (fun data ->
       Lwt.return {
         basicusercreation = data#!basicusercreation;
@@ -681,19 +682,11 @@ let get_users_settings () =
 
 let set_users_settings data =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.query db (<:insert< $users_settings$ := {
+    PGOCamlQuery.query db (<:update< u in $users_settings$ := {
       basicusercreation = $bool:data.basicusercreation$;
       registration_mail_from = of_option $bind_option_string data.registration_mail_from$;
       registration_mail_addr = of_option $bind_option_string data.registration_mail_addr$;
       registration_mail_subject = of_option $bind_option_string data.registration_mail_subject$;
       non_admin_can_create = $bool:data.non_admin_can_create$
-    } >>)
+    } | u.id = 1 >>)
   )
-
-let _ = set_users_settings {
-  basicusercreation = false;
-  registration_mail_from = None;
-  registration_mail_addr = None;
-  registration_mail_subject = None;
-  non_admin_can_create = false
-}

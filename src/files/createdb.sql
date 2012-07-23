@@ -802,6 +802,36 @@ ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
 
 SET search_path = announcement, pg_catalog;
 
+
+--
+-- Users settings
+--
+
+CREATE TABLE users_settings (
+  id integer NOT NULL,
+  basicusercreation boolean NOT NULL,
+  registration_mail_from text,
+  registration_mail_addr text,
+  registration_mail_subject text,
+  non_admin_can_create boolean NOT NULL
+);
+
+INSERT INTO users_settings (
+    id,
+    basicusercreation,
+    registration_mail_from,
+    registration_mail_addr,
+    registration_mail_subject,
+    non_admin_can_create
+) VALUES (
+    1,
+    false,
+    NULL,
+    NULL,
+    NULL,
+    false
+);
+
 --
 -- Data for Name: category; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
 --
