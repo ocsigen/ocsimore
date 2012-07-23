@@ -70,8 +70,6 @@ let (auth, force_secure) =
                   ]
                 ) >>= (fun default_groups -> *)
 let basicusercreation () =
-  (* FIXME: HORRIBLE, I'm sorry. *)
-  let ret = ref NoUserCreation in
   User_sql.get_users_settings () >>= (fun data ->
     if data.User_sql.basicusercreation then (
       match data.User_sql.registration_mail_from with
@@ -80,7 +78,7 @@ let basicusercreation () =
           match data.User_sql.registration_mail_addr with
             | None -> Lwt.fail (Failure "Missing registration_mail_addr attribute")
             | (Some y) -> (
-              let tmp = UserCreation {
+              Lwt.return (UserCreation {
                 User_data.mail_from = x;
                 mail_addr = y;
                 mail_subject =
@@ -92,19 +90,16 @@ let basicusercreation () =
                   User_sql.Types.basic_user User.authenticated_users
                 ];
                 non_admin_can_create = data.User_sql.non_admin_can_create
-              } in
-              ret := tmp;
-              Lwt.return tmp
+              })
             )
         )
     )
     else
       Lwt.return NoUserCreation
-  ) >>= (fun _ -> Lwt.return ());
-  !ret
+  )
 
 let can_create_users () =
-  basicusercreation () <> NoUserCreation
+  basicusercreation () >>= (fun creation -> Lwt.return (creation <> NoUserCreation))
 
 let external_auth = match auth with
   | NoExternalAuth -> None

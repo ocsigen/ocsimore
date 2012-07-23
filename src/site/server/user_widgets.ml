@@ -479,74 +479,77 @@ object (self)
            div ~a:[a_class ["user_block"]] f2;
          ])
 
-  method display_users_settings = Lwt.return [
+  method display_users_settings =
     (* TODO: Disable dynamicaly if checkbox is false *)
-    Html5.F.post_form
-      ~service: User_services.action_users_settings
-      (fun (enable, (mail_from, (mail_addr, (mail_subject, non_admin)))) -> [
-        Html5.F.table
-          (Html5.F.tr [
-            Html5.F.td [
-              Html5.F.label [
-                Html5.F.pcdata "Enable users creation:"
+    User_services.can_create_users () >>= (fun can_create ->
+      Lwt.return [
+        Html5.F.post_form
+          ~service: User_services.action_users_settings
+          (fun (enable, (mail_from, (mail_addr, (mail_subject, non_admin)))) -> [
+            Html5.F.table
+              (Html5.F.tr [
+                Html5.F.td [
+                  Html5.F.label [
+                    Html5.F.pcdata "Enable users creation:"
+                  ]
+                ];
+                Html5.F.td [
+                  Html5.F.bool_checkbox
+                    ~checked: can_create
+                    ~name: enable ()
+                ]
+               ]
+              ) [
+                Html5.F.tr [
+                  Html5.F.td [
+                    Html5.F.label [
+                      Html5.F.pcdata "Registration mail from:"
+                    ]
+                  ];
+                  Html5.F.td [
+                    str_input mail_from
+                  ]
+                ];
+                Html5.F.tr [
+                  Html5.F.td [
+                    Html5.F.label [
+                      Html5.F.pcdata "Registration mail address:"
+                    ]
+                  ];
+                  Html5.F.td [
+                    str_input mail_addr
+                  ]
+                ];
+                Html5.F.tr [
+                  Html5.F.td [
+                    Html5.F.label [
+                      Html5.F.pcdata "Registration mail subject:"
+                    ]
+                  ];
+                  Html5.F.td [
+                    str_input mail_subject
+                  ]
+                ];
+                Html5.F.tr [
+                  Html5.F.td [
+                    Html5.F.label [
+                      Html5.F.pcdata "Non-admin can create user:"
+                    ]
+                  ];
+                  Html5.F.td [
+                    Html5.F.bool_checkbox ~name: non_admin ()
+                  ]
+                ];
+                Html5.F.tr [
+                  Html5.F.td [
+                    submit_input "Send"
+                  ]
+                ]
               ]
-            ];
-            Html5.F.td [
-              Html5.F.bool_checkbox
-                ~checked: (User_services.can_create_users ())
-                ~name: enable ()
-            ]
            ]
-          ) [
-            Html5.F.tr [
-              Html5.F.td [
-                Html5.F.label [
-                  Html5.F.pcdata "Registration mail from:"
-                ]
-              ];
-              Html5.F.td [
-                str_input mail_from
-              ]
-            ];
-            Html5.F.tr [
-              Html5.F.td [
-                Html5.F.label [
-                  Html5.F.pcdata "Registration mail address:"
-                ]
-              ];
-              Html5.F.td [
-                str_input mail_addr
-              ]
-            ];
-            Html5.F.tr [
-              Html5.F.td [
-                Html5.F.label [
-                  Html5.F.pcdata "Registration mail subject:"
-                ]
-              ];
-              Html5.F.td [
-                str_input mail_subject
-              ]
-            ];
-            Html5.F.tr [
-              Html5.F.td [
-                Html5.F.label [
-                  Html5.F.pcdata "Non-admin can create user:"
-                ]
-              ];
-              Html5.F.td [
-                Html5.F.bool_checkbox ~name: non_admin ()
-              ]
-            ];
-            Html5.F.tr [
-              Html5.F.td [
-                submit_input "Send"
-              ]
-            ]
-          ]
-       ]
-      ) ()
-  ]
+          ) ()
+      ]
+    )
 
   method display_users_settings_done () (basicusercreation,
                                          (registration_mail_from,

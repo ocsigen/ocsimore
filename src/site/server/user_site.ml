@@ -28,44 +28,64 @@ open Lwt
 
 let ( ** ) = Eliom_parameter.prod
 
-let user_widget =
-  match User_services.basicusercreation () with
-    | User_services.NoUserCreation ->
-        Eliom_registration.Html5.register
-          ~service:User_services.service_create_new_user
-          (Page_site.admin_body_content_with_permission_handler
-             ~title:(fun () () -> Lwt.return "Create new user")
-             ~permissions:(fun () () -> Lwt.return true)
-             ~display:(fun () () ->
-                         Lwt.return Html5.F.([
-                           h2 [pcdata "Error"];
-                           p [pcdata "User creation is disabled"];
-                         ])));
-        (new User_widgets.user_widget : User_widgets.user_widget_class)
-    | User_services.UserCreation options ->
-        let user_widget_creation =
-          object
-            inherit User_widgets.user_widget
-            inherit User_widgets.user_widget_user_creation options
-          end
-        in
-        Eliom_registration.Html5.register
-          ~service:User_services.service_create_new_user
-          (Page_site.admin_body_content_with_permission_handler
-             ~title:(fun () () -> Lwt.return "Create new user")
-             ~permissions:(fun () () -> User_data.can_create_user ~options)
-             ~display:(fun () () -> user_widget_creation#display_user_creation ()));
-        Eliom_registration.Html5.register
-          ~service:User_services.action_create_new_user
-          (Page_site.admin_body_content_with_permission_handler
-             ~title:(fun () _ -> Lwt.return "Created new user")
-             ~service:(fun () _ -> Lwt.return User_services.service_create_new_user)
-             ~permissions:(fun () _ -> User_data.can_create_user ~options)
-             ~display:(fun () (name, (fullname, (email, pwd))) ->
-                         user_widget_creation#display_user_creation_done
-                           ~name ~fullname ~email ~pwd));
-        (user_widget_creation :> User_widgets.user_widget_class)
+let () =
+  let user_creation_disabled =
+    Lwt.return Html5.F.([
+      h2 [pcdata "Error"];
+      p [pcdata "User creation is disabled"];
+    ]) in
+  Eliom_registration.Html5.register
+    ~service:User_services.service_create_new_user
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun () () -> Lwt.return "Create new user")
+       ~display:(fun () () ->
+         User_services.basicusercreation () >>= (function
+           | User_services.NoUserCreation -> user_creation_disabled
+           | User_services.UserCreation options ->
+             let user_widget_creation = object
+               inherit User_widgets.user_widget
+               inherit User_widgets.user_widget_user_creation options
+             end in
+             user_widget_creation#display_user_creation ()
+         )
+       )
+       ~permissions:(fun () () ->
+         User_services.basicusercreation () >>= (function
+           | User_services.NoUserCreation -> Lwt.return true
+           | User_services.UserCreation options ->
+             User_data.can_create_user ~options
+         )
+       )
+    );
+  Eliom_registration.Html5.register
+    ~service:User_services.action_create_new_user
+    (Page_site.admin_body_content_with_permission_handler
+       ~title:(fun () _ -> Lwt.return "Created new user")
+       ~service:(fun () _ -> Lwt.return User_services.service_create_new_user)
+       ~permissions:(fun () _ ->
+         User_services.basicusercreation () >>= (function
+           | User_services.NoUserCreation -> Lwt.return false
+           | User_services.UserCreation options ->
+             User_data.can_create_user ~options
+         )
+       )
+       ~display:(fun () (name, (fullname, (email, pwd))) ->
+         User_services.basicusercreation () >>= (function
+           | User_services.NoUserCreation -> user_creation_disabled
+           | User_services.UserCreation options ->
+             let user_widget_creation = object
+               inherit User_widgets.user_widget
+               inherit User_widgets.user_widget_user_creation options
+             end in
+             user_widget_creation#display_user_creation_done
+               ~name ~fullname ~email ~pwd
+         )
+       )
+    )
 
+
+let user_widget =
+  (new User_widgets.user_widget : User_widgets.user_widget_class)
 
 let () =
   (* We register all the (non-creation related) services that depend on the
@@ -173,11 +193,11 @@ let () =
     "View groups", User_services.service_view_groups,(fun _ -> Lwt.return true);
     "View roles", User_services.service_view_roles, (fun _ -> Lwt.return true);
     "Users creation", User_services.service_create_new_user,
-            (fun _ -> match User_services.basicusercreation () with
+            (fun _ -> User_services.basicusercreation () >>= (function
               | User_services.UserCreation options ->
                 User_data.can_create_user ~options
               | User_services.NoUserCreation -> Lwt.return false
-            );
+            ));
     "Groups creation", User_services.service_create_new_group,
             (fun _ -> User_data.can_create_group ());
           ]
