@@ -61,40 +61,25 @@ let (auth, force_secure) =
 let basicusercreation () =
   User_sql.get_users_settings () >>= (fun data ->
     if data.User_sql.basicusercreation then (
-      match data.User_sql.registration_mail_from with
-        | None -> Lwt.fail (Failure "Missing registration_mail_from attribute")
-        | (Some x) -> (
-          match data.User_sql.registration_mail_addr with
-            | None -> Lwt.fail (Failure "Missing registration_mail_addr attribute")
-            | (Some y) -> (
-              (match data.User_sql.groups with
-                | None ->
-                  Lwt.return [
-                    User_sql.Types.basic_user User.authenticated_users
-                  ]
-                | (Some groups) -> User.user_list_of_string groups
-              ) >>= (fun groups ->
-                Lwt.return (UserCreation {
-                  User_data.mail_from = x;
-                  mail_addr = y;
-                  mail_subject =
-                    (match data.User_sql.registration_mail_subject with
-                      | None -> ""
-                      | (Some x) -> x
-                    );
-                  new_user_groups = groups;
-                  non_admin_can_create = data.User_sql.non_admin_can_create
-                })
-               )
-            )
-        )
+      (match data.User_sql.groups with
+        | "" ->
+          Lwt.return [
+            User_sql.Types.basic_user User.authenticated_users
+          ]
+        | groups -> User.user_list_of_string groups
+      ) >>= (fun groups ->
+        Lwt.return (UserCreation {
+          User_data.mail_from = data.User_sql.registration_mail_from;
+          mail_addr = data.User_sql.registration_mail_addr;
+          mail_subject = data.User_sql.registration_mail_subject;
+          new_user_groups = groups;
+          non_admin_can_create = data.User_sql.non_admin_can_create
+        })
+       )
     )
     else
       Lwt.return NoUserCreation
   )
-
-let can_create_users () =
-  basicusercreation () >>= (fun creation -> Lwt.return (creation <> NoUserCreation))
 
 let external_auth = match auth with
   | NoExternalAuth -> None
@@ -256,8 +241,8 @@ let action_users_settings =
                     (string "mail_from") **
                     (string "mail_addr") **
                     (string "mail_subject") **
-                    (bool "non_admin") **
-                    (string "groups")) ()
+                    (string "groups") **
+                    (bool "non_admin")) ()
 
 
 

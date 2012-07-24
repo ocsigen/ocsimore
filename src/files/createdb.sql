@@ -810,11 +810,11 @@ SET search_path = announcement, pg_catalog;
 CREATE TABLE users_settings (
   id integer NOT NULL,
   basicusercreation boolean NOT NULL,
-  registration_mail_from text,
-  registration_mail_addr text,
-  registration_mail_subject text,
-  non_admin_can_create boolean NOT NULL,
-  groups text
+  registration_mail_from text NOT NULL,
+  registration_mail_addr text NOT NULL,
+  registration_mail_subject text NOT NULL,
+  groups text NOT NULL,
+  non_admin_can_create boolean NOT NULL
 );
 
 INSERT INTO users_settings (
@@ -823,16 +823,16 @@ INSERT INTO users_settings (
     registration_mail_from,
     registration_mail_addr,
     registration_mail_subject,
-    non_admin_can_create,
-    groups
+    groups,
+    non_admin_can_create
 ) VALUES (
     1,
     false,
-    NULL,
-    NULL,
-    NULL,
-    false,
-    NULL
+    "",
+    "",
+    "",
+    "",
+    false
 );
 
 --

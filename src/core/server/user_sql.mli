@@ -196,11 +196,11 @@ val user_type: user -> [ `User | `Group | `Role ] Lwt.t
 
 type user_settings = {
   basicusercreation : bool;
-  registration_mail_from : string option;
-  registration_mail_addr : string option;
-  registration_mail_subject : string option;
-  non_admin_can_create : bool;
-  groups : string option
+  registration_mail_from : string;
+  registration_mail_addr : string;
+  registration_mail_subject : string;
+  groups : string;
+  non_admin_can_create : bool
 }
 
 val get_users_settings : unit -> user_settings Lwt.t

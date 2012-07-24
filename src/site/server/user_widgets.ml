@@ -55,7 +55,7 @@ class type user_widget_class = object
     Eliom_registration.Block5.page Lwt.t
   method display_users_settings_done :
     unit ->
-      (bool * (string * (string * (string * (bool * string))))) ->
+      (bool * (string * (string * (string * (string * bool))))) ->
       Eliom_registration.Block5.page Lwt.t
 
   method display_group :
@@ -481,11 +481,11 @@ object (self)
 
   method display_users_settings =
     (* TODO: Disable dynamicaly if checkbox is false *)
-    User_services.can_create_users () >>= (fun can_create ->
+    User_sql.get_users_settings () >>= (fun users_settings ->
       Lwt.return [
         Html5.F.post_form
           ~service: User_services.action_users_settings
-          (fun (enable, (mail_from, (mail_addr, (mail_subject, (non_admin, groups))))) -> [
+          (fun (enable, (mail_from, (mail_addr, (mail_subject, (groups, non_admin))))) -> [
             Html5.F.table
               (Html5.F.tr [
                 Html5.F.td [
@@ -495,7 +495,7 @@ object (self)
                 ];
                 Html5.F.td [
                   Html5.F.bool_checkbox
-                    ~checked: can_create
+                    ~checked: users_settings.User_sql.basicusercreation
                     ~name: enable ()
                 ]
                ]
@@ -507,7 +507,9 @@ object (self)
                     ]
                   ];
                   Html5.F.td [
-                    str_input mail_from
+                    str_input
+                      ~value: users_settings.User_sql.registration_mail_from
+                      mail_from
                   ]
                 ];
                 Html5.F.tr [
@@ -517,7 +519,9 @@ object (self)
                     ]
                   ];
                   Html5.F.td [
-                    str_input mail_addr
+                    str_input
+                      ~value: users_settings.User_sql.registration_mail_addr
+                      mail_addr
                   ]
                 ];
                 Html5.F.tr [
@@ -527,7 +531,9 @@ object (self)
                     ]
                   ];
                   Html5.F.td [
-                    str_input mail_subject
+                    str_input
+                      ~value: users_settings.User_sql.registration_mail_subject
+                      mail_subject
                   ]
                 ];
                 Html5.F.tr [
@@ -537,7 +543,9 @@ object (self)
                     ]
                   ];
                   Html5.F.td [
-                    Html5.F.bool_checkbox ~name: non_admin ()
+                    Html5.F.bool_checkbox
+                      ~checked: users_settings.User_sql.non_admin_can_create
+                      ~name: non_admin ()
                   ]
                 ];
                 Html5.F.tr [
@@ -547,7 +555,9 @@ object (self)
                     ]
                   ];
                   Html5.F.td [
-                    str_input groups
+                    str_input
+                      ~value: users_settings.User_sql.groups
+                      groups
                   ]
                 ];
                 Html5.F.tr [
@@ -565,15 +575,15 @@ object (self)
                                          (registration_mail_from,
                                          (registration_mail_addr,
                                          (registration_mail_subject,
-                                         (non_admin_can_create,
-                                         groups))))) =
+                                         (groups,
+                                         non_admin_can_create))))) =
     let users_settings = {
       User_sql.basicusercreation = basicusercreation;
-      registration_mail_from = Some registration_mail_from;
-      registration_mail_addr = Some registration_mail_addr;
-      registration_mail_subject = Some registration_mail_subject;
-      non_admin_can_create = non_admin_can_create;
-      groups = Some groups
+      registration_mail_from = registration_mail_from;
+      registration_mail_addr = registration_mail_addr;
+      registration_mail_subject = registration_mail_subject;
+      groups = groups;
+      non_admin_can_create = non_admin_can_create
     } in
     (if basicusercreation then (
       match registration_mail_from with

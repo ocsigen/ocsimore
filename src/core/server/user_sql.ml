@@ -653,20 +653,20 @@ let user_type = function
 let users_settings = (<:table< users_settings (
   id integer NOT NULL,
   basicusercreation boolean NOT NULL,
-  registration_mail_from text,
-  registration_mail_addr text,
-  registration_mail_subject text,
-  non_admin_can_create boolean NOT NULL,
-  groups text
+  registration_mail_from text NOT NULL,
+  registration_mail_addr text NOT NULL,
+  registration_mail_subject text NOT NULL,
+  groups text NOT NULL,
+  non_admin_can_create boolean NOT NULL
 ) >>)
 
 type user_settings = {
   basicusercreation : bool;
-  registration_mail_from : string option;
-  registration_mail_addr : string option;
-  registration_mail_subject : string option;
-  non_admin_can_create : bool;
-  groups : string option
+  registration_mail_from : string;
+  registration_mail_addr : string;
+  registration_mail_subject : string;
+  groups : string;
+  non_admin_can_create : bool
 }
 
 let get_users_settings () =
@@ -674,11 +674,11 @@ let get_users_settings () =
     PGOCamlQuery.view_one db (<:view< u | u in $users_settings$ >>) >>= (fun data ->
       Lwt.return {
         basicusercreation = data#!basicusercreation;
-        registration_mail_from = data#?registration_mail_from;
-        registration_mail_addr = data#?registration_mail_addr;
-        registration_mail_subject = data#?registration_mail_subject;
-        non_admin_can_create = data#!non_admin_can_create;
-        groups = data#?groups
+        registration_mail_from = data#!registration_mail_from;
+        registration_mail_addr = data#!registration_mail_addr;
+        registration_mail_subject = data#!registration_mail_subject;
+        groups = data#!groups;
+        non_admin_can_create = data#!non_admin_can_create
       }
     )
   )
@@ -687,10 +687,10 @@ let set_users_settings data =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     PGOCamlQuery.query db (<:update< u in $users_settings$ := {
       basicusercreation = $bool:data.basicusercreation$;
-      registration_mail_from = of_option $bind_option_string data.registration_mail_from$;
-      registration_mail_addr = of_option $bind_option_string data.registration_mail_addr$;
-      registration_mail_subject = of_option $bind_option_string data.registration_mail_subject$;
-      non_admin_can_create = $bool:data.non_admin_can_create$;
-      groups = of_option $bind_option_string data.groups$
+      registration_mail_from = $string:data.registration_mail_from$;
+      registration_mail_addr = $string:data.registration_mail_addr$;
+      registration_mail_subject = $string:data.registration_mail_subject$;
+      groups = $string:data.groups$;
+      non_admin_can_create = $bool:data.non_admin_can_create$
     } | u.id = 1 >>)
   )
