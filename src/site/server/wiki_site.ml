@@ -53,7 +53,7 @@ let siteid =
                        ("Unexpected content inside Wiki module config"))
   in
   let c = Eliom_config.get_config () in
-  Lwt_unix.run (find_wikidata None c)
+  Lwt_main.run (find_wikidata None c)
 
 
 
@@ -66,7 +66,7 @@ let wikibox_widget =
 
 (** We create the default wiki model, called "wikicreole" *)
 let wikicreole_model =
-  Lwt_unix.run (
+  Lwt_main.run (
     Wiki_models.register_wiki_model
       ~name:"wikicreole"
       ~content_type:Wiki_syntax.wikicreole_content_type
@@ -107,7 +107,7 @@ let () =
 
 
 (** (We create the wiki containing the administration boxes *)
-let wiki_admin = Lwt_unix.run
+let wiki_admin = Lwt_main.run
   (lwt id =
      try_lwt
        Wiki_sql.get_wiki_info_by_name Wiki.wiki_admin_name
@@ -158,7 +158,7 @@ let wiki_admin_id = wiki_admin.wiki_id
     exists, and returns a function giving the current value of the
     corresponding wikibox *)
 let register_named_wikibox ~page ~content ~content_type ~comment =
-  Lwt_unix.run (
+  Lwt_main.run (
     try_lwt
       lwt _ = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
       Lwt.return ()
@@ -196,7 +196,7 @@ let _ = register_named_wikibox
 
 (** We register the existing wikis of the database, but only those that
     match the [siteid] option *)
-let () = Lwt_unix.run
+let () = Lwt_main.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_pages = path; wiki_siteid = h } ->
         (match path with

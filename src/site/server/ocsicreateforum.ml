@@ -42,10 +42,10 @@ let forum_data =
                        ("Unexpected content inside Ocsicreateforum config"))
   in
   let c = Eliom_config.get_config () in
-  Lwt_unix.run (find_forum_data default_forum_data c)
+  Lwt_main.run (find_forum_data default_forum_data c)
 
 let _ =
-  Lwt_unix.run (
+  Lwt_main.run (
      Forum.create_forum
        ~wiki_model:Wiki_site.wikicreole_model
        ~title_syntax:Forum_site.title_syntax

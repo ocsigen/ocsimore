@@ -31,7 +31,7 @@ let forum_wiki_rights = new Forum.wiki_rights
 let title_syntax = Wiki_syntax.wikicreole_phrasing_content_type
 
 let wikicreole_forum_model =
-  Lwt_unix.run (
+  Lwt_main.run (
     Wiki_models.register_wiki_model
       ~name:"wikicreole_forum"
       ~content_type:Wiki_syntax.reduced_wikicreole_content_type0

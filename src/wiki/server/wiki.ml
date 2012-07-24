@@ -97,7 +97,7 @@ let param_wikipage = {
 }
 
 let aux_grp name descr find_param =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_parameterized_group ~prefix ~name ~descr ~find_param)
 
 let admin_writer_reader_aux ~name ~descr ~find_param =
@@ -107,7 +107,7 @@ let admin_writer_reader_aux ~name ~descr ~find_param =
 (** All wiki-related groups *)
 
 let wikis_creator =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_nonparameterized_group ~prefix ~name:"WikisCreators"
        ~descr:"can create new wikis")
 
@@ -253,7 +253,7 @@ WikiboxReader(wb)
 *)
 
 
-let () = Lwt_unix.run (
+let () = Lwt_main.run (
   let add_admin g =
     User_sql.add_generic_inclusion ~superset:g ~subset:wiki_admins
   in

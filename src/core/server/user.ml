@@ -45,7 +45,7 @@ exception UseAuth of userid
 
 (* We might want to simply overwrite incorrect values by the correct ones *)
 let possibly_create ~login ~fullname ?email ?pwd () =
-  Lwt_unix.run (
+  Lwt_main.run (
     try_lwt
       User_sql.get_basicuser_by_login login
     with User_sql.NotAnUser | Not_found ->
@@ -134,14 +134,14 @@ let param_user = {
 }
 
 let group_can_create_groups =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_nonparameterized_group ~prefix:"users"
        ~name:"can_create_groups"
        ~descr:"can create new groups"
     )
 
 let group_can_admin_group : [`User] parameterized_group =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_parameterized_group ~prefix:"users"
        ~name:"can_admin_group"
        ~descr:"can add or remove people in the group"
@@ -149,12 +149,12 @@ let group_can_admin_group : [`User] parameterized_group =
     )
 
 let group_can_create_users =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_nonparameterized_group ~prefix:"users" ~name:"GroupsCreators"
        ~descr:"can create new Ocsimore users")
 
 let group_can_admin_users =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_nonparameterized_group ~prefix:"users"
        ~name:"admin"
        ~descr:"can admin users"
@@ -430,7 +430,7 @@ let is_logged_on () =
    as only the users that are effectively able to logging can be inside.
 *)
 let authenticated_users =
-  Lwt_unix.run
+  Lwt_main.run
     (lwt users =
        create_user ~name:"users" ~pwd:User_sql.Types.Connect_forbidden
          ~fullname:"Authenticated users" ~test:is_logged_on ()
@@ -445,7 +445,7 @@ let is_external_user () =
 
 
 let external_users =
-  Lwt_unix.run
+  Lwt_main.run
     (create_user ~name:"external_users" ~pwd:User_sql.Types.Connect_forbidden
        ~fullname:"Users using external authentification"
        ~test:is_external_user ()
@@ -531,7 +531,7 @@ module GenericRights = struct
        "can read " ^ descr)
     in
     let f = User_sql.new_parameterized_group ~prefix ~find_param in
-    Lwt_unix.run (
+    Lwt_main.run (
       lwt ga = f namea descra in
       lwt gw = f namew descrw in
       lwt gr = f namer descrr in

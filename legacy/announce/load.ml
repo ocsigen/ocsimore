@@ -309,7 +309,7 @@ include Load_sql
 
 let create_wiki () =
   let wikibox_widget = Ocsisite.wikibox_widget in
-  Lwt_unix.run
+  Lwt_main.run
     (Wiki_services.create_and_register_wiki
        ~title:"Announcements" ~descr:"Announcement manager" ~wikibox_widget ())
 

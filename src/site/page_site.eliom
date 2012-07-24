@@ -44,7 +44,7 @@ let admin_staticdir =
                        ("Unexpected content inside Page_site config"))
   in
   let c = Eliom_config.get_config () in
-  Lwt_unix.run (find_wikidata None c)
+  Lwt_main.run (find_wikidata None c)
 
 exception No_admin_staticdir
 

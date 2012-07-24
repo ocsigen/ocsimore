@@ -24,7 +24,7 @@ let options = <:table< options (
   value text NOT NULL
 ) >>
 
-let current_version = Lwt_unix.run
+let current_version = Lwt_main.run
   (try_lwt
      lwt l =
        full_transaction_block
@@ -53,7 +53,7 @@ let update version f =
 
 (*
 let () =
-  Lwt_unix.run begin
+  Lwt_main.run begin
    lwt () = update 2 (fun db -> "ALTER TABLE options ADD PRIMARY KEY (name)") [] in
    lwt () = update 3 (fun db -> PGSQL(db) "ALTER TABLE wikis ADD COLUMN hostid text") in
    lwt () = update 4 (fun db -> PGSQL(db) "ALTER TABLE wikis RENAME COLUMN hostid TO siteid") in

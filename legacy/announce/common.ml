@@ -55,7 +55,7 @@ let opt default c l = match l with [] -> default | x :: r -> c x r
 
 open Wiki_types
 
-let wiki_info = Lwt_unix.run (Wiki_sql.get_wiki_info_by_name "Announcements")
+let wiki_info = Lwt_main.run (Wiki_sql.get_wiki_info_by_name "Announcements")
 
 let wiki_id = wiki_info.wiki_id
 let page_id =

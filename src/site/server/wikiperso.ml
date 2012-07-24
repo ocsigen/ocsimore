@@ -181,14 +181,14 @@ let find_user user =
 
 
 let can_have_wikiperso =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_nonparameterized_group ~prefix:"wikiperso"
        ~name:"can_have_wikiperso"
        ~descr:"can have a wikiperso (unless they are in the group 'cannot_have_wikiperso')"
     )
 
 let cannot_have_wikiperso =
-  Lwt_unix.run
+  Lwt_main.run
     (User_sql.new_nonparameterized_group ~prefix:"wikiperso"
        ~name:"cannot_have_wikiperso"
        ~descr:"are forbidden to have a wikiperso"
@@ -298,7 +298,7 @@ let gen () =
 (* We load the existing wikipersos at the correct path *)
 let () =
   let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
-  Lwt_unix.run
+  Lwt_main.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = title; wiki_siteid = siteid } ->
         (match Netstring_pcre.string_match regexp title 0 with
@@ -317,7 +317,7 @@ let () =
 (* Update to correct wikiperso model *)
 let () =
   let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
-  Lwt_unix.run
+  Lwt_main.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = title } ->
         (match Netstring_pcre.string_match regexp title 0 with

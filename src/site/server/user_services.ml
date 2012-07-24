@@ -56,7 +56,7 @@ let (auth, force_secure) =
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                     ("Unexpected content inside User_site config")) in
   let c = Eliom_config.get_config () in
-  Lwt_unix.run (find_data default_data c)
+  Lwt_main.run (find_data default_data c)
 
 let basicusercreation () =
   User_sql.get_users_settings () >>= (fun data ->

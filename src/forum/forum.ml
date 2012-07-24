@@ -50,7 +50,7 @@ let message_param = {
 (** {2 Forum related groups} *)
 
 let aux_grp name descr param =
-  Lwt_unix.run (User_sql.new_parameterized_group "forum" name descr param)
+  Lwt_main.run (User_sql.new_parameterized_group "forum" name descr param)
 
 let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
@@ -138,7 +138,7 @@ let forum_visible : forum_arg parameterized_group =
   aux_grp "visible" "Can see the forum" forum_param
 
 let forum_creators =
-  Lwt_unix.run (User_sql.new_nonparameterized_group ~name:"forum_creators"
+  Lwt_main.run (User_sql.new_nonparameterized_group ~name:"forum_creators"
                   ~prefix:"forum" ~descr:"Can create new forums")
 
 
@@ -175,7 +175,7 @@ let thread_comments_creators_notmod : message_arg parameterized_group =
 
 
 (* Generic relations between groups *)
-let () = Lwt_unix.run (
+let () = Lwt_main.run (
 
   User_sql.add_to_group_generic
     ~user:forum_admin ~group:moderators >>= fun () ->
