@@ -539,18 +539,6 @@ object (self)
                 Html5.F.tr [
                   Html5.F.td [
                     Html5.F.label [
-                      Html5.F.pcdata "Non-admin can create user:"
-                    ]
-                  ];
-                  Html5.F.td [
-                    Html5.F.bool_checkbox
-                      ~checked: users_settings.User_sql.non_admin_can_create
-                      ~name: non_admin ()
-                  ]
-                ];
-                Html5.F.tr [
-                  Html5.F.td [
-                    Html5.F.label [
                       Html5.F.pcdata "Groups:"
                     ]
                   ];
@@ -558,6 +546,18 @@ object (self)
                     str_input
                       ~value: users_settings.User_sql.groups
                       groups
+                  ]
+                ];
+                Html5.F.tr [
+                  Html5.F.td [
+                    Html5.F.label [
+                      Html5.F.pcdata "Non-admin can create user:"
+                    ]
+                  ];
+                  Html5.F.td [
+                    Html5.F.bool_checkbox
+                      ~checked: users_settings.User_sql.non_admin_can_create
+                      ~name: non_admin ()
                   ]
                 ];
                 Html5.F.tr [
