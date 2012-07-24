@@ -256,7 +256,8 @@ let action_users_settings =
                     (string "mail_from") **
                     (string "mail_addr") **
                     (string "mail_subject") **
-                    (bool "non_admin")) ()
+                    (bool "non_admin") **
+                    (string "groups")) ()
 
 
 

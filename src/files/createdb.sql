@@ -823,14 +823,16 @@ INSERT INTO users_settings (
     registration_mail_from,
     registration_mail_addr,
     registration_mail_subject,
-    non_admin_can_create
+    non_admin_can_create,
+    groups
 ) VALUES (
     1,
     false,
     NULL,
     NULL,
     NULL,
-    false
+    false,
+    NULL
 );
 
 --

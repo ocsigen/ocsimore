@@ -55,7 +55,7 @@ class type user_widget_class = object
     Eliom_registration.Block5.page Lwt.t
   method display_users_settings_done :
     unit ->
-      (bool * (string * (string * (string * bool)))) ->
+      (bool * (string * (string * (string * (bool * string))))) ->
       Eliom_registration.Block5.page Lwt.t
 
   method display_group :
@@ -485,7 +485,7 @@ object (self)
       Lwt.return [
         Html5.F.post_form
           ~service: User_services.action_users_settings
-          (fun (enable, (mail_from, (mail_addr, (mail_subject, non_admin)))) -> [
+          (fun (enable, (mail_from, (mail_addr, (mail_subject, (non_admin, groups))))) -> [
             Html5.F.table
               (Html5.F.tr [
                 Html5.F.td [
@@ -542,6 +542,16 @@ object (self)
                 ];
                 Html5.F.tr [
                   Html5.F.td [
+                    Html5.F.label [
+                      Html5.F.pcdata "Groups:"
+                    ]
+                  ];
+                  Html5.F.td [
+                    str_input groups
+                  ]
+                ];
+                Html5.F.tr [
+                  Html5.F.td [
                     submit_input "Send"
                   ]
                 ]
@@ -555,14 +565,15 @@ object (self)
                                          (registration_mail_from,
                                          (registration_mail_addr,
                                          (registration_mail_subject,
-                                         non_admin_can_create)))) =
+                                         (non_admin_can_create,
+                                         groups))))) =
     let users_settings = {
       User_sql.basicusercreation = basicusercreation;
       registration_mail_from = Some registration_mail_from;
       registration_mail_addr = Some registration_mail_addr;
       registration_mail_subject = Some registration_mail_subject;
       non_admin_can_create = non_admin_can_create;
-      groups = None
+      groups = Some groups
     } in
     (if basicusercreation then (
       match registration_mail_from with
