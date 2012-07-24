@@ -817,6 +817,7 @@ CREATE TABLE users_settings (
   non_admin_can_create boolean NOT NULL
 );
 
+-- TODO: Put into user_sql.ml
 INSERT INTO users_settings (
     id,
     basicusercreation,
@@ -828,10 +829,10 @@ INSERT INTO users_settings (
 ) VALUES (
     1,
     false,
-    "",
-    "",
-    "",
-    "",
+    '',
+    '',
+    '',
+    '',
     false
 );
 
