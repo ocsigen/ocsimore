@@ -199,7 +199,8 @@ type user_settings = {
   registration_mail_from : string option;
   registration_mail_addr : string option;
   registration_mail_subject : string option;
-  non_admin_can_create : bool
+  non_admin_can_create : bool;
+  groups : string option
 }
 
 val get_users_settings : unit -> user_settings Lwt.t

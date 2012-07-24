@@ -656,7 +656,8 @@ let users_settings = (<:table< users_settings (
   registration_mail_from text,
   registration_mail_addr text,
   registration_mail_subject text,
-  non_admin_can_create boolean NOT NULL
+  non_admin_can_create boolean NOT NULL,
+  groups text
 ) >>)
 
 type user_settings = {
@@ -664,7 +665,8 @@ type user_settings = {
   registration_mail_from : string option;
   registration_mail_addr : string option;
   registration_mail_subject : string option;
-  non_admin_can_create : bool
+  non_admin_can_create : bool;
+  groups : string option
 }
 
 let get_users_settings () =
@@ -675,7 +677,8 @@ let get_users_settings () =
         registration_mail_from = data#?registration_mail_from;
         registration_mail_addr = data#?registration_mail_addr;
         registration_mail_subject = data#?registration_mail_subject;
-        non_admin_can_create = data#!non_admin_can_create
+        non_admin_can_create = data#!non_admin_can_create;
+        groups = data#?groups
       }
     )
   )
@@ -687,6 +690,7 @@ let set_users_settings data =
       registration_mail_from = of_option $bind_option_string data.registration_mail_from$;
       registration_mail_addr = of_option $bind_option_string data.registration_mail_addr$;
       registration_mail_subject = of_option $bind_option_string data.registration_mail_subject$;
-      non_admin_can_create = $bool:data.non_admin_can_create$
+      non_admin_can_create = $bool:data.non_admin_can_create$;
+      groups = of_option $bind_option_string data.groups$
     } | u.id = 1 >>)
   )

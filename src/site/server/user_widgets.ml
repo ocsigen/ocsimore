@@ -561,7 +561,8 @@ object (self)
       registration_mail_from = Some registration_mail_from;
       registration_mail_addr = Some registration_mail_addr;
       registration_mail_subject = Some registration_mail_subject;
-      non_admin_can_create = non_admin_can_create
+      non_admin_can_create = non_admin_can_create;
+      groups = None
     } in
     (if basicusercreation then (
       match registration_mail_from with

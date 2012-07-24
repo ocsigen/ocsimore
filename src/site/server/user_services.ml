@@ -58,17 +58,6 @@ let (auth, force_secure) =
   let c = Eliom_config.get_config () in
   Lwt_unix.run (find_data default_data c)
 
-
-
-(*
-              Lwt.try_bind
-                (User.user_list_of_string (List.assoc "groups" atts))
-                (fun x -> x)
-                (fun Not_found ->
-                  Lwt.return [
-                    User_sql.Types.basic_user User.authenticated_users
-                  ]
-                ) >>= (fun default_groups -> *)
 let basicusercreation () =
   User_sql.get_users_settings () >>= (fun data ->
     if data.User_sql.basicusercreation then (
@@ -78,19 +67,25 @@ let basicusercreation () =
           match data.User_sql.registration_mail_addr with
             | None -> Lwt.fail (Failure "Missing registration_mail_addr attribute")
             | (Some y) -> (
-              Lwt.return (UserCreation {
-                User_data.mail_from = x;
-                mail_addr = y;
-                mail_subject =
-                  (match data.User_sql.registration_mail_subject with
-                    | None -> ""
-                    | (Some x) -> x
-                  );
-                new_user_groups = [
-                  User_sql.Types.basic_user User.authenticated_users
-                ];
-                non_admin_can_create = data.User_sql.non_admin_can_create
-              })
+              (match data.User_sql.groups with
+                | None ->
+                  Lwt.return [
+                    User_sql.Types.basic_user User.authenticated_users
+                  ]
+                | (Some groups) -> User.user_list_of_string groups
+              ) >>= (fun groups ->
+                Lwt.return (UserCreation {
+                  User_data.mail_from = x;
+                  mail_addr = y;
+                  mail_subject =
+                    (match data.User_sql.registration_mail_subject with
+                      | None -> ""
+                      | (Some x) -> x
+                    );
+                  new_user_groups = groups;
+                  non_admin_can_create = data.User_sql.non_admin_can_create
+                })
+               )
             )
         )
     )

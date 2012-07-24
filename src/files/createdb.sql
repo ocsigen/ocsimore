@@ -813,7 +813,8 @@ CREATE TABLE users_settings (
   registration_mail_from text,
   registration_mail_addr text,
   registration_mail_subject text,
-  non_admin_can_create boolean NOT NULL
+  non_admin_can_create boolean NOT NULL,
+  groups text
 );
 
 INSERT INTO users_settings (
