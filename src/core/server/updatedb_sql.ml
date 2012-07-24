@@ -18,6 +18,9 @@
 
 open Ocsi_sql
 
+let (>|=) m f = Lwt.map f m
+let (>>=) = Lwt.bind
+
 (* BEWARE: This is going to raise an exception ! *)
 let options = <:table< options (
   name text NOT NULL,
@@ -51,17 +54,31 @@ let update version f =
   else
     Lwt.return ()
 
-(*
+let alter db query =
+  let name = "query" in
+  PGOCaml.prepare db ~query ~name () >>= (fun () ->
+    PGOCaml.execute db ~name ~params: [] () >>= (fun _ ->
+      PGOCaml.close_statement db ~name ()
+    )
+  )
+
 let () =
   Lwt_main.run begin
-   lwt () = update 2 (fun db -> "ALTER TABLE options ADD PRIMARY KEY (name)") [] in
-   lwt () = update 3 (fun db -> PGSQL(db) "ALTER TABLE wikis ADD COLUMN hostid text") in
-   lwt () = update 4 (fun db -> PGSQL(db) "ALTER TABLE wikis RENAME COLUMN hostid TO siteid") in
-   lwt () = update 5 (fun db -> PGSQL(db) "ALTER TABLE wikiboxescontent ADD COLUMN ip text") in
-   lwt () = update 6
-     (fun db ->
-        lwt () = PGSQL(db) "ALTER TABLE wikis DROP CONSTRAINT wikis_title_key" in
-        PGSQL(db) "ALTER TABLE wikis ADD CONSTRAINT wikis_title_unique UNIQUE (title,siteid)")
-   in Lwt.return ()
- end
-*)
+    update 2 (fun db ->
+      alter db "ALTER TABLE options ADD PRIMARY KEY(name)"
+    ) >>= fun () ->
+    update 3 (fun db ->
+      alter db "ALTER TABLE wikis ADD COLUMN hostid text"
+    ) >>= fun () ->
+    update 4 (fun db ->
+      alter db "ALTER TABLE wikis RENAME COLUMN hostid TO siteid"
+    ) >>= fun () ->
+    update 5 (fun db ->
+      alter db "ALTER TABLE wikiboxescontent ADD COLUMN ip text"
+    ) >>= fun () ->
+    update 6 (fun db ->
+      alter db "ALTER TABLE wikis DROP CONSTRAINT wikis_title_key" >>= (fun () ->
+        alter db "ALTER TABLE wikis ADD CONSTRAINT wikis_title_unique UNIQUE (title,siteid)"
+      )
+    )
+  end
