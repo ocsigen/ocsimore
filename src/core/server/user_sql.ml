@@ -694,3 +694,23 @@ let set_users_settings data =
       non_admin_can_create = $bool:data.non_admin_can_create$
     } | u.id = 1 >>)
   )
+
+let () =
+  Lwt_main.run (
+    Lwt_pool.use Ocsi_sql.pool (fun db ->
+      PGOCamlQuery.view_opt db
+        (<:view< u | u in $users_settings$ >>) >>= (function
+          | None ->
+            PGOCamlQuery.query db (<:insert< $users_settings$ := {
+              id = 1;
+              basicusercreation = false;
+              registration_mail_from = "";
+              registration_mail_addr = "";
+              registration_mail_subject = "";
+              groups = "";
+              non_admin_can_create = false;
+            } >>)
+          | _ -> Lwt.return ()
+         )
+    )
+  )

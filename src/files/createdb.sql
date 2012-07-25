@@ -817,25 +817,6 @@ CREATE TABLE users_settings (
   non_admin_can_create boolean NOT NULL
 );
 
--- TODO: Put into user_sql.ml
-INSERT INTO users_settings (
-    id,
-    basicusercreation,
-    registration_mail_from,
-    registration_mail_addr,
-    registration_mail_subject,
-    groups,
-    non_admin_can_create
-) VALUES (
-    1,
-    false,
-    '',
-    '',
-    '',
-    '',
-    false
-);
-
 --
 -- Data for Name: category; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
 --
