@@ -121,7 +121,8 @@ class type ['param, 'result] parametrized_unit_widget_t =
     ['param, unit, 'result] parametrized_widget_t
 
 class virtual ['param] parametrized_unit_div_widget = object
-  inherit ['param, unit] parametrized_div_widget
+  (* NOTE: This class is the same than the next one
+  inherit ['param, unit] parametrized_div_widget *)
   inherit ['param, [`Div] Html5.F.elt Lwt.t] parametrized_unit_widget
   val! xhtml_class = "parametrized_unit_div_widget"
   method private retrieve_data _ = Lwt.return ()
