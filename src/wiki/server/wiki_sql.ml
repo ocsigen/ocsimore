@@ -359,7 +359,7 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
   wrap db
     (fun db ->
        let model_sql = Wiki_types.string_of_wiki_model model in (* WTF IS CONTAINER ??? *)
-       PGOCamlQuery.query db (<:insert< $wikis$ := {id = nextval $wikis_id_seq$; title = $string:title$; descr = $string:descr$; pages = of_option $bind_option_string pages$; boxrights = $bool:boxrights$; container = 0; staticdir = of_option $bind_option_string staticdir$; model = $string:model_sql$; siteid = null} >>) (* WHY SITEID IS SET ??? *)
+       PGOCamlQuery.query db (<:insert< $wikis$ := {id = nextval $wikis_id_seq$; title = $string:title$; descr = $string:descr$; pages = of_option $bind_option_string pages$; boxrights = $bool:boxrights$; container = null; staticdir = of_option $bind_option_string staticdir$; model = $string:model_sql$; siteid = null} >>) (* WHY SITEID IS SET ??? *)
        >>= fun () ->
        serial4 db "wikis_id_seq" >>= fun wiki_sql ->
        let wiki = wiki_of_sql wiki_sql in

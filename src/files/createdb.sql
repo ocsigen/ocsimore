@@ -202,6 +202,22 @@ SELECT pg_catalog.setval('person_id_seq', 1, false);
 SET search_path = public, pg_catalog;
 
 --
+-- Users settings
+--
+
+CREATE TABLE users_settings (
+  id integer NOT NULL,
+  basicusercreation boolean NOT NULL,
+  registration_mail_from text NOT NULL,
+  registration_mail_addr text NOT NULL,
+  registration_mail_subject text NOT NULL,
+  groups text NOT NULL,
+  non_admin_can_create boolean NOT NULL
+);
+
+ALTER TABLE public.users_settings OWNER TO ocsimore;
+
+--
 -- Name: css; Type: TABLE; Schema: public; Owner: ocsimore; Tablespace: 
 --
 
@@ -802,20 +818,6 @@ ALTER TABLE wikis ALTER COLUMN id SET DEFAULT nextval('wikis_id_seq'::regclass);
 
 SET search_path = announcement, pg_catalog;
 
-
---
--- Users settings
---
-
-CREATE TABLE users_settings (
-  id integer NOT NULL,
-  basicusercreation boolean NOT NULL,
-  registration_mail_from text NOT NULL,
-  registration_mail_addr text NOT NULL,
-  registration_mail_subject text NOT NULL,
-  groups text NOT NULL,
-  non_admin_can_create boolean NOT NULL
-);
 
 --
 -- Data for Name: category; Type: TABLE DATA; Schema: announcement; Owner: ocsimore
