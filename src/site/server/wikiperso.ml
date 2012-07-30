@@ -96,26 +96,51 @@ let wiki_path user =
    method as the one specified in the eliom module ocsi_wiki is used.
    Currently, Pam authentification is not supported
 *)
+
 let external_user user =
+  let get_and_create_external_user f f_fullname =
+    f user >>= (function
+      | None -> Lwt.return None
+      | Some userdata ->
+        User.create_user ~name:user
+          ~pwd:User_sql.Types.External_Auth
+          ~fullname:(f_fullname userdata)
+          ~email:(user ^ "@localhost")
+          ()
+        >>= fun userdata ->
+        Lwt.return (Some userdata)
+    ) in
   match User_services.auth with
     | User_services.NoExternalAuth -> return None
     | User_services.Nis ->
-        (Nis_chkpwd.userinfo user
-         >>= function
-           | None -> return None
-           | Some userdata ->
-               User.create_user ~name:user
-                 ~pwd:User_sql.Types.External_Auth
-                 ~fullname:userdata.Unix.pw_gecos
-                 ~email:(user ^ "@localhost")
-                 ()
-               >>= fun userdata ->
-                 return (Some userdata)
-        )
+      get_and_create_external_user
+        Nis_chkpwd.userinfo
+        (fun userdata -> userdata.Unix.pw_gecos)
     | User_services.Pam _ ->
         Ocsigen_messages.warning
           "PAM authentification not supported by wikiperso";
         return None
+    | User_services.Ldap data ->
+      get_and_create_external_user
+        (Ocsimore_ldap.get_user data)
+        (fun userdata ->
+          let pwd = "userPassword"
+          and default = ""
+          and concat_list = List.fold_left (fun acc elm -> acc ^ elm) "" in
+          let rec search_in_search_result_entry = function
+            | [] -> default
+            | [x] when x.Ldap_types.attr_type = pwd ->
+              concat_list x.Ldap_types.attr_vals
+            | x::xs when x.Ldap_types.attr_type = pwd ->
+              concat_list x.Ldap_types.attr_vals
+            | [x] -> search_in_search_result_entry []
+            | x::xs -> search_in_search_result_entry xs in
+          match userdata with
+            | `Entry elm ->
+              search_in_search_result_entry elm.Ldap_types.sr_attributes
+            | `Referral _ -> default (* Don't know what is referral ? *)
+        )
+
 
 (** Template pages, for the containers and the css of the new wikis. They are
     copied each time a new wiki is created *)
@@ -313,15 +338,14 @@ let () =
      )
   )
 
-(*
 (* Update to correct wikiperso model *)
-let () =
-  let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
+(*let () =*)let _ =
+  (*let regexp = Netstring_pcre.regexp *)"^wikiperso for (.*)$"(* in
   Lwt_main.run
   (Wiki_sql.iter_wikis
      (fun { wiki_id = wiki; wiki_title = title } ->
         (match Netstring_pcre.string_match regexp title 0 with
-           | Some _ ->
+           | Some _ -> wikiperso_model >>= fun wikiperso_model ->
                Wiki_sql.update_wiki ~model:wikiperso_model wiki
            | None -> Lwt.return ()
         )
