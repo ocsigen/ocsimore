@@ -53,12 +53,13 @@ let ldap_auth base uri ~name ~pwd =
 
 (* FIXME?: Lwt.pick or Lwt_preemptive.detach ??? *)
 let get_user (base, uri) user =
-  (* TODO: Unbind *)
-    let conn = Ldap.init [uri] in
-    match Ldap.search_s ~base conn (Printf.sprintf "uid=%s,%s" user base) with
+  let conn = Ldap.init [uri] in
+  Lwt.finalize (fun () ->
+    match Ldap.search_s ~base conn ("uid=" ^ user) with
       | [] -> Lwt.return None
       | [x] -> Lwt.return (Some x)
       | _ -> Lwt.fail (Failure "Ldap error: Too much users match")
+  ) (fun () -> Ldap.unbind conn; Lwt.return ())
 
 let _ =
   User_external_auth.external_auth_ldap := Some
