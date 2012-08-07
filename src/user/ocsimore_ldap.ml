@@ -50,6 +50,14 @@ let ldap_auth base uri ~name ~pwd =
     (fun () -> Lwt_mutex.unlock mutex; Lwt.return ())
 *)
 
+(*
+let _ =
+  let conn = Ldap.init ["ldaps://localhost:636/"] in
+  match Ldap.search_s ~base:"dc=my-domain,dc=com" conn "uid=fff" with
+    | [x] -> x
+    | [] -> failwith "TEST"
+    | _ -> failwith "Ldap error: Too much users match"
+*)
 
 (* FIXME?: Lwt.pick or Lwt_preemptive.detach ??? *)
 let get_user (base, uri) user =
