@@ -193,10 +193,12 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
                | [data] ->
                  (PGOCamlQuery.query db (<:update< f in $forums_messages$ := {
                    tree_max = f.tree_max + 2
-                  } | f.root_id = $int32:(data#!root_id)$; f.tree_max >= $int32:(data#!tree_max)$ >>) >>= fun () ->
+                  } | f.root_id = $int32:(data#!root_id)$;
+                      f.tree_max >= $int32:(data#!tree_max)$ >>) >>= fun () ->
                   PGOCamlQuery.query db (<:update< f in $forums_messages$ := {
                     tree_min = f.tree_min + 2
-                  } | f.root_id = $int32:(data#!root_id)$; f.tree_min >= $int32:(data#!tree_max)$ >>) >>= fun () ->
+                  } | f.root_id = $int32:(data#!root_id)$;
+                      f.tree_min >= $int32:(data#!tree_max)$ >>) >>= fun () ->
                   PGOCamlQuery.query db (<:insert< $forums_messages$ := {
                     id = nextval $forums_messages_id_seq$;
                     creator_id = $int32:creator_id'$;
@@ -283,7 +285,8 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
          then Lwt.fail Not_found
          else Lwt.return
            (get_forum_info
-              (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted, a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
+              (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted,
+               a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
            )
      | a::_ ->
          Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
@@ -291,7 +294,8 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
          then Lwt.fail Not_found
          else Lwt.return
            (get_forum_info
-              (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted, a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
+              (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted,
+               a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
            )
      | _ -> Lwt.fail Not_found)
 
@@ -413,7 +417,9 @@ let get_thread ~message_id () =
                 f.tree_min;
                 f.tree_max
               } order by {f.tree_min} |
-                  f in $forums_messages$; f.root_id = $int32:message_id$; f.tree_min >= $int32:data#!tree_min$; f.tree_max <= $int32:data#!tree_max$ >>)
+                f in $forums_messages$; f.root_id = $int32:message_id$;
+                f.tree_min >= $int32:data#!tree_min$;
+                f.tree_max <= $int32:data#!tree_max$ >>)
             )
          )
     )
@@ -428,12 +434,15 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
        then raw_message_from_sql (
          PGOCamlQuery.view db (<:view< f order by f.tree_min desc
                                   limit $int64:number$ offset $int64:offset$ |
-             f in $forums_messages$; f.forum_id = $int32:forum$; is_null f.parent_id; (f.moderated = true) || (f.special_rights = true) >>)
+             f in $forums_messages$; f.forum_id = $int32:forum$;
+             is_null f.parent_id;
+             (f.moderated = true) || (f.special_rights = true) >>)
        )
        else raw_message_from_sql (
          PGOCamlQuery.view db (<:view< f order by f.datetime desc
                                   limit $int64:number$ offset $int64:offset$ |
-             f in $forums_messages$; f.forum_id = $int32:forum$; is_null f.parent_id >>)
+             f in $forums_messages$; f.forum_id = $int32:forum$;
+             is_null f.parent_id >>)
        )
     )
 
@@ -443,7 +452,8 @@ let get_wikibox_creator ~wb =
     (fun db ->
       PGOCamlQuery.view db (<:view< {
         f.creator_id
-      } | f in $forums_messages$; (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
+      } | f in $forums_messages$;
+          (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
     ) >>= function
       | [] -> Lwt.return None
       | a::_ -> Lwt.return (Some (User_sql.Types.userid_from_sql a#!creator_id))
@@ -454,7 +464,8 @@ let wikibox_is_moderated ~wb =
     (fun db ->
       PGOCamlQuery.view db (<:view< {
         f.moderated
-      } | f in $forums_messages$; (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
+      } | f in $forums_messages$;
+          (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
     ) >>= function
       | [] -> Lwt.return false (* ? *)
       | a::_ -> Lwt.return a#!moderated

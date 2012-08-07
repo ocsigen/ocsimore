@@ -32,7 +32,9 @@ let current_version = Lwt_main.run
      lwt l =
        full_transaction_block
          (fun db -> PGOCamlQuery.view db (
-           <:view< {opt.value} | opt in $options$; opt.name = "dbversion" >>))
+           <:view< {
+             opt.value
+           } | opt in $options$; opt.name = "dbversion" >>))
    in
     Lwt.return (int_of_string ((List.hd l)#!value))
    with exc ->
@@ -42,7 +44,9 @@ let current_version = Lwt_main.run
 
 let update_version db version =
   let ver = string_of_int version in
-  PGOCamlQuery.query db (<:update< opt in $options$ := { value = $string:ver$ } | opt.name = "dbversion">>)
+  PGOCamlQuery.query db (<:update< opt in $options$ := {
+    value = $string:ver$
+  } | opt.name = "dbversion">>)
 
 let update version f =
   if current_version < version then

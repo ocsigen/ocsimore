@@ -2,7 +2,7 @@
 
 <**/*>: debug
 <src/**/*.ml{,i}>: syntax_camlp4o
-<src/wiki/server/wikicreole.ml*>: -syntax_camlp4o, -pkg_camlp4, -pkg_lwt.syntax, -pkg_pgocaml.syntax
+<src/wiki/server/wikicreole.ml*>: -syntax_camlp4o, -pkg_camlp4, -pkg_lwt.syntax
 <src/site/type/*>: thread, use_ocsimore, use_wiki
 <src/wiki/type/*>: thread, use_ocsimore
 <src/core/type/*>: thread, use_ocsimore

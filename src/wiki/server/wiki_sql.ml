@@ -81,10 +81,24 @@ let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
        and content_type = string_of_content_type content_type
        and author = User_sql.Types.sql_from_userid author
        in
-       PGOCamlQuery.query db (<:insert< $wikiboxindex$ := {wiki = $int32:wiki'$; comment = $string:comment$; specialrights = wikiboxindex?specialrights; uid = nextval $wikiboxindex_uid_seq$} >>)
+       PGOCamlQuery.query db (<:insert< $wikiboxindex$ := {
+         wiki = $int32:wiki'$;
+         comment = $string:comment$;
+         specialrights = wikiboxindex?specialrights;
+         uid = nextval $wikiboxindex_uid_seq$
+       } >>)
        >>= fun () ->
        serial4 db "wikiboxindex_uid_seq" >>= fun boxid ->
-       PGOCamlQuery.query db (<:insert< $wikiboxescontent$ := {version = nextval $wikiboxes_version_seq$; comment = wikiboxescontent?comment; author = $int32:author$; content = $string:content$; datetime = wikiboxescontent?datetime; content_type = $string:content_type$; wikibox = $int32:boxid$; ip = ""} >>)
+       PGOCamlQuery.query db (<:insert< $wikiboxescontent$ := {
+         version = nextval $wikiboxes_version_seq$;
+         comment = wikiboxescontent?comment;
+         author = $int32:author$;
+         content = $string:content$;
+         datetime = wikiboxescontent?datetime;
+         content_type = $string:content_type$;
+         wikibox = $int32:boxid$;
+         ip = ""
+       } >>)
        >>= fun () ->
        Lwt.return (wikibox_of_sql boxid)
     )
@@ -99,7 +113,16 @@ let update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb =
        let wikibox = sql_of_wikibox wb
        and author = User_sql.Types.sql_from_userid author
        in
-       PGOCamlQuery.query db (<:insert< $wikiboxescontent$ := {version = nextval $wikiboxes_version_seq$; comment = $string:comment$; author = $int32:author$; content = of_option $bind_option_string content$; datetime = wikiboxescontent?datetime; content_type = $string:content_type$; wikibox = $int32:wikibox$; ip = of_option $map_option_string ip$} >>)
+       PGOCamlQuery.query db (<:insert< $wikiboxescontent$ := {
+         version = nextval $wikiboxes_version_seq$;
+         comment = $string:comment$;
+         author = $int32:author$;
+         content = of_option $bind_option_string content$;
+         datetime = wikiboxescontent?datetime;
+         content_type = $string:content_type$;
+         wikibox = $int32:wikibox$;
+         ip = of_option $map_option_string ip$
+       } >>)
        >>= fun () ->
        serial4 db "wikiboxes_version_seq"
     )
@@ -114,17 +137,33 @@ let get_wikibox_content_ ?version wb =
           | None ->
             PGOCamlQuery.view_one db (<:view< group {version = max[w.version]} |
                 w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>) >>= (fun data ->
-                    PGOCamlQuery.view db (<:view< {w.comment; w.author; w.content; w.datetime; w.content_type; w.version} |
-                        w in $wikiboxescontent$; w.wikibox = $int32:wikibox$; w.version = $int32:(data#!version)$ >>)
+                  PGOCamlQuery.view db (<:view< {
+                    w.comment;
+                    w.author;
+                    w.content;
+                    w.datetime;
+                    w.content_type;
+                    w.version
+                  } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
+                      w.version = $int32:(data#!version)$ >>)
             )
           | Some version ->
-            PGOCamlQuery.view db (<:view< {w.comment; w.author; w.content; w.datetime; w.content_type; w.version} |
-                w in $wikiboxescontent$; w.wikibox = $int32:wikibox$; w.version = $int32:version$ >>))
+            PGOCamlQuery.view db (<:view< {
+              w.comment;
+              w.author;
+              w.content;
+              w.datetime;
+              w.content_type;
+              w.version
+            } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
+                w.version = $int32:version$ >>))
        >>= function
          | [] -> Lwt.return None
          | first :: _ ->
              Lwt.return (Some (first#!comment,
-                               User_sql.Types.userid_from_sql first#!author, first#?content, first#!datetime, first#!content_type, first#!version))
+                               User_sql.Types.userid_from_sql first#!author,
+                               first#?content, first#!datetime,
+                               first#!content_type, first#!version))
     )
 
 
@@ -132,7 +171,9 @@ let get_wikiboxes_by_wiki wiki =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
       let wiki = sql_of_wiki wiki in
-      PGOCamlQuery.view db (<:view< {w.uid} | w in $wikiboxindex$; w.wiki = $int32:wiki$ >>)
+      PGOCamlQuery.view db (<:view< {
+        w.uid
+      } | w in $wikiboxindex$; w.wiki = $int32:wiki$ >>)
       >|= (fun uid -> List.map Wiki_types.wikibox_of_sql (List.map (fun elm -> elm#!uid) uid)))
 
 (*
@@ -158,7 +199,9 @@ let current_wikibox_version_  wb =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wikibox = sql_of_wikibox wb in
-       PGOCamlQuery.view db (<:view< group {version = max[w.version]} | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>)
+       PGOCamlQuery.view db (<:view< group {
+         version = max[w.version]
+       } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>)
        >>= function
          | [] -> Lwt.return None
          | [v] -> Lwt.return (Some (v#!version))
@@ -199,7 +242,9 @@ let set_wikibox_special_rights_ ?db wb v =
   wrap db
     (fun db ->
        let wb = sql_of_wikibox wb in
-       PGOCamlQuery.query db (<:update< w in $wikiboxindex$ := {specialrights = $bool:v$} | w.uid = $int32:wb$ >>)
+       PGOCamlQuery.query db (<:update< w in $wikiboxindex$ := {
+         specialrights = $bool:v$
+       } | w.uid = $int32:wb$ >>)
     )
 
 (** Wikipages *)
@@ -219,7 +264,10 @@ let get_box_for_page_ ~wiki ~page =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wiki' = t_int32 (wiki : wiki) in
-       PGOCamlQuery.view db (<:view< w | w in $wikipages$; w.wiki = $int32:wiki'$; w.pagename = $string:page$ >>) >>= function
+       PGOCamlQuery.view db (
+         <:view< w |
+             w in $wikipages$;
+             w.wiki = $int32:wiki'$; w.pagename = $string:page$ >>) >>= function
          | [] -> Lwt.fail Not_found
          | first :: _ -> (* WHY wiki and page is not used ??? *)
              (* (wiki, pagename) is a primary key *)
@@ -259,7 +307,13 @@ let create_wikipage ?db ~wiki ~page ~wb =
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
        and wb = t_int32 (wb : wikibox) in
-       PGOCamlQuery.query db (<:insert< $wikipages$ := {wiki = $int32:wiki$; wikibox = $int32:wb$; pagename = $string:page$; title = null; uid = nextval $wikipages_uid_seq$} >>) (* WHERE TITLE IS USED ?????? *)
+       PGOCamlQuery.query db (<:insert< $wikipages$ := {
+         wiki = $int32:wiki$;
+         wikibox = $int32:wb$;
+         pagename = $string:page$;
+         title = null;
+         uid = nextval $wikipages_uid_seq$
+       } >>) (* WHERE TITLE IS USED ?????? *)
     )
 
 let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
@@ -269,22 +323,31 @@ let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
        (match title with
           | None -> Lwt.return ()
           | Some "" ->
-            PGOCamlQuery.query db (<:update< w in $wikipages$ := {title = null} | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
+            PGOCamlQuery.query db (<:update< w in $wikipages$ := {
+              title = null
+            } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
           | Some s -> (* WHATCH HERE !!! string:s is not nullble but title is nullable *)
-            PGOCamlQuery.query db (<:update< w in $wikipages$ := {title = $string:s$} | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
+            PGOCamlQuery.query db (<:update< w in $wikipages$ := {
+              title = $string:s$
+            } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
        ) >>= fun () ->
        (match newpage with
           | None -> Lwt.return ()
           | Some page -> (* This query looks like a fake one !!! *)
-            PGOCamlQuery.query db (<:update< w in $wikipages$ := {pagename = $string:page$} | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
+            PGOCamlQuery.query db (<:update< w in $wikipages$ := {
+              pagename = $string:page$
+            } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
        ) >>= fun () ->
        (match wb with
           | None -> Lwt.return ()
           | Some None ->
-            PGOCamlQuery.query db (<:delete< w in $wikipages$ | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
+            PGOCamlQuery.query db (<:delete< w in $wikipages$ |
+                w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
           | Some (Some wb) ->
               let wb = sql_of_wikibox wb in
-            PGOCamlQuery.query db (<:update< w in $wikipages$ := {wikibox = $int32:wb$} | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
+            PGOCamlQuery.query db (<:update< w in $wikipages$ := {
+              wikibox = $int32:wb$
+            } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
        )
     )
 
@@ -320,38 +383,52 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?sitei
                 | None -> None
                 | Some c -> Some (sql_of_wikibox c)
               in
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {container = of_option $bind_option_int32 container$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                container = of_option $bind_option_int32 container$
+              } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match staticdir with
           | None -> Lwt.return ()
           | Some staticdir ->
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {staticdir = of_option $bind_option_string staticdir$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                staticdir = of_option $bind_option_string staticdir$
+              } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match path with
           | None -> Lwt.return ()
           | Some pages ->
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {pages = of_option $bind_option_string pages$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                pages = of_option $bind_option_string pages$
+              } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match descr with
           | None -> Lwt.return ()
           | Some descr ->
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {descr = $string:descr$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                descr = $string:descr$
+              } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match boxrights with
           | None -> Lwt.return ()
           | Some boxrights ->
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {boxrights = $bool:boxrights$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                boxrights = $bool:boxrights$
+              } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match model with
           | None -> Lwt.return ()
           | Some model ->
               let model = string_of_wiki_model model in
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {model = $string:model$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                model = $string:model$
+              } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match siteid with
           | None -> Lwt.return ()
           | Some siteid ->
-              PGOCamlQuery.query db (<:update< w in $wikis$ := {siteid = of_option $bind_option_string siteid$} | w.id = $int32:wiki$ >>)
+              PGOCamlQuery.query db (<:update< w in $wikis$ := {
+                siteid = of_option $bind_option_string siteid$
+              } | w.id = $int32:wiki$ >>)
        )
     )
 
@@ -359,7 +436,16 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
   wrap db
     (fun db ->
        let model_sql = Wiki_types.string_of_wiki_model model in (* WTF IS CONTAINER ??? *)
-       PGOCamlQuery.query db (<:insert< $wikis$ := {id = nextval $wikis_id_seq$; title = $string:title$; descr = $string:descr$; pages = of_option $bind_option_string pages$; boxrights = $bool:boxrights$; container = null; staticdir = of_option $bind_option_string staticdir$; model = $string:model_sql$; siteid = null} >>) (* WHY SITEID IS SET ??? *)
+       PGOCamlQuery.query db (<:insert< $wikis$ := {
+         id = nextval $wikis_id_seq$;
+         title = $string:title$;
+         descr = $string:descr$;
+         pages = of_option $bind_option_string pages$;
+         boxrights = $bool:boxrights$;
+         container = null;
+         staticdir = of_option $bind_option_string staticdir$;
+         model = $string:model_sql$;
+         siteid = null} >>) (* WHY SITEID IS SET ??? *)
        >>= fun () ->
        serial4 db "wikis_id_seq" >>= fun wiki_sql ->
        let wiki = wiki_of_sql wiki_sql in
@@ -442,8 +528,14 @@ let get_css_wikibox_aux_ ?db ~wiki ~page =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
-       PGOCamlQuery.view db (<:view< {c.wikibox; c.mediatype; c.rank} order by {c.rank} |
-           c in $css$; c.wiki = $int32:wiki$; is_not_distinct_from c.page (of_option $bind_option_string page$)>>)
+       PGOCamlQuery.view db (<:view< {
+         c.wikibox;
+         c.mediatype;
+         c.rank
+       } order by {
+         c.rank
+       } | c in $css$; c.wiki = $int32:wiki$;
+           is_not_distinct_from c.page (of_option $bind_option_string page$)>>)
        >|=
        List.map
          (fun data ->
@@ -464,8 +556,20 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
     (fun db ->
        let wiki = t_int32 (wiki : wiki)
        and wb = sql_of_wikibox wb in
-       PGOCamlQuery.view_one db (<:view< group {rank = (max[c.rank]) + 1} | c in $css$; c.wiki = $int32:wiki$; is_not_distinct_from c.page (of_option $bind_option_string page$) >>) >>= fun rank -> (* WTF ??? page *)
-       PGOCamlQuery.query db (<:insert< $css$ := {wiki = $int32:wiki$; page = of_option $bind_option_string page$; wikibox = $int32:wb$; specialrights = css?specialrights; uid = nextval $css_uid_seq$; mediatype = $string:media$; rank = $int32:(rank#!rank)$} >>)
+       PGOCamlQuery.view_one db (<:view< group {
+         rank = (max[c.rank]) + 1
+       } | c in $css$; c.wiki = $int32:wiki$;
+           is_not_distinct_from c.page (of_option $bind_option_string page$) >>)
+       >>= fun rank -> (* WTF ??? page *)
+       PGOCamlQuery.query db (<:insert< $css$ := {
+         wiki = $int32:wiki$;
+         page = of_option $bind_option_string page$;
+         wikibox = $int32:wb$;
+         specialrights = css?specialrights;
+         uid = nextval $css_uid_seq$;
+         mediatype = $string:media$;
+         rank = $int32:(rank#!rank)$
+       } >>)
     )
 
 let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
@@ -473,7 +577,10 @@ let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
        let wb = sql_of_wikibox wb in
-       PGOCamlQuery.query db (<:delete< c in $css$ | c.wiki = $int32:wiki$; is_not_distinct_from c.page (of_option $bind_option_string page$); c.wikibox = $int32:wb$ >>)
+       PGOCamlQuery.query db (<:delete< c in $css$ |
+           c.wiki = $int32:wiki$;
+           is_not_distinct_from c.page (of_option $bind_option_string page$);
+           c.wikibox = $int32:wb$ >>)
     )
 
 let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
@@ -483,8 +590,13 @@ let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
        let wiki = t_int32 (wiki : wiki)
        and oldwb = sql_of_wikibox oldwb
        and newwb = sql_of_wikibox newwb in
-       PGOCamlQuery.query db (<:update< c in $css$ := {wikibox = $int32:newwb$; mediatype = $string:media$; rank = $int32:rank$} |
-           c.wiki = $int32:wiki$; is_not_distinct_from c.page (of_option $bind_option_string page$); c.wikibox = $int32:oldwb$ >>)
+       PGOCamlQuery.query db (<:update< c in $css$ := {
+         wikibox = $int32:newwb$;
+         mediatype = $string:media$;
+         rank = $int32:rank$
+       } | c.wiki = $int32:wiki$;
+           is_not_distinct_from c.page (of_option $bind_option_string page$);
+           c.wikibox = $int32:oldwb$ >>)
     )
 
 
@@ -747,8 +859,12 @@ let set_css_for_wiki ?db ~wiki ~author content =
 let update_wikiboxes ?db f =
   wrap db
     (fun db ->
-      PGOCamlQuery.view db (<:view< {w.version; w.wikibox; w.content; w.content_type} |
-          w in $wikiboxescontent$; w.content_type = "wikicreole" >>)
+      PGOCamlQuery.view db (<:view< {
+        w.version;
+        w.wikibox;
+        w.content;
+        w.content_type
+      } | w in $wikiboxescontent$; w.content_type = "wikicreole" >>)
        >>= fun l ->
        Lwt_util.iter_serial
          (fun data ->
@@ -759,8 +875,10 @@ let update_wikiboxes ?db f =
             >>= function
               | None -> Lwt.return ()
               | Some s ->
-                PGOCamlQuery.query db (<:update< w in $wikiboxescontent$ := {content = $string:s$} |
-                    w.wikibox = $int32:(data#!wikibox)$; w.version = $int32:(data#!version)$ >>)
+                PGOCamlQuery.query db (<:update< w in $wikiboxescontent$ := {
+                  content = $string:s$
+                } | w.wikibox = $int32:(data#!wikibox)$;
+                    w.version = $int32:(data#!version)$ >>)
          ) l
          >>= fun () -> Ocsigen_messages.console2 "Done updating wikiboxes";
          cache_wb_content#clear ();
@@ -773,15 +891,18 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
     (fun db ->
        let oldwiki = sql_of_wiki oldwiki
        and newwiki = sql_of_wiki newwiki in
-       PGOCamlQuery.view db (<:view< w | w in $wikipages$; w.wiki = $int32:oldwiki$ >>) >>= fun l ->
+       PGOCamlQuery.view db (<:view< w | w in $wikipages$;
+                            w.wiki = $int32:oldwiki$ >>) >>= fun l ->
          Lwt_util.iter
            (fun data ->
               match Ocsimore_lib.remove_prefix ~s:(data#!pagename) ~prefix:path with
                 | None -> Lwt.return ()
                 | Some prefix ->
                     let prefix = Ocsimore_lib.remove_begin_slash prefix in
-                    PGOCamlQuery.query db (<:update< w in $wikipages$ := {wiki = $int32:newwiki$; pagename = $string:prefix$} |
-                        w.uid = $int32:(data#!uid)$ >>)
+                    PGOCamlQuery.query db (<:update< w in $wikipages$ := {
+                      wiki = $int32:newwiki$;
+                      pagename = $string:prefix$
+                    } | w.uid = $int32:(data#!uid)$ >>)
            ) l >>= fun () ->
            cache_wp#clear ();
            Ocsigen_messages.console2 "Done updating wikipages";
