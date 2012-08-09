@@ -642,11 +642,17 @@ object (self)
               | Some { param_description = param } -> param
               | None -> "param"
             in
-            [em [pcdata ("(" ^ p ^ ")")]]
-        | _ -> []
+            "(" ^ p ^ ")"
+        | _ -> ""
       in
-      tr [td [strong (pcdata u.user_login :: p)];
-          td [pcdata u.user_fullname]]
+      let name = u.user_login ^ p in
+      tr [
+        td [
+          a ~service:User_services.service_view_group
+            [strong [pcdata name]] name
+        ];
+        td [pcdata u.user_fullname]
+      ]
     in
     let l1 = List.rev (List.fold_left (fun s arg -> line arg :: s) [] tl) in
     let t1 = Html5.F.table ~a:[Html5.F.a_class ["table_admin"]] (line hd) l1 in
