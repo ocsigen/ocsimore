@@ -908,3 +908,24 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
            Ocsigen_messages.console2 "Done updating wikipages";
            Lwt.return ()
     )
+
+let get_wikis_name () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view db (<:view< {
+      w.title
+    } | w in $wikis$ >>)
+  ) >>= (Lwt_list.map_s (fun title -> Lwt.return title#!title))
+
+let get_wikiboxes_id () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view db (<:view< {
+      w.uid
+    } | w in $wikiboxindex$ >>)
+  ) >>= (Lwt_list.map_s (fun id -> Lwt.return (string_of_int32 id#!uid)))
+
+let get_wikipages_id () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view db (<:view< {
+      w.uid
+    } | w in $wikipages$ >>)
+  ) >>= (Lwt_list.map_s (fun id -> Lwt.return (string_of_int32 id#!uid)))

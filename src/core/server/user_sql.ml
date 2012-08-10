@@ -783,3 +783,10 @@ let () =
          )
     )
   )
+
+let get_users_login () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view db (<:view< {
+      u.login
+    } | u in $users$; >>)
+  ) >>= (Lwt_list.map_s (fun login -> Lwt.return login#!login))

@@ -241,3 +241,7 @@ val rewrite_wikipages :
   newwiki:wiki ->
   path:string ->
   unit Lwt.t
+
+val get_wikis_name : unit -> string list Lwt.t
+val get_wikiboxes_id : unit -> string list Lwt.t
+val get_wikipages_id : unit -> string list Lwt.t

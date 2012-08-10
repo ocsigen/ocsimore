@@ -205,3 +205,5 @@ type user_settings = {
 
 val get_users_settings : unit -> user_settings Lwt.t
 val set_users_settings : user_settings -> unit Lwt.t
+
+val get_users_login : unit -> string list Lwt.t

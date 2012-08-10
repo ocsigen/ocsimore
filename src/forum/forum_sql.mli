@@ -137,3 +137,6 @@ val get_wikibox_creator :
     message title. The result is [false] if it is not a forum wikibox.
 *)
 val wikibox_is_moderated : wb:Wiki_types.wikibox -> bool Lwt.t
+
+val get_forums_id : unit -> string list Lwt.t
+val get_forum_messages_id : unit -> string list Lwt.t

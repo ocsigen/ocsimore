@@ -469,3 +469,17 @@ let wikibox_is_moderated ~wb =
     ) >>= function
       | [] -> Lwt.return false (* ? *)
       | a::_ -> Lwt.return a#!moderated
+
+let get_forums_id () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view db (<:view< {
+      f.id
+    } | f in $forums$; >>)
+  ) >>= (Lwt_list.map_s (fun id -> Lwt.return (string_of_int32 id#!id)))
+
+let get_forum_messages_id () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    PGOCamlQuery.view db (<:view< {
+      f.id
+    } | f in $forums_messages$; >>)
+  ) >>= (Lwt_list.map_s (fun id -> Lwt.return (string_of_int32 id#!id)))

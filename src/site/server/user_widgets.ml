@@ -391,7 +391,7 @@ object (self)
       [Html5.F.pcdata group] group
 
 
-  method display_group (group, g) =
+  method display_group (group, g) = (* WHY g is not used ? *)
     lwt gtype = User_sql.user_type group in
     let ctext, text, gtypedescr = match gtype with
       | `Role  -> ("Role",  "role",  "Description")
@@ -636,26 +636,44 @@ object (self)
     in
     let line u =
       let open Html5.F in
-      let p = match u.user_kind with
+      (match u.user_kind with
         | `ParameterizedGroup param ->
-            let p = match param with
-              | Some { param_description = param } -> param
-              | None -> "param"
-            in
-            "(" ^ p ^ ")"
-        | _ -> ""
-      in
-      let name = u.user_login ^ p in
-      tr [
+          (match param with
+            | Some { param_description = param } ->
+              (match param with
+                | "login of the user" -> User_sql.get_users_login ()
+                | "id of the forum" -> Forum_sql.get_forums_id ()
+                | "id of the message" -> Forum_sql.get_forum_messages_id ()
+                | "name of the wiki" -> Wiki_sql.get_wikis_name ()
+                | "id of the wikibox" -> Wiki_sql.get_wikiboxes_id ()
+                | "id of the wikipage" -> Wiki_sql.get_wikipages_id ()
+                | _ -> Lwt.fail
+                  (Failure
+                     ("Desciption \"" ^ param ^ "\" not describe a valid user")
+                  )
+              )
+            | None -> Lwt.return []
+          )
+        | _ -> Lwt.return []
+      ) >>= fun p ->
+      Lwt_list.map_s (fun p ->
+        Lwt.return (u.user_login ^ "(" ^ p ^ ")")
+      ) p >>= fun names ->
+      let block name = tr [
         td [
           a ~service:User_services.service_view_group
             [strong [pcdata name]] name
         ];
         td [pcdata u.user_fullname]
-      ]
+      ] in
+      Lwt.return (block u.user_login, List.map block names)
     in
-    let l1 = List.rev (List.fold_left (fun s arg -> line arg :: s) [] tl) in
-    let t1 = Html5.F.table ~a:[Html5.F.a_class ["table_admin"]] (line hd) l1 in
+    Lwt_list.fold_left_s (fun s arg ->
+      line arg >>= fun item ->
+      Lwt.return (snd item @ [fst item] @ s)
+    ) [] tl >>= (fun tmp -> Lwt.return (List.rev tmp)) >>= fun l1 ->
+    line hd >>= fun first ->
+    let t1 = Html5.F.table ~a:[Html5.F.a_class ["table_admin"]] (fst first) (snd first @ l1) in
     let form name =
       [Html5.F.p
          [Html5.F.string_input ~name ~input_type:`Text ();
