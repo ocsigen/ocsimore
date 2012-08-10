@@ -659,29 +659,29 @@ object (self)
       Lwt_list.map_s (fun p ->
         Lwt.return (u.user_login ^ "(" ^ p ^ ")")
       ) p >>= fun names ->
-      let block is_link name = tr [
-        td [
-          let html_name = strong [pcdata name] in
-          if is_link then
-            a ~service:User_services.service_view_group
-              [html_name] name
-          else
-            html_name
+      let link acc name = [
+        li [
+          a ~service:User_services.service_view_group
+            [strong [pcdata name]] name;
+          br ();
         ];
+      ] @ acc
+      and block name = tr [
+        td [strong [pcdata name]];
         td [pcdata u.user_fullname]
       ] in
-      Lwt.return (block false u.user_login, List.map (block true) names)
+      Lwt.return (block u.user_login, tr [td [ul (List.fold_left link [] names)]])
     in
     Lwt_list.fold_left_s (fun s arg ->
       line arg >>= fun item ->
-      Lwt.return (snd item @ [fst item] @ s)
+      Lwt.return (snd item :: fst item :: s)
     ) [] tl >>= (fun tmp -> Lwt.return (List.rev tmp)) >>= fun l1 ->
     line hd >>= fun first ->
     Lwt.return [
       Html5.F.table
         ~a:[Html5.F.a_class ["table_admin"]]
         (fst first)
-        (snd first @ l1)
+        (snd first :: l1)
     ]
 
   method private display_users_groups ~show_auth ~utype ~l =
