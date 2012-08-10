@@ -659,14 +659,18 @@ object (self)
       Lwt_list.map_s (fun p ->
         Lwt.return (u.user_login ^ "(" ^ p ^ ")")
       ) p >>= fun names ->
-      let block name = tr [
+      let block is_link name = tr [
         td [
-          a ~service:User_services.service_view_group
-            [strong [pcdata name]] name
+          let html_name = strong [pcdata name] in
+          if is_link then
+            a ~service:User_services.service_view_group
+              [html_name] name
+          else
+            html_name
         ];
         td [pcdata u.user_fullname]
       ] in
-      Lwt.return (block u.user_login, List.map block names)
+      Lwt.return (block false u.user_login, List.map (block true) names)
     in
     Lwt_list.fold_left_s (fun s arg ->
       line arg >>= fun item ->
