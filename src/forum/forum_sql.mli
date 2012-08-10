@@ -27,11 +27,11 @@ open User_sql.Types
 
 open Forum_types
 
-(** create a new forum. [?arborescent] is true by default. 
+(** create a new forum. [?arborescent] is true by default.
     Setting it to false will prevent to comment comments. *)
-val new_forum : 
-  title:string -> 
-  descr:string -> 
+val new_forum :
+  title:string ->
+  descr:string ->
   ?arborescent:bool ->
   title_syntax: 'res Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
@@ -51,7 +51,7 @@ val update_forum :
   Forum_types.forum ->
   unit Lwt.t
 
-(** inserts a message in a forum. 
+(** inserts a message in a forum.
     [?moderated] and [?sticky] are false by default. *)
 val new_message :
   forum:forum ->
@@ -68,41 +68,41 @@ val new_message :
 (** set ou unset sticky flag on a message *)
 val set_sticky :
   message_id:message -> sticky:bool -> unit Lwt.t
-  
+
 (** set or unset moderated flag on a message *)
 val set_moderated :
   message_id:message -> moderated:bool -> unit Lwt.t
-  
+
 (** Get forum information, given its id or title.
     Information is: (forum id, title, description, arborescent, deleted)
 *)
-val get_forum: 
+val get_forum:
   ?not_deleted_only:bool ->
-  ?forum:forum -> 
-  ?title:string -> 
-  unit -> 
+  ?forum:forum ->
+  ?title:string ->
+  unit ->
   forum_info Lwt.t
 
 (** returns the list of forums *)
 val get_forums_list : ?not_deleted_only:bool -> unit ->
   raw_forum_info list Lwt.t
-  
+
 (** returns a message *)
-val get_message : 
-  message_id:message -> 
+val get_message :
+  message_id:message ->
   unit ->
   message_info Lwt.t
-  
+
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
     For each message, the information retrieved is:
-    [(id, subject, author, datetime, parent_id, root_id, forum_id, wikibox, 
-    moderated, sticky, tree_min, tree_max)]. 
+    [(id, subject, author, datetime, parent_id, root_id, forum_id, wikibox,
+    moderated, sticky, tree_min, tree_max)].
     The list is not filtered and also contains deleted messages.
     The result is ordered according to tree_min.
 *)
-val get_thread : 
-  message_id:message -> 
+val get_thread :
+  message_id:message ->
   unit ->
   raw_message_info list Lwt.t
 
@@ -119,17 +119,17 @@ val get_childs :
     - moderated messages
     - all messages with special rights (without looking at rights)
 *)
-val get_message_list : 
+val get_message_list :
   forum:Forum_types.forum ->
   first:int64 ->
   number:int64 ->
   moderated_only:bool ->
   unit ->
   raw_message_info list Lwt.t
-  
-(** returns the creator of a wikibox containing a forum message 
+
+(** returns the creator of a wikibox containing a forum message
     or forum message title. [None] if not a forum wikibox. *)
-val get_wikibox_creator : 
+val get_wikibox_creator :
   wb:Wiki_types.wikibox -> User_sql.Types.userid option Lwt.t
 
 (** returns whether the message has been moderated or not.
