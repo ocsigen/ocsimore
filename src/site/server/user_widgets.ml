@@ -677,27 +677,12 @@ object (self)
       Lwt.return (snd item @ [fst item] @ s)
     ) [] tl >>= (fun tmp -> Lwt.return (List.rev tmp)) >>= fun l1 ->
     line hd >>= fun first ->
-    let t1 = Html5.F.table ~a:[Html5.F.a_class ["table_admin"]] (fst first) (snd first @ l1) in
-    let form name =
-      [Html5.F.p
-         [Html5.F.string_input ~name ~input_type:`Text ();
-          Html5.F.button ~button_type:`Submit
-            [Html5.F.pcdata "Edit this role"];
-         ]
-      ]
-    in
-    let f =
-      Html5.F.get_form ~a:[accept_charset_utf8]
-        ~service:User_services.service_view_group form
-    in
-    let msg2 =
-      "Choose one group, and enter it (including its parameter if needed) below"
-    in
-    Lwt.return
-      [t1;
-       Html5.F.p [Html5.F.pcdata msg2];
-       f
-      ]
+    Lwt.return [
+      Html5.F.table
+        ~a:[Html5.F.a_class ["table_admin"]]
+        (fst first)
+        (snd first @ l1)
+    ]
 
   method private display_users_groups ~show_auth ~utype ~l =
     let line u =
