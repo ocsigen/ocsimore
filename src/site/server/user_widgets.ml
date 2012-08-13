@@ -641,48 +641,75 @@ object (self)
           (match param with
             | Some { param_description = param } ->
               (match param with
-                | "login of the user" -> User_sql.get_users_login ()
-                | "id of the forum" -> Forum_sql.get_forums_id ()
-                | "id of the message" -> Forum_sql.get_forum_messages_id ()
-                | "name of the wiki" -> Wiki_sql.get_wikis_name ()
-                | "id of the wikibox" -> Wiki_sql.get_wikiboxes_id ()
-                | "id of the wikipage" -> Wiki_sql.get_wikipages_id ()
+                | "login of the user" ->
+                  User_sql.get_users_login () >|= (fun x -> Some x)
+                | "id of the forum" ->
+                  Forum_sql.get_forums_id () >|= (fun x -> Some x)
+                | "id of the message" ->
+                  Forum_sql.get_forum_messages_id () >|= (fun x -> Some x)
+                | "name of the wiki" ->
+                  Wiki_sql.get_wikis_name () >|= (fun x -> Some x)
+                | "id of the wikibox" ->
+                  Wiki_sql.get_wikiboxes_id () >|= (fun x -> Some x)
+                | "id of the wikipage" ->
+                  Wiki_sql.get_wikipages_id () >|= (fun x -> Some x)
                 | _ -> Lwt.fail
                   (Failure
                      ("Desciption \"" ^ param ^ "\" not describe a valid user")
                   )
               )
-            | None -> Lwt.return []
+            | None -> Lwt.fail
+              (Failure
+                 "Parametrized group without description"
+              )
           )
-        | _ -> Lwt.return []
-      ) >>= fun p ->
-      Lwt_list.map_s (fun p ->
-        Lwt.return (u.user_login ^ "(" ^ p ^ ")")
-      ) p >>= fun names ->
-      let link acc name = [
-        li [
-          a ~service:User_services.service_view_group
-            [strong [pcdata name]] name;
-          br ();
-        ];
-      ] @ acc
-      and block name = tr [
-        td [strong [pcdata name]];
-        td [pcdata u.user_fullname]
-      ] in
-      Lwt.return (block u.user_login, tr [td [ul (List.fold_left link [] names)]])
-    in
-    Lwt_list.fold_left_s (fun s arg ->
-      line arg >>= fun item ->
-      Lwt.return (snd item :: fst item :: s)
-    ) [] tl >>= (fun tmp -> Lwt.return (List.rev tmp)) >>= fun l1 ->
-    line hd >>= fun first ->
-    Lwt.return [
-      Html5.F.table
-        ~a:[Html5.F.a_class ["table_admin"]]
-        (fst first)
-        (snd first :: l1)
-    ]
+        | _ -> Lwt.return None
+      ) >>= (function
+        | None ->
+          let block = tr [
+            td [
+              strong [
+                a ~service:User_services.service_view_group
+                  [pcdata u.user_login] u.user_login;
+              ];
+            ];
+            td [pcdata u.user_fullname];
+          ] in
+          Lwt.return (block, tr [])
+        | Some p ->
+          Lwt_list.map_s (fun p ->
+            Lwt.return (u.user_login ^ "(" ^ p ^ ")")
+          ) p >>= fun names ->
+          let link acc name = [
+            li [
+              a ~service:User_services.service_view_group
+                [strong [pcdata name]] name;
+              br ();
+            ];
+          ] @ acc in
+          let block_and_link = tr [
+            td [
+              ul (List.fold_left link [] names)
+            ];
+            td [];
+          ]
+          and block name = tr [
+            td [strong [pcdata name]];
+            td [pcdata u.user_fullname]
+          ] in
+          Lwt.return (block u.user_login, block_and_link)
+       ) in
+      Lwt_list.fold_left_s (fun s arg ->
+        line arg >>= fun item ->
+        Lwt.return (snd item :: fst item :: s)
+      ) [] tl >>= (fun tmp -> Lwt.return (List.rev tmp)) >>= fun l1 ->
+      line hd >>= fun first ->
+      Lwt.return [
+        Html5.F.table
+          ~a:[Html5.F.a_class ["table_admin"]]
+          (fst first)
+          (snd first :: l1)
+      ]
 
   method private display_users_groups ~show_auth ~utype ~l =
     let line u =
