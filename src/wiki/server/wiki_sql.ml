@@ -88,7 +88,8 @@ let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
          uid = nextval $wikiboxindex_uid_seq$
        } >>)
        >>= fun () ->
-       serial4 db "wikiboxindex_uid_seq" >>= fun boxid ->
+       PGOCamlQuery.value db (<:value< currval $wikiboxindex_uid_seq$ >>)
+       >>= fun boxid ->
        PGOCamlQuery.query db (<:insert< $wikiboxescontent$ := {
          version = nextval $wikiboxes_version_seq$;
          comment = wikiboxescontent?comment;
@@ -124,7 +125,7 @@ let update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb =
          ip = of_option $map_option_string ip$
        } >>)
        >>= fun () ->
-       serial4 db "wikiboxes_version_seq"
+       PGOCamlQuery.value db (<:value< currval $wikiboxes_version_seq$ >>)
     )
 
 (** Returns the content of a wikibox, or [None] if the wikibox or version
@@ -447,7 +448,8 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
          model = $string:model_sql$;
          siteid = null} >>) (* WHY SITEID IS SET ??? *)
        >>= fun () ->
-       serial4 db "wikis_id_seq" >>= fun wiki_sql ->
+       PGOCamlQuery.value db (<:value< currval $wikis_id_seq$ >>)
+       >>= fun wiki_sql ->
        let wiki = wiki_of_sql wiki_sql in
        (match container_text with
           | None -> Lwt.return None

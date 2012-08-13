@@ -214,7 +214,7 @@ let add_generic_inclusion_ ~subset ~superset =
          (superset, Some ct_parameterized_edge)
     )
 
-let id_seq = <:sequence< serial "users_id_seq" >>
+let users_id_seq = <:sequence< serial "users_id_seq" >>
 
 let users = <:table< users (
   id integer NOT NULL, (* Test if we can put a DEFAULT instead *)
@@ -234,7 +234,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
        (match password, email with
           | None, None ->
             PGOCamlQuery.query db (<:insert< $users$ := {
-              id = nextval $id_seq$;
+              id = nextval $users_id_seq$;
               login = $string:name$;
               password = users?password;
               email = users?email;
@@ -244,7 +244,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
             } >>)
           | Some pwd, None ->
             PGOCamlQuery.query db (<:insert< $users$ := {
-              id = nextval $id_seq$;
+              id = nextval $users_id_seq$;
               login = $string:name$;
               password = $string:pwd$;
               fullname = $string:fullname$;
@@ -254,7 +254,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
             } >>)
           | None, Some email ->
             PGOCamlQuery.query db (<:insert< $users$ := {
-              id = nextval $id_seq$;
+              id = nextval $users_id_seq$;
               login = $string:name$;
               password = users?password;
               fullname = $string:fullname$;
@@ -264,7 +264,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
             } >>)
           | Some pwd, Some email ->
             PGOCamlQuery.query db (<:insert< $users$ := {
-              id = nextval $id_seq$;
+              id = nextval $users_id_seq$;
               login = $string:name$;
               password = $string:pwd$;
               fullname = $string:fullname$;
@@ -273,7 +273,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
               authtype = $string:authtype$
             } >>)
        ) >>= fun () ->
-       serial4 db "users_id_seq"
+       PGOCamlQuery.value db (<:value< currval $users_id_seq$ >>)
        >>= fun id ->
        let id = userid_from_sql id in
        Lwt.return (id, pwd)
@@ -307,7 +307,7 @@ let new_group authtype find_param ~prefix ~name ~descr =
          (function
             | NotAnUser ->
               PGOCamlQuery.query db (<:insert< $users$ := {
-                id = nextval $id_seq$;
+                id = nextval $users_id_seq$;
                 login = $string:name$;
                 password = users?password;
                 fullname = $string:descr$;
@@ -315,9 +315,9 @@ let new_group authtype find_param ~prefix ~name ~descr =
                 dyn = false;
                 authtype = $string:authtype$
               } >>)
-                >>= fun () ->
-                serial4 db "users_id_seq"
-                >>= fun id -> Lwt.return (userid_from_sql id)
+              >>= fun () ->
+              PGOCamlQuery.value db (<:value< currval $users_id_seq$ >>)
+              >>= fun id -> Lwt.return (userid_from_sql id)
             | e -> Lwt.fail e
          ))
 

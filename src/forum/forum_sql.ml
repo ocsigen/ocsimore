@@ -62,7 +62,7 @@ let new_forum
         messages_wiki = $int32:messages_wiki$;
         comments_wiki = $int32:comments_wiki$
       } >>) >>= fun () ->
-       serial4 db "forums_id_seq" >>= fun s ->
+       PGOCamlQuery.value db (<:value< currval $forums_id_seq$ >>) >>= fun s ->
        Lwt.return (forum_of_sql s)
     )
 
@@ -220,7 +220,8 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
                       "Forum_sql.new_message: parent does not exist or is not unique")
            )
        ) >>= fun () ->
-      serial4 db "forums_messages_id_seq" >>= fun s ->
+      PGOCamlQuery.value db (<:value< currval $forums_messages_id_seq$ >>)
+      >>= fun s ->
       Lwt.return (message_of_sql s)
     )
 
