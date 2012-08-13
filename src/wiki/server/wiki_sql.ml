@@ -913,7 +913,7 @@ let get_wikis_name () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     PGOCamlQuery.view db (<:view< {
       w.title
-    } | w in $wikis$ >>)
+    } | w in $wikis$; w.boxrights >>)
   ) >>= (Lwt_list.map_s (fun title -> Lwt.return title#!title))
 
 let get_wikiboxes_id () =

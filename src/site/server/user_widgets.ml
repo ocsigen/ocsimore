@@ -641,23 +641,17 @@ object (self)
           (match param with
             | Some { param_description = param } ->
               (match param with
-                | "login of the user" ->
-                  User_sql.get_users_login () >|= (fun x -> Some x)
-                | "id of the forum" ->
-                  Forum_sql.get_forums_id () >|= (fun x -> Some x)
-                | "id of the message" ->
-                  Forum_sql.get_forum_messages_id () >|= (fun x -> Some x)
-                | "name of the wiki" ->
-                  Wiki_sql.get_wikis_name () >|= (fun x -> Some x)
-                | "id of the wikibox" ->
-                  Wiki_sql.get_wikiboxes_id () >|= (fun x -> Some x)
-                | "id of the wikipage" ->
-                  Wiki_sql.get_wikipages_id () >|= (fun x -> Some x)
+                | "login of the user" -> User_sql.get_users_login ()
+                | "id of the forum" -> Forum_sql.get_forums_id ()
+                | "id of the message" -> Forum_sql.get_forum_messages_id ()
+                | "name of the wiki" -> Wiki_sql.get_wikis_name ()
+                | "id of the wikibox" -> Wiki_sql.get_wikiboxes_id ()
+                | "id of the wikipage" -> Wiki_sql.get_wikipages_id ()
                 | _ -> Lwt.fail
                   (Failure
                      ("Desciption \"" ^ param ^ "\" not describe a valid user")
                   )
-              )
+              ) >|= (fun x -> Some (param, x))
             | None -> Lwt.fail
               (Failure
                  "Parametrized group without description"
@@ -676,7 +670,7 @@ object (self)
             td [pcdata u.user_fullname];
           ] in
           Lwt.return (block, tr [])
-        | Some p ->
+        | Some (param, p) ->
           Lwt_list.map_s (fun p ->
             Lwt.return (u.user_login ^ "(" ^ p ^ ")")
           ) p >>= fun names ->
@@ -694,7 +688,7 @@ object (self)
             td [];
           ]
           and block name = tr [
-            td [strong [pcdata name]];
+            td [strong [pcdata (name ^ "(" ^ param ^ ")")]];
             td [pcdata u.user_fullname]
           ] in
           Lwt.return (block u.user_login, block_and_link)
