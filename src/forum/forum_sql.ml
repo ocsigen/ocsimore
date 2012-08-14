@@ -24,7 +24,6 @@
 *)
 
 open User_sql.Types
-open Ocsi_sql.PGOCaml
 open Ocsi_sql
 
 let (>>=) = Lwt.bind
@@ -52,7 +51,7 @@ let new_forum
   let title_syntax = Wiki_types.string_of_content_type title_syntax in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      PGOCamlQuery.query db (<:insert< $forums$ := {
+      Lwt_Query.query db (<:insert< $forums$ := {
         id = nextval $forums_id_seq$;
         title = $string:title$;
         descr = $string:descr$;
@@ -62,7 +61,7 @@ let new_forum
         messages_wiki = $int32:messages_wiki$;
         comments_wiki = $int32:comments_wiki$
       } >>) >>= fun () ->
-       PGOCamlQuery.value db (<:value< currval $forums_id_seq$ >>) >>= fun s ->
+       Lwt_Query.value db (<:value< currval $forums_id_seq$ >>) >>= fun s ->
        Lwt.return (forum_of_sql s)
     )
 
@@ -74,21 +73,21 @@ let update_forum ?title ?descr ?arborescent ?title_syntax
       lwt () = (match title with
         | None -> Lwt.return ()
         | Some title ->
-          PGOCamlQuery.query db (<:update< f in $forums$ := {
+          Lwt_Query.query db (<:update< f in $forums$ := {
             title = $string:title$
           } | f.id = $int32:forum_id$ >>)
       ) in
       lwt () = (match descr with
         | None -> Lwt.return ()
         | Some descr ->
-          PGOCamlQuery.query db (<:update< f in $forums$ := {
+          Lwt_Query.query db (<:update< f in $forums$ := {
             descr = $string:descr$
           } | f.id = $int32:forum_id$ >>)
       ) in
       lwt () = (match arborescent with
         | None -> Lwt.return ()
         | Some arborescent ->
-          PGOCamlQuery.query db (<:update< f in $forums$ := {
+          Lwt_Query.query db (<:update< f in $forums$ := {
             arborescent = $bool:arborescent$
           } | f.id = $int32:forum_id$ >>)
       ) in
@@ -96,7 +95,7 @@ let update_forum ?title ?descr ?arborescent ?title_syntax
         | None -> Lwt.return ()
         | Some messages_wiki ->
           let messages_wiki = Wiki_types.sql_of_wiki messages_wiki in
-          PGOCamlQuery.query db (<:update< f in $forums$ := {
+          Lwt_Query.query db (<:update< f in $forums$ := {
             messages_wiki = $int32:messages_wiki$
           } | f.id = $int32:forum_id$ >>)
       ) in
@@ -104,7 +103,7 @@ let update_forum ?title ?descr ?arborescent ?title_syntax
         | None -> Lwt.return ()
         | Some comments_wiki ->
           let comments_wiki = Wiki_types.sql_of_wiki comments_wiki in
-          PGOCamlQuery.query db (<:update< f in $forums$ := {
+          Lwt_Query.query db (<:update< f in $forums$ := {
             comments_wiki = $int32:comments_wiki$
           } | f.id = $int32:forum_id$ >>)
       ) in
@@ -112,7 +111,7 @@ let update_forum ?title ?descr ?arborescent ?title_syntax
         | None -> Lwt.return ()
         | Some title_syntax ->
           let title_syntax = Wiki_types.string_of_content_type title_syntax in
-          PGOCamlQuery.query db (<:update< f in $forums$ := {
+          Lwt_Query.query db (<:update< f in $forums$ := {
             title_syntax = $string:title_syntax$
           } | f.id = $int32:forum_id$ >>)
       )
@@ -169,7 +168,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
        (match parent_id with
          | None ->
            let next_id = (<:value< nextval $forums_messages_id_seq$ >>) in
-           PGOCamlQuery.query db (<:insert< $forums_messages$ := {
+           Lwt_Query.query db (<:insert< $forums_messages$ := {
              id = $next_id$;
              creator_id = $int32:creator_id'$;
              datetime = forums_messages?datetime;
@@ -185,21 +184,21 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
              tree_max = forums_messages?tree_max
            } >>)
          | Some p ->
-           PGOCamlQuery.view db (<:view< {
+           Lwt_Query.view db (<:view< {
              f.tree_max;
              f.root_id
            } | f in $forums_messages$; f.id = $int32:p$ >>) >>= (fun r ->
              match r with
                | [data] ->
-                 (PGOCamlQuery.query db (<:update< f in $forums_messages$ := {
+                 (Lwt_Query.query db (<:update< f in $forums_messages$ := {
                    tree_max = f.tree_max + 2
                   } | f.root_id = $int32:(data#!root_id)$;
                       f.tree_max >= $int32:(data#!tree_max)$ >>) >>= fun () ->
-                  PGOCamlQuery.query db (<:update< f in $forums_messages$ := {
+                  Lwt_Query.query db (<:update< f in $forums_messages$ := {
                     tree_min = f.tree_min + 2
                   } | f.root_id = $int32:(data#!root_id)$;
                       f.tree_min >= $int32:(data#!tree_max)$ >>) >>= fun () ->
-                  PGOCamlQuery.query db (<:insert< $forums_messages$ := {
+                  Lwt_Query.query db (<:insert< $forums_messages$ := {
                     id = nextval $forums_messages_id_seq$;
                     creator_id = $int32:creator_id'$;
                     datetime = forums_messages?datetime;
@@ -220,7 +219,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
                       "Forum_sql.new_message: parent does not exist or is not unique")
            )
        ) >>= fun () ->
-      PGOCamlQuery.value db (<:value< currval $forums_messages_id_seq$ >>)
+      Lwt_Query.value db (<:value< currval $forums_messages_id_seq$ >>)
       >>= fun s ->
       Lwt.return (message_of_sql s)
     )
@@ -228,7 +227,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
 let set_moderated ~message_id ~moderated =
   let message_id = sql_of_message message_id in
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.query db (<:update< f in $forums_messages$ := {
+    Lwt_Query.query db (<:update< f in $forums_messages$ := {
       moderated = $bool:moderated$
     } | f.id = $int32:message_id$ >>)
   )
@@ -236,7 +235,7 @@ let set_moderated ~message_id ~moderated =
 let set_sticky ~message_id ~sticky =
   let message_id = sql_of_message message_id in
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.query db (<:update< f in $forums_messages$ := {
+    Lwt_Query.query db (<:update< f in $forums_messages$ := {
       sticky = $bool:sticky$
     } | f.id = $int32:message_id$ >>)
   )
@@ -246,7 +245,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
   Ocsi_sql.full_transaction_block
     (fun db -> match (title, forum_id) with
      | (Some t, Some i) ->
-       PGOCamlQuery.view db (<:view< {
+       Lwt_Query.view db (<:view< {
          f.id;
          f.title;
          f.descr;
@@ -257,7 +256,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
          f.comments_wiki
        } | f in $forums$; f.title = $string:t$; f.id = $int32:i$ >>)
      | (Some t, None) ->
-       PGOCamlQuery.view db (<:view< {
+       Lwt_Query.view db (<:view< {
          f.id;
          f.title;
          f.descr;
@@ -268,7 +267,7 @@ let get_forum ?(not_deleted_only = true) ?forum ?title () =
          f.comments_wiki
        } | f in $forums$; f.title = $string:t$ >>)
      | (None, Some i) ->
-       PGOCamlQuery.view db (<:view< {
+       Lwt_Query.view db (<:view< {
          f.id;
          f.title;
          f.descr;
@@ -319,7 +318,7 @@ let get_forums_list ?(not_deleted_only = true) () =
     (fun db ->
        (if not_deleted_only
         then raw_forum_from_sql (
-          PGOCamlQuery.view db (<:view< {
+          Lwt_Query.view db (<:view< {
             f.id;
             f.title;
             f.descr;
@@ -331,7 +330,7 @@ let get_forums_list ?(not_deleted_only = true) () =
           } | f in $forums$; f.deleted = false >>)
         )
         else raw_forum_from_sql (
-          PGOCamlQuery.view db (<:view< {
+          Lwt_Query.view db (<:view< {
             f.id;
             f.title;
             f.descr;
@@ -368,7 +367,7 @@ let get_childs ~message_id () =
   let message_id = sql_of_message message_id in
   Ocsi_sql.full_transaction_block
     (fun db -> raw_message_from_sql (
-      PGOCamlQuery.view db (<:view< {
+      Lwt_Query.view db (<:view< {
         f.id;
         f.creator_id;
         f.datetime;
@@ -396,14 +395,14 @@ let get_thread ~message_id () =
   let message_id = sql_of_message message_id in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      PGOCamlQuery.view db (<:view< {
+      Lwt_Query.view db (<:view< {
         f.tree_min;
         f.tree_max
       } | f in $forums_messages$; f.id = $int32:message_id$ >>) >>= fun y ->
          (match y with
             | [] -> Lwt.fail Not_found
             | data :: _ -> raw_message_from_sql (
-              PGOCamlQuery.view db (<:view< {
+              Lwt_Query.view db (<:view< {
                 f.id;
                 f.creator_id;
                 f.datetime;
@@ -433,14 +432,14 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
     (fun db ->
        if moderated_only
        then raw_message_from_sql (
-         PGOCamlQuery.view db (<:view< f order by f.tree_min desc
+         Lwt_Query.view db (<:view< f order by f.tree_min desc
                                   limit $int64:number$ offset $int64:offset$ |
              f in $forums_messages$; f.forum_id = $int32:forum$;
              is_null f.parent_id;
              (f.moderated = true) || (f.special_rights = true) >>)
        )
        else raw_message_from_sql (
-         PGOCamlQuery.view db (<:view< f order by f.datetime desc
+         Lwt_Query.view db (<:view< f order by f.datetime desc
                                   limit $int64:number$ offset $int64:offset$ |
              f in $forums_messages$; f.forum_id = $int32:forum$;
              is_null f.parent_id >>)
@@ -451,7 +450,7 @@ let get_wikibox_creator ~wb =
   let wb = Wiki_types.sql_of_wikibox wb in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      PGOCamlQuery.view db (<:view< {
+      Lwt_Query.view db (<:view< {
         f.creator_id
       } | f in $forums_messages$;
           (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
@@ -463,7 +462,7 @@ let wikibox_is_moderated ~wb =
   let wb = Wiki_types.sql_of_wikibox wb in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      PGOCamlQuery.view db (<:view< {
+      Lwt_Query.view db (<:view< {
         f.moderated
       } | f in $forums_messages$;
           (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
@@ -473,14 +472,18 @@ let wikibox_is_moderated ~wb =
 
 let get_forums_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.view db (<:view< {
+    Lwt_Query.view db (<:view< {
       f.id
     } | f in $forums$; >>)
-  ) >>= (Lwt_list.map_s (fun id -> Lwt.return (string_of_int32 id#!id)))
+  ) >>= (Lwt_list.map_s (fun id ->
+    Lwt.return (Lwt_PGOCaml.string_of_int32 id#!id)
+  ))
 
 let get_forum_messages_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.view db (<:view< {
+    Lwt_Query.view db (<:view< {
       f.id
     } | f in $forums_messages$; >>)
-  ) >>= (Lwt_list.map_s (fun id -> Lwt.return (string_of_int32 id#!id)))
+  ) >>= (Lwt_list.map_s (fun id ->
+    Lwt.return (Lwt_PGOCaml.string_of_int32 id#!id)
+  ))

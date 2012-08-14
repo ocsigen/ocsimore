@@ -31,7 +31,7 @@ let current_version = Lwt_main.run
   (try_lwt
      lwt l =
        full_transaction_block
-         (fun db -> PGOCamlQuery.view db (
+         (fun db -> Lwt_Query.view db (
            <:view< {
              opt.value
            } | opt in $options$; opt.name = "dbversion" >>))
@@ -44,7 +44,7 @@ let current_version = Lwt_main.run
 
 let update_version db version =
   let ver = string_of_int version in
-  PGOCamlQuery.query db (<:update< opt in $options$ := {
+  Lwt_Query.query db (<:update< opt in $options$ := {
     value = $string:ver$
   } | opt.name = "dbversion">>)
 
@@ -60,9 +60,9 @@ let update version f =
 
 let alter db query =
   let name = "query" in
-  PGOCaml.prepare db ~query ~name () >>= (fun () ->
-    PGOCaml.execute db ~name ~params: [] () >>= (fun _ ->
-      PGOCaml.close_statement db ~name ()
+  Lwt_PGOCaml.prepare db ~query ~name () >>= (fun () ->
+    Lwt_PGOCaml.execute db ~name ~params: [] () >>= (fun _ ->
+      Lwt_PGOCaml.close_statement db ~name ()
     )
   )
 

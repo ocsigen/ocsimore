@@ -25,7 +25,6 @@
 
 open Eliom_lib.Lwt_ops
 open User_sql.Types
-open Ocsi_sql.PGOCaml
 open Ocsi_sql
 
 let forums_messages = (<:table< forums_messages (
@@ -68,7 +67,7 @@ let get_message_raw ~message_id () =
     (fun db -> raw_message_from_sql (
        (* tree_min and tree_max are here only for the interface to be
           compatible with get_thread *)
-      PGOCamlQuery.view db (<:view< {
+      Lwt_Query.view db (<:view< {
         f.id;
         f.creator_id;
         f.datetime;

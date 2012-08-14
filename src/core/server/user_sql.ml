@@ -24,7 +24,6 @@
 
 open Eliom_lib.Lwt_ops
 
-open Ocsi_sql.PGOCaml
 open Ocsimore_lib
 open CalendarLib
 open Ocsi_sql
@@ -176,7 +175,7 @@ let bind_option_int32 = function
   | None -> None
 
 let remove_from_group_aux db (u, vu) (g, vg) =
-  PGOCamlQuery.query db (<:delete< d in $userrights$ |
+  Lwt_Query.query db (<:delete< d in $userrights$ |
       d.id = $int32:u$; d.groupid = $int32:g$;
       is_not_distinct_from d.idarg (of_option $bind_option_int32 vu$);
       is_not_distinct_from d.groupidarg (of_option $bind_option_int32 vg$) >>)
@@ -187,7 +186,7 @@ let remove_from_group_ ~user ~group =
 
 let add_to_group_aux db (u, vu) (g, vg) =
   remove_from_group_aux db (u, vu) (g, vg) >>= fun () ->
-  PGOCamlQuery.query db (<:insert< $userrights$ := {
+  Lwt_Query.query db (<:insert< $userrights$ := {
     id = $int32:u$;
     groupid = $int32:g$;
     idarg = of_option $bind_option_int32 vu$;
@@ -233,7 +232,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
     (fun db ->
        (match password, email with
           | None, None ->
-            PGOCamlQuery.query db (<:insert< $users$ := {
+            Lwt_Query.query db (<:insert< $users$ := {
               id = nextval $users_id_seq$;
               login = $string:name$;
               password = users?password;
@@ -243,7 +242,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
               authtype = $string:authtype$
             } >>)
           | Some pwd, None ->
-            PGOCamlQuery.query db (<:insert< $users$ := {
+            Lwt_Query.query db (<:insert< $users$ := {
               id = nextval $users_id_seq$;
               login = $string:name$;
               password = $string:pwd$;
@@ -253,7 +252,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
               authtype = $string:authtype$
             } >>)
           | None, Some email ->
-            PGOCamlQuery.query db (<:insert< $users$ := {
+            Lwt_Query.query db (<:insert< $users$ := {
               id = nextval $users_id_seq$;
               login = $string:name$;
               password = users?password;
@@ -263,7 +262,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
               authtype = $string:authtype$
             } >>)
           | Some pwd, Some email ->
-            PGOCamlQuery.query db (<:insert< $users$ := {
+            Lwt_Query.query db (<:insert< $users$ := {
               id = nextval $users_id_seq$;
               login = $string:name$;
               password = $string:pwd$;
@@ -273,7 +272,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
               authtype = $string:authtype$
             } >>)
        ) >>= fun () ->
-       PGOCamlQuery.value db (<:value< currval $users_id_seq$ >>)
+       Lwt_Query.value db (<:value< currval $users_id_seq$ >>)
        >>= fun id ->
        let id = userid_from_sql id in
        Lwt.return (id, pwd)
@@ -282,7 +281,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
 exception NotAnUser
 
 let find_userid_by_name_aux_ db name =
-  PGOCamlQuery.view db (<:view< {
+  Lwt_Query.view db (<:view< {
     u.id
   } | u in $users$; u.login = $string:name$ >>)
   >>= function
@@ -300,13 +299,13 @@ let new_group authtype find_param ~prefix ~name ~descr =
        Lwt.catch
          (fun () -> find_userid_by_name_aux_ db name >>= fun user ->
                     let us = sql_from_userid user in
-                    PGOCamlQuery.query db (<:update< u in $users$ := {
+                    Lwt_Query.query db (<:update< u in $users$ := {
                       fullname = $string:descr$
                     } | u.id = $int32:us$ >>) >>=
                     fun () -> Lwt.return user)
          (function
             | NotAnUser ->
-              PGOCamlQuery.query db (<:insert< $users$ := {
+              Lwt_Query.query db (<:insert< $users$ := {
                 id = nextval $users_id_seq$;
                 login = $string:name$;
                 password = users?password;
@@ -316,7 +315,7 @@ let new_group authtype find_param ~prefix ~name ~descr =
                 authtype = $string:authtype$
               } >>)
               >>= fun () ->
-              PGOCamlQuery.value db (<:value< currval $users_id_seq$ >>)
+              Lwt_Query.value db (<:value< currval $users_id_seq$ >>)
               >>= fun id -> Lwt.return (userid_from_sql id)
             | e -> Lwt.fail e
          ))
@@ -349,7 +348,7 @@ let wrap_userdata userdata =
 let find_user_by_name_ name =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-      PGOCamlQuery.view db (<:view< u | u in $users$; u.login = $string:name$ >>)
+      Lwt_Query.view db (<:view< u | u in $users$; u.login = $string:name$ >>)
        >>= function
          | [] -> Lwt.fail NotAnUser
          | r :: _ -> Lwt.return (wrap_userdata r))
@@ -362,7 +361,7 @@ let find_user_by_id_ id =
   let id = sql_from_userid id in
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-      PGOCamlQuery.view db (<:view< u | u in $users$; u.id = $int32:id$ >>)
+      Lwt_Query.view db (<:view< u | u in $users$; u.id = $int32:id$ >>)
        >>= function
          | [] -> Lwt.fail NotAnUser
          | r :: _ -> Lwt.return (wrap_userdata r))
@@ -370,14 +369,14 @@ let find_user_by_id_ id =
 let all_groups () =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-      PGOCamlQuery.view db (<:view< u | u in $users$ >>)
+      Lwt_Query.view db (<:view< u | u in $users$ >>)
        >>= fun l -> Lwt.return (List.map wrap_userdata l))
 
 
 let delete_user_ ~userid =
   let userid = sql_from_userid userid in
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.query db (<:delete< d in $users$ | d.id = $int32:userid$ >>))
+    Lwt_Query.query db (<:delete< d in $users$ | d.id = $int32:userid$ >>))
 
 let bind_option_string = function
   | (Some x) -> Some <:value< $string:x$ >>
@@ -392,7 +391,7 @@ let update_data_ ~userid ?password ?fullname ?email ?dyn () =
           | Some pwd ->
               pass_authtype_from_pass pwd
               >>= fun (_pwd, (password, authtype)) ->
-              PGOCamlQuery.query db (<:update< u in $users$ := {
+              Lwt_Query.query db (<:update< u in $users$ := {
                 password = of_option $bind_option_string password$;
                 authtype = $string:authtype$
               } | u.id = $int32:userid$ >>)
@@ -400,20 +399,20 @@ let update_data_ ~userid ?password ?fullname ?email ?dyn () =
        (match fullname with
           | None -> Lwt.return ()
           | Some fullname ->
-            PGOCamlQuery.query db (<:update< u in $users$ := {
+            Lwt_Query.query db (<:update< u in $users$ := {
               fullname = $string:fullname$
             } | u.id = $int32:userid$ >>)
        ) >>= fun () ->
        (match email with
           | None -> Lwt.return ()
           | Some email ->
-            PGOCamlQuery.query db (<:update< u in $users$ := {
+            Lwt_Query.query db (<:update< u in $users$ := {
               email = of_option $bind_option_string email$
             } | u.id = $int32:userid$ >>)
        ) >>= fun () ->
        (match dyn with
           | Some dyn ->
-            PGOCamlQuery.query db (<:update< u in $users$ := {
+            Lwt_Query.query db (<:update< u in $users$ := {
               dyn = $bool:dyn$
             } | u.id = $int32:userid$ >>)
           | None -> Lwt.return ()
@@ -436,13 +435,13 @@ let groups_of_user_ ~user =
     (fun db ->
        (match vu with
           | None ->
-            PGOCamlQuery.view db (<:view< {
+            Lwt_Query.view db (<:view< {
               id = ur.groupid; idarg = ur.groupidarg
             } | ur in $userrights$; ur.id = $int32:u$; is_null ur.idarg >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vu ->
               (* Standard inclusions *)
-            PGOCamlQuery.view db (<:view< {
+            Lwt_Query.view db (<:view< {
               id = ur.groupid;
               idarg = ur.groupidarg
             } | ur in $userrights$; ur.id = $int32:u$;
@@ -450,7 +449,7 @@ let groups_of_user_ ~user =
               >>= fun r1 ->
               (* Generic edges. If the database is correct, groupidarg
                  is always [ct_parameterized_edge] *)
-              PGOCamlQuery.view db (<:view< {
+              Lwt_Query.view db (<:view< {
                 id = ur.groupid
               } | ur in $userrights$; ur.id = $int32:u$;
                   ur.idarg = nullable $int32:ct_parameterized_edge$ >>)
@@ -466,19 +465,19 @@ let users_in_group_ ?(generic=true) ~group =
     (fun db ->
        (match vg with
           | None ->
-            PGOCamlQuery.view db (<:view< {
+            Lwt_Query.view db (<:view< {
               ur.id; ur.idarg
             } | ur in $userrights$; ur.groupid = $int32:g$;
                 is_null ur.groupidarg >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vg ->
-            PGOCamlQuery.view db (<:view< {
+            Lwt_Query.view db (<:view< {
               ur.id; ur.idarg
             } | ur in $userrights$; ur.groupid = $int32:g$;
                 ur.groupidarg = nullable $int32:vg$ >>)
               >>= fun r1 ->
               (if generic then
-                  PGOCamlQuery.view db (<:view< {
+                  Lwt_Query.view db (<:view< {
                     ur.id
                   } | ur in $userrights$; ur.groupid = $int32:g$;
                       ur.groupidarg = nullable $int32:ct_parameterized_edge$ >>)
@@ -740,7 +739,7 @@ type user_settings = {
 
 let get_users_settings () =
   Lwt_pool.use Ocsi_sql.pool (fun db -> (* TODO: Remove id from the selection *)
-    PGOCamlQuery.view_one db (<:view< u | u in $users_settings$ >>) >>= (fun data ->
+    Lwt_Query.view_one db (<:view< u | u in $users_settings$ >>) >>= (fun data ->
       Lwt.return {
         basicusercreation = data#!basicusercreation;
         registration_mail_from = data#!registration_mail_from;
@@ -754,7 +753,7 @@ let get_users_settings () =
 
 let set_users_settings data =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.query db (<:update< u in $users_settings$ := {
+    Lwt_Query.query db (<:update< u in $users_settings$ := {
       basicusercreation = $bool:data.basicusercreation$;
       registration_mail_from = $string:data.registration_mail_from$;
       registration_mail_addr = $string:data.registration_mail_addr$;
@@ -767,10 +766,10 @@ let set_users_settings data =
 let () =
   Lwt_main.run (
     Lwt_pool.use Ocsi_sql.pool (fun db ->
-      PGOCamlQuery.view_opt db
+      Lwt_Query.view_opt db
         (<:view< u | u in $users_settings$ >>) >>= (function
           | None ->
-            PGOCamlQuery.query db (<:insert< $users_settings$ := {
+            Lwt_Query.query db (<:insert< $users_settings$ := {
               id = 1;
               basicusercreation = false;
               registration_mail_from = "";
@@ -786,7 +785,7 @@ let () =
 
 let get_users_login () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
-    PGOCamlQuery.view db (<:view< {
+    Lwt_Query.view db (<:view< {
       u.login
     } | u in $users$; u.authtype <> "g"; u.authtype <> "h" >>)
   ) >>= (Lwt_list.map_s (fun login -> Lwt.return login#!login))

@@ -1,9 +1,11 @@
 (** Database interface to the Ocsimore database. *)
 
-module PGOCaml : PGOCaml_generic.PGOCAML_GENERIC with type 'a monad = 'a Lwt.t
-module PGOCamlQuery : Query.QUERY with type 'a Db.t = 'a PGOCaml.t and type 'a Db.monad = 'a Lwt.t
+module Lwt_PGOCaml : PGOCaml_generic.PGOCAML_GENERIC
+  with type 'a monad = 'a Lwt.t
+module Lwt_Query : Query.QUERY
+  with type 'a Db.t = 'a Lwt_PGOCaml.t and type 'a Db.monad = 'a Lwt.t
 
-type db_t = PGOCaml.pa_pg_data PGOCaml.t
+type db_t = Lwt_PGOCaml.pa_pg_data Lwt_PGOCaml.t
 
 val pool : db_t Lwt_pool.t
 
