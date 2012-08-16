@@ -1576,12 +1576,15 @@ object (self)
                ~special_box:(WikiContainerBox wiki) wb_container
      in
      lwt css = self#css_header ~page wiki in
-     let title = match title with Some title -> title | None -> wiki_info.wiki_descr in
      let code = match err_code with
        | Wiki_widgets_interface.Page_displayable -> 200
        | Wiki_widgets_interface.Page_404 -> 404
-       | Wiki_widgets_interface.Page_403 -> 403
-     in
+       | Wiki_widgets_interface.Page_403 -> 403 in
+     let title = match code with
+       | 403 -> "Access forbidden"
+       | _ -> match title with
+           | Some title -> title
+           | None -> wiki_info.wiki_descr in
      Page_site.html_page ~css ~title (page_content :> Html5_types.body_content Html5.F.elt list) >|=
        fun r -> (r, code)
 
