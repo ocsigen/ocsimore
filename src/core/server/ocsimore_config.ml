@@ -1,12 +1,11 @@
-
 let opt s = if s = "" then None else Some s
 
-let db_user = ref "$pguser"
-let db_name = ref "$pgdatabase"
-let db_host = ref (opt "$pghost")
-let db_port = ref (Eliom_lib.Option.map int_of_string (opt "$pgport"))
-let db_unix_domain_socket_dir = ref (opt "$pg_socket_domain_dir")
-let db_password = ref (opt "$pgpassword")
+let db_user = ref ""
+let db_name = ref ""
+let db_host = ref (opt "")
+let db_port = ref (Eliom_lib.Option.map int_of_string None)
+let db_unix_domain_socket_dir = ref (opt "")
+let db_password = ref (opt "")
 
 let admin_dir = ref "ocsimoreadmin"
 

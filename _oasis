@@ -17,8 +17,6 @@ Synopsis: Ocsimore lib for eliom
 Description:
   A nice description
 
-FilesAB: src/core/server/ocsimore_config.ml.ab
-
 # +-------------------------------------------------------------------+
 # | Libraries                                                         |
 # +-------------------------------------------------------------------+

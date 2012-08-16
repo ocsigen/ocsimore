@@ -552,14 +552,6 @@ let set_var_option var_name env_var =
     | "" -> ()
     | s -> Unix.putenv env_var s
 
-let () =
-  set_var "pgdatabase" "PGDATABASE";
-  set_var "pguser" "PGUSER";
-  set_var_option "pgpassword" "PGPASSWORD";
-  set_var_option "pgport" "PGPORT";
-  set_var_option "pghost" "PGHOST";
-  set_var_option "pg_socket_domain_dir" "UNIX_SOCKET_DOMAIN_DIR"
-
 let copy_with_header src prod =
   let dir = Filename.dirname prod in
   let mkdir = Cmd (Sh ("mkdir -p " ^ dir)) in
