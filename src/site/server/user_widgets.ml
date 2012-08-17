@@ -429,7 +429,7 @@ object (self)
         ~text:[Html5.F.p ~a:[Html5.F.a_class ["eliom_inline"]]
                  [Html5.F.strong
                     [Html5.F.pcdata ("Current groups/roles in which the " ^ text ^
-                                     "is: ")
+                                     " is: ")
                     ]
                  ]
         ]
