@@ -674,7 +674,7 @@ object (self)
           Lwt_list.map_s (fun p ->
             Lwt.return (u.user_login ^ "(" ^ p ^ ")")
           ) p >>= fun names ->
-          let link acc name = [
+          let link name acc = [
             li [
               a ~service:User_services.service_view_group
                 [strong [pcdata name]] name;
@@ -683,7 +683,7 @@ object (self)
           ] @ acc in
           let block_and_link = tr [
             td [
-              ul (List.fold_left link [] names)
+              ul (List.fold_right link names [])
             ];
             td [];
           ]
