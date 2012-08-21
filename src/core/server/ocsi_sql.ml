@@ -66,3 +66,11 @@ let transaction_block db f =
 
 let full_transaction_block f =
   Lwt_pool.use pool (fun db -> transaction_block db (fun () -> f db))
+
+let map_option_int32 = function
+  | (Some x) -> Some (<:value< $int32:x$ >>)
+  | None -> None
+
+let map_option_string = function
+  | (Some x) -> Some (<:value< $string:x$ >>)
+  | None -> None
