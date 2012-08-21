@@ -36,12 +36,6 @@ Configuration file example:
       </eliom>
 }}}
 
-//Warning:// Only {{{Ldap_funclient}}} and dependencies is actually needed
-(not the whole ocamldap cma). This cma has other dependencies that you may need
-to load. (e.g. {{{<extension module="/usr/lib/ocaml/toplevellib.cma"/>}}}). Would be great to split the cma into at least two
-(client and server).
-
-
 
 ====PAM authentication:====
 

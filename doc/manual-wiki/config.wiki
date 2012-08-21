@@ -26,6 +26,20 @@ which allows the following optional attributes:
     </extension>
 }}}
 
+Default is:
+
+{{{
+    <extension findlib-package="ocsimore">
+      <database
+        name="ocsimore"
+        user="ocsimore"
+        host="localhost"
+        port=""
+        socket-dir=""
+        password-file="" />
+    </extension>
+}}}
+
 == The Wiki ==
 
 The Wiki is configured by the ##wiki##-tag. It allows the following attributes:
