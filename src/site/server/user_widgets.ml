@@ -475,7 +475,9 @@ object (self)
          @ let open Html5.F in [
            div ~a:[a_class ["user_block"]] edit;
            div ~a:[a_class ["user_block"]]
-             [table ~a:[a_class ["users_in_group"]] f1 []];
+             (if gtype = `User
+              then []
+              else [table ~a:[a_class ["users_in_group"]] f1 []]);
            div ~a:[a_class ["user_block"]] f2;
          ])
 
