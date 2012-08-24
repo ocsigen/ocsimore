@@ -1758,8 +1758,21 @@ object (self)
                ]
        in
        let delete =
-         Html5.D.a ~service:Wiki_services.delete_wiki
-           [Html5.D.pcdata "Delete"] w.wiki_id
+         let delete_service = Eliom_service.preapply
+           Wiki_services.delete_wiki w.wiki_id
+         in
+         Html5.D.Raw.a ~a:[
+           Html5.D.a_onclick {{
+             let answer = Dom_html.window##confirm
+               (Js.string "Do you really want to delete this wiki ?")
+             in
+             if Js.to_bool answer then
+               Eliom_client.exit_to ~service:%delete_service () ()
+             else
+               debug "Canceled delete"
+           }};
+           Html5.F.a_class ["jslink"];
+         ] [Html5.F.pcdata "Delete"]
        in
        (Html5.F.tr
           [Html5.F.td ~a:[Html5.F.a_class ["wikiid"]] [Html5.F.pcdata id];

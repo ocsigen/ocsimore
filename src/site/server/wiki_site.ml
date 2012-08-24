@@ -99,7 +99,7 @@ let () =
 
 (** We register the service that lists all the wikis *)
 let () =
-  Eliom_registration.Html5.register Wiki_services.view_wikis
+  Ocsimore_appl.register Wiki_services.view_wikis
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun()()->Lwt.return "View wikis")
        ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))

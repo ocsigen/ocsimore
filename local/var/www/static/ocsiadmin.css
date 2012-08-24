@@ -165,3 +165,6 @@ form > table > tr > td.description {
   font-size: small;
 }
 
+.jslink {
+    cursor: pointer;
+}
