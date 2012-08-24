@@ -1757,6 +1757,10 @@ object (self)
                   (img "imgview.png" "View wiki root wikipage") []
                ]
        in
+       let delete =
+         Html5.D.a ~service:Wiki_services.delete_wiki
+           [Html5.D.pcdata "Delete"] w.wiki_id
+       in
        (Html5.F.tr
           [Html5.F.td ~a:[Html5.F.a_class ["wikiid"]] [Html5.F.pcdata id];
            Html5.F.td ~a:[Html5.F.a_class ["wikiname"]]
@@ -1767,6 +1771,7 @@ object (self)
            Html5.F.td [view_wikiboxes];
            Html5.F.td [edit_perm];
            Html5.F.td page;
+           Html5.F.td [delete];
           ]
        )
      in
@@ -1777,6 +1782,7 @@ object (self)
              [Html5.F.th [Html5.F.pcdata "Id"];
               Html5.F.th [Html5.F.pcdata "Wiki"];
               Html5.F.th [Html5.F.pcdata "Description"];
+              Html5.F.th [Html5.F.pcdata ""];
               Html5.F.th [Html5.F.pcdata ""];
               Html5.F.th [Html5.F.pcdata ""];
               Html5.F.th [Html5.F.pcdata ""];

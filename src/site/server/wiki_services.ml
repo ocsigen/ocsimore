@@ -585,6 +585,10 @@ and wikibox_contents :
         | Some override -> set_override_wikibox override in
       send_wikibox ~rights ~page ~wiki ~wb ())
 
+and delete_wiki = Eliom_registration.Action.register_coservice'
+  ~get_params:eliom_wiki_args
+  (fun wiki () -> Wiki_sql.delete_wiki wiki)
+
 
 let wiki_css_header =
   Page_site.Header.create_header
