@@ -57,8 +57,20 @@ let wikiboxescontent = <:table< wikiboxescontent (
   ip text (* WTF ??? *)
 ) >>
 
+(** CSS *)
+let css = (<:table< css (
+  wiki integer NOT NULL,
+  page text,
+  wikibox integer NOT NULL,
+  specialrights boolean NOT NULL DEFAULT(false),
+  uid integer NOT NULL,
+  rank integer NOT NULL DEFAULT(1),
+  mediatype text NOT NULL DEFAULT("all")
+) >>)
+
 let wikiboxes_version_seq = <:sequence< serial "wikiboxes_version_seq" >>
 let wikiboxindex_uid_seq = <:sequence< serial "wikiboxindex_uid_seq" >>
+let css_uid_seq = (<:sequence< serial "css_uid_seq" >>)
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 (* Not cached : by unicity constraints, we only insert data that
@@ -450,6 +462,23 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
        return (wiki, container)
     )
 
+let delete_wiki id =
+  wrap None
+    (fun db ->
+      Lwt_Query.query db (<:delete< w in $wikis$ | w.id = $int32:id$ >>)
+      >>= fun () ->
+      Lwt_Query.query db (<:delete< w in $wikipages$ | w.wiki = $int32:id$ >>)
+      >>= fun () ->
+      Lwt_Query.query db (<:delete< c in $css$ | c.wiki = $int32:id$ >>)
+      >>= fun () ->
+      Lwt_Query.view db (<:view< {
+        w.uid;
+      } | w in $wikiboxindex$; w.wiki = $int32:id$ >>)
+      >>= fun uids ->
+      Lwt_Query.query db
+        (<:delete< w in $wikiboxescontent$ |
+            $in'$ w.wikibox $List.map (fun x -> x#uid) uids$ >>)
+    )
 
 let find_wiki_ ?db id =
   wrap db
@@ -494,18 +523,6 @@ let iter_wikis ?db f =
 
 
 (** CSS *)
-
-let css = (<:table< css (
-  wiki integer NOT NULL,
-  page text,
-  wikibox integer NOT NULL,
-  specialrights boolean NOT NULL DEFAULT(false),
-  uid integer NOT NULL,
-  rank integer NOT NULL DEFAULT(1),
-  mediatype text NOT NULL DEFAULT("all")
-) >>)
-
-let css_uid_seq = (<:sequence< serial "css_uid_seq" >>)
 
 let page_opt_to_string wiki = function
   | None -> "wiki " ^ string_of_wiki wiki

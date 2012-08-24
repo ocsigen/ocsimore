@@ -74,3 +74,7 @@ let map_option_int32 = function
 let map_option_string = function
   | (Some x) -> Some (<:value< $string:x$ >>)
   | None -> None
+
+let rec in' value = function
+  | [] -> (<:value< false >>)
+  | x::xs -> (<:value< value = $x$ || $in' value xs$ >>)

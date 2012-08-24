@@ -20,3 +20,9 @@ val map_option_int32 : int32 option ->
   < nul : 'a; t : Sql.int32_t > Sql.t option
 val map_option_string : string option ->
   < nul : 'a; t : Sql.string_t > Sql.t option
+
+(** Useful function that mimic the comportement of IN (SQL statement) *)
+val in' :
+  < nul : 'a; t : 'b; .. > Sql.t ->
+  < nul : 'a; t : 'b; .. > Sql.t list ->
+  < nul : 'a; t : Sql.bool_t > Sql.t
