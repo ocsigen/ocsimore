@@ -46,11 +46,9 @@ restart: install-data
 .PHONY:
 install-data: /tmp/static
 	cp \
+	   ./local/var/www/static/*.css \
+	   ./local/var/www/static/*.png \
 	   ./_build/src/site/client/ocsimore.js \
-	   ./local/var/www/static/ocsiwikistyle.css \
-	   ./local/var/www/static/preview.png \
-	   ./local/var/www/static/creole_cheat_sheet.png \
-	   ./local/var/www/static/ocsiadmin.css \
 	   $^
 
 /tmp/static:
