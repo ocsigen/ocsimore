@@ -587,9 +587,9 @@ and wikibox_contents :
         | Some override -> set_override_wikibox override in
       send_wikibox ~rights ~page ~wiki ~wb ())
 
-and delete_wiki = Eliom_registration.Action.register_coservice'
-  ~get_params:eliom_wiki_args
-  (fun wiki () ->
+and delete_wiki = Eliom_registration.Action.register_post_coservice'
+  ~post_params:(Eliom_parameter.int32 "wid")
+  (fun () wiki ->
     wiki_rights#can_delete_wiki () >>= function
       | true -> Wiki_sql.delete_wiki wiki
       | false -> Lwt.return ()

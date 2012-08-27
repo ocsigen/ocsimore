@@ -1758,16 +1758,17 @@ object (self)
                ]
        in
        let delete =
-         let delete_service = Eliom_service.preapply
-           Wiki_services.delete_wiki w.wiki_id
-         in
+         (* Don't use opaque type because Eliom_parameter doesn't support
+            user defined types already *)
+         let param = sql_of_wiki w.wiki_id in
          Html5.D.Raw.a ~a:[
            Html5.D.a_onclick {{
              let answer = Dom_html.window##confirm
                (Js.string "Do you really want to delete this wiki ?")
              in
              if Js.to_bool answer then
-               Eliom_client.exit_to ~service:%delete_service () ()
+               Eliom_client.exit_to
+                 ~service:%Wiki_services.delete_wiki () %param
              else
                debug "Canceled delete"
            }};

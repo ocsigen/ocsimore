@@ -462,10 +462,9 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
        return (wiki, container)
     )
 
-let delete_wiki wiki =
+let delete_wiki id =
   wrap None
     (fun db ->
-      let id = sql_of_wiki wiki in
       Lwt_Query.query db (<:delete< w in $wikis$ | w.id = $int32:id$ >>)
       >>= fun () ->
       Lwt_Query.query db (<:delete< w in $wikipages$ | w.wiki = $int32:id$ >>)
