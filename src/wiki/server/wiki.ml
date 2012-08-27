@@ -111,6 +111,12 @@ let wikis_creator =
     (User_sql.new_nonparameterized_group ~prefix ~name:"WikisCreators"
        ~descr:"can create new wikis")
 
+let wikis_deletor =
+  Lwt_main.run
+    (User_sql.new_nonparameterized_group ~prefix ~name:"WikiDeletors"
+       ~descr:"can delete a wiki")
+
+
 
 (** Groups taking a wiki as argument *)
 
@@ -299,6 +305,8 @@ class wiki_rights : Wiki_types.wiki_rights =
 object (self)
   method can_create_wiki () =
     User.in_group ~group:wikis_creator ()
+  method can_delete_wiki () =
+    User.in_group ~group:wikis_deletor ()
 
   method can_admin_wiki = aux_group wiki_admins
   method can_edit_metadata = aux_group wiki_metadata_editors

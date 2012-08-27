@@ -106,6 +106,7 @@ type 'a rights_aux = 'a -> bool Lwt.t
 class type wiki_rights =
 object
   method can_create_wiki : unit rights_aux
+  method can_delete_wiki : unit rights_aux
 
   method can_admin_wiki :          wiki rights_aux
   method can_set_wiki_permissions :wiki rights_aux

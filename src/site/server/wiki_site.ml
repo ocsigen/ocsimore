@@ -58,7 +58,7 @@ let siteid =
 
 
 let error_box = new Wiki_widgets.wikibox_error_box
-let wiki_rights = new Wiki.wiki_rights
+let wiki_rights = Wiki_services.wiki_rights
 
 
 let wikibox_widget =

@@ -34,6 +34,8 @@ open Eliom_lib.Lwt_ops
 
 let ( ** ) = Eliom_parameter.prod
 
+let wiki_rights = new Wiki.wiki_rights
+
 let eliom_wiki : string -> wiki Ocsimore_common.eliom_usertype =
   Ocsimore_common.eliom_opaque_int32
 let eliom_wikibox : string -> wikibox Ocsimore_common.eliom_usertype =
@@ -587,7 +589,11 @@ and wikibox_contents :
 
 and delete_wiki = Eliom_registration.Action.register_coservice'
   ~get_params:eliom_wiki_args
-  (fun wiki () -> Wiki_sql.delete_wiki wiki)
+  (fun wiki () ->
+    wiki_rights#can_delete_wiki () >>= function
+      | true -> Wiki_sql.delete_wiki wiki
+      | false -> Lwt.return ()
+  )
 
 
 let wiki_css_header =
