@@ -1,0 +1,18 @@
+===User creation===
+
+Users cannot be created by default. To allow the creation,
+go to "Users -> Users settings" page, check "Enable users creation" and
+fill in the "Registration mail" witch is used to send the confirmation email.
+
+===Note on the wiki deletion===
+You can delete a wiki with the web interface in: "Wiki -> View all wikis"
+
+Please, enable Javascript.
+
+If you click on "Delete", a confirmation window will appears.
+If you click on "Ok", all data will be erased (see the following "Note")
+
+Note: The deletion is not secure for the moment.
+- Please note that will be delete all content related
+  (content, wikiboxes, wikipages).
+- Please verify there is no links to the wiki and no wikiboxes accessible.

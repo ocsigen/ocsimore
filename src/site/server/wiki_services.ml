@@ -590,7 +590,8 @@ and wikibox_contents :
 and delete_wiki = Eliom_registration.Action.register_post_coservice'
   ~post_params:(Eliom_parameter.int32 "wid")
   (fun () wiki ->
-    wiki_rights#can_delete_wiki () >>= function
+    let wiki = wiki_of_sql wiki in
+    wiki_rights#can_delete_wiki wiki >>= function
       | true -> Wiki_sql.delete_wiki wiki
       | false -> Lwt.return ()
   )

@@ -6,3 +6,4 @@
 ==[[misc|Misc]]
 ==[[guidelines|Writing extensions for Ocsimore]]
 ==[[config|Configuration options]]
+==[[admin-interface|Administration interface]]

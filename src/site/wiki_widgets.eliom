@@ -45,7 +45,7 @@ let grouped_by_media wb_list_with_media =
 let hidden_page_inputs (page_wiki, page_path) (page_wiki_name, (empty_page_path_name, page_path_name)) =
   Ocsimore_common.input_opaque_int32 ~value:page_wiki page_wiki_name ::
   match page_path with
-      Some path -> 
+      Some path ->
         page_path_name.Eliom_parameter.it
           (fun name value init -> Html5.D.string_input ~input_type:`Hidden ~name ~value () :: init)
           path
@@ -1596,7 +1596,7 @@ object (self)
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      let wb_container = wiki_info.wiki_container in
      Lwt.return
-     (fun ~sectioning menu_style -> 
+     (fun ~sectioning menu_style ->
        try_lwt
           (* We render the wikibox for the page *)
           lwt { wikipage_wikibox = box; wikipage_title = title } =

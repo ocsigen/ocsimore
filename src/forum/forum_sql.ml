@@ -30,8 +30,10 @@ let (>>=) = Lwt.bind
 
 open Forum_types
 
+let forums_id_seq = (<:sequence< serial "forums_id_seq" >>)
+
 let forums = (<:table< forums (
-  id integer NOT NULL,
+  id integer NOT NULL DEFAULT(nextval $forums_id_seq$),
   title text NOT NULL DEFAULT(""),
   descr text NOT NULL DEFAULT(""),
   arborescent boolean NOT NULL DEFAULT(true),
@@ -40,8 +42,6 @@ let forums = (<:table< forums (
   messages_wiki integer NOT NULL,
   comments_wiki integer NOT NULL
 ) >>)
-
-let forums_id_seq = (<:sequence< serial "forums_id_seq" >>)
 
 let new_forum
     ~title ~descr ?(arborescent = true) ~title_syntax
@@ -52,7 +52,7 @@ let new_forum
   Ocsi_sql.full_transaction_block
     (fun db ->
       Lwt_Query.query db (<:insert< $forums$ := {
-        id = nextval $forums_id_seq$;
+        id = forums?id;
         title = $string:title$;
         descr = $string:descr$;
         arborescent = $bool:arborescent$;
@@ -117,8 +117,10 @@ let update_forum ?title ?descr ?arborescent ?title_syntax
       )
 )
 
+let forums_messages_id_seq = (<:sequence< serial "forums_messages_id_seq" >>)
+
 let forums_messages = (<:table< forums_messages (
-  id integer NOT NULL,
+  id integer NOT NULL DEFAULT(nextval $forums_messages_id_seq$),
   creator_id integer NOT NULL,
   datetime timestamp NOT NULL DEFAULT(current_timestamp),
   parent_id integer,
@@ -132,8 +134,6 @@ let forums_messages = (<:table< forums_messages (
   tree_min integer NOT NULL DEFAULT(1),
   tree_max integer NOT NULL DEFAULT(2)
 ) >>)
-
-let forums_messages_id_seq = (<:sequence< serial "forums_messages_id_seq" >>)
 
 let new_message ~forum ~wiki ~creator_id ~title_syntax
     ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
@@ -162,7 +162,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
        let wikibox = Wiki_types.sql_of_wikibox wikibox in
        (match parent_id with
          | None ->
-           let next_id = (<:value< nextval $forums_messages_id_seq$ >>) in
+           let next_id = (<:value< forums_messages?id >>) in
            Lwt_Query.query db (<:insert< $forums_messages$ := {
              id = $next_id$;
              creator_id = $int32:creator_id'$;
@@ -194,7 +194,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
                   } | f.root_id = $int32:(data#!root_id)$;
                       f.tree_min >= $int32:(data#!tree_max)$ >>) >>= fun () ->
                   Lwt_Query.query db (<:insert< $forums_messages$ := {
-                    id = nextval $forums_messages_id_seq$;
+                    id = forums_messages?id;
                     creator_id = $int32:creator_id'$;
                     datetime = forums_messages?datetime;
                     parent_id = nullable $int32:p$;
@@ -376,7 +376,9 @@ let get_childs ~message_id () =
         f.special_rights;
         f.tree_min;
         f.tree_max
-      } order by {f.tree_min} | f in $forums_messages$; f.parent_id = $int32:message_id$ >>)
+      } order by {
+        f.tree_min
+      } | f in $forums_messages$; f.parent_id = $int32:message_id$ >>)
      )
     )
 
@@ -428,14 +430,16 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
        if moderated_only
        then raw_message_from_sql (
          Lwt_Query.view db (<:view< f order by f.tree_min desc
-                                  limit $int64:number$ offset $int64:offset$ |
+               limit $int64:number$
+               offset $int64:offset$ |
              f in $forums_messages$; f.forum_id = $int32:forum$;
              is_null f.parent_id;
              (f.moderated = true) || (f.special_rights = true) >>)
        )
        else raw_message_from_sql (
          Lwt_Query.view db (<:view< f order by f.datetime desc
-                                  limit $int64:number$ offset $int64:offset$ |
+               limit $int64:number$
+               offset $int64:offset$ |
              f in $forums_messages$; f.forum_id = $int32:forum$;
              is_null f.parent_id >>)
        )

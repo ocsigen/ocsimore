@@ -69,8 +69,8 @@ Library "user"
     User_external_auth
   XMETADescription: User stuffs
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore, pam, ldap.client
-  XMETARequires: ocsimore, pam, ldap.client
+    camlp4, lwt.syntax, ocsimore, pam, ldap
+  XMETARequires: ocsimore, pam, ldap
 
 Library "wiki"
   Path: src/wiki

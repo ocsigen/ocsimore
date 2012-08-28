@@ -21,7 +21,6 @@ open Ocsi_sql
 let (>|=) m f = Lwt.map f m
 let (>>=) = Lwt.bind
 
-(* BEWARE: This is going to raise an exception ! *)
 let options = <:table< options (
   name text NOT NULL,
   value text NOT NULL

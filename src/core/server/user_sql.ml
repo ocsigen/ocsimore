@@ -162,7 +162,6 @@ let pass_authtype_from_pass pwd = match pwd with
       fun crypt ->
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
 
-(* BEWARE !!!! See: update_db.ml *)
 let userrights = <:table< userrights (
   id integer NOT NULL,
   groupid integer NOT NULL,
@@ -172,7 +171,8 @@ let userrights = <:table< userrights (
 
 let remove_from_group_aux db (u, vu) (g, vg) =
   Lwt_Query.query db (<:delete< d in $userrights$ |
-      d.id = $int32:u$; d.groupid = $int32:g$;
+      d.id = $int32:u$;
+      d.groupid = $int32:g$;
       is_not_distinct_from d.idarg (of_option $map_option_int32 vu$);
       is_not_distinct_from d.groupidarg (of_option $map_option_int32 vg$) >>)
 
@@ -212,7 +212,7 @@ let add_generic_inclusion_ ~subset ~superset =
 let users_id_seq = <:sequence< serial "users_id_seq" >>
 
 let users = <:table< users (
-  id integer NOT NULL, (* Test if we can put a DEFAULT instead *)
+  id integer NOT NULL DEFAULT(nextval $users_id_seq$),
   login text NOT NULL,
   password text DEFAULT(null),
   fullname text NOT NULL,
@@ -229,7 +229,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
        (match password, email with
           | None, None ->
             Lwt_Query.query db (<:insert< $users$ := {
-              id = nextval $users_id_seq$;
+              id = users?id;
               login = $string:name$;
               password = users?password;
               email = users?email;
@@ -239,7 +239,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
             } >>)
           | Some pwd, None ->
             Lwt_Query.query db (<:insert< $users$ := {
-              id = nextval $users_id_seq$;
+              id = users?id;
               login = $string:name$;
               password = $string:pwd$;
               fullname = $string:fullname$;
@@ -249,7 +249,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
             } >>)
           | None, Some email ->
             Lwt_Query.query db (<:insert< $users$ := {
-              id = nextval $users_id_seq$;
+              id = users?id;
               login = $string:name$;
               password = users?password;
               fullname = $string:fullname$;
@@ -259,7 +259,7 @@ let new_user ~name ~password ~fullname ~email ~dyn =
             } >>)
           | Some pwd, Some email ->
             Lwt_Query.query db (<:insert< $users$ := {
-              id = nextval $users_id_seq$;
+              id = users?id;
               login = $string:name$;
               password = $string:pwd$;
               fullname = $string:fullname$;
@@ -302,7 +302,7 @@ let new_group authtype find_param ~prefix ~name ~descr =
          (function
             | NotAnUser ->
               Lwt_Query.query db (<:insert< $users$ := {
-                id = nextval $users_id_seq$;
+                id = users?id;
                 login = $string:name$;
                 password = users?password;
                 fullname = $string:descr$;
@@ -428,8 +428,10 @@ let groups_of_user_ ~user =
        (match vu with
           | None ->
             Lwt_Query.view db (<:view< {
-              id = ur.groupid; idarg = ur.groupidarg
-            } | ur in $userrights$; ur.id = $int32:u$; is_null ur.idarg >>)
+              id = ur.groupid;
+              idarg = ur.groupidarg
+            } | ur in $userrights$; ur.id = $int32:u$;
+                is_null ur.idarg >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vu ->
               (* Standard inclusions *)
@@ -458,13 +460,15 @@ let users_in_group_ ?(generic=true) ~group =
        (match vg with
           | None ->
             Lwt_Query.view db (<:view< {
-              ur.id; ur.idarg
+              ur.id;
+              ur.idarg
             } | ur in $userrights$; ur.groupid = $int32:g$;
                 is_null ur.groupidarg >>)
               >>= fun l -> Lwt.return (convert_group_list l)
           | Some vg ->
             Lwt_Query.view db (<:view< {
-              ur.id; ur.idarg
+              ur.id;
+              ur.idarg
             } | ur in $userrights$; ur.groupid = $int32:g$;
                 ur.groupidarg = nullable $int32:vg$ >>)
               >>= fun r1 ->

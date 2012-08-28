@@ -39,22 +39,26 @@ let wrap db f = match db with
 
 (** Wikiboxes *)
 
+let wikiboxes_version_seq = <:sequence< serial "wikiboxes_version_seq" >>
+let wikiboxindex_uid_seq = <:sequence< serial "wikiboxindex_uid_seq" >>
+let css_uid_seq = (<:sequence< serial "css_uid_seq" >>)
+
 let wikiboxindex = <:table< wikiboxindex (
   wiki integer NOT NULL,
   comment text,
   specialrights boolean NOT NULL DEFAULT(false),
-  uid integer NOT NULL (* WTF ??? *)
+  uid integer NOT NULL DEFAULT(nextval $wikiboxindex_uid_seq$)
 ) >>
 
 let wikiboxescontent = <:table< wikiboxescontent (
-  version integer NOT NULL,
+  version integer NOT NULL DEFAULT(nextval $wikiboxes_version_seq$),
   comment text NOT NULL DEFAULT(""),
   author integer NOT NULL,
   content text,
   datetime timestamp NOT NULL DEFAULT(current_timestamp),
   content_type text NOT NULL DEFAULT("wikicreole"),
   wikibox integer NOT NULL,
-  ip text (* WTF ??? *)
+  ip text
 ) >>
 
 (** CSS *)
@@ -63,14 +67,10 @@ let css = (<:table< css (
   page text,
   wikibox integer NOT NULL,
   specialrights boolean NOT NULL DEFAULT(false),
-  uid integer NOT NULL,
+  uid integer NOT NULL DEFAULT(nextval $css_uid_seq$),
   rank integer NOT NULL DEFAULT(1),
   mediatype text NOT NULL DEFAULT("all")
 ) >>)
-
-let wikiboxes_version_seq = <:sequence< serial "wikiboxes_version_seq" >>
-let wikiboxindex_uid_seq = <:sequence< serial "wikiboxindex_uid_seq" >>
-let css_uid_seq = (<:sequence< serial "css_uid_seq" >>)
 
 (** Inserts a new wikibox in an existing wiki and return its id. *)
 (* Not cached : by unicity constraints, we only insert data that
@@ -87,13 +87,13 @@ let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
          wiki = $int32:wiki'$;
          comment = $string:comment$;
          specialrights = wikiboxindex?specialrights;
-         uid = nextval $wikiboxindex_uid_seq$
+         uid = wikiboxindex?uid
        } >>)
        >>= fun () ->
        Lwt_Query.value db (<:value< currval $wikiboxindex_uid_seq$ >>)
        >>= fun boxid ->
        Lwt_Query.query db (<:insert< $wikiboxescontent$ := {
-         version = nextval $wikiboxes_version_seq$;
+         version = wikiboxescontent?version;
          comment = wikiboxescontent?comment;
          author = $int32:author$;
          content = $string:content$;
@@ -117,7 +117,7 @@ let update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb =
        and author = User_sql.Types.sql_from_userid author
        in
        Lwt_Query.query db (<:insert< $wikiboxescontent$ := {
-         version = nextval $wikiboxes_version_seq$;
+         version = wikiboxescontent?version;
          comment = $string:comment$;
          author = $int32:author$;
          content = of_option $map_option_string content$;
@@ -216,8 +216,15 @@ let get_wikibox_history ~wb =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wikibox = sql_of_wikibox wb in
-       Lwt_Query.view db (<:view< {w.version; w.comment; w.author; w.datetime} order by {w.version} desc |
-           w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>) >>= (fun data ->
+       Lwt_Query.view db (<:view< {
+         w.version;
+         w.comment;
+         w.author;
+         w.datetime
+       } order by {
+         w.version
+       } desc | w in $wikiboxescontent$;
+                w.wikibox = $int32:wikibox$ >>) >>= (fun data ->
              Lwt.return (List.map (fun elm -> elm#!version, elm#!comment, elm#!author, elm#!datetime) data)
        )
     )
@@ -228,8 +235,11 @@ let get_wikibox_info_ wb =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wb' = sql_of_wikibox wb in
-       Lwt_Query.view db (<:view< {w.wiki; w.comment; w.specialrights; w.uid} | (* WHY UID IS NOT USED !!?? *)
-           w in $wikiboxindex$; w.uid = $int32:wb'$ >>)
+       Lwt_Query.view db (<:view< {
+         w.wiki;
+         w.comment;
+         w.specialrights;
+       } | w in $wikiboxindex$; w.uid = $int32:wb'$ >>)
        >>= function
          | [] -> Lwt.fail Not_found
          | first :: _ ->
@@ -252,15 +262,15 @@ let set_wikibox_special_rights_ ?db wb v =
 
 (** Wikipages *)
 
+let wikipages_uid_seq = (<:sequence< serial "wikipages_uid_seq" >>)
+
 let wikipages = (<:table< wikipages (
   wiki integer NOT NULL,
   wikibox integer NOT NULL,
   pagename text NOT NULL DEFAULT(""),
   title text,
-  uid integer NOT NULL
+  uid integer NOT NULL DEFAULT(nextval $wikipages_uid_seq$)
 ) >>)
-
-let wikipages_uid_seq = (<:sequence< serial "wikipages_uid_seq" >>)
 
 (** return the box corresponding to a wikipage *)
 let get_box_for_page_ ~wiki ~page =
@@ -272,7 +282,7 @@ let get_box_for_page_ ~wiki ~page =
              w in $wikipages$;
              w.wiki = $int32:wiki'$; w.pagename = $string:page$ >>) >>= function
          | [] -> Lwt.fail Not_found
-         | first :: _ -> (* WHY wiki and page is not used ??? *)
+         | first :: _ ->
              (* (wiki, pagename) is a primary key *)
              Lwt.return {
                wikipage_wiki = wiki;
@@ -283,8 +293,10 @@ let get_box_for_page_ ~wiki ~page =
              }
     )
 
+let wikis_id_seq = (<:sequence< serial "wikis_id_seq" >>)
+
 let wikis = (<:table< wikis (
-  id integer NOT NULL,
+  id integer NOT NULL DEFAULT(nextval $wikis_id_seq$),
   title text NOT NULL DEFAULT(""),
   descr text NOT NULL DEFAULT(""),
   pages text,
@@ -295,12 +307,12 @@ let wikis = (<:table< wikis (
   siteid text
 ) >>)
 
-let wikis_id_seq = (<:sequence< serial "wikis_id_seq" >>)
-
 let get_wikis () =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-      Lwt_Query.view db (<:view< {w.id} | w in $wikis$ >>)
+      Lwt_Query.view db (<:view< {
+        w.id
+      } | w in $wikis$ >>)
       >|= (fun uid -> List.map Wiki_types.wiki_of_sql (List.map (fun elm -> elm#!id) uid)))
 
 (* No need for cache, as the page does not exists yet *)
@@ -315,8 +327,8 @@ let create_wikipage ?db ~wiki ~page ~wb =
          wikibox = $int32:wb$;
          pagename = $string:page$;
          title = null;
-         uid = nextval $wikipages_uid_seq$
-       } >>) (* WHERE TITLE IS USED ?????? *)
+         uid = wikipages?uid
+       } >>)
     )
 
 let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
@@ -329,16 +341,16 @@ let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
             Lwt_Query.query db (<:update< w in $wikipages$ := {
               title = null
             } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
-          | Some s -> (* WHATCH HERE !!! string:s is not nullble but title is nullable *)
+          | Some s ->
             Lwt_Query.query db (<:update< w in $wikipages$ := {
               title = $string:s$
             } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
        ) >>= fun () ->
        (match newpage with
           | None -> Lwt.return ()
-          | Some page -> (* This query looks like a fake one !!! *)
+          | Some new_page ->
             Lwt_Query.query db (<:update< w in $wikipages$ := {
-              pagename = $string:page$
+              pagename = $string:new_page$
             } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
        ) >>= fun () ->
        (match wb with
@@ -433,9 +445,9 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?sitei
 let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~author ~model () =
   wrap db
     (fun db ->
-       let model_sql = Wiki_types.string_of_wiki_model model in (* WTF IS CONTAINER ??? *)
+       let model_sql = Wiki_types.string_of_wiki_model model in
        Lwt_Query.query db (<:insert< $wikis$ := {
-         id = nextval $wikis_id_seq$;
+         id = wikis?id;
          title = $string:title$;
          descr = $string:descr$;
          pages = of_option $map_option_string pages$;
@@ -443,7 +455,7 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
          container = null;
          staticdir = of_option $map_option_string staticdir$;
          model = $string:model_sql$;
-         siteid = null} >>) (* WHY SITEID IS SET ??? *)
+         siteid = null} >>)
        >>= fun () ->
        Lwt_Query.value db (<:value< currval $wikis_id_seq$ >>)
        >>= fun wiki_sql ->
@@ -462,7 +474,8 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
        return (wiki, container)
     )
 
-let delete_wiki id =
+let delete_wiki wiki =
+  let id = sql_of_wiki wiki in
   wrap None
     (fun db ->
       Lwt_Query.query db (<:delete< w in $wikis$ | w.id = $int32:id$ >>)
@@ -564,15 +577,15 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
          rank = (max[c.rank]) + 1
        } | c in $css$; c.wiki = $int32:wiki$;
            is_not_distinct_from c.page (of_option $map_option_string page$) >>)
-       >>= fun rank -> (* WTF ??? page *)
+       >>= fun rank ->
        Lwt_Query.query db (<:insert< $css$ := {
          wiki = $int32:wiki$;
          page = of_option $map_option_string page$;
          wikibox = $int32:wb$;
          specialrights = css?specialrights;
-         uid = nextval $css_uid_seq$;
+         uid = css?uid;
          mediatype = $string:media$;
-         rank = $int32:(rank#!rank)$
+         rank = $int32:rank#!rank$
        } >>)
     )
 
@@ -881,8 +894,8 @@ let update_wikiboxes ?db f =
               | Some s ->
                 Lwt_Query.query db (<:update< w in $wikiboxescontent$ := {
                   content = $string:s$
-                } | w.wikibox = $int32:(data#!wikibox)$;
-                    w.version = $int32:(data#!version)$ >>)
+                } | w.wikibox = $int32:data#!wikibox$;
+                    w.version = $int32:data#!version$ >>)
          ) l
          >>= fun () -> Ocsigen_messages.console2 "Done updating wikiboxes";
          cache_wb_content#clear ();
@@ -906,7 +919,7 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
                     Lwt_Query.query db (<:update< w in $wikipages$ := {
                       wiki = $int32:newwiki$;
                       pagename = $string:prefix$
-                    } | w.uid = $int32:(data#!uid)$ >>)
+                    } | w.uid = $int32:data#!uid$ >>)
            ) l >>= fun () ->
            cache_wp#clear ();
            Ocsigen_messages.console2 "Done updating wikipages";

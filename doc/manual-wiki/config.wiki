@@ -26,17 +26,14 @@ which allows the following optional attributes:
     </extension>
 }}}
 
-Default is:
+Default should be:
 
 {{{
     <extension findlib-package="ocsimore">
       <database
         name="ocsimore"
         user="ocsimore"
-        host="localhost"
-        port=""
-        socket-dir=""
-        password-file="" />
+        host="localhost" />
     </extension>
 }}}
 

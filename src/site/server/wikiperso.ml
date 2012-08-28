@@ -129,11 +129,8 @@ let external_user user =
           and concat_list = List.fold_left (fun acc elm -> acc ^ elm) "" in
           let rec search_in_search_result_entry = function
             | [] -> default
-            | [x] when x.Ldap_types.attr_type = pwd ->
-              concat_list x.Ldap_types.attr_vals
             | x::xs when x.Ldap_types.attr_type = pwd ->
               concat_list x.Ldap_types.attr_vals
-            | [x] -> search_in_search_result_entry []
             | x::xs -> search_in_search_result_entry xs in
           match userdata with
             | `Entry elm ->

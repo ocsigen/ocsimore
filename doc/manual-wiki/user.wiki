@@ -1,3 +1,50 @@
-//lattice of users and groups//
+===authentication using external services===
 
-//Groups categories//
+//Any contributions appreciated for other authentication methods!//
+
+====NIS authentication:====
+
+Configuration file example:
+{{{
+      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
+        <nis/>
+      </eliom>
+}}}
+
+
+====LDAP authentication:====
+
+Configuration file example:
+{{{
+      <extension findlib-package="ocamldap"/>
+
+...
+
+      <eliommodule findlib-package="ocsimore.user_site">
+        <ldap base="ou=blah,ou=users,dc=blih,dc=plop,dc=fr" uri="ldaps://my-ldap-server.com:636/" />
+      </eliom>
+}}}
+
+
+====PAM authentication:====
+
+Configuration file example:
+{{{
+      <extension findlib-package="pam"/>
+
+...
+
+      <eliommodule findlib-package="ocsimore.user_site">
+        <pam service="ocsimore" />
+      </eliom>
+}}}
+
+Here the service name must correspond to a file in {{{/etc/pam.d}}}.
+
+//Warning:// It is not possible (for now) to use
+authentication based on {{{/etc/shadow}}} (using pam_unix), because
+Ocsigen does not have read access to this file
+(would be dangerous to give access to that file to a web server).
+
+//Warning:// The PAM authentication relies on ocamlpam binding,
+which is known to be buggy. It causes crashes (at least in version 1.1).
