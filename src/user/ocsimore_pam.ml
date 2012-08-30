@@ -50,10 +50,27 @@ let pam_auth ?(service = "") ~name ~pwd =
     (fun () -> Lwt_mutex.unlock mutex; Lwt.return ())
 *)
 
-let _ =
-  User_external_auth.external_auth_pam := Some
-    (fun ?service () -> {
-       User_external_auth.ext_auth_authenticate = pam_auth ?service;
-       ext_auth_fullname = fun n -> Lwt.return n
-         (* XXX find full name *);
-     })
+let service =
+  let parse_config = function
+    | [(Simplexmlparser.Element ("pam", ["service", s], []))] ->
+      Lwt.return (Some s)
+    | [(Simplexmlparser.Element ("pam", [], []))] ->
+      Lwt.return None
+    | _ ->
+      Lwt.fail (Ocsigen_extensions.Error_in_config_file
+                  ("Unexpected content inside User_site config"))
+  in
+  let c = Eliom_config.get_config () in
+  Lwt_main.run (parse_config c)
+
+
+let () =
+  User_external_auth.add_other_external_auth {
+    User_external_auth.ext_auth_authenticate = pam_auth ?service;
+    ext_auth_fullname = (fun n -> Lwt.return n);
+    get_and_create_user = (fun _ ->
+      Ocsigen_messages.warning
+        "PAM authentification not supported by wikiperso";
+      Lwt.return None
+    );
+  }

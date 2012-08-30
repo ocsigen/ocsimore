@@ -8,7 +8,7 @@
 <src/core/type/*>: thread, use_ocsimore
 
 # OASIS_START
-# DO NOT EDIT (digest: 74f9d0dc6cc5e788103dd484e3bc4089)
+# DO NOT EDIT (digest: 1389e71c79de42e05179fe1a7dc6bcd4)
 # Ignore VCS directories, you can use the same kind of rule outside 
 # OASIS_START/STOP if you want to exclude directories that contains 
 # useless stuff for the build process
@@ -60,11 +60,15 @@
 <src/user/*.ml{,i}>: pkg_camlp4
 <src/user/*.ml{,i}>: pkg_lwt.syntax
 <src/user/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/user/*.ml{,i}>: pkg_pam
-<src/user/*.ml{,i}>: pkg_ldap
 <src/user/*.ml{,i}>: pkg_macaque.syntax
 <src/user/*.ml{,i}>: pkg_eliom.server
 <src/user/*.ml{,i}>: pkg_threads
+# Library ocsimore-pam
+"src/user/ocsimore-pam.cmxs": use_ocsimore-pam
+<src/user/*.ml{,i}>: pkg_pam
+# Library ocsimore-ldap
+"src/user/ocsimore-ldap.cmxs": use_ocsimore-ldap
+<src/user/*.ml{,i}>: pkg_ldap
 # Library wiki
 "src/wiki/wiki.cmxs": use_wiki
 <src/wiki/*.ml{,i}>: use_user
@@ -72,8 +76,6 @@
 <src/wiki/*.ml{,i}>: pkg_camlp4
 <src/wiki/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/wiki/*.ml{,i}>: pkg_pam
-<src/wiki/*.ml{,i}>: pkg_ldap
 <src/wiki/*.ml{,i}>: pkg_macaque.syntax
 <src/wiki/*.ml{,i}>: pkg_eliom.server
 <src/wiki/*.ml{,i}>: pkg_threads
@@ -82,8 +84,6 @@
 <src/wiki/server/*.ml{,i}>: pkg_camlp4
 <src/wiki/server/*.ml{,i}>: pkg_lwt.syntax
 <src/wiki/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/wiki/server/*.ml{,i}>: pkg_pam
-<src/wiki/server/*.ml{,i}>: pkg_ldap
 <src/wiki/server/*.ml{,i}>: pkg_macaque.syntax
 <src/wiki/server/*.ml{,i}>: pkg_eliom.server
 <src/wiki/server/*.ml{,i}>: pkg_threads
@@ -101,8 +101,6 @@
 <src/forum/*.ml{,i}>: pkg_camlp4
 <src/forum/*.ml{,i}>: pkg_lwt.syntax
 <src/forum/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/forum/*.ml{,i}>: pkg_pam
-<src/forum/*.ml{,i}>: pkg_ldap
 <src/forum/*.ml{,i}>: pkg_macaque.syntax
 <src/forum/*.ml{,i}>: pkg_eliom.server
 <src/forum/*.ml{,i}>: pkg_threads
@@ -131,8 +129,6 @@
 <src/site/*.ml{,i}>: pkg_camlp4
 <src/site/*.ml{,i}>: pkg_lwt.syntax
 <src/site/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/site/*.ml{,i}>: pkg_pam
-<src/site/*.ml{,i}>: pkg_ldap
 <src/site/*.ml{,i}>: pkg_macaque.syntax
 <src/site/*.ml{,i}>: pkg_eliom.server
 <src/site/*.ml{,i}>: pkg_threads
@@ -143,8 +139,6 @@
 <src/site/server/*.ml{,i}>: pkg_camlp4
 <src/site/server/*.ml{,i}>: pkg_lwt.syntax
 <src/site/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
-<src/site/server/*.ml{,i}>: pkg_pam
-<src/site/server/*.ml{,i}>: pkg_ldap
 <src/site/server/*.ml{,i}>: pkg_macaque.syntax
 <src/site/server/*.ml{,i}>: pkg_eliom.server
 <src/site/server/*.ml{,i}>: pkg_threads

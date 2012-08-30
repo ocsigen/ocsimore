@@ -22,6 +22,8 @@
 
 module Ldap = Ldap_funclient
 
+let (>>=) = Lwt.(>>=)
+
 (*let mutex = Lwt_mutex.create () *)
 
 let ldap_auth base uri ~name ~pwd =
@@ -72,10 +74,46 @@ let get_user (base, uri) user =
       with e -> Ldap.unbind conn; raise e
     ) ()
 
+
+let (base, uri) =
+  let parse_config = function
+    | [(Simplexmlparser.Element ("ldap", [("base", b); ("uri", u)], []))] ->
+      Lwt.return (b, u)
+    | _ ->
+      Lwt.fail (Ocsigen_extensions.Error_in_config_file
+                  ("Unexpected content inside User_site config"))
+  in
+  let c = Eliom_config.get_config () in
+  Lwt_main.run (parse_config c)
+
 let _ =
-  User_external_auth.external_auth_ldap := Some
-    (fun base uri -> {
-       User_external_auth.ext_auth_authenticate = ldap_auth base uri;
-       ext_auth_fullname = fun n -> Lwt.return n
-         (* XXX find full name *);
-     })
+  User_external_auth.add_other_external_auth {
+    User_external_auth.ext_auth_authenticate = ldap_auth base uri;
+    ext_auth_fullname = (fun n -> Lwt.return n);
+    get_and_create_user =  (fun user ->
+    get_user (base, uri) user >>= function
+      | None -> Lwt.return None
+      | Some userdata ->
+        let fullname =
+          let pwd = "userPassword"
+          and default = ""
+          and concat_list = List.fold_left (fun acc elm -> acc ^ elm) "" in
+          let rec search_in_search_result_entry = function
+            | [] -> default
+            | x::xs when x.Ldap_types.attr_type = pwd ->
+              concat_list x.Ldap_types.attr_vals
+            | x::xs -> search_in_search_result_entry xs in
+          match userdata with
+            | `Entry elm ->
+              search_in_search_result_entry elm.Ldap_types.sr_attributes
+            | `Referral _ -> default (* Don't know what is referral ? *)
+        in
+        User.create_user ~name:user
+          ~pwd:User_sql.Types.External_Auth
+          ~fullname
+          ~email:(user ^ "@localhost")
+          ()
+        >>= fun userdata ->
+        Lwt.return (Some userdata)
+    );
+  }

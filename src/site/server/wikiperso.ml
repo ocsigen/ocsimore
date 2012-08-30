@@ -98,46 +98,20 @@ let wiki_path user =
 *)
 
 let external_user user =
-  let get_and_create_external_user f f_fullname =
-    f user >>= (function
-      | None -> Lwt.return None
-      | Some userdata ->
-        User.create_user ~name:user
-          ~pwd:User_sql.Types.External_Auth
-          ~fullname:(f_fullname userdata)
-          ~email:(user ^ "@localhost")
-          ()
-        >>= fun userdata ->
-        Lwt.return (Some userdata)
-    ) in
   match User_services.auth with
     | User_services.NoExternalAuth -> return None
     | User_services.Nis ->
-      get_and_create_external_user
-        Nis_chkpwd.userinfo
-        (fun userdata -> userdata.Unix.pw_gecos)
-    | User_services.Pam _ ->
-        Ocsigen_messages.warning
-          "PAM authentification not supported by wikiperso";
-        return None
-    | User_services.Ldap data ->
-      get_and_create_external_user
-        (Ocsimore_ldap.get_user data)
-        (fun userdata ->
-          let pwd = "userPassword"
-          and default = ""
-          and concat_list = List.fold_left (fun acc elm -> acc ^ elm) "" in
-          let rec search_in_search_result_entry = function
-            | [] -> default
-            | x::xs when x.Ldap_types.attr_type = pwd ->
-              concat_list x.Ldap_types.attr_vals
-            | x::xs -> search_in_search_result_entry xs in
-          match userdata with
-            | `Entry elm ->
-              search_in_search_result_entry elm.Ldap_types.sr_attributes
-            | `Referral _ -> default (* Don't know what is referral ? *)
-        )
-
+      User_external_auth.(external_auth_nis.get_and_create_user) user
+    | User_services.OtherExternalAuth ->
+      let rec inner = function
+        | [] -> Lwt.return None
+        | x::xs ->
+          x.User_external_auth.get_and_create_user user
+          >>= function
+            | None -> inner xs
+            | x -> Lwt.return x
+      in
+      inner (User_external_auth.get_other_external_auth ())
 
 (** Template pages, for the containers and the css of the new wikis. They are
     copied each time a new wiki is created *)

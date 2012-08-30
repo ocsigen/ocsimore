@@ -30,15 +30,16 @@ type external_auth = {
 
   (** The fullname of the user whose login is the argument *)
   ext_auth_fullname: string -> string Lwt.t;
+
+  (** The argument is the username *)
+  get_and_create_user : string -> User_sql.Types.userid option Lwt.t;
 }
 
-(** PAM authentification, updated by [Ocsimore_pam] if it is loaded *)
-let external_auth_pam =
-  ref (None : (?service:string -> unit -> external_auth) option)
-
-(** LDAP authentification, updated by [Ocsimore_ldap] if it is loaded *)
-let external_auth_ldap =
-  ref (None : (string -> string -> external_auth) option)
+(** Functions to add and get an external authentication method(s)
+    Used by LDAP and PAM *)
+let get_other_external_auth, add_other_external_auth =
+  let r : external_auth list ref = ref [] in
+  (fun () -> !r), (fun x -> r := x :: !r)
 
 (** NIS authentification *)
 let external_auth_nis = {
@@ -46,4 +47,16 @@ let external_auth_nis = {
   ext_auth_fullname = (fun usr -> Nis_chkpwd.userinfo usr >>= function
                            | None -> Lwt.return usr
                            | Some { Unix.pw_gecos = v } -> Lwt.return v);
+  get_and_create_user = (fun user ->
+    Nis_chkpwd.userinfo user >>= function
+      | None -> Lwt.return None
+      | Some userdata ->
+        User.create_user ~name:user
+          ~pwd:User_sql.Types.External_Auth
+          ~fullname:userdata.Unix.pw_gecos
+          ~email:(user ^ "@localhost")
+          ()
+        >>= fun userdata ->
+        Lwt.return (Some userdata)
+  );
 }

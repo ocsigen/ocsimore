@@ -18,6 +18,18 @@ Description:
   A nice description
 
 # +-------------------------------------------------------------------+
+# | Flags                                                             |
+# +-------------------------------------------------------------------+
+
+Flag pam
+  Description: Enable the support for external authentication using PAM
+  Default: false
+
+Flag ldap
+  Description: Enable the support for external authentication using LDAP
+  Default: false
+
+# +-------------------------------------------------------------------+
 # | Libraries                                                         |
 # +-------------------------------------------------------------------+
 
@@ -63,19 +75,37 @@ Library "user"
   Modules:
     Nis_chkpwd,
     Ocsimore_nis,
-    Ocsimore_pam,
-    Ocsimore_ldap,
     User_data,
     User_external_auth
   XMETADescription: User stuffs
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore, pam, ldap
-  XMETARequires: ocsimore, pam, ldap
+    camlp4, lwt.syntax, ocsimore
+  XMETARequires: ocsimore
+
+Library "ocsimore-pam"
+  Path: src/user
+  Build$: flag(pam)
+  FindlibName: pam
+  FindlibParent: ocsimore
+  Modules:
+    Ocsimore_pam
+  BuildDepends: pam
+  XMETARequires: pam
+
+Library "ocsimore-ldap"
+  Path: src/user
+  Build$: flag(ldap)
+  FindlibName: ldap
+  FindlibParent: ocsimore
+  Modules:
+    Ocsimore_ldap
+  BuildDepends: ldap
+  XMETARequires: ldap
 
 Library "wiki"
   Path: src/wiki
-  FindlibName: wiki
-  FindlibParent: ocsimore
+  findlibname: wiki
+  findlibparent: ocsimore
   Modules:
     server/Wikicreole,
     server/Wiki_data,

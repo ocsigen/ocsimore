@@ -1,9 +1,7 @@
 # OASIS_START
-# DO NOT EDIT (digest: 2cee8d303d78fa705cea27244fc8e507)
+# DO NOT EDIT (digest: 15903cb75086ac7e21b07b69e34f80cd)
 Nis_chkpwd
 Ocsimore_nis
-Ocsimore_pam
-Ocsimore_ldap
 User_data
 User_external_auth
 # OASIS_STOP
