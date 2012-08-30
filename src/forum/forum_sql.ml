@@ -167,10 +167,10 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
              id = $next_id$;
              creator_id = $int32:creator_id'$;
              datetime = forums_messages?datetime;
-             parent_id = of_option $map_option_int32 parent_id$;
+             parent_id = of_option $map_option Sql.Value.int32 parent_id$;
              root_id = $next_id$;
              forum_id = $int32:forum_id$;
-             subject = of_option $map_option_int32 subject$;
+             subject = of_option $map_option Sql.Value.int32 subject$;
              wikibox = $int32:wikibox$;
              moderated = $bool:moderated$;
              sticky = $bool:sticky$;
@@ -200,7 +200,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
                     parent_id = nullable $int32:p$;
                     root_id = $int32:(data#!root_id)$;
                     forum_id = $int32:forum_id$;
-                    subject = of_option $map_option_int32 subject$;
+                    subject = of_option $map_option Sql.Value.int32 subject$;
                     wikibox = $int32:wikibox$;
                     moderated = $bool:moderated$;
                     sticky = $bool:sticky$;
