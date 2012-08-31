@@ -6,9 +6,7 @@
 
 Configuration file example:
 {{{
-      <eliom module="/home/balat/kroko/ocsimore/ocsisite.cmo">
-        <nis/>
-      </eliom>
+      <extension findlib-package="ocsimore.user.nis"/>
 }}}
 
 
@@ -17,12 +15,9 @@ Configuration file example:
 Configuration file example:
 {{{
       <extension findlib-package="ocamldap"/>
-
-...
-
-      <eliommodule findlib-package="ocsimore.user_site">
+      <extension findlib-package="ocsimore.user.ldap">
         <ldap base="ou=blah,ou=users,dc=blih,dc=plop,dc=fr" uri="ldaps://my-ldap-server.com:636/" />
-      </eliom>
+      </extension>
 }}}
 
 
@@ -31,12 +26,9 @@ Configuration file example:
 Configuration file example:
 {{{
       <extension findlib-package="pam"/>
-
-...
-
-      <eliommodule findlib-package="ocsimore.user_site">
+      <extension findlib-package="ocsimore.user.pam">
         <pam service="ocsimore" />
-      </eliom>
+      </extension>
 }}}
 
 Here the service name must correspond to a file in {{{/etc/pam.d}}}.

@@ -6,7 +6,8 @@
 * lwt >= 2.4.0
 * ocsigen and eliom with compiled ocamlduce support
 * macaque
-* ocamlpam
+* ocamlpam (optional)
+* ocamldap (optional)
 
 2. Run 
 
