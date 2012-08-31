@@ -137,32 +137,28 @@ let get_wikibox_content_ ?version wb =
     (fun db ->
        let wikibox = sql_of_wikibox wb in
        (match version with
-          | None ->
-            Lwt_Query.view_one db (<:view< group {version = max[w.version]} |
-                w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>) >>= (fun data ->
-                  Lwt_Query.view db (<:view< {
-                    w.comment;
-                    w.author;
-                    w.content;
-                    w.datetime;
-                    w.content_type;
-                    w.version
-                  } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
-                      w.version = $int32:(data#!version)$ >>)
-            )
-          | Some version ->
-            Lwt_Query.view db (<:view< {
-              w.comment;
-              w.author;
-              w.content;
-              w.datetime;
-              w.content_type;
-              w.version
-            } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
-                w.version = $int32:version$ >>))
+         | None ->
+           Lwt_Query.view_one db (<:view< group {
+             version = max[w.version]
+           } | w in $wikiboxescontent$;
+               w.wikibox = $int32:wikibox$ >>)
+           >>= fun version ->
+           Lwt.return version#!version
+         | Some version ->
+           Lwt.return version
+       ) >>= fun version ->
+       Lwt_Query.view_opt db (<:view< {
+         w.comment;
+         w.author;
+         w.content;
+         w.datetime;
+         w.content_type;
+         w.version
+       } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
+           w.version = $int32:version$ >>)
        >>= function
-         | [] -> Lwt.return None
-         | first :: _ ->
+         | None -> Lwt.return None
+         | Some first ->
              Lwt.return (Some (first#!comment,
                                User_sql.Types.userid_from_sql first#!author,
                                first#?content, first#!datetime,
@@ -202,13 +198,12 @@ let current_wikibox_version_  wb =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wikibox = sql_of_wikibox wb in
-       Lwt_Query.view db (<:view< group {
+       Lwt_Query.view_opt db (<:view< group {
          version = max[w.version]
        } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>)
        >>= function
-         | [] -> Lwt.return None
-         | [v] -> Lwt.return (Some (v#!version))
-         | _ -> assert false (* (wikibox, version) is a primary key *)
+         | None -> Lwt.return None
+         | Some v -> Lwt.return (Some (v#!version))
     )
 
 (* Not cached : too rare, and too big *)
@@ -235,14 +230,14 @@ let get_wikibox_info_ wb =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wb' = sql_of_wikibox wb in
-       Lwt_Query.view db (<:view< {
+       Lwt_Query.view_opt db (<:view< {
          w.wiki;
          w.comment;
          w.specialrights;
        } | w in $wikiboxindex$; w.uid = $int32:wb'$ >>)
        >>= function
-         | [] -> Lwt.fail Not_found
-         | first :: _ ->
+         | None -> Lwt.fail Not_found
+         | Some first ->
              Lwt.return {
                wikibox_wiki = wiki_of_sql (first#!wiki);
                wikibox_id = wb;
@@ -277,12 +272,12 @@ let get_box_for_page_ ~wiki ~page =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wiki' = t_int32 (wiki : wiki) in
-       Lwt_Query.view db (
+       Lwt_Query.view_opt db (
          <:view< w |
              w in $wikipages$;
              w.wiki = $int32:wiki'$; w.pagename = $string:page$ >>) >>= function
-         | [] -> Lwt.fail Not_found
-         | first :: _ ->
+         | None -> Lwt.fail Not_found
+         | Some first ->
              (* (wiki, pagename) is a primary key *)
              Lwt.return {
                wikipage_wiki = wiki;
@@ -337,13 +332,9 @@ let set_wikipage_properties_ ?db ~wiki ~page ?title ?newpage ?wb () =
        let wiki = t_int32 (wiki : wiki) in
        (match title with
           | None -> Lwt.return ()
-          | Some "" ->
-            Lwt_Query.query db (<:update< w in $wikipages$ := {
-              title = null
-            } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
           | Some s ->
             Lwt_Query.query db (<:update< w in $wikipages$ := {
-              title = $string:s$
+              title = if $bool:s = ""$ then null else $string:s$;
             } | w.wiki = $int32:wiki$; w.pagename = $string:page$ >>)
        ) >>= fun () ->
        (match newpage with
@@ -484,46 +475,39 @@ let delete_wiki wiki =
       >>= fun () ->
       Lwt_Query.query db (<:delete< c in $css$ | c.wiki = $int32:id$ >>)
       >>= fun () ->
-      Lwt_Query.view db (<:view< {
-        w.uid;
-      } | w in $wikiboxindex$; w.wiki = $int32:id$ >>)
-      >>= fun uids ->
       Lwt_Query.query db
         (<:delete< w in $wikiboxescontent$ |
-            $in'$ w.wikibox $List.map (fun x -> x#uid) uids$ >>)
+            w' in $wikiboxindex$;
+            w.wikibox = w'.uid >>)
     )
 
 let find_wiki_ ?db id =
   wrap db
     (fun db ->
        let id = t_int32 (id : wiki) in
-       Lwt_Query.view db (<:view< w | w in $wikis$; w.id = $int32:id$ >>)
+       Lwt_Query.view_opt db (<:view< w | w in $wikis$; w.id = $int32:id$ >>)
        >>= function
-         | [c] -> Lwt.return (reencapsulate_wiki c)
-         | [] -> Lwt.fail Not_found
-         | _ -> assert false
-             (* Impossible, as the 'id' field is a primary key *)
+         | Some c -> Lwt.return (reencapsulate_wiki c)
+         | None -> Lwt.fail Not_found
     )
 
 
 let find_wiki_by_name_ ?db name =
   wrap db
     (fun db ->
-       Lwt_Query.view db (<:view< w | w in $wikis$; w.title = $string:name$ >>)
+       Lwt_Query.view_opt db (<:view< w | w in $wikis$; w.title = $string:name$ >>)
        >>= function
-         | [c] -> Lwt.return (reencapsulate_wiki c)
-         | [] -> Lwt.fail Not_found
-         | _ -> assert false (* Impossible, there is a UNIQUE constraint on the title field *)
+         | Some c -> Lwt.return (reencapsulate_wiki c)
+         | None -> Lwt.fail Not_found
     )
 
 let find_wiki_by_pages_ ?db page =
   wrap db
     (fun db ->
-       Lwt_Query.view db (<:view< w | w in $wikis$; w.pages = $string:page$ >>)
+       Lwt_Query.view_opt db (<:view< w | w in $wikis$; w.pages = $string:page$ >>)
        >>= function
-         | [c] -> Lwt.return (reencapsulate_wiki c)
-         | [] -> Lwt.fail Not_found
-         | _ -> assert false (* Impossible, there is a UNIQUE constraint on the title field *)
+         | Some c -> Lwt.return (reencapsulate_wiki c)
+         | None -> Lwt.fail Not_found
     )
 
 let iter_wikis ?db f =

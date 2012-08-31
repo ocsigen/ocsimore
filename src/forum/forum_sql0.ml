@@ -46,30 +46,28 @@ let forums_messages = (<:table< forums_messages (
 ) >>)
 
 let raw_message_from_sql sql =
-  sql >>= (Lwt_list.map_p (fun sql ->
-    Lwt.return (
-      sql#!id,
-      sql#!creator_id,
-      sql#!datetime,
-      sql#?parent_id,
-      sql#!root_id,
-      sql#!forum_id,
-      sql#?subject,
-      sql#!wikibox,
-      sql#!moderated,
-      sql#!sticky,
-      sql#!special_rights,
-      sql#!tree_min,
-      sql#!tree_max
-    )
-  ))
+  Lwt.return (
+    sql#!id,
+    sql#!creator_id,
+    sql#!datetime,
+    sql#?parent_id,
+    sql#!root_id,
+    sql#!forum_id,
+    sql#?subject,
+    sql#!wikibox,
+    sql#!moderated,
+    sql#!sticky,
+    sql#!special_rights,
+    sql#!tree_min,
+    sql#!tree_max
+  )
 
 let get_message_raw ~message_id () =
   Lwt_pool.use Ocsi_sql.pool
-    (fun db -> raw_message_from_sql (
+    (fun db ->
        (* tree_min and tree_max are here only for the interface to be
           compatible with get_thread *)
-      Lwt_Query.view db (<:view< {
+      Lwt_Query.view_opt db (<:view< {
         f.id;
         f.creator_id;
         f.datetime;
@@ -84,9 +82,7 @@ let get_message_raw ~message_id () =
         f.tree_min;
         f.tree_max
       } | f in $forums_messages$; f.id = $int32:message_id$ >>)
-     )
+      >>= function
+        | None -> Lwt.fail Not_found
+        | Some x -> raw_message_from_sql x
     )
-  >>= function
-    | [] -> Lwt.fail Not_found
-    | x :: _ -> Lwt.return x
-

@@ -226,63 +226,38 @@ let new_user ~name ~password ~fullname ~email ~dyn =
   >>= fun (pwd, (password, authtype)) ->
   Ocsi_sql.full_transaction_block
     (fun db ->
-       (match password, email with
-          | None, None ->
-            Lwt_Query.query db (<:insert< $users$ := {
-              id = users?id;
-              login = $string:name$;
-              password = users?password;
-              email = users?email;
-              fullname = $string:fullname$;
-              dyn = $bool:dyn$;
-              authtype = $string:authtype$
-            } >>)
-          | Some pwd, None ->
-            Lwt_Query.query db (<:insert< $users$ := {
-              id = users?id;
-              login = $string:name$;
-              password = $string:pwd$;
-              fullname = $string:fullname$;
-              email = users?email;
-              dyn = $bool:dyn$;
-              authtype = $string:authtype$
-            } >>)
-          | None, Some email ->
-            Lwt_Query.query db (<:insert< $users$ := {
-              id = users?id;
-              login = $string:name$;
-              password = users?password;
-              fullname = $string:fullname$;
-              email = $string:email$;
-              dyn = $bool:dyn$;
-              authtype = $string:authtype$
-            } >>)
-          | Some pwd, Some email ->
-            Lwt_Query.query db (<:insert< $users$ := {
-              id = users?id;
-              login = $string:name$;
-              password = $string:pwd$;
-              fullname = $string:fullname$;
-              email = $string:email$;
-              dyn = $bool:dyn$;
-              authtype = $string:authtype$
-            } >>)
-       ) >>= fun () ->
-       Lwt_Query.value db (<:value< currval $users_id_seq$ >>)
-       >>= fun id ->
-       let id = userid_from_sql id in
-       Lwt.return (id, pwd)
+      let password = match password with
+        | Some x -> (<:value< $string:x$ >>)
+        | None -> (<:value< users?password >>)
+      and email = match email with
+        | Some x -> (<:value< $string:x$ >>)
+        | None -> (<:value< users?email >>)
+      in
+      Lwt_Query.query db (<:insert< $users$ := {
+        id = users?id;
+        login = $string:name$;
+        password = $password$;
+        fullname = $string:fullname$;
+        email = $email$;
+        dyn = $bool:dyn$;
+        authtype = $string:authtype$
+      } >>)
+      >>= fun () ->
+      Lwt_Query.value db (<:value< currval $users_id_seq$ >>)
+      >>= fun id ->
+      let id = userid_from_sql id in
+      Lwt.return (id, pwd)
     )
 
 exception NotAnUser
 
 let find_userid_by_name_aux_ db name =
-  Lwt_Query.view db (<:view< {
+  Lwt_Query.view_opt db (<:view< {
     u.id
   } | u in $users$; u.login = $string:name$ >>)
   >>= function
-    | [] -> Lwt.fail NotAnUser
-    | r :: _ -> Lwt.return (userid_from_sql (r#!id))
+    | None -> Lwt.fail NotAnUser
+    | Some r -> Lwt.return (userid_from_sql (r#!id))
 
 
 let new_group authtype find_param ~prefix ~name ~descr =
@@ -344,10 +319,11 @@ let wrap_userdata userdata =
 let find_user_by_name_ name =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-      Lwt_Query.view db (<:view< u | u in $users$; u.login = $string:name$ >>)
-       >>= function
-         | [] -> Lwt.fail NotAnUser
-         | r :: _ -> Lwt.return (wrap_userdata r))
+      Lwt_Query.view_opt db
+        (<:view< u | u in $users$; u.login = $string:name$ >>)
+      >>= function
+        | None -> Lwt.fail NotAnUser
+        | Some r -> Lwt.return (wrap_userdata r))
 
 let find_userid_by_name_ name =
   Lwt_pool.use Ocsi_sql.pool (fun db -> find_userid_by_name_aux_ db name)
@@ -357,10 +333,10 @@ let find_user_by_id_ id =
   let id = sql_from_userid id in
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
-      Lwt_Query.view db (<:view< u | u in $users$; u.id = $int32:id$ >>)
-       >>= function
-         | [] -> Lwt.fail NotAnUser
-         | r :: _ -> Lwt.return (wrap_userdata r))
+      Lwt_Query.view_opt db (<:view< u | u in $users$; u.id = $int32:id$ >>)
+      >>= function
+        | None -> Lwt.fail NotAnUser
+        | Some r -> Lwt.return (wrap_userdata r))
 
 let all_groups () =
   Lwt_pool.use Ocsi_sql.pool

@@ -179,44 +179,41 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
              tree_max = forums_messages?tree_max
            } >>)
          | Some p ->
-           Lwt_Query.view db (<:view< {
+           Lwt_Query.view_one db (<:view< {
              f.tree_max;
              f.root_id
-           } | f in $forums_messages$; f.id = $int32:p$ >>) >>= (fun r ->
-             match r with
-               | [data] ->
-                 (Lwt_Query.query db (<:update< f in $forums_messages$ := {
-                   tree_max = f.tree_max + 2
-                  } | f.root_id = $int32:(data#!root_id)$;
-                      f.tree_max >= $int32:(data#!tree_max)$ >>) >>= fun () ->
-                  Lwt_Query.query db (<:update< f in $forums_messages$ := {
-                    tree_min = f.tree_min + 2
-                  } | f.root_id = $int32:(data#!root_id)$;
-                      f.tree_min >= $int32:(data#!tree_max)$ >>) >>= fun () ->
-                  Lwt_Query.query db (<:insert< $forums_messages$ := {
-                    id = forums_messages?id;
-                    creator_id = $int32:creator_id'$;
-                    datetime = forums_messages?datetime;
-                    parent_id = nullable $int32:p$;
-                    root_id = $int32:(data#!root_id)$;
-                    forum_id = $int32:forum_id$;
-                    subject = of_option $map_option Sql.Value.int32 subject$;
-                    wikibox = $int32:wikibox$;
-                    moderated = $bool:moderated$;
-                    sticky = $bool:sticky$;
-                    special_rights = forums_messages?special_rights;
-                    tree_min = $int32:(data#!tree_max)$;
-                    tree_max = $int32:(data#!tree_max)$ + 1
-                  } >>)
-                 )
-               | _ -> Lwt.fail
-                   (Failure
-                      "Forum_sql.new_message: parent does not exist or is not unique")
+           } | f in $forums_messages$; f.id = $int32:p$ >>)
+           >>= (fun data ->
+             Lwt_Query.query db (<:update< f in $forums_messages$ := {
+               tree_max = f.tree_max + 2
+             } | f.root_id = $int32:(data#!root_id)$;
+                 f.tree_max >= $int32:(data#!tree_max)$ >>)
+             >>= fun () ->
+             Lwt_Query.query db (<:update< f in $forums_messages$ := {
+               tree_min = f.tree_min + 2
+             } | f.root_id = $int32:(data#!root_id)$;
+                 f.tree_min >= $int32:(data#!tree_max)$ >>)
+             >>= fun () ->
+             Lwt_Query.query db (<:insert< $forums_messages$ := {
+               id = forums_messages?id;
+               creator_id = $int32:creator_id'$;
+               datetime = forums_messages?datetime;
+               parent_id = nullable $int32:p$;
+               root_id = $int32:(data#!root_id)$;
+               forum_id = $int32:forum_id$;
+               subject = of_option $map_option Sql.Value.int32 subject$;
+               wikibox = $int32:wikibox$;
+               moderated = $bool:moderated$;
+               sticky = $bool:sticky$;
+               special_rights = forums_messages?special_rights;
+               tree_min = $int32:(data#!tree_max)$;
+               tree_max = $int32:(data#!tree_max)$ + 1
+             } >>)
            )
        ) >>= fun () ->
-      Lwt_Query.value db (<:value< currval $forums_messages_id_seq$ >>)
-      >>= fun s ->
-      Lwt.return (message_of_sql s)
+       Lwt_Query.value db (<:value< currval $forums_messages_id_seq$ >>)
+       >>= fun s ->
+       Lwt.return (message_of_sql s)
     )
 
 let set_moderated ~message_id ~moderated =
@@ -311,32 +308,21 @@ let raw_forum_from_sql sql =
 let get_forums_list ?(not_deleted_only = true) () =
   Ocsi_sql.full_transaction_block
     (fun db ->
-       (if not_deleted_only
-        then raw_forum_from_sql (
-          Lwt_Query.view db (<:view< {
-            f.id;
-            f.title;
-            f.descr;
-            f.arborescent;
-            f.deleted;
-            f.title_syntax;
-            f.messages_wiki;
-            f.comments_wiki
-          } | f in $forums$; f.deleted = false >>)
-        )
-        else raw_forum_from_sql (
-          Lwt_Query.view db (<:view< {
-            f.id;
-            f.title;
-            f.descr;
-            f.arborescent;
-            f.deleted;
-            f.title_syntax;
-            f.messages_wiki;
-            f.comments_wiki
-          } | f in $forums$ >>)
-        )
-       )
+      raw_forum_from_sql (
+        Lwt_Query.view db (<:view< {
+          f.id;
+          f.title;
+          f.descr;
+          f.arborescent;
+          f.deleted;
+          f.title_syntax;
+          f.messages_wiki;
+          f.comments_wiki
+        } | f in $forums$;
+            if $bool:not_deleted_only$
+            then f.deleted = false
+            else true >>)
+      )
     )
 
 let raw_message_from_sql sql =
@@ -392,33 +378,33 @@ let get_thread ~message_id () =
   let message_id = sql_of_message message_id in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      Lwt_Query.view db (<:view< {
+      Lwt_Query.view_opt db (<:view< {
         f.tree_min;
         f.tree_max
-      } | f in $forums_messages$; f.id = $int32:message_id$ >>) >>= fun y ->
-         (match y with
-            | [] -> Lwt.fail Not_found
-            | data :: _ -> raw_message_from_sql (
-              Lwt_Query.view db (<:view< {
-                f.id;
-                f.creator_id;
-                f.datetime;
-                f.parent_id;
-                f.root_id;
-                f.forum_id;
-                f.subject;
-                f.wikibox;
-                f.moderated;
-                f.sticky;
-                f.special_rights;
-                f.tree_min;
-                f.tree_max
-              } order by {f.tree_min} |
+      } | f in $forums_messages$; f.id = $int32:message_id$ >>)
+      >>= function
+        | None -> Lwt.fail Not_found
+        | Some data ->
+          raw_message_from_sql (
+            Lwt_Query.view db (<:view< {
+              f.id;
+              f.creator_id;
+              f.datetime;
+              f.parent_id;
+              f.root_id;
+              f.forum_id;
+              f.subject;
+              f.wikibox;
+              f.moderated;
+              f.sticky;
+              f.special_rights;
+              f.tree_min;
+              f.tree_max
+            } order by {f.tree_min} |
                 f in $forums_messages$; f.root_id = $int32:message_id$;
                 f.tree_min >= $int32:data#!tree_min$;
                 f.tree_max <= $int32:data#!tree_max$ >>)
-            )
-         )
+          )
     )
 
 
@@ -449,25 +435,25 @@ let get_wikibox_creator ~wb =
   let wb = Wiki_types.sql_of_wikibox wb in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      Lwt_Query.view db (<:view< {
+      Lwt_Query.view_opt db (<:view< {
         f.creator_id
       } | f in $forums_messages$;
           (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
     ) >>= function
-      | [] -> Lwt.return None
-      | a::_ -> Lwt.return (Some (User_sql.Types.userid_from_sql a#!creator_id))
+      | None -> Lwt.return None
+      | Some a -> Lwt.return (Some (User_sql.Types.userid_from_sql a#!creator_id))
 
 let wikibox_is_moderated ~wb =
   let wb = Wiki_types.sql_of_wikibox wb in
   Ocsi_sql.full_transaction_block
     (fun db ->
-      Lwt_Query.view db (<:view< {
+      Lwt_Query.view_opt db (<:view< {
         f.moderated
       } | f in $forums_messages$;
           (nullable (f.wikibox = $int32:wb$)) || (f.subject = $int32:wb$) >>)
     ) >>= function
-      | [] -> Lwt.return false (* ? *)
-      | a::_ -> Lwt.return a#!moderated
+      | None -> Lwt.return false (* ? *)
+      | Some a -> Lwt.return a#!moderated
 
 let get_forums_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
