@@ -21,6 +21,10 @@ Description:
 # | Flags                                                             |
 # +-------------------------------------------------------------------+
 
+Flag nis
+  Description: Enable the support for external authentication using NIS
+  Default: false
+
 Flag pam
   Description: Enable the support for external authentication using PAM
   Default: false
@@ -73,8 +77,6 @@ Library "user"
   FindlibName: user
   FindlibParent: ocsimore
   Modules:
-    Nis_chkpwd,
-    Ocsimore_nis,
     User_data,
     User_external_auth
   XMETADescription: User stuffs
@@ -82,25 +84,36 @@ Library "user"
     camlp4, lwt.syntax, ocsimore
   XMETARequires: ocsimore
 
+Library "ocsimore-nis"
+  Path: src/user
+  Build$: flag(nis)
+  FindlibName: nis
+  FindlibParent: user
+  Modules:
+    Nis_chkpwd,
+    Ocsimore_nis
+  BuildDepends: ocsimore.user
+  XMETARequires: ocsimore.user
+
 Library "ocsimore-pam"
   Path: src/user
   Build$: flag(pam)
   FindlibName: pam
-  FindlibParent: ocsimore
+  FindlibParent: user
   Modules:
     Ocsimore_pam
-  BuildDepends: pam
-  XMETARequires: pam
+  BuildDepends: ocsimore.user, pam
+  XMETARequires: ocsimore.user, pam
 
 Library "ocsimore-ldap"
   Path: src/user
   Build$: flag(ldap)
   FindlibName: ldap
-  FindlibParent: ocsimore
+  FindlibParent: user
   Modules:
     Ocsimore_ldap
-  BuildDepends: ldap
-  XMETARequires: ldap
+  BuildDepends: ocsimore.user, ldap
+  XMETARequires: ocsimore.user, ldap
 
 Library "wiki"
   Path: src/wiki

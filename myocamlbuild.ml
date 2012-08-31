@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 9bf7cb14b4bb332e0c331f9b84dc61d7) *)
+(* DO NOT EDIT (digest: 328f8bb6e066cb21e92acd9da52548b8) *)
 module OASISGettext = struct
 (* # 21 "/var/tmp/portage/dev-ml/oasis-0.3.0/work/oasis-0.3.0/src/oasis/OASISGettext.ml" *)
 
@@ -482,6 +482,7 @@ let package_default =
           ("ocsimore", ["src/core"; "src/core/server"]);
           ("ocsimore_client", ["src/core/client"]);
           ("user", ["src/user"]);
+          ("ocsimore-nis", ["src/user"]);
           ("ocsimore-pam", ["src/user"]);
           ("ocsimore-ldap", ["src/user"]);
           ("wiki", ["src/wiki"; "src/wiki/server"]);
@@ -534,7 +535,7 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 538 "myocamlbuild.ml"
+# 539 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 Ocamlbuild_pack.Log.classic_display := true;;

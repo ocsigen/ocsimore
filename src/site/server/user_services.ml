@@ -27,7 +27,7 @@ type user_creation =
   | UserCreation of User_data.user_creation
 
 type external_auth =
-    NoExternalAuth | Nis | OtherExternalAuth
+    NoExternalAuth | OtherExternalAuth
 
 let default_data = (NoExternalAuth, true)
 
@@ -36,13 +36,8 @@ let (>>=) = Lwt.bind
 let (auth, force_secure) =
   let rec find_data ((auth, secure) as data) = function
     | [] -> Lwt.return data
-
-    | (Simplexmlparser.Element ("nis", [], []))::l ->
-        find_data (Nis, secure) l
-
     | (Simplexmlparser.Element ("notsecure", [], []))::l ->
         find_data (auth, false) l
-
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                     ("Unexpected content inside User_site config")) in
@@ -74,7 +69,6 @@ let basicusercreation () =
 
 let external_auth = match auth with
   | NoExternalAuth -> None
-  | Nis -> Some User_external_auth.external_auth_nis
   | OtherExternalAuth ->
     let rec inner = function
       | [] -> None
@@ -82,7 +76,7 @@ let external_auth = match auth with
         try Some auth_method
         with exn -> inner xs
     in
-    inner (User_external_auth.get_other_external_auth ())
+    inner (User_external_auth.get_external_auths ())
 
 
 

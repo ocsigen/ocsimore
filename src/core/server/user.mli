@@ -83,6 +83,9 @@ val create_fresh_user:
   unit ->
   userid Lwt.t
 
+(** Same as create_user, but only for external users *)
+val create_external_user : string -> userid Lwt.t
+
 val authenticate : name:string -> pwd:string -> userdata Lwt.t
 
 (** Atomic change in one group *)

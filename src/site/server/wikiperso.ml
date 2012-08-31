@@ -100,18 +100,19 @@ let wiki_path user =
 let external_user user =
   match User_services.auth with
     | User_services.NoExternalAuth -> return None
-    | User_services.Nis ->
-      User_external_auth.(external_auth_nis.get_and_create_user) user
     | User_services.OtherExternalAuth ->
       let rec inner = function
         | [] -> Lwt.return None
         | x::xs ->
-          x.User_external_auth.get_and_create_user user
+          x.User_external_auth.ext_user_exists user
           >>= function
-            | None -> inner xs
-            | x -> Lwt.return x
+            | false -> inner xs
+            | true ->
+              User.create_external_user user
+              >>= fun user ->
+              Lwt.return (Some user)
       in
-      inner (User_external_auth.get_other_external_auth ())
+      inner (User_external_auth.get_external_auths ())
 
 (** Template pages, for the containers and the css of the new wikis. They are
     copied each time a new wiki is created *)

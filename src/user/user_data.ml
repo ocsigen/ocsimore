@@ -245,12 +245,10 @@ let login ~name ~pwd ~external_auth =
                   lwt () = ea.ext_auth_authenticate ~name ~pwd in
                   Lwt.return u
               | User.BadUser ->
-                  (* check external pwd, and create user if ok *)
-                  lwt () = ea.ext_auth_authenticate ~name ~pwd in
-                  lwt fullname = ea.ext_auth_fullname name in
-                  User.create_user ~pwd:User_sql.Types.External_Auth ~name ~fullname ()
-                  (* Do we need to actualize the fullname every time
-                     the user connects? *)
+                (* check external pwd, and create user if ok *)
+                ea.ext_auth_authenticate ~name ~pwd
+                >>= fun () ->
+                User.create_external_user name
               | e -> Lwt.fail e
     in
     Eliom_request_info.clean_request_cache ();

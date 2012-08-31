@@ -29,13 +29,19 @@ let nis_auth ~name ~pwd =
       | false -> Lwt.fail User.BadPassword
   with
     | User.BadPassword ->
-        Lwt.fail User.BadPassword
-    | e -> 
-        Ocsigen_messages.debug (fun () -> "Ocsimore_nis: "^
-                                          Printexc.to_string e);
-        Lwt.fail e
+      Lwt.fail User.BadPassword
+    | e ->
+      Ocsigen_messages.debug (fun () ->
+        "Ocsimore_nis: " ^ Printexc.to_string e
+      );
+      Lwt.fail e
 
-
-
-
-
+let () =
+  User_external_auth.add_external_auth {
+    User_external_auth.ext_auth_authenticate = nis_auth;
+    ext_user_exists = (fun user ->
+      Nis_chkpwd.userinfo user >>= function
+        | None -> Lwt.return false
+        | Some _ -> Lwt.return true
+    );
+  }

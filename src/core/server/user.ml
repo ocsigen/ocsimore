@@ -234,7 +234,12 @@ let create_user, create_fresh_user =
   aux (fun u -> Lwt.return u),
   aux (fun _ -> raise BadUser) ?test:None
 
-
+let create_external_user name =
+  create_user ~name
+    ~pwd:User_sql.Types.External_Auth
+    ~fullname:name
+    ~email:(name ^ "@localhost")
+    ()
 
 let authenticate ~name ~pwd =
   lwt u = get_basicuser_by_login name in
