@@ -1209,11 +1209,26 @@ module MakeParser(B: RawParser) :
               | SimplePlugin _ ->
                   desugar_attributes ()
               | WikiPlugin p ->
-                  desugar_content (let module Plugin = (val p: WikiPlugin) in desugar_string Plugin.wikiparser)
+                 (*
+                   Compilation issue with ocaml-4.00.0:
+                   Error: This expression has type
+                     ?href_action:Wiki_syntax_types.link_action ->
+                     ?link_action:Wiki_syntax_types.link_action ->
+                     Wiki_syntax_types.desugar_param -> string -> string Lwt.t
+                   but an expression was expected of type
+                     Wiki_syntax_types.desugar_param -> string -> string Lwt.t
+                 *)
+                  desugar_content (let module Plugin = (val p: WikiPlugin) in
+                                   (fun a b ->
+                                     (desugar_string Plugin.wikiparser) a b))
               | LinkPlugin p ->
-                  desugar_content (let module Plugin = (val p: LinkPlugin) in desugar_string Plugin.wikiparser)
+                  desugar_content (let module Plugin = (val p: LinkPlugin) in
+                                   (fun a b ->
+                                     (desugar_string Plugin.wikiparser) a b))
               | RawWikiPlugin p ->
-                  desugar_content (let module Plugin = (val p: RawWikiPlugin) in desugar_string Plugin.wikiparser)
+                  desugar_content (let module Plugin = (val p: RawWikiPlugin) in
+                                   (fun a b ->
+                                     (desugar_string Plugin.wikiparser) a b))
           in
           subst := (start, end_, content') :: !subst
         with _ (* was Not_found *) -> ()
