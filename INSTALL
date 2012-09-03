@@ -2,7 +2,6 @@
 
 * postgresql >= 8.2 (not for compiling)
 * ocaml
-* ocamlduce
 * lwt >= 2.4.0
 * ocsigen and eliom with compiled ocamlduce support
 * macaque
