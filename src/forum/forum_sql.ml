@@ -232,64 +232,43 @@ let set_sticky ~message_id ~sticky =
     } | f.id = $int32:message_id$ >>)
   )
 
-let get_forum ?(not_deleted_only = true) ?forum ?title () =
-  let forum_id = sql_of_forum_option forum in
+let get_forum ?(not_deleted_only = true) ~forum () =
+  let forum_id = sql_of_forum forum in
   Ocsi_sql.full_transaction_block
-    (fun db -> match (title, forum_id) with
-     | (Some t, Some i) ->
-       Lwt_Query.view db (<:view< {
-         f.id;
-         f.title;
-         f.descr;
-         f.arborescent;
-         f.deleted;
-         f.title_syntax;
-         f.messages_wiki;
-         f.comments_wiki
-       } | f in $forums$; f.title = $string:t$; f.id = $int32:i$ >>)
-     | (Some t, None) ->
-       Lwt_Query.view db (<:view< {
-         f.id;
-         f.title;
-         f.descr;
-         f.arborescent;
-         f.deleted;
-         f.title_syntax;
-         f.messages_wiki;
-         f.comments_wiki
-       } | f in $forums$; f.title = $string:t$ >>)
-     | (None, Some i) ->
-       Lwt_Query.view db (<:view< {
-         f.id;
-         f.title;
-         f.descr;
-         f.arborescent;
-         f.deleted;
-         f.title_syntax;
-         f.messages_wiki;
-         f.comments_wiki
-       } | f in $forums$; f.id = $int32:i$ >>)
-     | (None, None) -> Lwt.fail (Invalid_argument "Forum_sql.find_forum"))
-  >>= fun r ->
-  (match r with
-     | [a] ->
-         if not_deleted_only && (a#!deleted)
-         then Lwt.fail Not_found
-         else Lwt.return
-           (get_forum_info
-              (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted,
-               a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
-           )
-     | a::_ ->
-         Ocsigen_messages.warning "Ocsimore: More than one forum have the same name or id (ignored)";
-         if not_deleted_only && (a#!deleted)
-         then Lwt.fail Not_found
-         else Lwt.return
-           (get_forum_info
-              (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted,
-               a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
-           )
-     | _ -> Lwt.fail Not_found)
+    (fun db ->
+      Lwt_Query.view_opt db (<:view< {
+        f.id;
+        f.title;
+        f.descr;
+        f.arborescent;
+        f.deleted;
+        f.title_syntax;
+        f.messages_wiki;
+        f.comments_wiki
+      } | f in $forums$; f.id = $int32:forum_id$ >>)
+    )
+  >>= function
+    | Some a ->
+       if not_deleted_only && (a#!deleted)
+       then Lwt.fail Not_found
+       else Lwt.return
+         (get_forum_info
+            (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted,
+             a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
+         )
+    | None -> Lwt.fail Not_found
+
+let forum_exists ~title () =
+  Ocsi_sql.full_transaction_block
+    (fun db ->
+      Lwt_Query.view_opt db (<:view< {
+        f.id;
+      } | f in $forums$; f.title = $string:title$ >>)
+    )
+  >>= function
+    | None -> Lwt.return false
+    | Some _ -> Lwt.return true
+
 
 let raw_forum_from_sql sql =
   sql >>= (Lwt_list.map_p (fun sql ->

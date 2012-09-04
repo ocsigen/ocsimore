@@ -83,10 +83,9 @@ val set_moderated :
 (** Get forum information, given its id or title.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
-val get_forum: 
-  ?forum:Forum_types.forum -> 
-  ?title:string -> 
-  unit -> 
+val get_forum:
+  forum:Forum_types.forum ->
+  unit ->
   Forum_types.forum_info Lwt.t
 
 (** returns the list of forums visible to the user. *)

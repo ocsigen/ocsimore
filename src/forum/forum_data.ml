@@ -132,8 +132,8 @@ let set_sticky ~message_id ~sticky =
   then Forum_sql.set_sticky ~message_id ~sticky
   else Lwt.fail Ocsimore_common.Permission_denied
 
-let get_forum ?forum ?title () =
-  Forum_sql.get_forum ?forum ?title () >>= fun f ->
+let get_forum ~forum () =
+  Forum_sql.get_forum ~forum () >>= fun f ->
   User.in_group ~group:(forum_visible $ f.f_id) () >>= fun b ->
   if b
   then Lwt.return f

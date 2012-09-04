@@ -78,10 +78,15 @@ val set_moderated :
 *)
 val get_forum:
   ?not_deleted_only:bool ->
-  ?forum:forum ->
-  ?title:string ->
+  forum:forum ->
   unit ->
   forum_info Lwt.t
+
+(** Return if a forum title is already used *)
+val forum_exists :
+  title:string ->
+  unit ->
+  bool Lwt.t
 
 (** returns the list of forums *)
 val get_forums_list : ?not_deleted_only:bool -> unit ->

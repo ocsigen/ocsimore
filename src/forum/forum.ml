@@ -323,24 +323,18 @@ let create_forum
     ~descr
     ?(arborescent=true)
     () =
-  Lwt.catch
-    (fun () -> Forum_sql.get_forum ~title ())
-    (function
-       | Not_found ->
-           really_create_forum
-             ~wiki_model ~title ~descr ~arborescent ~title_syntax () 
-           >>= fun (id, mw, cw) -> 
-           Lwt.return { f_id = id; 
-                        f_title = title; 
-                        f_descr = descr;
-                        f_arborescent = arborescent;
-                        f_deleted = false;
-                        f_title_syntax = title_syntax;
-                        f_messages_wiki = mw;
-                        f_comments_wiki = cw;
-                      }
-       | e -> Lwt.fail e)
-
+  really_create_forum
+    ~wiki_model ~title ~descr ~arborescent ~title_syntax ()
+  >>= fun (id, mw, cw) ->
+  Lwt.return { f_id = id;
+               f_title = title;
+               f_descr = descr;
+               f_arborescent = arborescent;
+               f_deleted = false;
+               f_title_syntax = title_syntax;
+               f_messages_wiki = mw;
+               f_comments_wiki = cw;
+             }
 
 
 (** {2 Session data} *)

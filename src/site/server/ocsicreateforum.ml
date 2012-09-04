@@ -44,15 +44,19 @@ let forum_data =
   let c = Eliom_config.get_config () in
   Lwt_main.run (find_forum_data default_forum_data c)
 
-let _ =
+let () =
   Lwt_main.run (
-     Forum.create_forum
-       ~wiki_model:Wiki_site.wikicreole_model
-       ~title_syntax:Forum_site.title_syntax
-       ~title:forum_data.title
-       ~descr:forum_data.descr
-       ~arborescent:forum_data.arborescent
-       ()
-    )
-
-
+    Forum_sql.forum_exists ~title:forum_data.title ()
+    >>= function
+      | true -> Lwt.return ()
+      | false ->
+        Forum.create_forum
+          ~wiki_model:Wiki_site.wikicreole_model
+          ~title_syntax:Forum_site.title_syntax
+          ~title:forum_data.title
+          ~descr:forum_data.descr
+          ~arborescent:forum_data.arborescent
+          ()
+        >>= fun _ ->
+        Lwt.return ()
+  )
