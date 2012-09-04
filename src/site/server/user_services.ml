@@ -301,7 +301,8 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
                ~display:(fun () () ->
                  try_lwt
                    lwt userid =
-                     let pwd = User_sql.Types.Ocsimore_user_crypt pwd in
+                     let hash = Bcrypt.hash pwd in
+                     let pwd = User_sql.Types.Ocsimore_user_safe hash in
                      User.create_fresh_user ~name ~fullname ~email ~pwd ()
                    in
                    lwt () =

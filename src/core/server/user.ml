@@ -101,7 +101,7 @@ let admin =
     and pwd2 = get_pwd "\nPlease enter the same password again: " in
       if pwd1 = pwd2
       then (print_endline "\nNew password registered.";
-            User_sql.Types.Ocsimore_user_crypt pwd1)
+            User_sql.Types.Ocsimore_user_safe (Bcrypt.hash pwd1))
       else (print_endline "\nPasswords do not match, please try again."; ask_pwd ())
 
   and ask_email () =
@@ -253,6 +253,9 @@ let authenticate ~name ~pwd =
           if p = pwd then Lwt.return u else Lwt.fail BadPassword
       | Ocsimore_user_crypt h ->
           lwt ok = Crypt.check_passwd ~passwd:pwd ~hash:h in
+          if ok then Lwt.return u else Lwt.fail BadPassword
+      | Ocsimore_user_safe h ->
+          let ok = Bcrypt.verify pwd h in
           if ok then Lwt.return u else Lwt.fail BadPassword
       | Connect_forbidden ->
           Lwt.fail BadPassword

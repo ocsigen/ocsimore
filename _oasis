@@ -59,7 +59,7 @@ Library "ocsimore"
   CCLib: -lcrypt
   XMETADescription: Core Ocsimore
   BuildDepends:
-    camlp4, lwt.syntax, macaque.syntax,
+    camlp4, lwt.syntax, macaque.syntax, ocaml-safepass,
     eliom.server, threads, js_of_ocaml.deriving.syntax
   XMETARequires: macaque, eliom.server, threads
 

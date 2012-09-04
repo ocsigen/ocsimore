@@ -30,6 +30,7 @@ module Types : sig
     | Connect_forbidden
     | Ocsimore_user_plain of string
     | Ocsimore_user_crypt of string
+    | Ocsimore_user_safe of Bcrypt.hash_t
     | External_Auth
 
 

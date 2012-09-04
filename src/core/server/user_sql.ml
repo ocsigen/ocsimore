@@ -42,6 +42,7 @@ module Types = struct
     | Connect_forbidden
     | Ocsimore_user_plain of string
     | Ocsimore_user_crypt of string
+    | Ocsimore_user_safe of Bcrypt.hash_t
     | External_Auth
 
 
@@ -161,6 +162,10 @@ let pass_authtype_from_pass pwd = match pwd with
       Crypt.crypt_passwd pass >>=
       fun crypt ->
       Lwt.return (Ocsimore_user_crypt crypt, (Some crypt, "c"))
+
+  | Ocsimore_user_safe pass ->
+    let crypt = Bcrypt.string_of_hash pass in
+    Lwt.return (Ocsimore_user_safe pass, (Some crypt, "s"))
 
 let userrights = <:table< userrights (
   id integer NOT NULL,
@@ -301,6 +306,7 @@ let wrap_userdata userdata =
   let password = match userdata#!authtype, userdata#?password with
     | "p", _ -> External_Auth
     | "c", Some p -> Ocsimore_user_crypt p
+    | "s", Some p -> Ocsimore_user_safe (Bcrypt.hash_of_string p)
     | "l", Some p -> Ocsimore_user_plain p
     | _ -> Connect_forbidden
   in

@@ -131,10 +131,13 @@ let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
                                  form does not allow this anyhow *) ->
                   failwith
                        "ERROR: Cannot change NIS or PAM users from Ocsimore!"
-              | Ocsimore_user_plain _ | Ocsimore_user_crypt _ ->
+              | Ocsimore_user_plain _
+              | Ocsimore_user_crypt _
+              | Ocsimore_user_safe _ ->
                   (* We always use crypted passwords, even if the user
                      previously unencrypted ones *)
-                  if pwd = "" then None else Some (Ocsimore_user_crypt pwd)
+                  let hash = Bcrypt.hash pwd in
+                  if pwd = "" then None else Some (Ocsimore_user_safe hash)
           in
           User_sql.update_data ~userid ~fullname ~email: (Some email)
             ?password:pwd()

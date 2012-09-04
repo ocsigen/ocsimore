@@ -721,6 +721,7 @@ object (self)
                    (match u.user_pwd with
                       | Connect_forbidden -> "group"
                       | Ocsimore_user_plain _
+                      | Ocsimore_user_safe _
                       | Ocsimore_user_crypt _ -> "password"
                       | External_Auth -> "external"
                    )
