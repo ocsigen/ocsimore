@@ -66,6 +66,7 @@ type wiki_info = {
                                 instead of wiki pages *);
   wiki_model : wiki_model;
   wiki_siteid: string option;
+  wiki_deleted : bool;
 }
 
 type wikipage_info = {

@@ -46,9 +46,8 @@ val new_wiki :
   unit ->
   (wiki * wikibox option) Lwt.t
 
-(** Delete the wiki and all content related
-    (wikiboxes, wikipages, css, ...) *)
-val delete_wiki : wiki -> unit Lwt.t
+(** Delete or undelete the wiki. Does not delete anything in the database *)
+val delete_wiki : ?delete:bool -> wiki -> unit Lwt.t
 
 (** Inserts a new wikibox in an existing wiki and return the id of the
     wikibox. *)

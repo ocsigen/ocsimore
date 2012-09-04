@@ -61,6 +61,7 @@ type wiki_info = {
   wiki_staticdir : string option;
   wiki_model : wiki_model;
   wiki_siteid: string option;
+  wiki_deleted : bool;
 }
 
 type wikibox_info = {

@@ -588,11 +588,11 @@ and wikibox_contents :
       send_wikibox ~rights ~page ~wiki ~wb ())
 
 and delete_wiki = Eliom_registration.Action.register_post_coservice'
-  ~post_params:(Eliom_parameter.int32 "wid")
-  (fun () wiki ->
+  ~post_params:(Eliom_parameter.int32 "wid" ** Eliom_parameter.bool "delete")
+  (fun () (wiki, delete) ->
     let wiki = wiki_of_sql wiki in
     wiki_rights#can_delete_wiki wiki >>= function
-      | true -> Wiki_sql.delete_wiki wiki
+      | true -> Wiki_sql.delete_wiki ~delete wiki
       | false -> Lwt.return ()
   )
 

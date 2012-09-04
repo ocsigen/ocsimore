@@ -299,7 +299,8 @@ let wikis = (<:table< wikis (
   container integer,
   staticdir text,
   model text NOT NULL DEFAULT("wikicreole"),
-  siteid text
+  siteid text,
+  deleted boolean NOT NULL DEFAULT(false)
 ) >>)
 
 let get_wikis () =
@@ -371,6 +372,7 @@ let reencapsulate_wiki data =
     wiki_staticdir = data#?staticdir;
     wiki_model = Wiki_types.wiki_model_of_string (data#!model);
     wiki_siteid = data#?siteid;
+    wiki_deleted = data#!deleted;
   }
 
 let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki =
@@ -446,7 +448,9 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
          container = null;
          staticdir = of_option $map_option Sql.Value.string staticdir$;
          model = $string:model_sql$;
-         siteid = null} >>)
+         siteid = null;
+         deleted = wikis?deleted;
+       } >>)
        >>= fun () ->
        Lwt_Query.value db (<:value< currval $wikis_id_seq$ >>)
        >>= fun wiki_sql ->
@@ -465,20 +469,13 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
        return (wiki, container)
     )
 
-let delete_wiki wiki =
+let delete_wiki ?(delete=true) wiki =
   let id = sql_of_wiki wiki in
   wrap None
     (fun db ->
-      Lwt_Query.query db (<:delete< w in $wikis$ | w.id = $int32:id$ >>)
-      >>= fun () ->
-      Lwt_Query.query db (<:delete< w in $wikipages$ | w.wiki = $int32:id$ >>)
-      >>= fun () ->
-      Lwt_Query.query db (<:delete< c in $css$ | c.wiki = $int32:id$ >>)
-      >>= fun () ->
-      Lwt_Query.query db
-        (<:delete< w in $wikiboxescontent$ |
-            w' in $wikiboxindex$;
-            w.wikibox = w'.uid >>)
+      Lwt_Query.query db (<:update< w in $wikis$ := {
+        deleted = $bool:delete$;
+      } | w.id = $int32:id$ >>)
     )
 
 let find_wiki_ ?db id =

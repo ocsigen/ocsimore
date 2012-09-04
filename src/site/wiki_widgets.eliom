@@ -1585,8 +1585,14 @@ object (self)
        | _ -> match title with
            | Some title -> title
            | None -> wiki_info.wiki_descr in
-     Page_site.html_page ~css ~title (page_content :> Html5_types.body_content Html5.F.elt list) >|=
-       fun r -> (r, code)
+     (match wiki_info.wiki_deleted with
+       | true ->
+         Page_site.html_page ~css ~title:"Wiki deleted"
+           ([Html5.F.div [Html5.F.pcdata "Wiki deleted"]] :> Html5_types.body_content Html5.F.elt list)
+       | false ->
+         Page_site.html_page ~css ~title
+           (page_content :> Html5_types.body_content Html5.F.elt list)
+     ) >|= fun r -> (r, code)
 
 
    (* Displays the wikibox corresponding to a wikipage. This function, properly
@@ -1757,23 +1763,34 @@ object (self)
                   (img "imgview.png" "View wiki root wikipage") []
                ]
        in
-       let delete =
+       let delete_or_undelete ~msg ~delete str =
          (* Don't use opaque type because Eliom_parameter doesn't support
             user defined types already *)
          let param = sql_of_wiki w.wiki_id in
          Html5.D.Raw.a ~a:[
            Html5.D.a_onclick {{
              let answer = Dom_html.window##confirm
-               (Js.string "Do you really want to delete this wiki ?")
+               (Js.string %msg)
              in
              if Js.to_bool answer then
-               Eliom_client.exit_to
-                 ~service:%Wiki_services.delete_wiki () %param
+               Eliom_client.exit_to ~service:%Wiki_services.delete_wiki ()
+                 ( %param, %delete)
              else
-               debug "Canceled delete"
+               ()
            }};
            Html5.F.a_class ["jslink"];
-         ] [Html5.F.pcdata "Delete"]
+         ] [Html5.F.pcdata str]
+       in
+       let delete =
+         delete_or_undelete
+           ~msg:"Do you really want to delete this wiki ?"
+           ~delete:true
+           "Delete"
+       and undelete =
+         delete_or_undelete
+           ~msg:"Do you really want to undelete this wiki ?"
+           ~delete:false
+           "Undelete"
        in
        (Html5.F.tr
           [Html5.F.td ~a:[Html5.F.a_class ["wikiid"]] [Html5.F.pcdata id];
@@ -1785,7 +1802,7 @@ object (self)
            Html5.F.td [view_wikiboxes];
            Html5.F.td [edit_perm];
            Html5.F.td page;
-           Html5.F.td [delete];
+           Html5.F.td [if w.wiki_deleted then undelete else delete];
           ]
        )
      in
