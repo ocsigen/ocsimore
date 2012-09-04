@@ -53,7 +53,7 @@ let can_create_message ~parent_id f role =
   let first_msg = parent_id = None in
   (match parent_id with
      | None -> Lwt.return None
-     | Some parent_id -> 
+     | Some parent_id ->
         Forum_sql.get_message ~message_id:parent_id () >>= fun parent ->
         (* If the forum is not arborescent, we must not comment comments *)
         if (not f.f_arborescent) && (parent.m_parent_id != None)
@@ -67,7 +67,7 @@ let can_create_message ~parent_id f role =
   let (mod_creator, notmod_creator) =
     match special_rights with
       | Some parent ->
-          (User.in_group 
+          (User.in_group
              ~group:(Forum.thread_comments_creators $ parent.m_root_id) (),
            User.in_group
              ~group:(Forum.thread_comments_creators_notmod $ parent.m_root_id)
@@ -90,7 +90,7 @@ let can_create_message ~parent_id f role =
     mod_creator >>= fun mod_creator ->
     if not mod_creator
     then Lwt.fail Ocsimore_common.Permission_denied
-    else 
+    else
       !!(role.message_moderators) >>= fun message_moderators ->
       !!(role.comment_moderators) >>= fun comment_moderators ->
       let moderator =
@@ -99,7 +99,7 @@ let can_create_message ~parent_id f role =
       in
       Lwt.return (wiki, moderator)
 
-let new_message ~forum ~creator_id ?subject ?parent_id ?sticky ~text () = 
+let new_message ~forum ~creator_id ?subject ?parent_id ?sticky ~text () =
   Forum.get_role forum >>= fun role ->
   Forum_sql.get_forum ~forum () >>= fun f ->
   if f.f_deleted
@@ -142,7 +142,7 @@ let get_forum ?forum ?title () =
 let get_forums_list () =
   Forum_sql.get_forums_list () >>= fun l ->
   List.fold_right
-    (fun f e -> 
+    (fun f e ->
        e >>= fun e ->
        let f = get_forum_info f in
        User.in_group ~group:(forum_visible $ f.f_id) () >>= fun b ->
@@ -160,7 +160,7 @@ let can_read_message m role =
     then
       (User.in_group
          ~group:(Forum.thread_moderated_readers $ m.m_root_id) (),
-       lazy 
+       lazy
          (User.in_group
             ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()))
     else
@@ -180,7 +180,7 @@ let can_read_message m role =
   mod_reader >>= fun mod_reader ->
   if not mod_reader
   then Lwt.return false
-  else 
+  else
     if m.m_moderated
     then Lwt.return true
     else !!notmod_reader
@@ -291,9 +291,9 @@ let get_message_list ~forum ~first ~number () =
   if not moderated_message_readers
   then Lwt.fail Ocsimore_common.Permission_denied
   else
-    !!(role.message_readers_evennotmoderated) 
+    !!(role.message_readers_evennotmoderated)
     >>= fun message_readers_evennotmoderated ->
-    Forum_sql.get_message_list ~forum ~first ~number 
+    Forum_sql.get_message_list ~forum ~first ~number
       ~moderated_only:(not message_readers_evennotmoderated) ()
 
 let message_info_of_raw_message m =
@@ -301,8 +301,8 @@ let message_info_of_raw_message m =
   !!(m.m_has_special_rights) >>= fun has_special_rights ->
   if not has_special_rights
   then Lwt.return m
-  else 
-    User.in_group 
+  else
+    User.in_group
       ~group:(Forum.thread_readers_evennotmoderated $ m.m_root_id) ()
     >>= fun b ->
     if b
@@ -311,7 +311,7 @@ let message_info_of_raw_message m =
       if not m.m_moderated
       then Lwt.fail Ocsimore_common.Permission_denied
       else
-        User.in_group 
+        User.in_group
           ~group:(Forum.thread_moderated_readers $ m.m_root_id) ()
         >>= fun b ->
         if b

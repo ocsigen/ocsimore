@@ -20,18 +20,18 @@ let default_forum_data =
 let forum_data =
   let rec find_forum_data data = function
     | [] -> Lwt.return data
-    | (Simplexmlparser.Element ("name", [], s))::l -> 
+    | (Simplexmlparser.Element ("name", [], s))::l ->
         let name = Ocsigen_parseconfig.parse_string s in
-        find_forum_data 
+        find_forum_data
           {data with title = name}
           l
-    | (Simplexmlparser.Element ("descr", [], s))::l -> 
+    | (Simplexmlparser.Element ("descr", [], s))::l ->
         let name = Ocsigen_parseconfig.parse_string s in
-        find_forum_data 
+        find_forum_data
           {data with descr = name}
           l
-    | (Simplexmlparser.Element ("notarborescent", [], []))::l -> 
-        find_forum_data 
+    | (Simplexmlparser.Element ("notarborescent", [], []))::l ->
+        find_forum_data
           {data with arborescent = false}
           l
     | (Simplexmlparser.Element (s, _, _))::_ ->

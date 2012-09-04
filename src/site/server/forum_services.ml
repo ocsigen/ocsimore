@@ -46,7 +46,7 @@ let register_services () =
       ()
   in
 
-  Eliom_registration.Any.register 
+  Eliom_registration.Any.register
     ~service:add_message_service
     (fun () (actionname, (parent, (subject, text))) ->
       lwt (forum, parent_id) =
@@ -54,7 +54,7 @@ let register_services () =
          | Eliom_parameter.Inj2 forum -> (* new messages *)
              Lwt.return (forum, None)
          | Eliom_parameter.Inj1 parent_id -> (* comment *)
-             (* We do not require the user to be allowed to read the message ... 
+             (* We do not require the user to be allowed to read the message ...
                 (Forum_sql.get_message and not Forum_data.get_message) *)
              Forum_sql.get_message ~message_id:parent_id () >>= fun m ->
              Lwt.return (m.Forum_types.m_forum, Some parent_id)
@@ -89,7 +89,7 @@ let register_services () =
       ()
   in
 
-  Eliom_registration.Action.register 
+  Eliom_registration.Action.register
     ~service:moderate_message_service
     (fun () msg ->
        Forum_data.set_moderated ~message_id:msg ~moderated:true);
@@ -104,7 +104,7 @@ let register_services () =
       ()
   in
 
-  Eliom_predefmod.Action.register 
+  Eliom_predefmod.Action.register
     ~service:delete_message_service
     (fun sp () msg ->
        Forum_data.set_deleted ~sp ~message_id:msg ~deleted:true

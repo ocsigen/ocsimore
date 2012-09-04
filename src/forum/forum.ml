@@ -66,9 +66,9 @@ let message_moderators : Wiki_types.wiki_arg parameterized_group =
 let message_deletors : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_deletors
 
-let message_deletors_if_creator : 
+let message_deletors_if_creator :
     Wiki_types.wiki_arg parameterized_group =
-  aux_grp "messagedeletorsifcreator" 
+  aux_grp "messagedeletorsifcreator"
     "Can delete messages in the forum wiki if author"
     Wiki.param_wiki
 
@@ -96,7 +96,7 @@ let creators : forum_arg parameterized_group =
     forum_param
 
 let creators_notmod : forum_arg parameterized_group =
-  aux_grp 
+  aux_grp
     "creatorsnotmoderated"
     "Can create new messages or comments in the forum without moderation"
     forum_param
@@ -110,14 +110,14 @@ let deletors : forum_arg parameterized_group =
     forum_param
 
 let deletors_if_creator : forum_arg parameterized_group =
-  aux_grp "deletorsifauthor" 
+  aux_grp "deletorsifauthor"
     "Can delete messages or comments in the forum if author"  forum_param
 
 let modifiers : forum_arg parameterized_group =
   aux_grp "modifiers" "Can modify messages or comments in the forum (without moderation)"  forum_param
 
 let modifiers_if_creator : forum_arg parameterized_group =
-  aux_grp "modifiersifauthor" 
+  aux_grp "modifiersifauthor"
     "Can modify messages or comments in the forum if author (without moderation)" forum_param
 
 let sticky_makers : forum_arg parameterized_group =
@@ -143,9 +143,9 @@ let forum_creators =
 
 
 
-(* special rights for some threads - 
+(* special rights for some threads -
    will override forum rights if present.
-   There is a boolean information on the root of the thread to tell that 
+   There is a boolean information on the root of the thread to tell that
    it has special rights. The group parameter is the root identifier.
 *)
 
@@ -167,7 +167,7 @@ let thread_comments_creators : message_arg parameterized_group =
     (* replaces creators *)
 
 let thread_comments_creators_notmod : message_arg parameterized_group =
-  aux_grp "threadcommentcreatorsnotmod" 
+  aux_grp "threadcommentcreatorsnotmod"
     "Can add comments in the thread without moderation"
     message_param
     (* replaces creators_notmod *)
@@ -345,7 +345,7 @@ let create_forum
 
 (** {2 Session data} *)
 
-type role = 
+type role =
     {
       message_creators : bool Lwt.t Lazy.t;
       message_creators_notmod : bool Lwt.t Lazy.t;
@@ -398,48 +398,48 @@ let get_role ~forum =
   if b
   then Lwt.return
     {
-      message_creators = 
+      message_creators =
         lazy (aux message_creators forum_info.f_messages_wiki);
-      message_creators_notmod = 
+      message_creators_notmod =
         lazy (aux message_creators_notmod forum_info.f_messages_wiki);
-      message_moderators = 
+      message_moderators =
         lazy (aux message_moderators forum_info.f_messages_wiki);
-      message_deletors = 
+      message_deletors =
         lazy (aux message_deletors forum_info.f_messages_wiki);
-      message_deletors_if_creator = 
+      message_deletors_if_creator =
         lazy (aux message_deletors_if_creator forum_info.f_messages_wiki);
-      message_modifiers = 
+      message_modifiers =
         lazy (aux message_modifiers forum_info.f_messages_wiki);
-      message_modifiers_if_creator = 
+      message_modifiers_if_creator =
         lazy (aux message_modifiers_if_creator forum_info.f_messages_wiki);
-      message_sticky_makers = 
+      message_sticky_makers =
         lazy (aux message_sticky_makers forum_info.f_messages_wiki);
-      moderated_message_readers = 
+      moderated_message_readers =
         lazy (aux moderated_message_readers forum_info.f_messages_wiki);
-      message_readers_evennotmoderated = 
+      message_readers_evennotmoderated =
         lazy (aux message_readers_evennotmoderated forum_info.f_messages_wiki);
-      
-      comment_creators = 
+
+      comment_creators =
         lazy (aux message_creators forum_info.f_comments_wiki);
-      comment_creators_notmod = 
+      comment_creators_notmod =
         lazy (aux message_creators_notmod forum_info.f_comments_wiki);
-      comment_moderators = 
+      comment_moderators =
         lazy (aux message_moderators forum_info.f_comments_wiki);
-      comment_deletors = 
+      comment_deletors =
         lazy (aux message_deletors forum_info.f_comments_wiki);
-      comment_deletors_if_creator = 
+      comment_deletors_if_creator =
         lazy (aux message_deletors_if_creator forum_info.f_comments_wiki);
-      comment_modifiers = 
+      comment_modifiers =
         lazy (aux message_modifiers forum_info.f_comments_wiki);
-      comment_modifiers_if_creator = 
+      comment_modifiers_if_creator =
         lazy (aux message_modifiers_if_creator forum_info.f_comments_wiki);
-      comment_sticky_makers = 
+      comment_sticky_makers =
         lazy (aux message_sticky_makers forum_info.f_comments_wiki);
-      moderated_comment_readers = 
+      moderated_comment_readers =
         lazy (aux moderated_message_readers forum_info.f_comments_wiki);
-      comment_readers_evennotmoderated = 
+      comment_readers_evennotmoderated =
         lazy (aux message_readers_evennotmoderated forum_info.f_comments_wiki);
-      
+
       creators = lazy (aux creators forum);
       creators_notmod = lazy (aux creators_notmod forum);
       moderators = lazy (aux moderators forum);
@@ -450,7 +450,7 @@ let get_role ~forum =
       sticky_makers = lazy (aux sticky_makers forum);
       moderated_readers = lazy (aux moderated_readers forum);
       readers = lazy (aux readers forum);
-      
+
       forum_admin = lazy (aux forum_admin forum);
     }
   else Lwt.return
@@ -465,7 +465,7 @@ let get_role ~forum =
       message_sticky_makers = noright;
       moderated_message_readers = noright;
       message_readers_evennotmoderated = noright;
-      
+
       comment_creators = noright;
       comment_creators_notmod = noright;
       comment_moderators = noright;
@@ -476,7 +476,7 @@ let get_role ~forum =
       comment_sticky_makers = noright;
       moderated_comment_readers = noright;
       comment_readers_evennotmoderated = noright;
-      
+
       creators = noright;
       creators_notmod = noright;
       moderators = noright;
@@ -487,7 +487,7 @@ let get_role ~forum =
       sticky_makers = noright;
       moderated_readers = noright;
       readers = noright;
-      
+
       forum_admin = noright;
     }
 
@@ -500,10 +500,10 @@ module Roles = Map.Make(struct
 let default_forum_sd () =
   let cache = ref Roles.empty in
   (* We cache the values to retrieve them only once *)
-  fun k -> 
-    try 
+  fun k ->
+    try
       Lwt.return (Roles.find k !cache)
-    with Not_found -> 
+    with Not_found ->
       get_role ~forum:k >>= fun v ->
       cache := Roles.add k v !cache;
       Lwt.return v
@@ -521,9 +521,9 @@ let get_role k =
 
 (** {2 } *)
 type forum_action_info =
-  | Preview of ((Forum_types.forum * 
+  | Preview of ((Forum_types.forum *
                    Forum_types.message option (* parent *)) * string)
-  | Msg_creation_not_allowed of (Forum_types.forum * 
+  | Msg_creation_not_allowed of (Forum_types.forum *
                                    Forum_types.message option (* parent *))
 
 
@@ -531,15 +531,15 @@ type forum_action_info =
 
 let eliom_forum =
   Eliom_parameter.user_type
-    ~of_string:forum_of_string ~to_string:string_of_forum 
+    ~of_string:forum_of_string ~to_string:string_of_forum
 
-let eliom_message = 
+let eliom_message =
   Eliom_parameter.user_type
-    ~of_string:message_of_string ~to_string:string_of_message 
+    ~of_string:message_of_string ~to_string:string_of_message
 
-let eliom_forum_input ?a ~input_type ?name ?value () = 
+let eliom_forum_input ?a ~input_type ?name ?value () =
   Html5.D.user_type_input string_of_forum ?a ~input_type ?name ?value ()
-let eliom_message_input ?a ~input_type ?name ?value () = 
+let eliom_message_input ?a ~input_type ?name ?value () =
   Html5.D.user_type_input string_of_message ?a ~input_type ?name ?value ()
 let eliom_message_button ?a ~name ~value v =
   Html5.D.user_type_button string_of_message ?a ~name ~value v
@@ -558,9 +558,9 @@ object (_self)
 
   inherit Wiki.wiki_rights as papa
 
-  method can_write_wikibox wb = 
+  method can_write_wikibox wb =
     papa#can_write_wikibox wb >>= fun b ->
-    if b 
+    if b
     then Lwt.return true
     else begin
       Wiki_sql.get_wikibox_info wb >>= fun { Wiki_types.wikibox_wiki = wiki} ->
@@ -571,9 +571,9 @@ object (_self)
       else Lwt.return false
     end
 
-  method can_read_wikibox wb = 
+  method can_read_wikibox wb =
     papa#can_read_wikibox wb >>= fun b ->
-    if b 
+    if b
     then Lwt.return true
     else begin
       Wiki_sql.get_wikibox_info wb >>= fun { Wiki_types.wikibox_wiki = wiki} ->

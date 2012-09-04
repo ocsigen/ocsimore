@@ -27,14 +27,14 @@ open Eliom_content
 
 (** {2 Database access with verification of permissions} *)
 
-(** create a new forum. [?arborescent] is true by default. 
+(** create a new forum. [?arborescent] is true by default.
     Setting it to false will prevent to comment comments.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val new_forum :
-  title:string -> 
-  descr:string -> 
-  ?arborescent:bool -> 
+  title:string ->
+  descr:string ->
+  ?arborescent:bool ->
   title_syntax: Html5_types.phrasing Html5.F.elt list Wiki_types.content_type ->
   messages_wiki:Wiki_types.wiki ->
   comments_wiki:Wiki_types.wiki ->
@@ -54,7 +54,7 @@ val update_forum :
   Forum_types.forum ->
   unit Lwt.t
 
-(** inserts a message in a forum. 
+(** inserts a message in a forum.
     [?moderated] and [?sticky] are false by default.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
@@ -73,13 +73,13 @@ val new_message :
  *)
 val set_sticky :
   message_id:Forum_types.message -> sticky:bool -> unit Lwt.t
-  
+
 (** set or unset moderated flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val set_moderated :
   message_id:Forum_types.message -> moderated:bool -> unit Lwt.t
-  
+
 (** Get forum information, given its id or title.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
@@ -90,18 +90,18 @@ val get_forum:
   Forum_types.forum_info Lwt.t
 
 (** returns the list of forums visible to the user. *)
-val get_forums_list : 
+val get_forums_list :
   unit ->
   Forum_types.forum_info list Lwt.t
-  
+
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
     and moderated, deleted, sticky status of a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
-val get_message : 
-  message_id:Forum_types.message -> 
+val get_message :
+  message_id:Forum_types.message ->
   Forum_types.message_info Lwt.t
-  
+
 (** returns a list of messages containing the message of id [~message_id]
     and all its children, ordered according depth first traversal of the tree.
     Deleted messages are returned.
@@ -110,10 +110,10 @@ val get_message :
     May fail with exceptions [Ocsimore_common.Permission_denied]
     or [Not_found].
 *)
-val get_thread : 
-  message_id:Forum_types.message -> 
+val get_thread :
+  message_id:Forum_types.message ->
   Forum_types.message_info list Lwt.t
-  
+
 (** returns a list of all the direct childs of messages [~message_id].
     Only readable messages comments are returned.*)
 val get_childs :
@@ -122,23 +122,23 @@ val get_childs :
 
 type raw_message
 
-(** returns the list of messages (without comments) in a forum. 
-    If the user cannot read unmoderated messages, 
+(** returns the list of messages (without comments) in a forum.
+    If the user cannot read unmoderated messages,
     only moderated messages and messages with special rights
     (must be filtered afterwards!!!) are returned.
 *)
-val get_message_list : 
+val get_message_list :
   forum:Forum_types.forum ->
   first:int64 ->
   number:int64 ->
   unit ->
   raw_message list Lwt.t
-  
+
 (** translate [raw_message] to [Forum_types.forum_info],
-    verifying special rights if needed (only for first messages). 
+    verifying special rights if needed (only for first messages).
     Raises [Ocsimore_common.Permission_denied] if special rights do not
     allow to read the message.
 *)
-val message_info_of_raw_message : 
-  raw_message -> 
-  Forum_types.message_info Lwt.t 
+val message_info_of_raw_message :
+  raw_message ->
+  Forum_types.message_info Lwt.t
