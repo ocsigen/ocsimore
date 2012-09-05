@@ -220,7 +220,8 @@ let item_builder
   lwt r = element c >|= List.flatten in
   lwt l = unopt ~def:(Lwt.return []) l in
   Lwt.return
-    (Html5.F.li ?a ((r :> Html5_types.li_content_fun Html5.F.elt list)
+    (Html5.F.li ?a ((r : Html5_types.phrasing Eliom_content.Html5.F.elt list
+                     :> Html5_types.li_content_fun Html5.F.elt list)
                     @ (l :> Html5_types.li_content_fun Html5.F.elt list)))
 
 let item_builder =
@@ -242,7 +243,9 @@ let ddt_builder
   Lwt.return
     (if istitle
      then `Dt (Html5.F.dt ?a ((List.flatten d :> Html5_types.dt_content_fun Html5.F.elt list)))
-     else `Dd (Html5.F.dd ?a ((List.flatten  d :> Html5_types.dd_content_fun Html5.F.elt list))))
+     else `Dd (Html5.F.dd ?a ((List.flatten  d
+                                 : Html5_types.phrasing Eliom_content.Html5.F.elt list
+                               :> Html5_types.dd_content_fun Html5.F.elt list))))
 
 let ddt_builder =
   (ddt_builder (* opening types *)
@@ -1635,7 +1638,8 @@ module FlowBuilder = struct
     Lwt.return
       (if h
        then Html5.F.th ?a r
-       else Html5.F.td ?a (r:>Html5_types.td_content_fun Html5.F.elt list))
+       else Html5.F.td ?a (r : Html5_types.phrasing Eliom_content.Html5.F.elt list
+                           :> Html5_types.td_content_fun Html5.F.elt list))
 
   let tdh_builder =
     (tdh_builder (* opening types *)
@@ -2172,7 +2176,12 @@ let register_interactive_simple_flow_extension
   if reduced then begin
     register_simple_extension ~name ?preparser
       ~wp:reduced_wikicreole_parser0
-      (plugin :> ReducedWikicreoleParser0.simple_plugin);
+      (plugin
+         : (Html5_types.flow5_without_header_footer,
+            Html5_types.flow5_without_interactive_header_footer,
+            Html5_types.phrasing_without_interactive)
+         interactive_simple_plugin
+       :> ReducedWikicreoleParser0.simple_plugin);
     register_simple_extension ~name ?preparser
       ~wp:reduced_wikicreole_parser1
       (plugin :> ReducedWikicreoleParser1.simple_plugin);
