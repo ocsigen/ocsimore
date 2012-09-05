@@ -469,8 +469,7 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
        return (wiki, container)
     )
 
-let delete_wiki ?(delete=true) wiki =
-  let id = sql_of_wiki wiki in
+let delete_wiki_ ~delete id =
   wrap None
     (fun db ->
       Lwt_Query.query db (<:update< w in $wikis$ := {
@@ -723,6 +722,14 @@ let update_wiki ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid
      wiki, and to remove only this key *)
   cache_wiki_name#clear ();
   update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?siteid wiki
+
+let delete_wiki ?(delete=true) wiki =
+  let id = sql_of_wiki wiki in
+  (** Clear the cache before deleting *)
+  cache_wiki_id#remove wiki;
+  cache_wiki_name#clear ();
+  cache_wiki_pages#clear ();
+  delete_wiki_ ~delete id
 
 
 
