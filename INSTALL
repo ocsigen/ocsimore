@@ -5,7 +5,7 @@
 * lwt >= 2.4.0
 * ocsigen and eliom with compiled ocamlduce support
 * macaque
-* ocaml-safepass
+* ocaml-safepass >= 1.0 (or 1.0.1 on x86)
 * ocamlpam (optional)
 * ocamldap (optional)
 
