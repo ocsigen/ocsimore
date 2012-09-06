@@ -75,6 +75,8 @@ module Types : sig
   val ($) : 'a parameterized_group ->'a Opaque.int32_t -> user
   val basic_user : userid -> user
 
+  val userid_from_user : user -> userid
+
   (** Converts an user back into an userid, if possible *)
   val is_basic_user : user -> userid option
 
@@ -89,6 +91,11 @@ module Types : sig
     grp_reader: 'a parameterized_group;
   }
 
+  type users = {
+    users : userdata list Lazy.t;
+    groups : userdata list Lazy.t;
+    roles : userdata list Lazy.t;
+  }
 end
 
 (** Exception raised when a string cannot be translated into a real user *)
@@ -187,7 +194,7 @@ val get_user_by_name: string -> user Lwt.t
 
 
 (** Returns a list of all the existing users and groups. *)
-val all_groups : unit -> userdata list Lwt.t
+val all_users : unit -> users Lwt.t
 
 
 val user_type: user -> [ `User | `Group | `Role ] Lwt.t

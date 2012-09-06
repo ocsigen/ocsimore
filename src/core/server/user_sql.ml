@@ -112,6 +112,12 @@ let user_is_applied_parameterized_group ~user ~pgroup =
     grp_writer: 'a parameterized_group;
     grp_reader: 'a parameterized_group;
   }
+
+  type users = {
+    users : userdata list Lazy.t;
+    groups : userdata list Lazy.t;
+    roles : userdata list Lazy.t;
+  }
 end
 
 open Types
@@ -344,11 +350,33 @@ let find_user_by_id_ id =
         | None -> Lwt.fail NotAnUser
         | Some r -> Lwt.return (wrap_userdata r))
 
-let all_groups () =
+let all_users () =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
       Lwt_Query.view db (<:view< u | u in $users$ >>)
-       >>= fun l -> Lwt.return (List.map wrap_userdata l))
+    )
+  >|= (List.map wrap_userdata)
+  >>= fun list ->
+  Lwt.return {
+    users = lazy (
+      List.filter
+        (fun {user_kind = u; user_pwd = a} ->
+          u = `BasicUser && a <> Connect_forbidden
+        ) list
+    );
+    groups = lazy (
+      List.filter
+        (fun {user_kind = u; user_pwd = a} ->
+          u = `BasicUser && a = Connect_forbidden
+        ) list
+    );
+    roles = lazy (
+      List.filter
+        (fun {user_kind = u} ->
+          u <> `BasicUser
+        ) list
+    );
+  }
 
 
 let delete_user_ ~userid =

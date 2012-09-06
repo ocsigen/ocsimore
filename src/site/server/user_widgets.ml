@@ -83,8 +83,6 @@ class type user_widget_class = object
     string -> [`A of Html5_types.a_content | `Form] Html5.F.elt
 
   method user_list_to_xhtml :
-    ?hook:(user:string ->
-          [`A of Html5_types.a_content | `Form] Html5.F.elt list Lwt.t) ->
     User_sql.Types.user list -> Html5_types.flow5 Html5.F.elt Lwt.t
 
 
@@ -158,30 +156,20 @@ object (self)
 
   method form_edit_group ?(show_edit=false) ?(default_add="") ~group ~text () =
     (if show_edit then
-       User.get_user_data ()                      >>= fun u ->
+       User.get_user_data () >>= fun u ->
        let user = basic_user u.user_id in
        User_data.can_admin_group ~user ~group () >>= function
          | true ->
-             User_sql.user_to_string group        >>= fun group ->
-             Lwt.return
-               ((fun ~user ->
-                   Lwt.return
-                     (self#bt_remove_user_from_group ~group ~user ())
-                ),
-                (self#form_add_user_to_group ~default_add ~group ())
-               )
+             self#form_add_user_to_group ~group ()
          | false ->
-             Lwt.return ((fun ~user:_ -> Lwt.return []), [])
+             Lwt.return []
      else
-       Lwt.return ((fun ~user:_ -> Lwt.return []), [])
-    )                                             >>= fun (hook, add) ->
-
-    User_sql.users_in_group ~generic:false ~group >>= fun users ->
-    self#user_list_to_xhtml ~hook users       >>= fun members ->
+       Lwt.return []
+    ) >>= fun add ->
     Lwt.return
       (Html5.F.tr
          [Html5.F.td ~a:[Html5.F.a_class ["role"]] text;
-          Html5.F.td ~a:[Html5.F.a_class ["current_users"]] (members :: add)]
+          Html5.F.td ~a:[Html5.F.a_class ["current_users"]] add]
       )
 
 
@@ -222,50 +210,65 @@ object (self)
                                                                >>= fun formr ->
     Lwt.return (formr, [formw; forma;])
 
-  method private bt_remove_user_from_group ~group ~user ?(text="Remove") () =
+  method private bt_remove_user_from_group ~group ~user ~remove () =
     let str_input = str_input ~visible:false in
     let mform (gname, (addname, remname)) =
       [ Html5.F.div ~a:[eliom_inline_class]
           [ str_input ~value:group gname;
-            str_input ~value:user remname;
-            str_input addname;
+            str_input ?value:(if remove then Some user else None) remname;
+            str_input ?value:(if remove then None else Some user) addname;
             Html5.D.button ~button_type:`Submit
-              [Html5.F.pcdata text];
+              [Html5.F.pcdata (if remove then "Remove" else "Add")];
           ]
       ]
     in
     [Html5.D.post_form
-       ~a:[eliom_inline_class; accept_charset_utf8 ]
-       ~service:User_services.action_add_remove_users_from_group mform ()]
-
-  method private form_add_user_to_group ~group ?(default_add="") ?(text="Add") () =
-    let str_input' = str_input ~visible:false in
-    let mform (gname, (addname, remname)) =
-      [Html5.F.div ~a:[eliom_inline_class]
-         [str_input' ~value:group gname;
-          str_input' remname;
-          str_input ~value:default_add addname ;
-          Html5.D.button ~button_type:`Submit
-            [Html5.F.pcdata text];
-         ]
-      ]
-    in
-    [Html5.D.post_form
-       ~a:[eliom_inline_class; accept_charset_utf8]
+      ~a:[eliom_inline_class; accept_charset_utf8 ]
       ~service:User_services.action_add_remove_users_from_group mform ()]
 
-  method user_list_to_xhtml ?hook l = match l with
+  method private form_add_user_to_group ~group () =
+    User_sql.all_users () >>= fun users ->
+    User_sql.users_in_group ~generic:false ~group >>= fun users_in ->
+    User_sql.user_to_string group >>= fun group ->
+    let open Html5.F in
+    let users_to_html users =
+      List.map
+        (fun user ->
+          tr [
+            td [self#user_link user.user_login];
+            td (
+              let in_group =
+                List.exists
+                  (fun u -> user.user_id = userid_from_user u)
+                  users_in
+              in
+              self#bt_remove_user_from_group
+                ~group
+                ~user:user.user_login
+                ~remove:in_group
+                ()
+            );
+          ])
+        (Lazy.force users)
+    in
+    let users_title title = tr ~a:[a_class ["user_menu_title"]] [
+      td [pcdata title];
+      td [];
+    ] in
+    Lwt.return [
+      table (users_title "Users") (
+        (users_to_html users.users)
+        @ [users_title "Groups"] @ (users_to_html users.groups)
+      )
+    ]
+
+  method user_list_to_xhtml l = match l with
     | [] -> Lwt.return
               (Html5.F.p [Html5.F.em [Html5.F.pcdata "(currently no user)"]])
     | e :: es ->
-        let hook = match hook with
-          | None -> (fun _ -> Lwt.return [])
-          | Some h -> (fun user -> h ~user)
-        in
         let convert u =
-          User_sql.user_to_string ~expand_param:true u >>= fun user ->
-          hook user                                    >|= fun hooked ->
-          Html5.F.li ((self#user_link user) :: hooked)
+          User_sql.user_to_string ~expand_param:true u >|= fun user ->
+          Html5.F.li [self#user_link user]
         in
         convert e >>= fun e ->
         Lwt_list.fold_left_s
@@ -604,22 +607,19 @@ object (self)
      )
 
   method display_users =
-    User_sql.all_groups () >>= fun l ->
-    let l = List.filter (fun {user_kind = u; user_pwd = a} ->
-                           u = `BasicUser && a <> Connect_forbidden ) l in
+    User_sql.all_users () >>= fun l ->
     let l = List.sort
-      (fun u1 u2 -> compare u1.user_login u2.user_login) l in
+      (fun u1 u2 -> compare u1.user_login u2.user_login)
+      (Lazy.force l.users) in
     self#display_users_groups ~show_auth:true ~l ~utype:`User
       >|= list_singleton
 
   method display_groups =
     lwt l =
-      User_sql.all_groups () >|=
-      List.filter
-        (fun {user_kind = u; user_pwd = a} ->
-           u = `BasicUser && a = Connect_forbidden ) >|=
+      User_sql.all_users () >|= fun users ->
       List.sort
         (fun u1 u2 -> compare u1.user_login u2.user_login)
+        (Lazy.force users.groups)
     in
     self#display_users_groups ~show_auth:false ~l ~utype:`Group
       >|= list_singleton
@@ -627,9 +627,10 @@ object (self)
   (* Parameterized users *)
   method display_roles =
     lwt l =
-      User_sql.all_groups () >|=
-        List.filter (fun {user_kind = u} -> u <> `BasicUser) >|=
-          List.sort (fun u1 u2 -> compare u1.user_login u2.user_login)
+      User_sql.all_users () >|= fun users ->
+      List.sort
+        (fun u1 u2 -> compare u1.user_login u2.user_login)
+        (Lazy.force users.roles)
     in
     let hd, tl =
       match l with
