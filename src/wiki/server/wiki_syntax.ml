@@ -1571,8 +1571,13 @@ module FlowBuilder = struct
       try
         let id = List.assoc "id" attribs in
         let open Html5.F in
-        let a' = [a_class ["backref"]; a_href (Raw.uri_of_string ("#"^id))] in
-        r @ [ pcdata " "; Raw.a ~a:a' [entity "#182"] ]
+        r @ [ pcdata " ";
+              a ~service:Eliom_service.void_coservice'
+                ~a:[a_class ["backref"]]
+                ~fragment:id
+                [entity "#182"]
+                ()
+            ]
       with Not_found -> r
     else r
 
