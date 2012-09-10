@@ -659,7 +659,7 @@ object (self)
       ) >>= (function
         | None ->
           let block = tr [
-            td [
+            td ~a:[a_class ["roles_tr"]] [
               strong [
                 a ~service:User_services.service_view_group
                   [pcdata u.user_login] u.user_login;
@@ -681,12 +681,12 @@ object (self)
           ] @ acc in
           let block_and_link = tr [
             td [
-              ul (List.fold_right link names [])
+              ul ~a:[a_class ["roles_tr"]] (List.fold_right link names [])
             ];
             td [];
           ]
           and block name = tr ~a:[a_class ["user_menu_title"]] [
-            td [strong [pcdata (name ^ "(" ^ param ^ ")")]];
+            td ~a:[a_class ["roles_tr"]] [strong [pcdata (name ^ "(" ^ param ^ ")")]];
             td [pcdata u.user_fullname]
           ] in
           Lwt.return (block u.user_login, block_and_link)
@@ -716,7 +716,7 @@ object (self)
       ) l;
       let l = Hashtbl.fold (fun a b acc ->
         List.fold_left (fun acc x -> snd x :: fst x :: acc) [] b
-        @ Html5.F.tr ~a:[Html5.F.a_class ["user_menu_title"]] [
+        @ Html5.F.tr ~a:[Html5.F.a_class ["roles_title"]] [
           Html5.F.td [
             Html5.F.h3 [Html5.F.pcdata a]
           ];

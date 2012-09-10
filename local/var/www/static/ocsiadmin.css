@@ -173,3 +173,19 @@ form > table > tr > td.description {
     background-color: #D0D9EB;
     color: #3860AA;
 }
+
+.roles_title {
+    background-color: #6695c1;
+}
+
+.roles_title h3 {
+    color: #383e44;
+}
+
+.roles_tr {
+    padding-left: 3%;
+}
+
+ul.roles_tr {
+    padding-left: 14%;
+}
