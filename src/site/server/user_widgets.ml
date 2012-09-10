@@ -632,7 +632,7 @@ object (self)
         (fun u1 u2 -> compare u1.user_login u2.user_login)
         (Lazy.force users.roles)
     in
-    let line u =
+    let line u short_name =
       let open Html5.F in
       (match u.user_kind with
         | `ParameterizedGroup param ->
@@ -662,58 +662,59 @@ object (self)
             td ~a:[a_class ["roles_tr"]] [
               strong [
                 a ~service:User_services.service_view_group
-                  [pcdata u.user_login] u.user_login;
+                  [pcdata short_name] u.user_login;
               ];
             ];
             td [pcdata u.user_fullname];
           ] in
           Lwt.return (block, tr [])
         | Some (param, p) ->
-          Lwt_list.map_s (fun p ->
-            Lwt.return (u.user_login ^ "(" ^ p ^ ")")
-          ) p >>= fun names ->
           let link name acc = [
             li [
               a ~service:User_services.service_view_group
-                [strong [pcdata name]] name;
+                [strong [pcdata name]] (u.user_login ^ "(" ^ name ^ ")");
               br ();
             ];
           ] @ acc in
           let block_and_link = tr [
             td [
-              ul ~a:[a_class ["roles_tr"]] (List.fold_right link names [])
+              ul ~a:[a_class ["roles_tr"]] (
+                match p with
+                  | [] -> [li [pcdata "(None)"]]
+                  | _ -> List.fold_right link p []
+              )
             ];
             td [];
           ]
           and block name = tr ~a:[a_class ["user_menu_title"]] [
-            td ~a:[a_class ["roles_tr"]] [strong [pcdata (name ^ "(" ^ param ^ ")")]];
+            td ~a:[a_class ["roles_tr"]] [
+              strong [pcdata (name ^ "(" ^ param ^ ")")]
+            ];
             td [pcdata u.user_fullname]
           ] in
-          Lwt.return (block u.user_login, block_and_link)
+          Lwt.return (block short_name, block_and_link)
        ) in
       let module Pcre = Netstring_pcre in
-      let regexp = Pcre.regexp "#([^.]+)\\..*" in
-      Lwt_list.fold_left_s (fun acc arg ->
-        line arg
-        >>= fun item ->
-        Lwt.return ((arg.user_login, item) :: acc)
-      ) [] l
-      >>= fun l ->
+      let regexp = Pcre.regexp "#([^.]+)\\.(.*)" in
       let hashtbl = Hashtbl.create 4 in
-      List.iter (fun item ->
-        let group =
-          match Pcre.string_match regexp (fst item) 0 with
-            | None -> "Other"
+      Lwt_list.iter_s (fun arg ->
+        let (group, short_name) =
+          match Pcre.string_match regexp arg.user_login 0 with
+            | None -> ("Other", "")
             | Some x ->
-              try Pcre.matched_group x 1 (fst item)
-              with Not_found -> "Other"
+              try (Pcre.matched_group x 1 arg.user_login,
+                   Pcre.matched_group x 2 arg.user_login)
+              with Not_found -> ("Other", "")
         in
+        line arg short_name
+        >|= fun item ->
         try
           let prev = Hashtbl.find hashtbl group in
-          Hashtbl.replace hashtbl group (snd item :: prev)
+          Hashtbl.replace hashtbl group (item :: prev)
         with Not_found ->
-          Hashtbl.add hashtbl group [snd item]
-      ) l;
+          Hashtbl.add hashtbl group [item]
+      ) l
+      >>= fun () ->
       let l = Hashtbl.fold (fun a b acc ->
         List.fold_left (fun acc x -> snd x :: fst x :: acc) [] b
         @ Html5.F.tr ~a:[Html5.F.a_class ["roles_title"]] [
