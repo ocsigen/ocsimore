@@ -632,11 +632,6 @@ object (self)
         (fun u1 u2 -> compare u1.user_login u2.user_login)
         (Lazy.force users.roles)
     in
-    let hd, tl =
-      match l with
-        | hd :: tl -> (hd, tl)
-        | _ -> (assert false) (*YYY: some groups always exist*)
-    in
     let line u =
       let open Html5.F in
       (match u.user_kind with
@@ -690,23 +685,53 @@ object (self)
             ];
             td [];
           ]
-          and block name = tr [
+          and block name = tr ~a:[a_class ["user_menu_title"]] [
             td [strong [pcdata (name ^ "(" ^ param ^ ")")]];
             td [pcdata u.user_fullname]
           ] in
           Lwt.return (block u.user_login, block_and_link)
        ) in
-      Lwt_list.fold_left_s (fun s arg ->
-        line arg >>= fun item ->
-        Lwt.return (snd item :: fst item :: s)
-      ) [] tl >>= (fun tmp -> Lwt.return (List.rev tmp)) >>= fun l1 ->
-      line hd >>= fun first ->
-      Lwt.return [
-        Html5.F.table
-          ~a:[Html5.F.a_class ["table_admin"]]
-          (fst first)
-          (snd first :: l1)
-      ]
+      let module Pcre = Netstring_pcre in
+      let regexp = Pcre.regexp "#([^.]+)\\..*" in
+      Lwt_list.fold_left_s (fun acc arg ->
+        line arg
+        >>= fun item ->
+        Lwt.return ((arg.user_login, item) :: acc)
+      ) [] l
+      >>= fun l ->
+      let hashtbl = Hashtbl.create 4 in
+      List.iter (fun item ->
+        let group =
+          match Pcre.string_match regexp (fst item) 0 with
+            | None -> "Other"
+            | Some x ->
+              try Pcre.matched_group x 1 (fst item)
+              with Not_found -> "Other"
+        in
+        try
+          let prev = Hashtbl.find hashtbl group in
+          Hashtbl.replace hashtbl group (snd item :: prev)
+        with Not_found ->
+          Hashtbl.add hashtbl group [snd item]
+      ) l;
+      let l = Hashtbl.fold (fun a b acc ->
+        List.fold_left (fun acc x -> snd x :: fst x :: acc) [] b
+        @ Html5.F.tr ~a:[Html5.F.a_class ["user_menu_title"]] [
+          Html5.F.td [
+            Html5.F.h3 [Html5.F.pcdata a]
+          ];
+          Html5.F.td [];
+        ] :: acc
+      ) hashtbl [] in
+      let l = List.rev l in
+      match l with
+        | [] -> Lwt.return []
+        | x::xs ->
+          Lwt.return [
+            Html5.F.table
+              ~a:[Html5.F.a_class ["table_admin"]]
+              x xs
+          ]
 
   method private display_users_groups ~show_auth ~utype ~l =
     let line u =
