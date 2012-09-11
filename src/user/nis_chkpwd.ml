@@ -106,7 +106,9 @@ let check_nis ~login ~passwd =
         with Not_found ->
           return false
         end
-    | _ -> return false
+    | (Unix.WEXITED _, _)
+    | (Unix.WSIGNALED _, _)
+    | (Unix.WSTOPPED _, _) -> return false
 
 let userinfo login =
   run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |] >>= function
@@ -125,4 +127,6 @@ let userinfo login =
            | _ ->
                Lwt.fail (Failure "Invalid NIS output, wrong number of fields")
         )
-    | _ -> return None
+    | (Unix.WEXITED _, _)
+    | (Unix.WSIGNALED _, _)
+    | (Unix.WSTOPPED _, _) -> return None

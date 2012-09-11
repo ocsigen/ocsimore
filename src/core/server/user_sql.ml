@@ -703,8 +703,11 @@ let user_descr = function
 let user_type = function
   | BasicUser u ->
       (get_basicuser_data u >>= function
-         | { user_pwd = Connect_forbidden } -> Lwt.return `Group
-         | _ -> Lwt.return `User)
+         | { user_pwd = Connect_forbidden; _ } -> Lwt.return `Group
+         | { user_pwd = Ocsimore_user_plain _; _ }
+         | { user_pwd = Ocsimore_user_crypt _; _ }
+         | { user_pwd = Ocsimore_user_safe _; _ }
+         | { user_pwd = External_Auth; _ } -> Lwt.return `User)
   | NonParameterizedGroup _ | AppliedParameterizedGroup _ -> Lwt.return `Role
 
 (** Users settings *)

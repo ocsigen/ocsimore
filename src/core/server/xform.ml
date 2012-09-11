@@ -172,9 +172,12 @@ end) = struct
   let opt_outcome x = match x with None -> Redisplay | Some v -> Success v
   let outcome_pair o1 o2 =
     match o1, o2 with
-        Error, _ | _, Error    -> Error
+      | Error, _
+      | _, Error               -> Error
       | Success v1, Success v2 -> Success (v1, v2)
-      | _                      -> Redisplay
+      | Redisplay, Success _
+      | Success _, Redisplay
+      | Redisplay, Redisplay   -> Redisplay
   let outcome_map f o =
     match o with
         Error     -> Error

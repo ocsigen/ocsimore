@@ -72,14 +72,16 @@ let edit_forum_form ~serv_path:_ ~service ~arg
     let title = match error with
       | Xform.NoError ->
           Printf.sprintf "Forum '%s' (ID %s)" info.f_title (string_of_forum forum)
-      | _ -> "Error" in
+      | Xform.ErrorMsg _
+      | Xform.ErrorNoMsg -> "Error" in
     Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
                  [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
                     [Html5.F.pcdata err]
                  ]
-             | _ -> [])
+             | Xform.NoError
+             | Xform.ErrorNoMsg -> [])
        @  [form]
       )
   in
@@ -137,14 +139,16 @@ let create_forum_form ~serv_path:_ ~service ~arg
   let page _arg error form =
     let title = match error with
       | Xform.NoError -> "Create forum"
-      | _ -> "Error" in
+      | Xform.ErrorMsg _
+      | Xform.ErrorNoMsg -> "Error" in
     Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
                  [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
                     [Html5.F.pcdata err]
                  ]
-             | _ -> [])
+             | Xform.ErrorNoMsg
+             | Xform.NoError -> [])
        @  [form] )
   in
   let open Xform.XformLwt in

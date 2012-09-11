@@ -50,20 +50,39 @@ let link_regexp =
 
 let is_a node = match Xml.content node with
   | Xml.Node ("a", _, _) -> true
-  | _ -> false
+  | Xml.Empty
+  | Xml.Comment _
+  | Xml.EncodedPCDATA _
+  | Xml.PCDATA _
+  | Xml.Entity _
+  | Xml.Leaf _
+  | Xml.Node _ -> false
 
 let get_href node = match Xml.content node with
   | Xml.Node ("a", attribs, _) -> begin
     let a_href = List.find (fun a -> Xml.aname a = "href") attribs in
     match Xml.acontent a_href with
       | Xml.AStr href -> href
-      | _ -> assert false
+      | Xml.AFloat _
+      | Xml.AInt _
+      | Xml.AStrL _ -> assert false
   end
-  | _ -> assert false
+  | Xml.Empty
+  | Xml.Comment _
+  | Xml.EncodedPCDATA _
+  | Xml.PCDATA _
+  | Xml.Entity _
+  | Xml.Leaf _
+  | Xml.Node _ -> assert false
 
 let get_node_contents node = match Xml.content node with
   | Xml.Node (_, _, contents) -> contents
-  | _ -> assert false
+  | Xml.Empty
+  | Xml.Comment _
+  | Xml.EncodedPCDATA _
+  | Xml.PCDATA _
+  | Xml.Entity _
+  | Xml.Leaf _ -> assert false
 
 let get_headline_level node = match Xml.content node with
     | Xml.Node (name, _, _) when name = "h6" -> 6
@@ -72,7 +91,13 @@ let get_headline_level node = match Xml.content node with
     | Xml.Node (name, _, _) when name = "h3" -> 3
     | Xml.Node (name, _, _) when name = "h2" -> 2
     | Xml.Node (name, _, _) when name = "h1" -> 1
-    | _ -> assert false
+    | Xml.Empty
+    | Xml.Comment _
+    | Xml.EncodedPCDATA _
+    | Xml.PCDATA _
+    | Xml.Entity _
+    | Xml.Leaf _
+    | Xml.Node _ -> assert false
 
 let build_node ~create_service (contents: Xml.elt list) tree =
   match contents with
@@ -170,7 +195,8 @@ let get_nodes bi args contents =
             lwt data = Lwt_io.read ch in
             lwt nodes = Wiki_syntax.xml_of_wiki (Wiki_syntax.cast_wp Wiki_syntax.menu_parser) bi data in
             Lwt.return nodes)
-      | _ ->  Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
+      | Ocsigen_local_files.RDir _ ->
+        Lwt.fail (Error (Printf.sprintf "Can't find file (%s)" file))
   with
     | Not_found ->
         begin match contents with

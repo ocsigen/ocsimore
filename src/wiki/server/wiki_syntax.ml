@@ -1323,7 +1323,10 @@ let menu_make_href _ c _ =
     match link_kind c with
       | Wiki_page (Some wiki,page,None) ->
           String_href ("wiki(" ^ Wiki_types.string_of_wiki wiki ^ "):" ^ page)
-      | _ -> String_href ""
+      | Wiki_page _
+      | Href _
+      | Site _
+      | Absolute _ -> String_href ""
   with Failure _ ->
     String_href c
 

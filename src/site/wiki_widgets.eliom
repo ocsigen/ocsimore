@@ -1709,7 +1709,7 @@ object (self)
                lwt xml = Wiki_syntax.xml_of_wiki
                  (Wiki_syntax.cast_wp Wiki_syntax.wikicreole_parser) bi data in
                Lwt.return (Some xml))
-       | _ -> Lwt.return None in
+       | Ocsigen_local_files.RDir _ -> Lwt.return None in
      lwt gen_box =
        (self#display_wikipage_wikibox ~wiki ~page ~subbox ()
         :> (sectioning:bool -> Wiki_widgets_interface.menu_style ->

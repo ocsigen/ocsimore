@@ -58,7 +58,7 @@ let process_auxfile
     match resolver file with
     | Ocsigen_local_files.RFile file ->
       Eliom_registration.appl_self_redirect (Eliom_registration.File.send ?options) file
-    | _ -> raise Dir
+    | Ocsigen_local_files.RDir _ -> raise Dir
   with
   | Ocsigen_local_files.Failed_404 | Undefined ->
     lwt (html, _) =

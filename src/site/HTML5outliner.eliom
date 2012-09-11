@@ -130,8 +130,9 @@
 
   let rec rebuild st =
     match st.context, st.heading with
-    | [], _ | [(Top, [], None), []], Unnamed _ -> st.outline
-    | _ -> rebuild (step_up st)
+    | [], _
+    | [(Top, [], None), []], Unnamed _ -> st.outline
+    | _, Named _ | _, Unnamed _ -> rebuild (step_up st)
 
   let init_st ?(ignore = (fun _ -> false)) tag =
     { heading = Unnamed tag; outline = []; context = [(Top, [], None), []]; ignore }

@@ -177,7 +177,17 @@ module Make(B : Builder) = struct
   let push c v =
     match c.stack with
       | Link _ -> c.link_content <- v :: c.link_content
-      | _      -> c.phrasing_mix <- B.phrasing v :: c.phrasing_mix
+      | Style _
+      | Paragraph _
+      | Heading _
+      | List_item _
+      | List _
+      | Descr_def _
+      | Descr_title _
+      | Descr _
+      | Table _
+      | Row _
+      | Entry _ -> c.phrasing_mix <- B.phrasing v :: c.phrasing_mix
 
 let push_string c s = push c (B.chars s)
 
@@ -274,9 +284,20 @@ let style_change c style att parse_attribs lexbuf =
   let atts = read_attribs att parse_attribs c lexbuf in
   if get_style c style then begin
     match c.stack with
-      Style (s, phrasing, attribs, stack) when s = style ->
+      | Style (s, phrasing, attribs, stack) when s = style ->
         pop_style c style phrasing attribs stack;
-    | _ ->
+      | Style _
+      | Link _
+      | Paragraph _
+      | Heading _
+      | List_item _
+      | List _
+      | Descr_def _
+      | Descr_title _
+      | Descr _
+      | Table _
+      | Row _
+      | Entry _ ->
         push_string c "**";
         push_string c att
   end else begin
@@ -294,32 +315,51 @@ let pop_link c addr attribs stack =
 
 let close_entry c =
   match c.stack with
-    Entry (heading, attribs, Row (entries, row_attribs, stack)) ->
+    | Entry (heading, attribs, Row (entries, row_attribs, stack)) ->
       c.stack <- Row ((heading, attribs, List.rev c.phrasing_mix) :: entries,
                       row_attribs,
                       stack);
       c.phrasing_mix <- [];
       true
-  | Row _ ->
+    | Row _ ->
       true
-  | Table _ ->
+    | Table _ ->
       (*VVV attribs? *)
       c.stack <- Row ([(false, [], List.rev c.phrasing_mix)], [], c.stack);
       c.phrasing_mix <- [];
       true
-  | _ ->
+    | Style _
+    | Link _
+    | Paragraph _
+    | Heading _
+    | List_item _
+    | List _
+    | Descr_def _
+    | Descr_title _
+    | Descr _
+    | Entry _ ->
       false
 
 let close_row c =
   close_entry c &&
   match c.stack with
-    Row (entries, row_attribs, Table (rows, table_attribs)) ->
+    | Row (entries, row_attribs, Table (rows, table_attribs)) ->
       c.stack <- Table (((List.rev entries, row_attribs) :: rows),
                         table_attribs);
       true
-  | Table _ ->
+    | Table _ ->
       true
-  | _ ->
+    | Style _
+    | Link _
+    | Paragraph _
+    | Heading _
+    | List_item _
+    | List _
+    | Descr_def _
+    | Descr_title _
+    | Descr _
+    | Row _
+    | Entry _ ->
       assert false
 
 let close_descr_entry c =
@@ -334,7 +374,16 @@ let close_descr_entry c =
         c.descr <- (true, List.rev c.phrasing_mix, attribs) :: c.descr;
         c.phrasing_mix <- [];
         true
-    | _ ->
+    | Style _
+    | Link _
+    | Paragraph _
+    | Heading _
+    | List_item _
+    | List _
+    | Descr _
+    | Table _
+    | Row _
+    | Entry _ ->
         false
 
 
@@ -490,7 +539,20 @@ rule parse_bol c =
       let l = count '=' (Lexing.lexeme lexbuf) in
       end_section c l;
       push_section c l;
-      assert (match c.stack with Paragraph _ -> true | _ -> false);
+      assert (match c.stack with
+        | Paragraph _ -> true
+        | Style _
+        | Link _
+        | Heading _
+        | List_item _
+        | List _
+        | Descr_def _
+        | Descr_title _
+        | Descr _
+        | Table _
+        | Row _
+        | Entry _ -> false
+      );
       c.stack <- Heading (l, read_attribs att parse_attribs c lexbuf);
       c.heading <- true;
       parse_rem c lexbuf
@@ -591,7 +653,17 @@ rule parse_bol c =
       then
 	(match c.stack with
            | Paragraph _ -> c.stack <- Paragraph attribs
-           | _ -> ());
+           | Style _
+           | Link _
+           | Heading _
+           | List_item _
+           | List _
+           | Descr_def _
+           | Descr_title _
+           | Descr _
+           | Table _
+           | Row _
+           | Entry _ -> ());
       parse_rem c lexbuf
     }
   | "" {
@@ -653,7 +725,17 @@ and parse_rem c =
       begin match c.stack with
         Link (addr, attribs, stack) ->
           pop_link c addr attribs stack
-      | _ ->
+        | Style _
+        | Paragraph _
+        | Heading _
+        | List_item _
+        | List _
+        | Descr_def _
+        | Descr_title _
+        | Descr _
+        | Table _
+        | Row _
+        | Entry _ ->
           push_chars c lexbuf
       end;
       parse_rem c lexbuf
@@ -726,7 +808,15 @@ and parse_rem c =
       (match c.stack with
          | Entry _ | Row _ | Table _ -> ()
              (* we skip ending | if in table row *)
-         | _ -> push_chars c lexbuf);
+         | Style _
+         | Link _
+         | Paragraph _
+         | Heading _
+         | List_item _
+         | List _
+         | Descr_def _
+         | Descr_title _
+         | Descr _ -> push_chars c lexbuf);
       parse_bol c lexbuf
     }
   | '|' (("@@" ?) as att) {

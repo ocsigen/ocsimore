@@ -248,14 +248,17 @@ let create_wiki_form ~serv_path:_ ~service ~arg
   let page _arg error frm =
     let ttl = match error with
       | Xform.NoError -> "Wiki creation"
-      | _ -> "Error" in
+      | Xform.ErrorNoMsg
+      | Xform.ErrorMsg _ -> "Error"
+    in
     Page_site.admin_page ~service:(cast_service service) ~title:ttl
       Html5.F.(
         (match error with
            | Xform.ErrorMsg err ->
                [p ~a:[a_class ["errmsg"]]
                   [pcdata err] ]
-           | _ -> []
+           | Xform.ErrorNoMsg
+           | Xform.NoError -> []
         ) @
         [frm]
       )
@@ -366,14 +369,16 @@ let edit_wiki_form ~service ~arg
   let page _arg error form =
     let title = match error with
       | Xform.NoError -> "Wiki edition "^wiki_naming
-      | _ -> "Error editing "^wiki_naming in
+      | Xform.ErrorMsg _
+      | Xform.ErrorNoMsg -> "Error editing "^wiki_naming in
     Page_site.admin_page ~service:(cast_service service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
                  [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
                     [Html5.F.pcdata err]
                  ]
-             | _ -> [])
+             | Xform.ErrorNoMsg
+             | Xform.NoError -> [])
        @  [form]
       )
   in
