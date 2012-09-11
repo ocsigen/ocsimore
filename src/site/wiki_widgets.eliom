@@ -58,7 +58,7 @@ class wikibox_error_box = object
 
   inherit Widget.widget_with_error_box as error_box
 
-  method display_error_box ?classes ?message ?exc () =
+  method! display_error_box ?classes ?message ?exc () =
     match exc with
       | Some (Wiki_data.Unknown_box (wb, ver)) ->
           error_box#display_error_box ?classes ?exc
@@ -1845,7 +1845,7 @@ object (self)
 
   inherit dynamic_wikibox error_box user_widgets
 
-  method draw_edit_form
+  method! draw_edit_form
          ~page ~rows:_ ~cols:_
          wb warning1 warning2 curversion content
          previewonly
@@ -1873,7 +1873,7 @@ object (self)
     ]
 
 
-  method display_wikitext_edit_form_help
+  method! display_wikitext_edit_form_help
       ~bi
       ~classes ?rows ?cols
       ~previewonly ~wb

@@ -214,25 +214,25 @@ class wikiperso_rights =
 object
   inherit Wiki.wiki_rights as super
 
-  method can_create_wiki = perm super#can_create_wiki
-  method can_admin_wiki = perm super#can_admin_wiki
-  method can_edit_metadata = perm super#can_edit_metadata
+  method! can_create_wiki = perm super#can_create_wiki
+  method! can_admin_wiki = perm super#can_admin_wiki
+  method! can_edit_metadata = perm super#can_edit_metadata
 
-  method can_admin_wikibox = perm super#can_admin_wikibox
-  method can_write_wikibox = perm super#can_write_wikibox
+  method! can_admin_wikibox = perm super#can_admin_wikibox
+  method! can_write_wikibox = perm super#can_write_wikibox
 
-  method can_create_wikipages = perm super#can_create_wikipages
-  method can_create_subwikiboxes = perm super#can_create_subwikiboxes
-  method can_create_wikiboxes = perm super#can_create_wikiboxes
-  method can_delete_wikiboxes = perm super#can_delete_wikiboxes
+  method! can_create_wikipages = perm super#can_create_wikipages
+  method! can_create_subwikiboxes = perm super#can_create_subwikiboxes
+  method! can_create_wikiboxes = perm super#can_create_wikiboxes
+  method! can_delete_wikiboxes = perm super#can_delete_wikiboxes
 
-  method can_create_wikicss = perm super#can_create_wikicss
-  method can_create_wikipagecss = perm super#can_create_wikipagecss
+  method! can_create_wikicss = perm super#can_create_wikicss
+  method! can_create_wikipagecss = perm super#can_create_wikipagecss
 
-  method can_set_wikibox_specific_permissions =
+  method! can_set_wikibox_specific_permissions =
     perm super#can_set_wikibox_specific_permissions
 
-  method can_admin_wikipage = perm super#can_admin_wikipage
+  method! can_admin_wikipage = perm super#can_admin_wikipage
 end
 
 let wikiperso_rights = new wikiperso_rights

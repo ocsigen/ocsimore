@@ -44,7 +44,7 @@ let () =
            | User_services.UserCreation options ->
              let user_widget_creation = object
                inherit User_widgets.user_widget
-               inherit User_widgets.user_widget_user_creation options
+               inherit! User_widgets.user_widget_user_creation options
              end in
              user_widget_creation#display_user_creation ()
          )
@@ -75,7 +75,7 @@ let () =
            | User_services.UserCreation options ->
              let user_widget_creation = object
                inherit User_widgets.user_widget
-               inherit User_widgets.user_widget_user_creation options
+               inherit! User_widgets.user_widget_user_creation options
              end in
              user_widget_creation#display_user_creation_done
                ~name ~fullname ~email ~pwd

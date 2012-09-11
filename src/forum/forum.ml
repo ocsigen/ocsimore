@@ -558,7 +558,7 @@ object (_self)
 
   inherit Wiki.wiki_rights as papa
 
-  method can_write_wikibox wb =
+  method! can_write_wikibox wb =
     papa#can_write_wikibox wb >>= fun b ->
     if b
     then Lwt.return true
@@ -572,7 +572,7 @@ object (_self)
       else Lwt.return false
     end
 
-  method can_read_wikibox wb =
+  method! can_read_wikibox wb =
     papa#can_read_wikibox wb >>= fun b ->
     if b
     then Lwt.return true
