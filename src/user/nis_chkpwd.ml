@@ -95,7 +95,8 @@ let check_passwd ~passwd ~hash =
 *)
 
 let check_nis ~login ~passwd =
-  run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |] >>= function
+  run_process "/usr/bin/ypmatch" [| "ypmatch"; login; "passwd" |]
+  >>= function
     | (Unix.WEXITED 0, output) ->
         begin try
           let start_hash = String.index output ':' in

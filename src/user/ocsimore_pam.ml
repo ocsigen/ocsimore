@@ -53,7 +53,7 @@ let pam_auth ?(service = "") ~name ~pwd =
 let parse_config conf =
   let inner = function
     | [] -> None
-    | [(Simplexmlparser.Element ("pam", ["service", s], []))] ->
+    | [Simplexmlparser.Element ("pam", ["service", s], [])] ->
       Some s
     | _ ->
       raise (Ocsigen_extensions.Error_in_config_file

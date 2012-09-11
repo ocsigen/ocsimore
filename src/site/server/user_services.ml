@@ -34,7 +34,7 @@ let default_data = (NoExternalAuth, true)
 let (>>=) = Lwt.bind
 
 let (auth, force_secure) =
-  let rec find_data ((auth, secure) as data) = function
+  let rec find_data ((auth, _secure) as data) = function
     | [] -> Lwt.return data
     | (Simplexmlparser.Element ("notsecure", [], []))::l ->
         find_data (auth, false) l
@@ -74,7 +74,7 @@ let external_auth = match auth with
       | [] -> None
       | auth_method::xs ->
         try Some auth_method
-        with exn -> inner xs
+        with _ -> inner xs
     in
     inner (User_external_auth.get_external_auths ())
 

@@ -25,7 +25,6 @@ User management
 @author Vincent Balat
 *)
 
-open Eliom_content
 open Eliom_lib
 open Lwt_ops
 open User_sql.Types
@@ -197,13 +196,9 @@ module DynGroups = Hashtbl.Make(
     let hash = Hashtbl.hash
   end)
 
-let add_dyn_group, in_dyn_group, fold_dyn_groups =
+let add_dyn_group, fold_dyn_groups =
   let table = DynGroups.create 5 in
   DynGroups.add table,
-  (fun k () ->
-    try
-      DynGroups.find table k ()
-    with Not_found -> Lwt.return false),
   (fun f -> DynGroups.fold f table)
 
 
@@ -294,7 +289,7 @@ let get_user_data () =
   get_user_sd () >>= User_sql.get_basicuser_data
 
 let get_user_name () =
-  get_user_data () >|= function { user_login } -> user_login
+  get_user_data () >|= function { user_login; _ } -> user_login
 
 let groups_table_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request (fun () -> Hashtbl.create 37)
 
@@ -363,7 +358,7 @@ let in_group_ ~user ~group () =
 
 let add_to_group ~(user:user) ~(group:user) =
   lwt dy =
-    User_sql.get_user_data group >|= fun { user_dyn } -> user_dyn
+    User_sql.get_user_data group >|= fun { user_dyn; _ } -> user_dyn
   in
   if dy
   then
@@ -416,17 +411,6 @@ let iter_list_group f ~l ~group =
 let add_list_to_group = iter_list_group add_to_group
 let remove_list_from_group = iter_list_group User_sql.remove_from_group
 
-let iter_user_list f ~user ~l =
-  List.fold_left
-    (fun beg g ->
-       lwt () = beg in
-       f ~user ~group:g)
-    (Lwt.return ())
-    l
-
-let add_user_to_list = iter_user_list add_to_group
-let remove_user_from_list = iter_user_list User_sql.remove_from_group
-
 
 
 let is_logged_on () =
@@ -452,7 +436,7 @@ let is_external_user () =
   get_user_data () >|= fun u -> u.user_pwd = External_Auth
 
 
-let external_users =
+let _external_users =
   Lwt_main.run
     (create_user ~name:"external_users" ~pwd:User_sql.Types.Connect_forbidden
        ~fullname:"Users using external authentification"

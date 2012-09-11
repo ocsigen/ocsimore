@@ -18,8 +18,6 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *)
 
-open Eliom_content
-
 exception Undefined
 
 type 'a resolver = 'a -> Ocsigen_local_files.resolved
@@ -63,13 +61,13 @@ let process_auxfile
     | _ -> raise Dir
   with
   | Ocsigen_local_files.Failed_404 | Undefined ->
-    lwt (html, code) =
+    lwt (html, _) =
       Wiki_site.wikibox_widget#display_wikibox
         ~wiki ~sectioning ~menu_style ~template ~wb:wb404 in
     Ocsimore_appl.send ~code:404 html
   | Ocsigen_local_files.NotReadableDirectory
   | Ocsigen_local_files.Failed_403 | Dir ->
-    lwt (html, code) =
+    lwt (html, _) =
       Wiki_site.wikibox_widget#display_wikibox
         ~wiki ~sectioning ~menu_style ~template ~wb:wb403 in
     Ocsimore_appl.send ~code:403 html

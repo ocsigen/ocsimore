@@ -297,7 +297,7 @@ let () =
   let regexp = Netstring_pcre.regexp "^wikiperso for (.*)$" in
   Lwt_main.run
   (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_title = title; wiki_siteid = siteid } ->
+     (fun { wiki_id = wiki; wiki_title = title; wiki_siteid = siteid; _ } ->
         (match Netstring_pcre.string_match regexp title 0 with
            | Some result ->
                let user = Netstring_pcre.matched_group result 1 title in

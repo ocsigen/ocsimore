@@ -9,7 +9,6 @@ let ( ** ) = P.( ** )
 
 let def d v = match v with None -> d | Some v -> v
 let opt_map f v = match v with None -> None | Some v -> Some (f v)
-let opt_bind v f = match v with None -> None | Some v -> f v
 
 type error =
   | NoError
@@ -58,7 +57,7 @@ module type Xform = sig
     ?a:Html5_types.input_attrib Html5.F.attrib list -> bool -> ([> Html5_types.input] Html5.F.elt, bool) t
   val text_area :
     ?a:Html5_types.textarea_attrib Html5.F.attrib list ->
-    rows:int -> cols:int -> string -> ([> Html5_types.textarea] Html5.F.elt, string) t
+    string -> ([> Html5_types.textarea] Html5.F.elt, string) t
   val submit_button : string -> ([> Html5_types.input ] Html5.F.elt, bool) t
   val select_single : (string * string) list -> string -> ([> Html5_types.select] Html5.F.elt, string) t
 (*val select_single : (string * 'a) list -> 'a -> (Html5_types.phrasing Html5.F.elt, 'a) t*)
@@ -168,7 +167,7 @@ end) = struct
     fun { unpack } -> unpack
 
   let id x =
-    unpack x {f = fun { id } -> id }
+    unpack x {f = fun { id; _ } -> id }
 
   let opt_outcome x = match x with None -> Redisplay | Some v -> Success v
   let outcome_pair o1 o2 =
@@ -207,7 +206,7 @@ end) = struct
        id}
 
 
-  let text_area ?a ~rows ~cols value =
+  let text_area ?a value =
     let id = fresh_id () in
     pack
       {form =
@@ -270,13 +269,6 @@ end) = struct
                 opt_outcome v'));
        params = string_param;
        id}
-
-  let rec mapi_rec f n l =
-    match l with
-        []   -> []
-      | a::l -> let r = f n a in r :: mapi_rec f (n + 1) l
-
-  let mapi f l = mapi_rec f 0 l
 
 (*
   let select_single lst n =
@@ -468,11 +460,6 @@ end) = struct
   let strong l = Html5.F.strong l
   let p (x : ([< Html5_types.p_content_fun] Html5.F.elt, 'b) t) =
     wrap (fun x -> [Html5.F.p x]) x
-
-  type +'a e = 'a Html5.F.elt
-
-  let f x = (x: Html5_types.phrasing :> Html5_types.flow5)
-  let g x = (x: Html5_types.phrasing Html5.elt :> Html5_types.flow5 Html5.elt)
 
   let hidden x =
     wrap

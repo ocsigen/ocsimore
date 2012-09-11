@@ -23,8 +23,6 @@
 *)
 open Eliom_content
 open Eliom_lib.Lwt_ops
-open Eliom_registration.Html5
-open Ocsimore_lib
 
 class widget = object end
 

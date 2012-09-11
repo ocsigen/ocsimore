@@ -22,7 +22,6 @@
 *)
 
 open Eliom_content
-open Opaque
 open Eliom_lib.Lwt_ops
 
 

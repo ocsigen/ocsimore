@@ -72,7 +72,7 @@
     | FoundNode t -> Js.Opt.return t
     | Not_found -> Js.Opt.empty
 
-  let rec rank_of_elt node =
+  let rank_of_elt node =
     match String.lowercase (Js.to_string node##nodeName) with
     | "h1" -> H1
     | "h2" -> H2
@@ -203,7 +203,7 @@
     find n##parentNode
 
   exception FoundFragment of outline
-  let rec find_fragment fragment outline =
+  let find_fragment fragment outline =
     let rec find (Section (_, f, outline)) =
       if f = Some fragment
       then raise (FoundFragment outline)

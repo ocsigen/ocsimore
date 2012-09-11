@@ -25,10 +25,8 @@
 *)
 
 open Eliom_content
-open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
-open Eliom_lib.Lwt_ops
 
 (**/**)
 
@@ -603,7 +601,7 @@ and delete_wiki = Eliom_registration.Action.register_post_coservice'
 
 let wiki_css_header =
   Page_site.Header.create_header
-    (fun sp ->
+    (fun _ ->
        [Eliom_content.Html5.F.css_link
           ~uri:(Page_site.static_file_uri ~path:["ocsiwikistyle.css"])
           ()
@@ -638,7 +636,7 @@ module Ui = struct
          lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
          lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
          let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
-         lwt typ, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
+         lwt _, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
          let content = match opt_content with | Some c -> c | None -> "DELETED" in
          lwt () = add_wiki_css_header () in
          lwt headers = Page_site.Header.generate_headers () in
@@ -660,7 +658,7 @@ module Ui = struct
     Ocsimore_appl.register_coservice'
       ~name:"edit_css_service"
       ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
-      (fun wb () ->
+      (fun _ () ->
          Lwt.fail (Failure "Not implemented"))
 
 end

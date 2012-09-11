@@ -502,7 +502,7 @@ rule parse_bol c =
         let s = Lexing.lexeme lexbuf in
         let l = String.index s '*' in
         if l > 0 then push_string c (String.sub s 0 l);
-        for i = 1 to lev / 2 - 1 do
+        for _i = 1 to lev / 2 - 1 do
           style_change c Bold "" parse_attribs lexbuf
         done;
         if lev land 1 = 1
@@ -523,7 +523,7 @@ rule parse_bol c =
         let s = Lexing.lexeme lexbuf in
         let l = String.index s '#' in
         if l > 0 then push_string c (String.sub s 0 l);
-        for i = 1 to lev / 2 - 1 do
+        for _i = 1 to lev / 2 - 1 do
           style_change c Monospace "" parse_attribs lexbuf
         done;
         if lev land 1 = 1

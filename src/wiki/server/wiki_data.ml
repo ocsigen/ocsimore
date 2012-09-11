@@ -149,7 +149,7 @@ let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~wb  ~special_
           (if special_rights then
              (* When the wikibox starts using specific permissions, we
                 automatically add the wiki defaults to the wikibox rights *)
-             Wiki_sql.get_wikibox_info wb >>= fun { wikibox_wiki = wiki } ->
+             Wiki_sql.get_wikibox_info wb >>= fun { wikibox_wiki = wiki; _ } ->
              User.GenericRights.iter_awr_lwt
                (fun it -> User_sql.add_to_group
                   ~user:(it.User.GenericRights.field Wiki.wiki_wikiboxes_grps $ wiki)
@@ -171,8 +171,8 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
     | true ->
         Lwt.catch
           (fun () ->
-             Wiki_sql.get_wikipage_info wiki page
-             >>= fun { wikipage_wikibox = wb } ->
+             Wiki_sql.get_wikipage_info ~wiki ~page
+             >>= fun { wikipage_wikibox = wb; _ } ->
              Lwt.fail (Page_already_exists wb)
           )
           (function

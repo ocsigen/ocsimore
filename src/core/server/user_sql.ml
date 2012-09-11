@@ -24,8 +24,6 @@
 
 open Eliom_lib.Lwt_ops
 
-open Ocsimore_lib
-open CalendarLib
 open Ocsi_sql
 
 module Types = struct
@@ -78,12 +76,6 @@ module Types = struct
     | AppliedParameterizedGroup of userid * int32
     | NonParameterizedGroup of userid
 
-  type user_descr = [
-    | `BasicUser of string
-    | `AppliedParameterizedGroup of string * int32
-    | `NonParameterizedGroup of string
-  ]
-
 
   let apply_parameterized_group g v =
     AppliedParameterizedGroup (g, Opaque.t_int32 v)
@@ -98,7 +90,8 @@ module Types = struct
 
   let is_basic_user = function
     | BasicUser u -> Some u
-    | _ -> None
+    | NonParameterizedGroup _
+    | AppliedParameterizedGroup _ -> None
 
 let user_is_applied_parameterized_group ~user ~pgroup =
   match user with
@@ -199,11 +192,6 @@ let add_to_group_aux db (u, vu) (g, vg) =
     idarg = of_option $map_option Sql.Value.int32 vu$;
     groupidarg = of_option $map_option Sql.Value.int32 vg$
   } >>)
-
-let populate_groups db user groups =
-  let (u, vu) = sql_from_user user in
-  Lwt_util.iter_serial (fun g -> add_to_group_aux db (u, vu) (sql_from_user g))
-    groups
 
 let add_to_group_ ~user ~group =
   Lwt_pool.use Ocsi_sql.pool
@@ -337,9 +325,6 @@ let find_user_by_name_ name =
         | None -> Lwt.fail NotAnUser
         | Some r -> Lwt.return (wrap_userdata r))
 
-let find_userid_by_name_ name =
-  Lwt_pool.use Ocsi_sql.pool (fun db -> find_userid_by_name_aux_ db name)
-
 
 let find_user_by_id_ id =
   let id = sql_from_userid id in
@@ -360,19 +345,19 @@ let all_users () =
   Lwt.return {
     users = lazy (
       List.filter
-        (fun {user_kind = u; user_pwd = a} ->
+        (fun {user_kind = u; user_pwd = a; _} ->
           u = `BasicUser && a <> Connect_forbidden
         ) list
     );
     groups = lazy (
       List.filter
-        (fun {user_kind = u; user_pwd = a} ->
+        (fun {user_kind = u; user_pwd = a; _} ->
           u = `BasicUser && a = Connect_forbidden
         ) list
     );
     roles = lazy (
       List.filter
-        (fun {user_kind = u} ->
+        (fun {user_kind = u; _} ->
           u <> `BasicUser
         ) list
     );
@@ -527,7 +512,7 @@ let get_user_data = function
       match ud.user_kind with
         | `ParameterizedGroup param ->
             (match param with
-               | Some { param_display = Some f } ->
+               | Some { param_display = Some f; _ } ->
                    Lwt.catch
                      (fun () -> f v)
                      (fun _ -> Lwt.return (Int32.to_string v))
@@ -593,7 +578,7 @@ let nusercache = new NUserCache.cache
                    (try Lwt.return (Int32.of_string v)
                     with _ ->
                       match param with
-                        | Some { find_param_functions = Some (f1, _) } ->
+                        | Some { find_param_functions = Some (f1, _); _ } ->
                             Lwt.catch (fun () -> f1 v)
                               (function _ -> Lwt.fail NotAnUser)
                         | _ -> raise NotAnUser
@@ -679,7 +664,7 @@ let delete_user ~userid =
 
 let userid_to_string u =
   get_basicuser_data u
-  >>= fun { user_login = r } -> Lwt.return r
+  >>= fun { user_login = r; _ } -> Lwt.return r
 
 let user_to_string ?(expand_param=true) = function
   | BasicUser u | NonParameterizedGroup u -> userid_to_string u

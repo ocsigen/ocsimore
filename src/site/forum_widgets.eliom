@@ -246,7 +246,7 @@ class thread_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget)
   (add_message_widget : add_message_widget)
-  services =
+  _ =
 object (self)
 
   val thr_class = "ocsiforum_thread"
@@ -476,8 +476,8 @@ object (self)
 end
 
 class forum_widget
-  (widget_with_error_box : Widget.widget_with_error_box) =
-object (self)
+  (_ : Widget.widget_with_error_box) =
+object (_)
 
      method display_all_forums : Html5_types.flow5 Html5.F.elt list Lwt.t =
      lwt forums = Forum_data.get_forums_list () in

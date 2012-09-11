@@ -22,7 +22,6 @@ Parsing the global Ocsimore configuration
 
 @author Vincent Balat
 *)
-open Eliom_content
 
 let unexpected_pcdata ~in_tag pcdata =
   Ocsigen_extensions.Error_in_config_file

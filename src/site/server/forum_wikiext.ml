@@ -34,7 +34,7 @@ let register_wikiext
     ((message_widget : Forum_widgets.message_widget),
      (thread_widget : Forum_widgets.thread_widget),
      (message_list_widget : Forum_widgets.message_list_widget)) =
-  let f_forum_message bi args content =
+  let f_forum_message _ args content =
     `Flow5
       (let classes =
          try Some [List.assoc "class" args]
@@ -57,7 +57,7 @@ let register_wikiext
   Wiki_syntax.register_simple_flow_extension
     ~name:"forum_message" ~reduced:false f_forum_message;
 
-  let f_forum_thread bi args content =
+  let f_forum_thread _ args content =
     `Flow5
       (let classes =
          try Some [List.assoc "class" args]
@@ -88,7 +88,7 @@ let register_wikiext
   Wiki_syntax.register_simple_flow_extension
     ~name:"forum_thread" ~reduced:false f_forum_thread;
 
-  let f_forum_message_list bi args content =
+  let f_forum_message_list _ args content =
     `Flow5
       (let classes =
          try Some [List.assoc "class" args]

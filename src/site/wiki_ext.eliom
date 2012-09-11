@@ -233,7 +233,7 @@ let register_wikibox_syntax_extensions
   Wiki_syntax.register_link_phrasing_extension ~name:"nonattachedlink-inline"
     f_nonattachedlink;
 
-  let f_cancellink bi args c =
+  let f_cancellink _ args c =
     let content = match c with
       | Some c -> c
       | None -> Lwt.return [Html5.F.pcdata "Cancel"]
@@ -293,7 +293,7 @@ let register_wikibox_syntax_extensions
   in
   Wiki_syntax.register_simple_flow_extension ~name:"img" ~reduced:false f_img;
 
-  let f_switchmenu bi args _c =
+  let f_switchmenu _ args _c =
     `Phrasing_without_interactive
       (let atts = Wiki_syntax.parse_common_attribs args in
        Lwt.return

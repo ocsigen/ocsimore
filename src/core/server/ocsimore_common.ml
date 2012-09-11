@@ -20,8 +20,6 @@
    @author Vincent Balat
 *)
 
-open Eliom_content
-
 exception Ok
 
 exception Permission_denied

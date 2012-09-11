@@ -212,7 +212,6 @@ let admin_page
       content =
   lwt menu = admin_menu ?service () in
   lwt status = status_text () in
-  lwt usr_id = User.get_user_id () in
   html_page ~title:"Ocsimoreadmin" ~heading:title ~css ~body_classes:("admin" :: body_classes)
     (  menu ()
      @ Html5.F.div ~a:[Html5.F.a_id "admin_body"] content

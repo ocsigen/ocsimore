@@ -50,7 +50,13 @@ let message_param = {
 (** {2 Forum related groups} *)
 
 let aux_grp name descr param =
-  Lwt_main.run (User_sql.new_parameterized_group "forum" name descr param)
+  Lwt_main.run (
+    User_sql.new_parameterized_group
+      ~prefix:"forum"
+      ~name
+      ~descr
+      ~find_param:param
+  )
 
 let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
@@ -557,7 +563,8 @@ object (_self)
     if b
     then Lwt.return true
     else begin
-      Wiki_sql.get_wikibox_info wb >>= fun { Wiki_types.wikibox_wiki = wiki} ->
+      Wiki_sql.get_wikibox_info wb
+      >>= fun { Wiki_types.wikibox_wiki = wiki; _ } ->
       User.in_group ~group:(message_modifiers_if_creator $ wiki) ()
       >>= fun b ->
       if b
@@ -570,7 +577,8 @@ object (_self)
     if b
     then Lwt.return true
     else begin
-      Wiki_sql.get_wikibox_info wb >>= fun { Wiki_types.wikibox_wiki = wiki} ->
+      Wiki_sql.get_wikibox_info wb
+      >>= fun { Wiki_types.wikibox_wiki = wiki; _ } ->
       User.in_group ~group:(moderated_message_readers $ wiki) ()
       >>= fun b ->
       if b

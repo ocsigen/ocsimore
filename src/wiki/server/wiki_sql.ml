@@ -23,8 +23,6 @@
 
 open Opaque
 open Lwt
-open Ocsimore_lib
-open CalendarLib
 open Ocsi_sql
 
 
@@ -497,15 +495,6 @@ let find_wiki_by_name_ ?db name =
          | None -> Lwt.fail Not_found
     )
 
-let find_wiki_by_pages_ ?db page =
-  wrap db
-    (fun db ->
-       Lwt_Query.view_opt db (<:view< w | w in $wikis$; w.pages = $string:page$ >>)
-       >>= function
-         | Some c -> Lwt.return (reencapsulate_wiki c)
-         | None -> Lwt.fail Not_found
-    )
-
 let iter_wikis ?db f =
   wrap db
     (fun db ->
@@ -540,12 +529,6 @@ let get_css_wikibox_aux_ ?db ~wiki ~page () =
             (wikibox_of_sql data#!wikibox, media, data#!rank))
     )
 
-
-let get_css_wikibox_for_wikipage_ ?db ~wiki ~page =
-  get_css_wikibox_aux_ ?db ~wiki ~page:(Some page)
-
-let get_css_wikibox_for_wiki_ ?db ~wiki =
-  get_css_wikibox_aux_ ?db ~wiki ~page:None
 
 let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
   let media = string_of_media_type media in

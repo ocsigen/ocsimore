@@ -59,7 +59,7 @@ class type user_widget_class = object
       Eliom_registration.Block5.page Lwt.t
 
   method display_group :
-    user * string -> Eliom_registration.Block5.page Lwt.t
+    user -> Eliom_registration.Block5.page Lwt.t
 
   method display_login_widget :
     ?user_prompt:string ->
@@ -142,10 +142,6 @@ class type user_widget_user_creation_class = object
   method login_box_extension : Html5_types.div_content_fun Html5.F.elt list Lwt.t
 end
 
-
-
-open Xform.XformLwt
-open Ops
 
 
 (** Widget for user login/logout/edition without addition of new users *)
@@ -394,9 +390,9 @@ object (self)
       [Html5.F.pcdata group] group
 
 
-  method display_group (group, g) = (* WHY g is not used ? *)
+  method display_group group =
     lwt gtype = User_sql.user_type group in
-    let ctext, text, gtypedescr = match gtype with
+    let _, text, gtypedescr = match gtype with
       | `Role  -> ("Role",  "role",  "Description")
       | `User  -> ("User",  "user",  "Name"       )
       | `Group -> ("Group", "group", "Description")
@@ -593,10 +589,10 @@ object (self)
     (if basicusercreation then (
       match registration_mail_from with
         | "" -> Lwt.fail (Failure "Missing registration_mail_from attribute")
-        | registration_mail_from -> (
+        | _ -> (
           match registration_mail_addr with (* TODO: Match for non-valide email *)
             | "" -> Lwt.fail (Failure "Missing registration_mail_addr attribute")
-            | registration_mail_addr ->
+            | _ ->
               Lwt.return ()
         )
      )
@@ -637,7 +633,7 @@ object (self)
       (match u.user_kind with
         | `ParameterizedGroup param ->
           (match param with
-            | Some { param_description = param } ->
+            | Some { param_description = param; _ } ->
               (match param with
                 | "login of the user" -> User_sql.get_users_login ()
                 | "id of the forum" -> Forum_sql.get_forums_id ()

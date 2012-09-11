@@ -48,7 +48,7 @@ module type Xform = sig
 
   val text_area :
     ?a:Html5_types.textarea_attrib Html5.F.attrib list
-    -> rows:int -> cols:int -> string
+    -> string
     -> ([> Html5_types.textarea] Html5.F.elt, string) t
 
   val submit_button : string -> ([> Html5_types.input ] Html5.F.elt, bool) t

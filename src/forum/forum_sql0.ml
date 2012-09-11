@@ -24,7 +24,6 @@
 *)
 
 open Eliom_lib.Lwt_ops
-open User_sql.Types
 open Ocsi_sql
 
 (* This file is here to remove a circular dependancy of Forum_sql *)

@@ -68,16 +68,6 @@ let element c = (* : 'a Lwt.t list Lwt.t -> 'a list Lwt.t *)
                y::ys
   in aux c
 
-let length_of_string s = (*FIXME?*)
-  let re = Netstring_pcre.regexp "(\\d+) *(px|%)" in
-  match Netstring_pcre.string_match re s 0 with
-    | None -> failwith "Not a valid length identifier"
-    | Some r -> match Netstring_pcre.matched_group r 1 s with
-        | "%" -> `Percent (int_of_string (Netstring_pcre.matched_group r 0 s))
-        | "px" -> `Pixels (int_of_string (Netstring_pcre.matched_group r 0 s))
-        | _ -> (assert false)
-
-
 let rec filter_raw = function (* /!\ NOT TAIL REC /!\ *)
   | [] -> []
   | None :: xs -> filter_raw xs
@@ -90,8 +80,6 @@ let apply_opt f = function
 let unopt ~def = function
   | None -> def
   | Some x -> x
-
-let unopt_string s = unopt ~def:"" s
 
 
 let parse_common_attribs ?classes attribs =
@@ -140,29 +128,6 @@ let parse_valign_attrib attribs =
     ))
   with Not_found -> None
 *)
-
-let parse_align_attrib attribs =
-  try
-    Some (Html5.F.a_align (match List.assoc "align" attribs with
-                              |"left" -> `Left
-                              |"right" -> `Right
-                              (* |"center" -> `Center no more in HTML5 *)
-                              |"justify" -> `Justify
-                              |"char" -> `Char
-                              | _ -> raise Not_found
-    ))
-  with Not_found -> None
-
-let parse_scope_attrib attribs =
-  try
-    Some (Html5.F.a_scope (match List.assoc "scope" attribs with
-                             |"row" -> `Row
-                             |"col" -> `Col
-                             |"rowgroup" -> `Rowgroup
-                             |"colgroup" -> `Colgroup
-                             | _ -> raise Not_found
-    ))
-  with Not_found -> None
 
 (* no any of this in html5
 let parse_table_row_attribs attribs =
@@ -280,9 +245,6 @@ let descr_builder l =
   in
   lwt l = Lwt_list.map_s ddt_builder l in
   Lwt.return (combine [] l)
-
-let phrasing (x : Html5_types.phrasing Html5.F.elt list) : Html5_types.phrasing_without_interactive Html5.F.elt list =
-  [Html5.F.span x]
 
 type ('a,'b, 'kind, 'suff, 'reg, 'appl) wiki_service =
     ('a, unit,
@@ -494,15 +456,6 @@ let link_kind addr =
           |  _ -> Absolute addr
         end
 
-let remove_first_slash s =
-  let l = String.length s in
-  if l = 0
-  then s
-  else
-    if s.[0] = '/'
-    then String.sub s 1 (l - 1)
-    else s
-
 (* This function is used to translate a sub-tree of a wiki into a new wiki *)
 (* newwikipath is relative to oldwiki's path *)
 (* NOT USED
@@ -577,7 +530,6 @@ let translate_link ~oldwiki ~newwiki ~newwikipath addr frag attribs wb =
 (** **)
 
 type preparser = Wiki_syntax_types.preparser
-type desugarer = Wiki_syntax_types.desugarer
 type 'a wikicreole_parser = 'a Wiki_syntax_types.wikicreole_parser
 
 type ('a, 'b, 'c) ext_wikicreole_parser =
@@ -713,9 +665,6 @@ module MakeParser(B: RawParser) :
 
   type interactive_plugin_content =
       (res, res_without_interactive, link_content) plugin_content
-
-  type non_interactive_plugin_content =
-      (res_without_interactive, link_content) ni_plugin_content
 
   type simple_plugin =
       Wiki_widgets_interface.box_info -> Wikicreole.attribs ->
@@ -1206,7 +1155,7 @@ module MakeParser(B: RawParser) :
                 )
         in
         try
-          let plugin, preparser = Hashtbl.find plugin_assoc name in
+          let plugin, _ = Hashtbl.find plugin_assoc name in
           let content' =
             match plugin with
               | SimplePlugin _ ->
@@ -1240,7 +1189,7 @@ module MakeParser(B: RawParser) :
         fun _ _ _ _ _ -> ()
 
       let href_action : string -> string option -> _ -> int * int -> param -> unit =
-        fun addr fragment attribs ((start, end_) as pos) (subst, wikipage) ->
+        fun addr fragment _ ((start, end_) as pos) (subst, wikipage) ->
           subst := (start,
                     end_,
                     try !normalize_href_ref pos addr fragment wikipage
@@ -1368,7 +1317,7 @@ let make_href bi addr fragment =
 (********************************)
 (* builders. Default functions: *)
 
-let menu_make_href bi c fragment =
+let menu_make_href _ c _ =
   (* Accept only simple page. Ignore fragment and anything else silently... *)
   try
     match link_kind c with
@@ -1678,13 +1627,13 @@ module FlowBuilder = struct
     element content >|= List.flatten >|= fun r ->
       [(Html5.F.span ?a r : [>`Span] Html5.F.elt)]
 
-  let ignore_a_elem_phrasing attribs addr content = span_elem attribs content
-  let ignore_a_elem_flow attribs addr content =
+  let ignore_a_elem_phrasing attribs _ content = span_elem attribs content
+  let ignore_a_elem_flow attribs _ content =
     let a = opt_list (parse_common_attribs attribs) in
     element content >|= List.flatten >|= fun r ->
     [(Html5.F.div ?a r : [>`Div] Html5.F.elt)]
 
-  let default_extension ~name bi attribs content =
+  let default_extension ~name _ attribs content =
     let s = string_of_extension name attribs content in
      Lwt.return [Html5.F.pcdata s]
   let default_ni_extension = default_extension
@@ -2037,7 +1986,6 @@ module ButtonParser = MakeParser(struct
   let flow x = (x: flow_without_interactive :> flow)
   type phrasing = text  Html5.F.elt list Lwt.t
   type phrasing_without_interactive = link_content Html5.F.elt list Lwt.t
-  let phrasing x = (x : phrasing_without_interactive :> phrasing)
   type uo_list = list_item Html5.F.elt list Lwt.t
   let list x = (x : uo_list :> flow_without_interactive)
   (* *)
@@ -2534,7 +2482,7 @@ let register_link_phrasing_extension ~name ?(reduced = true) ?preparser
 
 (* Extensions: div; aside; article; nav; section; header; footer *)
 
-let f_block make bi args content =
+let f_block make _ args content =
   `Flow5
     ( let a = Some (parse_common_attribs args) in
       match content with
@@ -2580,7 +2528,7 @@ let () =
 
 (* pre *)
 
-let f_pre bi args content =
+let f_pre _ args content =
   `Flow5
     (lwt content = match content with
        | None -> Lwt.return []
@@ -2602,7 +2550,7 @@ let () =
 
 (* span *)
 
-let f_span bi args content =
+let f_span _ args content =
   `Phrasing_without_interactive
     (lwt content = match content with
        | None -> Lwt.return []
@@ -2823,7 +2771,7 @@ let () =
 
 (* sectioning *)
 
-let f_sectioning bi attribs content =
+let f_sectioning _ _ content =
   `Flow5
     (match content with
      | None -> Lwt.return []

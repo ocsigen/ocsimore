@@ -103,7 +103,7 @@ let () =
        if group = basic_user User.nobody && g <> User.nobody_login then
          Lwt.fail (Failure ("Unknown group "^g))
        else
-         user_widget#display_group (group, g)
+         user_widget#display_group group
      in
      Page_site.admin_body_content_with_permission_handler
        ~title:(fun g _ -> Lwt.return (Printf.sprintf "View group %S" g))

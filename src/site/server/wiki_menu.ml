@@ -65,7 +65,7 @@ let get_node_contents node = match Xml.content node with
   | Xml.Node (_, _, contents) -> contents
   | _ -> assert false
 
-let rec get_headline_level node = match Xml.content node with
+let get_headline_level node = match Xml.content node with
     | Xml.Node (name, _, _) when name = "h6" -> 6
     | Xml.Node (name, _, _) when name = "h5" -> 5
     | Xml.Node (name, _, _) when name = "h4" -> 4
@@ -193,7 +193,7 @@ let get_nodes bi args contents =
 
 (** Process extension *)
 
-let get_kind bi args =
+let get_kind _ args =
   try
     match List.assoc "kind" args with
     | "depth" -> `DepthFirst
@@ -202,12 +202,12 @@ let get_kind bi args =
   with
   | Not_found -> `DepthFirstWhole
 
-let get_class bi args =
+let get_class _ args =
   try
     let a = List.assoc "class" args in
     Some (String.split ~multisep:true ' ' a)
   with Not_found -> None
-let get_id bi args =
+let get_id _ args =
   try
     Some (List.assoc "id" args)
   with Not_found -> None

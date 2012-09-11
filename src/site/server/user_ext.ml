@@ -27,9 +27,7 @@
 *)
 
 open Eliom_content
-open Eliom_parameter
 open User_sql.Types
-open Wiki_widgets_interface
 
 let (>>=) = Lwt.bind
 let (>|=) = Lwt.(>|=)
@@ -42,7 +40,7 @@ let (>|=) = Lwt.(>|=)
   *)
 let register_user_extensions (user_widget : User_widgets.user_widget_class) =
 
-  let f_loginbox bi args _c =
+  let f_loginbox _ args _c =
     `Flow5
       (let user_prompt = Ocsimore_lib.list_assoc_opt "user_prompt" args in
        let pwd_prompt = Ocsimore_lib.list_assoc_opt "pwd_prompt" args in
@@ -57,7 +55,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
   Wiki_syntax.register_interactive_simple_flow_extension
     ~name:"loginbox" ~reduced:false f_loginbox;
 
-  let f_logoutbutton bi _args c =
+  let f_logoutbutton _ _args c =
     `Flow5
       (lwt content = match c with
         | Some c -> c
@@ -72,7 +70,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
   add_logoutbutton Wiki_syntax.wikicreole_parser;
   add_logoutbutton Wiki_syntax.wikicreole_parser_without_header_footer;
 
-  let f_username bi _args _c =
+  let f_username _ _args _c =
     `Phrasing_without_interactive
       (lwt user_data = User.get_user_data () in
        Lwt.return [Html5.F.pcdata user_data.user_fullname]) in
@@ -80,7 +78,7 @@ let register_user_extensions (user_widget : User_widgets.user_widget_class) =
   Wiki_syntax.register_simple_flow_extension ~name:"username" f_username;
   Wiki_syntax.register_simple_phrasing_extension ~name:"username" f_username;
 
-  let f_logoutlink bi args c =
+  let f_logoutlink _ args c =
       (let content = match c with
          | Some c -> c
          | None -> Lwt.return [Html5.F.pcdata "logout"]

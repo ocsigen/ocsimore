@@ -21,13 +21,11 @@
    @author Boris Yakobowski
 *)
 
-open Eliom_lib
 open Lwt_ops
 open Eliom_content
 open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
-open Eliom_lib.Lwt_ops
 
 let preview_wikibox_content : (wikibox * string) option Eliom_reference.Volatile.eref =
   Eliom_reference.Volatile.eref ~scope:Eliom_common.request None
@@ -248,7 +246,7 @@ object (self)
              textarea
              Dom_html.Event.keypress
              (Dom.handler
-               (fun ev ->
+               (fun _ ->
                   (match !timeout with
                     | Some timeout ->
                         Dom_html.window##clearTimeout(timeout)
@@ -271,7 +269,7 @@ object (self)
              (get_elt %Wiki_services.save_id Dom_html.CoerceTo.input)
              Dom_html.Event.click
              (Dom.handler
-                (fun ev ->
+                (fun _ ->
                   edit_window##onbeforeunload <- Dom.no_handler;
                   edit_window##close ();
                   Lwt.ignore_result
@@ -585,11 +583,11 @@ object (self)
          ~previewonly
          ~wb data ->
 
-    Wiki.get_admin_wiki ()              >>= fun { wiki_id = admin_wiki } ->
+    Wiki.get_admin_wiki ()              >>= fun { wiki_id = admin_wiki; _ } ->
     Wiki_sql.get_wikipage_info
       ~wiki:admin_wiki
       ~page:Wiki_widgets_interface.wikisyntax_help_name
-                                  >>= fun { wikipage_wikibox = wb_help } ->
+                                  >>= fun { wikipage_wikibox = wb_help; _ } ->
     error_box#bind_or_display_error
       (Wiki_data.wikibox_content ~rights:bi.bi_rights wb_help)
       (self#display_wikiboxcontent ~bi ~classes:["wikihelp"])
@@ -674,7 +672,7 @@ object (self)
            ([> `Form | `P | `PCDATA | `Table ] as 'a) Html5.F.elt list) Lwt.t =
 
     fun ~bi ~classes wb ->
-    Wiki_sql.get_wikibox_info wb >>= fun { wikibox_special_rights = sr } ->
+    Wiki_sql.get_wikibox_info wb >>= fun { wikibox_special_rights = sr; _ } ->
     let bt_change value textbt =
       let mform (wbname, srname) =
         [Html5.F.div
@@ -734,8 +732,8 @@ object (self)
 
   (** Form to edit the description and container of a wiki *)
   method private display_edit_wiki_metadata ~classes ?wb wiki =
-    Wiki_sql.get_wiki_info_by_id wiki
-        >>= fun { wiki_descr = descr; wiki_container = container } ->
+    Wiki_sql.get_wiki_info_by_id ~id:wiki
+        >>= fun { wiki_descr = descr; wiki_container = container; _ } ->
     let form (wbname, (wikiname, (descrname, containername))) =
       [ Html5.F.p
          (List.flatten
@@ -923,7 +921,7 @@ object (self)
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
-         >|= fun { user_fullname = author } ->
+         >|= fun { user_fullname = author; _ } ->
          [Html5.F.pcdata (Int32.to_string version);
           Html5.F.pcdata ". ";
           Html5.F.pcdata (CalendarLib.Printer.Calendar.to_string date);
@@ -953,7 +951,7 @@ object (self)
     Lwt_list.map_s
       (fun (version, _comment, author, date) ->
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
-         >|= fun { user_fullname = author } ->
+         >|= fun { user_fullname = author; _ } ->
          [Html5.F.pcdata (Int32.to_string version);
           Html5.F.pcdata ". ";
           Html5.F.pcdata (CalendarLib.Printer.Calendar.to_string date);
@@ -1252,7 +1250,7 @@ object (self)
                     | Some (wb', c') when wb = wb' ->
                         Lwt.return (typ, Some c', version)
                     | _ -> c
-                with e -> c
+                with _ -> c
               in
               let classes =
                 match Eliom_reference.Volatile.get preview_wikibox_content with
@@ -1564,7 +1562,7 @@ object (self)
      Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      let wb_container = wiki_info.wiki_container in
-     gen_box ~sectioning menu_style >>= fun (wbid, subbox, err_code, title) ->
+     gen_box ~sectioning menu_style >>= fun (_, subbox, err_code, title) ->
      lwt () = Eliom_reference.set Wiki_widgets_interface.page_displayable_eref err_code in
      (* We render the container, if it exists *)
      lwt page_content =
@@ -1619,8 +1617,8 @@ object (self)
      (fun ~sectioning menu_style ->
        try_lwt
           (* We render the wikibox for the page *)
-          lwt { wikipage_wikibox = box; wikipage_title = title } =
-            Wiki_sql.get_wikipage_info wiki page
+          lwt { wikipage_wikibox = box; wikipage_title = title; _ } =
+            Wiki_sql.get_wikipage_info ~wiki ~page
           in
           lwt bi = Wiki.default_bi ~wikibox:box ~rights in
           let bi = { bi with bi_page = wiki, Some page_list;
@@ -1701,7 +1699,7 @@ object (self)
    method display_wikifile ~wiki ~sectioning ~menu_style ~template ~file =
      let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
      let page = Url.string_of_url_path ~encode:false path, path in
-     let subbox bi ~sectioning menu_style =
+     let subbox bi ~sectioning _ =
        let bi = { bi  with bi_sectioning = sectioning } in
        match file with
        | Ocsigen_local_files.RFile file ->

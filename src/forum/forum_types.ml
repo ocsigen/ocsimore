@@ -24,7 +24,6 @@
 *)
 
 open Eliom_content
-open User_sql.Types
 open Forum_sql0
 
 let (>>=) = Lwt.bind

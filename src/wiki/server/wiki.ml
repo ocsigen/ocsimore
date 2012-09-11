@@ -26,7 +26,6 @@
 
 open Eliom_lib
 open Lwt_ops
-open Eliom_content
 open User_sql.Types
 open Wiki_types
 
@@ -50,7 +49,7 @@ let get_admin_wiki () =
 
 
 let wiki_admin_servpage () =
-  get_admin_wiki () >|= fun { wiki_id } ->
+  get_admin_wiki () >|= fun { wiki_id; _ } ->
     match Wiki_self_services.find_servpage wiki_id with
       | Some service -> service
       | None -> raise No_admin_wiki
@@ -285,7 +284,7 @@ open User.GenericRights
 
 let can_sthg_wikibox f wb =
   Wiki_sql.get_wikibox_info wb
-  >>= fun { wikibox_special_rights = special_rights ; wikibox_wiki = wiki}->
+  >>= fun { wikibox_special_rights = special_rights ; wikibox_wiki = wiki; _ }->
   let g = if special_rights then
     (f.field wikibox_grps) $ wb
   else
@@ -326,8 +325,8 @@ object (self)
 
   method can_set_wikibox_specific_permissions wb =
     Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-    Wiki_sql.get_wiki_info_by_id wiki
-    >>= fun { wiki_boxrights = boxrights } ->
+    Wiki_sql.get_wiki_info_by_id ~id:wiki
+    >>= fun { wiki_boxrights = boxrights; _ } ->
       if boxrights then
         self#can_admin_wikibox wb
       else
@@ -403,7 +402,7 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
   *)
   Ocsimore_lib.lwt_bind_opt path_string
     (fun path -> Wiki_sql.iter_wikis
-       (fun ({ wiki_title = title'; wiki_pages = path' } as w) ->
+       (fun ({ wiki_title = title'; wiki_pages = path'; _ } as w) ->
           if path' = Some path then
             Lwt.fail (Wiki_already_registered_at_path
                         ((descr, w.wiki_descr), path))

@@ -27,7 +27,6 @@ open Eliom_lib
 open Eliom_content
 open Ocsimore_lib
 open Lwt
-open User_sql.Types
 open Wiki_types
 
 let wiki_naming wiki =
@@ -173,7 +172,7 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
           Wiki_sql.create_wikipage ~db ~wiki:wiki_admin_id ~page ~wb:box)
   );
   (fun () ->
-     lwt { wikipage_wikibox = wb} = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
+     lwt { wikipage_wikibox = wb; _ } = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
      Wiki_sql.get_wikibox_content wb >|= function
      | Some (_, _, Some content, _, _, _) ->
          content
@@ -198,7 +197,7 @@ let _ = register_named_wikibox
     match the [siteid] option *)
 let () = Lwt_main.run
   (Wiki_sql.iter_wikis
-     (fun { wiki_id = wiki; wiki_pages = path; wiki_siteid = h } ->
+     (fun { wiki_id = wiki; wiki_pages = path; wiki_siteid = h; _ } ->
         (match path with
            | None -> ()
            | Some path ->
@@ -278,7 +277,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg
             (extensible_list "Add wiki admin" "" admins
                (fun reader ->
                   p (convert (string_input reader) User.user_from_userlogin_xform))) @@
-          label_input_tr ~label:"Container text" (text_area ~cols:80 ~rows:20 container) @@
+          label_input_tr ~label:"Container text" (text_area container) @@
           label_input_tr ~label:"Wiki model" ~description:"For advanced users" (model_input model) @@
           label_input_tr ~label:"Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
           tr (td (submit_button "Create")))
@@ -437,9 +436,9 @@ let _ =
   let headers = ["wikibox"; "version"; "author"; "datetime"; "content_type"; "comment"; ""] in
   let render_header_row s = th [pcdata s] in
   (* wikibox * int32 option * userid * CalendarLib.Calendar.t * string * string option * string *)
-  let render_wikibox_row (wikibox, version, author, datetime, content_type, content, comment) =
+  let render_wikibox_row (wikibox, version, author, datetime, content_type, _, comment) =
     tr [
-      td [pcdata Wiki_sql.(string_of_wikibox wikibox)];
+      td [pcdata (Wiki_types.string_of_wikibox wikibox)];
       td [pcdata (Int32.to_string version)];
       td [pcdata author.User_sql.Types.user_fullname];
       td [pcdata (CalendarLib.Printer.Calendar.to_string datetime)];
@@ -460,7 +459,6 @@ let _ =
     (fun wiki () ->
       lwt wikiboxes = Wiki_sql.get_wikiboxes_by_wiki wiki in
       lwt wikiboxes = Lwt_list.map_s wikibox_extension wikiboxes >|= List.map_filter (fun x -> x) in
-      lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
       lwt title = wiki_naming wiki >|= ((^) "Wiki boxes of wiki ") in
       Page_site.admin_page
         ~title
@@ -469,7 +467,7 @@ let _ =
           (List.map render_wikibox_row wikiboxes)])
 
 let _ =
-  let render_version_link wikibox version' (version, comment, author, datetime) =
+  let render_version_link wikibox version' (version, comment, _, _) =
     let version_elt = Html5.F.pcdata (Int32.to_string version) in
     let version_link =
       if version' <> version then
@@ -482,9 +480,9 @@ let _ =
   Eliom_registration.Html5.register ~service:Wiki_services.view_box
     (fun (wikibox, version) () ->
       Wiki_sql.get_wikibox_content ?version wikibox >>= function
-         Some (comment, author, content, datetime, content_type, version) ->
-           lwt history = Wiki_sql.get_wikibox_history wikibox in
-           lwt { Wiki_types.wikibox_wiki = wiki } = Wiki_sql.get_wikibox_info wikibox in
+         Some (_, _, content, _, content_type, version) ->
+           lwt history = Wiki_sql.get_wikibox_history ~wb:wikibox in
+           lwt { Wiki_types.wikibox_wiki = wiki; _ } = Wiki_sql.get_wikibox_info wikibox in
            lwt wiki_name = wiki_naming wiki in
            let title =
              Printf.sprintf "View wiki box %s version %s in wiki %s"
@@ -498,7 +496,7 @@ let _ =
                ul (List.map (render_version_link wikibox version) history);
                table
                  (tr [td [pcdata "wikibox"];
-                      td [pcdata Wiki_sql.(string_of_wikibox wikibox)]])
+                      td [pcdata (Wiki_types.string_of_wikibox wikibox)]])
                  [tr [td [pcdata "version"];
                       td [pcdata (Int32.to_string version)]];
                   tr [td [pcdata "content_type"];
@@ -513,7 +511,7 @@ let replace_links =
     ~fallback:Wiki_services.batch_edit_boxes
     ~post_params:Eliom_parameter.unit ()
 
-let normalize_old_page_link wiki wikibox addr fragment attribs params =
+let normalize_old_page_link wiki wikibox addr fragment _ _ =
   let replacement =
     try
       ignore (Wiki_syntax.link_kind addr);
@@ -540,7 +538,7 @@ let _ =
        if is_allowed then
         Page_site.admin_page
           ~title:"Batch edit boxes"
-          Html5.F.([
+          [
             Html5.D.post_form
               ~service:replace_links
               (fun () -> [
@@ -548,7 +546,7 @@ let _ =
                   ~button_type:`Submit
                   [Html5.F.pcdata "Replace links"]
               ]) ()
-          ])
+          ]
       else
         Page_site.no_permission () >>= Page_site.admin_page ~title:"Batch edit boxes");
   Eliom_registration.Html5.register
@@ -602,7 +600,7 @@ let _ =
                     (List.map_filter
                        (fun (wikibox, opt_contents) ->
                          match opt_contents with
-                             Some (wikibox', (old_content, new_content)) ->
+                             Some (_, (old_content, new_content)) ->
                                let s = if 0 = String.compare old_content new_content then "-" else "some" in
                                Some (tr [
                                  td [pcdata (Wiki_types.string_of_wikibox wikibox)];
@@ -636,7 +634,8 @@ let () = Eliom_registration.Html5.register
   ~service:Wiki_services.edit_wiki_permissions_admin
   (fun wiki () ->
      lwt _, form = wikibox_widget#display_edit_wiki_perm_form ~classes:[] wiki in
-     lwt wiki_name = Wiki_sql.get_wiki_info_by_id ~id:wiki >|= fun { Wiki_types.wiki_title } -> wiki_title in
+     lwt wiki_name = Wiki_sql.get_wiki_info_by_id ~id:wiki
+     >|= fun { Wiki_types.wiki_title; _ } -> wiki_title in
      Page_site.admin_page
        ~title:(Printf.sprintf "Edit permissions of wiki %S" wiki_name)
        ~service:Wiki_services.view_wikis

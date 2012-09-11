@@ -87,7 +87,7 @@ let edit_forum_form ~serv_path:_ ~service ~arg
   let open Xform.XformLwt.Ops in
   lwt form =
     Xform.XformLwt.form ~fallback:service ~get_args:arg ~page ?err_handler
-      Xform.(table
+      (table
          (tr (td (Opaque.int32_input_xform ~a:[Html5.F.a_style "display: none"] forum)) @@
           label_input_tr ~label:"Title" (string_input title) @@
           label_input_tr ~label:"Description" (string_input descr) @@
@@ -147,7 +147,6 @@ let create_forum_form ~serv_path:_ ~service ~arg
              | _ -> [])
        @  [form] )
   in
-  let open Forum_types in
   let open Xform.XformLwt in
   let open Xform.XformLwt.Ops in
   lwt form =
@@ -170,7 +169,6 @@ let create_forum =
   in
   Eliom_registration.Html5.register ~service:Forum_services.create_forum
     (fun () () ->
-      let open Forum_types in
       match_lwt User.in_group ~group:Forum.forum_creators () with
         | true ->
           create_forum_form
