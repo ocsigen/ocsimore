@@ -174,8 +174,8 @@ let register_flows_wiki_parser',
       let k' = Wiki_types.content_type_of_string k in
       H.add t k' (a, b);
       (* we also register a flows parser: *)
-      ignore (register_flows_wiki_parser k a
-                (fun bi s -> b bi s >|= fun r -> [Html5.F.div (r:Html5_types.flow5_without_header_footer Html5.F.elt list :> Html5_types.flow5 Html5.F.elt list)]));
+      ignore (register_flows_wiki_parser ~name:k ~preprocessor:a
+                ~parser_:(fun bi s -> b bi s >|= fun r -> [Html5.F.div (r:Html5_types.flow5_without_header_footer Html5.F.elt list :> Html5_types.flow5 Html5.F.elt list)]));
       k'),
    (fun k ->
       try snd (H.find t k)
@@ -221,8 +221,8 @@ let register_phrasings_wiki_parser,
       let k' = Wiki_types.content_type_of_string k in
       H.add t k' (a, b);
       (* we also register a flows parser: *)
-      ignore (register_flows_wiki_parser' k a
-                (fun bi s -> b bi s >|= fun r -> [Html5.F.div (r:Html5_types.phrasing Html5.F.elt list :> Html5_types.div_content_fun Html5.F.elt list)]));
+      ignore (register_flows_wiki_parser' ~name:k ~preprocessor:a
+                ~parser_:(fun bi s -> b bi s >|= fun r -> [Html5.F.div (r:Html5_types.phrasing Html5.F.elt list :> Html5_types.div_content_fun Html5.F.elt list)]));
       k'),
    (fun k ->
       try snd (H.find t k)

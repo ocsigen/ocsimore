@@ -322,7 +322,7 @@ let in_group_ ~user ~group () =
     Ocsigen_messages.errlog (Printf.sprintf "Is %s in %s?" su sg); *)
     try Lwt.return (get_in_cache (u, g))
     with Not_found ->
-      lwt gl = User_sql.groups_of_user u in
+      lwt gl = User_sql.groups_of_user ~user:u in
       if List.mem g gl
       then return u g true
       else aux2 g gl
@@ -382,7 +382,7 @@ let add_to_group ~(user:user) ~(group:user) =
       Lwt.return ()
     end
     else
-      in_group_ group user () >>= function
+      in_group_ ~user:group ~group:user () >>= function
         | true ->
             lwt us = User_sql.user_to_string user in
             lwt gs = User_sql.user_to_string group in
@@ -391,7 +391,7 @@ let add_to_group ~(user:user) ~(group:user) =
                  ". (ignoring)");
             Lwt.return ()
         | false ->
-            User_sql.add_to_group user group
+            User_sql.add_to_group ~user ~group
 
 (* XXX Should remove check that we do not remove from a dyn group *)
 let remove_from_group = User_sql.remove_from_group
@@ -540,9 +540,9 @@ module GenericRights = struct
     in
     let f = User_sql.new_parameterized_group ~prefix ~find_param in
     Lwt_main.run (
-      lwt ga = f namea descra in
-      lwt gw = f namew descrw in
-      lwt gr = f namer descrr in
+      lwt ga = f ~name:namea ~descr:descra in
+      lwt gw = f ~name:namew ~descr:descrw in
+      lwt gr = f ~name:namer ~descr:descrr in
       lwt () = User_sql.add_generic_inclusion ~subset:ga ~superset:gw in
       lwt () = User_sql.add_generic_inclusion ~subset:gw ~superset:gr in
       Lwt.return { grp_admin = ga; grp_writer = gw; grp_reader = gr }

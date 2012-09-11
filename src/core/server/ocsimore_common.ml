@@ -48,16 +48,16 @@ type 'a eliom_usertype =
 
 let eliom_opaque_int32 s =
   Eliom_parameter.user_type
-    (fun s -> Opaque.int32_t (Int32.of_string s))
-    (fun i -> Int32.to_string (Opaque.t_int32 i)) s
+    ~of_string:(fun s -> Opaque.int32_t (Int32.of_string s))
+    ~to_string:(fun i -> Int32.to_string (Opaque.t_int32 i)) s
 
 
 let eliom_opaque_int32_opt s =
   Eliom_parameter.user_type
-    (fun s ->
+    ~of_string:(fun s ->
        if s = "" then None
        else Some (Opaque.int32_t (Int32.of_string s)))
-    (fun i -> match i with
+    ~to_string:(fun i -> match i with
        | None -> ""
        | Some i -> Int32.to_string (Opaque.t_int32 i)) s
 

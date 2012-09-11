@@ -33,7 +33,7 @@ let forum_css_header =
   Page_site.Header.create_header
     (fun () ->
        [Html5.D.css_link
-          (Page_site.static_file_uri ["ocsiforumstyle.css"]) ()
+          ~uri:(Page_site.static_file_uri ~path:["ocsiforumstyle.css"]) ()
        ]
     )
 
@@ -98,7 +98,7 @@ class message_widget
   services =
 
   let xhtml_of_wb wiki wikibox =
-    lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+    lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
     lwt rights = Wiki_models.get_rights
       wiki_info.Wiki_types.wiki_model in
     lwt bi = Wiki.default_bi ~wikibox ~rights in
@@ -171,7 +171,7 @@ object (self)
       if m.m_moderated then classes else not_moderated_class::classes
     in
     Wiki_sql.wikibox_wiki m.m_wikibox >>= fun wiki ->
-    Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+    Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
     lwt rights = Wiki_models.get_rights wiki_info.Wiki_types.wiki_model in
     Wiki.default_bi ~wikibox:m.m_wikibox ~rights >>= fun bi ->
     (match m.m_subject with

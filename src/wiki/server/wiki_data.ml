@@ -101,7 +101,7 @@ let save_wikipagecssbox ~rights ~wiki ~page ~content ~wb =
 
 let wikibox_history ~rights ~wb =
   rights#can_view_history wb >>= function
-    | true -> Wiki_sql.get_wikibox_history wb
+    | true -> Wiki_sql.get_wikibox_history ~wb
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
@@ -133,11 +133,11 @@ let css_aux ~(rights : Wiki_types.wiki_rights) ~available ~wikibox_version_list 
     wikibox_version_list []
 
 let wiki_css_boxes_with_content ~(rights : Wiki_types.wiki_rights) ~wiki wikibox_version_list =
-  lwt available = Wiki_sql.get_css_wikibox_for_wiki wiki in
+  lwt available = Wiki_sql.get_css_wikibox_for_wiki ~wiki in
   css_aux ~rights ~available ~wikibox_version_list
 
 let wikipage_css_boxes_with_content ~(rights : Wiki_types.wiki_rights) ~wiki ~page wikibox_version_list =
-  lwt available = Wiki_sql.get_css_wikibox_for_wikipage wiki page in
+  lwt available = Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page in
   css_aux ~rights ~available ~wikibox_version_list
 
 
@@ -157,7 +157,7 @@ let set_wikibox_special_rights ~(rights : Wiki_types.wiki_rights) ~wb  ~special_
            else
              Lwt.return ()
           ) >>= fun () ->
-          Wiki_sql.set_wikibox_special_rights wb special_rights
+          Wiki_sql.set_wikibox_special_rights ~wb special_rights
         )
 
     | false -> Lwt.fail Ocsimore_common.Permission_denied
@@ -178,7 +178,7 @@ let create_wikipage ~(rights : Wiki_types.wiki_rights) ~wiki ~page =
           (function
              | Not_found ->
                  User.get_user_id () >>= fun user ->
-                 Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+                 Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
                  lwt content_type = Wiki_models.get_default_content_type wiki_info.wiki_model in
                  Ocsi_sql.full_transaction_block (fun db ->
                    new_wikitextbox ~rights ~content_type ~wiki ~author:user

@@ -108,7 +108,7 @@ let register_wikibox_syntax_extensions
                  Lwt.return (Some (r :> Html5_types.flow5 Html5.F.elt list))
              in
              lwt wiki = Wiki_sql.wikibox_wiki box in
-             lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+             lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
              lwt widget = Wiki_models.get_widgets wiki_info.wiki_model in
              let class_box = Wiki_syntax.class_wikibox box in
              widget#display_interactive_wikibox
@@ -142,7 +142,7 @@ let register_wikibox_syntax_extensions
        lwt wid = Wiki_sql.wikibox_wiki wb in
        (* The user can specify the wiki, or we deduce it from the context. *)
        let wid = extract_wiki_id args wid in
-       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wid in
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wid in
        lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
        lwt content_type =
          Wiki_models.get_default_content_type wiki_info.wiki_model

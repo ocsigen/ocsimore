@@ -307,8 +307,8 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
                    in
                    lwt () =
                      User.add_to_groups
-                       (User_sql.Types.basic_user userid)
-                       options.User_data.new_user_groups
+                       ~user:(User_sql.Types.basic_user userid)
+                       ~groups:options.User_data.new_user_groups
                    in
                    Lwt.return Html5.F.([
                      h2 [pcdata "User created"];

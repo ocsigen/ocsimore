@@ -632,7 +632,7 @@ module UsersGroupCache = Ocsigen_cache.Make (struct
                            end)
 
 let group_of_users_cache = new GroupUsersCache.cache
-  (fun u -> groups_of_user_ u) 8777
+  (fun user -> groups_of_user_ ~user) 8777
 let users_in_group_cache = new UsersGroupCache.cache
   (fun (g, b) -> users_in_group_ ~generic:b ~group:g) 8777
 

@@ -312,7 +312,7 @@ object (self)
     else
       Lwt.return (fun _ ->
         [Html5.F.p
-           [Html5.F.a Eliom_service.https_void_coservice'
+           [Html5.F.a ~service:Eliom_service.https_void_coservice'
               [Html5.F.pcdata switchtohttps] ()
            ]
         ]
@@ -329,7 +329,7 @@ object (self)
          [ pcdata "You are logged as ";
            if show_ext then
              Html5.F.a
-               User_services.service_view_group
+               ~service:User_services.service_view_group
                [user_name]
                u.user_login
            else
@@ -852,7 +852,7 @@ object (self)
     User_data.can_create_user ~options:user_creation_options >|= function
       | true ->
           [Html5.D.a
-             User_services.service_create_new_user
+             ~service:User_services.service_create_new_user
              [Html5.F.pcdata "New user? Register now!" ] () ]
 (*
             << <tr>

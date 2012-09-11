@@ -44,7 +44,7 @@ exception No_admin_wiki
 
 let get_admin_wiki () =
   try_lwt
-    Wiki_sql.get_wiki_info_by_name wiki_admin_name
+    Wiki_sql.get_wiki_info_by_name ~name:wiki_admin_name
   with Not_found ->
     raise No_admin_wiki
 
@@ -69,15 +69,15 @@ let param_wiki = {
   param_description = "name of the wiki";
   param_display = Some (
     (fun wid ->
-       Wiki_sql.get_wiki_info_by_id (wiki_of_sql wid) >>= fun wiki ->
+       Wiki_sql.get_wiki_info_by_id ~id:(wiki_of_sql wid) >>= fun wiki ->
        Lwt.return (Printf.sprintf "'%s' (%s)" wiki.wiki_title wiki.wiki_descr)
     ));
   find_param_functions =
     Some ((fun wname ->
-             Wiki_sql.get_wiki_info_by_name wname >>= fun wiki ->
+             Wiki_sql.get_wiki_info_by_name ~name:wname >>= fun wiki ->
              Lwt.return (sql_of_wiki (wiki.wiki_id))),
           (fun wid ->
-             Wiki_sql.get_wiki_info_by_id (wiki_of_sql wid) >>= fun wiki ->
+             Wiki_sql.get_wiki_info_by_id ~id:(wiki_of_sql wid) >>= fun wiki ->
              Lwt.return wiki.wiki_title))
 }
 

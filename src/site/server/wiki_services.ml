@@ -90,13 +90,13 @@ let send_wikipage
   ~page
   () =
   let wiki_page () =
-    lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+    lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
     lwt widgets = Wiki_models.get_widgets wiki_info.wiki_model in
     lwt (html,code) =
       widgets#display_wikipage ~wiki ~sectioning:false ~menu_style ~page in
     Ocsimore_appl.send ~code html
   in
-  lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+  lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
   (* if there is a static page, and should we send it ? *)
   match wiki_info.wiki_staticdir with
     | Some dir ->
@@ -120,7 +120,7 @@ let send_wikibox
   let bi = { bi with bi_page = page;
     bi_menu_style = menu_style;
     bi_sectioning = false } in
-  lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+  lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
   lwt widgets = Wiki_models.get_widgets wiki_info.wiki_model in
   lwt (content,allowed) = widgets#display_interactive_wikibox_aux ~bi wb in
   if allowed
@@ -252,7 +252,7 @@ and action_delete_wikibox = Eliom_registration.Any.register_coservice'
   ~name:"wiki_delete" ~get_params:eliom_wikibox_args
   (fun wb () ->
      Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      lwt content_type =
        Wiki_models.get_default_content_type wiki_info.wiki_model in
@@ -323,7 +323,11 @@ and action_send_wikiboxtext =
     let content = string "content" in
     let page_wiki = eliom_wiki "page_wiki" in
     let page_path =
-      let none_page_path = user_type (fun _ -> ()) (fun _ -> "") "empty_page_path" in
+      let none_page_path = user_type
+        ~of_string:(fun _ -> ())
+        ~to_string:(fun _ -> "")
+        "empty_page_path"
+      in
       let some_page_path = list "page_path" (string "page_path_snippet") in
       sum none_page_path some_page_path
     in
@@ -336,11 +340,11 @@ and action_send_wikiboxtext =
           wikibox that the wikibox has not been modified in parallel of our
           modifications. If this is the case, we also show a warning *)
        lwt wiki = Wiki_sql.wikibox_wiki wb in
-       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
        lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
-       lwt content_type, _, _ = Wiki_data.wikibox_content rights wb in
+       lwt content_type, _, _ = Wiki_data.wikibox_content ~rights wb in
        lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
-       lwt modified = Wiki.modified_wikibox wb boxversion in
+       lwt modified = Wiki.modified_wikibox ~wikibox:wb ~boxversion in
        if actionname = "save" && modified = None then (
          lwt content = Wiki_models.preparse_string wpp wb content in
          save_then_redirect ~error:(error_handler_wb wb) `BasePage
@@ -369,11 +373,11 @@ and action_send_css = Eliom_registration.Any.register_post_coservice'
   (fun () ((wb, (((wikicss, page), wbcss), boxversion)), content) ->
      (* As above, we check that the wikibox has not been modified in parallel
         of our modifications. If this is the case, we also show a warning *)
-     Wiki.modified_wikibox wbcss boxversion >>= fun modified ->
+     Wiki.modified_wikibox ~wikibox:wbcss ~boxversion >>= fun modified ->
        match modified with
          | None ->
              Wiki_sql.wikibox_wiki wbcss >>= fun wiki ->
-             Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+             Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
              lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
              save_then_redirect ~error:(error_handler_wb wb) `BasePage
                (fun () -> match page with
@@ -397,7 +401,7 @@ and action_set_wikibox_special_permissions =
     ~post_params:(eliom_wikibox_args ** Ocsimore_lib.eliom_bool "special")
     (fun () (wb, special_rights) ->
        Wiki_sql.wikibox_wiki wb >>= fun wiki ->
-       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
        lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
        save_then_redirect ~error:(error_handler_wb wb)
          (if special_rights then `SamePage else `BasePage)
@@ -416,7 +420,7 @@ and pagecss_service = Eliom_registration.CssText.register_coservice'
   ~name:"pagecss" ~get_params:(eliom_wikipage_args ** Eliom_parameter.list "wblist" eliom_wikibox_version_args)
   ~options:(3600 * 24 * 7) (* TODO parametrize *)
   (fun ((wiki, page), wb_version_list) () ->
-     lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+     lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      try
        try_lwt
@@ -434,7 +438,7 @@ and action_create_page = Eliom_registration.Action.register_post_coservice'
   ~name:"wiki_page_create"
   ~post_params:(Eliom_parameter.opt eliom_wikibox_args **eliom_wikipage_args)
   (fun () (wb, (wiki, page)) ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      try_lwt
        Wiki_data.create_wikipage ~rights ~wiki ~page
@@ -466,7 +470,7 @@ and action_create_css = Eliom_registration.Any.register_post_coservice'
                          "media"
                        ** Ocsimore_common.eliom_opaque_int32_opt "wbcss")))
   (fun () (wb, ((wiki, page), (media, wbcss))) ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      save_then_redirect ~error:(error_handler_wb wb) `SamePage
        (fun () ->
@@ -489,7 +493,7 @@ and action_send_css_options = Eliom_registration.Any.register_post_coservice'
                      "media"))
                 ** Eliom_parameter.int32 "rank"))
   (fun () (wb, (((((wiki, page), wbcss), newwbcss), media), rank)) ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      save_then_redirect ~error:(error_handler_wb wb) `SamePage
        (fun () ->
@@ -530,7 +534,7 @@ and action_send_wikipage_properties =
              ((Ocsimore_common.eliom_opaque_int32_opt "wb" **
                  Eliom_parameter.string "newpage")))))
     (fun () (wb, ((wiki, page), (title, (wbpage, newpage)))) ->
-       Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+       Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
        lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
        save_then_redirect ~error:(error_handler_wb wb) `BasePage
          (fun () -> Wiki_data.save_wikipage_properties ~rights
@@ -545,7 +549,7 @@ and action_send_wiki_metadata = Eliom_registration.Any.register_post_coservice'
         (Eliom_parameter.string "descr" **
            Ocsimore_common.eliom_opaque_int32_opt "container")))
   (fun () (wb, (wiki, (descr, container))) ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      save_then_redirect ~error:(error_handler_wb_opt wb) `BasePage
        (fun () -> Wiki_data.update_wiki ~rights ~container ~descr wiki)
@@ -580,7 +584,7 @@ and wikibox_contents :
 	(wikibox * wikibox_override) option>))
     (fun (wb,page,override) () ->
       lwt wiki = Wiki_sql.wikibox_wiki wb in
-      lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+      lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
       lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
       lwt () = match override with
         | None -> Lwt.return ()
@@ -601,7 +605,7 @@ let wiki_css_header =
   Page_site.Header.create_header
     (fun sp ->
        [Eliom_content.Html5.F.css_link
-          (Page_site.static_file_uri ["ocsiwikistyle.css"])
+          ~uri:(Page_site.static_file_uri ~path:["ocsiwikistyle.css"])
           ()
        ]
     )
@@ -631,7 +635,7 @@ module Ui = struct
       ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
       (fun wb () ->
          lwt wiki = Wiki_sql.wikibox_wiki wb in
-         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+         lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
          lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
          let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
          lwt typ, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
@@ -675,9 +679,9 @@ module API = struct
       ~post_params
       (fun () ((page_wiki, page_path), (wb, content)) ->
          lwt wiki = Wiki_sql.wikibox_wiki wb in
-         lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki in
+         lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
          lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
-         lwt content_type, _, _ = Wiki_data.wikibox_content rights wb in
+         lwt content_type, _, _ = Wiki_data.wikibox_content ~rights wb in
          lwt wpp = Wiki_models.get_default_wiki_preprocessor wiki_info.wiki_model in
          let desugar_context = {
            Wiki_syntax_types.dc_page_wiki = page_wiki;

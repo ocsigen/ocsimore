@@ -91,7 +91,7 @@ let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
 
-  Eliom_registration.Html5.register User_services.service_view_group
+  Eliom_registration.Html5.register ~service:User_services.service_view_group
     (let service g _ =
        User.get_user_by_name g >>= User_sql.user_type >|= function
          | `Group -> User_services.service_view_groups
@@ -111,39 +111,45 @@ let () =
        ~service
        ~display);
 
-  Eliom_registration.Html5.register User_services.service_users_settings
+  Eliom_registration.Html5.register
+    ~service:User_services.service_users_settings
     (Page_site.admin_body_content_with_permission_handler
        ~title: (fun _ _ -> Lwt.return "Users settings")
        ~permissions: (fun _ _ -> User_data.can_admin_users ())
        ~display: (fun _ _ -> user_widget#display_users_settings)
     );
 
-  Eliom_registration.Html5.register User_services.action_users_settings
+  Eliom_registration.Html5.register
+    ~service:User_services.action_users_settings
     (Page_site.admin_body_content_with_permission_handler
        ~title: (fun _ _ -> Lwt.return "Users settings")
        ~permissions: (fun _ _ -> User_data.can_admin_users ())
        ~display: (user_widget#display_users_settings_done)
     );
 
-  Eliom_registration.Html5.register User_services.service_view_groups
+  Eliom_registration.Html5.register
+    ~service:User_services.service_view_groups
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View groups")
        ~permissions:(fun _ _ -> User_data.can_view_groups ())
        ~display:(fun _ _ -> user_widget#display_groups));
 
-  Eliom_registration.Html5.register User_services.service_view_users
+  Eliom_registration.Html5.register
+    ~service:User_services.service_view_users
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View groups")
        ~permissions:(fun _ _ -> User_data.can_view_users ())
        ~display:(fun _ _ -> user_widget#display_users));
 
-  Eliom_registration.Html5.register User_services.service_view_roles
+  Eliom_registration.Html5.register
+    ~service:User_services.service_view_roles
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View roles")
        ~permissions:(fun _ _ -> User_data.can_view_roles ())
        ~display:(fun _ _ -> user_widget#display_roles));
 
-  Eliom_registration.Html5.register User_services.service_login
+  Eliom_registration.Html5.register
+    ~service:User_services.service_login
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "Login")
        ~permissions:(fun _ _ -> Lwt.return true)
@@ -174,7 +180,7 @@ let users_root =
     ~path:[!Ocsimore_config.admin_dir;"users"]
     ~get_params:Eliom_parameter.unit ()
 
-let () = Eliom_registration.Html5.register users_root
+let () = Eliom_registration.Html5.register ~service:users_root
   (fun () () ->
      Page_site.admin_page
        ~title:"Ocsimore - Users module"

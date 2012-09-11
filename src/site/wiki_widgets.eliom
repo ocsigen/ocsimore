@@ -161,7 +161,7 @@ class frozen_wikibox (error_box : Widget.widget_with_error_box) : Wiki_widgets_i
       (try_lwt
         lwt res =
          error_box#bind_or_display_error
-          (Wiki_data.wikibox_content bi.bi_rights wikibox)
+          (Wiki_data.wikibox_content ~rights:bi.bi_rights wikibox)
           (self#display_wikiboxcontent ~bi ~classes:(frozen_wb_class::classes))
         in
         lwt r = self#display_basic_box res in
@@ -218,7 +218,12 @@ object (self)
       | `None -> Lwt.return []
       | `Pencil | `Linear as menu_style ->
 
-    let history  = (preapply Wiki_services.action_wikibox_history wb :> Eliom_tools_common.get_page) in
+    let history =
+      (preapply
+         ~service:Wiki_services.action_wikibox_history
+         wb
+       :> Eliom_tools_common.get_page)
+    in
     let edit_onclick wb _id =
       let wiki_page = bi.bi_page in
       {{
@@ -290,7 +295,10 @@ object (self)
       in
       edit_window##onload <- Dom.full_handler onload
     }} in
-    let delete_service = preapply Wiki_services.action_delete_wikibox wb in
+    let delete_service = preapply
+      ~service:Wiki_services.action_delete_wikibox
+      wb
+    in
     let delete_onclick _id = {{
       let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in
       if Js.to_bool answer then
@@ -300,7 +308,10 @@ object (self)
     }} in
     let view     = (Eliom_service.void_coservice' :> Eliom_tools_common.get_page) in
     let edit_wikibox_perm =
-      (preapply Wiki_services.action_edit_wikibox_permissions wb :> Eliom_tools_common.get_page)
+      (preapply
+         ~service:Wiki_services.action_edit_wikibox_permissions
+         wb
+       :> Eliom_tools_common.get_page)
     in
     lwt current_override = Wiki_services.get_override_wikibox () in
     lwt css =
@@ -310,7 +321,7 @@ object (self)
                | true ->
                    let edit =
                      (preapply
-                       Wiki_services.action_edit_css_list
+                       ~service:Wiki_services.action_edit_css_list
                        (wb, (w, Some page)) :> Eliom_tools_common.get_page)
                    in
                    let is_current = current_override = Some (wb, EditCssList (w, Some page)) in
@@ -322,7 +333,7 @@ object (self)
                | true ->
                    let edit =
                      (preapply
-                       Wiki_services.action_edit_css_list
+                       ~service:Wiki_services.action_edit_css_list
                        (wb, (w, None)) :> Eliom_tools_common.get_page)
                    in
                    let is_current = current_override = Some (wb, EditCssList (w, None)) in
@@ -339,7 +350,7 @@ object (self)
               | true ->
                   let edit_wp =
                     (preapply
-                      Wiki_services.action_edit_wikipage_properties
+                      ~service:Wiki_services.action_edit_wikipage_properties
                       (wb, wp) :> Eliom_tools_common.get_page)
                   in
                   let is_current = current_override = Some (wb, EditWikipageProperties wp) in
@@ -357,7 +368,7 @@ object (self)
               | true ->
                   let edit_p =
                     (preapply
-                       Wiki_services.action_edit_wiki_options
+                       ~service:Wiki_services.action_edit_wiki_options
                        (wb, w) :> Eliom_tools_common.get_page)
                   in
                   let is_current = current_override = Some (wb, EditWikiOptions w) in
@@ -408,7 +419,7 @@ object (self)
     match menu_entries, wbdel with
       | [], false -> Lwt.return [] (* empty list => no menu *)
       | _ ->
-          let img = Page_site.static_file_uri ["crayon.png"] in
+          let img = Page_site.static_file_uri ~path:["crayon.png"] in
           let menu =
             let is_first =
               let first = ref true in
@@ -534,7 +545,7 @@ object (self)
       | None -> "<<|  Deleted >>"
       | Some content -> content
     in
-    Wiki.modified_wikibox wb version >>=
+    Wiki.modified_wikibox ~wikibox:wb ~boxversion:version >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -580,7 +591,7 @@ object (self)
       ~page:Wiki_widgets_interface.wikisyntax_help_name
                                   >>= fun { wikipage_wikibox = wb_help } ->
     error_box#bind_or_display_error
-      (Wiki_data.wikibox_content bi.bi_rights wb_help)
+      (Wiki_data.wikibox_content ~rights:bi.bi_rights wb_help)
       (self#display_wikiboxcontent ~bi ~classes:["wikihelp"])
     >>= self#display_basic_box                                 >>= fun b ->
     self#display_wikitext_edit_form ~bi ~classes:[] ?rows ?cols
@@ -604,7 +615,7 @@ object (self)
       | None -> "/* Deleted CSS */"
       | Some content -> content
     in
-    Wiki.modified_wikibox wbcss boxversion >>=
+    Wiki.modified_wikibox ~wikibox:wbcss ~boxversion >>=
     (function
        | Some curversion -> Lwt.return
            (curversion,
@@ -963,7 +974,7 @@ object (self)
                    ~(wb:wikibox) wp =
 
      let (wiki, page) = wp in
-     Wiki_sql.get_wikipage_info wiki page >>= fun wp ->
+     Wiki_sql.get_wikipage_info ~wiki ~page >>= fun wp ->
      let draw_form (wbname,
                     ((wikiidname, pagename),
                      (titlename,
@@ -1230,7 +1241,7 @@ object (self)
           | _ ->
               lwt (c, code) =
                 try_lwt
-                  Wiki_data.wikibox_content bi.bi_rights wb >|= fun c ->
+                  Wiki_data.wikibox_content ~rights:bi.bi_rights wb >|= fun c ->
                   (Lwt.return c, true)
                 with e -> Lwt.return (Lwt.fail e, false)
               in
@@ -1282,7 +1293,7 @@ object (self)
           (bi.bi_rights#can_write_wikibox wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_content' bi.bi_rights wb)
+                  (Wiki_data.wikibox_content' ~rights:bi.bi_rights wb)
                   (fun x ->
                      self#display_wikitext_edit_form_help ~bi ?cols ?rows
                        ~previewonly:true ~wb ~classes x)
@@ -1296,7 +1307,10 @@ object (self)
             | true ->
                 error_box#bind_or_display_error
                   (match css with
-                     | None -> Wiki_data.wikibox_content' bi.bi_rights wbcss
+                     | None ->
+                       Wiki_data.wikibox_content'
+                         ~rights:bi.bi_rights
+                         wbcss
                      | Some (content, version) ->
                      Lwt.return (Some content, version)
                   )
@@ -1387,7 +1401,7 @@ object (self)
           (bi.bi_rights#can_view_history wb >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_history bi.bi_rights wb)
+                  (Wiki_data.wikibox_history ~rights:bi.bi_rights ~wb)
                   (self#display_wikitext_history ~bi ~classes ~wb)
                 >>= (self#menu_wikitext_history ~bi ?special_box wb_loc)
                 >>= ok
@@ -1398,7 +1412,7 @@ object (self)
           (bi.bi_rights#can_view_history wbcss >>= function
             | true ->
                 error_box#bind_or_display_error
-                  (Wiki_data.wikibox_history bi.bi_rights wbcss)
+                  (Wiki_data.wikibox_history ~rights:bi.bi_rights ~wb:wbcss)
                   (self#display_css_history ~bi ~classes ~wb:wb_loc ~wbcss
                      ~wikipage:(wiki,wikipage))
                 >>= (self#menu_css_history ~bi ?special_box wb_loc
@@ -1495,7 +1509,7 @@ object (self)
        match Wiki_self_services.find_servwikicss wiki with
         | None -> Lwt.return []
         | Some wikicss_service ->
-            lwt wb_list_with_media = Wiki_sql.get_css_wikibox_for_wiki wiki in
+            lwt wb_list_with_media = Wiki_sql.get_css_wikibox_for_wiki ~wiki in
             if !Ocsimore_config.aggregate_css then
               Lwt_list.map_s
                 (fun (media, wb_list) ->
@@ -1547,7 +1561,7 @@ object (self)
            (Html5_types.html Html5.F.elt * int) Lwt.t =
 
      fun ~wiki ~sectioning ~menu_style ~page:(page, page_list) ~gen_box ->
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      let wb_container = wiki_info.wiki_container in
      gen_box ~sectioning menu_style >>= fun (wbid, subbox, err_code, title) ->
@@ -1598,7 +1612,7 @@ object (self)
    (* Displays the wikibox corresponding to a wikipage. This function, properly
       applied, is suitable for use with [display_container]. *)
    method private display_wikipage_wikibox ~wiki ~page:(page, page_list) ?subbox () =
-     Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
+     Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      let wb_container = wiki_info.wiki_container in
      Lwt.return
@@ -1718,7 +1732,7 @@ object (self)
                                bi_menu_style = menu_style;
                 } in
        lwt xml =
-         (self#display_interactive_wikibox bi wb
+         (self#display_interactive_wikibox ~bi wb
           :> Html5_types.flow5 Html5.F.elt list Lwt.t) in
        Lwt.return (Some xml)
      in

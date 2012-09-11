@@ -521,7 +521,7 @@ let page_opt_to_string wiki = function
   | None -> "wiki " ^ string_of_wiki wiki
   | Some page -> "page " ^ page ^ " of wiki " ^ string_of_wiki wiki
 
-let get_css_wikibox_aux_ ?db ~wiki ~page =
+let get_css_wikibox_aux_ ?db ~wiki ~page () =
   wrap db
     (fun db ->
        let wiki = t_int32 (wiki : wiki) in
@@ -669,7 +669,7 @@ module CWp = Ocsigen_cache.Make (struct
 
 let cache_wp = new CWp.cache
   (fun (wiki, page) ->
-     get_box_for_page_ wiki page) 64
+     get_box_for_page_ ~wiki ~page) 64
 
 
 let get_wikipage_info ~wiki ~page =
@@ -732,7 +732,7 @@ let cache_css =
                                type value = (wikibox * media_type * int32) list
                              end)
   in
-  new C.cache (fun (wiki, page) -> get_css_wikibox_aux_ wiki page) 64
+  new C.cache (fun (wiki, page) -> get_css_wikibox_aux_ ~wiki ~page ()) 64
 
 
 let get_css_wikibox ~wiki ~page =

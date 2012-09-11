@@ -263,7 +263,7 @@ let gen () =
                   and if the user has the right to have a wikiperso *)
                let wiki_title = "wikiperso for " ^ user in
                Lwt.catch
-                 (fun () -> Wiki_sql.get_wiki_info_by_name wiki_title
+                 (fun () -> Wiki_sql.get_wiki_info_by_name ~name:wiki_title
                     >>= fun _ -> Lwt.return ())
                  (function
                     | Not_found ->
@@ -330,7 +330,7 @@ let users_root =
     ~path:[!Ocsimore_config.admin_dir;"wikiperso"]
     ~get_params:Eliom_parameter.unit ()
 
-let () = Ocsimore_appl.register users_root
+let () = Ocsimore_appl.register ~service:users_root
   (fun () () ->
      User_sql.user_to_string can_have_wikiperso >>= fun s1 ->
      User_sql.user_to_string cannot_have_wikiperso >>= fun s2 ->

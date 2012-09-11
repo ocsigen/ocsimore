@@ -2056,43 +2056,43 @@ let reduced_wikicreole_parser_button_content =
 (* Predefined content types:    *)
 
 let wikicreole_content_type =
-  Wiki_models.register_flows_wiki_parser "wikicreole"
-    (preprocess_extension (cast_wp wikicreole_parser))
-    (xml_of_wiki (cast_wp wikicreole_parser))
+  Wiki_models.register_flows_wiki_parser ~name:"wikicreole"
+    ~preprocessor:(preprocess_extension (cast_wp wikicreole_parser))
+    ~parser_:(xml_of_wiki (cast_wp wikicreole_parser))
 
 let reduced_wikicreole_content_type0 =
-  Wiki_models.register_flows_wiki_parser "reduced_wikicreole0"
-    (preprocess_extension (cast_wp reduced_wikicreole_parser0))
-    (xml_of_wiki (cast_wp reduced_wikicreole_parser0)
+  Wiki_models.register_flows_wiki_parser ~name:"reduced_wikicreole0"
+    ~preprocessor:(preprocess_extension (cast_wp reduced_wikicreole_parser0))
+    ~parser_:(xml_of_wiki (cast_wp reduced_wikicreole_parser0)
      :> Html5_types.flow5 Html5.F.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type1 =
-  Wiki_models.register_flows_wiki_parser "reduced_wikicreole1"
-    (preprocess_extension (cast_wp reduced_wikicreole_parser1))
-    (xml_of_wiki (cast_wp reduced_wikicreole_parser1)
+  Wiki_models.register_flows_wiki_parser ~name:"reduced_wikicreole1"
+    ~preprocessor:(preprocess_extension (cast_wp reduced_wikicreole_parser1))
+    ~parser_:(xml_of_wiki (cast_wp reduced_wikicreole_parser1)
      :> Html5_types.flow5 Html5.F.elt list Wiki_models.wiki_parser)
 
 let reduced_wikicreole_content_type2 =
-  Wiki_models.register_flows_wiki_parser "reduced_wikicreole2"
-    (preprocess_extension (cast_wp reduced_wikicreole_parser2))
-    (xml_of_wiki (cast_wp reduced_wikicreole_parser2)
+  Wiki_models.register_flows_wiki_parser ~name:"reduced_wikicreole2"
+    ~preprocessor:(preprocess_extension (cast_wp reduced_wikicreole_parser2))
+    ~parser_:(xml_of_wiki (cast_wp reduced_wikicreole_parser2)
      :> Html5_types.flow5 Html5.F.elt list Wiki_models.wiki_parser)
 
 let wikicreole_phrasing_content_type =
-  Wiki_models.register_phrasings_wiki_parser "phrasing_wikicreole"
-    (preprocess_extension (cast_wp phrasing_wikicreole_parser))
-    (xml_of_wiki (cast_wp phrasing_wikicreole_parser))
+  Wiki_models.register_phrasings_wiki_parser ~name:"phrasing_wikicreole"
+    ~preprocessor:(preprocess_extension (cast_wp phrasing_wikicreole_parser))
+    ~parser_:(xml_of_wiki (cast_wp phrasing_wikicreole_parser))
 
 (* For backward compatibility *)
 let wikicreole_inline_content_type =
-  Wiki_models.register_phrasings_wiki_parser "inline_wikicreole"
-    (preprocess_extension (cast_wp phrasing_wikicreole_parser))
-    (xml_of_wiki (cast_wp phrasing_wikicreole_parser))
+  Wiki_models.register_phrasings_wiki_parser ~name:"inline_wikicreole"
+    ~preprocessor:(preprocess_extension (cast_wp phrasing_wikicreole_parser))
+    ~parser_:(xml_of_wiki (cast_wp phrasing_wikicreole_parser))
 
 let rawtext_content_type =
-  Wiki_models.register_flows_wiki_parser "rawtext"
-    Wiki_models.identity_preprocessor
-    (fun _bi s -> Lwt.return [Html5.F.p [Html5.F.pcdata s]])
+  Wiki_models.register_flows_wiki_parser ~name:"rawtext"
+    ~preprocessor:Wiki_models.identity_preprocessor
+    ~parser_:(fun _bi s -> Lwt.return [Html5.F.p [Html5.F.pcdata s]])
 
 
 
@@ -2619,7 +2619,7 @@ let () =
 let f_wikiname bi _args _c =
   `Phrasing_without_interactive
     (let wid = bi.Wiki_widgets_interface.bi_wiki in
-     lwt wiki_info = Wiki_sql.get_wiki_info_by_id wid in
+     lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wid in
      Lwt.return [Html5.F.pcdata wiki_info.wiki_descr])
 
 let () =
@@ -2646,7 +2646,9 @@ let () =
 
 let f_content bi _args _c =
   `Flow5
-    (match_lwt bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style with
+    (match_lwt bi.Wiki_widgets_interface.bi_subbox
+       ~sectioning:bi.bi_sectioning
+       bi.bi_menu_style with
      | None ->
          Lwt.return
            [Html5.F.div
@@ -2661,7 +2663,9 @@ let () =
 
 let f_content_div bi _args _c =
   `Flow5
-    (match_lwt bi.Wiki_widgets_interface.bi_subbox bi.bi_sectioning bi.bi_menu_style with
+    (match_lwt bi.Wiki_widgets_interface.bi_subbox
+       ~sectioning:bi.bi_sectioning
+       bi.bi_menu_style with
      | None ->
          Lwt.return
            [Html5.F.div
@@ -2699,7 +2703,7 @@ let f_menu bi args _c =
          try String.sep '|' s
          with Not_found -> s, s
        in
-       lwt wiki_info = Wiki_sql.get_wiki_info_by_id wiki_id in
+       lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki_id in
        lwt text2 =
          xml_of_wiki (cast_niwp phrasing_wikicreole_parser) bi text in
        let text2 : Html5_types.flow5 Html5.F.elt list =

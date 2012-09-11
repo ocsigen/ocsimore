@@ -132,7 +132,7 @@ let admin_pages_header =
   Header.create_header
     (fun () ->
        [Eliom_content.Html5.F.css_link
-          (static_file_uri ["ocsiadmin.css"]) ()])
+          ~uri:(static_file_uri ~path:["ocsiadmin.css"]) ()])
 
 (* shortcuts: *)
 
@@ -258,7 +258,7 @@ let admin_body_content_with_permission_handler ~title ?service ~permissions ~dis
     (admin_page ~title ?service content : Html5.F.html Lwt.t)
 
 let icon ~path ~text =
-  let src = static_file_uri [path] in
+  let src = static_file_uri ~path:[path] in
   Html5.F.img ~src ~alt:text ~a:[Html5.F.a_title text] ()
 
 
@@ -272,7 +272,7 @@ let ocsimore_admin_greetings =
   ]
 
 let () =
-  Eliom_registration.Html5.register admin_root
+  Eliom_registration.Html5.register ~service:admin_root
     (fun () () ->
        admin_page ~service:admin_root ~title:"Ocsimore" ocsimore_admin_greetings);
   ()

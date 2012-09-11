@@ -24,7 +24,7 @@ let (>>=) = Lwt.bind
 
 let nis_auth ~name ~pwd =
   try
-    Nis_chkpwd.check_nis name pwd >>= function
+    Nis_chkpwd.check_nis ~login:name ~passwd:pwd >>= function
       | true -> Lwt.return ()
       | false -> Lwt.fail User.BadPassword
   with
