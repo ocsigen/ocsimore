@@ -698,7 +698,7 @@ object (self)
           match Pcre.string_match regexp arg.user_login 0 with
             | None -> ("Other", "")
             | Some x ->
-              try (Pcre.matched_group x 1 arg.user_login,
+              try (String.capitalize (Pcre.matched_group x 1 arg.user_login),
                    Pcre.matched_group x 2 arg.user_login)
               with Not_found -> ("Other", "")
         in
