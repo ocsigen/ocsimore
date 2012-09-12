@@ -70,7 +70,3 @@ let full_transaction_block f =
 let map_option f = function
   | Some x -> Some (f x)
   | None -> None
-
-let rec in' value = function
-  | [] -> (<:value< false >>)
-  | x::xs -> (<:value< value = $x$ || $in' value xs$ >>)

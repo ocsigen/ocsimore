@@ -17,9 +17,3 @@ val full_transaction_block : (db_t -> 'a Lwt.t) -> 'a Lwt.t
 
 (** Functions that transform 'a option to 'b option *)
 val map_option : ('a -> 'b) -> 'a option -> 'b option
-
-(** Useful function that mimic the comportement of IN (SQL statement) *)
-val in' :
-  < nul : 'a; t : 'b; .. > Sql.t ->
-  < nul : 'a; t : 'b; .. > Sql.t list ->
-  < nul : 'a; t : Sql.bool_t > Sql.t
