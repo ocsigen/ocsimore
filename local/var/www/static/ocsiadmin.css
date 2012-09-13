@@ -59,7 +59,7 @@ span.admin-menu-root {
 #admin_body {
     margin-left: 240px;
     height: 80%;
-    margin-bottom: 45px;
+    margin-bottom: 5%;
 }
 
 
@@ -138,6 +138,7 @@ body.admin h1.html_page_heading {
   width:100%;
   background-color: white;
   z-index: 99;
+  height: 5%;
 }
 
 #admin_status form.logoutbutton, #admin_status form.logoutbutton div, #admin_status form.logoutbutton p {
