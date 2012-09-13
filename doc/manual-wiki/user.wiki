@@ -14,7 +14,7 @@ Configuration file example:
 
 Configuration file example:
 {{{
-      <extension findlib-package="ocamldap"/>
+      <extension findlib-package="ldap"/>
       <extension findlib-package="ocsimore.user.ldap">
         <ldap base="ou=blah,ou=users,dc=blih,dc=plop,dc=fr" uri="ldaps://my-ldap-server.com:636/" />
       </extension>
