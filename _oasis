@@ -132,7 +132,7 @@ Library "wiki"
   XMETADescription: Wiki stuffs
   DataFiles:
     ../../local/var/www/static/*.css,
-    ../../local/var/www/static/*.png ($prefix/var/www/$pkg_name)
+    ../../local/var/www/static/*.png
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.user, js_of_ocaml.deriving.syntax
   XMETARequires: ocsimore.user
@@ -187,6 +187,8 @@ Library "core_site_client"
     Wiki_widgets,
     Forum_widgets,
     Ocsimore
+  DataFiles:
+    ../../_build/src/site/client/ocsimore.js
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, eliom.client, eliom.syntax
