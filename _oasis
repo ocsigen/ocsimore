@@ -58,6 +58,9 @@ Library "ocsimore"
     crypt_stubs.c
   CCLib: -lcrypt
   XMETADescription: Core Ocsimore
+  DataFiles:
+    ../files/createdb.sql,
+    ../../local/etc/ocsigen/ocsimore.conf
   BuildDepends:
     camlp4, lwt.syntax, macaque.syntax, ocaml-safepass,
     eliom.server, threads, js_of_ocaml.deriving.syntax
@@ -131,8 +134,8 @@ Library "wiki"
     server/Wiki
   XMETADescription: Wiki stuffs
   DataFiles:
-    ../../local/var/www/static/*.css,
-    ../../local/var/www/static/*.png
+    ../../local/var/www/static/*.css ($datadir/$pkg_name/static),
+    ../../local/var/www/static/*.png ($datadir/$pkg_name/static)
   BuildDepends:
     camlp4, lwt.syntax, ocsimore.user, js_of_ocaml.deriving.syntax
   XMETARequires: ocsimore.user
@@ -188,7 +191,7 @@ Library "core_site_client"
     Forum_widgets,
     Ocsimore
   DataFiles:
-    ../../../_build/src/site/client/ocsimore.js
+    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, eliom.client, eliom.syntax
