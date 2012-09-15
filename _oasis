@@ -188,7 +188,7 @@ Library "core_site_client"
     Forum_widgets,
     Ocsimore
   DataFiles:
-    ../../_build/src/site/client/ocsimore.js
+    ../../../_build/src/site/client/ocsimore.js
   XMETADescription: some extensions
   BuildDepends:
     camlp4, lwt.syntax, eliom.client, eliom.syntax
