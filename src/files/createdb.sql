@@ -673,7 +673,8 @@ CREATE TABLE wikis (
     container integer,
     staticdir text,
     model text DEFAULT 'wikicreole'::text NOT NULL,
-    siteid text
+    siteid text,
+    deleted boolean NOT NULL DEFAULT(false)
 );
 
 
