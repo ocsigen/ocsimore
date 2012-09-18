@@ -793,7 +793,6 @@ object (self)
                  ~a:[Html5.F.a_class ["eliom_inline"]]
                  [Html5.F.strong [Html5.F.pcdata text]]
               ]
-        ~show_edit:true
     in
     aux Wiki.wiki_admins "Administer the wiki" ()                  >>= fun f1 ->
     aux Wiki.wiki_subwikiboxes_creators "Create subwikiboxes" ()   >>= fun f2 ->

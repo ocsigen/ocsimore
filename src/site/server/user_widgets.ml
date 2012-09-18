@@ -82,16 +82,10 @@ class type user_widget_class = object
   method user_link :
     string -> [`A of Html5_types.a_content | `Form] Html5.F.elt
 
-  method user_list_to_xhtml :
-    User_sql.Types.user list -> Html5_types.flow5 Html5.F.elt Lwt.t
-
-
   (** Helper forms to add and remove users from groups. If [show_edit]
       is false, no controls to edit the permissions are shown *)
   (** Form to add users to a group *)
   method form_edit_group:
-    ?show_edit:bool ->
-    ?default_add:string ->
     group:user ->
     text:Html5_types.flow5 Html5.F.elt list ->
     unit ->
@@ -102,7 +96,7 @@ class type user_widget_class = object
     user:User_sql.Types.user ->
     text:Html5_types.flow5 Html5.F.elt list ->
     unit ->
-    Html5_types.flow5 Html5.F.elt list Lwt.t
+    Html5_types.tbody_content Html5.F.elt Lwt.t
 
   method form_edit_awr: 'a.
     text_prefix:string ->
@@ -150,31 +144,97 @@ object (self)
 
   val xhtml_class = "logbox"
 
-  method form_edit_group ?(show_edit=false) ?(default_add="") ~group ~text () =
-    (if show_edit then
-       User.get_user_data () >>= fun u ->
-       let user = basic_user u.user_id in
-       User_data.can_admin_group ~user ~group () >>= function
-         | true ->
-             self#form_add_user_to_group ~group ()
-         | false ->
-             Lwt.return []
-     else
-       Lwt.return []
-    ) >>= fun add ->
-    Lwt.return
-      (Html5.F.tr
-         [Html5.F.td ~a:[Html5.F.a_class ["role"]] text;
-          Html5.F.td ~a:[Html5.F.a_class ["current_users"]] add]
-      )
+  method private users_to_html ~users_in ~group users =
+    let open Html5.F in
+    List.map
+      (fun user ->
+        tr [
+          td [self#user_link user.user_login];
+          td (
+            let in_group =
+              List.mem user.user_login users_in
+            in
+            self#bt_remove_user_from_group
+              ~group
+              ~user:user.user_login
+              ~remove:in_group
+              ()
+          );
+        ]
+      ) (Lazy.force users)
 
+  method private users_title title' =
+    let open Html5.F in
+    tr ~a:[a_class ["user_menu_title"]] [
+      td [pcdata title'];
+      td [];
+    ]
+
+  method form_edit_group ~group ~text () =
+    User_sql.all_users ()
+    >>= fun users ->
+    User_sql.users_in_group ~generic:false ~group
+    >>= (Lwt_list.map_p User_sql.user_to_string)
+    >>= fun users_in ->
+    User_sql.user_to_string group
+    >>= fun group ->
+    Lwt.return (
+      Html5.F.tr [
+        Html5.F.td ~a:[Html5.F.a_class ["role"]] text;
+        Html5.F.td ~a:[Html5.F.a_class ["current_users"]] [
+          Html5.F.table (self#users_title "Users") (
+            self#users_to_html ~users_in ~group users.users
+            @ [self#users_title "Groups"]
+            @ self#users_to_html ~users_in ~group users.groups
+          )
+        ]
+      ]
+    )
 
   method form_edit_user ~user ~text () =
+    User_sql.all_users ()
+    >>= fun users ->
+    User_sql.groups_of_user ~user
+    >>= (Lwt_list.map_p User_sql.user_to_string)
+    >>= fun users_in ->
+    User_sql.user_to_string user
+    >>= fun user ->
+    self#get_roles_table
+      ~td_content:(fun group ->
+        let in_group =
+          List.mem group users_in
+        in
+        self#bt_remove_user_from_group
+          ~group
+          ~user
+          ~remove:in_group
+          ()
+      ) ()
+    >>= fun roles ->
+    let roles =
+      Hashtbl.fold (fun a b acc ->
+        Html5.F.tr ~a:[Html5.F.a_class ["roles_title"]] [
+          Html5.F.td [
+            Html5.F.strong [Html5.F.pcdata a]
+          ];
+          Html5.F.td [];
+        ] :: b @ acc
+      ) roles []
+    in
     (* YYY put back edition buttons if the user has enough rights, or if
        it is admin *)
-    lwt groups = User_sql.groups_of_user ~user in
-    lwt members = self#user_list_to_xhtml groups in
-    Lwt.return (text @ [members])
+    Lwt.return (
+      Html5.F.tr [
+        Html5.F.td ~a:[Html5.F.a_class ["role"]] text;
+        Html5.F.td ~a:[Html5.F.a_class ["current_users"]] [
+          Html5.F.table (self#users_title "Groups") (
+            self#users_to_html ~users_in ~group:user users.groups
+            @ [self#users_title "Roles"]
+            @ roles
+          )
+        ]
+      ]
+    )
 
   method form_edit_awr : 'a.
       text_prefix:_
@@ -190,7 +250,6 @@ object (self)
        () ->
     let aux grp text default =
       self#form_edit_group ~group:(grp $ arg) ~text
-        ~show_edit:true ~default_add:default
     and d1, d2, d3 = match defaults with
       | None -> "", "", ""
       | Some (d1, d2, d3) -> d1, d2, d3
@@ -221,57 +280,6 @@ object (self)
     [Html5.D.post_form
       ~a:[eliom_inline_class; accept_charset_utf8 ]
       ~service:User_services.action_add_remove_users_from_group mform ()]
-
-  method private form_add_user_to_group ~group () =
-    User_sql.all_users () >>= fun users ->
-    User_sql.users_in_group ~generic:false ~group >>= fun users_in ->
-    User_sql.user_to_string group >>= fun group ->
-    let open Html5.F in
-    let users_to_html users =
-      List.map
-        (fun user ->
-          tr [
-            td [self#user_link user.user_login];
-            td (
-              let in_group =
-                List.exists
-                  (fun u -> user.user_id = userid_from_user u)
-                  users_in
-              in
-              self#bt_remove_user_from_group
-                ~group
-                ~user:user.user_login
-                ~remove:in_group
-                ()
-            );
-          ])
-        (Lazy.force users)
-    in
-    let users_title title = tr ~a:[a_class ["user_menu_title"]] [
-      td [pcdata title];
-      td [];
-    ] in
-    Lwt.return [
-      table (users_title "Users") (
-        (users_to_html users.users)
-        @ [users_title "Groups"] @ (users_to_html users.groups)
-      )
-    ]
-
-  method user_list_to_xhtml l = match l with
-    | [] -> Lwt.return
-              (Html5.F.p [Html5.F.em [Html5.F.pcdata "(currently no user)"]])
-    | e :: es ->
-        let convert u =
-          User_sql.user_to_string ~expand_param:true u >|= fun user ->
-          Html5.F.li [self#user_link user]
-        in
-        convert e >>= fun e ->
-        Lwt_list.fold_left_s
-          (fun s u -> convert u >|= fun r -> r :: s)
-          [e] es
-        >|= fun l -> Html5.F.ul ~a:[Html5.F.a_class ["user_list"]] l
-
 
   method private login_box_aux
     ?(user_prompt= "login:")
@@ -415,7 +423,7 @@ object (self)
     in
     (* Adding groups to the group *)
     lwt f1 =
-      self#form_edit_group ~show_edit:true ~group
+      self#form_edit_group ~group
         ~text:[Html5.F.p ~a:[eliom_inline_class]
                  [Html5.F.strong
                     [Html5.F.pcdata ("Current users/groups in this "^ text ^": ")]
@@ -477,7 +485,8 @@ object (self)
              (if gtype = `User
               then []
               else [table ~a:[a_class ["users_in_group"]] f1 []]);
-           div ~a:[a_class ["user_block"]] f2;
+           div ~a:[a_class ["user_block"]]
+             [table ~a:[a_class ["users_in_group"]] f2 []];
          ])
 
   method display_users_settings =
@@ -622,6 +631,26 @@ object (self)
 
   (* Parameterized users *)
   method display_roles =
+    self#get_roles_table ()
+    >>= fun hashtbl ->
+    let l = Hashtbl.fold (fun a b acc ->
+      Html5.F.tr ~a:[Html5.F.a_class ["roles_title"]] [
+        Html5.F.td [
+          Html5.F.h3 [Html5.F.pcdata a]
+        ];
+        Html5.F.td [];
+      ] :: b @ acc
+    ) hashtbl [] in
+    match l with
+      | [] -> Lwt.return []
+      | x::xs ->
+        Lwt.return [
+          Html5.F.table
+            ~a:[Html5.F.a_class ["table_admin"]]
+            x xs
+        ]
+
+  method private get_roles_table ?td_content () =
     lwt l =
       User_sql.all_users () >|= fun users ->
       List.sort
@@ -661,35 +690,45 @@ object (self)
                   [pcdata short_name] u.user_login;
               ];
             ];
-            td [pcdata u.user_fullname];
+            td (match td_content with
+              | None -> [pcdata u.user_fullname]
+              | Some f -> f u.user_login
+            );
           ] in
-          Lwt.return (block, tr [])
+          Lwt.return [block]
         | Some (param, p) ->
-          let link name acc = [
-            li [
-              a ~service:User_services.service_view_group
-                [strong [pcdata name]] (u.user_login ^ "(" ^ name ^ ")");
-              br ();
-            ];
-          ] @ acc in
-          let block_and_link = tr [
-            td [
-              ul ~a:[a_class ["roles_tr"]] (
-                match p with
-                  | [] -> [li [pcdata "(None)"]]
-                  | _ -> List.fold_right link p []
-              )
-            ];
-            td [];
-          ]
-          and block name = tr ~a:[a_class ["user_menu_title"]] [
+          let parametrize param = u.user_login ^ "(" ^ param ^ ")" in
+          let link param =
+            a ~service:User_services.service_view_group
+              [strong [pcdata param]] (parametrize param);
+          in
+          let block_and_link =
+            let lines =
+              List.map
+                (fun param ->
+                  tr [
+                    td ~a:[a_class ["roles_tr_prime"]] [link param];
+                    td (match td_content with
+                      | None -> []
+                      | Some f -> f (parametrize param)
+                    );
+                  ]
+                )
+                p
+            in
+            match lines with
+              | [] -> [tr [td ~a:[a_class ["roles_tr_prime"]] [pcdata "(None)"]]]
+              | _ -> lines
+          in
+          let block name = tr ~a:[a_class ["user_menu_title"]] [
             td ~a:[a_class ["roles_tr"]] [
               strong [pcdata (name ^ "(" ^ param ^ ")")]
             ];
             td [pcdata u.user_fullname]
           ] in
-          Lwt.return (block short_name, block_and_link)
-       ) in
+          Lwt.return (block short_name :: block_and_link)
+       )
+      in
       let module Pcre = Netstring_pcre in
       let regexp = Pcre.regexp "#([^.]+)\\.(.*)" in
       let hashtbl = Hashtbl.create 4 in
@@ -706,29 +745,12 @@ object (self)
         >|= fun item ->
         try
           let prev = Hashtbl.find hashtbl group in
-          Hashtbl.replace hashtbl group (item :: prev)
+          Hashtbl.replace hashtbl group (item @ prev)
         with Not_found ->
-          Hashtbl.add hashtbl group [item]
+          Hashtbl.add hashtbl group item
       ) l
       >>= fun () ->
-      let l = Hashtbl.fold (fun a b acc ->
-        List.fold_left (fun acc x -> snd x :: fst x :: acc) [] b
-        @ Html5.F.tr ~a:[Html5.F.a_class ["roles_title"]] [
-          Html5.F.td [
-            Html5.F.h3 [Html5.F.pcdata a]
-          ];
-          Html5.F.td [];
-        ] :: acc
-      ) hashtbl [] in
-      let l = List.rev l in
-      match l with
-        | [] -> Lwt.return []
-        | x::xs ->
-          Lwt.return [
-            Html5.F.table
-              ~a:[Html5.F.a_class ["table_admin"]]
-              x xs
-          ]
+      Lwt.return hashtbl
 
   method private display_users_groups ~show_auth ~utype ~l =
     let line u =

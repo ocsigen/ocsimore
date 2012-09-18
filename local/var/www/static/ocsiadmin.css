@@ -188,6 +188,6 @@ form > table > tr > td.description {
     width: 50%;
 }
 
-ul.roles_tr {
-    padding-left: 14%;
+.roles_tr_prime {
+    padding-left: 6%;
 }
