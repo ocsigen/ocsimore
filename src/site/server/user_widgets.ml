@@ -400,7 +400,7 @@ object (self)
 
   method display_group group =
     lwt gtype = User_sql.user_type group in
-    let _, text, gtypedescr = match gtype with
+    let _, _, gtypedescr = match gtype with
       | `Role  -> ("Role",  "role",  "Description")
       | `User  -> ("User",  "user",  "Name"       )
       | `Group -> ("Group", "group", "Description")
@@ -426,19 +426,19 @@ object (self)
       self#form_edit_group ~group
         ~text:[Html5.F.p ~a:[eliom_inline_class]
                  [Html5.F.strong
-                    [Html5.F.pcdata ("Current users/groups in this "^ text ^": ")]
+                    [Html5.F.pcdata "Members: "]
               ]]
         ()
     in
     (* Adding the group to groups *)
     lwt f2 =
+      User_sql.user_to_string ~expand_param:false group
+      >>= fun username ->
       self#form_edit_user ~user:group
         ~text:[Html5.F.p ~a:[Html5.F.a_class ["eliom_inline"]]
-                 [Html5.F.strong
-                    [Html5.F.pcdata ("Current groups/roles in which the " ^ text ^
-                                     " is: ")
-                    ]
-                 ]
+                  [Html5.F.strong
+                      [Html5.F.pcdata (username ^ " is in: ")]
+                  ]
         ]
         ()
     in
