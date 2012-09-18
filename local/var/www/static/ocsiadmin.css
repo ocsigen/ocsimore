@@ -191,3 +191,14 @@ form > table > tr > td.description {
 .roles_tr_prime {
     padding-left: 6%;
 }
+
+.small_box {
+    width: 60em;
+    height: 25em;
+    overflow: auto;
+}
+
+.small_box table {
+    width: 100%;
+    height: 100%;
+}

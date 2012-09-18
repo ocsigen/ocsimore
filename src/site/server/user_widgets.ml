@@ -178,18 +178,14 @@ object (self)
     >>= fun users_in ->
     User_sql.user_to_string group
     >>= fun group ->
-    Lwt.return (
-      Html5.F.tr [
-        Html5.F.td ~a:[Html5.F.a_class ["role"]] text;
-        Html5.F.td ~a:[Html5.F.a_class ["current_users"]] [
-          Html5.F.table (self#users_title "Users") (
-            self#users_to_html ~users_in ~group users.users
-            @ [self#users_title "Groups"]
-            @ self#users_to_html ~users_in ~group users.groups
-          )
-        ]
-      ]
-    )
+    self#users_edit_table ~text [
+      Html5.F.table
+        (self#users_title "Users")
+        (self#users_to_html ~users_in ~group users.users
+         @ [self#users_title "Groups"]
+         @ self#users_to_html ~users_in ~group users.groups
+        )
+    ]
 
   method form_edit_user ~user ~text () =
     User_sql.all_users ()
@@ -223,15 +219,21 @@ object (self)
     in
     (* YYY put back edition buttons if the user has enough rights, or if
        it is admin *)
+    self#users_edit_table ~text [
+      Html5.F.table
+        (self#users_title "Groups")
+        (self#users_to_html ~users_in ~group:user users.groups
+         @ [self#users_title "Roles"]
+         @ roles
+        )
+    ]
+
+  method private users_edit_table ~text content =
     Lwt.return (
       Html5.F.tr [
         Html5.F.td ~a:[Html5.F.a_class ["role"]] text;
         Html5.F.td ~a:[Html5.F.a_class ["current_users"]] [
-          Html5.F.table (self#users_title "Groups") (
-            self#users_to_html ~users_in ~group:user users.groups
-            @ [self#users_title "Roles"]
-            @ roles
-          )
+          Html5.F.div ~a:[Html5.F.a_class ["small_box"]] content
         ]
       ]
     )
