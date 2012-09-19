@@ -60,6 +60,7 @@ Library "ocsimore"
   XMETADescription: Core Ocsimore
   DataFiles:
     ../files/createdb.sql,
+    ../files/initdb.sh,
     ../../local/etc/ocsigen/ocsimore.conf
   BuildDepends:
     camlp4, lwt.syntax, macaque.syntax, ocaml-safepass,
