@@ -12,6 +12,10 @@
 
 === Compilation ===
 
+From the darcs repository, execute this first:
+
+  $ oasis setup
+
 Configure ocsimore (add --help to see all options):
 
   $ sh configure
