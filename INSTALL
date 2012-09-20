@@ -14,7 +14,7 @@
 
 Configure ocsimore (add --help to see all options):
 
-  $ ./configure
+  $ sh configure
 
 Compile ocsimore:
 
@@ -30,11 +30,11 @@ If you want system wide install, become root and install:
 Just run the init script with the postgres administrator:
 - from the source directory:
 
-  $ sudo -u postgres src/files/initdb.sh
+  $ sudo -u postgres sh src/files/initdb.sh
 
 - or after installation (can depend on your packages manager rules):
 
-  $ sudo -u postgres /usr/share/ocsimore/initdb.sh
+  $ sudo -u postgres sh /usr/share/ocsimore/initdb.sh
 
 Note: If somting goes wrong, do the following common part, and retry.
 
