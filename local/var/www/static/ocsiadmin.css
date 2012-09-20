@@ -202,3 +202,8 @@ form > table > tr > td.description {
     width: 100%;
     height: 100%;
 }
+
+.default_textarea {
+    width: 300%;
+    height: 20em;
+}

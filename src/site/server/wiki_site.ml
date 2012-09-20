@@ -280,7 +280,9 @@ let create_wiki_form ~serv_path:_ ~service ~arg
             (extensible_list "Add wiki admin" "" admins
                (fun reader ->
                   p (convert (string_input reader) User.user_from_userlogin_xform))) @@
-          label_input_tr ~label:"Container text" (text_area container) @@
+          label_input_tr
+            ~label:"Container text"
+            (text_area ~a:[Html5.F.a_class ["default_textarea"]] container) @@
           label_input_tr ~label:"Wiki model" ~description:"For advanced users" (model_input model) @@
           label_input_tr ~label:"Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
           tr (td (submit_button "Create")))
