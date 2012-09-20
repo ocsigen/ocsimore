@@ -287,7 +287,7 @@ object (self)
       let edit_window =
         Eliom_client.window_open
           ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
-          ~window_features:(Js.string "alwaysRaised=yes,width=420,height=230,location=no,dependent=yes")
+          ~window_features:(Js.string "alwaysRaised=yes,width=800,height=600,location=no,dependent=yes")
           ~service:( %Wiki_services.Ui.edit_service )
           %wb
       in
@@ -644,7 +644,10 @@ object (self)
                        ~name:wikipagename ~input_type:`Hidden ~value:page ()
                     ]);
              [Html5.D.int32_input ~input_type:`Hidden ~name:versionname ~value:curversion ();
-              Html5.D.textarea ~name:contentname ~value:content ();
+              Html5.D.textarea
+                ~a:[Html5.F.a_class ["wikitextarea"]]
+                ~name:contentname
+                ~value:content ();
               Html5.F.br ();
               Html5.D.button ~button_type:`Submit [Html5.F.pcdata"Save"];
              ];

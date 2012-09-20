@@ -171,6 +171,14 @@ textarea{
   width: 100%;
 }
 
+textarea.wikitextarea {
+    height: 75%;
+}
+
+body, html {
+    height: 100%;
+}
+
 .editform textarea{
   width: 68%;
 }
