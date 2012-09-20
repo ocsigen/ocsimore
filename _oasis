@@ -61,6 +61,7 @@ Library "ocsimore"
   DataFiles:
     ../files/createdb.sql,
     ../files/initdb.sh,
+    ../../INSTALL,
     ../../local/etc/ocsigen/ocsimore.conf
   BuildDepends:
     camlp4, lwt.syntax, macaque.syntax, ocaml-safepass,
