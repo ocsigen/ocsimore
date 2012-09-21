@@ -141,20 +141,22 @@ let get_wikibox_content_ ?version wb =
            } | w in $wikiboxescontent$;
                w.wikibox = $int32:wikibox$ >>)
            >>= fun version ->
-           Lwt.return version#!version
+           Lwt.return version#?version
          | Some version ->
-           Lwt.return version
-       ) >>= fun version ->
-       Lwt_Query.view_opt db (<:view< {
-         w.comment;
-         w.author;
-         w.content;
-         w.datetime;
-         w.content_type;
-         w.version
-       } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
-           w.version = $int32:version$ >>)
-       >>= function
+           Lwt.return (Some version)
+       ) >>= (function
+         | Some version ->
+           Lwt_Query.view_opt db (<:view< {
+             w.comment;
+             w.author;
+             w.content;
+             w.datetime;
+             w.content_type;
+             w.version
+           } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$;
+               w.version = $int32:version$ >>)
+         | None -> Lwt.return None
+        ) >>= function
          | None -> Lwt.return None
          | Some first ->
              Lwt.return (Some (first#!comment,
@@ -196,12 +198,11 @@ let current_wikibox_version_  wb =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
        let wikibox = sql_of_wikibox wb in
-       Lwt_Query.view_opt db (<:view< group {
+       Lwt_Query.view_one db (<:view< group {
          version = max[w.version]
        } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>)
-       >>= function
-         | None -> Lwt.return None
-         | Some v -> Lwt.return (Some (v#!version))
+       >>= fun v ->
+       Lwt.return v#?version
     )
 
 (* Not cached : too rare, and too big *)
@@ -537,7 +538,7 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
        let wiki = t_int32 (wiki : wiki)
        and wb = sql_of_wikibox wb in
        Lwt_Query.view_one db (<:view< group {
-         rank = (max[c.rank]) + 1
+         rank = match max[c.rank] + 1 with null -> 1 | r -> r;
        } | c in $css$; c.wiki = $int32:wiki$;
            is_not_distinct_from c.page (of_option $map_option Sql.Value.string page$) >>)
        >>= fun rank ->
@@ -548,7 +549,7 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
          specialrights = css?specialrights;
          uid = css?uid;
          mediatype = $string:media$;
-         rank = $int32:rank#!rank$
+         rank = $rank#rank$;
        } >>)
     )
 
