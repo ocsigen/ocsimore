@@ -888,6 +888,13 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
            Lwt.return ()
     )
 
+let get_wikipages_of_a_wiki ~wiki () =
+  let wiki = sql_of_wiki wiki in
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    Lwt_Query.view db
+      (<:view< w | w in $wikipages$; w.wiki = $int32:wiki$ >>)
+  )
+
 let get_wikis_name () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.view db (<:view< {

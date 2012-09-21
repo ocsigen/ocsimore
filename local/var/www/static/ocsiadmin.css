@@ -91,12 +91,13 @@ table.table_admin td.current_users {
 }
 
 table.table_admin td {
-  border-bottom: 1px solid #E0E9FB;
+  border-bottom: 1px solid #D0D9EB;
 }
 
 table.table_admin th {
-  background-color: #E0E9FB;
-  padding: 5px;
+    background-color: #6695c1;
+    color: #383e44;
+    padding: 5px;
 }
 
 table.table_admin td.current_users {
@@ -206,4 +207,8 @@ form > table > tr > td.description {
 .default_textarea {
     width: 300%;
     height: 20em;
+}
+
+.wikis {
+    background-color: #D0D9EB;
 }

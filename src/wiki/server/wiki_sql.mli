@@ -242,6 +242,21 @@ val rewrite_wikipages :
   path:string ->
   unit Lwt.t
 
+val get_wikipages_of_a_wiki :
+  wiki:wiki ->
+  unit ->
+  < pagename : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+    Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t >
+   Sql.t;
+ uid : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+   Sql.t;
+ wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+   Sql.t;
+ wikibox : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+   Sql.t >
+   list Lwt.t
+
 val get_wikis_name : unit -> string list Lwt.t
 val get_wikiboxes_id : unit -> string list Lwt.t
 val get_wikipages_id : unit -> string list Lwt.t

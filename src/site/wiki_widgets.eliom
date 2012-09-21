@@ -1753,74 +1753,99 @@ object (self)
        List.sort (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l
      in
 
-     let line w =
-       let img path text = [Page_site.icon ~path ~text] in
-       let id = Opaque.int32_t_to_string w.wiki_id in
-       let edit =
-         Html5.D.a ~service:Wiki_services.edit_wiki
-           (img "imgedit.png" "Edit wiki options") w.wiki_id
-       in
-       let view_wikiboxes =
-         Html5.D.a ~service:Wiki_services.view_boxes
-          (img "viewboxes.png" "View all boxes") w.wiki_id
-       in
-       let edit_perm =
-         Html5.D.a
-           ~service:Wiki_services.edit_wiki_permissions_admin
-           (img "imgeditperms.png" "View permissions") w.wiki_id
-       in
-       let page =
-         match Wiki_self_services.find_servpage w.wiki_id with
-           | None -> []
-           | Some service ->
+     let wiki_line w =
+       let line =
+         let img path text = [Page_site.icon ~path ~text] in
+         let id = Opaque.int32_t_to_string w.wiki_id in
+         let edit =
+           Html5.D.a ~service:Wiki_services.edit_wiki
+             (img "imgedit.png" "Edit wiki options") w.wiki_id
+         in
+         let view_wikiboxes =
+           Html5.D.a ~service:Wiki_services.view_boxes
+             (img "viewboxes.png" "View all boxes") w.wiki_id
+         in
+         let edit_perm =
+           Html5.D.a
+             ~service:Wiki_services.edit_wiki_permissions_admin
+             (img "imgeditperms.png" "View permissions") w.wiki_id
+         in
+         let page =
+           match Wiki_self_services.find_servpage w.wiki_id with
+             | None -> []
+             | Some service ->
                [Html5.D.a ~service
-                  (img "imgview.png" "View wiki root wikipage") []
+                   (img "imgview.png" "View wiki root wikipage") []
                ]
-       in
-       let delete_or_undelete ~msg ~delete str =
+         in
+         let delete_or_undelete ~msg ~delete str =
          (* Don't use opaque type because Eliom_parameter doesn't support
             user defined types already *)
-         let param = sql_of_wiki w.wiki_id in
-         Html5.D.Raw.a ~a:[
-           Html5.D.a_onclick {{
-             let answer = Dom_html.window##confirm
-               (Js.string %msg)
-             in
-             if Js.to_bool answer then
-               Eliom_client.exit_to ~service:%Wiki_services.delete_wiki ()
-                 ( %param, %delete)
-             else
-               ()
-           }};
-           Html5.F.a_class ["jslink"];
-         ] [Html5.F.pcdata str]
+           let param = sql_of_wiki w.wiki_id in
+           Html5.D.Raw.a ~a:[
+             Html5.D.a_onclick {{
+               let answer = Dom_html.window##confirm
+                 (Js.string %msg)
+               in
+               if Js.to_bool answer then
+                 Eliom_client.exit_to ~service:%Wiki_services.delete_wiki ()
+                   ( %param, %delete)
+               else
+                 ()
+             }};
+             Html5.F.a_class ["jslink"];
+           ] [Html5.F.pcdata str]
+         in
+         let delete =
+           delete_or_undelete
+             ~msg:"Do you really want to delete this wiki ?"
+             ~delete:true
+             "Delete"
+         and undelete =
+           delete_or_undelete
+             ~msg:"Do you really want to undelete this wiki ?"
+             ~delete:false
+             "Undelete"
+         in
+         (Html5.F.tr ~a:[Html5.F.a_class ["wikis"]]
+            [Html5.F.td ~a:[Html5.F.a_class ["wikiid"]] [Html5.F.pcdata id];
+             Html5.F.td ~a:[Html5.F.a_class ["wikiname"]]
+               [Html5.F.strong [Html5.F.pcdata w.wiki_title]];
+             Html5.F.td ~a:[Html5.F.a_class ["wikidescr"]]
+               [Html5.F.pcdata w.wiki_descr];
+             Html5.F.td [edit];
+             Html5.F.td [view_wikiboxes];
+             Html5.F.td [edit_perm];
+             Html5.F.td page;
+             Html5.F.td [if w.wiki_deleted then undelete else delete];
+            ]
+         )
        in
-       let delete =
-         delete_or_undelete
-           ~msg:"Do you really want to delete this wiki ?"
-           ~delete:true
-           "Delete"
-       and undelete =
-         delete_or_undelete
-           ~msg:"Do you really want to undelete this wiki ?"
-           ~delete:false
-           "Undelete"
-       in
-       (Html5.F.tr
-          [Html5.F.td ~a:[Html5.F.a_class ["wikiid"]] [Html5.F.pcdata id];
-           Html5.F.td ~a:[Html5.F.a_class ["wikiname"]]
-             [Html5.F.strong [Html5.F.pcdata w.wiki_title]];
-           Html5.F.td ~a:[Html5.F.a_class ["wikidescr"]]
-             [Html5.F.pcdata w.wiki_descr];
-           Html5.F.td [edit];
-           Html5.F.td [view_wikiboxes];
-           Html5.F.td [edit_perm];
-           Html5.F.td page;
-           Html5.F.td [if w.wiki_deleted then undelete else delete];
-          ]
-       )
+       Wiki_sql.get_wikipages_of_a_wiki ~wiki:w.wiki_id ()
+       >>= (fun wikipages ->
+         Lwt_list.map_s
+           (fun wikipage -> Lwt.return (
+             Html5.F.tr
+               [Html5.F.td [];
+                Html5.F.td ~a:[Html5.F.a_class ["wikiname"]]
+                  [Html5.F.strong [Html5.F.pcdata (Sql.get wikipage#pagename)]];
+                Html5.F.td [];
+                Html5.F.td [];
+                Html5.F.td [];
+                Html5.F.td [];
+                Html5.F.td [];
+                Html5.F.td [];
+               ]
+            )) wikipages
+       ) >>= fun lines_wikipages ->
+       Lwt.return (line :: lines_wikipages)
      in
-     let l = List.map line l in
+     Lwt_list.fold_left_s (fun acc x ->
+       wiki_line x
+       >>= fun line ->
+       Lwt.return (acc @ line)
+     ) [] l
+     >>= fun l ->
      Lwt.return
        [ Html5.F.table ~a:[Html5.F.a_class ["table_admin"]]
           (Html5.F.tr
