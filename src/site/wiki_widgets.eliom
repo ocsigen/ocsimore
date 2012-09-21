@@ -630,7 +630,7 @@ object (self)
                        wbcssname),
                       versionname)),
                     contentname) =
-      [Html5.F.p
+      [Html5.F.p ~a:[Html5.F.a_class ["fullsize"]]
          (List.flatten
             [warning;
              [Ocsimore_common.input_opaque_int32 ~value:wb wbname;
@@ -658,7 +658,7 @@ object (self)
     Lwt.return
       (classes,
        [Html5.D.post_form
-          ~a:[Html5.F.a_accept_charset ["utf-8"]]
+          ~a:[Html5.F.a_accept_charset ["utf-8"]; Html5.F.a_class ["fullsize"]]
           ~service:Wiki_services.action_send_css draw_form ()]
       )
 

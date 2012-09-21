@@ -46,6 +46,7 @@ div.wikiboxlinearmenu div.wikiboxmenutitle{
 
 div.interactive{
     position: relative;
+    height: 100%;
 }
 
 div.interactive:hover {
@@ -223,7 +224,9 @@ input.wikitextarea {
     padding: 20px;
 }
 
-
+.overridden, .boxcontent, .fullsize {
+    height: 100%;
+}
 
 
 
