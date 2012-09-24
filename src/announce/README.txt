@@ -10,3 +10,6 @@
 
 - Supprimer la base de donnée
         make drop-db
+
+/!\ This directory is currently a work in progress. It is not included in the
+    main code.
