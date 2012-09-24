@@ -10,9 +10,12 @@ You can delete a wiki with the web interface in: "Wiki -> View all wikis"
 Please, enable Javascript.
 
 If you click on "Delete", a confirmation window will appears.
-If you click on "Ok", all data will be erased (see the following "Note")
+If you click on "Ok", the wiki will be deleted (see the following "Note")
 
-Note: The deletion is not secure for the moment.
-- Please note that will be delete all content related
-  (content, wikiboxes, wikipages).
-- Please verify there is no links to the wiki and no wikiboxes accessible.
+Note: The deletion will just put your wiki in a "deleted state".
+It means that your wikiboxes contained in the wiki will be available
+if you are linked it in an other wiki,
+and all wikipages attached to your wiki will be marked as deleted
+(cannot access to them).
+
+Note also, that you can "undelete" a wiki.
