@@ -1,0 +1,35 @@
+./event.cmo: event_sql.cmo common.cmo 
+./event.cmx: event_sql.cmx common.cmx 
+./xform.cmo: ./xform.cmi 
+./xform.cmx: ./xform.cmi 
+./atom_feed.cmo: ./atom_feed.cmi 
+./atom_feed.cmx: ./atom_feed.cmi 
+./common.cmo: common_sql.cmo 
+./common.cmx: common_sql.cmx 
+./icalendar.cmo: ./icalendar.cmi 
+./icalendar.cmx: ./icalendar.cmi 
+./eliom_atom.cmo: atom_feed.cmi ./eliom_atom.cmi 
+./eliom_atom.cmx: atom_feed.cmx ./eliom_atom.cmi 
+./form.cmo: ./form.cmi 
+./form.cmx: ./form.cmi 
+./eliom_icalendar.cmo: icalendar.cmi 
+./eliom_icalendar.cmx: icalendar.cmx 
+./agenda.cmo: seminaire.cmo event_sql.cmo event.cmo common.cmo agenda_sql.cmo 
+./agenda.cmx: seminaire.cmx event_sql.cmx event.cmx common.cmx agenda_sql.cmx 
+./seminaire.cmo: xform.cmi seminaire_sql.cmo icalendar.cmi event_sql.cmo \
+    event.cmo eliom_icalendar.cmo eliom_atom.cmi common_sql.cmo common.cmo \
+    atom_feed.cmi 
+./seminaire.cmx: xform.cmx seminaire_sql.cmx icalendar.cmx event_sql.cmx \
+    event.cmx eliom_icalendar.cmx eliom_atom.cmx common_sql.cmx common.cmx \
+    atom_feed.cmx 
+./main.cmo: seminaire.cmo common.cmo agenda.cmo 
+./main.cmx: seminaire.cmx common.cmx agenda.cmx 
+./load.cmo: load_sql.cmo 
+./load.cmx: load_sql.cmx 
+./eliom_atom.cmi: atom_feed.cmi 
+./agenda_sql.cmo: common_sql.cmo 
+./agenda_sql.cmx: common_sql.cmx 
+./event_sql.cmo: common_sql.cmo 
+./event_sql.cmx: common_sql.cmx 
+./seminaire_sql.cmo: event_sql.cmo common_sql.cmo 
+./seminaire_sql.cmx: event_sql.cmx common_sql.cmx 
