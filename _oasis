@@ -64,9 +64,16 @@ Library "ocsimore"
     ../../INSTALL,
     ../../local/etc/ocsigen/ocsimore.conf
   BuildDepends:
-    camlp4, lwt.syntax (>= 2.4), macaque.syntax, ocaml-safepass (>= 1.0),
-    eliom.server (>= 2.2), threads, js_of_ocaml.deriving.syntax
-  XMETARequires: macaque, eliom.server, threads
+    lwt.syntax (>= 2.4),
+    macaque,
+    ocaml-safepass (>= 1.0),
+    eliom.server (>= 2.2),
+    threads,
+    js_of_ocaml.deriving.syntax
+  XMETARequires:
+    macaque,
+    eliom.server,
+    threads
 
 Library "ocsimore_client"
   Path: src/core/client
@@ -74,8 +81,10 @@ Library "ocsimore_client"
     Opaque
   XMETADescription: Core Ocsimore client part
   BuildDepends:
-    camlp4, lwt.syntax, eliom.client, eliom.syntax
-  XMETARequires: eliom.client
+    eliom.client,
+    eliom.syntax
+  XMETARequires:
+    eliom.client
 
 Library "user"
   Path: src/user
@@ -86,8 +95,9 @@ Library "user"
     User_external_auth
   XMETADescription: User stuffs
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore
-  XMETARequires: ocsimore
+    ocsimore
+  XMETARequires:
+    ocsimore
 
 Library "ocsimore-nis"
   Path: src/user
@@ -97,8 +107,10 @@ Library "ocsimore-nis"
   Modules:
     Nis_chkpwd,
     Ocsimore_nis
-  BuildDepends: ocsimore.user
-  XMETARequires: ocsimore.user
+  BuildDepends:
+    ocsimore.user
+  XMETARequires:
+    ocsimore.user
 
 Library "ocsimore-pam"
   Path: src/user
@@ -107,8 +119,12 @@ Library "ocsimore-pam"
   FindlibParent: user
   Modules:
     Ocsimore_pam
-  BuildDepends: ocsimore.user, pam
-  XMETARequires: ocsimore.user, pam
+  BuildDepends:
+    ocsimore.user,
+    pam
+  XMETARequires:
+    ocsimore.user,
+    pam
 
 Library "ocsimore-ldap"
   Path: src/user
@@ -117,8 +133,12 @@ Library "ocsimore-ldap"
   FindlibParent: user
   Modules:
     Ocsimore_ldap
-  BuildDepends: ocsimore.user, ldap
-  XMETARequires: ocsimore.user, ldap
+  BuildDepends:
+    ocsimore.user,
+    ldap
+  XMETARequires:
+    ocsimore.user,
+    ldap
 
 Library "wiki"
   Path: src/wiki
@@ -139,8 +159,9 @@ Library "wiki"
     ../../local/var/www/static/*.css ($datadir/$pkg_name/static),
     ../../local/var/www/static/*.png ($datadir/$pkg_name/static)
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.user, js_of_ocaml.deriving.syntax
-  XMETARequires: ocsimore.user
+    ocsimore.user
+  XMETARequires:
+    ocsimore.user
 
 Library "wiki_client"
   Path: src/wiki/client
@@ -151,8 +172,10 @@ Library "wiki_client"
     Wiki_widgets_interface
   XMETADescription: Wiki stuffs client side part
   BuildDepends:
-    camlp4, lwt.syntax, eliom.client, eliom.syntax
-  XMETARequires: eliom.client
+    eliom.client,
+    eliom.syntax
+  XMETARequires:
+    eliom.client
 
 Library "forum"
   Path: src/forum
@@ -166,8 +189,9 @@ Library "forum"
     Forum_types
   XMETADescription: forum extension
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.wiki
-  XMETARequires: ocsimore.wiki
+    ocsimore.wiki
+  XMETARequires:
+    ocsimore.wiki
 
 Library "core_site"
   Path: src/site
@@ -178,8 +202,10 @@ Library "core_site"
     server/Page_site
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore, ocsimore.wiki
-  XMETARequires: ocsimore.wiki
+    ocsimore,
+    ocsimore.wiki
+  XMETARequires:
+    ocsimore.wiki
 
 Library "core_site_client"
   Path: src/site/client
@@ -196,8 +222,10 @@ Library "core_site_client"
     ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, eliom.client, eliom.syntax
-  XMETARequires: eliom.client
+    eliom.client,
+    eliom.syntax
+  XMETARequires:
+    eliom.client
 
 Library "user_site"
   Path: src/site
@@ -210,8 +238,9 @@ Library "user_site"
     server/User_widgets
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.site
+    ocsimore.site
   XMETARequires:
+    ocsimore.site
 
 Library "wiki_site"
   Path: src/site
@@ -227,8 +256,9 @@ Library "wiki_site"
     server/Wiki_dir
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.site
+    ocsimore.site
   XMETARequires:
+    ocsimore.site
 
 Library "forum_site"
   Path: src/site
@@ -242,8 +272,11 @@ Library "forum_site"
     server/Ocsicreateforum
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.site, ocsimore.forum
+    ocsimore.site,
+    ocsimore.forum
   XMETARequires:
+    ocsimore.site,
+    ocsimore.forum
 
 Library "wiki_perso"
   Path: src/site
@@ -253,8 +286,9 @@ Library "wiki_perso"
     server/Wikiperso
   XMETADescription: some extensions
   BuildDepends:
-    camlp4, lwt.syntax, ocsimore.site
+    ocsimore.site
   XMETARequires:
+    ocsimore.site
 
 
 Test "all"
