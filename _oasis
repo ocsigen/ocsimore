@@ -64,8 +64,8 @@ Library "ocsimore"
     ../../INSTALL,
     ../../local/etc/ocsigen/ocsimore.conf
   BuildDepends:
-    camlp4, lwt.syntax, macaque.syntax, ocaml-safepass,
-    eliom.server, threads, js_of_ocaml.deriving.syntax
+    camlp4, lwt.syntax (>= 2.4), macaque.syntax, ocaml-safepass (>= 1.0),
+    eliom.server (>= 2.2), threads, js_of_ocaml.deriving.syntax
   XMETARequires: macaque, eliom.server, threads
 
 Library "ocsimore_client"
