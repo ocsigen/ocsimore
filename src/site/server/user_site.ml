@@ -175,27 +175,13 @@ let () =
 
 (* We create the admin menu for the extension *)
 
-let users_root =
-  Eliom_service.service
-    ~path:[!Ocsimore_config.admin_dir;"users"]
-    ~get_params:Eliom_parameter.unit ()
-
-let () = Eliom_registration.Html5.register ~service:users_root
-  (fun () () ->
-     Page_site.admin_page
-       ~title:"Ocsimore - Users module"
-       Html5.F.([
-         p [pcdata "This is the Ocsimore admin page for the users module." ];
-       ]))
-
-
-
+let users_root = User_services.service_view_users
 
 let () =
   Page_site.add_to_admin_menu ~root:users_root ~name:"Users"
   ~links:([
-    "Users settings", User_services.service_users_settings, (fun _ -> Lwt.return true);
     "View users", User_services.service_view_users, (fun _ -> Lwt.return true);
+    "Users settings", User_services.service_users_settings, (fun _ -> Lwt.return true);
     "View groups", User_services.service_view_groups,(fun _ -> Lwt.return true);
     "View roles", User_services.service_view_roles, (fun _ -> Lwt.return true);
     "Users creation", User_services.service_create_new_user,

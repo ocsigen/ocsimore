@@ -632,22 +632,7 @@ let _ =
         else
           Page_site.no_permission () >>= Page_site.admin_page ~title:"Replace links")
 
-let wiki_root =
-  Eliom_service.service
-    ~path:[!Ocsimore_config.admin_dir;"wikis"]
-    ~get_params:Eliom_parameter.unit ()
-
-let () =
-  Eliom_registration.Html5.register
-    ~service:wiki_root
-    (fun () () ->
-       Page_site.admin_page ~service:wiki_root ~title:"Ocsimore - Wiki module"
-         [ Html5.F.p
-            [Html5.F.pcdata "This is the Ocsimore admin page for the wiki \
-                             module. The links on the right will help you \
-                             configure your installation." ];
-         ])
-
+let wiki_root = Wiki_services.view_wikis
 
 let () = Eliom_registration.Html5.register
   ~service:Wiki_services.edit_wiki_permissions_admin

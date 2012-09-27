@@ -39,20 +39,7 @@ let wikicreole_forum_model =
       ~widgets:Wiki_site.wikibox_widget
   )
 
-let forum_root =
-  Eliom_service.service
-    ~path:[!Ocsimore_config.admin_dir;"forums"]
-    ~get_params:Eliom_parameter.unit ()
-
-let () = Eliom_registration.Html5.register ~service:forum_root
-  (fun () () ->
-     Page_site.admin_page ~service:forum_root ~title:"Ocsimore - Forum module"
-       [ Html5.F.p
-          [Html5.F.pcdata "This is the Ocsimore admin page for the forum \
-                           module. The links on the right will help you \
-                           configure your installation." ];
-       ]
-  )
+let forum_root = Forum_services.view_forums
 
 let ($) = User_sql.Types.($)
 
