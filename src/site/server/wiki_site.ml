@@ -212,6 +212,18 @@ let () = Lwt_main.run
      )
   )
 
+let () =
+  let service = Wiki_self_services.find_servpage wiki_admin_id in
+  let service = match service with
+    | Some service ->
+      Eliom_service.preapply
+        ~service
+        [Wiki_widgets_interface.wikisyntax_help_name]
+    | None ->
+      assert false
+  in
+  Wiki_services.set_wikisyntax_helper (Some service);
+  ()
 
 
 

@@ -615,6 +615,25 @@ let wiki_page_args =
   let open Eliom_parameter in
   (caml "wiki" Json.t<wiki> ** caml "path" Json.t<string list option>)
 
+(* This is initalized in wiki_site.ml *)
+let (get_wikisyntax_helper, set_wikisyntax_helper) =
+  let wikisyntax_helper :
+      (unit,
+       unit,
+       Eliom_service.get_service_kind,
+       [ `WithoutSuffix ],
+       unit,
+       unit,
+       [ `Unregistrable ],
+       Eliom_registration.appl_service
+      ) Eliom_service.service option ref = ref None
+  in
+  (fun () -> match !wikisyntax_helper with
+    | None -> assert false
+    | Some x -> x
+  ),
+  ((:=) wikisyntax_helper)
+
 module Ui = struct
 
   let preview_service =
@@ -651,6 +670,11 @@ module Ui = struct
                  a_rows 25; a_cols 80;
                ] (pcdata content);
                input ~a:[a_id save_id; a_input_type `Submit; a_value "Save"] ();
+               Html5.F.pcdata " ";
+               Html5.F.a
+                 ~service:(get_wikisyntax_helper ())
+                 [Html5.F.pcdata "Wiki syntax helper"] ();
+               Html5.F.pcdata ". The preview is available directly in the page you come from.";
              ])
          ))
 
