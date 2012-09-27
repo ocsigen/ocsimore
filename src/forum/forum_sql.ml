@@ -162,13 +162,14 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
        let wikibox = Wiki_types.sql_of_wikibox wikibox in
        (match parent_id with
          | None ->
-           let next_id = (<:value< forums_messages?id >>) in
+           Lwt_Query.value db (<:value< forums_messages?id >>)
+           >>= fun next_id ->
            Lwt_Query.query db (<:insert< $forums_messages$ := {
-             id = $next_id$;
+             id = $int32:next_id$;
              creator_id = $int32:creator_id'$;
              datetime = forums_messages?datetime;
              parent_id = of_option $Option.map Sql.Value.int32 parent_id$;
-             root_id = $next_id$;
+             root_id = $int32:next_id$;
              forum_id = $int32:forum_id$;
              subject = of_option $Option.map Sql.Value.int32 subject$;
              wikibox = $int32:wikibox$;
