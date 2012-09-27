@@ -14,6 +14,3 @@ val transaction_block : db_t -> (unit -> 'a Lwt.t) -> 'a Lwt.t
 
 (** Same as [transaction_block] but takes a db connection in the pool. *)
 val full_transaction_block : (db_t -> 'a Lwt.t) -> 'a Lwt.t
-
-(** Functions that transform 'a option to 'b option *)
-val map_option : ('a -> 'b) -> 'a option -> 'b option

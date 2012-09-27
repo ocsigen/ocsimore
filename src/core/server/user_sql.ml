@@ -177,8 +177,8 @@ let remove_from_group_aux db (u, vu) (g, vg) =
   Lwt_Query.query db (<:delete< d in $userrights$ |
       d.id = $int32:u$;
       d.groupid = $int32:g$;
-      is_not_distinct_from d.idarg (of_option $map_option Sql.Value.int32 vu$);
-      is_not_distinct_from d.groupidarg (of_option $map_option Sql.Value.int32 vg$) >>)
+      is_not_distinct_from d.idarg (of_option $Option.map Sql.Value.int32 vu$);
+      is_not_distinct_from d.groupidarg (of_option $Option.map Sql.Value.int32 vg$) >>)
 
 let remove_from_group_ ~user ~group =
   Lwt_pool.use Ocsi_sql.pool (fun db -> remove_from_group_aux db
@@ -189,8 +189,8 @@ let add_to_group_aux db (u, vu) (g, vg) =
   Lwt_Query.query db (<:insert< $userrights$ := {
     id = $int32:u$;
     groupid = $int32:g$;
-    idarg = of_option $map_option Sql.Value.int32 vu$;
-    groupidarg = of_option $map_option Sql.Value.int32 vg$
+    idarg = of_option $Option.map Sql.Value.int32 vu$;
+    groupidarg = of_option $Option.map Sql.Value.int32 vg$
   } >>)
 
 let add_to_group_ ~user ~group =
@@ -379,7 +379,7 @@ let update_data_ ~userid ?password ?fullname ?email ?dyn () =
               pass_authtype_from_pass pwd
               >>= fun (_pwd, (password, authtype)) ->
               Lwt_Query.query db (<:update< u in $users$ := {
-                password = of_option $map_option Sql.Value.string password$;
+                password = of_option $Option.map Sql.Value.string password$;
                 authtype = $string:authtype$
               } | u.id = $int32:userid$ >>)
        ) >>= fun () ->
@@ -394,7 +394,7 @@ let update_data_ ~userid ?password ?fullname ?email ?dyn () =
           | None -> Lwt.return ()
           | Some email ->
             Lwt_Query.query db (<:update< u in $users$ := {
-              email = of_option $map_option Sql.Value.string email$
+              email = of_option $Option.map Sql.Value.string email$
             } | u.id = $int32:userid$ >>)
        ) >>= fun () ->
        (match dyn with

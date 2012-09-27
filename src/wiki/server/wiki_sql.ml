@@ -118,11 +118,11 @@ let update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb =
          version = wikiboxescontent?version;
          comment = $string:comment$;
          author = $int32:author$;
-         content = of_option $map_option Sql.Value.string content$;
+         content = of_option $Option.map Sql.Value.string content$;
          datetime = wikiboxescontent?datetime;
          content_type = $string:content_type$;
          wikibox = $int32:wikibox$;
-         ip = of_option $map_option Sql.Value.string ip$
+         ip = of_option $Option.map Sql.Value.string ip$
        } >>)
        >>= fun () ->
        Lwt_Query.value db (<:value< currval $wikiboxes_version_seq$ >>)
@@ -386,21 +386,21 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?sitei
                 | Some c -> Some (sql_of_wikibox c)
               in
               Lwt_Query.query db (<:update< w in $wikis$ := {
-                container = of_option $map_option Sql.Value.int32 container$
+                container = of_option $Option.map Sql.Value.int32 container$
               } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match staticdir with
           | None -> Lwt.return ()
           | Some staticdir ->
               Lwt_Query.query db (<:update< w in $wikis$ := {
-                staticdir = of_option $map_option Sql.Value.string staticdir$
+                staticdir = of_option $Option.map Sql.Value.string staticdir$
               } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match path with
           | None -> Lwt.return ()
           | Some pages ->
               Lwt_Query.query db (<:update< w in $wikis$ := {
-                pages = of_option $map_option Sql.Value.string pages$
+                pages = of_option $Option.map Sql.Value.string pages$
               } | w.id = $int32:wiki$ >>)
        ) >>= fun () ->
        (match descr with
@@ -429,7 +429,7 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?sitei
           | None -> Lwt.return ()
           | Some siteid ->
               Lwt_Query.query db (<:update< w in $wikis$ := {
-                siteid = of_option $map_option Sql.Value.string siteid$
+                siteid = of_option $Option.map Sql.Value.string siteid$
               } | w.id = $int32:wiki$ >>)
        )
     )
@@ -442,10 +442,10 @@ let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~aut
          id = wikis?id;
          title = $string:title$;
          descr = $string:descr$;
-         pages = of_option $map_option Sql.Value.string pages$;
+         pages = of_option $Option.map Sql.Value.string pages$;
          boxrights = $bool:boxrights$;
          container = null;
-         staticdir = of_option $map_option Sql.Value.string staticdir$;
+         staticdir = of_option $Option.map Sql.Value.string staticdir$;
          model = $string:model_sql$;
          siteid = null;
          deleted = wikis?deleted;
@@ -522,7 +522,7 @@ let get_css_wikibox_aux_ ?db ~wiki ~page () =
        } order by {
          c.rank
        } | c in $css$; c.wiki = $int32:wiki$;
-           is_not_distinct_from c.page (of_option $map_option Sql.Value.string page$)>>)
+           is_not_distinct_from c.page (of_option $Option.map Sql.Value.string page$)>>)
        >|=
        List.map
          (fun data ->
@@ -540,11 +540,11 @@ let add_css_wikibox_aux_ ?db ~wiki ~page ~media wb =
        Lwt_Query.view_one db (<:view< group {
          rank = match max[c.rank] + 1 with null -> 1 | r -> r;
        } | c in $css$; c.wiki = $int32:wiki$;
-           is_not_distinct_from c.page (of_option $map_option Sql.Value.string page$) >>)
+           is_not_distinct_from c.page (of_option $Option.map Sql.Value.string page$) >>)
        >>= fun rank ->
        Lwt_Query.query db (<:insert< $css$ := {
          wiki = $int32:wiki$;
-         page = of_option $map_option Sql.Value.string page$;
+         page = of_option $Option.map Sql.Value.string page$;
          wikibox = $int32:wb$;
          specialrights = css?specialrights;
          uid = css?uid;
@@ -560,7 +560,7 @@ let remove_css_wikibox_aux_ ?db ~wiki ~page wb =
        let wb = sql_of_wikibox wb in
        Lwt_Query.query db (<:delete< c in $css$ |
            c.wiki = $int32:wiki$;
-           is_not_distinct_from c.page (of_option $map_option Sql.Value.string page$);
+           is_not_distinct_from c.page (of_option $Option.map Sql.Value.string page$);
            c.wikibox = $int32:wb$ >>)
     )
 
@@ -576,7 +576,7 @@ let update_css_wikibox_aux_ ?db ~wiki ~page ~oldwb ~newwb ~media ~rank () =
          mediatype = $string:media$;
          rank = $int32:rank$
        } | c.wiki = $int32:wiki$;
-           is_not_distinct_from c.page (of_option $map_option Sql.Value.string page$);
+           is_not_distinct_from c.page (of_option $Option.map Sql.Value.string page$);
            c.wikibox = $int32:oldwb$ >>)
     )
 

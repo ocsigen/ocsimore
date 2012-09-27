@@ -66,7 +66,3 @@ let transaction_block db f =
 
 let full_transaction_block f =
   Lwt_pool.use pool (fun db -> transaction_block db (fun () -> f db))
-
-let map_option f = function
-  | Some x -> Some (f x)
-  | None -> None
