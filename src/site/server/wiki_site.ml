@@ -157,21 +157,20 @@ let wiki_admin_id = wiki_admin.wiki_id
     exists, and returns a function giving the current value of the
     corresponding wikibox *)
 let register_named_wikibox ~page ~content ~content_type ~comment =
-  Lwt_main.run (
-    try_lwt
-      lwt _ = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
-      Lwt.return ()
-    with Not_found ->
-      Ocsi_sql.full_transaction_block
-        (fun db ->
-          lwt box =
-            Wiki_sql.new_wikibox ~db
-              ~wiki:wiki_admin_id ~comment ~content ~content_type
-              ~author:User.admin ()
-          in
-          Wiki_sql.create_wikipage ~db ~wiki:wiki_admin_id ~page ~wb:box)
-  );
-  (fun () ->
+  (try_lwt
+     lwt _ = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
+     Lwt.return ()
+   with Not_found ->
+     Ocsi_sql.full_transaction_block
+       (fun db ->
+         lwt box =
+           Wiki_sql.new_wikibox ~db
+             ~wiki:wiki_admin_id ~comment ~content ~content_type
+             ~author:User.admin ()
+         in
+         Wiki_sql.create_wikipage ~db ~wiki:wiki_admin_id ~page ~wb:box))
+  >>= fun () ->
+  Lwt.return (fun () ->
      lwt { wikipage_wikibox = wb; _ } = Wiki_sql.get_wikipage_info ~wiki:wiki_admin_id ~page in
      Wiki_sql.get_wikibox_content wb >|= function
      | Some (_, _, Some content, _, _, _) ->
@@ -183,15 +182,16 @@ let register_named_wikibox ~page ~content ~content_type ~comment =
 
 
 (** We create the page for the help on the syntax of the wiki *)
-let _ = register_named_wikibox
-  ~page:Wiki_widgets_interface.wikisyntax_help_name
-  ~content_type:Wiki_syntax.wikicreole_content_type
-  ~comment:"Wikisyntax help"
-  ~content:"===Wiki syntax===\r\n\r\n\
+let _ = Lwt_main.run (
+  register_named_wikibox
+    ~page:Wiki_widgets_interface.wikisyntax_help_name
+    ~content_type:Wiki_syntax.wikicreole_content_type
+    ~comment:"Wikisyntax help"
+    ~content:"===Wiki syntax===\r\n\r\n\
             This wiki is using [[http://www.wikicreole.org|Wikicreole]]'s \
             syntax, with a few extensions.\r\n\r\n\
             {{site:creole_cheat_sheet.png|Wikicreole's syntax}}"
-
+)
 
 (** We register the existing wikis of the database, but only those that
     match the [siteid] option *)
@@ -450,7 +450,7 @@ let edit_wiki =
          | false ->
              Page_site.no_permission () >>= Page_site.admin_page ~title:"Edid wiki"
     )
-let _ =
+let () =
   let open Html5.F in
   let headers = ["wikibox"; "version"; "author"; "datetime"; "content_type"; "comment"; ""] in
   let render_header_row s = th [pcdata s] in
@@ -485,7 +485,7 @@ let _ =
           (tr (List.map render_header_row headers))
           (List.map render_wikibox_row wikiboxes)])
 
-let _ =
+let () =
   let render_version_link wikibox version' (version, comment, _, _) =
     let version_elt = Html5.F.pcdata (Int32.to_string version) in
     let version_link =
@@ -548,7 +548,7 @@ let normalize_old_page_link wiki wikibox addr fragment _ _ =
   in
   Lwt.return replacement
 
-let _ =
+let () =
   let is_allowed () = (=) User.admin =|< User.get_user_id () in
   Eliom_registration.Html5.register
     ~service:Wiki_services.batch_edit_boxes

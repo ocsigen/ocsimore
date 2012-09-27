@@ -180,7 +180,7 @@ let create_forum =
 
 (** We register the service that lists all the forums *)
 
-let _ =
+let () = Lwt_main.run (
   lwt wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model in
   let wiki_phrasing_widgets = new Wiki_widgets.phrasing_wikibox Wiki_site.error_box User_site.user_widget in
   let services = Forum_services.register_services () in
@@ -210,6 +210,7 @@ let _ =
     ~service:services.Forum_types.forum_feed_service
     (fun forum () -> message_list_widget#atom_message_list forum);
   Lwt.return ()
+)
 
 let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
   ~links:[

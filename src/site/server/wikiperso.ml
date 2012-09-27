@@ -135,16 +135,19 @@ let default_wikicss = ""
 let template_container_pagename = "wikiperso-template"
 let template_css_pagename = "wikiperso_css-template"
 
-let template_container = Wiki_site.register_named_wikibox
-  ~page:template_container_pagename ~content:default_welcome_page
-  ~content_type:Wiki_syntax.wikicreole_content_type
-  ~comment:"Template for wikipersos container pages"
+let template_container = Lwt_main.run (
+  Wiki_site.register_named_wikibox
+    ~page:template_container_pagename ~content:default_welcome_page
+    ~content_type:Wiki_syntax.wikicreole_content_type
+    ~comment:"Template for wikipersos container pages"
+)
 
-let template_wiki_css = Wiki_site.register_named_wikibox
-  ~page:template_css_pagename ~content:default_wikicss
-  ~content_type:Wiki_models.css_content_type
-  ~comment:"Template for wikipersos css"
-
+let template_wiki_css = Lwt_main.run (
+  Wiki_site.register_named_wikibox
+    ~page:template_css_pagename ~content:default_wikicss
+    ~content_type:Wiki_models.css_content_type
+    ~comment:"Template for wikipersos css"
+)
 
 (** The function that creates the wikiperso when needed *)
 let create_wikiperso ~model ~wiki_title ~userdata =
@@ -361,4 +364,4 @@ let () = Page_site.add_to_admin_menu ~root:users_root ~name:"Wikiperso" ~links:[
 
 
 
-let _ = Eliom_extension.register_eliom_extension gen
+let () = Eliom_extension.register_eliom_extension gen

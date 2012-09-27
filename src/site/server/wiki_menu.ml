@@ -276,7 +276,7 @@ let do_wikimenu bi args contents =
   in
   `Flow5 contents
 
-let _ =
+let () =
   Wiki_syntax.register_wiki_extension
     ~wp:Wiki_syntax.wikicreole_parser ~name:"wikimenu"
     ~wp_rec:Wiki_syntax.menu_parser do_wikimenu;
