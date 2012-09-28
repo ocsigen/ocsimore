@@ -52,7 +52,7 @@ val update_forum :
   unit Lwt.t
 
 (** inserts a message in a forum.
-    [?moderated] and [?sticky] are false by default. *)
+    [?moderated] is false by default. *)
 val new_message :
   forum:forum ->
   wiki:Wiki_types.wiki ->
@@ -61,13 +61,8 @@ val new_message :
   ?subject:string ->
   ?parent_id:message ->
   ?moderated:bool ->
-  ?sticky:bool ->
   text:string ->
   message Lwt.t
-
-(** set ou unset sticky flag on a message *)
-val set_sticky :
-  message_id:message -> sticky:bool -> unit Lwt.t
 
 (** set or unset moderated flag on a message *)
 val set_moderated :
@@ -102,7 +97,7 @@ val get_message :
     and all its children, ordered according depth first traversal of the tree.
     For each message, the information retrieved is:
     [(id, subject, author, datetime, parent_id, root_id, forum_id, wikibox,
-    moderated, sticky, tree_min, tree_max)].
+    moderated, tree_min, tree_max)].
     The list is not filtered and also contains deleted messages.
     The result is ordered according to tree_min.
 *)

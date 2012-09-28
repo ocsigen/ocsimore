@@ -129,14 +129,13 @@ let forums_messages = (<:table< forums_messages (
   subject integer,
   wikibox integer NOT NULL,
   moderated boolean NOT NULL DEFAULT(false),
-  sticky boolean NOT NULL DEFAULT(false),
   special_rights boolean NOT NULL DEFAULT(false),
   tree_min integer NOT NULL DEFAULT(1),
   tree_max integer NOT NULL DEFAULT(2)
 ) >>)
 
 let new_message ~forum ~wiki ~creator_id ~title_syntax
-    ?subject ?parent_id ?(moderated = false) ?(sticky = false) ~text =
+    ?subject ?parent_id ?(moderated = false) ~text =
   let creator_id' = sql_from_userid creator_id in
   let parent_id = sql_of_message_option parent_id in
   let forum_id = sql_of_forum forum in
@@ -174,7 +173,6 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
              subject = of_option $Option.map Sql.Value.int32 subject$;
              wikibox = $int32:wikibox$;
              moderated = $bool:moderated$;
-             sticky = $bool:sticky$;
              special_rights = forums_messages?special_rights;
              tree_min = forums_messages?tree_min;
              tree_max = forums_messages?tree_max
@@ -205,7 +203,6 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
                subject = of_option $Option.map Sql.Value.int32 subject$;
                wikibox = $int32:wikibox$;
                moderated = $bool:moderated$;
-               sticky = $bool:sticky$;
                special_rights = forums_messages?special_rights;
                tree_min = $int32:(data#!tree_max)$;
                tree_max = $int32:(data#!tree_max)$ + 1
@@ -222,14 +219,6 @@ let set_moderated ~message_id ~moderated =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.query db (<:update< f in $forums_messages$ := {
       moderated = $bool:moderated$
-    } | f.id = $int32:message_id$ >>)
-  )
-
-let set_sticky ~message_id ~sticky =
-  let message_id = sql_of_message message_id in
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.query db (<:update< f in $forums_messages$ := {
-      sticky = $bool:sticky$
     } | f.id = $int32:message_id$ >>)
   )
 
@@ -317,7 +306,6 @@ let raw_message_from_sql sql =
       sql#?subject,
       sql#!wikibox,
       sql#!moderated,
-      sql#!sticky,
       sql#!special_rights,
       sql#!tree_min,
       sql#!tree_max
@@ -338,7 +326,6 @@ let get_childs ~message_id () =
         f.subject;
         f.wikibox;
         f.moderated;
-        f.sticky;
         f.special_rights;
         f.tree_min;
         f.tree_max
@@ -376,7 +363,6 @@ let get_thread ~message_id () =
               f.subject;
               f.wikibox;
               f.moderated;
-              f.sticky;
               f.special_rights;
               f.tree_min;
               f.tree_max

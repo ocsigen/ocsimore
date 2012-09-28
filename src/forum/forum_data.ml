@@ -99,7 +99,7 @@ let can_create_message ~parent_id f role =
       in
       Lwt.return (wiki, moderator)
 
-let new_message ~forum ~creator_id ?subject ?parent_id ?sticky ~text () =
+let new_message ~forum ~creator_id ?subject ?parent_id ~text () =
   Forum.get_role forum >>= fun role ->
   Forum_sql.get_forum ~forum () >>= fun f ->
   if f.f_deleted
@@ -108,7 +108,7 @@ let new_message ~forum ~creator_id ?subject ?parent_id ?sticky ~text () =
     can_create_message ~parent_id f role >>= fun (wiki, moderated) ->
     let title_syntax = f.f_title_syntax in
     Forum_sql.new_message ~forum ~wiki ~creator_id
-      ?subject ?parent_id ~moderated ~title_syntax ?sticky ~text
+      ?subject ?parent_id ~moderated ~title_syntax ~text
 
 let set_moderated ~message_id ~moderated =
   Forum_sql.get_message ~message_id () >>= fun m ->
@@ -119,17 +119,6 @@ let set_moderated ~message_id ~moderated =
   if ((first_msg && message_moderators)
       || (not first_msg && comment_moderators))
   then Forum_sql.set_moderated ~message_id ~moderated
-  else Lwt.fail Ocsimore_common.Permission_denied
-
-let set_sticky ~message_id ~sticky =
-  Forum_sql.get_message ~message_id () >>= fun m ->
-  Forum.get_role m.m_forum >>= fun role ->
-  let first_msg = m.m_parent_id = None in
-  !!(role.message_sticky_makers) >>= fun message_sticky_makers ->
-  !!(role.comment_sticky_makers) >>= fun comment_sticky_makers ->
-  if ((first_msg && message_sticky_makers)
-      || (not first_msg && comment_sticky_makers))
-  then Forum_sql.set_sticky ~message_id ~sticky
   else Lwt.fail Ocsimore_common.Permission_denied
 
 let get_forum ~forum () =

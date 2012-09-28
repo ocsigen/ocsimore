@@ -84,10 +84,6 @@ let message_deletors_if_creator :
     "Can delete messages in the forum wiki if author"
     forum_wiki_param
 
-let message_sticky_makers : Wiki_types.wiki_arg parameterized_group =
-  aux_grp "messagestickymakers" "Can make messages sticky in the forum wiki"
-    forum_wiki_param
-
 let message_readers_evennotmoderated : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_grps.grp_reader
 
@@ -131,10 +127,6 @@ let modifiers : forum_arg parameterized_group =
 let modifiers_if_creator : forum_arg parameterized_group =
   aux_grp "modifiersifauthor"
     "Can modify messages or comments in the forum if author (without moderation)" forum_param
-
-let sticky_makers : forum_arg parameterized_group =
-  aux_grp "stickymakers" "Can make messages or comments sticky in the forum"
-    forum_param
 
 let readers  : forum_arg parameterized_group =
   aux_grp "readers" "Can read messages or comments in the forum (even not moderated)" forum_param
@@ -196,8 +188,6 @@ let () = Lwt_main.run (
   User_sql.add_to_group_generic
     ~user:forum_admin ~group:modifiers >>= fun () ->
   User_sql.add_to_group_generic
-    ~user:forum_admin ~group:sticky_makers >>= fun () ->
-  User_sql.add_to_group_generic
     ~user:forum_admin ~group:creators_notmod >>= fun () ->
 
   User_sql.add_to_group_generic
@@ -228,8 +218,6 @@ let () = Lwt_main.run (
     ~user:message_deletors ~group:moderated_message_readers >>= fun () ->
   User_sql.add_to_group_generic
     ~user:message_readers_evennotmoderated ~group:moderated_message_readers >>= fun () ->
-  User_sql.add_to_group_generic
-    ~user:message_sticky_makers ~group:moderated_message_readers >>= fun () ->
   User_sql.add_to_group_generic
     ~user:message_creators ~group:moderated_message_readers >>= fun () ->
   User_sql.add_to_group_generic
@@ -297,10 +285,6 @@ let really_create_forum
     ~user:(modifiers_if_creator $ id) ~group:(message_modifiers_if_creator $ cw) >>= fun () ->
 
   User_sql.add_to_group
-    ~user:(sticky_makers $ id) ~group:(message_sticky_makers $ mw) >>= fun () ->
-  User_sql.add_to_group
-    ~user:(sticky_makers $ id) ~group:(message_sticky_makers $ cw) >>= fun () ->
-  User_sql.add_to_group
     ~user:(creators_notmod $ id) ~group:(message_creators_notmod $ mw) >>= fun () ->
   User_sql.add_to_group
     ~user:(creators_notmod $ id) ~group:(message_creators_notmod $ cw) >>= fun () ->
@@ -360,7 +344,6 @@ type role =
       message_deletors_if_creator : bool Lwt.t Lazy.t;
       message_modifiers : bool Lwt.t Lazy.t;
       message_modifiers_if_creator : bool Lwt.t Lazy.t;
-      message_sticky_makers : bool Lwt.t Lazy.t;
       moderated_message_readers : bool Lwt.t Lazy.t;
       message_readers_evennotmoderated : bool Lwt.t Lazy.t;
 
@@ -371,7 +354,6 @@ type role =
       comment_deletors_if_creator : bool Lwt.t Lazy.t;
       comment_modifiers : bool Lwt.t Lazy.t;
       comment_modifiers_if_creator : bool Lwt.t Lazy.t;
-      comment_sticky_makers : bool Lwt.t Lazy.t;
       moderated_comment_readers : bool Lwt.t Lazy.t;
       comment_readers_evennotmoderated : bool Lwt.t Lazy.t;
 
@@ -382,7 +364,6 @@ type role =
       deletors_if_creator : bool Lwt.t Lazy.t;
       modifiers : bool Lwt.t Lazy.t;
       modifiers_if_creator : bool Lwt.t Lazy.t;
-      sticky_makers : bool Lwt.t Lazy.t;
       moderated_readers : bool Lwt.t Lazy.t;
       readers : bool Lwt.t Lazy.t;
 
@@ -418,8 +399,6 @@ let get_role ~forum =
         lazy (aux message_modifiers forum_info.f_messages_wiki);
       message_modifiers_if_creator =
         lazy (aux message_modifiers_if_creator forum_info.f_messages_wiki);
-      message_sticky_makers =
-        lazy (aux message_sticky_makers forum_info.f_messages_wiki);
       moderated_message_readers =
         lazy (aux moderated_message_readers forum_info.f_messages_wiki);
       message_readers_evennotmoderated =
@@ -439,8 +418,6 @@ let get_role ~forum =
         lazy (aux message_modifiers forum_info.f_comments_wiki);
       comment_modifiers_if_creator =
         lazy (aux message_modifiers_if_creator forum_info.f_comments_wiki);
-      comment_sticky_makers =
-        lazy (aux message_sticky_makers forum_info.f_comments_wiki);
       moderated_comment_readers =
         lazy (aux moderated_message_readers forum_info.f_comments_wiki);
       comment_readers_evennotmoderated =
@@ -453,7 +430,6 @@ let get_role ~forum =
       deletors_if_creator = lazy (aux deletors_if_creator forum);
       modifiers = lazy (aux modifiers forum);
       modifiers_if_creator = lazy (aux modifiers_if_creator forum);
-      sticky_makers = lazy (aux sticky_makers forum);
       moderated_readers = lazy (aux moderated_readers forum);
       readers = lazy (aux readers forum);
 
@@ -468,7 +444,6 @@ let get_role ~forum =
       message_deletors_if_creator = noright;
       message_modifiers = noright;
       message_modifiers_if_creator = noright;
-      message_sticky_makers = noright;
       moderated_message_readers = noright;
       message_readers_evennotmoderated = noright;
 
@@ -479,7 +454,6 @@ let get_role ~forum =
       comment_deletors_if_creator = noright;
       comment_modifiers = noright;
       comment_modifiers_if_creator = noright;
-      comment_sticky_makers = noright;
       moderated_comment_readers = noright;
       comment_readers_evennotmoderated = noright;
 
@@ -490,7 +464,6 @@ let get_role ~forum =
       deletors_if_creator = noright;
       modifiers = noright;
       modifiers_if_creator = noright;
-      sticky_makers = noright;
       moderated_readers = noright;
       readers = noright;
 

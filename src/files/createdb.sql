@@ -372,7 +372,6 @@ CREATE TABLE forums_messages (
     subject integer,
     wikibox integer NOT NULL,
     moderated boolean DEFAULT false NOT NULL,
-    sticky boolean DEFAULT false NOT NULL,
     special_rights boolean DEFAULT false NOT NULL,
     tree_min integer DEFAULT 1 NOT NULL,
     tree_max integer DEFAULT 2 NOT NULL
@@ -407,13 +406,6 @@ COMMENT ON COLUMN forums_messages.wikibox IS 'id of the wiki box in the wiki';
 --
 
 COMMENT ON COLUMN forums_messages.moderated IS 'true if the message has been moderated';
-
-
---
--- Name: COLUMN forums_messages.sticky; Type: COMMENT; Schema: public; Owner: ocsimore
---
-
-COMMENT ON COLUMN forums_messages.sticky IS 'Sticky messages will be displayed first';
 
 
 --
@@ -874,7 +866,7 @@ COPY forums (id, title, descr, arborescent, deleted, title_syntax, messages_wiki
 -- Data for Name: forums_messages; Type: TABLE DATA; Schema: public; Owner: ocsimore
 --
 
-COPY forums_messages (id, creator_id, datetime, parent_id, root_id, forum_id, subject, wikibox, moderated, sticky, special_rights, tree_min, tree_max) FROM stdin;
+COPY forums_messages (id, creator_id, datetime, parent_id, root_id, forum_id, subject, wikibox, moderated, special_rights, tree_min, tree_max) FROM stdin;
 \.
 
 

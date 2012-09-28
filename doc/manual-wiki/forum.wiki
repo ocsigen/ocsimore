@@ -21,11 +21,11 @@
                                                moderated_readers                
                                    __________/        |
                             \  /  /                \  |  /
-        \     /            readers                _creators                                    \   /
-  deletors_if_creators        |                       |                                    modifiers_if_creator
-         \ | /              \ | /                  \  |  /                   \  /              \ | /
-       _deletors         _moderators      _creators_not_moderated         ..._sticky_setters  _modifiers
-               \________________\_______________      |      ____________/_____________________/
+        \     /            readers                _creators            \   /
+  deletors_if_creators        |                       |         modifiers_if_creator
+         \ | /              \ | /                  \  |  /             \ | /
+       _deletors         _moderators      _creators_not_moderated     _modifiers
+               \________________\_______________      |      ____________/
                                                  forum_admin
 
                                                     admin
@@ -39,11 +39,11 @@
                                                         forum_visible
                                                               |
                                                  _readersifmessagemoderated
-                         _______________________/         /   |   \        \____________
-                        /                                /    |    \                    \
- deletors_if_creator   /                                /     |     \                    \      modifiers_if_creator
-          |           /                                /      |      \                    \          |
-_deletors = wikiboxdel  _readersnotmod = wikiboxreaders   _creators    _sticky_setters      modifiers = wikiboxwriters
+                         _______________________/         /   |            \
+                        /                                /    |             \
+ deletors_if_creator   /                                /     |              \      modifiers_if_creator
+          |           /                                /      |               \          |
+_deletors = wikiboxdel  _readersnotmod = wikiboxreaders   _creators      modifiers = wikiboxwriters
                                        |               \      |
                                  _moderators  _creators_notmod = wikiboxcreators
 

@@ -38,7 +38,6 @@ let forums_messages = (<:table< forums_messages (
   subject integer,
   wikibox integer NOT NULL,
   moderated boolean NOT NULL,
-  sticky boolean NOT NULL,
   special_rights boolean NOT NULL,
   tree_min integer NOT NULL,
   tree_max integer NOT NULL
@@ -55,7 +54,6 @@ let raw_message_from_sql sql =
     sql#?subject,
     sql#!wikibox,
     sql#!moderated,
-    sql#!sticky,
     sql#!special_rights,
     sql#!tree_min,
     sql#!tree_max
@@ -76,7 +74,6 @@ let get_message_raw ~message_id () =
         f.subject;
         f.wikibox;
         f.moderated;
-        f.sticky;
         f.special_rights;
         f.tree_min;
         f.tree_max

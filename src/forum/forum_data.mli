@@ -55,7 +55,7 @@ val update_forum :
   unit Lwt.t
 
 (** inserts a message in a forum.
-    [?moderated] and [?sticky] are false by default.
+    [?moderated] is false by default.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val new_message :
@@ -63,16 +63,9 @@ val new_message :
   creator_id:User_sql.Types.userid ->
   ?subject:string ->
   ?parent_id:Forum_types.message ->
-  ?sticky:bool ->
   text:string ->
   unit ->
   Forum_types.message Lwt.t
-
-(** set ou unset sticky flag on a message.
-    May fail with exception [Ocsimore_common.Permission_denied].
- *)
-val set_sticky :
-  message_id:Forum_types.message -> sticky:bool -> unit Lwt.t
 
 (** set or unset moderated flag on a message.
     May fail with exception [Ocsimore_common.Permission_denied].
@@ -94,7 +87,7 @@ val get_forums_list :
   Forum_types.forum_info list Lwt.t
 
 (** returns id, subject, author, datetime, parent id, root id, forum id, text,
-    and moderated, deleted, sticky status of a message.
+    and moderated, deleted status of a message.
     May fail with exception [Ocsimore_common.Permission_denied].
  *)
 val get_message :

@@ -99,7 +99,6 @@ let (>>=) = Lwt.bind
     m_subject: Wiki_types.wikibox option;
     m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
-    m_sticky: bool;
     m_has_special_rights: bool Lwt.t Lazy.t;
     m_tree_min: int32;
     m_tree_max: int32;
@@ -107,7 +106,7 @@ let (>>=) = Lwt.bind
 
   type raw_message_info =
       (int32 * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 option * int32 * bool * bool * bool
+         int32 * int32 * int32 option * int32 * bool * bool
        * int32 * int32)
 
   let get_message_info
@@ -120,7 +119,6 @@ let (>>=) = Lwt.bind
        subject,
        wikibox,
        moderated,
-       sticky,
        has_special_rights,
        tree_min,
        tree_max) =
@@ -136,13 +134,12 @@ let (>>=) = Lwt.bind
                      | Some s -> Some (Wiki_types.wikibox_of_sql s));
       m_wikibox = Wiki_types.wikibox_of_sql wikibox;
       m_moderated = moderated;
-      m_sticky = sticky;
       m_has_special_rights =
         lazy (if root_id = id (* root *)
               then Lwt.return has_special_rights
               else begin
                 get_message_raw ~message_id:root_id ()
-                >>= fun (_, _, _, _, _, _, _, _, _, _,
+                >>= fun (_, _, _, _, _, _, _, _, _,
                          has_special_rights, _, _) ->
                 Lwt.return has_special_rights
               end);

@@ -66,7 +66,6 @@ open User_sql.Types
     m_subject: Wiki_types.wikibox option;
     m_wikibox: Wiki_types.wikibox;
     m_moderated: bool;
-    m_sticky: bool;
     m_has_special_rights: bool Lwt.t Lazy.t;
     m_tree_min: int32;
     m_tree_max: int32;
@@ -75,7 +74,7 @@ open User_sql.Types
   type raw_forum_info = (int32 * string * string * bool * bool * string * int32 * int32)
   type raw_message_info =
       (int32 * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 option * int32 * bool * bool * bool
+         int32 * int32 * int32 option * int32 * bool * bool
        * int32 * int32)
 
   val get_forum_info : raw_forum_info -> forum_info
