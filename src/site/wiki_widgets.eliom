@@ -1838,7 +1838,36 @@ object (self)
                ]
             )) wikipages
        ) >>= fun lines_wikipages ->
-       Lwt.return (line :: lines_wikipages)
+       Wiki_models.get_rights w.wiki_model
+       >>= fun rights ->
+       rights#can_create_wikipages w.wiki_id
+       >>= fun can_create_wikipages ->
+       let add_wikipage =
+         if can_create_wikipages then [
+           Html5.F.tr [
+             Html5.F.td [];
+             Html5.F.td [
+               Html5.D.post_form
+                 ~service:Wiki_services.action_create_page
+                 (fun (_, (wikiidname, pagename)) -> [
+                   Ocsimore_common.input_opaque_int32
+                     ~value:w.wiki_id
+                     wikiidname;
+                   Html5.F.string_input
+                     ~name:pagename
+                     ~input_type:`Text
+                     ();
+                   Html5.F.string_input
+                     ~input_type:`Submit
+                     ~value:"Create"
+                     ();
+                 ]) ()
+             ];
+           ]
+         ]
+         else []
+       in
+       Lwt.return (line :: lines_wikipages @ add_wikipage)
      in
      Lwt_list.fold_left_s (fun acc x ->
        wiki_line x
