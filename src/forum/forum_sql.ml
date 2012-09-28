@@ -444,6 +444,16 @@ let get_forums_id () =
     Lwt.return (Lwt_PGOCaml.string_of_int32 id#!id)
   ))
 
+let get_forums_wiki_id () =
+  Lwt_pool.use Ocsi_sql.pool (fun db ->
+    Lwt_Query.view db (<:view< {
+      w.id;
+    } | f in $forums$; w in $Wiki_sql.wikis$;
+        w.id = f.messages_wiki || w.id = f.comments_wiki >>)
+  ) >>= (Lwt_list.map_s (fun id ->
+    Lwt.return (Lwt_PGOCaml.string_of_int32 id#!id)
+  ))
+
 let get_forum_messages_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.view db (<:view< {

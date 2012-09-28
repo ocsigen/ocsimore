@@ -144,4 +144,5 @@ val get_wikibox_creator :
 val wikibox_is_moderated : wb:Wiki_types.wikibox -> bool Lwt.t
 
 val get_forums_id : unit -> string list Lwt.t
+val get_forums_wiki_id : unit -> string list Lwt.t
 val get_forum_messages_id : unit -> string list Lwt.t

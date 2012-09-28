@@ -39,6 +39,12 @@ let forum_param = {
   find_param_functions = None;
 }
 
+let forum_wiki_param = {
+  param_description = "id of the wiki which is a forum";
+  param_display = None;
+  find_param_functions = None;
+}
+
 let message_param = {
   param_description = "id of the message";
   param_display = None;
@@ -60,14 +66,14 @@ let aux_grp name descr param =
 
 let message_creators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagecreators" "Can create new messages in the forum wiki"
-    Wiki.param_wiki
+    forum_wiki_param
 
 let message_creators_notmod : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_creators
 
 let message_moderators : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagemoderators" "Can moderate messages in the forum wiki"
-    Wiki.param_wiki
+    forum_wiki_param
 
 let message_deletors : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_deletors
@@ -76,25 +82,25 @@ let message_deletors_if_creator :
     Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagedeletorsifcreator"
     "Can delete messages in the forum wiki if author"
-    Wiki.param_wiki
+    forum_wiki_param
 
 let message_sticky_makers : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagestickymakers" "Can make messages sticky in the forum wiki"
-    Wiki.param_wiki
+    forum_wiki_param
 
 let message_readers_evennotmoderated : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_grps.grp_reader
 
 let moderated_message_readers : Wiki_types.wiki_arg parameterized_group =
   aux_grp "moderatedmessagereaders" "Can read moderated messages in the forum wiki"
-    Wiki.param_wiki
+    forum_wiki_param
 
 let message_modifiers : Wiki_types.wiki_arg parameterized_group =
   Wiki.wiki_wikiboxes_grps.grp_writer
 
 let message_modifiers_if_creator : Wiki_types.wiki_arg parameterized_group =
   aux_grp "messagemodifierifcreator" "Can modify their own messages in the forum wiki"
-    Wiki.param_wiki
+    forum_wiki_param
 
 
 let creators : forum_arg parameterized_group =

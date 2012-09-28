@@ -30,6 +30,25 @@ exception Unknown_Css of wikibox
 
 
 
+val wikis :
+  (< boxrights : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+   container : < get : unit; nul : Sql.nullable; t : Sql.int32_t > Sql.t;
+   deleted : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+   descr : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+   id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+   model : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+   pages : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+   siteid : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+   staticdir : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+   title : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t >,
+   < deleted : < nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+   descr : < nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+   id : < nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+   model : < nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+   title : < nul : Sql.non_nullable; t : Sql.string_t > Sql.t >
+     Sql.writable)
+           Sql.view
+
 (** inserts a new wiki, creating on the fly the container wikibox
     (which is returned along the index of the new wiki). The [author]
     argument is used when creating the wikibox for the container. *)
