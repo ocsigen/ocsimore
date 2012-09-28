@@ -895,12 +895,14 @@ let get_wikipages_of_a_wiki ~wiki () =
       (<:view< w | w in $wikipages$; w.wiki = $int32:wiki$ >>)
   )
 
-let get_wikis_name () =
+let get_wikis_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.view db (<:view< {
-      w.title
-    } | w in $wikis$; w.boxrights >>)
-  ) >>= (Lwt_list.map_s (fun title -> Lwt.return title#!title))
+      w.id
+    } | w in $wikis$ >>)
+  ) >>= (Lwt_list.map_s (fun id ->
+    Lwt.return (Int32.to_string id#!id)
+  ))
 
 let get_wikiboxes_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->

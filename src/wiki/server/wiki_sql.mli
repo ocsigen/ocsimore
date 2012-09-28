@@ -257,6 +257,6 @@ val get_wikipages_of_a_wiki :
    Sql.t >
    list Lwt.t
 
-val get_wikis_name : unit -> string list Lwt.t
+val get_wikis_id : unit -> string list Lwt.t
 val get_wikiboxes_id : unit -> string list Lwt.t
 val get_wikipages_id : unit -> string list Lwt.t

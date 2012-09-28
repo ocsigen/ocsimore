@@ -65,7 +65,7 @@ let wiki_admin_page_link page =
 let prefix = "wiki"
 
 let param_wiki = {
-  param_description = "name of the wiki";
+  param_description = "id of the wiki";
   param_display = Some (
     (fun wid ->
        Wiki_sql.get_wiki_info_by_id ~id:(wiki_of_sql wid) >>= fun wiki ->

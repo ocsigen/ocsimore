@@ -669,7 +669,7 @@ object (self)
                 | "login of the user" -> User_sql.get_users_login ()
                 | "id of the forum" -> Forum_sql.get_forums_id ()
                 | "id of the message" -> Forum_sql.get_forum_messages_id ()
-                | "name of the wiki" -> Wiki_sql.get_wikis_name ()
+                | "id of the wiki" -> Wiki_sql.get_wikis_id ()
                 | "id of the wikibox" -> Wiki_sql.get_wikiboxes_id ()
                 | "id of the wikipage" -> Wiki_sql.get_wikipages_id ()
                 | _ -> Lwt.fail
