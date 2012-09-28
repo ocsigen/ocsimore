@@ -102,6 +102,12 @@ val string_of_media_type_elem : media_type_elem -> string
 val media_type_of_string : string -> media_type
 val string_of_media_type : media_type -> string
 
+type css_wikibox = {
+  wikibox : wikibox;
+  media : media_type;
+  rank : int32;
+}
+
 type 'a rights_aux = 'a -> bool Lwt.t
 
 class type wiki_rights =

@@ -133,8 +133,12 @@ val wikibox_content':
 
 
 val wikibox_history :
- (wb:wikibox ->
-  (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t)
+  (wb:Wiki_types.wikibox ->
+   < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+   comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+   datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t > Sql.t;
+   version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+     list Lwt.t)
  rights
 
 

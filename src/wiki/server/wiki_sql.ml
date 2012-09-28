@@ -173,7 +173,7 @@ let get_wikiboxes_by_wiki wiki =
       Lwt_Query.view db (<:view< {
         w.uid
       } | w in $wikiboxindex$; w.wiki = $int32:wiki$ >>)
-      >|= (fun uid -> List.map Wiki_types.wikibox_of_sql (List.map (fun elm -> elm#!uid) uid)))
+      >>= (Lwt_list.map_p (fun elm -> Lwt.return (Wiki_types.wikibox_of_sql elm#!uid))))
 
 (*
 let get_wikiboxes_by_wiki' wiki =
@@ -218,9 +218,7 @@ let get_wikibox_history ~wb =
        } order by {
          w.version
        } desc | w in $wikiboxescontent$;
-                w.wikibox = $int32:wikibox$ >>) >>= (fun data ->
-             Lwt.return (List.map (fun elm -> elm#!version, elm#!comment, elm#!author, elm#!datetime) data)
-       )
+                w.wikibox = $int32:wikibox$ >>)
     )
 
 (** Wikiboxes metadata *)
@@ -308,7 +306,10 @@ let get_wikis () =
       Lwt_Query.view db (<:view< {
         w.id
       } | w in $wikis$ >>)
-      >|= (fun uid -> List.map Wiki_types.wiki_of_sql (List.map (fun elm -> elm#!id) uid)))
+      >>= (Lwt_list.map_p (fun elm ->
+        Lwt.return (Wiki_types.wiki_of_sql elm#!id)
+      ))
+    )
 
 (* No need for cache, as the page does not exists yet *)
 let create_wikipage ?db ~wiki ~page ~wb =
@@ -523,11 +524,14 @@ let get_css_wikibox_aux_ ?db ~wiki ~page () =
          c.rank
        } | c in $css$; c.wiki = $int32:wiki$;
            is_not_distinct_from c.page (of_option $Option.map Sql.Value.string page$)>>)
-       >|=
-       List.map
-         (fun data ->
-            let media = media_type_of_string (data#!mediatype) in
-            (wikibox_of_sql data#!wikibox, media, data#!rank))
+       >>= (Lwt_list.map_p (fun data ->
+         let media = media_type_of_string (data#!mediatype) in
+         Lwt.return {
+           wikibox = wikibox_of_sql data#!wikibox;
+           media = media;
+           rank = data#!rank;
+         }
+       ))
     )
 
 
@@ -713,7 +717,7 @@ let delete_wiki ?(delete=true) wiki =
 let cache_css =
   let module C = Ocsigen_cache.Make (struct
                                type key = (wiki * string option)
-                               type value = (wikibox * media_type * int32) list
+                               type value = Wiki_types.css_wikibox list
                              end)
   in
   new C.cache (fun (wiki, page) -> get_css_wikibox_aux_ ~wiki ~page ()) 64
@@ -747,11 +751,11 @@ let get_css_wikibox_for_wikipage ~wiki ~page =
 let get_css_aux ~wiki ~page =
   get_css_wikibox ~wiki ~page >>= fun l ->
   Lwt_util.fold_left
-    (fun l (wb, _, _ as wbcss) ->
-       get_wikibox_content wb
+    (fun l css_wb ->
+       get_wikibox_content css_wb.wikibox
        >>= function
          | Some (_, _, Some content, _, _, ver) ->
-             Lwt.return ((wbcss, (content, ver)) :: l)
+             Lwt.return ((css_wb, (content, ver)) :: l)
          | Some (_, _, None, _, _, _) | None -> Lwt.return l
     ) [] l
 

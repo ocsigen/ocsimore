@@ -486,7 +486,9 @@ let () =
           (List.map render_wikibox_row wikiboxes)])
 
 let () =
-  let render_version_link wikibox version' (version, comment, _, _) =
+  let render_version_link wikibox version' sql_data =
+    let version = Sql.get sql_data#version
+    and comment = Sql.get sql_data#comment in
     let version_elt = Html5.F.pcdata (Int32.to_string version) in
     let version_link =
       if version' <> version then

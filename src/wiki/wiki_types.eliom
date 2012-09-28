@@ -134,6 +134,12 @@ let media_type_of_string s =
 
 }}
 
+type css_wikibox = {
+  wikibox : wikibox;
+  media : media_type;
+  rank : int32;
+}
+
 type 'a rights_aux = 'a -> bool Lwt.t
 
 class type wiki_rights =

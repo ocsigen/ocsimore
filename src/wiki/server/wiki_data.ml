@@ -83,7 +83,7 @@ exception BadCssWikibox
 
 let save_wikicss_aux ~rights ~content ~wb l =
   try
-    ignore (List.find (fun (wb', _, _) -> wb = wb') l);
+    ignore (List.find (fun css_wb -> wb = css_wb.wikibox) l);
     save_wikibox_aux ~rights ~wb
       ~content_type:Wiki_models.css_content_type ~content
   with Not_found -> Lwt.fail BadCssWikibox
@@ -123,7 +123,7 @@ let create_wiki ~(rights : Wiki_types.wiki_rights)
 let css_aux ~(rights : Wiki_types.wiki_rights) ~available ~wikibox_version_list =
   Lwt_list.fold_right_s
     (fun (wikibox, version) sofar ->
-         if List.exists (fun (wikibox', _, _) -> wikibox = wikibox') available then
+         if List.exists (fun css_wb -> wikibox = css_wb.wikibox) available then
            wikibox_content ~rights ~version wikibox >|= function
              | _, Some cont, _ ->
                  (wikibox, cont) :: sofar

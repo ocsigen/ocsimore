@@ -32,10 +32,10 @@ let preview_wikibox_content : (wikibox * string) option Eliom_reference.Volatile
 
 (* TODO Handle wikiboxes with multiple media (i.e. "screen print" or even "all") carefully! *)
 let grouped_by_media wb_list_with_media =
-  let rec insert_by_media ((wb, media, _) as wb_media) = function
-      [] -> [media, [wb]]
-    | (media', wblist) :: rest when media = media' ->
-        (media, wb :: wblist) :: rest
+  let rec insert_by_media wb_media = function
+      [] -> [wb_media.media, [wb_media.wikibox]]
+    | (media', wblist) :: rest when wb_media.media = media' ->
+        (wb_media.media, wb_media.wikibox :: wblist) :: rest
     | pair :: rest -> pair :: insert_by_media wb_media rest in
   List.fold_right insert_by_media wb_list_with_media []
 
@@ -921,7 +921,10 @@ object (self)
 
     fun ~bi ~classes ~wb l ->
     Lwt_list.map_s
-      (fun (version, _comment, author, date) ->
+      (fun sql_data ->
+        let version = Sql.get sql_data#version
+        and author = Sql.get sql_data#author
+        and date = Sql.get sql_data#datetime in
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
          >|= fun { user_fullname = author; _ } ->
          [Html5.F.pcdata (Int32.to_string version);
@@ -951,7 +954,10 @@ object (self)
 
     fun ~bi ~classes ~wb ~wbcss ~wikipage l ->
     Lwt_list.map_s
-      (fun (version, _comment, author, date) ->
+      (fun sql_data ->
+        let version = Sql.get sql_data#version
+        and author = Sql.get sql_data#author
+        and date = Sql.get sql_data#datetime in
          User_sql.get_basicuser_data (User_sql.Types.userid_from_sql author)
          >|= fun { user_fullname = author; _ } ->
          [Html5.F.pcdata (Int32.to_string version);
@@ -1050,12 +1056,12 @@ object (self)
         )
         l
     in
-    let aux ((wbcss, media, rank), (_, ver)) =
-      bi.bi_rights#can_view_history wbcss                 >>= fun csshist ->
-      bi.bi_rights#can_write_wikibox wbcss                >>= fun csswr ->
-      bi.bi_rights#can_set_wikibox_specific_permissions wbcss
+    let aux (css_wb, (_, ver)) =
+      bi.bi_rights#can_view_history css_wb.wikibox        >>= fun csshist ->
+      bi.bi_rights#can_write_wikibox css_wb.wikibox         >>= fun csswr ->
+      bi.bi_rights#can_set_wikibox_specific_permissions css_wb.wikibox
                                                               >>= fun cssperm ->
-      let wbcss_ = ((wiki, page), wbcss) in
+      let wbcss_ = ((wiki, page), css_wb.wikibox) in
       let v1 = if csshist then
         [Html5.D.a ~service:Wiki_services.action_css_history
            [Html5.F.pcdata "History"] (wb, wbcss_)
@@ -1083,15 +1089,15 @@ object (self)
            ~a:[Html5.F.a_class ["eliom_inline"]]
            (List.flatten
               [[Ocsimore_common.input_opaque_int32 ~value:wb wbn;
-                Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn;
+                Ocsimore_common.input_opaque_int32 ~value:css_wb.wikibox wbcssn;
                 Ocsimore_common.input_opaque_int32 ~value:wiki wikin;
                 Html5.F.pcdata "CSS ";
                 Html5.D.int32_input ~input_type:`Text
-                   ~a:[Html5.F.a_size 2] ~value:rank ~name:rankn ();
+                   ~a:[Html5.F.a_size 2] ~value:css_wb.rank ~name:rankn ();
                 Html5.F.pcdata "(Id ";
-                Html5.F.pcdata (Opaque.int32_t_to_string wbcss);
+                Html5.F.pcdata (Opaque.int32_t_to_string css_wb.wikibox);
                 Html5.F.pcdata ") ";
-                Ocsimore_common.input_opaque_int32 ~value:wbcss newwbcssn];
+                Ocsimore_common.input_opaque_int32 ~value:css_wb.wikibox newwbcssn];
                (match page with
                   | None -> []
                   | Some page ->
@@ -1099,7 +1105,7 @@ object (self)
                            ~input_type:`Hidden ~value:page ()
                       ]
                );
-               [select_media median media;
+               [select_media median css_wb.media;
                 Html5.F.pcdata " ";
                 Html5.D.button ~button_type:`Submit
                    [Html5.F.pcdata " Update media and CSS order"];
@@ -1118,10 +1124,10 @@ object (self)
            ~a:[Html5.F.a_class ["eliom_inline"]]
            (List.flatten
               [[Ocsimore_common.input_opaque_int32 ~value:wb wbn;
-                Ocsimore_common.input_opaque_int32 ~value:wbcss wbcssn;
+                Ocsimore_common.input_opaque_int32 ~value:css_wb.wikibox wbcssn;
                 Ocsimore_common.input_opaque_int32 ~value:wiki wikin;
                 Html5.D.int32_input ~input_type:`Hidden
-                   ~value:rank ~name:rankn ()];
+                   ~value:css_wb.rank ~name:rankn ()];
                (match page with
                   | None -> []
                   | Some page ->
@@ -1518,9 +1524,9 @@ object (self)
                 (grouped_by_media wb_list_with_media)
             else
               Lwt_list.map_s
-                (fun (wikibox, media, _) ->
-                   add_version wikibox >|= fun wikibox_version ->
-                     css_url_service wikicss_service [wikibox_version] media)
+                (fun css_wb ->
+                   add_version css_wb.wikibox >|= fun wikibox_version ->
+                     css_url_service wikicss_service [wikibox_version] css_wb.media)
                 wb_list_with_media
      in
      match page with
@@ -1539,12 +1545,12 @@ object (self)
                  (grouped_by_media wb_list_with_media)
              else
                Lwt_list.map_s
-                 (fun (wikibox, media, _) ->
-                    add_version wikibox >|= fun wikibox_version ->
+                 (fun css_wb ->
+                    add_version css_wb.wikibox >|= fun wikibox_version ->
                       css_url_service
                         Wiki_services.pagecss_service
                         ((wiki, page), [wikibox_version])
-                        media)
+                        css_wb.media)
                  wb_list_with_media
            in
            Lwt.return (css @ ll)

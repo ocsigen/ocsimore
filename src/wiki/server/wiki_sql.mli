@@ -81,8 +81,13 @@ val new_wikibox :
   wikibox Lwt.t
 
 (** return the history of a wikibox. *)
-val get_wikibox_history : wb:wikibox ->
-  (int32 * string * (* userid *) int32 * CalendarLib.Calendar.t) list Lwt.t
+val get_wikibox_history :
+  wb:Wiki_types.wikibox ->
+  < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+ datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t > Sql.t;
+ version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+   list Lwt.t
 
 val get_wikiboxes_by_wiki : wiki -> wikibox list Lwt.t
 (* val get_wikiboxes_by_wiki' : wiki -> (wikibox_info, wikibox_content) list Lwt.t *)
@@ -119,9 +124,9 @@ val set_wikipage_properties :
 (** returns the lists of css associated to a wikipage or a wiki, together
     with the content of the wikibox and the version (as last arguments) *)
 val get_css_for_wikipage : wiki:wiki -> page:string ->
-  ((wikibox * media_type * int32) * (string * int32)) list Lwt.t
+  (Wiki_types.css_wikibox * (string * int32)) list Lwt.t
 val get_css_for_wiki : wiki:wiki ->
-  ((wikibox * media_type * int32) * (string * int32)) list Lwt.t
+  (Wiki_types.css_wikibox * (string * int32)) list Lwt.t
 
 (** Add a new CSS to a wikipage or a wiki. If [wbcss] is supplied,
     a link to the (supposed existing) CSS is created, and [author]
@@ -155,11 +160,11 @@ val remove_css_wikipage :
 
 (** returns the wikibox for the css of a page or [None] if the page has no css*)
 val get_css_wikibox_for_wikipage :
-  wiki:wiki -> page:string -> (wikibox * media_type * int32) list Lwt.t
+  wiki:wiki -> page:string -> Wiki_types.css_wikibox list Lwt.t
 
 (** returns the wikibox for the global css of a wiki, or [None] if the wiki
     has no such css *)
-val get_css_wikibox_for_wiki : wiki:wiki -> (wikibox * media_type * int32) list Lwt.t
+val get_css_wikibox_for_wiki : wiki:wiki -> Wiki_types.css_wikibox list Lwt.t
 
 
 val update_css_wikibox_aux:

@@ -318,7 +318,11 @@ class type virtual interactive_wikibox =
       bi:box_info ->
       classes:string list ->
       wb:wikibox ->
-      (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
+      < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+      datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t > Sql.t;
+      version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+        list ->
       (classes * [> Html5_types.em | Html5_types.br | Html5_types.pcdata | [> Html5_types.pcdata] Html5_types.a ] Html5.F.elt list) Lwt.t
 
     (** Display the history of the wikibox [wb], which is supposed to contain
@@ -330,7 +334,11 @@ class type virtual interactive_wikibox =
       wb:wikibox ->
       wbcss:wikibox ->
       wikipage:wiki * string option ->
-      (int32 * string * int32 (* User_sql.Types.userid *) * CalendarLib.Printer.Calendar.t) list->
+      < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+      datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t > Sql.t;
+      version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+        list ->
       (classes * [> Html5_types.em | Html5_types.br | Html5_types.pcdata | [> Html5_types.pcdata] Html5_types.a ] Html5.F.elt list) Lwt.t
 
 
