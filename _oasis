@@ -135,7 +135,7 @@ Library "ocsimore-ldap"
     Ocsimore_ldap
   BuildDepends:
     ocsimore.user,
-    ldap
+    ldap (>= 2.2)
   XMETARequires:
     ocsimore.user,
     ldap
