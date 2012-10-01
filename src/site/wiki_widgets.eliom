@@ -1869,6 +1869,7 @@ object (self)
                      ();
                  ]) ()
              ];
+             Html5.F.td [Html5.F.pcdata "Create a new page for this wiki"];
            ]
          ]
          else []
