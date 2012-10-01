@@ -98,21 +98,19 @@ let wiki_path user =
 *)
 
 let external_user user =
-  match User_services.auth with
-    | User_services.NoExternalAuth -> return None
-    | User_services.OtherExternalAuth ->
-      let rec inner = function
-        | [] -> Lwt.return None
-        | x::xs ->
-          x.User_external_auth.ext_user_exists user
-          >>= function
-            | false -> inner xs
-            | true ->
+  let rec inner = function
+    | [] -> Lwt.return None
+    | x::xs ->
+        x.User_external_auth.ext_user_exists user
+        >>= function
+          | false -> inner xs
+          | true ->
               User.create_external_user user
               >>= fun user ->
               Lwt.return (Some user)
-      in
-      inner (User_external_auth.get_external_auths ())
+  in
+  let auths = User_external_auth.get_external_auths () in
+  inner auths
 
 (** Template pages, for the containers and the css of the new wikis. They are
     copied each time a new wiki is created *)
@@ -174,10 +172,10 @@ let create_wikiperso ~model ~wiki_title ~userdata =
 let find_user user =
   User.get_basicuser_by_login user
   >>= fun userdata ->
-    if userdata <> User.nobody then
-      Lwt.return (Some userdata)
-    else
-      external_user user
+  if userdata <> User.nobody then
+    Lwt.return (Some userdata)
+  else
+    external_user user
 
 
 let can_have_wikiperso =

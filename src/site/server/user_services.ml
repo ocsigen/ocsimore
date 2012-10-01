@@ -26,18 +26,15 @@ type user_creation =
   | NoUserCreation
   | UserCreation of User_data.user_creation
 
-type external_auth =
-    NoExternalAuth | OtherExternalAuth
-
-let default_data = (NoExternalAuth, true)
+let default_data = true
 
 let (>>=) = Lwt.bind
 
-let (auth, force_secure) =
-  let rec find_data ((auth, _secure) as data) = function
+let force_secure =
+  let rec find_data (_secure as data) = function
     | [] -> Lwt.return data
     | (Simplexmlparser.Element ("notsecure", [], []))::l ->
-        find_data (auth, false) l
+        find_data false l
     | _ ->
         Lwt.fail (Ocsigen_extensions.Error_in_config_file
                     ("Unexpected content inside User_site config")) in
@@ -67,16 +64,13 @@ let basicusercreation () =
       Lwt.return NoUserCreation
   )
 
-let external_auth = match auth with
-  | NoExternalAuth -> None
-  | OtherExternalAuth ->
-    let rec inner = function
-      | [] -> None
-      | auth_method::xs ->
-        try Some auth_method
-        with _ -> inner xs
-    in
-    inner (User_external_auth.get_external_auths ())
+let external_auth () =
+  let inner = function
+    | [] -> None
+    | auth_method::_ -> Some auth_method
+  in
+  let auths = User_external_auth.get_external_auths () in
+  inner auths
 
 
 
@@ -95,12 +89,13 @@ let action_login =
     ~name:"login"  ~keep_get_na_params:false
     ~post_params:(string "usr" ** string "pwd")
     (fun () (name, pwd) ->
-       try_lwt
-          lwt () = User_data.login ~name ~pwd ~external_auth:external_auth in
-          Eliom_registration.Redirection.send Eliom_service.void_hidden_coservice'
-       with exc ->
-          lwt () = User_data.add_login_error exc in
-          Eliom_registration.Action.send ())
+      try_lwt
+        let external_auth = external_auth () in
+        lwt () = User_data.login ~name ~pwd ~external_auth in
+        Eliom_registration.Redirection.send Eliom_service.void_hidden_coservice'
+      with exc ->
+        lwt () = User_data.add_login_error exc in
+        Eliom_registration.Action.send ())
 
 and action_logout =
   Eliom_registration.Any.register_post_coservice'

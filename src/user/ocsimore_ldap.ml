@@ -76,14 +76,14 @@ let get_user (base, uri) user =
 
 let parse_config = function
   | [Simplexmlparser.Element ("ldap", [("base", base); ("uri", uri)], [])] ->
-    User_external_auth.add_external_auth {
-      User_external_auth.ext_auth_authenticate = ldap_auth base uri;
-      ext_user_exists = (fun user ->
-        get_user (base, uri) user >>= function
-          | None -> Lwt.return false
-          | Some _ -> Lwt.return true
-      );
-    }
+      User_external_auth.add_external_auth {
+        User_external_auth.ext_auth_authenticate = ldap_auth base uri;
+        ext_user_exists = (fun user ->
+          get_user (base, uri) user >>= function
+            | None -> Lwt.return false
+            | Some _ -> Lwt.return true
+        );
+      }
   | _ ->
     raise (Ocsigen_extensions.Error_in_config_file
              ("Unexpected content inside User_site config"))
