@@ -128,7 +128,7 @@ let create_forum_form ~serv_path:_ ~service ~arg
       | Xform.NoError -> "Create forum"
       | Xform.ErrorMsg _
       | Xform.ErrorNoMsg -> "Error" in
-    Page_site.admin_page ~service:(service :> Page_site.menu_link_service) ~title
+    Page_site.admin_page ~title
       ((match error with
              | Xform.ErrorMsg err ->
                  [Html5.F.p ~a:[Html5.F.a_class ["errmsg"]]
