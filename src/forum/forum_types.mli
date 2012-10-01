@@ -71,14 +71,30 @@ open User_sql.Types
     m_tree_max: int32;
   }
 
-  type raw_forum_info = (int32 * string * string * bool * bool * string * int32 * int32)
-  type raw_message_info =
-      (int32 * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 option * int32 * bool * bool
-       * int32 * int32)
-
-  val get_forum_info : raw_forum_info -> forum_info
-  val get_message_info : raw_message_info -> message_info
+  val get_forum_info :
+    < arborescent : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+    comments_wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    deleted : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+    descr : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+    id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    messages_wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    title : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+    title_syntax : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t >
+      -> forum_info
+  val get_message_info :
+    < creator_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t > Sql.t;
+    forum_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    moderated : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+    parent_id : < get : unit; nul : Sql.nullable; t : Sql.int32_t > Sql.t;
+    root_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    special_rights : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+    subject : < get : unit; nul : Sql.nullable; t : Sql.int32_t > Sql.t;
+    tree_max : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    tree_min : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+    wikibox : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+      -> message_info
 
   type ('a,'b,'c,'d) forum_services = {
     add_message_service : 'a;

@@ -133,7 +133,6 @@ let get_forums_list () =
   List.fold_right
     (fun f e ->
        e >>= fun e ->
-       let f = get_forum_info f in
        User.in_group ~group:(forum_visible $ f.f_id) () >>= fun b ->
        if b
        then Lwt.return (f::e)
@@ -239,7 +238,6 @@ let filter_descendents ?(add_parent=false) ~parent childs =
     end
     else raise Ocsimore_common.Permission_denied
   in
-  let childs = List.map get_message_info childs in
 
   if add_parent
   then
@@ -265,12 +263,11 @@ let get_childs ~message_id =
 let get_thread ~message_id =
   match_lwt Forum_sql.get_thread ~message_id () with
     | [] -> Lwt.fail Not_found
-    | m::childs ->
-      let parent = get_message_info m in
+    | parent::childs ->
       assert (message_id = parent.m_id);
       filter_descendents ~add_parent:true ~parent childs
 
-type raw_message = Forum_types.raw_message_info
+type raw_message = Forum_types.message_info
 
 let get_message_list ~forum ~first ~number () =
   Forum_sql.get_forum ~forum () >>= fun _ ->
@@ -286,7 +283,6 @@ let get_message_list ~forum ~first ~number () =
       ~moderated_only:(not message_readers_evennotmoderated) ()
 
 let message_info_of_raw_message m =
-  let m = Forum_types.get_message_info m in
   !!(m.m_has_special_rights) >>= fun has_special_rights ->
   if not has_special_rights
   then Lwt.return m

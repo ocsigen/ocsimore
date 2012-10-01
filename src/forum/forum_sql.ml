@@ -239,13 +239,9 @@ let get_forum ?(not_deleted_only = true) ~forum () =
     )
   >>= function
     | Some a ->
-       if not_deleted_only && (a#!deleted)
+       if not_deleted_only && a#!deleted
        then Lwt.fail Not_found
-       else Lwt.return
-         (get_forum_info
-            (a#!id, a#!title, a#!descr, a#!arborescent, a#!deleted,
-             a#!title_syntax, a#!messages_wiki, a#!comments_wiki)
-         )
+       else Lwt.return (get_forum_info a)
     | None -> Lwt.fail Not_found
 
 let forum_exists ~title () =
@@ -260,62 +256,39 @@ let forum_exists ~title () =
     | Some _ -> Lwt.return true
 
 
-let raw_forum_from_sql sql =
-  sql >>= (Lwt_list.map_p (fun sql ->
-    Lwt.return (
-      sql#!id,
-      sql#!title,
-      sql#!descr,
-      sql#!arborescent,
-      sql#!deleted,
-      sql#!title_syntax,
-      sql#!messages_wiki,
-      sql#!comments_wiki
-    )
-  ))
+let raw_forum_from_sql sql_data =
+  Lwt_list.map_p (fun item ->
+    Lwt.return (get_forum_info item)
+  ) sql_data
 
 let get_forums_list ?(not_deleted_only = true) () =
   Ocsi_sql.full_transaction_block
     (fun db ->
-      raw_forum_from_sql (
-        Lwt_Query.view db (<:view< {
-          f.id;
-          f.title;
-          f.descr;
-          f.arborescent;
-          f.deleted;
-          f.title_syntax;
-          f.messages_wiki;
-          f.comments_wiki
-        } | f in $forums$;
-            if $bool:not_deleted_only$
-            then f.deleted = false
-            else true >>)
-      )
+      Lwt_Query.view db (<:view< {
+        f.id;
+        f.title;
+        f.descr;
+        f.arborescent;
+        f.deleted;
+        f.title_syntax;
+        f.messages_wiki;
+        f.comments_wiki
+      } | f in $forums$;
+          if $bool:not_deleted_only$
+          then f.deleted = false
+          else true >>)
+      >>= raw_forum_from_sql
     )
 
-let raw_message_from_sql sql =
-  sql >>= (Lwt_list.map_p (fun sql ->
-    Lwt.return (
-      sql#!id,
-      sql#!creator_id,
-      sql#!datetime,
-      sql#?parent_id,
-      sql#!root_id,
-      sql#!forum_id,
-      sql#?subject,
-      sql#!wikibox,
-      sql#!moderated,
-      sql#!special_rights,
-      sql#!tree_min,
-      sql#!tree_max
-    )
-  ))
+let raw_message_from_sql sql_data =
+  Lwt_list.map_p (fun item ->
+    Lwt.return (get_message_info item)
+  ) sql_data
 
 let get_childs ~message_id () =
   let message_id = sql_of_message message_id in
   Ocsi_sql.full_transaction_block
-    (fun db -> raw_message_from_sql (
+    (fun db ->
       Lwt_Query.view db (<:view< {
         f.id;
         f.creator_id;
@@ -332,7 +305,7 @@ let get_childs ~message_id () =
       } order by {
         f.tree_min
       } | f in $forums_messages$; f.parent_id = $int32:message_id$ >>)
-     )
+      >>= raw_message_from_sql
     )
 
 let get_message ~message_id () =
@@ -352,7 +325,6 @@ let get_thread ~message_id () =
       >>= function
         | None -> Lwt.fail Not_found
         | Some data ->
-          raw_message_from_sql (
             Lwt_Query.view db (<:view< {
               f.id;
               f.creator_id;
@@ -370,7 +342,7 @@ let get_thread ~message_id () =
                 f in $forums_messages$; f.root_id = $int32:message_id$;
                 f.tree_min >= $int32:data#!tree_min$;
                 f.tree_max <= $int32:data#!tree_max$ >>)
-          )
+            >>= raw_message_from_sql
     )
 
 
@@ -379,22 +351,21 @@ let get_message_list ~forum ~first ~number ~moderated_only () =
   let offset = Int64.sub first 1L in
   Ocsi_sql.full_transaction_block
     (fun db ->
-       if moderated_only
-       then raw_message_from_sql (
-         Lwt_Query.view db (<:view< f order by f.tree_min desc
-               limit $int64:number$
-               offset $int64:offset$ |
-             f in $forums_messages$; f.forum_id = $int32:forum$;
-             is_null f.parent_id;
-             (f.moderated = true) || (f.special_rights = true) >>)
-       )
-       else raw_message_from_sql (
-         Lwt_Query.view db (<:view< f order by f.datetime desc
-               limit $int64:number$
-               offset $int64:offset$ |
-             f in $forums_messages$; f.forum_id = $int32:forum$;
-             is_null f.parent_id >>)
-       )
+       (if moderated_only
+        then
+          Lwt_Query.view db (<:view< f order by f.tree_min desc
+                limit $int64:number$
+                offset $int64:offset$ |
+              f in $forums_messages$; f.forum_id = $int32:forum$;
+              is_null f.parent_id;
+              (f.moderated = true) || (f.special_rights = true) >>)
+        else
+           Lwt_Query.view db (<:view< f order by f.datetime desc
+                limit $int64:number$
+                offset $int64:offset$ |
+              f in $forums_messages$; f.forum_id = $int32:forum$;
+              is_null f.parent_id >>)
+       ) >>= raw_message_from_sql
     )
 
 let get_wikibox_creator ~wb =

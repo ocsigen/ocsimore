@@ -43,22 +43,6 @@ let forums_messages = (<:table< forums_messages (
   tree_max integer NOT NULL
 ) >>)
 
-let raw_message_from_sql sql =
-  Lwt.return (
-    sql#!id,
-    sql#!creator_id,
-    sql#!datetime,
-    sql#?parent_id,
-    sql#!root_id,
-    sql#!forum_id,
-    sql#?subject,
-    sql#!wikibox,
-    sql#!moderated,
-    sql#!special_rights,
-    sql#!tree_min,
-    sql#!tree_max
-  )
-
 let get_message_raw ~message_id () =
   Lwt_pool.use Ocsi_sql.pool
     (fun db ->
@@ -80,5 +64,5 @@ let get_message_raw ~message_id () =
       } | f in $forums_messages$; f.id = $int32:message_id$ >>)
       >>= function
         | None -> Lwt.fail Not_found
-        | Some x -> raw_message_from_sql x
+        | Some x -> Lwt.return x
     )

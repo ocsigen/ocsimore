@@ -85,7 +85,7 @@ val forum_exists :
 
 (** returns the list of forums *)
 val get_forums_list : ?not_deleted_only:bool -> unit ->
-  raw_forum_info list Lwt.t
+  forum_info list Lwt.t
 
 (** returns a message *)
 val get_message :
@@ -104,7 +104,7 @@ val get_message :
 val get_thread :
   message_id:message ->
   unit ->
-  raw_message_info list Lwt.t
+  message_info list Lwt.t
 
 (** returns a list of all the direct childs of messages [~message_id].
     The list is not filtered and also contains deleted messages.
@@ -112,7 +112,7 @@ val get_thread :
 val get_childs :
   message_id:message ->
   unit ->
-  raw_message_info list Lwt.t
+  message_info list Lwt.t
 
 (** returns the list of messages (without comments) in a forum.
     If [moderated_only] is true, will return:
@@ -125,7 +125,7 @@ val get_message_list :
   number:int64 ->
   moderated_only:bool ->
   unit ->
-  raw_message_info list Lwt.t
+  message_info list Lwt.t
 
 (** returns the creator of a wikibox containing a forum message
     or forum message title. [None] if not a forum wikibox. *)

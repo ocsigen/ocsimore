@@ -66,28 +66,25 @@ let (>>=) = Lwt.bind
   let string_of_message i = Int32.to_string (sql_of_message i)
   let message_of_string s = (Opaque.int32_t (Int32.of_string s) : message)
 
-  type raw_forum_info = (int32 * string * string * bool * bool * string * int32 * int32)
-
-  let get_forum_info
-      (id,
-       title,
-       descr,
-       arborescent,
-       deleted,
-       title_syntax,
-       messages_wiki,
-       comments_wiki)
-      =
-      {
-        f_id = forum_of_sql id;
-        f_title = title;
-        f_descr = descr;
-        f_arborescent = arborescent;
-        f_deleted = deleted;
-        f_title_syntax = Wiki_types.content_type_of_string title_syntax;
-        f_messages_wiki = Wiki_types.wiki_of_sql messages_wiki;
-        f_comments_wiki = Wiki_types.wiki_of_sql comments_wiki;
-      }
+  let get_forum_info sql_data =
+    let id = Sql.get sql_data#id
+    and title = Sql.get sql_data#title
+    and descr = Sql.get sql_data#descr
+    and arborescent = Sql.get sql_data#arborescent
+    and deleted = Sql.get sql_data#deleted
+    and title_syntax = Sql.get sql_data#title_syntax
+    and messages_wiki = Sql.get sql_data#messages_wiki
+    and comments_wiki = Sql.get sql_data#comments_wiki
+    in {
+      f_id = forum_of_sql id;
+      f_title = title;
+      f_descr = descr;
+      f_arborescent = arborescent;
+      f_deleted = deleted;
+      f_title_syntax = Wiki_types.content_type_of_string title_syntax;
+      f_messages_wiki = Wiki_types.wiki_of_sql messages_wiki;
+      f_comments_wiki = Wiki_types.wiki_of_sql comments_wiki;
+    }
 
   type message_info = {
     m_id: message;
@@ -104,25 +101,20 @@ let (>>=) = Lwt.bind
     m_tree_max: int32;
   }
 
-  type raw_message_info =
-      (int32 * int32 * CalendarLib.Calendar.t * int32 option *
-         int32 * int32 * int32 option * int32 * bool * bool
-       * int32 * int32)
-
-  let get_message_info
-      (id,
-       creator_id,
-       datetime,
-       parent_id,
-       root_id,
-       forum_id,
-       subject,
-       wikibox,
-       moderated,
-       has_special_rights,
-       tree_min,
-       tree_max) =
-    {
+  let get_message_info sql_data =
+    let id = Sql.get sql_data#id
+    and creator_id = Sql.get sql_data#creator_id
+    and datetime = Sql.get sql_data#datetime
+    and parent_id = Sql.getn sql_data#parent_id
+    and root_id = Sql.get sql_data#root_id
+    and forum_id = Sql.get sql_data#forum_id
+    and subject = Sql.getn sql_data#subject
+    and wikibox = Sql.get sql_data#wikibox
+    and moderated = Sql.get sql_data#moderated
+    and has_special_rights = Sql.get sql_data#special_rights
+    and tree_min = Sql.get sql_data#tree_min
+    and tree_max = Sql.get sql_data#tree_max
+    in {
       m_id = message_of_sql id;
       m_creator_id = User_sql.Types.userid_from_sql creator_id;
       m_datetime = datetime;
@@ -139,9 +131,8 @@ let (>>=) = Lwt.bind
               then Lwt.return has_special_rights
               else begin
                 get_message_raw ~message_id:root_id ()
-                >>= fun (_, _, _, _, _, _, _, _, _,
-                         has_special_rights, _, _) ->
-                Lwt.return has_special_rights
+                >>= fun sql_data ->
+                Lwt.return (Sql.get sql_data#special_rights)
               end);
       m_tree_min = tree_min;
       m_tree_max = tree_max;
