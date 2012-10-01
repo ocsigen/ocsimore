@@ -252,7 +252,11 @@ let admin_body_content_with_permission_handler ~title ?service ~permissions ~dis
             no_permission ()
     in
     let content = body_to_div content in
-    lwt service = match service with Some s -> (s get_args post_args : menu_link_service Lwt.t) >|= Ocsimore_lib.some | None -> Lwt.return None in
+    lwt service = match service with
+      | Some s ->
+          (s get_args post_args : menu_link_service Lwt.t) >|= Ocsimore_lib.some
+      | None -> Lwt.return None
+    in
     lwt title = title get_args post_args in
     (admin_page ~title ?service content : Html5.F.html Lwt.t)
 
