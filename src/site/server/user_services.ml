@@ -64,14 +64,6 @@ let basicusercreation () =
       Lwt.return NoUserCreation
   )
 
-let external_auth () =
-  let inner = function
-    | [] -> None
-    | auth_method::_ -> Some auth_method
-  in
-  let auths = User_external_auth.get_external_auths () in
-  inner auths
-
 
 
 open Eliom_content
@@ -90,8 +82,7 @@ let action_login =
     ~post_params:(string "usr" ** string "pwd")
     (fun () (name, pwd) ->
       try_lwt
-        let external_auth = external_auth () in
-        lwt () = User_data.login ~name ~pwd ~external_auth in
+        lwt () = User_data.login ~name ~pwd in
         Eliom_registration.Redirection.send Eliom_service.void_hidden_coservice'
       with exc ->
         lwt () = User_data.add_login_error exc in

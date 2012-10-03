@@ -37,3 +37,16 @@ type external_auth = {
 let (get_external_auths, add_external_auth) =
   let r : external_auth list ref = ref [] in
   ((fun () -> !r), (fun x -> r := x :: !r))
+
+(** Function which iter on external auths,
+    call the function f for each method while there is a method
+    and raises [BadUser] if no method matches *)
+let iter_external_auths f =
+  let rec iter = function
+    | [] -> Lwt.fail User.BadUser
+    | x::xs ->
+        match_lwt f x with
+          | true -> Lwt.return ()
+          | false -> iter xs
+  in
+  iter (get_external_auths ())

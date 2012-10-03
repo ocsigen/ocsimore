@@ -229,30 +229,35 @@ module Throttle = Lwt_throttle.Make(struct
 let th_login = Throttle.create ~rate:1 ~max:1 ~n:10
 let th_ip = Throttle.create ~rate:1 ~max:1 ~n:10
 
-let login ~name ~pwd ~external_auth =
+let login ~name ~pwd =
   lwt () = Eliom_state.discard ~scope:Eliom_common.session () in
   (* XXX improve Lwt_throttle *)
   lwt b1 = Throttle.wait th_login name in
   lwt b2 = Throttle.wait th_ip (Eliom_request_info.get_remote_ip ()) in
   if b1 && b2 then
+    let check_auth () =
+      User_external_auth.iter_external_auths
+        (fun x ->
+          try_lwt
+            lwt () = x.ext_auth_authenticate ~name ~pwd in
+            Lwt.return true
+          with User.BadPassword -> Lwt.return false
+        )
+    in
     lwt user =
       try_lwt
         lwt u = User.authenticate ~name ~pwd in
         Lwt.return u.user_id
-      with e ->
-        match external_auth with
-          | None -> Lwt.fail e
-          | Some ea -> match e with
-              | User.UseAuth u ->
-                  (* check external pwd *)
-                  lwt () = ea.ext_auth_authenticate ~name ~pwd in
-                  Lwt.return u
-              | User.BadUser ->
-                (* check external pwd, and create user if ok *)
-                ea.ext_auth_authenticate ~name ~pwd
-                >>= fun () ->
-                User.create_external_user name
-              | e -> Lwt.fail e
+      with
+        | User.UseAuth u ->
+            (* check external pwd *)
+            lwt () = check_auth () in
+            Lwt.return u
+        | User.BadUser ->
+            (* check external pwd, and create user if ok *)
+            lwt () = check_auth () in
+            User.create_external_user name
+        | e -> Lwt.fail e
     in
     Eliom_request_info.clean_request_cache ();
     User.set_session_data (user, name)
