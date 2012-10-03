@@ -129,11 +129,12 @@ object (self)
     Forum_data.get_message ~message_id
 
   method display_message
-    : 'a. classes:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
-    fun ~classes content ->
+    : 'a. ?level:_ -> classes:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
+    fun ?(level=0) ~classes content ->
     let classes = msg_class::classes in
+    let level = string_of_int (if level > 80 then 80 else level) in
     Lwt.return
-      (Html5.F.div ~a:[Html5.F.a_class classes] content)
+      (Html5.F.div ~a:[Html5.F.a_class classes; Html5.F.a_style ("margin-left: " ^ level ^ "%;")] content)
 
   method display_admin_line ~role m =
 
@@ -299,8 +300,9 @@ object (self)
   method pretty_print_thread ~classes ~commentable ?rows ?cols thread :
     (string list * (Html5_types.flow5 Html5.F.elt list * Html5_types.flow5 Html5.F.elt list)) Lwt.t =
     lwt () = add_forum_css_header () in
+    let level_incr = 5 in
     let rec print_one_message_and_children
-        ~role ~arborescent ~commentable thread :
+        ?(level=0) ~role ~arborescent ~commentable thread :
         (Html5_types.flow5 Html5.F.elt list * Html5_types.flow5 Html5.F.elt list * Forum_types.message_info list) Lwt.t =
       (match thread with
          | [] -> Lwt.return ([], [], [])
@@ -315,18 +317,18 @@ object (self)
              (if draw_comment_form
               then self#display_comment_line ~role ?rows ?cols m
               else Lwt.return []) >>= fun comment_line ->
-             message_widget#display_message ~classes (msg_info:> Html5_types.flow5 Html5.F.elt list)  >>= fun first ->
-             print_children ~role ~arborescent ~commentable m.m_id l
+             message_widget#display_message ~level ~classes (msg_info:> Html5_types.flow5 Html5.F.elt list)  >>= fun first ->
+             print_children ~level:(level + level_incr) ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
              Lwt.return ([(first:>Html5_types.flow5 Html5.F.elt)],
                          (comment_line @ s :> Html5_types.flow5 Html5.F.elt list), l))
-    and print_children ~role ~arborescent ~commentable pid = function
+    and print_children ~level ~role ~arborescent ~commentable pid = function
       | [] -> Lwt.return ([], [])
       | ((m::_) as th)
           when m.m_parent_id = Some pid ->
-          (print_one_message_and_children ~role ~arborescent ~commentable th
+          (print_one_message_and_children ~level ~role ~arborescent ~commentable th
            >>= fun (b, c, l) ->
-           print_children ~role ~arborescent ~commentable pid l
+           print_children ~level:(level + level_incr) ~role ~arborescent ~commentable pid l
            >>= fun (s, l) ->
            Lwt.return (( (b @ c @ s)  : Html5_types.flow5 Html5.F.elt list), l))
       | l -> Lwt.return ([], l)
