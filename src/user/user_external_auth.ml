@@ -25,7 +25,7 @@ let (>>=) = Lwt.bind
 
 type external_auth = {
   (** A function returning unit if the given user can be authentified by
-      the given password, or failing with [BadUser] *)
+      the given password, or failing with [BadPassword] *)
   ext_auth_authenticate: name:string -> pwd:string -> unit Lwt.t;
 
   (** This function take the username and return if the user exists *)
