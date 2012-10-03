@@ -2,6 +2,8 @@
 
 ===Wiki syntax===
 
+{{{<<forum_threads_list forum="1">>}}}
+
 {{{<<forum_message_list forum="1">>}}}
 
 {{{<<forum_thread forum="1">>}}}

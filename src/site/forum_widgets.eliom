@@ -408,11 +408,10 @@ object (self)
     Lwt.return
       (Html5.F.div ~a:[Html5.F.a_class classes] content)
 
-  method pretty_print_message_list ~forum ?rows ?cols ~classes
-    ~add_message_form list =
+  method get_html_from_list : 'a. _ -> ([> Html5_types.div ] as 'a) Html5.F.elt list list Lwt.t = fun list ->
     Lwt_util.map
       (fun raw_msg_info ->
-         Lwt.catch
+        Lwt.catch
          (fun() ->
             Forum_data.message_info_of_raw_message raw_msg_info
             >>= fun m ->
@@ -426,6 +425,10 @@ object (self)
                 Lwt.return []
             | e -> Lwt.fail e))
       list
+
+  method pretty_print_message_list ~forum ?rows ?cols ~classes
+    ~add_message_form list =
+    self#get_html_from_list list
     >>= fun l ->
     (if add_message_form
      then
@@ -472,6 +475,31 @@ object (self)
                   ~updated
                   ~title
                   entries)
+
+end
+
+class threads_list_widget
+  (widget_with_error_box : Widget.widget_with_error_box)
+  (message_widget : message_widget)
+  (add_message_widget : add_message_widget)
+  =
+object (self)
+
+  inherit message_list_widget widget_with_error_box message_widget add_message_widget
+
+  val thread = new thread_widget widget_with_error_box message_widget add_message_widget ()
+
+  method! get_html_from_list list =
+    Lwt_list.map_p
+      (fun raw_msg_info ->
+        lwt message_info =
+          Forum_data.message_info_of_raw_message
+            raw_msg_info
+        in
+        lwt ret = thread#display ~data:(message_info.m_id) () in
+        Lwt.return [ret]
+      )
+      list
 
 end
 

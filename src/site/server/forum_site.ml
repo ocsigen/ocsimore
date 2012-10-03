@@ -197,7 +197,13 @@ let () = Lwt_main.run (
       widget_err message_widget add_message_widget in
   let forum_widget =
     new Forum_widgets.forum_widget widget_err in
-  let () = Forum_wikiext.register_wikiext (message_widget, thread_widget, message_list_widget) in
+  let threads_list_widget =
+    new Forum_widgets.threads_list_widget
+      widget_err message_widget add_message_widget
+  in
+  let () = Forum_wikiext.register_wikiext
+    (message_widget, thread_widget, message_list_widget, threads_list_widget)
+  in
   Eliom_registration.Html5.register ~service:Forum_services.view_forums
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun () () -> Lwt.return "View forums")
