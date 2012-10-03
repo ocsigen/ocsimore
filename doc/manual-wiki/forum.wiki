@@ -6,9 +6,9 @@
 
 {{{<<forum_message_list forum="1">>}}}
 
-{{{<<forum_thread forum="1">>}}}
+{{{<<forum_thread message="1">>}}}
 
-{{{<<forum_message forum="1">>}}}
+{{{<<forum_message message="1">>}}}
 
 ===Group hierarchy===
 
