@@ -318,7 +318,7 @@ object (self)
               then self#display_comment_line ~role ?rows ?cols m
               else Lwt.return []) >>= fun comment_line ->
              message_widget#display_message ~level ~classes (msg_info:> Html5_types.flow5 Html5.F.elt list)  >>= fun first ->
-             print_children ~level:(level + level_incr) ~role ~arborescent ~commentable m.m_id l
+             print_children ~level ~role ~arborescent ~commentable m.m_id l
              >>= fun (s, l) ->
              Lwt.return ([(first:>Html5_types.flow5 Html5.F.elt)],
                          (comment_line @ s :> Html5_types.flow5 Html5.F.elt list), l))
@@ -326,9 +326,9 @@ object (self)
       | [] -> Lwt.return ([], [])
       | ((m::_) as th)
           when m.m_parent_id = Some pid ->
-          (print_one_message_and_children ~level ~role ~arborescent ~commentable th
+          (print_one_message_and_children ~level:(level + level_incr) ~role ~arborescent ~commentable th
            >>= fun (b, c, l) ->
-           print_children ~level:(level + level_incr) ~role ~arborescent ~commentable pid l
+           print_children ~level ~role ~arborescent ~commentable pid l
            >>= fun (s, l) ->
            Lwt.return (( (b @ c @ s)  : Html5_types.flow5 Html5.F.elt list), l))
       | l -> Lwt.return ([], l)
