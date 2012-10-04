@@ -214,4 +214,7 @@ type user_settings = {
 val get_users_settings : unit -> user_settings Lwt.t
 val set_users_settings : user_settings -> unit Lwt.t
 
-val get_users_login : unit -> string list Lwt.t
+val get_users_login : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t

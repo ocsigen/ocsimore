@@ -138,6 +138,15 @@ val get_wikibox_creator :
 *)
 val wikibox_is_moderated : wb:Wiki_types.wikibox -> bool Lwt.t
 
-val get_forums_id : unit -> string list Lwt.t
-val get_forums_wiki_id : unit -> string list Lwt.t
-val get_forum_messages_id : unit -> string list Lwt.t
+val get_forums_id : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t
+val get_forums_wiki_id : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t
+val get_forum_messages_id : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t

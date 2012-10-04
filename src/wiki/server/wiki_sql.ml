@@ -902,26 +902,23 @@ let get_wikipages_of_a_wiki ~wiki () =
 let get_wikis_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.view db (<:view< {
-      w.id
+      id = w.id;
+      title = nullable w.title;
     } | w in $wikis$ >>)
-  ) >>= (Lwt_list.map_s (fun id ->
-    Lwt.return (Int32.to_string id#!id)
-  ))
+  )
 
 let get_wikiboxes_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.view db (<:view< {
-      w.uid
+      id = w.uid;
+      title = null;
     } | w in $wikiboxindex$ >>)
-  ) >>= (Lwt_list.map_s (fun id ->
-    Lwt.return (Lwt_PGOCaml.string_of_int32 id#!uid)
-  ))
+  )
 
 let get_wikipages_id () =
   Lwt_pool.use Ocsi_sql.pool (fun db ->
     Lwt_Query.view db (<:view< {
-      w.uid
+      id = w.uid;
+      title = w.title;
     } | w in $wikipages$ >>)
-  ) >>= (Lwt_list.map_s (fun id ->
-    Lwt.return (Lwt_PGOCaml.string_of_int32 id#!uid)
-  ))
+  )

@@ -281,6 +281,15 @@ val get_wikipages_of_a_wiki :
    Sql.t >
    list Lwt.t
 
-val get_wikis_id : unit -> string list Lwt.t
-val get_wikiboxes_id : unit -> string list Lwt.t
-val get_wikipages_id : unit -> string list Lwt.t
+val get_wikis_id : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t
+val get_wikiboxes_id : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t
+val get_wikipages_id : unit ->
+  < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+ title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+   list Lwt.t

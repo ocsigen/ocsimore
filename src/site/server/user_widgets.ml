@@ -700,20 +700,28 @@ object (self)
           ] in
           Lwt.return [block]
         | Some (param, p) ->
-          let parametrize param = u.user_login ^ "(" ^ param ^ ")" in
-          let link param =
+          let parametrize id = u.user_login ^ "(" ^ id ^ ")"
+          in
+          let link param id =
+            let param_string =
+              let title = Sql.getn param#title in
+              match title with
+                | None -> "id: " ^ id
+                | Some title -> title ^ " (id: " ^ id ^ ")"
+            in
             a ~service:User_services.service_view_group
-              [strong [pcdata param]] (parametrize param);
+              [strong [pcdata param_string]] (parametrize id);
           in
           let block_and_link =
             let lines =
               List.map
                 (fun param ->
+                  let id = Int32.to_string (Sql.get param#id) in
                   tr [
-                    td ~a:[a_class ["roles_tr_prime"]] [link param];
+                    td ~a:[a_class ["roles_tr_prime"]] [link param id];
                     td (match td_content with
                       | None -> []
-                      | Some f -> f (parametrize param)
+                      | Some f -> f (parametrize id)
                     );
                   ]
                 )
