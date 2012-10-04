@@ -128,13 +128,19 @@ object (self)
   method get_message ~message_id =
     Forum_data.get_message ~message_id
 
+  method a_level : 'a. int ->
+    ([< Html5_types.div_attrib > `Class `Style_Attr ] as 'a)
+      Eliom_content.Html5.F.attrib =
+    fun level ->
+    let level = string_of_int (if level > 80 then 80 else level) in
+    Html5.F.a_style ("margin-left: " ^ level ^ "%;")
+
   method display_message
     : 'a. ?level:_ -> classes:_ -> _ -> ([> Html5_types.div ] as 'a) Html5.F.elt Lwt.t =
     fun ?(level=0) ~classes content ->
     let classes = msg_class::classes in
-    let level = string_of_int (if level > 80 then 80 else level) in
     Lwt.return
-      (Html5.F.div ~a:[Html5.F.a_class classes; Html5.F.a_style ("margin-left: " ^ level ^ "%;")] content)
+      (Html5.F.div ~a:[Html5.F.a_class classes; self#a_level level] content)
 
   method display_admin_line ~role m =
 
@@ -274,7 +280,7 @@ object (self)
       (Html5.F.div ~a:[Html5.F.a_class classes1] first,
        Html5.F.div ~a:[Html5.F.a_class classes2] coms)
 
-  method display_comment_line ~role ?rows ?cols m =
+  method display_comment_line ?(level=0) ~role ?rows ?cols m =
   !!(role.Forum.comment_creators) >>= fun comment_creators ->
   if comment_creators
   then
@@ -287,6 +293,7 @@ object (self)
     let show_form =
       Html5.F.div
         ~a:[Html5.F.a_class [comment_button_class];
+            message_widget#a_level level;
             Html5.F.a_onclick
               {{ ignore (
                 (Eliom_content.Html5.To_dom.of_div %comment_div)##classList
@@ -315,7 +322,7 @@ object (self)
                (commentable && (arborescent || (m.m_id = m.m_root_id)))
              in
              (if draw_comment_form
-              then self#display_comment_line ~role ?rows ?cols m
+              then self#display_comment_line ~level ~role ?rows ?cols m
               else Lwt.return []) >>= fun comment_line ->
              message_widget#display_message ~level ~classes (msg_info:> Html5_types.flow5 Html5.F.elt list)  >>= fun first ->
              print_children ~level ~role ~arborescent ~commentable m.m_id l
