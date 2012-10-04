@@ -491,12 +491,11 @@ class threads_list_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (message_widget : message_widget)
   (add_message_widget : add_message_widget)
+  (thread_widget : thread_widget)
   =
 object (self)
 
   inherit message_list_widget widget_with_error_box message_widget add_message_widget
-
-  val thread = new thread_widget widget_with_error_box message_widget add_message_widget ()
 
   method! get_html_from_list list =
     Lwt_list.map_p
@@ -505,7 +504,7 @@ object (self)
           Forum_data.message_info_of_raw_message
             raw_msg_info
         in
-        lwt ret = thread#display ~data:(message_info.m_id) () in
+        lwt ret = thread_widget#display ~data:(message_info.m_id) () in
         Lwt.return [ret]
       )
       list

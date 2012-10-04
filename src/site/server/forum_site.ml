@@ -199,7 +199,7 @@ let () = Lwt_main.run (
     new Forum_widgets.forum_widget widget_err in
   let threads_list_widget =
     new Forum_widgets.threads_list_widget
-      widget_err message_widget add_message_widget
+      widget_err message_widget add_message_widget thread_widget
   in
   let () = Forum_wikiext.register_wikiext
     (message_widget, thread_widget, message_list_widget, threads_list_widget)
