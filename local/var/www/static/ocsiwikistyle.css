@@ -46,7 +46,6 @@ div.wikiboxlinearmenu div.wikiboxmenutitle{
 
 div.interactive{
     position: relative;
-    height: 100%;
 }
 
 div.interactive:hover {
@@ -268,4 +267,8 @@ h1:hover .backref, h2:hover .backref, h3:hover .backref, h4:hover .backref, h5:h
   text-decoration: none;
   color: inherit;
   opacity: 0.3;
+}
+
+.editcss {
+    height: 100%;
 }
