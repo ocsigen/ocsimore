@@ -141,7 +141,7 @@ let wiki_admin = Lwt_main.run
        Wiki.wiki_wikiboxes_grps.grp_reader;
        Wiki.wiki_files_readers;
      ] in
-     Lwt_util.iter
+     Lwt_list.iter_p
        (fun g -> User_sql.add_to_group ~user:(basic_user User.anonymous)
           ~group:(g $ id.wiki_id))
        groups

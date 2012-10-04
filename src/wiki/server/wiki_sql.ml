@@ -501,7 +501,7 @@ let iter_wikis ?db f =
   wrap db
     (fun db ->
        Lwt_Query.view db (<:view< w | w in $wikis$ >>) >>= fun l ->
-       Lwt_util.iter (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l)
+       Lwt_list.iter_p (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l)
 
 
 
@@ -750,7 +750,7 @@ let get_css_wikibox_for_wikipage ~wiki ~page =
 
 let get_css_aux ~wiki ~page =
   get_css_wikibox ~wiki ~page >>= fun l ->
-  Lwt_util.fold_left
+  Lwt_list.fold_left_s
     (fun l css_wb ->
        get_wikibox_content css_wb.wikibox
        >>= function
@@ -849,7 +849,7 @@ let update_wikiboxes ?db f =
         w.content_type
       } | w in $wikiboxescontent$; w.content_type = "wikicreole" >>)
        >>= fun l ->
-       Lwt_util.iter_serial
+       Lwt_list.iter_s
          (fun data ->
             f ~wikibox:(wikibox_of_sql (data#!wikibox))
               ~version: (data#!version)
@@ -876,7 +876,7 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
        and newwiki = sql_of_wiki newwiki in
        Lwt_Query.view db (<:view< w | w in $wikipages$;
                             w.wiki = $int32:oldwiki$ >>) >>= fun l ->
-         Lwt_util.iter
+         Lwt_list.iter_p
            (fun data ->
               match Ocsimore_lib.remove_prefix ~s:(data#!pagename) ~prefix:path with
                 | None -> Lwt.return ()

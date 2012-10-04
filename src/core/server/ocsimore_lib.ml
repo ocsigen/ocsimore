@@ -52,7 +52,7 @@ let Node (p, cs) = tree in
         fun start -> lwt_forest_map f cs >>=
         fun rest -> return (Node (start, rest))
 and lwt_forest_map (f: 'a -> 'b Lwt.t) (forest: 'a tree list): 'b tree list Lwt.t =
-        Lwt_util.map (fun t -> lwt_tree_map f t) forest
+        Lwt_list.map_p (fun t -> lwt_tree_map f t) forest
 
 let rec lwt_flatten (l: 'a list list): 'a list Lwt.t =
   match l with
@@ -79,7 +79,7 @@ let Node (p, cs) = tree in
         lwt_forest_flatten cs >>=
         fun rest -> return (p::rest)
 and lwt_forest_flatten (forest: 'a tree list): 'a list Lwt.t =
-        Lwt_util.map lwt_tree_flatten forest >>=
+        Lwt_list.map_p lwt_tree_flatten forest >>=
         fun f -> lwt_flatten f
 
 let list_assoc_opt a l =

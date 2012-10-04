@@ -411,7 +411,7 @@ object (self)
       (Html5.F.div ~a:[Html5.F.a_class classes] content)
 
   method get_html_from_list : 'a. _ -> ([> Html5_types.div ] as 'a) Html5.F.elt list list Lwt.t = fun list ->
-    Lwt_util.map
+    Lwt_list.map_p
       (fun raw_msg_info ->
         Lwt.catch
          (fun() ->

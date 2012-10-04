@@ -393,7 +393,7 @@ let remove_from_group = User_sql.remove_from_group
 
 
 let add_to_groups ~user ~groups =
-  Lwt_util.iter_serial
+  Lwt_list.iter_s
     (fun group -> add_to_group ~user ~group)
     groups
 

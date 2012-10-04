@@ -156,7 +156,7 @@ let insert_person name affiliation =
       assert false)
 
 let insert_persons l =
-  Lwt_util.map_serial (fun (n, a) -> insert_person n a) l
+  Lwt_list.map_s (fun (n, a) -> insert_person n a) l
 
 let insert_desc wiki author comment content =
   Wiki_sql.get_wiki_info_by_id wiki >>= fun wiki_info ->
@@ -166,7 +166,7 @@ let insert_desc wiki author comment content =
   Wiki_sql.new_wikibox ~wiki ~author ~comment ~content ~content_type ()
 
 let insert_event_person dbh event persons =
-  Lwt_util.iter_serial
+  Lwt_list.iter_s
     (fun person ->
        PGSQL(dbh)
        "insert into announcement.event_person (event, person)
