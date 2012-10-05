@@ -91,7 +91,7 @@ let () =
   (* We register all the (non-creation related) services that depend on the
      rendering widget *)
 
-  Eliom_registration.Html5.register ~service:User_services.service_view_group
+  Ocsimore_appl.register ~service:User_services.service_view_group
     (let service g _ =
        User.get_user_by_name g >>= User_sql.user_type >|= function
          | `Group -> User_services.service_view_groups

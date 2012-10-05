@@ -217,6 +217,7 @@ Library "core_site_client"
     Wiki_ext,
     Wiki_widgets,
     Forum_widgets,
+    User_widgets,
     Ocsimore
   DataFiles:
     ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)

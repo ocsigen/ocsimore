@@ -126,16 +126,28 @@ and action_edit_user_data =
 (** Groups-related services *)
 
 and action_add_remove_users_from_group =
-  Eliom_registration.Any.register_post_coservice'
+  Eliom_registration.Ocaml.register_post_coservice'
     ~name:"add_remove_users_from_group"
     ~post_params:(Eliom_parameter.string "group" **
                     (Eliom_parameter.string "add" **
                        Eliom_parameter.string "rem"))
     (fun () (g, (add, rem)) ->
-       Ocsimore_common.catch_action_failure
-         (fun () -> User_data.add_remove_users_from_group g (add, rem))
-       >>= fun () -> Eliom_registration.Redirection.send
-       Eliom_service.void_hidden_coservice'
+      Ocsimore_common.catch_action_failure
+        (fun () ->
+          User_data.add_remove_users_from_group g (add, rem)
+        )
+      >>= fun () ->
+      (match add with
+        | "" -> (match rem with
+            | "" -> Lwt.fail (Failure "WTF ???")
+            | s -> Lwt.return s)
+        | s -> Lwt.return s
+      )
+      >>= fun u ->
+      User.get_user_by_name u >>= fun user ->
+      User.get_user_by_name g >>= fun group ->
+      User.in_group ~user ~group () >>= fun value ->
+      Lwt.return value
     )
 
 (*

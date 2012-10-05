@@ -268,20 +268,31 @@ object (self)
     Lwt.return (formr, [formw; forma;])
 
   method private bt_remove_user_from_group ~group ~user ~remove () =
-    let str_input = str_input ~visible:false in
-    let mform (gname, (addname, remname)) =
-      [ Html5.F.div ~a:[eliom_inline_class]
-          [ str_input ~value:group gname;
-            str_input ?value:(if remove then Some user else None) remname;
-            str_input ?value:(if remove then None else Some user) addname;
-            Html5.D.button ~button_type:`Submit
-              [Html5.F.pcdata (if remove then "Remove" else "Add")];
-          ]
-      ]
+    let button_value = if remove then "Remove" else "Add" in
+    let button =
+      Html5.D.button ~button_type:`Submit
+        [Html5.F.pcdata button_value]
     in
-    [Html5.D.post_form
-      ~a:[eliom_inline_class; accept_charset_utf8 ]
-      ~service:User_services.action_add_remove_users_from_group mform ()]
+    Eliom_service.onload {{
+      let remove = ref %remove in
+      let button = Eliom_content.Html5.To_dom.of_button %button in
+      ignore (
+        Lwt_js_events.clicks button (fun _ ->
+          let user = %user in
+          let add = if !remove then "" else user in
+          let rem = if !remove then user else "" in
+          Eliom_client.call_caml_service
+            ~service:%User_services.action_add_remove_users_from_group
+            () ( %group, ( add, rem))
+          >>= fun new_remove ->
+          let button_value = if new_remove then "Remove" else "Add" in
+          remove := new_remove;
+          button##innerHTML <- Js.string button_value;
+          Lwt.return ()
+        )
+      )
+    }};
+    [Html5.F.div ~a:[eliom_inline_class] [button]]
 
   method private login_box_aux
     ?(user_prompt= "login:")
