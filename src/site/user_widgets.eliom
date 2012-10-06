@@ -276,7 +276,7 @@ object (self)
     Eliom_service.onload {{
       let remove = ref %remove in
       let button = Eliom_content.Html5.To_dom.of_button %button in
-      ignore (
+      Lwt.ignore_result (
         Lwt_js_events.clicks button (fun _ ->
           let user = %user in
           let add = if !remove then "" else user in
