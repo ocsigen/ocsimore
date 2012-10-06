@@ -38,7 +38,7 @@ setup.data:
 # OASIS_STOP
 
 run: install-data
-	CAML_LD_LIBRARY_PATH=_build/src/core ocsigenserver -c local/etc/ocsigen/ocsimore.conf -V
+	CAML_LD_LIBRARY_PATH=_build/src/core ocsigenserver -c local/etc/ocsigen/ocsimore.conf -v
 
 restart: install-data
 	echo restart > /tmp/cpipe
