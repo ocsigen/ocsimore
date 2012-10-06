@@ -236,10 +236,15 @@ object (self)
         let textarea = get_elt %Wiki_services.preview_textarea_id Dom_html.CoerceTo.textarea in
         ignore
           (let send_content content =
-             Lwt.ignore_result
-               (Eliom_client.change_page
-                  ~service: %Wiki_services.Ui.preview_service
-                  () ( %wiki_page, ( %wb, content)))
+             Lwt.ignore_result (
+               let scroll = Dom_html.getDocumentScroll () in
+               Eliom_client.change_page
+                 ~service: %Wiki_services.Ui.preview_service
+                 () ( %wiki_page, ( %wb, content))
+               >>= fun () ->
+               Dom_html.window##scroll (fst scroll, snd scroll);
+               Lwt.return ()
+             )
            in
            let timeout = ref None in
            Dom_html.addEventListener
