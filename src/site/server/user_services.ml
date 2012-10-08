@@ -125,30 +125,42 @@ and action_edit_user_data =
 
 (** Groups-related services *)
 
-and action_add_remove_users_from_group =
+and action_add_user_from_group =
   Eliom_registration.Ocaml.register_post_coservice'
-    ~name:"add_remove_users_from_group"
-    ~post_params:(Eliom_parameter.string "group" **
-                    (Eliom_parameter.string "add" **
-                       Eliom_parameter.string "rem"))
-    (fun () (g, (add, rem)) ->
+    ~name:"add_user_from_group"
+    ~post_params:(
+      Eliom_parameter.string "group"
+      ** Eliom_parameter.string "user"
+    )
+    (fun () (group, user) ->
       Ocsimore_common.catch_action_failure
         (fun () ->
-          User_data.add_remove_users_from_group g (add, rem)
+          User_data.add_user_from_group ~group ~user ()
         )
       >>= fun () ->
-      (match add with
-        | "" -> (match rem with
-            | "" -> Lwt.fail (Failure "WTF ???")
-            | s -> Lwt.return s)
-        | s -> Lwt.return s
-      )
-      >>= fun u ->
-      User.get_user_by_name u >>= fun user ->
-      User.get_user_by_name g >>= fun group ->
-      User.in_group ~user ~group () >>= fun value ->
-      Lwt.return value
+      User.get_user_by_name user >>= fun user ->
+      User.get_user_by_name group >>= fun group ->
+      User.in_group ~user ~group ()
     )
+
+and action_remove_user_from_group =
+  Eliom_registration.Ocaml.register_post_coservice'
+    ~name:"remove_user_from_group"
+    ~post_params:(
+      Eliom_parameter.string "group"
+      ** Eliom_parameter.string "user"
+    )
+    (fun () (group, user) ->
+      Ocsimore_common.catch_action_failure
+        (fun () ->
+          User_data.remove_user_from_group ~group ~user ()
+        )
+      >>= fun () ->
+      User.get_user_by_name user >>= fun user ->
+      User.get_user_by_name group >>= fun group ->
+      User.in_group ~user ~group ()
+    )
+
 
 (*
   and action_add_remove_user_from_groups =

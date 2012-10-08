@@ -174,24 +174,33 @@ let can_admin_group, add_group_admin_function =
   ),
   (fun f -> hooks_admin := f :: !hooks_admin)
 
-let add_remove_users_from_group group (add, rem) =
-  User.get_user_by_name group >>= fun group ->
-  can_admin_group ~group () >>= function
+let add_remove_user_from_group ~group ~user f =
+  User.get_user_by_name group
+  >>= fun group ->
+  can_admin_group ~group ()
+  >>= function
     | true ->
-        (if add <> "" then
-           User.get_user_by_name add >>= fun add ->
-           User.add_to_group ~user:add ~group
-         else
-           Lwt.return ()
-        ) >>= fun () ->
-        (if rem <> "" then
-           User.get_user_by_name rem >>= fun rem ->
-           User.remove_from_group ~user:rem ~group
-         else
-           Lwt.return ()
+        (match user with
+          | "" -> Lwt.return ()
+          | user ->
+              User.get_user_by_name user
+              >>= fun user ->
+              f ~user ~group
         )
     | false ->
         Lwt.fail Ocsimore_common.Permission_denied
+
+let add_user_from_group ~group ~user () =
+  add_remove_user_from_group
+    ~group
+    ~user
+    User.add_to_group
+
+let remove_user_from_group ~group ~user () =
+  add_remove_user_from_group
+    ~group
+    ~user
+    User.remove_from_group
 
 (* (* No longer used; deactivated as the permissions check is a bit coarse *)
 let add_remove_user_from_groups sp user (add, rem) =
