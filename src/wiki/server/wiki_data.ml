@@ -37,8 +37,12 @@ type 'a rights =
   'a
 
 
-let new_wikitextbox ?db ~rights ~content_type ~wiki ~author ~comment ~content () =
-  rights#can_create_wikiboxes wiki
+let new_wikitextbox ?db ?(have_rights=false)
+    ~rights ~content_type ~wiki ~author ~comment ~content () =
+  (match have_rights with
+    | false -> rights#can_create_wikiboxes wiki
+    | true -> Lwt.return true
+  )
   >>= function
     | true -> Wiki_sql.new_wikibox ?db ~wiki ~author ~comment ~content
         ~content_type ()

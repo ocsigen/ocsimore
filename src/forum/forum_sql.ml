@@ -146,7 +146,7 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
   in
   Ocsi_sql.full_transaction_block
     (fun db ->
-       Wiki_data.new_wikitextbox
+       Wiki_data.new_wikitextbox ~have_rights:true
          ~rights ~db ~wiki ~author:creator_id ~comment:""
          ~content:text ~content_type () >>= fun wikibox ->
        (match subject with

@@ -48,6 +48,7 @@ val create_wiki :
 
 val new_wikitextbox :
  ?db:Ocsi_sql.db_t ->
+ ?have_rights:bool ->
  (content_type:'res Wiki_types.content_type ->
   wiki:wiki ->
   author:userid ->
