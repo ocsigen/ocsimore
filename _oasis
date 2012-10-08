@@ -66,7 +66,7 @@ Library "ocsimore"
   BuildDepends:
     lwt.syntax (>= 2.4),
     macaque (>= 0.6),
-    ocaml-safepass (>= 1.0),
+    safepass (>= 1.2),
     eliom.server (>= 2.2),
     threads,
     js_of_ocaml.deriving.syntax
