@@ -435,40 +435,6 @@ let update_wiki_ ?db ?container ?staticdir ?path ?descr ?boxrights ?model ?sitei
        )
     )
 
-let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~author ~model () =
-  wrap db
-    (fun db ->
-       let model_sql = Wiki_types.string_of_wiki_model model in
-       Lwt_Query.query db (<:insert< $wikis$ := {
-         id = wikis?id;
-         title = $string:title$;
-         descr = $string:descr$;
-         pages = of_option $Option.map Sql.Value.string pages$;
-         boxrights = $bool:boxrights$;
-         container = null;
-         staticdir = of_option $Option.map Sql.Value.string staticdir$;
-         model = $string:model_sql$;
-         siteid = null;
-         deleted = wikis?deleted;
-       } >>)
-       >>= fun () ->
-       Lwt_Query.value db (<:value< currval $wikis_id_seq$ >>)
-       >>= fun wiki_sql ->
-       let wiki = wiki_of_sql wiki_sql in
-       (match container_text with
-          | None -> Lwt.return None
-          | Some content ->
-              let comment = Printf.sprintf "Container box for wiki %ld"
-                wiki_sql in
-              lwt content_type = Wiki_models.get_default_content_type model in
-              lwt container = new_wikibox ~db ~wiki ~author ~comment ~content ~content_type () in
-              (* No problem wrt. wiki cache, as wiki is not yet cached *)
-              update_wiki_ ~db ~container:(Some container) wiki >>= fun () ->
-                Lwt.return (Some container)
-       ) >>= fun container ->
-       return (wiki, container)
-    )
-
 let delete_wiki_ ~delete id =
   wrap None
     (fun db ->
@@ -796,6 +762,57 @@ let remove_css_wiki ?db ~wiki =
 
 let remove_css_wikipage ?db ~wiki ~page =
   remove_css_wikibox_aux ?db ~wiki ~page:(Some page)
+
+
+let default_css_content =
+  "body {\r\n\
+       color: #333333;\r\n\
+       font: 100% palatino,\"times new roman\",serif;\r\n\
+       padding-left: 20%;\r\n\
+       padding-right: 20%;\r\n\
+   }"
+
+let new_wiki ?db ~title ~descr ~pages ~boxrights ~staticdir ?container_text ~author ~model () =
+  wrap db
+    (fun db ->
+       let model_sql = Wiki_types.string_of_wiki_model model in
+       Lwt_Query.query db (<:insert< $wikis$ := {
+         id = wikis?id;
+         title = $string:title$;
+         descr = $string:descr$;
+         pages = of_option $Option.map Sql.Value.string pages$;
+         boxrights = $bool:boxrights$;
+         container = null;
+         staticdir = of_option $Option.map Sql.Value.string staticdir$;
+         model = $string:model_sql$;
+         siteid = null;
+         deleted = wikis?deleted;
+       } >>)
+       >>= fun () ->
+       Lwt_Query.value db (<:value< currval $wikis_id_seq$ >>)
+       >>= fun wiki_sql ->
+       let wiki = wiki_of_sql wiki_sql in
+       (* Create a default css *)
+       add_css_aux ~db ~wiki ~author ~page:None ~media:[`All] ()
+       >>= (fun wikibox ->
+         Lwt_Query.query db (<:update< w in $wikiboxescontent$ := {
+           content = $string:default_css_content$;
+         } | w.wikibox = $int32:t_int32 wikibox$ >>)
+       )
+       >>= fun () ->
+       (match container_text with
+          | None -> Lwt.return None
+          | Some content ->
+              let comment = Printf.sprintf "Container box for wiki %ld"
+                wiki_sql in
+              lwt content_type = Wiki_models.get_default_content_type model in
+              lwt container = new_wikibox ~db ~wiki ~author ~comment ~content ~content_type () in
+              (* No problem wrt. wiki cache, as wiki is not yet cached *)
+              update_wiki_ ~db ~container:(Some container) wiki >>= fun () ->
+                Lwt.return (Some container)
+       ) >>= fun container ->
+       return (wiki, container)
+    )
 
 
 
