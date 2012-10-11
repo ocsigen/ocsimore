@@ -144,23 +144,25 @@ object (self)
 
   val xhtml_class = "logbox"
 
-  method private users_to_html ~users_in ~group users =
+  method private users_to_html ~group users =
     let open Html5.F in
-    List.map
+    lwt group_string = User_sql.user_to_string group in
+    Lwt_list.map_p
       (fun user ->
-        tr [
-          td [self#user_link user.user_login];
-          td (
-            let in_group =
-              List.mem user.user_login users_in
-            in
-            self#bt_remove_user_from_group
-              ~group
-              ~user:user.user_login
-              ~remove:in_group
-              ()
-          );
-        ]
+        let basic_user = User_sql.Types.basic_user user.user_id in
+        lwt in_group = User.in_group ~user:basic_user ~group () in
+        Lwt.return (
+          tr [
+            td [self#user_link user.user_login];
+            td (
+              self#bt_remove_user_from_group
+                ~group:group_string
+                ~user:user.user_login
+                ~remove:in_group
+                ()
+            );
+          ]
+        )
       ) (Lazy.force users)
 
   method private users_title title' =
@@ -173,38 +175,37 @@ object (self)
   method form_edit_group ~group ~text () =
     User_sql.all_users ()
     >>= fun users ->
-    User_sql.users_in_group ~generic:false ~group
-    >>= (Lwt_list.map_p User_sql.user_to_string)
-    >>= fun users_in ->
+    self#users_to_html ~group users.users
+    >>= fun users_table ->
+    self#users_to_html ~group users.groups
+    >>= fun group_table ->
     User_sql.user_to_string group
     >>= fun group ->
     self#users_edit_table ~text [
       Html5.F.table
         (self#users_title "Users")
-        (self#users_to_html ~users_in ~group users.users
+        (users_table
          @ [self#users_title "Groups"]
-         @ self#users_to_html ~users_in ~group users.groups
+         @ group_table
         )
     ]
 
   method form_edit_user ~user ~text () =
     User_sql.all_users ()
     >>= fun users ->
-    User_sql.groups_of_user ~user
-    >>= (Lwt_list.map_p User_sql.user_to_string)
-    >>= fun users_in ->
     User_sql.user_to_string user
-    >>= fun user ->
+    >>= fun user_login ->
     self#get_roles_table
       ~td_content:(fun group ->
-        let in_group =
-          List.mem group users_in
-        in
-        self#bt_remove_user_from_group
-          ~group
-          ~user
-          ~remove:in_group
-          ()
+        lwt group' = User.get_user_by_name group in
+        lwt in_group = User.in_group ~user ~group:group' () in
+        Lwt.return
+          (self#bt_remove_user_from_group
+             ~group
+             ~user:user_login
+             ~remove:in_group
+             ()
+          )
       ) ()
     >>= fun roles ->
     let roles =
@@ -219,10 +220,12 @@ object (self)
     in
     (* YYY put back edition buttons if the user has enough rights, or if
        it is admin *)
+    self#users_to_html ~group:user users.groups
+    >>= fun group_table ->
     self#users_edit_table ~text [
       Html5.F.table
         (self#users_title "Groups")
-        (self#users_to_html ~users_in ~group:user users.groups
+        (group_table
          @ [self#users_title "Roles"]
          @ roles
         )
@@ -701,6 +704,11 @@ object (self)
         | _ -> Lwt.return None
       ) >>= (function
         | None ->
+            (match td_content with
+              | None -> Lwt.return [pcdata u.user_fullname]
+              | Some f -> f u.user_login
+            )
+            >>= fun td_content ->
           let block = tr [
             td ~a:[a_class ["roles_tr"]] [
               strong [
@@ -708,10 +716,7 @@ object (self)
                   [pcdata short_name] u.user_login;
               ];
             ];
-            td (match td_content with
-              | None -> [pcdata u.user_fullname]
-              | Some f -> f u.user_login
-            );
+            td td_content;
           ] in
           Lwt.return [block]
         | Some (param, p) ->
@@ -727,24 +732,30 @@ object (self)
             a ~service:User_services.service_view_group
               [strong [pcdata param_string]] (parametrize id);
           in
-          let block_and_link =
-            let lines =
-              List.map
+          lwt block_and_link =
+            lwt lines =
+              Lwt_list.map_p
                 (fun param ->
                   let id = Int32.to_string (Sql.get param#id) in
-                  tr [
-                    td ~a:[a_class ["roles_tr_prime"]] [link param id];
-                    td (match td_content with
-                      | None -> []
-                      | Some f -> f (parametrize id)
-                    );
-                  ]
+                  lwt td_content = match td_content with
+                    | None -> Lwt.return []
+                    | Some f -> f (parametrize id)
+                  in
+                  Lwt.return
+                    (tr [
+                      td ~a:[a_class ["roles_tr_prime"]] [link param id];
+                      td td_content;
+                     ]
+                    )
                 )
                 p
             in
-            match lines with
-              | [] -> [tr [td ~a:[a_class ["roles_tr_prime"]] [pcdata "(None)"]]]
-              | _ -> lines
+            Lwt.return
+              (match lines with
+                | [] ->
+                    [tr [td ~a:[a_class ["roles_tr_prime"]] [pcdata "(None)"]]]
+                | _ -> lines
+              )
           in
           let block name = tr ~a:[a_class ["user_menu_title"]] [
             td ~a:[a_class ["roles_tr"]] [
