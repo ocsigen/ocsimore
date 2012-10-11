@@ -153,6 +153,8 @@ let wiki_wikiboxes_oldversion_viewers = aux_grp_wiki
 let wiki_metadata_editors = aux_grp_wiki
   "WikiMetadataEditors" "can modify the metadata for the wiki"
 
+let wiki_files_uploaders = aux_grp_wiki
+  "WikiFilesUploaders" "can upload files in the wiki"
 
 let rec ok g_admin user group = function
   | [] -> Lwt.return false
@@ -176,6 +178,7 @@ let () =
     wiki_wikiboxes_creators;
     wiki_wikiboxes_deletors;
     wiki_files_readers;
+    wiki_files_uploaders;
     wiki_wikiboxes_src_viewers;
     wiki_wikiboxes_oldversion_viewers;
     wiki_metadata_editors;
@@ -241,9 +244,9 @@ WikiboxesReaders(w)                  Creators(w)
    WikiboxesOldversionViewers(w)  WikiboxesSrcViewsers(w)  FilesReaders(w)
 
 
->-(2)-----
-         |
-    MetaDataWEditors(w)
+>-(2)------------------------------
+         |                        |
+    MetaDataWEditors(w)    FilesUploaders(w)
 
 
 WikiboxAdmin(wb)
@@ -268,6 +271,7 @@ let () = Lwt_main.run (
   add_admin wiki_wikiboxes_src_viewers    >>= fun () ->
   add_admin wiki_metadata_editors         >>= fun () ->
   add_admin wiki_wikiboxes_oldversion_viewers >>= fun () ->
+  add_admin wiki_files_uploaders       >>= fun () ->
 
   User_sql.add_generic_inclusion
     ~superset:wiki_wikiboxes_creators ~subset:wiki_subwikiboxes_creators
@@ -312,6 +316,7 @@ object (self)
   method can_read_wikibox = can_re_wb
 
   method can_view_static_files = aux_group wiki_files_readers
+  method can_upload_files = aux_group wiki_files_uploaders
 
   method can_create_wikipages = aux_group wiki_wikipages_creators
   method can_create_subwikiboxes = aux_group wiki_subwikiboxes_creators

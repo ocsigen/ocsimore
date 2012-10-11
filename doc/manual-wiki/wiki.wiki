@@ -217,9 +217,9 @@ class, id
 ===Groups hierarchy===
 For each wiki:
 {{{
-       -------- WikiAdmin(w)-------------------------------------------------------
-      /                 |                 \             \                \         \
-WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)  Wikiboxes
+       -------- WikiAdmin(w)------------------------------------------------------------------------
+      /                 |                 \             \                \         \                \
+WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)  Wikiboxes    FilesUploaders(w)
      |                  |             Creators(w)    Creators(w)                 Deletors(w)
 WikiboxesWriters(w)  FilesWriters(w)          \       /
      |                  |                   GenWikiboxes

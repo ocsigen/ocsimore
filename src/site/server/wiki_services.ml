@@ -452,6 +452,72 @@ and action_create_page = Eliom_registration.Action.register_post_coservice'
             set_wikibox_error (wb, Ocsimore_common.Permission_denied)
         | e -> Lwt.fail e)
 
+and action_upload_file =
+    Eliom_registration.Redirection.register_post_coservice'
+      ~name:"upload_file"
+      ~post_params:(
+        eliom_wiki_args
+        ** Eliom_parameter.opt eliom_wikibox_args
+        ** Eliom_parameter.string "path"
+        ** Eliom_parameter.file "file"
+      )
+      (fun () (wid, (wb, (path, file))) ->
+        Wiki_sql.get_wiki_info_by_id ~id:wid
+        >>= fun wiki_info ->
+        Wiki_models.get_rights wiki_info.wiki_model
+        >>= fun rights ->
+        rights#can_upload_files wid
+        >>= (function
+          | true ->
+              let admin_staticdir =
+                Ocsigen_lib.String.split '/' Page_site.admin_staticdir
+              in
+              let path = Ocsigen_lib.String.split '/' path in
+              let path = admin_staticdir @ path in
+              let path =
+                Ocsigen_lib.Url.remove_dotdot
+                  (Ocsigen_lib.Url.remove_internal_slash
+                     (Ocsigen_lib.Url.remove_slash_at_end
+                        (Ocsigen_lib.Url.remove_slash_at_beginning
+                           path
+                        )
+                     )
+                  )
+              in
+              let rec aux base = function
+                | []
+                | [_] -> Lwt.return ()
+                | x::xs ->
+                    let new_base = base @ [x] in
+                    let dir = "/" ^ String.concat "/" new_base in
+                    (try_lwt
+                       Lwt_unix.mkdir dir 511
+                     with
+                       | Unix.Unix_error (Unix.EEXIST, _, _) ->
+                           Lwt.return ()
+                       | exn ->
+                           Ocsigen_messages.debug
+                             (fun () ->
+                               Printf.sprintf
+                                 "Could not create the directory %s" dir
+                             );
+                           Lwt.fail exn
+                    )
+                    >>= fun () ->
+                    aux new_base xs
+              in
+              aux [] path
+              >>= fun () ->
+              Lwt_unix.rename
+                file.Ocsigen_extensions.tmp_filename
+                ("/" ^ String.concat "/" path)
+          | false ->
+              set_wikibox_error (wb, Ocsimore_common.Permission_denied)
+        )
+        >>= fun () ->
+        Lwt.return (Eliom_service.void_coservice')
+      )
+
 and action_create_css = Eliom_registration.Any.register_post_coservice'
   ~name:"wiki_create_css" ~keep_get_na_params:true
   ~post_params:(eliom_wikibox_args **

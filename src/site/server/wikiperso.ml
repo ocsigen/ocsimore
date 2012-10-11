@@ -154,12 +154,7 @@ let create_wikiperso ~model ~wiki_title ~userdata =
     ~title:wiki_title
     ~descr:(Printf.sprintf !Language.messages.Language.wikiperso_wikidescr
               userdata.user_fullname)
-    ~admins:gid ~author ~container_text:container () >>= fun wiki ->
-  Wiki_sql.add_css_aux ~wiki ~page:None ~author ~media:[`All] ()
-  >>= fun wikibox ->
-  Wiki_sql.update_wikibox ~author ~comment:"" ~content:(Some css)
-    ~content_type:Wiki_models.css_content_type wikibox >>= fun _ ->
-  Lwt.return wiki
+    ~admins:gid ~author ~container_text:container ()
 
 
 (* Given a user name, we find the id of the corresponding ocsimore

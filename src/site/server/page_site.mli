@@ -43,6 +43,7 @@ val static_file_uri :
   path:string list
   -> Html5.F.uri
 
+val admin_staticdir : string
 
 (** Allows to add HTML headers required by page components *)
 module Header : sig

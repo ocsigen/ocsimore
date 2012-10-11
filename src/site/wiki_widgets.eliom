@@ -816,6 +816,7 @@ object (self)
                                                                   >>= fun f10 ->
     aux Wiki.wiki_metadata_editors "Edit the metadata of the wiki" ()
                                                                   >>= fun f11 ->
+    aux Wiki.wiki_files_uploaders "Upload files" ()               >>= fun f12 ->
 
     let form =
       [
@@ -827,8 +828,8 @@ object (self)
             [Html5.F.th [Html5.F.pcdata "Role"];
              Html5.F.th [Html5.F.pcdata "Current users in the group"]]
          )
-         (   f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f8 :: f9 :: f10 :: f11 :: f7_hd
-          :: f7_tl
+         (   f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f8 :: f9 :: f10 :: f11 :: f12
+             :: f7_hd :: f7_tl
          )
       ]
     in
@@ -1678,6 +1679,32 @@ object (self)
                 )
               ]
             in
+            let draw_upload_form (widname, (wbname, (pathname, filename))) =
+              let current_path =
+                Eliom_request_info.get_original_full_path_string ()
+              in
+              [Html5.F.p
+                  (List.flatten
+                     [[Ocsimore_common.input_opaque_int32 ~value:wiki widname];
+                       (* Used to know where to display errors (only possible
+                          if there is a container, otherwise we don't know
+                          what to override) *)
+                      (match wb_container with
+                        | None -> []
+                        | Some container ->
+                            [Ocsimore_common.input_opaque_int32
+                                ~value:container wbname]
+                      );
+                      [Html5.D.string_input ~name:pathname
+                          ~input_type:`Hidden ~value:current_path ();
+                       Html5.D.file_input ~name:filename ();
+                       Html5.D.string_input
+                         ~input_type:`Submit ~value:"Or upload a file" ();
+                      ];
+                     ]
+                  )
+              ]
+            in
             lwt c = rights#can_create_wikipages wiki in
             let form =
               if c then
@@ -1685,11 +1712,18 @@ object (self)
                    ~service:Wiki_services.action_create_page draw_form ()
                 ]
               else []
+            and form_upload =
+              if c then
+                [Html5.D.post_form
+                    ~service:Wiki_services.action_upload_file
+                    draw_upload_form ()
+                ]
+              else []
             and err_msg = !Language.messages.Language.page_does_not_exist
             in
             Lwt.return
               (None,
-               (Html5.F.p [Html5.F.pcdata err_msg] :: form),
+               (Html5.F.p [Html5.F.pcdata err_msg] :: form @ form_upload),
                Wiki_widgets_interface.Page_404,
                None)
      )
