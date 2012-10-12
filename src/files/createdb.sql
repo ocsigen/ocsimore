@@ -875,7 +875,7 @@ COPY forums_messages (id, creator_id, datetime, parent_id, root_id, forum_id, su
 --
 
 COPY options (name, value) FROM stdin;
-dbversion	6
+dbversion	7
 \.
 
 

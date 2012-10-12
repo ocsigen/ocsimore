@@ -80,8 +80,26 @@ let () =
       alter db "ALTER TABLE wikiboxescontent ADD COLUMN ip text"
     ) >>= fun () ->
     update 6 (fun db ->
-      alter db "ALTER TABLE wikis DROP CONSTRAINT wikis_title_key" >>= (fun () ->
-        alter db "ALTER TABLE wikis ADD CONSTRAINT wikis_title_unique UNIQUE (title,siteid)"
-      )
+      alter db "ALTER TABLE wikis DROP CONSTRAINT wikis_title_key" >>= fun () ->
+      alter db "ALTER TABLE wikis ADD CONSTRAINT wikis_title_unique UNIQUE (title,siteid)"
+    )
+    >>= fun () ->
+    update 7 (fun db ->
+      alter db
+        "CREATE TABLE users_settings (\
+           id integer NOT NULL,\
+           basicusercreation boolean NOT NULL,\
+           registration_mail_from text NOT NULL,\
+           registration_mail_addr text NOT NULL,\
+           registration_mail_subject text NOT NULL,\
+           groups text NOT NULL,\
+           non_admin_can_create boolean NOT NULL\
+         )"
+      >>= fun () ->
+      alter db "ALTER TABLE public.users_settings OWNER TO ocsimore"
+      >>= fun () ->
+      alter db "ALTER TABLE forums_messages DROP COLUMN sticky"
+      >>= fun () ->
+      alter db "ALTER TABLE wikis ADD COLUMN deleted boolean NOT NULL DEFAULT(false)"
     )
   end
