@@ -275,7 +275,7 @@ let ocsimore_admin_greetings =
   ]
 
 let () =
-  Eliom_registration.Html5.register ~service:admin_root
+  Ocsimore_appl.register ~service:admin_root
     (fun () () ->
        admin_page ~service:admin_root ~title:"Ocsimore" ocsimore_admin_greetings);
   ()

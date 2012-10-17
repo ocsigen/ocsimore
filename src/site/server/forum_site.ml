@@ -95,7 +95,7 @@ let edit_forum =
         Some "You do not have sufficient permissions to edit forums"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_registration.Html5.register ~service:Forum_services.edit_forum
+  Ocsimore_appl.register ~service:Forum_services.edit_forum
     (fun forum () ->
       lwt info = Forum_data.get_forum ~forum () in
       let open Forum_types in
@@ -158,7 +158,7 @@ let create_forum =
         Some "You do not have sufficient permissions to create forums"
     | _ -> Some "An unknown error has occurred"
   in
-  Eliom_registration.Html5.register ~service:Forum_services.create_forum
+  Ocsimore_appl.register ~service:Forum_services.create_forum
     (fun () () ->
       match_lwt User.in_group ~group:Forum.forum_creators () with
         | true ->
@@ -204,7 +204,7 @@ let () = Lwt_main.run (
   let () = Forum_wikiext.register_wikiext
     (message_widget, thread_widget, message_list_widget, threads_list_widget)
   in
-  Eliom_registration.Html5.register ~service:Forum_services.view_forums
+  Ocsimore_appl.register ~service:Forum_services.view_forums
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun () () -> Lwt.return "View forums")
        ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))

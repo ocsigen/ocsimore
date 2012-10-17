@@ -34,7 +34,7 @@ let () =
       h2 [pcdata "Error"];
       p [pcdata "User creation is disabled"];
     ]) in
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.service_create_new_user
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun () () -> Lwt.return "Create new user")
@@ -57,7 +57,7 @@ let () =
          )
        )
     );
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.action_create_new_user
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun () _ -> Lwt.return "Created new user")
@@ -111,7 +111,7 @@ let () =
        ~service
        ~display);
 
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.service_users_settings
     (Page_site.admin_body_content_with_permission_handler
        ~title: (fun _ _ -> Lwt.return "Users settings")
@@ -119,7 +119,7 @@ let () =
        ~display: (fun _ _ -> user_widget#display_users_settings)
     );
 
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.action_users_settings
     (Page_site.admin_body_content_with_permission_handler
        ~title: (fun _ _ -> Lwt.return "Users settings")
@@ -127,41 +127,41 @@ let () =
        ~display: (user_widget#display_users_settings_done)
     );
 
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.service_view_groups
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View groups")
        ~permissions:(fun _ _ -> User_data.can_view_groups ())
        ~display:(fun _ _ -> user_widget#display_groups));
 
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.service_view_users
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View groups")
        ~permissions:(fun _ _ -> User_data.can_view_users ())
        ~display:(fun _ _ -> user_widget#display_users));
 
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.service_view_roles
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "View roles")
        ~permissions:(fun _ _ -> User_data.can_view_roles ())
        ~display:(fun _ _ -> user_widget#display_roles));
 
-  Eliom_registration.Html5.register
+  Ocsimore_appl.register
     ~service:User_services.service_login
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "Login")
        ~permissions:(fun _ _ -> Lwt.return true)
        ~display:(fun _ _ -> user_widget#display_login_widget ()));
 
-  Eliom_registration.Html5.register ~service:User_services.service_create_new_group
+  Ocsimore_appl.register ~service:User_services.service_create_new_group
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return "Create new group")
        ~permissions:(fun _ _ -> User_data.can_create_group ())
        ~display:(fun _ _ -> user_widget#display_group_creation ()));
 
-  Eliom_registration.Html5.register ~service:User_services.action_create_new_group
+  Ocsimore_appl.register ~service:User_services.action_create_new_group
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ _ -> Lwt.return"Create new group")
        ~permissions:(fun _ _ -> User_data.can_create_group ())
