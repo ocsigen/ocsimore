@@ -73,6 +73,7 @@ Library "ocsimore"
   XMETARequires:
     macaque,
     eliom.server,
+    safepass,
     threads
 
 Library "ocsimore_client"
