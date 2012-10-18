@@ -689,15 +689,9 @@ object (self)
                 | "id of the wiki" -> Wiki_sql.get_wikis_id ()
                 | "id of the wikibox" -> Wiki_sql.get_wikiboxes_id ()
                 | "id of the wikipage" -> Wiki_sql.get_wikipages_id ()
-                | _ -> Lwt.fail
-                  (Failure
-                     ("Desciption \"" ^ param ^ "\" not describe a valid user")
-                  )
+                | _ -> Lwt.return []
               ) >|= (fun x -> Some (param, x))
-            | None -> Lwt.fail
-              (Failure
-                 "Parametrized group without description"
-              )
+            | None -> Lwt.return None (* Should be an error *)
           )
         | _ -> Lwt.return None
       ) >>= (function
