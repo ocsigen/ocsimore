@@ -40,6 +40,7 @@ Flag ldap
 Library "ocsimore"
   Path: src/core
   Modules:
+    server/Updatedb_sql,
     server/Crypt,
     server/Language,
     server/Dyngroups,
@@ -49,7 +50,6 @@ Library "ocsimore"
     server/Opaque,
     server/Parse_config,
     server/Ocsi_sql,
-    server/Updatedb_sql,
     server/User,
     server/User_sql,
     server/Widget,
