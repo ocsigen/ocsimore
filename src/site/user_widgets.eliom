@@ -783,11 +783,6 @@ object (self)
 
   method private display_users_groups ~show_auth ~utype ~l =
     let line u =
-      let l =
-        Html5.F.a ~service:User_services.service_view_group
-          [Page_site.icon ~path:"imgedit.png" ~text:"Details"]
-          u.user_login
-      in
       let aa =
         if show_auth
         then [Html5.F.td
@@ -805,11 +800,14 @@ object (self)
       in
       Html5.F.tr
         ( [Html5.F.td ~a:[Html5.F.a_class ["userlogin"]]
-              [Html5.F.strong [Html5.F.pcdata u.user_login]];
+              [Html5.F.a ~service:User_services.service_view_group
+                  [Html5.F.pcdata u.user_login]
+                  u.user_login
+              ];
            Html5.F.td ~a:[Html5.F.a_class ["userdescr"]]
              [Html5.F.pcdata u.user_fullname]]
           @ aa
-          @ [Html5.F.td [l]] )
+        )
     in
     let l = List.rev (List.fold_left (fun s arg -> line arg :: s) [] l) in
     Lwt.return Html5.F.(
@@ -820,7 +818,6 @@ object (self)
             :: (if show_auth
                 then [th [pcdata "Authentication"]]
                 else [])
-            @ [th []]
             ))
          l
     )
