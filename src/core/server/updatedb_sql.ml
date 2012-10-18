@@ -101,5 +101,7 @@ let () =
       alter db "ALTER TABLE forums_messages DROP COLUMN sticky"
       >>= fun () ->
       alter db "ALTER TABLE wikis ADD COLUMN deleted boolean NOT NULL DEFAULT(false)"
+      >>= fun () ->
+      alter db "DELETE FROM users WHERE login = '#forum.stickymakers' OR login = '#forum.messagestickymakers'"
     )
   end
