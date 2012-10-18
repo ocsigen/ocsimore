@@ -242,7 +242,6 @@ Library "user_site"
   BuildDepends:
     ocsimore.site
   XMETARequires:
-    ocsimore.site
 
 Library "wiki_site"
   Path: src/site
@@ -260,7 +259,6 @@ Library "wiki_site"
   BuildDepends:
     ocsimore.site
   XMETARequires:
-    ocsimore.site
 
 Library "forum_site"
   Path: src/site
@@ -277,7 +275,6 @@ Library "forum_site"
     ocsimore.site,
     ocsimore.forum
   XMETARequires:
-    ocsimore.site,
     ocsimore.forum
 
 Library "wiki_perso"
@@ -290,7 +287,6 @@ Library "wiki_perso"
   BuildDepends:
     ocsimore.site
   XMETARequires:
-    ocsimore.site
 
 
 Test "all"
