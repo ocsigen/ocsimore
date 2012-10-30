@@ -25,7 +25,12 @@ type 'a resolver = 'a -> Ocsigen_local_files.resolved
 exception Undefined
 
 val resolve_file_in_dir:
-    ?default:string -> ?suffix:string -> string -> string list resolver
+  ?default:string ->
+  ?suffix:string ->
+  string ->
+  string list ->
+  unit ->
+  Ocsigen_local_files.resolved
 
 val process_wikifile:
   wiki:Wiki_types.wiki ->

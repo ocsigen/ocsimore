@@ -20,6 +20,7 @@ functions as in [let port : port = int_t 0].
 
 @author Martin Jambon *)
 
+{shared{
 (** {6 Opaque [int]s } *)
 
 open Eliom_content
@@ -113,3 +114,22 @@ val concat_list : string -> 'a string_t list -> 'a string_t
 and [String.concat]. *)
 
 val print_string_t : 'a string_t -> unit
+}}
+
+(** Xform inputs *)
+val int32_input_aux_xform :
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  string -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t) Xform.XformLwt.t
+
+val int32_input_xform :
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  'a int32_t -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t) Xform.XformLwt.t
+
+val int32_input_opt_aux_xform :
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  string -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t option) Xform.XformLwt.t
+
+val int32_input_opt_xform :
+  ?a:Html5_types.input_attrib Html5.F.attrib list ->
+  'a int32_t option ->
+  ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t option) Xform.XformLwt.t

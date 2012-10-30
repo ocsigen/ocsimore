@@ -209,12 +209,13 @@ let () = Lwt_main.run (
        ~title:(fun () () -> Lwt.return "View forums")
        ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
        ~display:(fun () () -> forum_widget#display_all_forums));
-  Eliom_atom.Reg.register
+(* See the comment in forum_widgets.eliom ligne 100 *)
+(*  Eliom_atom.Reg.register
     ~service:services.Forum_types.thread_feed_service
     (fun message () -> message_widget#atom_childs ~message);
   Eliom_atom.Reg.register
     ~service:services.Forum_types.forum_feed_service
-    (fun forum () -> message_list_widget#atom_message_list forum);
+    (fun forum () -> message_list_widget#atom_message_list forum);*)
   Lwt.return ()
 )
 
@@ -224,4 +225,3 @@ let () = Page_site.add_to_admin_menu ~root:forum_root ~name:"Forum"
     "Create forum", Forum_services.create_forum,
     (fun () -> User.in_group ~group:Forum.forum_creators ());
   ]
-

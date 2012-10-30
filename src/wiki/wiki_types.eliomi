@@ -20,10 +20,7 @@
    @author Vincent Balat
 *)
 
-(* server only
-open User_sql.Types
-*)
-
+{shared{
 (** Semi-abstract type for a wiki *)
 type wiki_arg = [ `Wiki ] deriving (Json)
 type wiki = wiki_arg Opaque.int32_t deriving (Json)
@@ -53,8 +50,10 @@ val string_of_wiki_model : wiki_model -> string
 val wiki_model_of_string : string -> wiki_model
 val string_of_content_type : 'a content_type -> string
 val content_type_of_string : string -> 'a content_type
+}}
 
-(* server only
+open User_sql.Types
+
 (** Fields for a wiki *)
 type wiki_info = {
   wiki_id : wiki;
@@ -68,6 +67,7 @@ type wiki_info = {
                                 instead of wiki pages *);
   wiki_model : wiki_model;
   wiki_siteid: string option;
+  wiki_deleted : bool;
 }
 
 type wikipage_info = {
@@ -103,6 +103,12 @@ val string_of_media_type_elem : media_type_elem -> string
 val media_type_of_string : string -> media_type
 val string_of_media_type : media_type -> string
 
+type css_wikibox = {
+  wikibox : wikibox;
+  media : media_type;
+  rank : int32;
+}
+
 type 'a rights_aux = 'a -> bool Lwt.t
 
 class type wiki_rights =
@@ -110,6 +116,7 @@ object
   method can_create_wiki : unit rights_aux
 
   method can_admin_wiki :          wiki rights_aux
+  method can_delete_wiki :         wiki rights_aux
   method can_set_wiki_permissions :wiki rights_aux
   method can_create_wikiboxes :    wiki rights_aux
   method can_create_subwikiboxes : wiki rights_aux
@@ -117,6 +124,7 @@ object
   method can_create_wikipages :    wiki rights_aux
   method can_delete_wikiboxes :    wiki rights_aux
   method can_view_static_files :   wiki rights_aux
+  method can_upload_files :        wiki rights_aux
   method can_edit_metadata :       wiki rights_aux
 
   method can_admin_wikibox : wikibox rights_aux
@@ -150,4 +158,3 @@ val raw_of_wikibox_data :
     ->
   (string * userid * string option * CalendarLib.Calendar.t *
      string * int32) option Lwt.t
-*)

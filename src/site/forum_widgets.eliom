@@ -27,6 +27,7 @@ open Eliom_content
 open Forum_types
 
 let (>>=) = Lwt.bind
+let (>|=) = Lwt.(>|=)
 let (!!) = Lazy.force
 
 let forum_css_header =
@@ -96,7 +97,9 @@ class message_widget
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
   (wiki_phrasing_widgets : Wiki_widgets_interface.interactive_wikibox)
   services =
-
+(* Commented because Atom_feed.xhtml needs an xhtml from tyxml and
+   not from eliom. (Xhtml was removed from eliom3) *)
+(*
   let xhtml_of_wb wiki wikibox =
     lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
     lwt rights = Wiki_models.get_rights
@@ -108,7 +111,7 @@ class message_widget
         wikibox
     in
     (*!!! ugly cast: html5 to xhtml !!!*)
-    Lwt.return ( Xhtml.F.totl (Html5.F.toeltl content) )
+    Lwt.return ( Xhtml.M.totl (Html5.F.Raw.toeltl content) )
   in
 
   let atom_title forum_info msg_info =
@@ -118,7 +121,7 @@ class message_widget
         lwt subject = xhtml_of_wb forum_info.f_comments_wiki subject in
         Lwt.return (Atom_feed.xhtml subject)
   in
-
+*)
 object (self)
 
   val msg_class = "ocsiforum_msg"
@@ -216,7 +219,8 @@ object (self)
     >>= fun (classes, r) -> self#display_message ~classes r
 
   (** atom feed generation *)
-
+(* See the comment in forum_widgets.eliom ligne 100 *)
+(*
   method atom_entry msg_info =
     lwt forum_info = Forum_data.get_forum ~forum:msg_info.m_forum () in
     lwt title = atom_title forum_info msg_info in
@@ -246,7 +250,7 @@ object (self)
     lwt forum_info = Forum_data.get_forum ~forum:msg_info.m_forum () in
     lwt title = atom_title forum_info msg_info in
     Lwt.return (Atom_feed.feed ~id ~updated ~title entries)
-
+*)
 end
 
 class thread_widget
@@ -295,7 +299,7 @@ object (self)
         ~a:[Html5.F.a_class [comment_button_class];
             message_widget#a_level level;
             Html5.F.a_onclick
-              {{ ignore (
+              {{ fun _ -> ignore (
                 (Eliom_content.Html5.To_dom.of_div %comment_div)##classList
                   ##toggle(Js.string "showcomment"):bool Js.t)
               }} ]
@@ -468,7 +472,7 @@ object (self)
        (string list * Html5_types.flow5 Html5.F.elt list)
          Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
-
+(*
   method atom_message_list ?(number=10) forum =
     lwt forum_info = Forum_data.get_forum ~forum () in
     lwt msg_list = Forum_data.get_message_list ~forum ~first:1L ~number:(Int64.of_int number) () in
@@ -484,7 +488,7 @@ object (self)
                   ~updated
                   ~title
                   entries)
-
+*)
 end
 
 class threads_list_widget

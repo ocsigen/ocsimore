@@ -57,20 +57,20 @@ let unopt_media_type = function
   | Some x -> x
   | None -> invalid_arg "media_type_elem_of_string"
 
-let desugar_messages = Eliom_reference.eref ~scope:Eliom_common.request []
+let desugar_messages = Eliom_reference.eref ~scope:Eliom_common.request_scope []
 
 (** How to change the display of a wikibox: which wikibox is concerned,
    and what should be displayed instead *)
 let get_override_wikibox,
     set_override_wikibox =
-  let eref = Eliom_reference.eref ~scope:Eliom_common.request None in
+  let eref = Eliom_reference.eref ~scope:Eliom_common.request_scope None in
   (fun () ->
      Eliom_reference.get eref),
   (fun v ->
      Eliom_reference.set eref (Some v))
 
 let wikibox_error_eref =
-  Eliom_reference.eref ~scope:Eliom_common.request None
+  Eliom_reference.eref ~scope:Eliom_common.request_scope None
 
 (** The error to display in the wikibox *)
 let get_wikibox_error () =

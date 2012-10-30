@@ -579,28 +579,33 @@ let tag_eliom_files () =
       not (Pathname.is_prefix "_build" path)
       &&  not (Pathname.is_prefix "_darcs" path) ) entries in
   let f path name () () =
-    if Pathname.get_extension name = "eliom"
-    then
-      begin
-	let ml_name = (Pathname.update_extension "ml" name) in
-	let client_file = Pathname.concat (Pathname.concat path "client") ml_name in
-	let server_file = Pathname.concat (Pathname.concat path "server") ml_name in
-	let type_file = Pathname.concat (Pathname.concat path "type") ml_name in
-	let type_inferred = Pathname.concat (Pathname.concat path "type")
-	  (Pathname.update_extension "inferred.mli" name) in
-	tag_file client_file
-	  [ "pkg_eliom.client"; "pkg_eliom.syntax.client";
-	    Printf.sprintf "need_eliom_type(%s)" type_inferred; "syntax(camlp4o)";];
-	tag_file server_file
-	  [ "pkg_eliom.server"; "pkg_eliom.syntax.server";
-	    "syntax(camlp4o)";];
-	tag_file type_file
-	  ( Tags.elements (tags_of_pathname server_file)
-	    @ [ "pkg_eliom.server"; "pkg_eliom.syntax.type";
-		"syntax(camlp4o)";]);
-	(* server files are available from type directory *)
-	Pathname.define_context (Pathname.concat path "type") [Pathname.concat path "server"];
-      end
+    let tag_file ml_name =
+      let client_file = Pathname.concat (Pathname.concat path "client") ml_name in
+      let server_file = Pathname.concat (Pathname.concat path "server") ml_name in
+      let type_file = Pathname.concat (Pathname.concat path "type") ml_name in
+      let type_inferred = Pathname.concat (Pathname.concat path "type")
+        (Pathname.update_extension "inferred.mli" name) in
+      tag_file client_file
+        [ "pkg_eliom.client"; "pkg_eliom.syntax.client";
+          Printf.sprintf "need_eliom_type(%s)" type_inferred; "syntax(camlp4o)";];
+      tag_file server_file
+        [ "pkg_eliom.server"; "pkg_eliom.syntax.server";
+          Printf.sprintf "need_eliom_type(%s)" type_inferred; "syntax(camlp4o)";];
+      tag_file type_file
+        ( Tags.elements (tags_of_pathname server_file)
+          @ [ "pkg_eliom.server"; "pkg_eliom.syntax.type";
+              "syntax(camlp4o)";]);
+      tag_file type_file
+        ["-pkg_eliom.syntax.server"];
+      (* server files are available from type directory *)
+      Pathname.define_context (Pathname.concat path "type") [Pathname.concat path "server"];
+    in
+    if Pathname.get_extension name = "eliom" then
+      let ml_name = (Pathname.update_extension "ml" name) in
+      tag_file ml_name
+    else if Pathname.get_extension name = "eliomi" then
+      let ml_name = (Pathname.update_extension "mli" name) in
+      tag_file ml_name
   in
   Ocamlbuild_pack.Slurp.fold f entries ()
 
@@ -627,8 +632,8 @@ rule "js_of_ocaml: .byte -> .js" ~deps:["%.byte"] ~prod:"%.js"
   begin fun env _ ->
     let eliom_client_js =
       Pathname.concat
-	(Ocamlbuild_pack.Findlib.query "eliom.client").Ocamlbuild_pack.Findlib.location
-	"eliom_client.js" in
+        (Ocamlbuild_pack.Findlib.query "eliom.client").Ocamlbuild_pack.Findlib.location
+        "eliom_client.js" in
     Cmd (S [A "js_of_ocaml"; A "-pretty"; A "-noinline"; P eliom_client_js; A (env "%.byte")])
   end;;
 
@@ -637,29 +642,37 @@ let () =
     (fun hook ->
        dispatch_default hook;
        match hook with
-	 | Before_options ->
-	   tag_eliom_files ()
+         | Before_options ->
+             tag_eliom_files ()
          | After_rules ->
-	   Pathname.define_context "src/wiki/type"   ["src/core/server"; "src/user"];
-	   Pathname.define_context "src/wiki/client" ["src/core/client"];
-	   Pathname.define_context "src/wiki/server" ["src/core/server"; "src/user"];
-	   Pathname.define_context "src/site/type"   ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
-	   Pathname.define_context "src/site/server" ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
-	   Pathname.define_context "src/site/client" ["src/wiki/client";"src/core/client"];
-	   Pathname.define_context "src/forum" ["src/wiki/server";"src/core/server";"src/user"];
-	   Pathname.define_context "src/user" ["src/core/server"];
-	   (* only works in subdirectories: no source at toplevel *)
-	   copy_rule "shared/*.ml -> client/*.ml"
-	     "%(path)/shared/%(file).ml" "%(path)/client/%(file).ml";
-	   copy_rule "shared/*.ml -> server/*.ml"
-	     "%(path)/shared/%(file).ml" "%(path)/server/%(file).ml";
-	   copy_rule_with_header "*.eliom -> server/*.ml"
-	     "%(path)/%(file).eliom" "%(path)/server/%(file).ml";
-	   copy_rule_with_header "*.eliom -> type/*.ml"
-	     "%(path)/%(file).eliom" "%(path)/type/%(file).ml";
-	   copy_rule_with_header "*.eliom -> client/*.ml"
-	     ~deps:["%(path)/type/%(file).inferred.mli"]
-	     "%(path)/%(file).eliom" "%(path)/client/%(file).ml"
-	 | _ -> ()
+             Pathname.define_context "src/wiki/type"   ["src/core/server"; "src/user"];
+             Pathname.define_context "src/wiki/client" ["src/core/client"];
+             Pathname.define_context "src/wiki/server" ["src/core/server"; "src/user"];
+             Pathname.define_context "src/site/type"   ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
+             Pathname.define_context "src/site/server" ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
+             Pathname.define_context "src/site/client" ["src/wiki/client";"src/core/client"];
+             Pathname.define_context "src/forum" ["src/wiki/server";"src/core/server";"src/user"];
+             Pathname.define_context "src/user" ["src/core/server"];
+             (* only works in subdirectories: no source at toplevel *)
+             copy_rule "shared/*.ml -> client/*.ml"
+               "%(path)/shared/%(file).ml" "%(path)/client/%(file).ml";
+             copy_rule "shared/*.ml -> server/*.ml"
+               "%(path)/shared/%(file).ml" "%(path)/server/%(file).ml";
+             copy_rule_with_header "*.eliom -> server/*.ml"
+               ~deps:["%(path)/type/%(file).inferred.mli"]
+               "%(path)/%(file).eliom" "%(path)/server/%(file).ml";
+             copy_rule_with_header "*.eliomi -> server/*.mli"
+               ~deps:["%(path)/type/%(file).inferred.mli"]
+               "%(path)/%(file).eliomi" "%(path)/server/%(file).mli";
+             copy_rule_with_header "*.eliom -> type/*.ml"
+               "%(path)/%(file).eliom" "%(path)/type/%(file).ml";
+             copy_rule_with_header "*.eliomi -> type/*.mli"
+               "%(path)/%(file).eliomi" "%(path)/type/%(file).mli";
+             copy_rule_with_header "*.eliom -> client/*.ml"
+               ~deps:["%(path)/type/%(file).inferred.mli"]
+               "%(path)/%(file).eliom" "%(path)/client/%(file).ml";
+             copy_rule_with_header "*.eliomi -> client/*.mli"
+               ~deps:["%(path)/type/%(file).inferred.mli"]
+               "%(path)/%(file).eliomi" "%(path)/client/%(file).mli";
+         | _ -> ()
     )
-

@@ -488,7 +488,7 @@ let default_forum_sd () =
       Lwt.return v
 
 (** The polytable key for retrieving forum data inside session data *)
-let default_forum_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request default_forum_sd
+let default_forum_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request_scope default_forum_sd
 
 let get_forum_sd () =
   Eliom_reference.get default_forum_request_cache

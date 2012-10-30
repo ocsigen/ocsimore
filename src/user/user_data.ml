@@ -222,8 +222,8 @@ let add_remove_user_from_groups sp user (add, rem) =
 open User_external_auth
 
 let logout () =
-  Eliom_state.discard ~scope:Eliom_common.session () >>= fun () ->
-  Eliom_state.discard ~scope:Eliom_common.request () >>= fun () ->
+  Eliom_state.discard ~scope:Eliom_common.default_session_scope () >>= fun () ->
+  Eliom_state.discard ~scope:Eliom_common.request_scope () >>= fun () ->
   Lwt.return ()
 
 (**/**)
@@ -239,7 +239,7 @@ let th_login = Throttle.create ~rate:1 ~max:1 ~n:10
 let th_ip = Throttle.create ~rate:1 ~max:1 ~n:10
 
 let login ~name ~pwd =
-  lwt () = Eliom_state.discard ~scope:Eliom_common.session () in
+  lwt () = Eliom_state.discard ~scope:Eliom_common.default_session_scope () in
   (* XXX improve Lwt_throttle *)
   lwt b1 = Throttle.wait th_login name in
   lwt b2 = Throttle.wait th_ip (Eliom_request_info.get_remote_ip ()) in
@@ -278,7 +278,7 @@ let login ~name ~pwd =
 (* Used to store the fact that a login error has occurred, so that
    pages can display an appropriate message *)
 let login_error_eref : exn list Eliom_reference.eref =
-  Eliom_reference.eref ~scope:Eliom_common.request []
+  Eliom_reference.eref ~scope:Eliom_common.request_scope []
 
 let get_login_error () = Eliom_reference.get login_error_eref
 let add_login_error exn =

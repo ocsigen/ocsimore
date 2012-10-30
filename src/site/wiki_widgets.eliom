@@ -21,14 +21,16 @@
    @author Boris Yakobowski
 *)
 
-open Lwt_ops
+{shared{
+  open Eliom_lib.Lwt_ops
+}}
 open Eliom_content
 open User_sql.Types
 open Wiki_widgets_interface
 open Wiki_types
 
 let preview_wikibox_content : (wikibox * string) option Eliom_reference.Volatile.eref =
-  Eliom_reference.Volatile.eref ~scope:Eliom_common.request None
+  Eliom_reference.Volatile.eref ~scope:Eliom_common.request_scope None
 
 (* TODO Handle wikiboxes with multiple media (i.e. "screen print" or even "all") carefully! *)
 let grouped_by_media wb_list_with_media =
@@ -224,7 +226,7 @@ object (self)
     in
     let edit_onclick wb _id =
       let wiki_page = bi.bi_page in
-      {{
+      {{ fun _ ->
       let onload edit_window _ =
         let get_elt id coerce =
           Js.Opt.get
@@ -302,12 +304,12 @@ object (self)
       ~service:Wiki_services.action_delete_wikibox
       wb
     in
-    let delete_onclick _id = {{
+    let delete_onclick _id = {{ fun _ ->
       let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in
       if Js.to_bool answer then
         Eliom_client.exit_to ~service: %delete_service () ()
       else
-        debug "Canceled delete"
+        Eliom_lib.debug "Canceled delete"
     }} in
     let view     = (Eliom_service.void_coservice' :> Eliom_tools_common.get_page) in
     let edit_wikibox_perm =
@@ -328,7 +330,7 @@ object (self)
                        (wb, (w, Some page)) :> Eliom_tools_common.get_page)
                    in
                    let is_current = current_override = Some (wb, EditCssList (w, Some page)) in
-                   Some (Right (edit, is_current), [Html5.F.pcdata "wikipage css"])
+                   Some (Eliom_lib.Right (edit, is_current), [Html5.F.pcdata "wikipage css"])
                | false -> None
             )
         | WikiContainerBox w ->
@@ -340,7 +342,7 @@ object (self)
                        (wb, (w, None)) :> Eliom_tools_common.get_page)
                    in
                    let is_current = current_override = Some (wb, EditCssList (w, None)) in
-                   Some (Right (edit, is_current), [Html5.F.pcdata "wiki css"])
+                   Some (Eliom_lib.Right (edit, is_current), [Html5.F.pcdata "wiki css"])
                | false -> None
             )
         | RegularBox -> Lwt.return None
@@ -357,7 +359,7 @@ object (self)
                       (wb, wp) :> Eliom_tools_common.get_page)
                   in
                   let is_current = current_override = Some (wb, EditWikipageProperties wp) in
-                  Some (Right (edit_wp, is_current), [Html5.F.pcdata "edit wikipage options"])
+                  Some (Eliom_lib.Right (edit_wp, is_current), [Html5.F.pcdata "edit wikipage options"])
               | false -> None
     in
     lwt edit_wiki_perms =
@@ -377,7 +379,7 @@ object (self)
                   let is_current = current_override = Some (wb, EditWikiOptions w) in
                   Lwt.return
                     (Some
-                       (Right ((edit_p :> Eliom_tools_common.get_page), is_current),
+                       (Eliom_lib.Right ((edit_p :> Eliom_tools_common.get_page), is_current),
                         [Html5.F.pcdata "edit wiki permissions or options"]))
               | false -> Lwt.return None
     in
@@ -389,31 +391,31 @@ object (self)
     let menuedit =
       if wbwr
       then
-        Some (Left (edit_onclick wb), [Html5.F.pcdata "edit"])
+        Some (Eliom_lib.Left (edit_onclick wb), [Html5.F.pcdata "edit"])
       else None
     in
     let menuperm =
       if wbperm
       then
         let is_current = current_override = Some (wb, EditWikiboxPerms wb) in
-        Some (Right (edit_wikibox_perm, is_current), [Html5.F.pcdata "edit permissions"])
+        Some (Eliom_lib.Right (edit_wikibox_perm, is_current), [Html5.F.pcdata "edit permissions"])
       else None
     in
     let menuhist =
       if wbhist
       then
         let is_current = current_override = Some (wb, History wb) in
-        Some (Right (history, is_current), [Html5.F.pcdata "history"])
+        Some (Eliom_lib.Right (history, is_current), [Html5.F.pcdata "history"])
       else None
     in
     let menudel =
       if wbdel
-      then Some (Left delete_onclick, [Html5.F.span [Html5.F.pcdata "delete"]])
+      then Some (Eliom_lib.Left delete_onclick, [Html5.F.span [Html5.F.pcdata "delete"]])
       else None
     in
     let menuview =
       let is_current = match current_override with None -> true | Some (wb', _) when wb <> wb' -> true | _ -> false in
-      Right (view, is_current), [Html5.F.pcdata "view"]
+      Eliom_lib.Right (view, is_current), [Html5.F.pcdata "view"]
     in
     let menu_entries = Ocsimore_lib.concat_list_opt
       [menuedit; menudel; menuperm; menuhist; wp_prop; edit_wiki_perms; css]
@@ -433,13 +435,13 @@ object (self)
             in
             Html5.F.ul ~a:[Html5.D.a_class ["wikiboxmenu"; "eliomtools_menu"]]
               (List.map
-                 (function (Left onclick, content) ->
+                 (function (Eliom_lib.Left onclick, content) ->
                       let id = Html5.Id.new_elt_id () in
                       Html5.F.(
                         li ~a:[a_class (is_first ())] [
                           Html5.Id.create_named_elt ~id (Html5.D.Raw.a ~a:[a_onclick (onclick id)] content)
                         ])
-                  | (Right (service, is_current), content) ->
+                  | (Eliom_lib.Right (service, is_current), content) ->
                       if is_current then
                         Html5.F.(li ~a:[a_class ("eliomtools_current" :: is_first ())]
                                  content)
@@ -1744,8 +1746,8 @@ object (self)
      self#display_container ~wiki ~sectioning ~menu_style ~page ~gen_box
 
    method display_wikifile ~wiki ~sectioning ~menu_style ~template ~file =
-     let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
-     let page = Url.string_of_url_path ~encode:false path, path in
+     let path = Eliom_lib.Url.remove_slash_at_beginning (Neturl.split_path template) in
+     let page = Eliom_lib.Url.string_of_url_path ~encode:false path, path in
      let subbox bi ~sectioning _ =
        let bi = { bi  with bi_sectioning = sectioning } in
        match file with
@@ -1770,8 +1772,8 @@ object (self)
      self#display_container ~wiki ~sectioning ~menu_style ~page ~gen_box
 
    method display_wikibox ~wiki ~sectioning ~menu_style ~template ~wb =
-     let path = Url.remove_slash_at_beginning (Neturl.split_path template) in
-     let page = Url.string_of_url_path ~encode:false path, path in
+     let path = Eliom_lib.Url.remove_slash_at_beginning (Neturl.split_path template) in
+     let page = Eliom_lib.Url.string_of_url_path ~encode:false path, path in
      let subbox bi ~sectioning menu_style =
        let bi = { bi  with bi_sectioning = sectioning;
                                bi_menu_style = menu_style;
@@ -1827,7 +1829,7 @@ object (self)
             user defined types already *)
            let param = sql_of_wiki w.wiki_id in
            Html5.D.Raw.a ~a:[
-             Html5.D.a_onclick {{
+             Html5.D.a_onclick {{ fun _ ->
                let answer = Dom_html.window##confirm
                  (Js.string %msg)
                in

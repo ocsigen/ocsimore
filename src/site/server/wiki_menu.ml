@@ -173,7 +173,7 @@ let create_wiki_page_service bi ?(wiki = bi.Wiki_widgets_interface.bi_wiki) page
 
     File resolver is stored in the request cache. *)
 
-let menu_resolver_eref = Eliom_reference.eref ~scope:Eliom_common.request None
+let menu_resolver_eref = Eliom_reference.eref ~scope:Eliom_common.request_scope None
 
 let set_menu_resolver r =
   Eliom_reference.set menu_resolver_eref (Some r)
@@ -252,19 +252,19 @@ let do_wikimenu bi args contents =
         let menu =
           match kind with
           | `DepthFirstWhole ->
-              Eliom_tools.Html5.hierarchical_menu_depth_first
+              Eliom_tools.D.hierarchical_menu_depth_first
                 ?classe ?id
                 (Eliom_tools.Not_clickable, tree)
                 ~whole_tree:true
                 ?service ()
           | `DepthFirst ->
-              Eliom_tools.Html5.hierarchical_menu_depth_first
+              Eliom_tools.D.hierarchical_menu_depth_first
                 ?classe ?id
                 (Eliom_tools.Not_clickable, tree)
                 ~whole_tree:false
                 ?service ()
           | `BreadthFirst ->
-              Eliom_tools.Html5.hierarchical_menu_breadth_first
+              Eliom_tools.D.hierarchical_menu_breadth_first
                 ?classe ?id
                 (Eliom_tools.Not_clickable, tree)
                 ?service () in

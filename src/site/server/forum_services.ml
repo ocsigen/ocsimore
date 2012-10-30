@@ -26,7 +26,7 @@ let ( >>= ) = Lwt.bind
 
 open User_sql.Types
 
-let forum_action_eref = Eliom_reference.eref ~scope:Eliom_common.request None
+let forum_action_eref = Eliom_reference.eref ~scope:Eliom_common.request_scope None
 
 let set_forum_action action =
   Eliom_reference.set forum_action_eref (Some action)
@@ -112,7 +112,8 @@ let register_services () =
 *)
 
   (** Atom feed services *)
-
+(* See the comment in forum_widgets.eliom ligne 100 *)
+(*
   let thread_feed_service = Eliom_service.service
     ~path:["thread_feed"]
     ~get_params:(Forum.eliom_message "message") () in
@@ -120,8 +121,8 @@ let register_services () =
   let forum_feed_service = Eliom_service.service
     ~path:["forum_feed"]
     ~get_params:(Forum.eliom_forum "forum") () in
-
-  { Forum_types.add_message_service; moderate_message_service; thread_feed_service; forum_feed_service }
+*)
+  { Forum_types.add_message_service; moderate_message_service; (*thread_feed_service; forum_feed_service*) }
 
 let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
 let path_create_forum = [!Ocsimore_config.admin_dir;"create_forum"]
@@ -137,4 +138,3 @@ let create_forum = Eliom_service.service
 let view_forums = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir;"view_forums"]
   ~get_params:Eliom_parameter.unit ()
-

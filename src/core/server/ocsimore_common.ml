@@ -24,7 +24,8 @@ exception Ok
 
 exception Permission_denied
 
-let action_failure_eref = Eliom_reference.eref ~scope:Eliom_common.request None
+let action_failure_eref =
+  Eliom_reference.eref ~scope:Eliom_common.request_scope None
 
 let get_action_failure () =
   Eliom_reference.get action_failure_eref

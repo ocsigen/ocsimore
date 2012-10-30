@@ -43,7 +43,7 @@ type wiki_model =
     }
 
 let create_get_table () =
-  let table_eref = Eliom_reference.eref ~scope:Eliom_common.site None in
+  let table_eref = Eliom_reference.eref ~scope:Eliom_common.site_scope None in
   fun () ->
     match_lwt Eliom_reference.get table_eref with
       | Some table -> Lwt.return table

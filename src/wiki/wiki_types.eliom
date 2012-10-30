@@ -46,10 +46,10 @@ type wikipage_uid = wikipage_arg Opaque.int32_t deriving (Json)
 
 type +'a content_type = string
 type wiki_model = string
-let string_of_wiki_model = id
-let wiki_model_of_string = id
-let string_of_content_type = id
-let content_type_of_string = id
+let string_of_wiki_model = Eliom_lib.id
+let wiki_model_of_string = Eliom_lib.id
+let string_of_content_type = Eliom_lib.id
+let content_type_of_string = Eliom_lib.id
 
 type wiki_info = {
   wiki_id : wiki;
@@ -130,7 +130,7 @@ let filter_map f xs =
   in
     aux [] xs
 let media_type_of_string s =
-  filter_map media_type_elem_of_string (String.split ' ' s)
+  filter_map media_type_elem_of_string (Eliom_lib.String.split ' ' s)
 
 }}
 
@@ -177,6 +177,6 @@ type 'a wikibox_content =
     'a content_type * string option * int32
 
 
-let wikibox_data_of_raw = id
+let wikibox_data_of_raw = Eliom_lib.id
 
-let raw_of_wikibox_data = id
+let raw_of_wikibox_data = Eliom_lib.id

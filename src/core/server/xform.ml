@@ -611,7 +611,7 @@ module Xform = struct
         ~post_params:params ()
       in
       Html5.F.post_form ~service (fun names ->
-        Eliom_registration.Html5.register ~scope:Eliom_common.session ~service
+        Eliom_registration.Html5.register ~scope:Eliom_common.default_session_scope ~service
           (fun get_args v ->
             match f.form (Some v) names with
               | (x, Success act) ->
@@ -654,7 +654,7 @@ module XformLwt = struct
         ~post_params:params ()
       in
       Html5.F.lwt_post_form ~service (fun names ->
-        Eliom_registration.Html5.register ~scope:Eliom_common.session ~service
+        Eliom_registration.Html5.register ~scope:Eliom_common.default_session_scope ~service
           (fun get_args v ->
             f.form (Some v) names >>= function
               | (x, Success act) ->

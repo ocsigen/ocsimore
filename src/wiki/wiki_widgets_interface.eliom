@@ -148,7 +148,7 @@ type page_displayable =
   | Page_403
 
 let page_displayable_eref =
-  Eliom_reference.eref ~scope:Eliom_common.request Page_displayable
+  Eliom_reference.eref ~scope:Eliom_common.request_scope Page_displayable
 
 (*********************************************************************)
 

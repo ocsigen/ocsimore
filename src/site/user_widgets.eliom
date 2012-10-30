@@ -22,11 +22,12 @@
    @author Vincent Balat
 *)
 
-
+{shared{
+  open Eliom_lib.Lwt_ops
+}}
 open Eliom_content
 open User_sql.Types
 open Ocsimore_lib
-open Eliom_lib.Lwt_ops
 
 let str_input ?a ?(value="") ?(visible=true) name =
   Html5.F.string_input ?a ~name ~value
@@ -276,7 +277,7 @@ object (self)
       Html5.D.button ~button_type:`Submit
         [Html5.F.pcdata button_value]
     in
-    Eliom_service.onload {{
+    ignore {unit{
       let remove = ref %remove in
       let button = Eliom_content.Html5.To_dom.of_button %button in
       let user = %user in

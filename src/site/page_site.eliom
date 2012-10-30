@@ -23,7 +23,7 @@
 
 open Eliom_content
 open Ocsimore_lib
-open Lwt_ops
+open Eliom_lib.Lwt_ops
 
 (** An alias for the services that are accepted in the admin menu. *)
 type menu_link_service =
@@ -97,7 +97,7 @@ end = struct
   let header_table = ref []
 
   let create_header header_content =
-    let header_ref = Eliom_reference.eref ~scope:Eliom_common.request false in
+    let header_ref = Eliom_reference.eref ~scope:Eliom_common.request_scope false in
     header_table := (header_ref, header_content) :: !header_table;
     header_ref
 
@@ -105,7 +105,7 @@ end = struct
     Eliom_reference.set header_ref true
 
   let generate_headers () =
-    List.(fun xs -> flatten (map_filter (fun x -> x) xs)) =|< lwt_sequence
+    List.(fun xs -> flatten (Eliom_lib.List.map_filter (fun x -> x) xs)) =|< lwt_sequence
       (List.map
         (fun (header_ref, header_content) ->
            Eliom_reference.get header_ref >|= function
@@ -116,7 +116,7 @@ end = struct
 end
 
 (* special handling for onload functions (?) *)
-let onload_functions_eref = Eliom_reference.eref ~scope:Eliom_common.request []
+let onload_functions_eref = Eliom_reference.eref ~scope:Eliom_common.request_scope []
 
 let add_onload_function ?(first = false) s =
   flip eref_modify onload_functions_eref
@@ -193,7 +193,7 @@ let admin_menu ?service () =
   let menu = Eliom_tools.Main_page admin_root, admin_menu in
   lwt () = add_admin_pages_header () in
   Lwt.return
-    (Eliom_tools.Html5.hierarchical_menu_depth_first
+    (Eliom_tools.D.hierarchical_menu_depth_first
        ~id:"admin_menu"
        ~whole_tree:false
        menu

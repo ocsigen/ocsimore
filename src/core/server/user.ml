@@ -260,7 +260,7 @@ let authenticate ~name ~pwd =
 
 let user_ref =
   Eliom_reference.eref
-    ~scope:Eliom_common.session
+    ~scope:Eliom_common.default_session_scope
     ~persistent:"ocsimore_user_table_v2"
     None
 
@@ -273,11 +273,14 @@ let get_user_ () =
           lwt _ = User_sql.get_basicuser_data u in
           Lwt.return u
         with | User_sql.NotAnUser | Not_found ->
-          lwt () = Eliom_state.discard ~scope:Eliom_common.session () in
-          lwt () = Eliom_state.discard ~scope:Eliom_common.request () in
+          lwt () =
+            Eliom_state.discard ~scope:Eliom_common.default_session_scope ()
+          in
+          lwt () = Eliom_state.discard ~scope:Eliom_common.request_scope () in
           Lwt.return anonymous
 
-let user_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request get_user_
+let user_request_cache =
+  Eliom_reference.eref_from_fun ~scope:Eliom_common.request_scope get_user_
 
 let get_user_sd () =
   Eliom_reference.get user_request_cache >>= fun x -> x
@@ -291,7 +294,10 @@ let get_user_data () =
 let get_user_name () =
   get_user_data () >|= function { user_login; _ } -> user_login
 
-let groups_table_request_cache = Eliom_reference.eref_from_fun ~scope:Eliom_common.request (fun () -> Hashtbl.create 37)
+let groups_table_request_cache =
+  Eliom_reference.eref_from_fun
+    ~scope:Eliom_common.request_scope
+    (fun () -> Hashtbl.create 37)
 
 let in_group_ ~user ~group () =
   let no_sp = Eliom_common.get_sp_option () = None in
@@ -448,7 +454,7 @@ let set_session_data (user_id, username) =
   lwt () = Eliom_reference.set user_request_cache (Lwt.return user_id) in
   lwt () =
     Eliom_state.set_persistent_data_session_group
-      ~scope:Eliom_common.session
+      ~scope:Eliom_common.default_session_scope
       ~set_max:(Some 2) username
   in
   (* We store the user_id inside Eliom. Alternatively, we could
@@ -533,4 +539,3 @@ module GenericRights = struct
     )
 
 end
-

@@ -77,4 +77,3 @@ let int32_input_opt_aux_xform ?a s =
 let int32_input_opt_xform ?a : 'a int32_t option -> ([> Html5_types.input | Html5_types.span ] Html5.F.elt, 'a int32_t option) Xform.XformLwt.t = function
   | None -> int32_input_opt_aux_xform ?a ""
   | Some v -> int32_input_opt_aux_xform ?a (Int32.to_string  v)
-

@@ -83,13 +83,13 @@ let register_wikibox_syntax_extensions
              let box_replacer_id = Html5.Id.new_elt_id ~global:false () in
              let box_replacer = Html5.Id.create_named_elt ~id:box_replacer_id
                (Html5.F.div
-                  ~a:[Html5.F.a_onload {{
+                  ~a:[Html5.F.a_onload {{ fun _ ->
                     ignore (
                       match_lwt Eliom_client.call_caml_service ~keep_get_na_params:true
                         ~service:( %Wiki_services.wikibox_contents )
                         ( %box, %page, %override ) () with
                         | None ->
-                          debug "box not allowed for display";
+                          Eliom_lib.debug "box not allowed for display";
                           Lwt.return ()
                         | Some box_content ->
                           Eliom_content.Html5.Manip.Named.replaceAllChild %box_replacer_id box_content;
@@ -300,7 +300,7 @@ let register_wikibox_syntax_extensions
          [Html5.F.(span ~a:atts
              [Raw.a [span ~a:[
                   a_class ["btmenu"];
-                  a_onclick {{
+                  a_onclick {{ fun _ ->
                     ignore (Dom_html.document##body##classList##toggle(Js.string "nomenu"))
                   }}
                  ] [
@@ -329,7 +329,7 @@ let register_wikibox_syntax_extensions
            (Wiki_syntax.xml_of_wiki wp bi c :> Html5_types.flow5 Html5.F.elt list Lwt.t)
        in
        let ignore =
-         try List.map String.lowercase (String.split ~multisep:true ' ' (List.assoc "ignore" args))
+         try List.map String.lowercase (Eliom_lib.String.split ~multisep:true ' ' (List.assoc "ignore" args))
          with Not_found -> ["nav";"aside"]
        in
        let div =
@@ -338,7 +338,7 @@ let register_wikibox_syntax_extensions
 
        let a = Wiki_syntax.parse_common_attribs ~classes:["ocsimore_outline"] args in
        let nav = (if div then Html5.D.div else Html5.D.nav) ~a content in
-       Eliom_service.onload {{
+       Pervasives.ignore {unit{
 
          let nav = (Eliom_content.Html5.To_dom.of_element %nav :> Dom.node Js.t)  in
 
@@ -357,7 +357,7 @@ let register_wikibox_syntax_extensions
                        Js.Opt.case
                          (Js.Opt.map heading HTML5outliner.get_fragment)
                          (fun () -> None)
-                         id
+                         Eliom_lib.id
                    with Not_found -> None
                  else None
                in
