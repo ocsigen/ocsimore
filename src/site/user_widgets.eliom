@@ -343,11 +343,11 @@ object (self)
         ]
       )
 
-  method private display_logout_box ?(show_ext=true) u =
+  method private display_logout_box ?(show_ext=true) user =
     let open Html5.F in
     let user_name =
       span ~a:[a_class ["user_name"]]
-        [pcdata u.user_fullname]
+        [pcdata user.user_fullname]
     in
     Lwt.return
       [div ~a:[a_class ["login_box"]]
@@ -356,7 +356,7 @@ object (self)
              Html5.F.a
                ~service:User_services.service_view_group
                [user_name]
-               u.user_login
+               user.user_login
            else
              user_name ];
        submit_input ~a:[a_class ["logout"]] "logout" ]
@@ -676,9 +676,9 @@ object (self)
         (fun u1 u2 -> compare u1.user_login u2.user_login)
         (Lazy.force users.roles)
     in
-    let line u short_name =
+    let line user short_name =
       let open Html5.F in
-      (match u.user_kind with
+      (match user.user_kind with
         | `ParameterizedGroup param ->
           (match param with
             | Some { param_description = param; _ } ->
@@ -698,22 +698,22 @@ object (self)
       ) >>= (function
         | None ->
             (match td_content with
-              | None -> Lwt.return [pcdata u.user_fullname]
-              | Some f -> f u.user_login
+              | None -> Lwt.return [pcdata user.user_fullname]
+              | Some f -> f user.user_login
             )
             >>= fun td_content ->
           let block = tr [
             td ~a:[a_class ["roles_tr"]] [
               strong [
                 a ~service:User_services.service_view_group
-                  [pcdata short_name] u.user_login;
+                  [pcdata short_name] user.user_login;
               ];
             ];
             td td_content;
           ] in
           Lwt.return [block]
         | Some (param, p) ->
-          let parametrize id = u.user_login ^ "(" ^ id ^ ")"
+          let parametrize id = user.user_login ^ "(" ^ id ^ ")"
           in
           let link param id =
             let param_string =
@@ -754,7 +754,7 @@ object (self)
             td ~a:[a_class ["roles_tr"]] [
               strong [pcdata (name ^ "(" ^ param ^ ")")]
             ];
-            td [pcdata u.user_fullname]
+            td [pcdata user.user_fullname]
           ] in
           Lwt.return (block short_name :: block_and_link)
        )
