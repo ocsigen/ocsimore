@@ -268,8 +268,7 @@ Library "forum_site"
     server/Forum_site,
     server/Forum_wikiext,
     server/Forum_services,
-    server/Forum_widgets,
-    server/Ocsicreateforum
+    server/Forum_widgets
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site,
