@@ -22,6 +22,7 @@
    @author Vincent Balat
 *)
 
+open Eliom_lib
 open Eliom_lib.Lwt_ops
 
 open Ocsi_sql

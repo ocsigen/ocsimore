@@ -21,6 +21,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_lib
 open Opaque
 open Lwt
 open Ocsi_sql

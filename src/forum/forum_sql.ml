@@ -23,6 +23,7 @@
    @author Boris Yakobowski
 *)
 
+open Eliom_lib
 open User_sql.Types
 open Ocsi_sql
 
