@@ -47,6 +47,11 @@ module Types = struct
 
   type find_param = {
     param_description: string;
+    param_get :
+      unit ->
+      < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+        list Lwt.t;
     param_display: (int32 -> string Lwt.t) option;
     find_param_functions:
       ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;

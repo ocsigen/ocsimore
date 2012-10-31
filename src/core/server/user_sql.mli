@@ -40,6 +40,14 @@ module Types : sig
         parentheses to give the name of the role, e.g. 'Name of the wiki' *)
     param_description: string;
 
+    (** Get the param (id) and the name (title) of all entities
+        that can be used as parameter *)
+    param_get :
+      unit ->
+      < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+        list Lwt.t;
+
     (** How to display the parameter when printing the description
         of the role, e.g. transforming the wiki id into the real name
         of the wiki *)

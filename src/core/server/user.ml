@@ -119,6 +119,7 @@ let admin' = basic_user admin
 
 let param_user = {
   param_description = "login of the user";
+  param_get = User_sql.get_users_login;
   param_display = Some
     (fun uid ->
        User_sql.get_basicuser_data (userid_from_sql uid) >>= fun r ->

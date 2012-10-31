@@ -681,17 +681,9 @@ object (self)
       (match user.user_kind with
         | `ParameterizedGroup param ->
           (match param with
-            | Some { param_description = param; _ } ->
-              (match param with
-                | "login of the user" -> User_sql.get_users_login ()
-                | "id of the forum" -> Forum_sql.get_forums_id ()
-                | "id of the wiki which is a forum" -> Forum_sql.get_forums_wiki_id ()
-                | "id of the message" -> Forum_sql.get_forum_messages_id ()
-                | "id of the wiki" -> Wiki_sql.get_wikis_id ()
-                | "id of the wikibox" -> Wiki_sql.get_wikiboxes_id ()
-                | "id of the wikipage" -> Wiki_sql.get_wikipages_id ()
-                | _ -> Lwt.return []
-              ) >|= (fun x -> Some (param, x))
+            | Some { param_description = param; param_get; _ } ->
+                param_get () >>= fun x ->
+                Lwt.return (Some (param, x))
             | None -> Lwt.return None (* Should be an error *)
           )
         | _ -> Lwt.return None

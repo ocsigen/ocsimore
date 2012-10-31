@@ -66,6 +66,7 @@ let prefix = "wiki"
 
 let param_wiki = {
   param_description = "id of the wiki";
+  param_get = Wiki_sql.get_wikis_id;
   param_display = Some (
     (fun wid ->
        Wiki_sql.get_wiki_info_by_id ~id:(wiki_of_sql wid) >>= fun wiki ->
@@ -82,6 +83,7 @@ let param_wiki = {
 
 let param_wikibox = {
   param_description = "id of the wikibox";
+  param_get = Wiki_sql.get_wikiboxes_id;
   param_display = None;
   find_param_functions = Some
     ((fun s -> Scanf.sscanf s "wikibox %ld" (fun v -> Lwt.return v)),
@@ -91,6 +93,7 @@ let param_wikibox = {
 
 let param_wikipage = {
   param_description = "id of the wikipage";
+  param_get = Wiki_sql.get_wikipages_id;
   param_display = None; (* XXX Show name and wiki *)
   find_param_functions = None;
 }
