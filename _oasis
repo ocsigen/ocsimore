@@ -291,6 +291,20 @@ Library "wiki_perso"
 Test "all"
   Command: ocsigenserver -c ./local/etc/ocsigen/ocsimore.conf
 
+
+Document "api"
+  Title: API reference for Ocsimore
+  Type: ocamlbuild (0.3)
+  Install: true
+  InstallDir: $htmldir/api
+  BuildTools: ocamldoc
+  XOCamlbuildPath: ./
+  XOCamlbuildLibraries:
+    ocsimore,
+    ocsimore.user,
+    ocsimore.wiki,
+    ocsimore.forum
+
 # +-------------------------------------------------------------------+
 # | Misc                                                              |
 # +-------------------------------------------------------------------+

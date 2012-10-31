@@ -1,0 +1,33 @@
+# OASIS_START
+# DO NOT EDIT (digest: 67808d4888d80da2f1df9f1d46c23360)
+src/core/server/Updatedb_sql
+src/core/server/Crypt
+src/core/server/Language
+src/core/server/Dyngroups
+src/core/server/Ocsimore_common
+src/core/server/Ocsimore_config
+src/core/server/Ocsimore_lib
+src/core/server/Opaque
+src/core/server/Parse_config
+src/core/server/Ocsi_sql
+src/core/server/User
+src/core/server/User_sql
+src/core/server/Widget
+src/core/server/Xform
+src/user/User_data
+src/user/User_external_auth
+src/wiki/server/Wikicreole
+src/wiki/server/Wiki_data
+src/wiki/server/Wiki_models
+src/wiki/server/Wiki_self_services
+src/wiki/server/Wiki_sql
+src/wiki/server/Wiki_syntax
+src/wiki/server/Wiki_types
+src/wiki/server/Wiki_widgets_interface
+src/wiki/server/Wiki
+src/forum/Forum_sql0
+src/forum/Forum_data
+src/forum/Forum
+src/forum/Forum_sql
+src/forum/Forum_types
+# OASIS_STOP
