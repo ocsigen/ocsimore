@@ -176,6 +176,7 @@ Library "wiki_client"
     eliom.client,
     eliom.syntax
   XMETARequires:
+    ocsimore_client,
     eliom.client
 
 Library "forum"
@@ -227,6 +228,7 @@ Library "core_site_client"
     eliom.client,
     eliom.syntax
   XMETARequires:
+    ocsimore_client.wiki,
     eliom.client
 
 Library "user_site"
