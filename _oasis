@@ -228,7 +228,7 @@ Library "core_site_client"
     eliom.client,
     eliom.syntax
   XMETARequires:
-    ocsimore_client.wiki,
+    ocsimore_client.wiki_client,
     eliom.client
 
 Library "user_site"
