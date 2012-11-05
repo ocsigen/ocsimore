@@ -105,9 +105,16 @@ let () =
        else
          user_widget#display_group group
      in
+     let permissions user _ =
+       User_data.can_view_groups () >>= function
+         | true -> Lwt.return true
+         | false ->
+             User.get_user_name () >>= fun current_user ->
+             Lwt.return (current_user = user && user <> User.anonymous_login)
+     in
      Page_site.admin_body_content_with_permission_handler
        ~title:(fun g _ -> Lwt.return (Printf.sprintf "View group %S" g))
-       ~permissions:(fun _ _ -> User_data.can_view_groups ())
+       ~permissions
        ~service
        ~display);
 
