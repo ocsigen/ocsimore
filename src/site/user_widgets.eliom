@@ -72,7 +72,6 @@ class type user_widget_class = object
     Html5_types.div Html5.F.elt list Lwt.t
 
   method private display_logout_box :
-    ?show_ext:bool ->
     User_sql.Types.userdata ->
     Html5_types.form_content Html5.F.elt list Lwt.t
   method display_logout_button :
@@ -342,7 +341,7 @@ object (self)
         ]
       )
 
-  method private display_logout_box ?(show_ext=true) user =
+  method private display_logout_box user =
     let open Html5.F in
     let user_name =
       span ~a:[a_class ["user_name"]]
@@ -351,13 +350,11 @@ object (self)
     Lwt.return
       [div ~a:[a_class ["login_box"]]
          [ pcdata "You are logged as ";
-           if show_ext then
-             Html5.F.a
-               ~service:User_services.service_view_group
-               [user_name]
-               user.user_login
-           else
-             user_name ];
+           Html5.F.a
+             ~service:User_services.service_view_group
+             [user_name]
+             user.user_login
+         ];
        submit_input ~a:[a_class ["logout"]] "logout" ]
 
   method private login_box_extension = Lwt.return []
@@ -391,7 +388,7 @@ object (self)
     lwt logged = User.is_logged_on () in
     lwt f =
       if logged then
-       self#display_logout_box ?show_ext u >|= fun f ->
+       self#display_logout_box u >|= fun f ->
          Html5.F.post_form
            ~a:[Html5.F.a_class ["logbox"; "logged"]]
            ~service:User_services.action_logout (fun _ -> f) ()
