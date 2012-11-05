@@ -77,6 +77,8 @@ module Types = struct
      of the user *)
   type 'a parameterized_group = userid
 
+  let parameterized_group_from_userid userid = userid
+
   type user =
     | BasicUser of userid
     | AppliedParameterizedGroup of userid * int32
@@ -89,6 +91,8 @@ module Types = struct
   let ($) = apply_parameterized_group
 
   let basic_user v = BasicUser v
+
+  let non_parameterized_group v = NonParameterizedGroup v
 
   let userid_from_user = function
     | BasicUser u | NonParameterizedGroup u -> u

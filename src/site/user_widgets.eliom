@@ -197,12 +197,11 @@ object (self)
     User_sql.user_to_string user
     >>= fun user_login ->
     self#get_roles_table
-      ~td_content:(fun group ->
-        lwt group' = User.get_user_by_name group in
-        lwt in_group = User.in_group ~user ~group:group' () in
+      ~td_content:(fun (group, group_string) ->
+        lwt in_group = User.in_group ~user ~group () in
         Lwt.return
           (self#bt_remove_user_from_group
-             ~group
+             ~group:group_string
              ~user:user_login
              ~remove:in_group
              ()
@@ -691,7 +690,8 @@ object (self)
         | None ->
             (match td_content with
               | None -> Lwt.return [pcdata user.user_fullname]
-              | Some f -> f user.user_login
+              | Some f ->
+                  f (non_parameterized_group user.user_id, user.user_login)
             )
             >>= fun td_content ->
           let block = tr [
@@ -721,14 +721,19 @@ object (self)
             lwt lines =
               Lwt_list.map_p
                 (fun param ->
-                  let id = Int32.to_string (Sql.get param#id) in
+                  let id = Sql.get param#id in
+                  let id_string = Int32.to_string id in
                   lwt td_content = match td_content with
                     | None -> Lwt.return []
-                    | Some f -> f (parametrize id)
+                    | Some f ->
+                        let group =
+                          parameterized_group_from_userid user.user_id
+                        in
+                        f (group $ Opaque.int32_t id, id_string)
                   in
                   Lwt.return
                     (tr [
-                      td ~a:[a_class ["roles_tr_prime"]] [link param id];
+                      td ~a:[a_class ["roles_tr_prime"]] [link param id_string];
                       td td_content;
                      ]
                     )
