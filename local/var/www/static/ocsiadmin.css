@@ -195,7 +195,7 @@ form > table > tr > td.description {
 
 .small_box {
     width: 60em;
-    height: 25em;
+    max-height: 25em;
     overflow: auto;
 }
 

@@ -103,6 +103,7 @@ class type user_widget_class = object
       is false, no controls to edit the permissions are shown *)
   (** Form to add users to a group *)
   method form_edit_group:
+    ?is_user:bool ->
     group:user ->
     text:Html5_types.flow5 Html5.F.elt list ->
     unit ->
@@ -189,22 +190,30 @@ object (self)
       td [];
     ]
 
-  method form_edit_group ~group ~text () =
+  method form_edit_group ?(is_user=false) ~group ~text () =
     User_sql.all_users ()
     >>= fun users ->
-    self#users_to_html ~group users.users
+    (if not is_user
+     then self#users_to_html ~group users.users
+     else Lwt.return []
+    )
     >>= fun users_table ->
     self#users_to_html ~group users.groups
     >>= fun group_table ->
     User_sql.user_to_string group
     >>= fun group ->
     self#users_edit_table ~text [
-      Html5.F.table
-        (self#users_title "Users")
-        (users_table
-         @ [self#users_title "Groups"]
-         @ group_table
-        )
+      if not is_user then
+        Html5.F.table
+          (self#users_title "Users")
+          (users_table
+           @ [self#users_title "Groups"]
+           @ group_table
+          )
+      else
+        Html5.F.table
+          (self#users_title "Groups")
+          (group_table)
     ]
 
   method form_edit_user ~user ~text () =
@@ -430,10 +439,10 @@ object (self)
 
   method display_group group =
     lwt gtype = User_sql.user_type group in
-    let _, _, gtypedescr = match gtype with
-      | `Role  -> ("Role",  "role",  "Description")
-      | `User  -> ("User",  "user",  "Name"       )
-      | `Group -> ("Group", "group", "Description")
+    let is_user, gtypedescr = match gtype with
+      | `Role  -> (false, "Description")
+      | `User  -> (true,  "Name"       )
+      | `Group -> (false, "Description")
     in
     lwt error =
       Ocsimore_common.get_action_failure () >|= function
@@ -454,7 +463,7 @@ object (self)
     (* Adding groups to the group *)
     lwt f1 =
       let content () =
-        self#form_edit_group ~group
+        self#form_edit_group ~is_user ~group
           ~text:[Html5.F.p ~a:[eliom_inline_class]
                     [Html5.F.strong
                         [Html5.F.pcdata "Members: "]
