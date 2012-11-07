@@ -42,6 +42,23 @@ let passwd_input ?a ?(value="") name =
 let submit_input ?a value =
   Html5.F.string_input ?a ~input_type:`Submit ~value ()
 
+let late_content ~service get_params post_params =
+  let static_dir = Eliom_service.static_dir () in
+  let alt = "loader" in
+  let src = Html5.F.make_uri ~service:static_dir ["loader.gif"] in
+  let div = Eliom_content.Html5.D.div [Html5.F.img ~src ~alt ()] in
+  ignore {unit{
+    Lwt.async
+      (fun () ->
+        let service = %service in
+        let div = Eliom_content.Html5.To_dom.of_div %div in
+        Eliom_client.call_service ~service %get_params %post_params
+        >>= fun content ->
+        div##innerHTML <- Js.string content;
+        Lwt.return ()
+      )
+  }};
+  Lwt.return div
 
 class type user_widget_class = object
   method login_box_extension : Html5_types.div_content_fun Html5.F.elt list Lwt.t
@@ -440,24 +457,45 @@ object (self)
     in
     (* Adding groups to the group *)
     lwt f1 =
-      self#form_edit_group ~group
-        ~text:[Html5.F.p ~a:[eliom_inline_class]
-                 [Html5.F.strong
-                    [Html5.F.pcdata "Members: "]
-              ]]
-        ()
+      let content () =
+        self#form_edit_group ~group
+          ~text:[Html5.F.p ~a:[eliom_inline_class]
+                    [Html5.F.strong
+                        [Html5.F.pcdata "Members: "]
+                    ]
+                ]
+          ()
+        >>= fun f1 ->
+        Lwt.return
+          [Html5.F.div ~a:[Html5.F.a_class ["user_block"]]
+             [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] f1 []]
+          ]
+      in
+      let service = User_services.service_view_group_first_flow5 in
+      Eliom_registration.Flow5.register ~service (fun () -> content);
+      late_content ~service () ()
     in
     (* Adding the group to groups *)
     lwt f2 =
-      User_sql.user_to_string ~expand_param:false group
-      >>= fun username ->
-      self#form_edit_user ~user:group
-        ~text:[Html5.F.p ~a:[Html5.F.a_class ["eliom_inline"]]
-                  [Html5.F.strong
-                      [Html5.F.pcdata (username ^ " is in: ")]
-                  ]
-        ]
-        ()
+      let content () =
+        User_sql.user_to_string ~expand_param:false group
+        >>= fun username ->
+        self#form_edit_user ~user:group
+          ~text:[Html5.F.p ~a:[Html5.F.a_class ["eliom_inline"]]
+                    [Html5.F.strong
+                        [Html5.F.pcdata (username ^ " is in: ")]
+                    ]
+                ]
+          ()
+        >>= fun f2 ->
+        Lwt.return
+          [Html5.F.div ~a:[Html5.F.a_class ["user_block"]]
+             [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] f2 []]
+          ]
+      in
+      let service = User_services.service_view_group_second_flow5 in
+      Eliom_registration.Flow5.register ~service (fun () -> content);
+      late_content ~service () ()
     in
     lwt g = User_sql.get_user_data group in
     lwt can_change = User_data.can_change_user_data_by_user group in
@@ -498,10 +536,8 @@ object (self)
         (  error
          @ let open Html5.F in [
            div ~a:[a_class ["user_block"]] edit;
-           div ~a:[a_class ["user_block"]]
-             [table ~a:[a_class ["users_in_group"]] f1 []];
-           div ~a:[a_class ["user_block"]]
-             [table ~a:[a_class ["users_in_group"]] f2 []];
+           f1;
+           f2;
          ])
 
   method display_users_settings =

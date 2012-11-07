@@ -48,6 +48,7 @@ install-data: /tmp/static
 	cp \
 	   ./local/var/www/static/*.css \
 	   ./local/var/www/static/*.png \
+	   ./local/var/www/static/*.gif \
 	   ./_build/src/site/client/ocsimore.js \
 	   $^
 
