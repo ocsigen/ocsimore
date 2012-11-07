@@ -295,18 +295,14 @@ object (self)
     ignore {unit{
       let remove = ref %remove in
       let button = Eliom_content.Html5.To_dom.of_button %button in
-      let user = %user in
       Lwt.ignore_result (
         Lwt_js_events.clicks button (fun _ ->
-          (if !remove then
-              Eliom_client.call_caml_service
-                ~service:%User_services.action_remove_user_from_group
-                () ( %group, user)
-           else
-              Eliom_client.call_caml_service
-                ~service:%User_services.action_add_user_from_group
-                () ( %group, user)
-          )
+          let service =
+            if !remove
+            then %User_services.action_remove_user_from_group
+            else %User_services.action_add_user_from_group
+          in
+          Eliom_client.call_caml_service ~service () (%group, %user)
           >>= fun new_remove ->
           let button_value = if new_remove then "Remove" else "Add" in
           remove := new_remove;
