@@ -51,10 +51,9 @@ let late_content ~service get_params post_params =
     Lwt.async
       (fun () ->
         let service = %service in
-        let div = Eliom_content.Html5.To_dom.of_div %div in
-        Eliom_client.call_service ~service %get_params %post_params
+        Eliom_client.call_caml_service ~service %get_params %post_params
         >>= fun content ->
-        div##innerHTML <- Js.string content;
+        Eliom_content.Html5.Manip.replaceAllChild %div content;
         Lwt.return ()
       )
   }};
@@ -477,7 +476,7 @@ object (self)
           ]
       in
       let service = User_services.service_view_group_first_flow5 in
-      Eliom_registration.Flow5.register ~service (fun () -> content);
+      Eliom_registration.Ocaml.register ~service (fun () -> content);
       late_content ~service () ()
     in
     (* Adding the group to groups *)
@@ -499,7 +498,7 @@ object (self)
           ]
       in
       let service = User_services.service_view_group_second_flow5 in
-      Eliom_registration.Flow5.register ~service (fun () -> content);
+      Eliom_registration.Ocaml.register ~service (fun () -> content);
       late_content ~service () ()
     in
     lwt g = User_sql.get_user_data group in
