@@ -735,7 +735,7 @@ module Ui = struct
                  a_class ["wikitextarea"];
                  a_rows 25; a_cols 80;
                ] (pcdata content);
-               input ~a:[a_id save_id; a_input_type `Submit; a_value "Save"] ();
+               raw_input ~input_type:`Submit ~a:[a_id save_id; a_value "Save"] ();
                Html5.F.pcdata " ";
                Html5.F.a
                  ~service:(get_wikisyntax_helper ())

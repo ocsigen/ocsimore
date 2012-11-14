@@ -63,21 +63,21 @@ let late_content ~service get_params post_params =
 class type user_widget_class = object
   method login_box_extension : Html5_types.div_content_fun Html5.F.elt list Lwt.t
   method display_roles :
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
   method display_groups :
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
   method display_users :
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
 
   method display_users_settings :
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
   method display_users_settings_done :
     unit ->
       (bool * (string * (string * (string * (string * bool))))) ->
-      Eliom_registration.Block5.page Lwt.t
+      Eliom_registration.Flow5.page Lwt.t
 
   method display_group :
-    user -> Eliom_registration.Block5.page Lwt.t
+    user -> Eliom_registration.Flow5.page Lwt.t
 
   method display_login_widget :
     ?user_prompt:string ->
@@ -130,12 +130,12 @@ class type user_widget_class = object
 
   method display_group_creation :
     ?err:string -> unit ->
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
 
   method display_group_creation_done :
     unit ->
     string * string ->
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
 
 end
 
@@ -143,13 +143,13 @@ class type user_widget_user_creation_class = object
   method display_user_creation :
     ?err:string ->
     unit ->
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
   method display_user_creation_done :
     name:string ->
     fullname:string ->
     email:string ->
     pwd:string*string ->
-    Eliom_registration.Block5.page Lwt.t
+    Eliom_registration.Flow5.page Lwt.t
 
   method login_box_extension : Html5_types.div_content_fun Html5.F.elt list Lwt.t
 end
@@ -911,7 +911,7 @@ object (self)
             [pcdata "edit"] group.user_login;
           pcdata " your new group."
         ]
-      ] : Eliom_registration.Block5.page)
+      ] : Eliom_registration.Flow5.page)
     with
       | Failure err ->
           self#display_group_creation ~err ()
