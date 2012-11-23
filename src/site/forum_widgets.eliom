@@ -97,9 +97,7 @@ class message_widget
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
   (wiki_phrasing_widgets : Wiki_widgets_interface.interactive_wikibox)
   services =
-(* Commented because Atom_feed.xhtml needs an xhtml from tyxml and
-   not from eliom. (Xhtml was removed from eliom3) *)
-(*
+
   let xhtml_of_wb wiki wikibox =
     lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
     lwt rights = Wiki_models.get_rights
@@ -110,8 +108,7 @@ class message_widget
         ~bi
         wikibox
     in
-    (*!!! ugly cast: html5 to xhtml !!!*)
-    Lwt.return ( Xhtml.M.totl (Html5.F.Raw.toeltl content) )
+    Lwt.return content
   in
 
   let atom_title forum_info msg_info =
@@ -119,9 +116,9 @@ class message_widget
       | None -> Lwt.return (Atom_feed.plain "")
       | Some subject ->
         lwt subject = xhtml_of_wb forum_info.f_comments_wiki subject in
-        Lwt.return (Atom_feed.xhtml subject)
+        Lwt.return (Atom_feed.html5 subject)
   in
-*)
+
 object (self)
 
   val msg_class = "ocsiforum_msg"
@@ -219,17 +216,15 @@ object (self)
     >>= fun (classes, r) -> self#display_message ~classes r
 
   (** atom feed generation *)
-(* See the comment in forum_widgets.eliom ligne 100 *)
-(*
   method atom_entry msg_info =
     lwt forum_info = Forum_data.get_forum ~forum:msg_info.m_forum () in
     lwt title = atom_title forum_info msg_info in
     lwt content =
       lwt content = xhtml_of_wb forum_info.f_messages_wiki
         msg_info.m_wikibox in
-      Lwt.return (Atom_feed.xhtmlC content)
+      Lwt.return (Atom_feed.html5C content)
     in
-    let id = Xml.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 msg_info.m_id)) in
+    let id = Int32.to_string (Opaque.t_int32 msg_info.m_id) in
     Lwt.return
       ( Atom_feed.entry ~updated:msg_info.m_datetime ~id ~title [content] )
 
@@ -242,15 +237,14 @@ object (self)
 
   method atom_childs ~message =
     lwt msg_list = Forum_data.get_childs ~message_id:message in
-    let id = Xml.uri_of_fun
-      (fun () -> "message_"^(Int32.to_string (Opaque.t_int32 message))) in
+    let id = "message_"^(Int32.to_string (Opaque.t_int32 message)) in
     lwt entries = self#atom_entries msg_list in
     let updated = last_msg_date msg_list in
     lwt msg_info = Forum_data.get_message ~message_id:message in
     lwt forum_info = Forum_data.get_forum ~forum:msg_info.m_forum () in
     lwt title = atom_title forum_info msg_info in
     Lwt.return (Atom_feed.feed ~id ~updated ~title entries)
-*)
+
 end
 
 class thread_widget
@@ -472,15 +466,14 @@ object (self)
        (string list * Html5_types.flow5 Html5.F.elt list)
          Lwt.t)
     >>= fun (classes, r) ->  self#display_message_list ~classes r
-(*
+
   method atom_message_list ?(number=10) forum =
     lwt forum_info = Forum_data.get_forum ~forum () in
     lwt msg_list = Forum_data.get_message_list ~forum ~first:1L ~number:(Int64.of_int number) () in
     lwt msg_list = Lwt_list.map_s
       Forum_data.message_info_of_raw_message msg_list in
     lwt entries = message_widget#atom_entries msg_list in
-    let id = Xml.uri_of_fun
-      (fun () -> "forum_"^(Int32.to_string (Opaque.t_int32 forum_info.f_id))) in
+    let id = "forum_"^(Int32.to_string (Opaque.t_int32 forum_info.f_id)) in
     let title = Atom_feed.plain forum_info.f_title in
     let updated = last_msg_date msg_list in
     Lwt.return (Atom_feed.feed
@@ -488,7 +481,7 @@ object (self)
                   ~updated
                   ~title
                   entries)
-*)
+
 end
 
 class threads_list_widget

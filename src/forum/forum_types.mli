@@ -99,7 +99,6 @@ open User_sql.Types
   type ('a,'b,'c,'d) forum_services = {
     add_message_service : 'a;
     moderate_message_service : 'b;
-(* See the comment in forum_widgets.eliom ligne 100 *)
-(*    thread_feed_service : 'c;
-    forum_feed_service : 'd;*)
+    thread_feed_service : 'c;
+    forum_feed_service : 'd;
   }
