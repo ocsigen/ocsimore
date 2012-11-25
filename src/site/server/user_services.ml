@@ -177,16 +177,6 @@ and service_view_group = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "view_group"]
   ~get_params:(Eliom_parameter.string "group") ()
 
-and service_view_group_first_flow5 =
-  Eliom_service.post_coservice'
-    ~post_params:Eliom_parameter.unit
-    ()
-
-and service_view_group_second_flow5 =
-  Eliom_service.post_coservice'
-    ~post_params:Eliom_parameter.unit
-    ()
-
 and service_view_groups = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir; "view_groups"]
   ~get_params:(Eliom_parameter.unit) ()

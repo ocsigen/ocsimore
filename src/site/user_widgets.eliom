@@ -42,7 +42,7 @@ let passwd_input ?a ?(value="") name =
 let submit_input ?a value =
   Html5.F.string_input ?a ~input_type:`Submit ~value ()
 
-let late_content ~service get_params post_params =
+let late_content server_function param =
   let static_dir = Eliom_service.static_dir () in
   let alt = "loader" in
   let src = Html5.F.make_uri ~service:static_dir ["loader.gif"] in
@@ -50,8 +50,7 @@ let late_content ~service get_params post_params =
   ignore {unit{
     Lwt.async
       (fun () ->
-        let service = %service in
-        Eliom_client.call_caml_service ~service %get_params %post_params
+        %server_function %param
         >>= fun content ->
         Eliom_content.Html5.Manip.replaceAllChild %div content;
         Lwt.return ()
@@ -475,9 +474,8 @@ object (self)
              [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] f1 []]
           ]
       in
-      let service = User_services.service_view_group_first_flow5 in
-      Eliom_registration.Ocaml.register ~service (fun () -> content);
-      late_content ~service () ()
+      let server_function = server_function Json.t<unit> content in
+      late_content server_function ()
     in
     (* Adding the group to groups *)
     lwt f2 =
@@ -497,9 +495,8 @@ object (self)
              [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] f2 []]
           ]
       in
-      let service = User_services.service_view_group_second_flow5 in
-      Eliom_registration.Ocaml.register ~service (fun () -> content);
-      late_content ~service () ()
+      let server_function = server_function Json.t<unit> content in
+      late_content server_function ()
     in
     lwt g = User_sql.get_user_data group in
     lwt can_change = User_data.can_change_user_data_by_user group in
