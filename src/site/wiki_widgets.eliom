@@ -242,7 +242,7 @@ object (self)
                let scroll = Dom_html.getDocumentScroll () in
                Eliom_client.change_page
                  ~service: %Wiki_services.Ui.preview_service
-                 () ( %wiki_page, ( %wb, content))
+                 () (%wiki_page, (%wb, content))
                >>= fun () ->
                Dom_html.window##scroll (fst scroll, snd scroll);
                Lwt.return ()
@@ -283,7 +283,7 @@ object (self)
                     (lwt _version =
                        Eliom_client.call_caml_service
                          ~service: %Wiki_services.API.set_wikibox_content
-                         () ( %wiki_page, ( %wb, Js.to_string textarea##value))
+                         () (%wiki_page, (%wb, Js.to_string textarea##value))
                      in
                      Eliom_client.change_page ~service:Eliom_service.void_coservice' () ());
                   Js._true))
@@ -295,7 +295,7 @@ object (self)
         Eliom_client.window_open
           ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
           ~window_features:(Js.string "alwaysRaised=yes,width=800,height=600,location=no,dependent=yes")
-          ~service:( %Wiki_services.Ui.edit_service )
+          ~service:%Wiki_services.Ui.edit_service
           %wb
       in
       edit_window##onload <- Dom.full_handler onload
@@ -1835,7 +1835,7 @@ object (self)
                in
                if Js.to_bool answer then
                  Eliom_client.exit_to ~service:%Wiki_services.delete_wiki ()
-                   ( %param, %delete)
+                   (%param, %delete)
                else
                  ()
              }};

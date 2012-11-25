@@ -86,8 +86,8 @@ let register_wikibox_syntax_extensions
                   ~a:[Html5.F.a_onload {{ fun _ ->
                     ignore (
                       match_lwt Eliom_client.call_caml_service ~keep_get_na_params:true
-                        ~service:( %Wiki_services.wikibox_contents )
-                        ( %box, %page, %override ) () with
+                        ~service:%Wiki_services.wikibox_contents
+                        (%box, %page, %override) () with
                         | None ->
                           Eliom_lib.debug "box not allowed for display";
                           Lwt.return ()
