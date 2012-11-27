@@ -41,6 +41,44 @@ let grouped_by_media wb_list_with_media =
     | pair :: rest -> pair :: insert_by_media wb_media rest in
   List.fold_right insert_by_media wb_list_with_media []
 
+{client{
+  let opera_hack = "onload_edit_window"
+}}
+
+let () =
+  Ocsimore_appl.register
+    ~service:Wiki_services.Ui.edit_service
+    (fun wb () ->
+      lwt wiki = Wiki_sql.wikibox_wiki wb in
+      lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
+      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
+      let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
+      lwt _, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
+      let content = match opt_content with | Some c -> c | None -> "DELETED" in
+      lwt () = Wiki_services.add_wiki_css_header () in
+      lwt headers = Page_site.Header.generate_headers () in
+      ignore {unit{
+        Js.Unsafe.eval_string ("self.opener." ^ opera_hack ^ "(window)")
+      }};
+      Lwt.return Html5.D.(
+        html
+          (head (title (pcdata heading)) headers)
+          (body [
+            h1 [pcdata heading];
+            Raw.textarea ~a:[
+              a_id Wiki_services.preview_textarea_id;
+              a_class ["wikitextarea"];
+              a_rows 25; a_cols 80;
+            ] (pcdata content);
+            raw_input ~input_type:`Submit ~a:[a_id Wiki_services.save_id; a_value "Save"] ();
+            Html5.F.pcdata " ";
+            Html5.F.a
+              ~service:(Wiki_services.get_wikisyntax_helper ())
+              [Html5.F.pcdata "Wiki syntax helper"] ();
+            Html5.F.pcdata ". The preview is available directly in the page you come from.";
+          ])
+      )
+    )
 
 let hidden_page_inputs (page_wiki, page_path) (page_wiki_name, (empty_page_path_name, page_path_name)) =
   Ocsimore_common.input_opaque_int32 ~value:page_wiki page_wiki_name ::
@@ -298,7 +336,10 @@ object (self)
           ~service:%Wiki_services.Ui.edit_service
           %wb
       in
-      edit_window##onload <- Dom.full_handler onload
+      (** onload method with new window doesn't works with opera *)
+      (*edit_window##onload <- Dom.full_handler onload*)
+      (** This hack (for having opera works) needs a non-standard method :( *)
+      Js.Unsafe.set Dom_html.window (Js.string opera_hack) onload;
     }} in
     let delete_service = preapply
       ~service:Wiki_services.action_delete_wikibox

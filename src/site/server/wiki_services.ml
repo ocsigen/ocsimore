@@ -713,36 +713,10 @@ module Ui = struct
       ()
 
   let edit_service =
-    Ocsimore_appl.register_coservice'
+    Eliom_service.coservice'
       ~name:"edit_service"
       ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
-      (fun wb () ->
-         lwt wiki = Wiki_sql.wikibox_wiki wb in
-         lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
-         lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
-         let heading = "Editing wikibox "^Wiki_types.string_of_wikibox wb in
-         lwt _, opt_content, _version = Wiki_data.wikibox_content ~rights wb in
-         let content = match opt_content with | Some c -> c | None -> "DELETED" in
-         lwt () = add_wiki_css_header () in
-         lwt headers = Page_site.Header.generate_headers () in
-         Lwt.return Html5.D.(
-           html
-             (head (title (pcdata heading)) headers)
-             (body [
-               h1 [pcdata heading];
-               Raw.textarea ~a:[
-                 a_id preview_textarea_id;
-                 a_class ["wikitextarea"];
-                 a_rows 25; a_cols 80;
-               ] (pcdata content);
-               raw_input ~input_type:`Submit ~a:[a_id save_id; a_value "Save"] ();
-               Html5.F.pcdata " ";
-               Html5.F.a
-                 ~service:(get_wikisyntax_helper ())
-                 [Html5.F.pcdata "Wiki syntax helper"] ();
-               Html5.F.pcdata ". The preview is available directly in the page you come from.";
-             ])
-         ))
+      ()
 
   let edit_css_service =
     Ocsimore_appl.register_coservice'
