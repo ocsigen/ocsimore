@@ -92,6 +92,8 @@ object (_self)
 
 end
 
+module Atom_feed = Atom_feed.Make(Eliom_content.Xml)
+
 class message_widget
   (widget_with_error_box : Widget.widget_with_error_box)
   (wiki_widgets : Wiki_widgets_interface.interactive_wikibox)
@@ -108,7 +110,8 @@ class message_widget
         ~bi
         wikibox
     in
-    Lwt.return content
+    (*!!! ugly cast: html5 to xhtml !!!*)
+    Lwt.return ( Atom_feed.Xhtml.totl (Html5.F.Raw.toeltl content) )
   in
 
   let atom_title forum_info msg_info =
@@ -116,7 +119,7 @@ class message_widget
       | None -> Lwt.return (Atom_feed.plain "")
       | Some subject ->
         lwt subject = xhtml_of_wb forum_info.f_comments_wiki subject in
-        Lwt.return (Atom_feed.html5 subject)
+        Lwt.return (Atom_feed.xhtml subject)
   in
 
 object (self)
@@ -222,9 +225,9 @@ object (self)
     lwt content =
       lwt content = xhtml_of_wb forum_info.f_messages_wiki
         msg_info.m_wikibox in
-      Lwt.return (Atom_feed.html5C content)
+      Lwt.return (Atom_feed.xhtmlC content)
     in
-    let id = Int32.to_string (Opaque.t_int32 msg_info.m_id) in
+    let id = Xml.uri_of_fun (fun () -> Int32.to_string (Opaque.t_int32 msg_info.m_id)) in
     Lwt.return
       ( Atom_feed.entry ~updated:msg_info.m_datetime ~id ~title [content] )
 
@@ -237,7 +240,8 @@ object (self)
 
   method atom_childs ~message =
     lwt msg_list = Forum_data.get_childs ~message_id:message in
-    let id = "message_"^(Int32.to_string (Opaque.t_int32 message)) in
+    let id = Xml.uri_of_fun
+      (fun () -> "message_"^(Int32.to_string (Opaque.t_int32 message))) in
     lwt entries = self#atom_entries msg_list in
     let updated = last_msg_date msg_list in
     lwt msg_info = Forum_data.get_message ~message_id:message in
@@ -473,7 +477,8 @@ object (self)
     lwt msg_list = Lwt_list.map_s
       Forum_data.message_info_of_raw_message msg_list in
     lwt entries = message_widget#atom_entries msg_list in
-    let id = "forum_"^(Int32.to_string (Opaque.t_int32 forum_info.f_id)) in
+    let id = Xml.uri_of_fun
+      (fun () -> "forum_"^(Int32.to_string (Opaque.t_int32 forum_info.f_id))) in
     let title = Atom_feed.plain forum_info.f_title in
     let updated = last_msg_date msg_list in
     Lwt.return (Atom_feed.feed

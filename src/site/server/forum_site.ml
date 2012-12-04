@@ -180,6 +180,8 @@ let create_forum =
 
 (** We register the service that lists all the forums *)
 
+module Eliom_atom = Eliom_atom.Make(Eliom_content.Xml)
+
 let () = Lwt_main.run (
   lwt wiki_widgets = Wiki_models.get_widgets wikicreole_forum_model in
   let wiki_phrasing_widgets = new Wiki_widgets.phrasing_wikibox Wiki_site.error_box User_site.user_widget in
