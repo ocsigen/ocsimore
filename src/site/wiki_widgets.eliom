@@ -1833,10 +1833,11 @@ object (self)
          Lwt.t) Lwt.t) in
      self#display_container ~wiki ~sectioning ~menu_style ~page ~gen_box
 
-   method display_all_wikis =
+   method display_all_wikis ~deleted () =
      (* Lists of all wikis *)
      let l = ref [] in
-     Wiki_sql.iter_wikis (fun w -> Lwt.return (l := w :: !l)) >>= fun () ->
+     Wiki_sql.iter_wikis ~deleted (fun w -> Lwt.return (l := w :: !l))
+     >>= fun () ->
      let l =
        List.sort (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l
      in
@@ -1968,8 +1969,23 @@ object (self)
        Lwt.return (acc @ line)
      ) [] l
      >>= fun l ->
+     let link_deleted =
+       let message = match deleted with
+         | true ->
+             "The non-deleted wikis are not listed. To see them, please click "
+         | false ->
+             "The deleted wikis are not listed. To see them, please click "
+       in
+       Html5.F.p
+         [ Html5.F.pcdata message;
+           Html5.F.a
+             ~service:Wiki_services.view_wikis
+             [Html5.F.pcdata "here"]
+             (not deleted);
+         ]
+     in
      Lwt.return
-       [ Html5.F.table ~a:[Html5.F.a_class ["table_admin"]]
+       (Html5.F.table ~a:[Html5.F.a_class ["table_admin"]]
           (Html5.F.tr
              [Html5.F.th [Html5.F.pcdata "Id"];
               Html5.F.th [Html5.F.pcdata "Wiki"];
@@ -1980,8 +1996,9 @@ object (self)
               Html5.F.th [Html5.F.pcdata ""];
              ]
           )
-          l;
-       ]
+          l
+        :: [link_deleted]
+       )
 
 end
 

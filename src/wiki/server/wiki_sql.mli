@@ -243,6 +243,7 @@ val update_wiki :
 (** Iterator on all the wikis  *)
 val iter_wikis :
   ?db: Ocsi_sql.db_t ->
+  ?deleted:bool ->
   (wiki_info -> unit Lwt.t) ->
   unit Lwt.t
 

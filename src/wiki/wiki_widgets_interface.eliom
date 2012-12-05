@@ -457,6 +457,8 @@ class type virtual interactive_wikibox =
     (** Display of the list of all the wikis, as well as of some links to edit
         their properties *)
     method display_all_wikis :
+      deleted:bool ->
+      unit ->
       Html5_types.flow5 Html5.F.elt list Lwt.t
 
     (** Display edit form *)
@@ -480,4 +482,3 @@ class type virtual interactive_wikibox =
       Html5_types.form_content Html5.F.elt list
 
   end
-

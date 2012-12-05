@@ -574,7 +574,10 @@ and edit_wiki = Eliom_service.service
 
 and view_wikis = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir;"view_wikis"]
-  ~get_params:Eliom_parameter.unit ()
+  ~get_params:(Eliom_parameter.bool "deleted") ()
+
+let view_wikis_preapplyed =
+  Eliom_service.preapply ~service:view_wikis false
 
 and view_boxes = Eliom_service.service
   ~path:[!Ocsimore_config.admin_dir;"view_boxes"]

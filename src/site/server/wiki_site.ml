@@ -100,9 +100,12 @@ let () =
 let () =
   Ocsimore_appl.register ~service:Wiki_services.view_wikis
     (Page_site.admin_body_content_with_permission_handler
-       ~title:(fun()()->Lwt.return "View wikis")
-       ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
-       ~display:(fun _ _ -> wikibox_widget#display_all_wikis))
+       ~title:(fun _ ()-> Lwt.return "View wikis")
+       ~permissions:(fun _ () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
+       ~display:(fun deleted () ->
+         wikibox_widget#display_all_wikis ~deleted ()
+       )
+    )
 
 
 (** (We create the wiki containing the administration boxes *)
@@ -380,11 +383,12 @@ let edit_wiki_form ~service ~arg
       ~wiki ~descr ~path ~boxrights ~staticdir ~container ~model ~siteid
       ?err_handler cont =
   lwt wiki_naming = wiki_naming wiki in
-  let page _arg error form =
+  let page arg error form =
     let title = match error with
       | Xform.NoError -> "Wiki edition "^wiki_naming
       | Xform.ErrorMsg _
       | Xform.ErrorNoMsg -> "Error editing "^wiki_naming in
+    let service = Eliom_service.preapply ~service false in
     Page_site.admin_page ~service:(cast_service service) ~title
       ((match error with
              | Xform.ErrorMsg err ->
@@ -430,7 +434,7 @@ let edit_wiki =
        rights#can_create_wiki () >>= function
          | true ->
              edit_wiki_form
-               ~service:Wiki_services.view_wikis ~arg:()
+               ~service:Wiki_services.view_wikis ~arg:false
                ~wiki ~descr:info.wiki_descr ~path:info.wiki_pages
                ~boxrights:info.wiki_boxrights ~staticdir:info.wiki_staticdir
                ~container:info.wiki_container ~model:info.wiki_model
@@ -443,7 +447,7 @@ let edit_wiki =
                     ~staticdir ~container ~model ~siteid wiki
                   >>= fun () ->
                   Page_site.admin_page
-                    ~service:Wiki_services.view_wikis
+                    ~service:Wiki_services.view_wikis_preapplyed
                     ~title:(Printf.sprintf "Edit wiki %S" wiki_info.wiki_title)
                     Html5.F.([h2 [pcdata "Wiki information sucessfully edited"]])
                )
@@ -634,7 +638,7 @@ let () =
         else
           Page_site.no_permission () >>= Page_site.admin_page ~title:"Replace links")
 
-let wiki_root = Wiki_services.view_wikis
+let wiki_root = Wiki_services.view_wikis_preapplyed
 
 let () = Ocsimore_appl.register
   ~service:Wiki_services.edit_wiki_permissions_admin
@@ -644,13 +648,13 @@ let () = Ocsimore_appl.register
      >|= fun { Wiki_types.wiki_title; _ } -> wiki_title in
      Page_site.admin_page
        ~title:(Printf.sprintf "Edit permissions of wiki %S" wiki_name)
-       ~service:Wiki_services.view_wikis
+       ~service:Wiki_services.view_wikis_preapplyed
        [Html5.F.div form]
   )
 
 let () = Page_site.add_to_admin_menu ~root:wiki_root ~name:"Wikis"
   ~links:[
-    "View all wikis", Wiki_services.view_wikis, (fun () -> Lwt.return true);
+    "View all wikis", Wiki_services.view_wikis_preapplyed, (fun () -> Lwt.return true);
     "Create a new wiki", create_wiki, wiki_rights#can_create_wiki;
   ]
 
@@ -699,4 +703,3 @@ let () =
                  ])
              )
        | e -> Lwt.fail e)
-

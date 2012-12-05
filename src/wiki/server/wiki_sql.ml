@@ -473,10 +473,13 @@ let find_wiki_by_pages_ ?db page =
         | None -> Lwt.fail Not_found
     )
 
-let iter_wikis ?db f =
+let iter_wikis ?db ?(deleted=false) f =
   wrap db
     (fun db ->
-       Lwt_Query.view db (<:view< w | w in $wikis$ >>) >>= fun l ->
+       Lwt_Query.view db (<:view< w |
+           w in $wikis$;
+           w.deleted = $bool:deleted$ >>)
+       >>= fun l ->
        Lwt_list.iter_p (fun wiki_info -> f (reencapsulate_wiki wiki_info)) l)
 
 
