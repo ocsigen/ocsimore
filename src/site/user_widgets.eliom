@@ -303,7 +303,7 @@ object (self)
       let remove = ref %remove in
       let button = Eliom_content.Html5.To_dom.of_button %button in
       Lwt.ignore_result (
-        Lwt_js_events.clicks button (fun _ ->
+        Lwt_js_events.clicks button (fun _ _ ->
           let service =
             if !remove
             then %User_services.action_remove_user_from_group
