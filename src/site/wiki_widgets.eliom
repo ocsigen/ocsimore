@@ -1859,7 +1859,8 @@ object (self)
            let path_length = List.length path in
            let html_of_path' acc path =
              let last_path = List.map fst acc in
-             let pagename = Neturl.join_path (last_path @ [path]) in
+             let full_path = last_path @ [path] in
+             let pagename = Neturl.join_path full_path in
              let length = List.length acc in
              let level = length * 5 in
              let level = string_of_int (if level > 80 then 80 else level) in
@@ -1874,7 +1875,7 @@ object (self)
                      [Html5.D.a
                          ~service
                          [Html5.F.pcdata path]
-                         [pagename]
+                         full_path
                      ]
                | _ -> container [Html5.F.pcdata path]
              in
