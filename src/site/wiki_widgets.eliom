@@ -1836,14 +1836,43 @@ object (self)
    method display_all_wikis ~deleted () =
      (* Lists of all wikis *)
      let l = ref [] in
-     Wiki_sql.iter_wikis ~deleted (fun w -> Lwt.return (l := w :: !l))
+     Wiki_sql.iter_wikis
+       ~deleted
+       (fun w ->
+         Wiki_sql.get_wikipages_of_a_wiki ~wiki:w.wiki_id ()
+         >>= fun wikipages ->
+         Lwt.return (l := (w, wikipages) :: !l)
+       )
      >>= fun () ->
      let l =
-       List.sort (fun w1 w2 -> compare w1.wiki_title w2.wiki_title) !l
+       List.sort
+         (fun (w1, _) (w2, _) -> compare w1.wiki_title w2.wiki_title) !l
      in
-
-     let wiki_line w =
+     let wiki_line (w, wikipages) =
        let servpage = Wiki_self_services.find_servpage w.wiki_id in
+       let wikipages =
+         let html_of_wikipage wikipage =
+           let pagename = Sql.get wikipage#pagename in
+           let name = match servpage with
+             | None -> Html5.F.strong [Html5.F.pcdata pagename]
+             | Some service ->
+                 Html5.F.strong
+                   [Html5.D.a ~service
+                       [Html5.F.pcdata pagename] [pagename]
+                   ]
+           in
+           Html5.F.tr
+             [Html5.F.td [];
+              Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
+              Html5.F.td [];
+              Html5.F.td [];
+              Html5.F.td [];
+              Html5.F.td [];
+              Html5.F.td [];
+             ]
+         in
+         List.map html_of_wikipage wikipages
+       in
        let line =
          let img path text = [Page_site.icon ~path ~text] in
          let id = Opaque.int32_t_to_string w.wiki_id in
@@ -1907,30 +1936,6 @@ object (self)
             ]
          )
        in
-       Wiki_sql.get_wikipages_of_a_wiki ~wiki:w.wiki_id ()
-       >>= (fun wikipages ->
-         Lwt_list.map_s
-           (fun wikipage -> Lwt.return (
-             let pagename = Sql.get wikipage#pagename in
-             let name = match servpage with
-               | None -> Html5.F.strong [Html5.F.pcdata pagename]
-               | Some service ->
-                   Html5.F.strong
-                     [Html5.D.a ~service
-                         [Html5.F.pcdata pagename] [pagename]
-                     ]
-             in
-             Html5.F.tr
-               [Html5.F.td [];
-                Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
-                Html5.F.td [];
-                Html5.F.td [];
-                Html5.F.td [];
-                Html5.F.td [];
-                Html5.F.td [];
-               ]
-            )) wikipages
-       ) >>= fun lines_wikipages ->
        Wiki_models.get_rights w.wiki_model
        >>= fun rights ->
        rights#can_create_wikipages w.wiki_id
@@ -1961,7 +1966,7 @@ object (self)
          ]
          else []
        in
-       Lwt.return (line :: lines_wikipages @ add_wikipage)
+       Lwt.return (line :: wikipages @ add_wikipage)
      in
      Lwt_list.fold_left_s (fun acc x ->
        wiki_line x
