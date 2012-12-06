@@ -1856,10 +1856,12 @@ object (self)
              let pagename = Sql.get wikipage#pagename in
              Neturl.split_path pagename
            in
+           let path_length = List.length path in
            let html_of_path' acc path =
              let last_path = List.map fst acc in
              let pagename = Neturl.join_path (last_path @ [path]) in
-             let level = List.length acc * 5 in
+             let length = List.length acc in
+             let level = length * 5 in
              let level = string_of_int (if level > 80 then 80 else level) in
              let container x =
                Html5.F.strong
@@ -1867,14 +1869,14 @@ object (self)
                  (Html5.F.pcdata "`- " :: x)
              in
              let name = match servpage with
-               | None -> container [Html5.F.pcdata path]
-               | Some service ->
+               | Some service when length + 1 = path_length ->
                    container
                      [Html5.D.a
                          ~service
                          [Html5.F.pcdata path]
                          [pagename]
                      ]
+               | _ -> container [Html5.F.pcdata path]
              in
              acc
              @ [(path,
