@@ -1852,26 +1852,46 @@ object (self)
        let servpage = Wiki_self_services.find_servpage w.wiki_id in
        let wikipages =
          let html_of_wikipage wikipage =
-           let pagename = Sql.get wikipage#pagename in
-           let name = match servpage with
-             | None -> Html5.F.strong [Html5.F.pcdata pagename]
-             | Some service ->
-                 Html5.F.strong
-                   [Html5.D.a ~service
-                       [Html5.F.pcdata pagename] [pagename]
-                   ]
+           let path =
+             let pagename = Sql.get wikipage#pagename in
+             Neturl.split_path pagename
            in
-           Html5.F.tr
-             [Html5.F.td [];
-              Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
-              Html5.F.td [];
-              Html5.F.td [];
-              Html5.F.td [];
-              Html5.F.td [];
-              Html5.F.td [];
-             ]
+           let html_of_path' acc path =
+             let last_path = List.map fst acc in
+             let pagename = Neturl.join_path (last_path @ [path]) in
+             let level = List.length acc * 5 in
+             let level = string_of_int (if level > 80 then 80 else level) in
+             let container x =
+               Html5.F.strong
+                 ~a:[Html5.F.a_style ("margin-left: " ^ level ^ "%;")]
+                 (Html5.F.pcdata "`- " :: x)
+             in
+             let name = match servpage with
+               | None -> container [Html5.F.pcdata path]
+               | Some service ->
+                   container
+                     [Html5.D.a
+                         ~service
+                         [Html5.F.pcdata path]
+                         [pagename]
+                     ]
+             in
+             acc
+             @ [(path,
+                 Html5.F.tr
+                   [Html5.F.td [];
+                    Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
+                    Html5.F.td [];
+                    Html5.F.td [];
+                    Html5.F.td [];
+                    Html5.F.td [];
+                    Html5.F.td [];
+                   ]
+             )]
+           in
+           List.map snd (List.fold_left html_of_path' [] path)
          in
-         List.map html_of_wikipage wikipages
+         List.fold_left (fun acc w -> acc @ html_of_wikipage w) [] wikipages
        in
        let line =
          let img path text = [Page_site.icon ~path ~text] in
