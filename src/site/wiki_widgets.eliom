@@ -1851,17 +1851,18 @@ object (self)
      let wiki_line (w, wikipages) =
        let servpage = Wiki_self_services.find_servpage w.wiki_id in
        let wikipages =
+         let hashtbl = Hashtbl.create 10 in
+         let pos = ref 0 in
          let html_of_wikipage wikipage =
            let path =
              let pagename = Sql.get wikipage#pagename in
              Neturl.split_path pagename
            in
            let path_length = List.length path in
-           let html_of_path' acc path =
-             let last_path = List.map fst acc in
-             let full_path = last_path @ [path] in
-             let pagename = Neturl.join_path full_path in
-             let length = List.length acc in
+           let last_path = ref [] in
+           let html_of_path path =
+             let full_path = !last_path @ [path] in
+             let length = List.length !last_path in
              let level = length * 5 in
              let level = string_of_int (if level > 80 then 80 else level) in
              let container x =
@@ -1869,8 +1870,9 @@ object (self)
                  ~a:[Html5.F.a_style ("margin-left: " ^ level ^ "%;")]
                  (Html5.F.pcdata "`- " :: x)
              in
+             let link_cond = length + 1 = path_length in
              let name = match servpage with
-               | Some service when length + 1 = path_length ->
+               | Some service when link_cond ->
                    container
                      [Html5.D.a
                          ~service
@@ -1879,22 +1881,50 @@ object (self)
                      ]
                | _ -> container [Html5.F.pcdata path]
              in
-             acc
-             @ [(path,
-                 Html5.F.tr
-                   [Html5.F.td [];
-                    Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
-                    Html5.F.td [];
-                    Html5.F.td [];
-                    Html5.F.td [];
-                    Html5.F.td [];
-                    Html5.F.td [];
-                   ]
-             )]
+             let (exists, linked, new_pos) =
+               try
+                 let (linked, (pos, _)) = Hashtbl.find hashtbl full_path in
+                 (true, linked, pos)
+               with Not_found -> (false, false, !pos)
+             in
+             last_path := full_path;
+             pos := succ !pos;
+             if not exists || (not linked && link_cond) then begin
+               let f =
+                 if exists then Hashtbl.replace else Hashtbl.add
+               in
+               f hashtbl
+                 full_path
+                 (link_cond,
+                  (new_pos,
+                   Html5.F.tr
+                     [Html5.F.td [];
+                      Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
+                      Html5.F.td [];
+                      Html5.F.td [];
+                      Html5.F.td [];
+                      Html5.F.td [];
+                      Html5.F.td [];
+                     ]
+                  )
+                 )
+             end
            in
-           List.map snd (List.fold_left html_of_path' [] path)
+           List.iter html_of_path path
          in
-         List.fold_left (fun acc w -> acc @ html_of_wikipage w) [] wikipages
+         List.iter html_of_wikipage wikipages;
+         let hashtbl_result =
+           Hashtbl.fold
+             (fun _ (_, elt) acc -> elt :: acc)
+             hashtbl
+             []
+         in
+         let sorted_list =
+           List.sort
+             (fun (pos1, _) (pos2, _) -> pos1 - pos2)
+             hashtbl_result
+         in
+         List.map snd sorted_list
        in
        let line =
          let img path text = [Page_site.icon ~path ~text] in
