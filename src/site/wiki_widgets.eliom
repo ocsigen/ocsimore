@@ -1839,8 +1839,15 @@ object (self)
      Wiki_sql.iter_wikis
        ~deleted
        (fun w ->
+         let paths_of_wikipages wikipages =
+           let to_path wikipage =
+             let pagename = Sql.get wikipage#pagename in
+             Neturl.split_path pagename
+           in
+           Lwt.return (List.sort compare (List.map to_path wikipages))
+         in
          Wiki_sql.get_wikipages_of_a_wiki ~wiki:w.wiki_id ()
-         >>= fun wikipages ->
+         >>= paths_of_wikipages >>= fun wikipages ->
          Lwt.return (l := (w, wikipages) :: !l)
        )
      >>= fun () ->
@@ -1854,11 +1861,7 @@ object (self)
          let hashtbl = Hashtbl.create 10 in
          let pos = ref 0 in
          let html_of_wikipage wikipage =
-           let path =
-             let pagename = Sql.get wikipage#pagename in
-             Neturl.split_path pagename
-           in
-           let path_length = List.length path in
+           let path_length = List.length wikipage in
            let last_path = ref [] in
            let html_of_path path =
              let full_path = !last_path @ [path] in
@@ -1910,7 +1913,7 @@ object (self)
                  )
              end
            in
-           List.iter html_of_path path
+           List.iter html_of_path wikipage
          in
          List.iter html_of_wikipage wikipages;
          let hashtbl_result =
