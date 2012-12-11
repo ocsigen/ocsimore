@@ -1866,27 +1866,10 @@ object (self)
            let html_of_path path =
              let full_path = !last_path @ [path] in
              let length = List.length !last_path in
-             let level = length * 5 in
-             let level = string_of_int (if level > 80 then 80 else level) in
-             let container x =
-               Html5.F.strong
-                 ~a:[Html5.F.a_style ("margin-left: " ^ level ^ "%;")]
-                 (Html5.F.pcdata "`- " :: x)
-             in
              let link_cond = length + 1 = path_length in
-             let name = match servpage with
-               | Some service when link_cond ->
-                   container
-                     [Html5.D.a
-                         ~service
-                         [Html5.F.pcdata path]
-                         full_path
-                     ]
-               | _ -> container [Html5.F.pcdata path]
-             in
              let (exists, linked, new_pos) =
                try
-                 let (linked, (pos, _)) = Hashtbl.find hashtbl full_path in
+                 let (linked, pos, _, _) = Hashtbl.find hashtbl full_path in
                  (true, linked, pos)
                with Not_found -> (false, false, !pos)
              in
@@ -1896,21 +1879,7 @@ object (self)
                let f =
                  if exists then Hashtbl.replace else Hashtbl.add
                in
-               f hashtbl
-                 full_path
-                 (link_cond,
-                  (new_pos,
-                   Html5.F.tr
-                     [Html5.F.td [];
-                      Html5.F.td ~a:[Html5.F.a_class ["wikiname"]] [name];
-                      Html5.F.td [];
-                      Html5.F.td [];
-                      Html5.F.td [];
-                      Html5.F.td [];
-                      Html5.F.td [];
-                     ]
-                  )
-                 )
+               f hashtbl full_path (link_cond, new_pos, path, length)
              end
            in
            List.iter html_of_path wikipage
@@ -1918,16 +1887,48 @@ object (self)
          List.iter html_of_wikipage wikipages;
          let hashtbl_result =
            Hashtbl.fold
-             (fun _ (_, elt) acc -> elt :: acc)
+             (fun full_path (link_cond, pos, path, length) acc ->
+               (link_cond, pos, path, full_path, length) :: acc
+             )
              hashtbl
              []
          in
          let sorted_list =
            List.sort
-             (fun (pos1, _) (pos2, _) -> pos1 - pos2)
+             (fun (_, pos1, _, _, _) (_, pos2, _, _, _) -> pos1 - pos2)
              hashtbl_result
          in
-         List.map snd sorted_list
+         let create_elt (link_cond, _, path, full_path, length') =
+           match servpage with
+             | Some service when link_cond ->
+                 Html5.F.strong
+                   [Html5.D.a
+                       ~service
+                       [Html5.F.pcdata path]
+                       full_path
+                   ]
+             | _ -> Html5.F.strong [Html5.F.pcdata path]
+         in
+         let rec create_elts length = function
+           | ((_, _, _, _, length') as x)::xs when length' = length ->
+               Html5.F.li
+                 (create_elt x :: [Html5.F.ul (create_elts (succ length) xs)])
+               :: create_elts length xs
+           | (_, _, _, _, length')::xs when length' > length ->
+               create_elts length xs
+           | _ -> []
+         in
+         Html5.F.tr
+           [Html5.F.td [];
+            Html5.F.td
+              ~a:[Html5.F.a_class ["wikiname"]]
+              [Html5.F.ul (create_elts 0 sorted_list)];
+            Html5.F.td [];
+            Html5.F.td [];
+            Html5.F.td [];
+            Html5.F.td [];
+            Html5.F.td [];
+           ]
        in
        let line =
          let img path text = [Page_site.icon ~path ~text] in
@@ -2022,7 +2023,7 @@ object (self)
          ]
          else []
        in
-       Lwt.return (line :: wikipages @ add_wikipage)
+       Lwt.return (line :: wikipages :: add_wikipage)
      in
      Lwt_list.fold_left_s (fun acc x ->
        wiki_line x
