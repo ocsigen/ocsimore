@@ -305,7 +305,12 @@ Document "api"
     ocsimore,
     ocsimore.user,
     ocsimore.wiki,
-    ocsimore.forum
+    ocsimore.forum,
+    ocsimore.site,
+    ocsimore.wiki_site,
+    ocsimore.user_site,
+    ocsimore.forum_site,
+    ocsimore.wiki_perso
 
 # +-------------------------------------------------------------------+
 # | Misc                                                              |

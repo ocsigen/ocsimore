@@ -48,6 +48,49 @@ Forum_sql
 Forum_types
 }
 
+{2 Core site }
+
+{!modules:
+Ocsimore_appl
+Page_site
+}
+
+{2 User site }
+
+{!modules:
+User_site
+User_ext
+User_services
+User_widgets
+}
+
+{2 Wiki site }
+
+{!modules:
+Wiki_site
+HTML5outliner
+Wiki_ext
+Wiki_services
+Wiki_widgets
+Wiki_menu
+Wiki_dir
+}
+
+{2 Forum site }
+
+{!modules:
+Forum_site
+Forum_wikiext
+Forum_services
+Forum_widgets
+}
+
+{2 Wikiperso }
+
+{!modules:
+Wikiperso
+}
+
 {2 Index}
 
 {!indexlist}

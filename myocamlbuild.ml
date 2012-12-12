@@ -625,6 +625,8 @@ let () =
    depends on the threads, even for the type inferrence pass *)
 flag ["ocaml"; "infer_interface"; "thread"] (A"-thread");;
 flag ["ocaml"; "library"; "thread"] (A"-thread");;
+flag ["ocaml"; "doc"; "pkg_threads"] & A "-thread";;
+pflag ["ocaml"; "doc"] "need_eliom_type" (fun _ -> S [A "-ppopt"; A "-notype"]);;
 
 dep ["js_core_site_client"] ["src/site/client/ocsimore.js"];;
 
