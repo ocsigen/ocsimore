@@ -1836,15 +1836,23 @@ object (self)
    method display_all_wikis ~deleted () =
      (* Lists of all wikis *)
      let l = ref [] in
+     let module AUrl = Ocsimore_lib.Abstract_url in
      Wiki_sql.iter_wikis
        ~deleted
        (fun w ->
          let paths_of_wikipages wikipages =
-           let to_path wikipage =
+           let to_path acc wikipage =
              let pagename = Sql.get wikipage#pagename in
-             Neturl.split_path pagename
+             let wikipage = AUrl.split (AUrl.create pagename) in
+             acc
+             @ [List.filter
+                   (fun x -> not (List.exists (List.exists ((=) x)) acc))
+                   wikipage
+               ]
            in
-           Lwt.return (List.sort compare (List.map to_path wikipages))
+           let wikipages = List.fold_left to_path [] wikipages in
+           let wikipages = List.flatten wikipages in
+           Lwt.return (List.sort compare wikipages)
          in
          Wiki_sql.get_wikipages_of_a_wiki ~wiki:w.wiki_id ()
          >>= paths_of_wikipages >>= fun wikipages ->
@@ -1858,71 +1866,33 @@ object (self)
      let wiki_line (w, wikipages) =
        let servpage = Wiki_self_services.find_servpage w.wiki_id in
        let wikipages =
-         let hashtbl = Hashtbl.create 10 in
-         let pos = ref 0 in
-         let html_of_wikipage wikipage =
-           let path_length = List.length wikipage in
-           let last_path = ref [] in
-           let html_of_path path =
-             let full_path = !last_path @ [path] in
-             let length = List.length !last_path in
-             let link_cond = length + 1 = path_length in
-             let (exists, linked, new_pos) =
-               try
-                 let (linked, pos, _, _) = Hashtbl.find hashtbl full_path in
-                 (true, linked, pos)
-               with Not_found -> (false, false, !pos)
-             in
-             last_path := full_path;
-             pos := succ !pos;
-             if not exists || (not linked && link_cond) then begin
-               let f =
-                 if exists then Hashtbl.replace else Hashtbl.add
-               in
-               f hashtbl full_path (link_cond, new_pos, path, length)
-             end
-           in
-           List.iter html_of_path wikipage
-         in
-         List.iter html_of_wikipage wikipages;
-         let hashtbl_result =
-           Hashtbl.fold
-             (fun full_path (link_cond, pos, path, length) acc ->
-               (link_cond, pos, path, full_path, length) :: acc
-             )
-             hashtbl
-             []
-         in
-         let sorted_list =
-           List.sort
-             (fun (_, pos1, _, _, _) (_, pos2, _, _, _) -> pos1 - pos2)
-             hashtbl_result
-         in
-         let create_elt (link_cond, _, path, full_path, length') =
+         let create_elt full_path =
+           let length' = AUrl.length full_path in
+           let path = AUrl.last full_path in
            match servpage with
-             | Some service when link_cond ->
+             | Some service (*when link_cond*) ->
                  Html5.F.strong
                    [Html5.D.a
                        ~service
                        [Html5.F.pcdata path]
-                       full_path
+                       (AUrl.to_list full_path)
                    ]
              | _ -> Html5.F.strong [Html5.F.pcdata path]
          in
          let rec create_elts length = function
-           | ((_, _, _, _, length') as x)::xs when length' = length ->
+           | x::xs when AUrl.length x = length ->
                Html5.F.li
                  (create_elt x :: [Html5.F.ul (create_elts (succ length) xs)])
                :: create_elts length xs
-           | (_, _, _, _, length')::xs when length' > length ->
+           | x::xs when AUrl.length x > length ->
                create_elts length xs
-           | _ -> []
+           | x -> []
          in
          Html5.F.tr
            [Html5.F.td [];
             Html5.F.td
               ~a:[Html5.F.a_class ["wikiname"]]
-              [Html5.F.ul (create_elts 0 sorted_list)];
+              [Html5.F.ul (create_elts 1 wikipages)];
             Html5.F.td [];
             Html5.F.td [];
             Html5.F.td [];

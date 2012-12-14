@@ -205,3 +205,33 @@ let remove_spaces s =
   match Netstring_pcre.string_match remove_re s 0 with
   | None -> s
   | Some r -> Netstring_pcre.matched_group r 1 s
+
+module List = struct
+  include List
+  let last ~default l = try Eliom_lib.List.last l with Not_found -> default ()
+end
+
+module Abstract_url : sig
+  type t
+  val create : string -> t
+  val empty : t
+  val to_list : t -> string list
+  val to_string : t -> string
+  val join : t -> t -> t
+  val length : t -> int
+  val last : t -> string
+  val split : t -> t list
+end = struct
+  type t = string list
+  let create = Neturl.split_path
+  let empty = []
+  let to_list = id
+  let to_string = Neturl.join_path
+  let join = (@)
+  let length = List.length
+  let last = List.last ~default:(fun () -> "")
+  let split =
+    List.fold_left
+      (fun acc x -> acc @ [List.last ~default:(fun () -> empty) acc @ [x]])
+      []
+end
