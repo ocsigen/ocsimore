@@ -1841,18 +1841,11 @@ object (self)
        ~deleted
        (fun w ->
          let paths_of_wikipages wikipages =
-           let to_path acc wikipage =
+           let to_path wikipage =
              let pagename = Sql.get wikipage#pagename in
-             let wikipage = AUrl.split (AUrl.create pagename) in
-             acc
-             @ [List.filter
-                   (fun x -> not (List.exists (List.exists ((=) x)) acc))
-                   wikipage
-               ]
+             AUrl.create pagename
            in
-           let wikipages = List.fold_left to_path [] wikipages in
-           let wikipages = List.flatten wikipages in
-           Lwt.return (List.sort compare wikipages)
+           Lwt.return (List.map to_path wikipages)
          in
          Wiki_sql.get_wikipages_of_a_wiki ~wiki:w.wiki_id ()
          >>= paths_of_wikipages >>= fun wikipages ->
@@ -1870,7 +1863,7 @@ object (self)
            let length' = AUrl.length full_path in
            let path = AUrl.last full_path in
            match servpage with
-             | Some service (*when link_cond*) ->
+             | Some service when List.exists ((=) full_path) wikipages ->
                  Html5.F.strong
                    [Html5.D.a
                        ~service
@@ -1888,11 +1881,25 @@ object (self)
                create_elts length xs
            | x -> []
          in
+         let wikipages =
+           let split_path acc wikipage =
+             let wikipage = AUrl.split wikipage in
+             acc
+             @ [List.filter
+                   (fun x -> not (List.exists (List.exists ((=) x)) acc))
+                   wikipage
+               ]
+           in
+           let wikipages = List.fold_left split_path [] wikipages in
+           let wikipages = List.flatten wikipages in
+           let wikipages = List.sort compare wikipages in
+           create_elts 1 wikipages
+         in
          Html5.F.tr
            [Html5.F.td [];
             Html5.F.td
               ~a:[Html5.F.a_class ["wikiname"]]
-              [Html5.F.ul (create_elts 1 wikipages)];
+              [Html5.F.ul wikipages];
             Html5.F.td [];
             Html5.F.td [];
             Html5.F.td [];
