@@ -63,10 +63,9 @@ The new user needs no special role.
 
   $ sudo -u postgres createuser -P ocsimore
 
-Create a database called ocsimore and add the language plpgsql
+Create a database called ocsimore:
 
   $ sudo -u postgres createdb -E UTF-8 -O ocsimore ocsimore
-  $ createlang -U ocsimore plpgsql ocsimore
 
 Then populate the database:
 
