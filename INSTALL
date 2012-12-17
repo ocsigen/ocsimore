@@ -69,7 +69,7 @@ Create a database called ocsimore:
 
 Then populate the database:
 
-  $ psql -U ocsimore -f createdb.sql ocsimore
+  $ psql -U ocsimore -f src/files/createdb.sql ocsimore
 
 If something goes wrong, you can delete the database by typing:
 
