@@ -3,9 +3,9 @@
 * postgresql >= 8.2 (not for compiling)
 * ocaml
 * lwt >= 2.4.0
-* eliom >= 2.2
+* eliom >= 3.0
 * macaque >= 0.6
-* ocaml-safepass >= 1.0 (or 1.0.1 on x86)
+* ocaml-safepass >= 1.2
 * ocamlpam (optional)
 * ocamldap >= 2.2 (optional)
 
