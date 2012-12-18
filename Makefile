@@ -43,17 +43,11 @@ run: install-data
 restart: install-data
 	echo restart > /tmp/cpipe
 
+STATIC_DIR = ./local/var/www/static/
+
 .PHONY:
-install-data: /tmp/static
-	cp \
-	   ./local/var/www/static/*.css \
-	   ./local/var/www/static/*.png \
-	   ./local/var/www/static/*.gif \
-	   ./_build/src/site/client/ocsimore.js \
-	   $^
+install-data: ${STATIC_DIR}
+	cp ./_build/src/site/client/ocsimore.js $<
 
-/tmp/static:
-	mkdir $@
-
-/tmp/static/css:
-	mkdir $@
+${STATIC_DIR}:
+	mkdir -p $@
