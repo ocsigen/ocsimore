@@ -29,6 +29,19 @@ If you want system wide install, become root and install:
   $ sudo make install
 
 
+=== Database setup (common part) ===
+
+Adapt /etc/postgresql/.../pg_hba.conf to give ident access
+for user ocsimore by copying the following line at the right place
+(usually before the "local all all ident sameuser" line):
+
+  local ocsimore ocsimore password
+
+Restart postgresql, for example:
+
+  $ sudo /etc/init.d/postgresql restart
+
+
 === Database setup (automatic) ===
 
 Just run the init script with the postgres administrator:
@@ -41,19 +54,6 @@ Just run the init script with the postgres administrator:
   $ sudo -u postgres sh /usr/share/ocsimore/initdb.sh
 
 Note: If somting goes wrong, do the following common part, and retry.
-
-
-=== Database setup (common part) ===
-
-Adapt /etc/postgresql/.../pg_hba.conf to give ident access
-for user ocsimore by copying the following line at the right place
-(usually before the "local all all ident sameuser" line):
-
-  local ocsimore ocsimore password
-
-Restart postgresql, for example:
-
-  $ sudo /etc/init.d/postgresql restart
 
 
 === Database setup (manual) ===
