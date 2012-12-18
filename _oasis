@@ -62,7 +62,7 @@ Library "ocsimore"
     ../files/createdb.sql,
     ../files/initdb.sh,
     ../../INSTALL,
-    ../../local/etc/ocsigen/ocsimore.conf
+    ../files/ocsimore.conf
   BuildDepends:
     lwt.syntax (>= 2.4),
     macaque (>= 0.6),
