@@ -92,8 +92,11 @@ let () =
      rendering widget *)
 
   Ocsimore_appl.register ~service:User_services.service_view_group
-    (let service g _ =
-       User.get_user_by_name g >>= User_sql.user_type >|= function
+    (let bind_user g =
+       User.get_user_by_name g >>= User_sql.user_type
+     in
+     let service g _ =
+       bind_user g >|= function
          | `Group -> User_services.service_view_groups
          | `User -> User_services.service_view_users
          | `Role -> User_services.service_view_roles
@@ -112,8 +115,14 @@ let () =
              User.get_user_name () >>= fun current_user ->
              Lwt.return (current_user = user && user <> User.anonymous_login)
      in
+     let title g _ =
+       bind_user g >>= function
+         | `Group -> Lwt.return (Printf.sprintf "View group %S" g)
+         | `User -> Lwt.return (Printf.sprintf "View user %S" g)
+         | `Role -> Lwt.return (Printf.sprintf "View role %S" g)
+     in
      Page_site.admin_body_content_with_permission_handler
-       ~title:(fun g _ -> Lwt.return (Printf.sprintf "View group %S" g))
+       ~title
        ~permissions
        ~service
        ~display);
@@ -144,7 +153,7 @@ let () =
   Ocsimore_appl.register
     ~service:User_services.service_view_users
     (Page_site.admin_body_content_with_permission_handler
-       ~title:(fun _ _ -> Lwt.return "View groups")
+       ~title:(fun _ _ -> Lwt.return "View users")
        ~permissions:(fun _ _ -> User_data.can_view_users ())
        ~display:(fun _ _ -> user_widget#display_users));
 
