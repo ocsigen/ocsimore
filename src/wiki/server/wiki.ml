@@ -467,3 +467,9 @@ let default_bi ~wikibox ~rights =
     bi_menu_style = `Linear;
     bi_sectioning = false;
   }
+
+let (get_siteids, add_siteid) =
+  let siteids : string list ref = ref [] in
+  ((fun () -> !siteids),
+   (fun siteid -> siteids := !siteids @ [siteid])
+  )

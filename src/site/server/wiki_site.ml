@@ -45,6 +45,7 @@ let siteid =
     | [] -> Lwt.return data
 
     | (Simplexmlparser.Element ("siteid", ["id", id], []))::l ->
+        Wiki.add_siteid id;
         find_wikidata (Some id) l
 
     | _ ->
@@ -268,6 +269,13 @@ let model_input model =
         |> Wiki_types.wiki_model_of_string
     )
 
+let siteid_input siteid =
+  let siteid = Eliom_lib.Option.get (fun () -> "") siteid  in
+  let siteids = List.map (fun x -> (x, x)) ("" :: Wiki.get_siteids ()) in
+  select_single siteids siteid |> function
+    | "" -> None
+    | x -> Some x
+
 let create_wiki_form ~serv_path:_ ~service ~arg
     ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
     ~siteid
@@ -337,7 +345,10 @@ let create_wiki_form ~serv_path:_ ~service ~arg
                           place of tag <<content>>"
             (text_area ~a:[Html5.F.a_class ["default_textarea"]] container) @@
           label_input_tr ~label:"Wiki model" ~description:"For advanced users" models @@
-          label_input_tr ~label:"Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
+          label_input_tr
+            ~label:"Site id"
+            ~description:"Conditional loading of wikis, for advanced users"
+            (siteid_input siteid) @@
           tr (td (submit_button "Create")))
       |> cont)
   >>= fun form ->
