@@ -277,7 +277,7 @@ let siteid_input siteid =
     | x -> Some x
 
 let create_wiki_form ~serv_path:_ ~service ~arg
-    ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
+    ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~model
     ~siteid
     ?err_handler cont =
   let page _arg error frm =
@@ -337,13 +337,6 @@ let create_wiki_form ~serv_path:_ ~service ~arg
                           Check this box if you want to make possible to \
                           choose different permissions for some wikiboxes"
             (bool_checkbox boxrights) @@
-          label_input_tr
-            ~label:"Container text"
-            ~description:"If the wiki is associated to an URL, each wiki page \
-                          is composed of a container (shared by all pages) \
-                          and a content, inserted in the container at the \
-                          place of tag <<content>>"
-            (text_area ~a:[Html5.F.a_class ["default_textarea"]] container) @@
           label_input_tr ~label:"Wiki model" ~description:"For advanced users" models @@
           label_input_tr
             ~label:"Site identifier"
@@ -381,19 +374,17 @@ let create_wiki =
              create_wiki_form ~serv_path:path ~service:create_wiki ~arg:()
                ~title:"" ~descr:"" ~path:(Some "") ~boxrights:true
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
-               ~container:Wiki.default_container_page ~model:wikicreole_model
-               ~siteid ~err_handler
+               ~model:wikicreole_model ~siteid ~err_handler
                (fun (title, (descr, (path, (staticdir,
-                     (admins, (readers, (boxrights, (container,
-                      (model, (hid, (_ : bool))))))))))) () ->
+                     (admins, (readers, (boxrights, (model,
+                      (hid, (_ : bool)))))))))) () ->
                   let path = match path with
                     | None -> None
                     | Some p -> Some (Neturl.split_path p)
                   in
                   lwt wid =
                     Wiki_data.create_wiki ~title ~descr ?path ~boxrights
-                      ?staticdir ~admins ~readers
-                      ~container_text:container ~model ~rights:wiki_rights ()
+                      ?staticdir ~admins ~readers ~model ~rights:wiki_rights ()
                   in
                   let link = match path with
                     | None -> []
