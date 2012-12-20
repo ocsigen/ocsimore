@@ -266,11 +266,11 @@ let model_input model =
           models
        )
        (convert model)
-        |> Wiki_types.wiki_model_of_string
+     |> Wiki_types.wiki_model_of_string
     )
 
 let siteid_input siteid =
-  let siteid = Eliom_lib.Option.get (fun () -> "") siteid  in
+  let siteid = Eliom_lib.Option.get (fun () -> "") siteid in
   let siteids = List.map (fun x -> (x, x)) ("" :: Wiki.get_siteids ()) in
   select_single siteids siteid |> function
     | "" -> None
