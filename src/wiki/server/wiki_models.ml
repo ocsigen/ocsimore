@@ -55,7 +55,8 @@ let create_get_table () =
 let register_wiki_model,
     get_rights,
     get_default_content_type,
-    get_widgets =
+    get_widgets,
+    get_models =
   let get_table = create_get_table () in
   (fun ~name:k ~content_type:wm_syntax ~rights:wm_rights ~widgets:wm_widgets ->
      lwt t = get_table () in
@@ -76,7 +77,11 @@ let register_wiki_model,
      lwt t = get_table () in
      try Lwt.return (Hashtbl.find t k).wm_widgets
      with Not_found ->
-       Lwt.fail (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k)))
+       Lwt.fail (Wiki_model_does_not_exist (Wiki_types.string_of_wiki_model k))),
+  (fun () ->
+    get_table () >>= fun t ->
+    Lwt.return (Hashtbl.fold (fun x _ acc -> acc @ [x]) t [])
+  )
 
 
 (* Opening types... *)
@@ -262,4 +267,3 @@ let css_content_type =
     ~name:"css"
     ~preprocessor:identity_preprocessor
     ~parser_:(fun _bi s -> Lwt.return [Html5.F.pcdata s])
-

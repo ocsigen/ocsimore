@@ -45,6 +45,7 @@ val get_default_content_type :
   Wiki_types.wiki_model ->
   [> Html5_types.flow5] Html5.F.elt list Wiki_types.content_type Lwt.t
 val get_widgets : Wiki_types.wiki_model -> Wiki_widgets_interface.interactive_wikibox Lwt.t
+val get_models : unit -> Wiki_types.wiki_model list Lwt.t
 
 (** Table of wiki syntaxes. *)
 exception Content_type_does_not_exist of string
@@ -59,7 +60,7 @@ val preparse_string:
   wiki_preprocessor -> Wiki_types.wikibox -> string -> string Lwt.t
 
 (** See [Wiki_syntax_types.Preprocessor.desugar_string] *)
-val desugar_string : 
+val desugar_string :
   ?href_action:Wiki_syntax_types.link_action ->
   ?link_action:Wiki_syntax_types.link_action ->
   wiki_preprocessor -> Wiki_syntax_types.desugar_param -> string -> string Lwt.t

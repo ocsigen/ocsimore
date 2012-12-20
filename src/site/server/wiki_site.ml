@@ -252,9 +252,21 @@ let staticdir_input ?a staticdir =
 let cast_service service =
     (service :> Page_site.menu_link_service)
 
-let model_input ?a model =
-  string_input ?a (Wiki_types.string_of_wiki_model model)
-  |> Wiki_types.wiki_model_of_string
+let model_input model =
+  Wiki_models.get_models () >>= fun models ->
+  let convert = Wiki_types.string_of_wiki_model in
+  Lwt.return
+    (select_single
+       (List.map
+          (fun x ->
+            let x = convert x in
+            (x, x)
+          )
+          models
+       )
+       (convert model)
+        |> Wiki_types.wiki_model_of_string
+    )
 
 let create_wiki_form ~serv_path:_ ~service ~arg
     ~title ~descr ~path ~boxrights ~staticdir ~admins ~readers ~container ~model
@@ -278,6 +290,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg
         [frm]
       )
   in
+  model_input model >>= fun models ->
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (table
          (label_input_tr ~label:"Title"
@@ -298,7 +311,7 @@ let create_wiki_form ~serv_path:_ ~service ~arg
           label_input_tr
             ~label:"Container text"
             (text_area ~a:[Html5.F.a_class ["default_textarea"]] container) @@
-          label_input_tr ~label:"Wiki model" ~description:"For advanced users" (model_input model) @@
+          label_input_tr ~label:"Wiki model" ~description:"For advanced users" models @@
           label_input_tr ~label:"Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
           tr (td (submit_button "Create")))
       |> cont)
@@ -400,6 +413,7 @@ let edit_wiki_form ~service ~arg
        @  [form]
       )
   in
+  model_input model >>= fun models ->
     form ~fallback:service ~get_args:arg ~page ?err_handler
       (table
          (tr (td (Opaque.int32_input_xform ~a:[Html5.F.a_style "display: none"] wiki)) @@
@@ -413,7 +427,7 @@ let edit_wiki_form ~service ~arg
             (path_input path) @@
           label_input_tr ~label:"Authorize special permissions on wikiboxes" (bool_checkbox boxrights) @@
           label_input_tr ~label:"Serve static files from a local directory" (staticdir_input staticdir) @@
-          label_input_tr ~label:"Wiki model (for rights and wiki syntax)" (model_input model) @@
+          label_input_tr ~label:"Wiki model (for rights and wiki syntax)" models @@
           label_input_tr ~label:"Site id (for conditional loading of wikis)" (string_opt_input siteid) @@
           tr (td (submit_button "Save")))
       |> cont)
