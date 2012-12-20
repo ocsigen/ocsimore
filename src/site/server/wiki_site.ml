@@ -297,19 +297,44 @@ let create_wiki_form ~serv_path:_ ~service ~arg
             ~description:"used to identify the wiki in the database"
             (string_input title) @@
           label_input_tr ~label:"Description" (string_input descr) @@
-          label_input_tr ~label:"Link this wiki to an url: " (path_input path) @@
-          label_input_tr ~label:"Authorize special permissions on wikiboxes" (bool_checkbox boxrights) @@
-          label_input_tr ~label:"Serve static files from a local directory" (staticdir_input staticdir) @@
-          label_input_tr ~label:"Wiki admin"
+          label_input_tr
+            ~label:"Link this wiki to an url: "
+            ~description:"Enter the URL where you want to attach the wiki \
+                          (or leave empty if you don't want it to be \
+                          accessible through an URL)"
+            (path_input path) @@
+          label_input_tr
+            ~label:"Serve static files from a local directory"
+            ~description:"It is possible to associate a directory on the \
+                          server to the wiki. If the file corresponding to the \
+                          URL exists it will be sent, otherwise the wiki page \
+                          will be displayed"
+            (staticdir_input staticdir) @@
+          label_input_tr
+            ~label:"Wiki administrators"
+            ~description:"Users or groups who have all rights on the wiki \
+                          (create/delete wikiboxes, change permissions...)"
             (extensible_list "Add wiki admin" "" admins
                (fun adm ->
                   p (convert (string_input adm) User.user_from_userlogin_xform))) @@
-          label_input_tr ~label:"Wiki reader"
+          label_input_tr
+            ~label:"Who can read the wiki ?"
+            ~description:"Users or groups who can read the wiki"
             (extensible_list "Add wiki admin" "" admins
                (fun reader ->
                   p (convert (string_input reader) User.user_from_userlogin_xform))) @@
           label_input_tr
+            ~label:"Authorize special permissions on wikiboxes"
+            ~description:"By default, all wikiboxes have the same permissions. \
+                          Check this box if you want to make possible to \
+                          choose different permissions for some wikiboxes"
+            (bool_checkbox boxrights) @@
+          label_input_tr
             ~label:"Container text"
+            ~description:"If the wiki is associated to an URL, each wiki page \
+                          is composed of a container (shared by all pages) \
+                          and a content, inserted in the container at the \
+                          place of tag <<content>>"
             (text_area ~a:[Html5.F.a_class ["default_textarea"]] container) @@
           label_input_tr ~label:"Wiki model" ~description:"For advanced users" models @@
           label_input_tr ~label:"Site id" ~description:"Conditional loading of wikis, for advanced users" (string_opt_input siteid) @@
@@ -344,8 +369,8 @@ let create_wiki =
                ~staticdir:None ~admins:[u] ~readers:[User.anonymous_login]
                ~container:Wiki.default_container_page ~model:wikicreole_model
                ~siteid ~err_handler
-               (fun (title, (descr, (path, (boxrights,
-                     (staticdir, (admins, (readers, (container,
+               (fun (title, (descr, (path, (staticdir,
+                     (admins, (readers, (boxrights, (container,
                       (model, (hid, (_ : bool))))))))))) () ->
                   let path = match path with
                     | None -> None
