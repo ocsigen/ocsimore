@@ -346,8 +346,11 @@ let create_wiki_form ~serv_path:_ ~service ~arg
             (text_area ~a:[Html5.F.a_class ["default_textarea"]] container) @@
           label_input_tr ~label:"Wiki model" ~description:"For advanced users" models @@
           label_input_tr
-            ~label:"Site id"
-            ~description:"Conditional loading of wikis, for advanced users"
+            ~label:"Site identifier"
+            ~description:"Conditional loading of wikis (for advanced users). \
+                          If your Web server is serving several sites, attach \
+                          this wiki only to the site with this ID (in Ocsigen \
+                          server configuration file)"
             (siteid_input siteid) @@
           tr (td (submit_button "Create")))
       |> cont)
