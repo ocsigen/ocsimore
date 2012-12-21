@@ -327,29 +327,21 @@ let wrap_userdata userdata =
 
 
 let find_user_by_name_ name =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-      Lwt_Query.view_opt db
-        (<:view< u | u in $users$; u.login = $string:name$ >>)
-      >>= function
-        | None -> Lwt.fail NotAnUser
-        | Some r -> Lwt.return (wrap_userdata r))
+  Ocsi_sql.view_opt (<:view< u | u in $users$; u.login = $string:name$ >>)
+  >>= function
+    | None -> Lwt.fail NotAnUser
+    | Some r -> Lwt.return (wrap_userdata r)
 
 
 let find_user_by_id_ id =
   let id = sql_from_userid id in
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-      Lwt_Query.view_opt db (<:view< u | u in $users$; u.id = $int32:id$ >>)
-      >>= function
-        | None -> Lwt.fail NotAnUser
-        | Some r -> Lwt.return (wrap_userdata r))
+  Ocsi_sql.view_opt (<:view< u | u in $users$; u.id = $int32:id$ >>)
+  >>= function
+    | None -> Lwt.fail NotAnUser
+    | Some r -> Lwt.return (wrap_userdata r)
 
 let all_users () =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-      Lwt_Query.view db (<:view< u | u in $users$ >>)
-    )
+  Ocsi_sql.view (<:view< u | u in $users$ >>)
   >|= (List.map wrap_userdata)
   >>= fun list ->
   Lwt.return {
@@ -376,8 +368,7 @@ let all_users () =
 
 let delete_user_ ~userid =
   let userid = sql_from_userid userid in
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.query db (<:delete< d in $users$ | d.id = $int32:userid$ >>))
+  Ocsi_sql.query (<:delete< d in $users$ | d.id = $int32:userid$ >>)
 
 let update_data_ ~userid ?password ?fullname ?email ?dyn () =
   let userid = sql_from_userid userid in
@@ -428,67 +419,59 @@ let convert_generic_lists r1 r2 v =
 
 let groups_of_user_ ~user =
   let u, vu = sql_from_user user in
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       (match vu with
-          | None ->
-            Lwt_Query.view db (<:view< {
-              id = ur.groupid;
-              idarg = ur.groupidarg
-            } | ur in $userrights$; ur.id = $int32:u$;
-                is_null ur.idarg >>)
-              >>= fun l -> Lwt.return (convert_group_list l)
-          | Some vu ->
-              (* Standard inclusions *)
-            Lwt_Query.view db (<:view< {
-              id = ur.groupid;
-              idarg = ur.groupidarg
-            } | ur in $userrights$; ur.id = $int32:u$;
-                ur.idarg = nullable $int32:vu$ >>)
-              >>= fun r1 ->
-              (* Generic edges. If the database is correct, groupidarg
-                 is always [ct_parameterized_edge] *)
-              Lwt_Query.view db (<:view< {
-                id = ur.groupid
-              } | ur in $userrights$; ur.id = $int32:u$;
-                  ur.idarg = nullable $int32:ct_parameterized_edge$ >>)
-              >>= fun r2 ->
-              Lwt.return (convert_generic_lists r1 r2 vu)
-       )
-    )
+  match vu with
+    | None ->
+        Ocsi_sql.view (<:view< {
+          id = ur.groupid;
+          idarg = ur.groupidarg
+        } | ur in $userrights$; ur.id = $int32:u$;
+            is_null ur.idarg >>)
+        >>= fun l -> Lwt.return (convert_group_list l)
+    | Some vu ->
+        (* Standard inclusions *)
+        Ocsi_sql.view (<:view< {
+          id = ur.groupid;
+          idarg = ur.groupidarg
+        } | ur in $userrights$; ur.id = $int32:u$;
+            ur.idarg = nullable $int32:vu$ >>)
+        >>= fun r1 ->
+        (* Generic edges. If the database is correct, groupidarg
+           is always [ct_parameterized_edge] *)
+        Ocsi_sql.view (<:view< {
+          id = ur.groupid
+        } | ur in $userrights$; ur.id = $int32:u$;
+            ur.idarg = nullable $int32:ct_parameterized_edge$ >>)
+        >>= fun r2 ->
+        Lwt.return (convert_generic_lists r1 r2 vu)
 
 (* as above *)
 let users_in_group_ ?(generic=true) ~group =
   let g, vg = sql_from_user group in
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       (match vg with
-          | None ->
-            Lwt_Query.view db (<:view< {
-              ur.id;
-              ur.idarg
+  match vg with
+    | None ->
+        Ocsi_sql.view (<:view< {
+          ur.id;
+          ur.idarg
+        } | ur in $userrights$; ur.groupid = $int32:g$;
+            is_null ur.groupidarg >>)
+        >>= fun l -> Lwt.return (convert_group_list l)
+    | Some vg ->
+        Ocsi_sql.view (<:view< {
+          ur.id;
+          ur.idarg
+        } | ur in $userrights$; ur.groupid = $int32:g$;
+            ur.groupidarg = nullable $int32:vg$ >>)
+        >>= fun r1 ->
+        (if generic then
+            Ocsi_sql.view (<:view< {
+              ur.id
             } | ur in $userrights$; ur.groupid = $int32:g$;
-                is_null ur.groupidarg >>)
-              >>= fun l -> Lwt.return (convert_group_list l)
-          | Some vg ->
-            Lwt_Query.view db (<:view< {
-              ur.id;
-              ur.idarg
-            } | ur in $userrights$; ur.groupid = $int32:g$;
-                ur.groupidarg = nullable $int32:vg$ >>)
-              >>= fun r1 ->
-              (if generic then
-                  Lwt_Query.view db (<:view< {
-                    ur.id
-                  } | ur in $userrights$; ur.groupid = $int32:g$;
-                      ur.groupidarg = nullable $int32:ct_parameterized_edge$ >>)
-               else
-                 Lwt.return []
-              )
-              >>= fun r2 ->
-              Lwt.return (convert_generic_lists r1 r2 vg)
-       )
-    )
+                ur.groupidarg = nullable $int32:ct_parameterized_edge$ >>)
+         else
+            Lwt.return []
+        )
+        >>= fun r2 ->
+        Lwt.return (convert_generic_lists r1 r2 vg)
 
 
 (** Cached version of the functions above *)
@@ -742,55 +725,47 @@ type user_settings = {
 }
 
 let get_users_settings () =
-  Lwt_pool.use Ocsi_sql.pool (fun db -> (* TODO: Remove id from the selection *)
-    Lwt_Query.view_one db (<:view< u | u in $users_settings$ >>) >>= (fun data ->
-      Lwt.return {
-        basicusercreation = data#!basicusercreation;
-        registration_mail_from = data#!registration_mail_from;
-        registration_mail_addr = data#!registration_mail_addr;
-        registration_mail_subject = data#!registration_mail_subject;
-        groups = data#!groups;
-        non_admin_can_create = data#!non_admin_can_create
-      }
-    )
-  )
+  (* TODO: Remove id from the selection *)
+  Ocsi_sql.view_one (<:view< u | u in $users_settings$ >>)
+  >>= fun data ->
+  Lwt.return {
+    basicusercreation = data#!basicusercreation;
+    registration_mail_from = data#!registration_mail_from;
+    registration_mail_addr = data#!registration_mail_addr;
+    registration_mail_subject = data#!registration_mail_subject;
+    groups = data#!groups;
+    non_admin_can_create = data#!non_admin_can_create
+  }
 
 let set_users_settings data =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.query db (<:update< u in $users_settings$ := {
-      basicusercreation = $bool:data.basicusercreation$;
-      registration_mail_from = $string:data.registration_mail_from$;
-      registration_mail_addr = $string:data.registration_mail_addr$;
-      registration_mail_subject = $string:data.registration_mail_subject$;
-      groups = $string:data.groups$;
-      non_admin_can_create = $bool:data.non_admin_can_create$
-    } | u.id = 1 >>)
-  )
+  Ocsi_sql.query (<:update< u in $users_settings$ := {
+    basicusercreation = $bool:data.basicusercreation$;
+    registration_mail_from = $string:data.registration_mail_from$;
+    registration_mail_addr = $string:data.registration_mail_addr$;
+    registration_mail_subject = $string:data.registration_mail_subject$;
+    groups = $string:data.groups$;
+    non_admin_can_create = $bool:data.non_admin_can_create$
+  } | u.id = 1 >>)
 
 let () =
   Lwt_main.run (
-    Lwt_pool.use Ocsi_sql.pool (fun db ->
-      Lwt_Query.view_opt db
-        (<:view< u | u in $users_settings$ >>) >>= (function
-          | None ->
-            Lwt_Query.query db (<:insert< $users_settings$ := {
-              id = 1;
-              basicusercreation = false;
-              registration_mail_from = "";
-              registration_mail_addr = "";
-              registration_mail_subject = "";
-              groups = "";
-              non_admin_can_create = false;
-            } >>)
-          | _ -> Lwt.return ()
-         )
-    )
+    Ocsi_sql.view_opt (<:view< u | u in $users_settings$ >>)
+    >>= function
+      | None ->
+          Ocsi_sql.query (<:insert< $users_settings$ := {
+            id = 1;
+            basicusercreation = false;
+            registration_mail_from = "";
+            registration_mail_addr = "";
+            registration_mail_subject = "";
+            groups = "";
+            non_admin_can_create = false;
+          } >>)
+      | _ -> Lwt.return ()
   )
 
 let get_users_login () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      u.id;
-      title = nullable u.login;
-    } | u in $users$; u.authtype <> "g"; u.authtype <> "h" >>)
-  )
+  Ocsi_sql.view (<:view< {
+    u.id;
+    title = nullable u.login;
+  } | u in $users$; u.authtype <> "g"; u.authtype <> "h" >>)

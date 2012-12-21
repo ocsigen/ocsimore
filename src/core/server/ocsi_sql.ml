@@ -66,3 +66,11 @@ let transaction_block db f =
 
 let full_transaction_block f =
   Lwt_pool.use pool (fun db -> transaction_block db (fun () -> f db))
+
+let exec f x = Lwt_pool.use pool (fun db -> f db x)
+
+let view x = exec (fun db x -> Lwt_Query.view db x) x
+let view_one x = exec (fun db x -> Lwt_Query.view_one db x) x
+let view_opt x = exec (fun db x -> Lwt_Query.view_opt db x) x
+let query x = exec (fun db x -> Lwt_Query.query db x) x
+let value x = exec (fun db x -> Lwt_Query.value db x) x
