@@ -384,7 +384,9 @@ let create_wiki =
                   in
                   lwt wid =
                     Wiki_data.create_wiki ~title ~descr ?path ~boxrights
-                      ?staticdir ~admins ~readers ~model ~rights:wiki_rights ()
+                      ?staticdir ~admins ~readers
+                      ~container_text:Wiki.default_container_page ~model
+                      ~rights:wiki_rights ()
                   in
                   let link = match path with
                     | None -> []
