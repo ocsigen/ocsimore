@@ -129,10 +129,14 @@ let add_onload_function ?(first = false) s =
 let add_onload_function = add_onload_function ~first:false
 
 let admin_pages_header =
+  let jquery_uri = Eliom_content.Xml.uri_of_string "/jquery.js" in
   Header.create_header
     (fun () ->
        [Eliom_content.Html5.F.css_link
-          ~uri:(static_file_uri ~path:["ocsiadmin.css"]) ()])
+          ~uri:(static_file_uri ~path:["ocsiadmin.css"]) ();
+        Eliom_content.Html5.F.js_script ~uri:jquery_uri ();
+       ]
+    )
 
 (* shortcuts: *)
 

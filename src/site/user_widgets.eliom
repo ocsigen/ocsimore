@@ -1,6 +1,6 @@
 (* Ocsimore
  * Copyright (C) 2005
- * Laboratoire PPS - Universit� Paris Diderot - CNRS
+ * Laboratoire PPS - Université Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -766,7 +766,7 @@ object (self)
                         f (group $ Opaque.int32_t id, id_string)
                   in
                   Lwt.return
-                    (tr [
+                    (Html5.D.tr [
                       td ~a:[a_class ["roles_tr_prime"]] [link param id_string];
                       td td_content;
                      ]
@@ -777,12 +777,33 @@ object (self)
             Lwt.return
               (match lines with
                 | [] ->
-                    [tr [td ~a:[a_class ["roles_tr_prime"]] [pcdata "(None)"]]]
+                    [Html5.D.tr [td ~a:[a_class ["roles_tr_prime"]] [pcdata "(None)"]]]
                 | _ -> lines
               )
           in
-          let block name = tr ~a:[a_class ["user_menu_title"]] [
+          let elts = {Dom_html.element Js.t list Lwt.t{
+            let x =
+              List.map Eliom_content.Html5.To_dom.of_element %block_and_link
+            in
+            Lwt_js_events.request_animation_frame () >>= fun () ->
+            List.iter Jquery.toggle x;
+            Lwt.return x
+          }}
+          in
+          let block name = tr ~a:[a_class ["user_menu_title"];
+                                  a_onclick
+                                    {{fun _ ->
+                                      Lwt.async
+                                        (fun () ->
+                                          %elts >>= fun elts ->
+                                          Lwt.return
+                                            (List.iter Jquery.toggle elts)
+                                        )
+                                     }}
+                                 ]
+            [
             td ~a:[a_class ["roles_tr"]] [
+              pcdata "▾ ";
               strong [pcdata (name ^ "(" ^ param ^ ")")]
             ];
             td [pcdata user.user_fullname]

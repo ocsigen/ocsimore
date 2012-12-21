@@ -220,9 +220,11 @@ Library "core_site_client"
     Wiki_widgets,
     Forum_widgets,
     User_widgets,
+    Jquery,
     Ocsimore
   DataFiles:
-    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
+    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static),
+    ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
     eliom.client,
