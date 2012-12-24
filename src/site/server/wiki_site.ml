@@ -639,9 +639,14 @@ let () =
                 lwt new_content = Wiki_models.desugar_string ~href_action wpp desugar_param old_content in
                 if 0 = String.compare old_content new_content then
                   Lwt.return (wikibox, None)
-                else
+                else begin
+                  Wiki_sql.current_wikibox_version wikibox >>= fun old_version ->
+                  let old_version =
+                    Eliom_lib.Option.get (fun () -> assert false) old_version
+                  in
                   lwt wikibox' =
                     Wiki_sql.update_wikibox
+                      ~old_version
                       ~author:User.admin
                       ~comment:"batch_edit_boxes: Replace old relative links"
                       ~content:(Some new_content)
@@ -649,6 +654,7 @@ let () =
                       wikibox
                   in
                   Lwt.return (wikibox, Some (wikibox', (old_content, new_content)))
+                end
            | _ -> Lwt.return (wikibox, None)
         in
         let for_wiki wiki =

@@ -247,15 +247,16 @@ and action_edit_wikibox = Eliom_registration.Action.register_coservice'
      set_override_wikibox (wb, EditWikitext wb))
 
 and action_delete_wikibox = Eliom_registration.Any.register_coservice'
-  ~name:"wiki_delete" ~get_params:eliom_wikibox_args
-  (fun wb () ->
+  ~name:"wiki_delete" ~get_params:Eliom_parameter.(eliom_wikibox_args
+                                                   ** int32 "old_version")
+  (fun (wb, old_version) () ->
      Wiki_sql.wikibox_wiki wb >>= fun wiki ->
      Wiki_sql.get_wiki_info_by_id ~id:wiki >>= fun wiki_info ->
      lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
      lwt content_type =
        Wiki_models.get_default_content_type wiki_info.wiki_model in
      save_then_redirect ~error:(error_handler_wb wb) `BasePage
-       (fun () -> Wiki_data.save_wikitextbox ~rights ~content_type ~wb
+       (fun () -> Wiki_data.save_wikitextbox ~old_version ~rights ~content_type ~wb
           ~content:None)
   )
 
@@ -346,7 +347,7 @@ and action_send_wikiboxtext =
        if actionname = "save" && modified = None then (
          lwt content = Wiki_models.preparse_string wpp wb content in
          save_then_redirect ~error:(error_handler_wb wb) `BasePage
-           (fun () -> Wiki_data.save_wikitextbox ~rights
+           (fun () -> Wiki_data.save_wikitextbox ~old_version:boxversion ~rights
               ~content_type ~wb ~content:(Some content))
        ) else (
          let desugar_context = {
@@ -379,10 +380,11 @@ and action_send_css = Eliom_registration.Any.register_post_coservice'
              lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
              save_then_redirect ~error:(error_handler_wb wb) `BasePage
                (fun () -> match page with
-                  | None -> Wiki_data.save_wikicssbox ~rights
-                      ~wiki:wikicss ~content:(Some content) ~wb:wbcss
-                  | Some page -> Wiki_data.save_wikipagecssbox ~rights
-                      ~wiki:wikicss ~page ~content:(Some content) ~wb:wbcss
+
+                  | None -> Wiki_data.save_wikicssbox ~old_version:boxversion
+                      ~rights ~wiki:wikicss ~content:(Some content) ~wb:wbcss
+                  | Some page -> Wiki_data.save_wikipagecssbox ~old_version:boxversion
+                      ~rights ~wiki:wikicss ~page ~content:(Some content) ~wb:wbcss
                )
          | Some _ ->
              lwt () =
@@ -736,13 +738,18 @@ module API = struct
 
   let set_wikibox_content =
     let post_params =
-      let open Eliom_parameter in
-      wiki_page_args ** (caml "wb" Json.t<wikibox> ** string "content")
+      Eliom_parameter.(
+        wiki_page_args
+        ** (caml "wb" Json.t<wikibox>
+            ** string "content"
+        )
+        ** int32 "old_version"
+      )
     in
     Eliom_registration.Ocaml.register_post_coservice'
       ~name:"set_wikibox_content"
       ~post_params
-      (fun () ((page_wiki, page_path), (wb, content)) ->
+      (fun () ((page_wiki, page_path), ((wb, content), old_version)) ->
          lwt wiki = Wiki_sql.wikibox_wiki wb in
          lwt wiki_info = Wiki_sql.get_wiki_info_by_id ~id:wiki in
          lwt rights = Wiki_models.get_rights wiki_info.wiki_model in
@@ -755,6 +762,6 @@ module API = struct
          } in
          lwt content = Wiki_models.desugar_string wpp desugar_context content in
          lwt content' = Wiki_models.preparse_string wpp wb content in
-         Wiki_data.save_wikitextbox ~rights ~content_type ~wb ~content:(Some content'))
+         Wiki_data.save_wikitextbox ~old_version ~rights ~content_type ~wb ~content:(Some content'))
 
 end

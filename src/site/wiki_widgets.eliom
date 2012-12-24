@@ -262,6 +262,10 @@ object (self)
          wb
        :> Eliom_tools_common.get_page)
     in
+    Wiki_sql.current_wikibox_version wb >>= fun old_version ->
+    let old_version =
+      Eliom_lib.Option.get (fun () -> assert false) old_version
+    in
     let edit_onclick wb _id =
       let wiki_page = bi.bi_page in
       {{ fun _ ->
@@ -321,7 +325,7 @@ object (self)
                     (lwt _version =
                        Eliom_client.call_caml_service
                          ~service: %Wiki_services.API.set_wikibox_content
-                         () (%wiki_page, (%wb, Js.to_string textarea##value))
+                         () (%wiki_page, ((%wb, Js.to_string textarea##value), %old_version))
                      in
                      Eliom_client.change_page ~service:Eliom_service.void_coservice' () ());
                   Js._true))
@@ -343,7 +347,7 @@ object (self)
     }} in
     let delete_service = preapply
       ~service:Wiki_services.action_delete_wikibox
-      wb
+      (wb, old_version)
     in
     let delete_onclick _id = {{ fun _ ->
       let answer = Dom_html.window##confirm(Js.string "Do you really want to delete this wikibox?") in

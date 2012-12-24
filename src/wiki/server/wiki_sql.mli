@@ -218,6 +218,7 @@ val current_wikibox_version :
     and return its version number. *)
 val update_wikibox :
   ?db: Ocsi_sql.db_t ->
+  old_version:int32 ->
   author:userid ->
   comment:string ->
   content:string option ->

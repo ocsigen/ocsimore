@@ -67,7 +67,7 @@ let wikibox_content' ~rights ?version wikibox =
   Lwt.return (cont, ver)
 
 
-let save_wikibox_aux ~rights ~wb ~content ~content_type =
+let save_wikibox_aux ~old_version ~rights ~wb ~content ~content_type =
   (if content = None
    then
      Wiki_sql.wikibox_wiki wb >>= fun wiki ->
@@ -75,31 +75,31 @@ let save_wikibox_aux ~rights ~wb ~content ~content_type =
    else rights#can_write_wikibox wb) >>= function
     | true ->
         User.get_user_id () >>= fun user ->
-        Wiki_sql.update_wikibox ~author:user ~comment:""
+        Wiki_sql.update_wikibox ~old_version ~author:user ~comment:""
           ~content ~content_type ~ip:(Eliom_request_info.get_remote_ip ()) wb
     | false -> Lwt.fail Ocsimore_common.Permission_denied
 
 
-let save_wikitextbox ~rights ~content_type ~wb ~content =
-  save_wikibox_aux ~rights ~wb ~content_type ~content
+let save_wikitextbox ~old_version ~rights ~content_type ~wb ~content =
+  save_wikibox_aux ~old_version ~rights ~wb ~content_type ~content
 
 exception BadCssWikibox
 
-let save_wikicss_aux ~rights ~content ~wb l =
+let save_wikicss_aux ~old_version ~rights ~content ~wb l =
   try
     ignore (List.find (fun css_wb -> wb = css_wb.wikibox) l);
-    save_wikibox_aux ~rights ~wb
+    save_wikibox_aux ~old_version ~rights ~wb
       ~content_type:Wiki_models.css_content_type ~content
   with Not_found -> Lwt.fail BadCssWikibox
 
-let save_wikicssbox ~rights ~wiki ~content ~wb =
+let save_wikicssbox ~old_version ~rights ~wiki ~content ~wb =
   Wiki_sql.get_css_wikibox_for_wiki ~wiki >>= fun l ->
-  save_wikicss_aux ~rights ~content ~wb l
+  save_wikicss_aux ~old_version ~rights ~content ~wb l
 
 
-let save_wikipagecssbox ~rights ~wiki ~page ~content ~wb =
+let save_wikipagecssbox ~old_version ~rights ~wiki ~page ~content ~wb =
   Wiki_sql.get_css_wikibox_for_wikipage ~wiki ~page >>= fun l ->
-  save_wikicss_aux ~rights ~content ~wb l
+  save_wikicss_aux ~old_version ~rights ~content ~wb l
 
 
 

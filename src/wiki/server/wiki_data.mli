@@ -61,19 +61,22 @@ val new_wikitextbox :
     this wikibox. For the css related functions, we check that the argument
     is indeed a proper css *)
 val save_wikitextbox :
+  old_version:int32 ->
  (content_type:'res Wiki_types.content_type ->
   wb:wikibox ->
   content:string option ->
   int32 Lwt.t) rights
 
 val save_wikicssbox :
+  old_version:int32 ->
  (wiki:wiki ->
   content:string option ->
   wb:wikibox ->
   int32 Lwt.t) rights
 
 val save_wikipagecssbox :
- (wiki:wiki ->
+  old_version:int32 ->
+  (wiki:wiki ->
   page:string ->
   content:string option ->
   wb:wikibox ->

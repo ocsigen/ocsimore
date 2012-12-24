@@ -105,28 +105,37 @@ let new_wikibox ?db ~wiki ~author ~comment ~content ~content_type () =
        Lwt.return (wikibox_of_sql boxid)
     )
 
+let current_wikibox_version_  wb =
+  let wikibox = sql_of_wikibox wb in
+  Ocsi_sql.view_one (<:view< group {
+    version = max[w.version]
+  } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>)
+  >>= fun v ->
+  Lwt.return v#?version
 
 (** Inserts a new version of an existing wikibox in a wiki
     and return its version number. *)
-let update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb =
+let update_wikibox_ ?db ~old_version ~author ~comment ~content ~content_type ?ip wb =
   let content_type = string_of_content_type content_type in
   wrap db
     (fun db ->
        let wikibox = sql_of_wikibox wb
-       and author = User_sql.Types.sql_from_userid author
-       in
-       Lwt_Query.query db (<:insert< $wikiboxescontent$ := {
-         version = wikiboxescontent?version;
-         comment = $string:comment$;
-         author = $int32:author$;
-         content = of_option $Option.map Sql.Value.string content$;
-         datetime = wikiboxescontent?datetime;
-         content_type = $string:content_type$;
-         wikibox = $int32:wikibox$;
-         ip = of_option $Option.map Sql.Value.string ip$
-       } >>)
-       >>= fun () ->
-       Lwt_Query.value db (<:value< currval $wikiboxes_version_seq$ >>)
+       and author = User_sql.Types.sql_from_userid author in
+       current_wikibox_version_ wb >>= function
+         | Some version when version = old_version ->
+             Lwt_Query.query db (<:insert< $wikiboxescontent$ := {
+               version = wikiboxescontent?version;
+               comment = $string:comment$;
+               author = $int32:author$;
+               content = of_option $Option.map Sql.Value.string content$;
+               datetime = wikiboxescontent?datetime;
+               content_type = $string:content_type$;
+               wikibox = $int32:wikibox$;
+               ip = of_option $Option.map Sql.Value.string ip$
+             } >>)
+             >>= fun () ->
+             Lwt_Query.value db (<:value< currval $wikiboxes_version_seq$ >>)
+         | _ -> Lwt.return old_version
     )
 
 (** Returns the content of a wikibox, or [None] if the wikibox or version
@@ -192,17 +201,6 @@ let get_wikiboxes_by_wiki' wiki =
              datetime, Wiki_types.content_type_of_string typ, content, comment)
          | _ -> assert false)  (* FIXME in the above SQL-query ... *)
 *)
-
-let current_wikibox_version_  wb =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       let wikibox = sql_of_wikibox wb in
-       Lwt_Query.view_one db (<:view< group {
-         version = max[w.version]
-       } | w in $wikiboxescontent$; w.wikibox = $int32:wikibox$ >>)
-       >>= fun v ->
-       Lwt.return v#?version
-    )
 
 (* Not cached : too rare, and too big *)
 let get_wikibox_history ~wb =
@@ -588,10 +586,10 @@ let get_wikibox_content ?version wb =
 
 let current_wikibox_version = cache_wb_version#find
 
-let update_wikibox ?db ~author ~comment ~content ~content_type ?ip wb =
+let update_wikibox ?db ~old_version ~author ~comment ~content ~content_type ?ip wb =
   cache_wb_content#remove wb;
   cache_wb_version#remove wb;
-  update_wikibox_ ?db ~author ~comment ~content ~content_type ?ip wb
+  update_wikibox_ ?db ~old_version ~author ~comment ~content ~content_type ?ip wb
 
 
 
