@@ -168,13 +168,11 @@ let get_wikibox_content_ ?version wb =
 
 
 let get_wikiboxes_by_wiki wiki =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-      let wiki = sql_of_wiki wiki in
-      Lwt_Query.view db (<:view< {
-        w.uid
-      } | w in $wikiboxindex$; w.wiki = $int32:wiki$ >>)
-      >>= (Lwt_list.map_p (fun elm -> Lwt.return (Wiki_types.wikibox_of_sql elm#!uid))))
+  let wiki = sql_of_wiki wiki in
+  Ocsi_sql.view (<:view< {
+    w.uid
+  } | w in $wikiboxindex$; w.wiki = $int32:wiki$ >>)
+  >>= Lwt_list.map_p (fun elm -> Lwt.return (Wiki_types.wikibox_of_sql elm#!uid))
 
 (*
 let get_wikiboxes_by_wiki' wiki =
@@ -208,41 +206,35 @@ let current_wikibox_version_  wb =
 
 (* Not cached : too rare, and too big *)
 let get_wikibox_history ~wb =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       let wikibox = sql_of_wikibox wb in
-       Lwt_Query.view db (<:view< {
-         w.version;
-         w.comment;
-         w.author;
-         w.datetime
-       } order by {
-         w.version
-       } desc | w in $wikiboxescontent$;
-                w.wikibox = $int32:wikibox$ >>)
-    )
+  let wikibox = sql_of_wikibox wb in
+  Ocsi_sql.view (<:view< {
+    w.version;
+    w.comment;
+    w.author;
+    w.datetime
+  } order by {
+    w.version
+  } desc | w in $wikiboxescontent$;
+           w.wikibox = $int32:wikibox$ >>)
 
 (** Wikiboxes metadata *)
 
 let get_wikibox_info_ wb =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       let wb' = sql_of_wikibox wb in
-       Lwt_Query.view_opt db (<:view< {
-         w.wiki;
-         w.comment;
-         w.specialrights;
-       } | w in $wikiboxindex$; w.uid = $int32:wb'$ >>)
-       >>= function
-         | None -> Lwt.fail Not_found
-         | Some first ->
-             Lwt.return {
-               wikibox_wiki = wiki_of_sql (first#!wiki);
-               wikibox_id = wb;
-               wikibox_comment = first#?comment;
-               wikibox_special_rights = first#!specialrights;
-             }
-    )
+  let wb' = sql_of_wikibox wb in
+  Ocsi_sql.view_opt (<:view< {
+    w.wiki;
+    w.comment;
+    w.specialrights;
+  } | w in $wikiboxindex$; w.uid = $int32:wb'$ >>)
+  >>= function
+    | None -> Lwt.fail Not_found
+    | Some first ->
+        Lwt.return {
+          wikibox_wiki = wiki_of_sql (first#!wiki);
+          wikibox_id = wb;
+          wikibox_comment = first#?comment;
+          wikibox_special_rights = first#!specialrights;
+        }
 
 let set_wikibox_special_rights_ ?db wb v =
   wrap db
@@ -267,24 +259,21 @@ let wikipages = (<:table< wikipages (
 
 (** return the box corresponding to a wikipage *)
 let get_box_for_page_ ~wiki ~page =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       let wiki' = t_int32 (wiki : wiki) in
-       Lwt_Query.view_opt db (
-         <:view< w |
-             w in $wikipages$;
-             w.wiki = $int32:wiki'$; w.pagename = $string:page$ >>) >>= function
-         | None -> Lwt.fail Not_found
-         | Some first ->
-             (* (wiki, pagename) is a primary key *)
-             Lwt.return {
-               wikipage_wiki = wiki;
-               wikipage_page = page;
-               wikipage_wikibox = (int32_t (first#!wikibox));
-               wikipage_title = first#?title;
-               wikipage_uid = sql_to_wikipage (first#!uid);
-             }
-    )
+  let wiki' = t_int32 (wiki : wiki) in
+  Ocsi_sql.view_opt (<:view< w |
+      w in $wikipages$;
+      w.wiki = $int32:wiki'$; w.pagename = $string:page$ >>)
+  >>= function
+    | None -> Lwt.fail Not_found
+    | Some first ->
+        (* (wiki, pagename) is a primary key *)
+        Lwt.return {
+          wikipage_wiki = wiki;
+          wikipage_page = page;
+          wikipage_wikibox = (int32_t (first#!wikibox));
+          wikipage_title = first#?title;
+          wikipage_uid = sql_to_wikipage (first#!uid);
+        }
 
 let wikis_id_seq = (<:sequence< serial "wikis_id_seq" >>)
 
@@ -302,15 +291,12 @@ let wikis = (<:table< wikis (
 ) >>)
 
 let get_wikis () =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-      Lwt_Query.view db (<:view< {
-        w.id
-      } | w in $wikis$ >>)
-      >>= (Lwt_list.map_p (fun elm ->
-        Lwt.return (Wiki_types.wiki_of_sql elm#!id)
-      ))
-    )
+  Ocsi_sql.view (<:view< {
+    w.id
+  } | w in $wikis$ >>)
+  >>= Lwt_list.map_p (fun elm ->
+    Lwt.return (Wiki_types.wiki_of_sql elm#!id)
+  )
 
 (* No need for cache, as the page does not exists yet *)
 let create_wikipage ?db ~wiki ~page ~wb =
@@ -940,25 +926,19 @@ let get_wikipages_of_a_wiki ~wiki () =
   )
 
 let get_wikis_id () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      id = w.id;
-      title = nullable w.title;
-    } | w in $wikis$ >>)
-  )
+  Ocsi_sql.view (<:view< {
+    id = w.id;
+    title = nullable w.title;
+  } | w in $wikis$ >>)
 
 let get_wikiboxes_id () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      id = w.uid;
-      title = null;
-    } | w in $wikiboxindex$ >>)
-  )
+  Ocsi_sql.view (<:view< {
+    id = w.uid;
+    title = null;
+  } | w in $wikiboxindex$ >>)
 
 let get_wikipages_id () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      id = w.uid;
-      title = w.title;
-    } | w in $wikipages$ >>)
-  )
+  Ocsi_sql.view (<:view< {
+    id = w.uid;
+    title = w.title;
+  } | w in $wikipages$ >>)
