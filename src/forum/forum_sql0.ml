@@ -44,25 +44,22 @@ let forums_messages = (<:table< forums_messages (
 ) >>)
 
 let get_message_raw ~message_id () =
-  Lwt_pool.use Ocsi_sql.pool
-    (fun db ->
-       (* tree_min and tree_max are here only for the interface to be
-          compatible with get_thread *)
-      Lwt_Query.view_opt db (<:view< {
-        f.id;
-        f.creator_id;
-        f.datetime;
-        f.parent_id;
-        f.root_id;
-        f.forum_id;
-        f.subject;
-        f.wikibox;
-        f.moderated;
-        f.special_rights;
-        f.tree_min;
-        f.tree_max
-      } | f in $forums_messages$; f.id = $int32:message_id$ >>)
-      >>= function
-        | None -> Lwt.fail Not_found
-        | Some x -> Lwt.return x
-    )
+  (* tree_min and tree_max are here only for the interface to be
+     compatible with get_thread *)
+  Ocsi_sql.view_opt (<:view< {
+    f.id;
+    f.creator_id;
+    f.datetime;
+    f.parent_id;
+    f.root_id;
+    f.forum_id;
+    f.subject;
+    f.wikibox;
+    f.moderated;
+    f.special_rights;
+    f.tree_min;
+    f.tree_max
+  } | f in $forums_messages$; f.id = $int32:message_id$ >>)
+  >>= function
+    | None -> Lwt.fail Not_found
+    | Some x -> Lwt.return x

@@ -217,11 +217,9 @@ let new_message ~forum ~wiki ~creator_id ~title_syntax
 
 let set_moderated ~message_id ~moderated =
   let message_id = sql_of_message message_id in
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.query db (<:update< f in $forums_messages$ := {
-      moderated = $bool:moderated$
-    } | f.id = $int32:message_id$ >>)
-  )
+  Ocsi_sql.query (<:update< f in $forums_messages$ := {
+    moderated = $bool:moderated$
+  } | f.id = $int32:message_id$ >>)
 
 let get_forum ?(not_deleted_only = true) ~forum () =
   let forum_id = sql_of_forum forum in
@@ -394,26 +392,20 @@ let wikibox_is_moderated ~wb =
       | Some a -> Lwt.return a#!moderated
 
 let get_forums_id () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      f.id;
-      title = nullable f.title;
-    } | f in $forums$; >>)
-  )
+  Ocsi_sql.view (<:view< {
+    f.id;
+    title = nullable f.title;
+  } | f in $forums$; >>)
 
 let get_forums_wiki_id () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      w.id;
-      title = nullable w.title;
-    } | f in $forums$; w in $Wiki_sql.wikis$;
-        w.id = f.messages_wiki || w.id = f.comments_wiki >>)
-  )
+  Ocsi_sql.view (<:view< {
+    w.id;
+    title = nullable w.title;
+  } | f in $forums$; w in $Wiki_sql.wikis$;
+      w.id = f.messages_wiki || w.id = f.comments_wiki >>)
 
 let get_forum_messages_id () =
-  Lwt_pool.use Ocsi_sql.pool (fun db ->
-    Lwt_Query.view db (<:view< {
-      f.id;
-      title = null;
-    } | f in $forums_messages$; >>)
-  )
+  Ocsi_sql.view (<:view< {
+    f.id;
+    title = null;
+  } | f in $forums_messages$; >>)
