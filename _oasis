@@ -65,7 +65,7 @@ Library "ocsimore"
     ../files/ocsimore.conf
   BuildDepends:
     lwt.syntax (>= 2.4),
-    macaque (>= 0.6),
+    macaque (>= 0.6.1),
     safepass (>= 1.2),
     eliom.server (>= 2.2),
     threads,
