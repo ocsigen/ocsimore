@@ -88,6 +88,18 @@ Adapt your /etc/ocsigenserver/ocsigenserver.conf with:
   /usr/share/ocsimore/ocsimore.conf
 
 
+=== Install the static files ===
+
+Now you need to install the static files that are located by default in
+(can depend on your package manager):
+
+  /usr/share/ocsimore/static
+
+to the directory you configured above. By default you can do:
+
+  # cp -r /usr/share/ocsimore/static /var/www/ocsimore
+
+
 === Run ===
 
 Run Ocsigen, for example:
