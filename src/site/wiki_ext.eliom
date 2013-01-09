@@ -391,4 +391,43 @@ let register_wikibox_syntax_extensions
   Wiki_syntax.register_raw_wiki_extension ~name:"outline"
     ~wp:Wiki_syntax.wikicreole_parser_without_header_footer
     ~wp_rec:Wiki_syntax.wikicreole_parser_without_header_footer
-    f_outline
+    f_outline;
+
+  let f_js =
+    let module S =
+          Set.Make (struct type t = string let compare = compare end)
+    in
+    let js_table =
+      Eliom_reference.Volatile.eref ~scope:Eliom_common.request_scope S.empty in
+    let add_js v =
+      let t = Eliom_reference.Volatile.get js_table in
+      Eliom_reference.Volatile.set js_table (S.add v t)
+    in
+    let js_header = Page_site.Header.create_header (fun () ->
+      let t = Eliom_reference.Volatile.get js_table in
+      S.fold
+        (fun u beg ->
+          Eliom_content.Html5.F.js_script
+            (Eliom_content.Xml.uri_of_string u) ()::beg)
+        t
+        [])
+    in
+    fun bi args _c ->
+      `Phrasing_without_interactive
+        (match Ocsimore_lib.list_assoc_opt "src" args with
+          | None -> Lwt.return []
+          | Some s ->
+            let https = extract_https args in
+            let wiki = extract_wiki_id args bi.bi_wiki in
+            let addr =
+              Eliom_content.Xml.string_of_uri (
+                Wiki_syntax.uri_of_href
+                  (Wiki_syntax.make_href
+                     bi (Wiki_syntax.Wiki_page (Some wiki, s, https)) None))
+            in
+            add_js addr;
+            lwt () = Page_site.Header.require_header js_header in
+            Lwt.return []
+        )
+  in
+  Wiki_syntax.register_simple_phrasing_extension ~name:"script" f_js
