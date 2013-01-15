@@ -93,7 +93,15 @@ let parse_common_attribs ?classes attribs =
     try Some (Html5.F.a_style (List.assoc "style" attribs))
     with Not_found -> None
   in
-  filter_raw [at1; at2; at3]
+  let data_attribs =
+    List.fold_left (fun l (n, v) ->
+      try
+        if String.sub n 0 5 = "data-"
+        then (Html5.F.a_user_data (String.sub n 5 (String.length n - 5)) v)::l
+        else l
+      with Invalid_argument _ -> l) [] attribs
+  in
+  (filter_raw [at1; at2; at3])@data_attribs
 
 let parse_table_attribs attribs =
   let atts = parse_common_attribs attribs
