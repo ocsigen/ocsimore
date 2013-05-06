@@ -43,9 +43,8 @@ let submit_input ?a value =
   Html5.F.string_input ?a ~input_type:`Submit ~value ()
 
 let late_content server_function param =
-  let static_dir = Eliom_service.static_dir () in
+  let src = Page_site.static_file_uri ["loader.gif"] in
   let alt = "loader" in
-  let src = Html5.F.make_uri ~service:static_dir ["loader.gif"] in
   let div = Eliom_content.Html5.D.div [Html5.F.img ~src ~alt ()] in
   ignore {unit{
     Lwt.async
