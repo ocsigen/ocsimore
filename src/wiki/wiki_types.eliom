@@ -92,7 +92,7 @@ type media_type_elem =
     | `Speech
     | `TTY
     | `TV ]
-type media_type = Html5_types.mediadesc
+type media_type = media_type_elem list (* Html5_types.mediadesc *)
 let string_of_media_type_elem = function
   | `All -> "All"
   | `Aural -> "Aural"

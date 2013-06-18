@@ -1574,12 +1574,12 @@ object (self)
                 (fun (media, wb_list) ->
                    Lwt_list.map_s add_version wb_list >|= fun wb_version_list ->
                      css_url_service wikicss_service wb_version_list media)
-                (grouped_by_media wb_list_with_media)
+                (grouped_by_media wb_list_with_media :> (Html5_types.mediadesc * Wiki_types.wikibox list) list)
             else
               Lwt_list.map_s
                 (fun css_wb ->
                    add_version css_wb.wikibox >|= fun wikibox_version ->
-                     css_url_service wikicss_service [wikibox_version] css_wb.media)
+                     css_url_service wikicss_service [wikibox_version] (css_wb.media :> Html5_types.mediadesc))
                 wb_list_with_media
      in
      match page with
@@ -1595,7 +1595,7 @@ object (self)
                       Wiki_services.pagecss_service
                       ((wiki, page), wb_version_list)
                       media)
-                 (grouped_by_media wb_list_with_media)
+                 (grouped_by_media wb_list_with_media :> (Html5_types.mediadesc * Wiki_types.wikibox list) list)
              else
                Lwt_list.map_s
                  (fun css_wb ->
@@ -1603,7 +1603,7 @@ object (self)
                       css_url_service
                         Wiki_services.pagecss_service
                         ((wiki, page), [wikibox_version])
-                        css_wb.media)
+                        (css_wb.media :> Html5_types.mediadesc))
                  wb_list_with_media
            in
            Lwt.return (css @ ll)
