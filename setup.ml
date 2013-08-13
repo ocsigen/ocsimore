@@ -6559,9 +6559,9 @@ let () =
     fun (cs, bs, lib) ->
       match lib.OASISTypes.lib_findlib_name, lib.OASISTypes.lib_findlib_parent with
         | Some "site", Some "ocsimore_client" ->
-	  (cs, bs, lib, ["_build/src/site/client/ocsimore.js"])
+            (cs, bs, lib, ["_build/src/site/client/ocsimore.js"])
         | _ ->
-          (cs, bs, lib, [])
+            (cs, bs, lib, [])
 ;;
 
 let () = setup ();;
