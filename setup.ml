@@ -6523,6 +6523,38 @@ let setup () = BaseSetup.setup setup_t;;
 (* OASIS_STOP *)
 
 let () =
+  let open OASISContext in
+  let check_msg = function
+    | "Cannot find source file matching module 'server/Forum_widgets' in library forum_site"
+    | "Cannot find source file matching module 'server/HTML5outliner' in library wiki_site"
+    | "Cannot find source file matching module 'server/Wiki_ext' in library wiki_site"
+    | "Cannot find source file matching module 'server/Wiki_widgets' in library wiki_site"
+    | "Cannot find source file matching module 'server/User_widgets' in library user_site"
+    | "Cannot find source file matching module 'Page_site' in library core_site_client"
+    | "Cannot find source file matching module 'HTML5outliner' in library core_site_client"
+    | "Cannot find source file matching module 'Wiki_ext' in library core_site_client"
+    | "Cannot find source file matching module 'Wiki_widgets' in library core_site_client"
+    | "Cannot find source file matching module 'Forum_widgets' in library core_site_client"
+    | "Cannot find source file matching module 'User_widgets' in library core_site_client"
+    | "Cannot find source file matching module 'server/Page_site' in library core_site"
+    | "Cannot find source file matching module 'Wiki_types' in library wiki_client"
+    | "Cannot find source file matching module 'Wiki_widgets_interface' in library wiki_client"
+    | "Cannot find source file matching module 'server/Wiki_types' in library wiki"
+    | "Cannot find source file matching module 'server/Wiki_widgets_interface' in library wiki"
+    | "Cannot find source file matching module 'Opaque' in library ocsimore_client"
+    | "Cannot find source file matching module 'server/Opaque' in library ocsimore" ->
+        true
+    | _ -> false
+  in
+  let def = !default in
+  let printf level s = match level with
+    | `Warning when check_msg s -> ()
+    | level -> def.printf level s
+  in
+  default := {def with printf}
+;;
+
+let () =
   InternalInstallPlugin.lib_hook :=
     fun (cs, bs, lib) ->
       match lib.OASISTypes.lib_findlib_name, lib.OASISTypes.lib_findlib_parent with
