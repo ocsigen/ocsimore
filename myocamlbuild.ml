@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 71bfcce5917c1d9dd1d90cae10192fdf) *)
+(* DO NOT EDIT (digest: f5325916618ec1d767a7476f5c2edb11) *)
 module OASISGettext = struct
 (* # 21 "src/oasis/OASISGettext.ml" *)
 
@@ -30,9 +30,9 @@ module OASISExpr = struct
 
   open OASISGettext
 
-  type test = string 
+  type test = string
 
-  type flag = string 
+  type flag = string
 
   type t =
     | EBool of bool
@@ -41,9 +41,9 @@ module OASISExpr = struct
     | EOr of t * t
     | EFlag of flag
     | ETest of test * string
-    
 
-  type 'a choices = (t * 'a) list 
+
+  type 'a choices = (t * 'a) list
 
   let eval var_get t =
     let rec eval' =
@@ -216,30 +216,30 @@ end
 module MyOCamlbuildFindlib = struct
 (* # 21 "src/plugins/ocamlbuild/MyOCamlbuildFindlib.ml" *)
 
-  (** OCamlbuild extension, copied from 
+  (** OCamlbuild extension, copied from
     * http://brion.inria.fr/gallium/index.php/Using_ocamlfind_with_ocamlbuild
     * by N. Pouillard and others
     *
     * Updated on 2009/02/28
     *
-    * Modified by Sylvain Le Gall 
+    * Modified by Sylvain Le Gall
     *)
   open Ocamlbuild_plugin
 
   (* these functions are not really officially exported *)
-  let run_and_read = 
+  let run_and_read =
     Ocamlbuild_pack.My_unix.run_and_read
 
-  let blank_sep_strings = 
+  let blank_sep_strings =
     Ocamlbuild_pack.Lexers.blank_sep_strings
 
   let split s ch =
-    let x = 
-      ref [] 
+    let x =
+      ref []
     in
     let rec go s =
-      let pos = 
-        String.index s ch 
+      let pos =
+        String.index s ch
       in
         x := (String.before s pos)::!x;
         go (String.after s (pos + 1))
@@ -276,23 +276,23 @@ module MyOCamlbuildFindlib = struct
           Options.ocamldep   := ocamlfind & A"ocamldep";
           Options.ocamldoc   := ocamlfind & A"ocamldoc";
           Options.ocamlmktop := ocamlfind & A"ocamlmktop"
-                                  
+
       | After_rules ->
-          
+
           (* When one link an OCaml library/binary/package, one should use -linkpkg *)
           flag ["ocaml"; "link"; "program"] & A"-linkpkg";
-          
+
           (* For each ocamlfind package one inject the -package option when
            * compiling, computing dependencies, generating documentation and
            * linking. *)
-          List.iter 
+          List.iter
             begin fun pkg ->
               flag ["ocaml"; "compile";  "pkg_"^pkg] & S[A"-package"; A pkg];
               flag ["ocaml"; "ocamldep"; "pkg_"^pkg] & S[A"-package"; A pkg];
               flag ["ocaml"; "doc";      "pkg_"^pkg] & S[A"-package"; A pkg];
               flag ["ocaml"; "link";     "pkg_"^pkg] & S[A"-package"; A pkg];
               flag ["ocaml"; "infer_interface"; "pkg_"^pkg] & S[A"-package"; A pkg];
-            end 
+            end
             (find_packages ());
 
           (* Like -package but for extensions syntax. Morover -syntax is useless
@@ -308,7 +308,7 @@ module MyOCamlbuildFindlib = struct
            * Indeed, the default rules add the "threads.cma" or "threads.cmxa"
            * options when using this tag. When using the "-linkpkg" option with
            * ocamlfind, this module will then be added twice on the command line.
-           *                        
+           *
            * To solve this, one approach is to add the "-thread" option when using
            * the "threads" package using the previous plugin.
            *)
@@ -317,7 +317,7 @@ module MyOCamlbuildFindlib = struct
           flag ["ocaml"; "pkg_threads"; "link"] (S[A "-thread"]);
           flag ["ocaml"; "pkg_threads"; "infer_interface"] (S[A "-thread"])
 
-      | _ -> 
+      | _ ->
           ()
 
 end
@@ -334,33 +334,33 @@ module MyOCamlbuildBase = struct
   open Ocamlbuild_plugin
   module OC = Ocamlbuild_pack.Ocaml_compiler
 
-  type dir = string 
-  type file = string 
-  type name = string 
-  type tag = string 
+  type dir = string
+  type file = string
+  type name = string
+  type tag = string
 
 (* # 56 "src/plugins/ocamlbuild/MyOCamlbuildBase.ml" *)
 
   type t =
       {
         lib_ocaml: (name * dir list) list;
-        lib_c:     (name * dir * file list) list; 
+        lib_c:     (name * dir * file list) list;
         flags:     (tag list * (spec OASISExpr.choices)) list;
         (* Replace the 'dir: include' from _tags by a precise interdepends in
          * directory.
          *)
-        includes:  (dir * dir list) list; 
-      } 
+        includes:  (dir * dir list) list;
+      }
 
   let env_filename =
-    Pathname.basename 
+    Pathname.basename
       BaseEnvLight.default_filename
 
   let dispatch_combine lst =
     fun e ->
-      List.iter 
+      List.iter
         (fun dispatch -> dispatch e)
-        lst 
+        lst
 
   let tag_libstubs nm =
     "use_lib"^nm^"_stubs"
@@ -368,14 +368,14 @@ module MyOCamlbuildBase = struct
   let nm_libstubs nm =
     nm^"_stubs"
 
-  let dispatch t e = 
-    let env = 
-      BaseEnvLight.load 
-        ~filename:env_filename 
+  let dispatch t e =
+    let env =
+      BaseEnvLight.load
+        ~filename:env_filename
         ~allow_empty:true
         ()
     in
-      match e with 
+      match e with
         | Before_options ->
             let no_trailing_dot s =
               if String.length s >= 1 && s.[0] = '.' then
@@ -385,7 +385,7 @@ module MyOCamlbuildBase = struct
             in
               List.iter
                 (fun (opt, var) ->
-                   try 
+                   try
                      opt := no_trailing_dot (BaseEnvLight.var_get var env)
                    with Not_found ->
                      Printf.eprintf "W: Cannot get variable %s" var)
@@ -395,16 +395,16 @@ module MyOCamlbuildBase = struct
                   Options.ext_dll, "ext_dll";
                 ]
 
-        | After_rules -> 
+        | After_rules ->
             (* Declare OCaml libraries *)
-            List.iter 
+            List.iter
               (function
                  | nm, [] ->
                      ocaml_lib nm
                  | nm, dir :: tl ->
                      ocaml_lib ~dir:dir (dir^"/"^nm);
-                     List.iter 
-                       (fun dir -> 
+                     List.iter
+                       (fun dir ->
                           List.iter
                             (fun str ->
                                flag ["ocaml"; "use_"^nm; str] (S[A"-I"; P dir]))
@@ -413,7 +413,7 @@ module MyOCamlbuildBase = struct
               t.lib_ocaml;
 
             (* Declare directories dependencies, replace "include" in _tags. *)
-            List.iter 
+            List.iter
               (fun (dir, include_dirs) ->
                  Pathname.define_context dir include_dirs)
               t.includes;
@@ -428,7 +428,7 @@ module MyOCamlbuildBase = struct
 
                    flag ["link"; "library"; "ocaml"; "native"; tag_libstubs lib]
                      (S[A"-cclib"; A("-l"^(nm_libstubs lib))]);
-                        
+
                    flag ["link"; "program"; "ocaml"; "byte"; tag_libstubs lib]
                      (S[A"-dllib"; A("dll"^(nm_libstubs lib))]);
 
@@ -443,11 +443,11 @@ module MyOCamlbuildBase = struct
 
                    (* TODO: be more specific about what depends on headers *)
                    (* Depends on .h files *)
-                   dep ["compile"; "c"] 
+                   dep ["compile"; "c"]
                      headers;
 
                    (* Setup search path for lib *)
-                   flag ["link"; "ocaml"; "use_"^lib] 
+                   flag ["link"; "ocaml"; "use_"^lib]
                      (S[A"-I"; P(dir)]);
               )
               t.lib_c;
@@ -455,16 +455,16 @@ module MyOCamlbuildBase = struct
               (* Add flags *)
               List.iter
               (fun (tags, cond_specs) ->
-                 let spec = 
+                 let spec =
                    BaseEnvLight.var_choose cond_specs env
                  in
                    flag tags & spec)
               t.flags
-        | _ -> 
+        | _ ->
             ()
 
   let dispatch_default t =
-    dispatch_combine 
+    dispatch_combine
       [
         dispatch t;
         MyOCamlbuildFindlib.dispatch;
@@ -506,6 +506,7 @@ let package_default =
      includes =
        [
           ("src/wiki/server", ["src/user"; "src/wiki"]);
+          ("src/wiki/client", ["src/core/client"]);
           ("src/wiki", ["src/user"; "src/wiki/server"]);
           ("src/user", ["src/core"; "src/core/server"]);
           ("src/site/server",
@@ -517,6 +518,7 @@ let package_default =
                "src/wiki";
                "src/wiki/server"
             ]);
+          ("src/site/client", ["src/wiki/client"]);
           ("src/site",
             [
                "src/core";
@@ -535,155 +537,185 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 539 "myocamlbuild.ml"
+# 541 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
-Ocamlbuild_pack.Log.classic_display := true;;
+(*Ocamlbuild_pack.Log.classic_display := true;;*)
 
-let env =
-  BaseEnvLight.load
-    ~filename:MyOCamlbuildBase.env_filename
-    ~allow_empty:true
-    ()
+module type Exec = sig
+  val name : string
+  val dep : string
+  val package : string
+end
 
-let set_var var_name env_var =
-  let s = BaseEnvLight.var_get var_name env in
-  Unix.putenv env_var s
+module Ocamlbuild_eliom (Client : sig
+  val exec : (module Exec) option
+  val dispatch_default : Ocamlbuild_plugin.hook -> unit
+  val server_dir : string
+  val type_dir : string
+  val client_dir : string
+end) = struct
+  open Ocamlbuild_plugin
+  module Pack = Ocamlbuild_pack
 
-let set_var_option var_name env_var =
-  match BaseEnvLight.var_get var_name env with
-    | "" -> ()
-    | s -> Unix.putenv env_var s
-
-let copy_with_header src prod =
-  let dir = Filename.dirname prod in
-  let mkdir = Cmd (Sh ("mkdir -p " ^ dir)) in
-  let contents = Pathname.read src in
-  let header = "# 1 \""^src^"\"\n" in
-  Seq [mkdir;Echo ([header;contents],prod)]
-
-let copy_rule_with_header name ?(deps=[]) src prod =
-  rule name ~deps:(src::deps) ~prod
-    ( fun env _ ->
-      let prod = env prod in
-      let src = env src in
-      copy_with_header src prod )
-
-(* we browser throught the file (skipping _build and _darcs directories) searching
-   for .eliom files and annotataing them with tags for camlp4 and
-   ocamlfind tags *)
-let tag_eliom_files () =
-  let entries = Ocamlbuild_pack.Slurp.slurp "." in
-  let entries = Ocamlbuild_pack.Slurp.filter
-    (fun path _ _ ->
-      not (Pathname.is_prefix "_build" path)
-      &&  not (Pathname.is_prefix "_darcs" path) ) entries in
-  let f path name () () =
-    let tag_file ml_name =
-      let client_file = Pathname.concat (Pathname.concat path "client") ml_name in
-      let server_file = Pathname.concat (Pathname.concat path "server") ml_name in
-      let type_file = Pathname.concat (Pathname.concat path "type") ml_name in
-      let type_inferred = Pathname.concat (Pathname.concat path "type")
-        (Pathname.update_extension "inferred.mli" name) in
-      tag_file client_file
-        [ "pkg_eliom.client"; "pkg_eliom.syntax.client";
-          Printf.sprintf "need_eliom_type(%s)" type_inferred; "syntax(camlp4o)";];
-      tag_file server_file
-        [ "pkg_eliom.server"; "pkg_eliom.syntax.server";
-          Printf.sprintf "need_eliom_type(%s)" type_inferred; "syntax(camlp4o)";];
-      tag_file type_file
-        ( Tags.elements (tags_of_pathname server_file)
-          @ [ "pkg_eliom.server"; "pkg_eliom.syntax.type";
-              "syntax(camlp4o)";]);
-      tag_file type_file
-        ["-pkg_eliom.syntax.server"];
-      (* server files are available from type directory *)
-      Pathname.define_context (Pathname.concat path "type") [Pathname.concat path "server"];
+  let init () =
+    let copy_with_header src prod =
+      let contents = Pathname.read src in
+      let header = "# 1 \"" ^ src ^ "\"\n" in
+      Pack.Shell.mkdir_p (Filename.dirname prod);
+      Echo ([header; contents], prod)
     in
-    if Pathname.get_extension name = "eliom" then
-      let ml_name = (Pathname.update_extension "ml" name) in
-      tag_file ml_name
-    else if Pathname.get_extension name = "eliomi" then
-      let ml_name = (Pathname.update_extension "mli" name) in
-      tag_file ml_name
-  in
-  Ocamlbuild_pack.Slurp.fold f entries ()
+    let copy_rule_with_header f name ?(deps=[]) src prod =
+      rule name ~deps:(src :: deps) ~prod
+        (fun env _ ->
+          let prod = env prod in
+          let src = env src in
+          f env (Pathname.dirname prod) (Pathname.basename prod) prod;
+          copy_with_header src prod
+        )
+    in
+    let flag_infer file type_inferred =
+      let tags =
+        [["ocaml"; "ocamldep"; "file:" ^ file];
+         ["ocaml"; "compile"; "file:" ^ file];
+         ["ocaml"; "infer_interface"; "file:" ^ file];
+        ]
+      in
+      List.iter (fun tags -> flag tags (S [A "-ppopt"; A "-type"; A "-ppopt"; P type_inferred])) tags;
+      flag ["ocaml"; "doc"; "file:" ^ file] (S [A "-ppopt"; A "-notype"]);
+    in
+    let copy_rule_server =
+      copy_rule_with_header
+        (fun env dir name file ->
+          let path = env "%(path)" in
+          let type_inferred = Pathname.concat (Pathname.concat path Client.type_dir) (Pathname.update_extension "inferred.mli" name) in
+          tag_file file
+            [ "pkg_eliom.server"; "pkg_eliom.syntax.server"; "thread";
+              "syntax_camlp4o";
+            ];
+          flag_infer file type_inferred;
+          Pathname.define_context dir [path];
+          Pathname.define_context path [dir];
+        )
+    in
+    let copy_rule_client =
+      copy_rule_with_header
+        (fun env dir name file ->
+          let path = env "%(path)" in
+          let type_inferred = Pathname.concat (Pathname.concat path Client.type_dir) (Pathname.update_extension "inferred.mli" name) in
+          tag_file file
+            [ "pkg_eliom.client"; "pkg_eliom.syntax.client"; "thread";
+              "syntax_camlp4o";
+            ];
+          flag_infer file type_inferred;
+          Pathname.define_context dir [path];
+        )
+    in
+    let copy_rule_type =
+      copy_rule_with_header
+        (fun env dir name file ->
+          let path = env "%(path)" in
+          let server_dir = Pathname.concat path Client.server_dir in
+          let server_file = Pathname.concat server_dir name in
+          tag_file file
+            ( "pkg_eliom.syntax.type" :: "thread" :: "syntax_camlp4o"
+              :: Tags.elements (tags_of_pathname server_file)
+            );
+          Pathname.define_context dir [path; server_dir];
+        )
+    in
+    let tag_byte_file () =
+      match Client.exec with
+        | None -> ()
+        | Some client ->
+            let module Client = (val client : Exec) in
+            let file = Pathname.update_extension "ml" Client.dep in
+            tag_file
+              Client.dep
+              (Tags.elements (tags_of_pathname file));
+            tag_file Client.dep ["-thread"]
+    in
+    let () =
+      match Client.exec with
+        | None -> ()
+        | Some client ->
+            let module Client = (val client : Exec) in
+            dep ["file:" ^ Client.package] [Client.name];
+                rule "js_of_ocaml: .byte -> .js" ~dep:Client.dep ~prod:Client.name
+                  (fun env _ ->
+                    let eliom_client_js =
+                      Pathname.concat
+                        (Pack.Findlib.query "eliom.client").Pack.Findlib.location
+                        "eliom_client.js"
+                    in
+                    Cmd (S [A "js_of_ocaml"; A "-pretty"; A "-noinline"; P eliom_client_js;
+                            A Client.dep; A "-o"; A Client.name])
+                  );
+    in
+    flag ["ocaml"; "infer_interface"; "thread"] (A "-thread");
+    flag ["ocaml"; "compile"] (S [A "-thread"; A "-syntax"; A "camlp4o"]);
+    flag ["ocaml"; "ocamldep"] (S [A "-syntax"; A "camlp4o"]);
+    flag ["ocaml"; "doc"; "pkg_threads"] & A "-thread";
+    dispatch
+      (fun hook ->
+        Client.dispatch_default hook;
+        (match hook with
+          | After_rules ->
+              tag_byte_file ();
+              copy_rule_server "*.eliom -> **/_server/*.ml"
+                ~deps:["%(path)/" ^ Client.type_dir ^ "/%(file).inferred.mli"]
+                "%(path)/%(file).eliom" ("%(path)/" ^ Client.server_dir ^ "/%(file:<*>).ml");
+              copy_rule_server "*.eliomi -> **/_server/*.mli"
+                "%(path)/%(file).eliomi" ("%(path)/" ^ Client.server_dir ^ "/%(file:<*>).mli");
+              copy_rule_type "*.eliom -> **/_type/*.ml"
+                "%(path)/%(file).eliom" ("%(path)/" ^ Client.type_dir ^ "/%(file:<*>).ml");
+              copy_rule_type "*.eliomi -> **/_type/*.mli"
+                "%(path)/%(file).eliomi" ("%(path)/" ^ Client.type_dir ^ "/%(file:<*>).mli");
+              copy_rule_client "*.eliom -> **/_client/*.ml"
+                ~deps:["%(path)/" ^ Client.type_dir ^ "/%(file).inferred.mli"]
+                "%(path)/%(file).eliom" ("%(path)/" ^ Client.client_dir ^ "/%(file:<*>).ml");
+              copy_rule_client "*.eliomi -> **/_client/*.mli"
+                "%(path)/%(file).eliomi" ("%(path)/" ^ Client.client_dir ^ "/%(file:<*>).mli");
 
-(* give camlp4 the right mli file with server side inferred types when
-   the file is annotated with need_eliom_type *)
-let () =
-  let use_type_file need =
-    S [A"-ppopt"; A"-type"; A"-ppopt"; P need] in
-  let tags =
-    [["ocaml";"ocamldep"];
-     ["ocaml";"compile"];
-     ["ocaml";"infer_interface"]]
-  in
-  List.iter (fun tags -> pflag tags "need_eliom_type" use_type_file) tags;;
+              copy_rule_server "*.eliom -> _server/*.ml"
+                ~deps:[Client.type_dir ^ "/%(file).inferred.mli"]
+                "%(file).eliom" (Client.server_dir ^ "/%(file:<*>).ml");
+              copy_rule_server "*.eliomi -> _server/*.mli"
+                "%(file).eliomi" (Client.server_dir ^ "/%(file:<*>).mli");
+              copy_rule_type "*.eliom -> _type/*.ml"
+                "%(file).eliom" (Client.type_dir ^ "/%(file:<*>).ml");
+              copy_rule_type "*.eliomi -> _type/*.mli"
+                "%(file).eliomi" (Client.type_dir ^ "/%(file:<*>).mli");
+              copy_rule_client "*.eliom -> _client/*.ml"
+                ~deps:[Client.type_dir ^ "/%(file).inferred.mli"]
+                "%(file).eliom" (Client.client_dir ^ "/%(file:<*>).ml");
+              copy_rule_client "*.eliomi -> _client/*.mli"
+                "%(file).eliomi" (Client.client_dir ^ "/%(file:<*>).mli");
+          | _ -> ()
+        );
+      );
+end;;
 
-(* ocamlfind needs -thread or -vmthread when using a package wich
-   depends on the threads, even for the type inferrence pass *)
-flag ["ocaml"; "infer_interface"; "thread"] (A"-thread");;
-flag ["ocaml"; "library"; "thread"] (A"-thread");;
-flag ["ocaml"; "doc"; "pkg_threads"] & A "-thread";;
-pflag ["ocaml"; "doc"] "need_eliom_type" (fun _ -> S [A "-ppopt"; A "-notype"]);;
+module M = Ocamlbuild_eliom(struct
+  let exec =
+    let module Res = struct
+      let name = "src/site/client/ocsimore.js"
+      let dep  = "src/site/client/ocsimore.byte"
+      let package = "src/site/wiki_site.cma"
+    end in
+    Some (module Res : Exec)
+  let dispatch_default = dispatch_default
+  let server_dir = "server"
+  let type_dir = "type"
+  let client_dir = "client"
+end);;
 
-dep ["js_core_site_client"] ["src/site/client/ocsimore.js"];;
+M.init ();;
 
-rule "js_of_ocaml: .byte -> .js" ~deps:["%.byte"] ~prod:"%.js"
-  begin fun env _ ->
-    let eliom_client_js =
-      Pathname.concat
-        (Ocamlbuild_pack.Findlib.query "eliom.client").Ocamlbuild_pack.Findlib.location
-        "eliom_client.js" in
-    Cmd (S [A "js_of_ocaml"; A "-pretty"; A "-noinline"; P eliom_client_js; A (env "%.byte")])
-  end;;
-
-let () =
-  dispatch
-    (fun hook ->
-       dispatch_default hook;
-       match hook with
-         | Before_options ->
-             tag_eliom_files ()
-         | After_rules ->
-             Pathname.define_context "src/wiki/type"   ["src/core/server"; "src/user"];
-             Pathname.define_context "src/wiki/client" ["src/core/client"];
-             Pathname.define_context "src/wiki/server" ["src/core/server"; "src/user"];
-             Pathname.define_context "src/site/type"   ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
-             Pathname.define_context "src/site/server" ["src/wiki/server";"src/user";"src/core/server"; "src/forum"];
-             Pathname.define_context "src/site/client" ["src/wiki/client";"src/core/client"];
-             Pathname.define_context "src/forum" ["src/wiki/server";"src/core/server";"src/user"];
-             Pathname.define_context "src/user" ["src/core/server"];
-             (* only works in subdirectories: no source at toplevel *)
-             copy_rule "shared/*.ml -> client/*.ml"
-               "%(path)/shared/%(file).ml" "%(path)/client/%(file).ml";
-             copy_rule "shared/*.ml -> server/*.ml"
-               "%(path)/shared/%(file).ml" "%(path)/server/%(file).ml";
-             copy_rule_with_header "*.eliom -> server/*.ml"
-               ~deps:["%(path)/type/%(file).inferred.mli"]
-               "%(path)/%(file).eliom" "%(path)/server/%(file).ml";
-             copy_rule_with_header "*.eliomi -> server/*.mli"
-               ~deps:["%(path)/type/%(file).inferred.mli"]
-               "%(path)/%(file).eliomi" "%(path)/server/%(file).mli";
-             copy_rule_with_header "*.eliom -> type/*.ml"
-               "%(path)/%(file).eliom" "%(path)/type/%(file).ml";
-             copy_rule_with_header "*.eliomi -> type/*.mli"
-               "%(path)/%(file).eliomi" "%(path)/type/%(file).mli";
-             copy_rule_with_header "*.eliom -> client/*.ml"
-               ~deps:["%(path)/type/%(file).inferred.mli"]
-               "%(path)/%(file).eliom" "%(path)/client/%(file).ml";
-             copy_rule_with_header "*.eliomi -> client/*.mli"
-               ~deps:["%(path)/type/%(file).inferred.mli"]
-               "%(path)/%(file).eliomi" "%(path)/client/%(file).mli";
-
-             (* Use an introduction page with categories *)
-             tag_file "api.docdir/index.html" ["apiref"];
-             dep ["apiref"] ["doc/indexdoc"];
-             flag ["apiref"] & S[A "-intro"; P "doc/indexdoc"; A"-colorize-code"];
-
-         | _ -> ()
-    )
+(* Use an introduction page with categories *)
+tag_file "api.docdir/index.html" ["apiref"];;
+dep ["apiref"] ["doc/indexdoc"];;
+flag ["apiref"] & S[A "-intro"; P "doc/indexdoc"; A"-colorize-code"];;
 
 (* Compile the wiki version of the Ocamldoc.
 

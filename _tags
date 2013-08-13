@@ -11,9 +11,9 @@
 "src/forum/forum_sql0.ml": pkg_macaque.syntax
 
 # OASIS_START
-# DO NOT EDIT (digest: ccf1c219ad3b67124e35fa463d844470)
-# Ignore VCS directories, you can use the same kind of rule outside 
-# OASIS_START/STOP if you want to exclude directories that contains 
+# DO NOT EDIT (digest: 3a8c0dc0247a25d340f84161367cd485)
+# Ignore VCS directories, you can use the same kind of rule outside
+# OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
 <**/.svn>: -traverse
 <**/.svn>: not_hygienic
@@ -93,6 +93,7 @@
 <src/wiki/server/*.ml{,i}>: pkg_js_of_ocaml.deriving.syntax
 # Library wiki_client
 "src/wiki/client/wiki_client.cmxs": use_wiki_client
+<src/wiki/client/*.ml{,i}>: use_ocsimore_client
 <src/wiki/client/*.ml{,i}>: pkg_eliom.client
 <src/wiki/client/*.ml{,i}>: pkg_eliom.syntax
 # Library forum
@@ -110,6 +111,8 @@
 "src/site/core_site.cmxs": use_core_site
 # Library core_site_client
 "src/site/client/core_site_client.cmxs": use_core_site_client
+<src/site/client/*.ml{,i}>: use_wiki_client
+<src/site/client/*.ml{,i}>: use_ocsimore_client
 <src/site/client/*.ml{,i}>: pkg_eliom.client
 <src/site/client/*.ml{,i}>: pkg_eliom.syntax
 # Library user_site
@@ -156,4 +159,3 @@
 "src/site/client/ocsimore.byte": pkg_eliom.syntax
 "src/site/client/ocsimore.byte": pkg_eliom.client
 "src/site/client/ocsimore.byte": pkg_camlp4
-<src/site/wiki_site.cm{a,xa}>: js_core_site_client

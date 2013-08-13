@@ -78,6 +78,7 @@ Library "ocsimore"
 
 Library "ocsimore_client"
   Path: src/core/client
+  CompiledObject: byte
   Modules:
     Opaque
   XMETADescription: Core Ocsimore client part
@@ -166,6 +167,7 @@ Library "wiki"
 
 Library "wiki_client"
   Path: src/wiki/client
+  CompiledObject: byte
   FindlibName: wiki_client
   FindlibParent: ocsimore_client
   Modules:
@@ -173,6 +175,7 @@ Library "wiki_client"
     Wiki_widgets_interface
   XMETADescription: Wiki stuffs client side part
   BuildDepends:
+    ocsimore_client,
     eliom.client,
     eliom.syntax
   XMETARequires:
@@ -211,6 +214,7 @@ Library "core_site"
 
 Library "core_site_client"
   Path: src/site/client
+  CompiledObject: byte
   FindlibName: site
   FindlibParent: ocsimore_client
   Modules:
@@ -227,6 +231,7 @@ Library "core_site_client"
     ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
+    ocsimore_client.wiki_client,
     eliom.client,
     eliom.syntax
   XMETARequires:
