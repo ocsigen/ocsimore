@@ -253,5 +253,5 @@ let update_wiki ~(rights : Wiki_types.wiki_rights) ?container ?staticdir ?path ?
 let save_wikipage_properties ~(rights : Wiki_types.wiki_rights) ?title ?wb ?newpage (wiki, page as wp) =
   rights#can_admin_wikipage wp >>= function
     | true ->
-        Wiki_sql.set_wikipage_properties ?wiki ~page ?title ?newpage ?wb ()
+        Wiki_sql.set_wikipage_properties ~wiki ~page ?title ?newpage ?wb ()
     | false -> Lwt.fail Ocsimore_common.Permission_denied

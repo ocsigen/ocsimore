@@ -59,7 +59,7 @@ let possibly_create ~login ~fullname ?email ?pwd () =
                  ~name:login
                  ~password
                  ~fullname
-                 ?email
+                 ~email
                  ~dyn:false
   )
 
@@ -470,7 +470,7 @@ let in_group ?user ~group () =
       | None -> get_user_id () >|= basic_user
       | Some user -> Lwt.return user
   in
-  in_group_ ?user ~group ()
+  in_group_ ~user ~group ()
 
 
 let user_from_userlogin_xform user =

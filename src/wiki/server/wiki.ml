@@ -425,7 +425,7 @@ let create_wiki ~title ~descr ?path ?staticdir ?(boxrights = true)
      container has changed between the creation of the wiki and the moments
      the rights are added *)
   Wiki_sql.new_wiki ~title ~descr ~pages:path_string
-     ~boxrights ?staticdir ?container_text ~author ~model ()
+     ~boxrights ~staticdir ?container_text ~author ~model ()
    >>= fun (wiki_id, _wikibox_container) ->
 
    (* Putting users in groups *)

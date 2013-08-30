@@ -458,7 +458,7 @@ object (self)
     widget_with_error_box#bind_or_display_error
       (self#get_message_list ~forum ~first ~number)
       (self#pretty_print_message_list
-         ~forum ?rows ?cols ~classes ?add_message_form :>
+         ~forum ?rows ?cols ~classes ~add_message_form :>
          Forum_data.raw_message list ->
        (string list * Html5_types.flow5 Html5.F.elt list)
          Lwt.t)
