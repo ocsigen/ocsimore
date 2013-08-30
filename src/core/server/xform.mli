@@ -74,10 +74,10 @@ module type Xform = sig
 
 (* Displays the input control for 'a, and a checkbox to encode Some/None *)
   val opt_input:
-    input:('a -> (Html5_types.input Html5.F.elt, 'b) t) ->
+    input:('a -> (([> Html5_types.input ] as 'c) Html5.F.elt, 'b) t) ->
     default:'a ->
     'a option ->
-    ([> Html5_types.input] Html5.F.elt, 'b option) t
+    ('c Html5.F.elt, 'b option) t
 
 
   module Ops : sig

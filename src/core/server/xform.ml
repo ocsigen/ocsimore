@@ -78,10 +78,10 @@ module type Xform = sig
     ([> Html5_types.form_content] Html5.F.elt, 'o list) t
 
   val opt_input:
-    input:('a -> (Html5_types.input Html5.F.elt, 'b) t) ->
+    input:('a -> (([> Html5_types.input ] as 'c) Html5.F.elt, 'b) t) ->
     default:'a ->
     'a option ->
-    ([> Html5_types.input] Html5.F.elt, 'b option) t
+    ('c Html5.F.elt, 'b option) t
 
 
   module Ops : sig

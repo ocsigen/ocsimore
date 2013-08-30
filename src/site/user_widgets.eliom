@@ -123,7 +123,7 @@ class type user_widget_class = object
      * Html5_types.tbody_content Html5.F.elt list) Lwt.t
 
   method status_text:
-    Html5_types.form_content Html5.F.elt list Lwt.t
+    Html5_types.div Html5.F.elt list Lwt.t
 
   method display_group_creation :
     ?err:string -> unit ->
