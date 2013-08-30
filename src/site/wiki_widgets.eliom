@@ -333,7 +333,7 @@ object (self)
         Js._true
       in
       (** TODO Disable button *)
-      let edit_window =
+      let _edit_window =
         Eliom_client.window_open
           ~window_name:(Js.string ("Editing wikibox "^Wiki_types.string_of_wikibox %wb))
           ~window_features:(Js.string "alwaysRaised=yes,width=800,height=600,location=no,dependent=yes")
@@ -1864,7 +1864,6 @@ object (self)
        let servpage = Wiki_self_services.find_servpage w.wiki_id in
        let wikipages =
          let create_elt full_path =
-           let length' = AUrl.length full_path in
            let path = AUrl.last full_path in
            match servpage with
              | Some service when List.exists ((=) full_path) wikipages ->
