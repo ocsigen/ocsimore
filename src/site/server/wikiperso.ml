@@ -317,7 +317,7 @@ let () =
 *)
 
 let users_root =
-  Eliom_service.service
+  Eliom_service.Appl.service
     ~path:[!Ocsimore_config.admin_dir;"wikiperso"]
     ~get_params:Eliom_parameter.unit ()
 

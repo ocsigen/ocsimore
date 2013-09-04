@@ -33,7 +33,7 @@ let set_forum_action action =
 
 let register_services () =
   let add_message_service =
-    Eliom_service.post_coservice'
+    Eliom_service.Http.post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_add"
       ~post_params:
@@ -82,7 +82,7 @@ let register_services () =
 
   (* Moderation *)
   let moderate_message_service =
-    Eliom_service.post_coservice'
+    Eliom_service.Http.post_coservice'
       ~keep_get_na_params:false
       ~name:"forum_moderate"
       ~post_params:(Forum.eliom_message "msg")
@@ -112,11 +112,11 @@ let register_services () =
 *)
 
   (** Atom feed services *)
-  let thread_feed_service = Eliom_service.service
+  let thread_feed_service = Eliom_service.Http.service
     ~path:["thread_feed"]
     ~get_params:(Forum.eliom_message "message") () in
 
-  let forum_feed_service = Eliom_service.service
+  let forum_feed_service = Eliom_service.Http.service
     ~path:["forum_feed"]
     ~get_params:(Forum.eliom_forum "forum") () in
   { Forum_types.add_message_service; moderate_message_service; thread_feed_service; forum_feed_service }
@@ -124,14 +124,14 @@ let register_services () =
 let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
 let path_create_forum = [!Ocsimore_config.admin_dir;"create_forum"]
 
-let edit_forum = Eliom_service.service
+let edit_forum = Eliom_service.Appl.service
   ~path:path_edit_forum
   ~get_params:(Forum.eliom_forum "forum") ()
 
-let create_forum = Eliom_service.service
+let create_forum = Eliom_service.Appl.service
   ~path:path_create_forum
   ~get_params:Eliom_parameter.unit ()
 
-let view_forums = Eliom_service.service
+let view_forums = Eliom_service.Http.service
   ~path:[!Ocsimore_config.admin_dir;"view_forums"]
   ~get_params:Eliom_parameter.unit ()

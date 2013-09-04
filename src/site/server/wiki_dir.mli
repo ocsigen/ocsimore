@@ -52,5 +52,5 @@ val process_auxfile:
   wb403:Wiki_types.wikibox ->
   ('a -> Ocsigen_local_files.resolved) ->
   'a ->
-  (Ocsimore_appl.appl Eliom_registration.application_content,
-   Eliom_registration.appl_service) Eliom_registration.kind Lwt.t
+  Ocsimore_appl.appl Eliom_registration.application_content
+    Eliom_registration.kind Lwt.t

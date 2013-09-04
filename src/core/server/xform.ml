@@ -607,7 +607,7 @@ module Xform = struct
     let f = hidden (submit_button "Submit") @@ f |> snd in
     unpack f {f = fun f ->
       let (params, _) = f.params Name.first in
-      let service = Eliom_service.post_coservice ~timeout:600. ~fallback
+      let service = Eliom_service.Http.post_coservice ~timeout:600. ~fallback
         ~post_params:params ()
       in
       Html5.F.post_form ~service (fun names ->
@@ -650,7 +650,7 @@ module XformLwt = struct
     let f = hidden (submit_button "Submit") @@ f |> snd in
     unpack f {f = fun f ->
       let (params, _) = f.params Name.first in
-      let service = Eliom_service.post_coservice ~timeout:600. ~fallback
+      let service = Eliom_service.Http.post_coservice ~timeout:600. ~fallback
         ~post_params:params ()
       in
       Html5.F.lwt_post_form ~service (fun names ->

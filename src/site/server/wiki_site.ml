@@ -79,7 +79,7 @@ let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
 (** We register auxiliary services for administration boxes *)
 
-let service_edit_wikibox = Eliom_service.service
+let service_edit_wikibox = Eliom_service.Appl.service
   ~path:[!Ocsimore_config.admin_dir; "wiki_edit"]
   ~get_params:Wiki_services.eliom_wikibox_args ()
 
@@ -99,7 +99,7 @@ let () =
 
 (** We register the service that lists all the wikis *)
 let () =
-  Ocsimore_appl.register ~service:Wiki_services.view_wikis
+  Eliom_registration.Html5.register ~service:Wiki_services.view_wikis
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ ()-> Lwt.return "View wikis")
        ~permissions:(fun _ () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
@@ -364,9 +364,9 @@ let create_wiki =
     | _ -> Some "An unknown error has occurred"
  in
   let path = [!Ocsimore_config.admin_dir;"create_wiki"] in
-  let create_wiki = Eliom_service.service ~path
+  let create_wiki = Eliom_service.Http.service ~path
       ~get_params:Eliom_parameter.unit () in
-  Ocsimore_appl.register ~service:create_wiki
+  Eliom_registration.Html5.register ~service:create_wiki
     (fun () () ->
        wiki_rights#can_create_wiki () >>= function
          | true ->
@@ -578,7 +578,7 @@ let () =
        | None -> Lwt.fail Eliom_common.Eliom_404)
 
 let replace_links =
-  Eliom_service.post_coservice
+  Eliom_service.Appl.post_coservice
     ~fallback:Wiki_services.batch_edit_boxes
     ~post_params:Eliom_parameter.unit ()
 

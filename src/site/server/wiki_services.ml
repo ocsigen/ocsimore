@@ -570,26 +570,26 @@ and action_send_css_options = Eliom_registration.Any.register_post_coservice'
                   ~newwb:newwb ~media ~rank)
   )
 
-and edit_wiki = Eliom_service.service
+and edit_wiki = Eliom_service.Appl.service
   ~path:[!Ocsimore_config.admin_dir;"edit_wiki"]
   ~get_params:eliom_wiki_args ()
 
-and view_wikis = Eliom_service.service
+and view_wikis = Eliom_service.Http.service
   ~path:[!Ocsimore_config.admin_dir;"view_wikis"]
   ~get_params:(Eliom_parameter.bool "deleted") ()
 
 let view_wikis_preapplyed =
   Eliom_service.preapply ~service:view_wikis false
 
-and view_boxes = Eliom_service.service
+and view_boxes = Eliom_service.Appl.service
   ~path:[!Ocsimore_config.admin_dir;"view_boxes"]
   ~get_params:eliom_wiki_args ()
 
-and view_box = Eliom_service.service
+and view_box = Eliom_service.Appl.service
   ~path:[!Ocsimore_config.admin_dir;"view_boxes"]
   ~get_params:(eliom_wikibox_args ** Eliom_parameter.(opt (int32 "version"))) ()
 
-and batch_edit_boxes = Eliom_service.service
+and batch_edit_boxes = Eliom_service.Appl.service
   ~path:[!Ocsimore_config.admin_dir; "batch_edit_boxes"]
   ~get_params:Eliom_parameter.unit ()
 
@@ -624,27 +624,12 @@ and action_send_wiki_metadata = Eliom_registration.Any.register_post_coservice'
        (fun () -> Wiki_data.update_wiki ~rights ~container ~descr wiki)
   )
 
-and edit_wiki_permissions_admin = Eliom_service.service
+and edit_wiki_permissions_admin = Eliom_service.Appl.service
   ~path:[!Ocsimore_config.admin_dir;"edit_wikis_permissions"]
   ~get_params:eliom_wiki_args ()
 
 (** a service serving the content of wikiboxes: *)
-and wikibox_contents :
-    (Wiki_types.wikibox *
-     (wiki * string list option) *
-     (Wiki_types.wikibox * Wiki_widgets_interface.wikibox_override) option,
-     unit, Eliom_service.service_kind,
-     [ `WithoutSuffix ],
-     [ `One of
-	 (Wiki_types.wikibox *
-	  (wiki * string list option) *
-          (Wiki_types.wikibox * Wiki_widgets_interface.wikibox_override)
-           option) Eliom_parameter.caml ]
-       Eliom_parameter.param_name, unit,
-     [Eliom_service.registrable ],
-     [ Html5_types.div ] Html5.F.elt list option
-       Eliom_parameter.caml)
-  Eliom_service.service =
+and wikibox_contents =
   Eliom_registration.Ocaml.register_coservice'
     ~name:("wikibox_contents")
     ~get_params:(Eliom_parameter.(
@@ -658,7 +643,10 @@ and wikibox_contents :
       lwt () = match override with
         | None -> Lwt.return ()
         | Some override -> set_override_wikibox override in
-      send_wikibox ~rights ~page ~wiki ~wb ())
+      (send_wikibox ~rights ~page ~wiki ~wb ()
+       : [ Html5_types.div ] Html5.F.elt list option Lwt.t
+      )
+    )
 
 and delete_wiki = Eliom_registration.Action.register_post_coservice'
   ~post_params:(Eliom_parameter.int32 "wid" ** Eliom_parameter.bool "delete")
@@ -712,13 +700,13 @@ module Ui = struct
       let open Eliom_parameter in
       wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
     in
-    Eliom_service.post_coservice'
+    Eliom_service.Appl.post_coservice'
       ~name:"preview_service"
       ~post_params
       ()
 
   let edit_service =
-    Eliom_service.coservice'
+    Eliom_service.Appl.coservice'
       ~name:"edit_service"
       ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
       ()

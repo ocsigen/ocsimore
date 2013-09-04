@@ -254,13 +254,13 @@ let descr_builder l =
   lwt l = Lwt_list.map_s ddt_builder l in
   Lwt.return (combine [] l)
 
-type ('a,'b, 'kind, 'suff, 'reg, 'appl) wiki_service =
+type ('a,'b, 'kind, 'suff, 'reg, 'service) wiki_service =
     ('a, unit,
      [< Eliom_service.get_service_kind] as 'kind,
      [< Eliom_service.suff] as 'suff,
      'b, unit,
      [< Eliom_service.registrable] as 'reg,
-     [< Eliom_registration.appl_service] as 'appl) Eliom_service.service
+     [< Eliom_registration.non_caml_service] as 'service) Eliom_service.service
 
 (* We need existential types to be able to parametrise service_href by
    the service and its parameter without showing the type of the

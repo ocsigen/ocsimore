@@ -204,7 +204,7 @@ let () = Lwt_main.run (
   let () = Forum_wikiext.register_wikiext
     (message_widget, thread_widget, message_list_widget, threads_list_widget)
   in
-  Ocsimore_appl.register ~service:Forum_services.view_forums
+  Eliom_registration.Html5.register ~service:Forum_services.view_forums
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun () () -> Lwt.return "View forums")
        ~permissions:(fun () () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))

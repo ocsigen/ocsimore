@@ -44,13 +44,13 @@ val cast_wp : ('a, 'b, 'c) ext_wikicreole_parser -> 'a wikicreole_parser
 val cast_niwp : ('a, 'b, 'c) ext_wikicreole_parser -> 'b wikicreole_parser
 
 
-type ('a,'b, 'kind, 'suff, 'reg, 'appl) wiki_service =
+type ('a,'b, 'kind, 'suff, 'reg, 'service) wiki_service =
     ('a, unit,
      [< Eliom_service.get_service_kind] as 'kind,
      [< Eliom_service.suff] as 'suff,
      'b, unit,
      [< Eliom_service.registrable] as 'reg,
-     [< Eliom_registration.appl_service] as 'appl) Eliom_service.service
+     [< Eliom_registration.non_caml_service] as 'service) Eliom_service.service
 
 (* should be abstract... *)
 type service_href = Wiki_syntax_types.service_href
@@ -525,4 +525,3 @@ val translate_link :
   wikibox ->
   string option Lwt.t
 *)
-

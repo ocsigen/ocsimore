@@ -166,7 +166,7 @@ let html_page ?body_classes ?(css=[]) ?title:(title'="Ocsimore") ?heading conten
 (** Admin page *)
 
 let admin_root =
-  Eliom_service.service
+  Eliom_service.Http.service
     ~path:[!Ocsimore_config.admin_dir;""]
     ~get_params:Eliom_parameter.unit ()
 
@@ -279,7 +279,7 @@ let ocsimore_admin_greetings =
   ]
 
 let () =
-  Ocsimore_appl.register ~service:admin_root
+  Eliom_registration.Html5.register ~service:admin_root
     (fun () () ->
        admin_page ~service:admin_root ~title:"Ocsimore" ocsimore_admin_greetings);
   ()
