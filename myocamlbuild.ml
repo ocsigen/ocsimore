@@ -643,13 +643,23 @@ end) = struct
             dep ["file:" ^ Client.package] [Client.name];
                 rule "js_of_ocaml: .byte -> .js" ~dep:Client.dep ~prod:Client.name
                   (fun env _ ->
-                    let eliom_client_js =
-                      Pathname.concat
-                        (Pack.Findlib.query "eliom.client").Pack.Findlib.location
-                        "eliom_client.js"
-                    in
-                    Cmd (S [A "js_of_ocaml"; A "-pretty"; A "-noinline"; P eliom_client_js;
-                            A Client.dep; A "-o"; A Client.name])
+                     let get_js pkg =
+                       Pathname.concat
+                         (Pack.Findlib.query pkg).Pack.Findlib.location
+                     in
+                     let eliom_client_js =
+                       get_js "eliom.client" "eliom_client.js"
+                     in
+                     let weak_js =
+                       get_js "js_of_ocaml" "weak.js"
+                     in
+                     let pkgs =
+                       P eliom_client_js
+                       :: if Pathname.exists weak_js then [P weak_js] else []
+                     in
+                     Cmd (S ([A "js_of_ocaml"; A "-pretty"; A "-noinline"]
+                             @ pkgs
+                             @ [A Client.dep; A "-o"; A Client.name]))
                   );
     in
     flag ["ocaml"; "infer_interface"; "thread"] (A "-thread");
