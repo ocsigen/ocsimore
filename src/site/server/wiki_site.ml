@@ -79,7 +79,7 @@ let () = Wiki_ext.register_wikibox_syntax_extensions error_box
 
 (** We register auxiliary services for administration boxes *)
 
-let service_edit_wikibox = Eliom_service.Appl.service
+let service_edit_wikibox = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir; "wiki_edit"]
   ~get_params:Wiki_services.eliom_wikibox_args ()
 
@@ -578,7 +578,7 @@ let () =
        | None -> Lwt.fail Eliom_common.Eliom_404)
 
 let replace_links =
-  Eliom_service.Appl.post_coservice
+  Eliom_service.App.post_coservice
     ~fallback:Wiki_services.batch_edit_boxes
     ~post_params:Eliom_parameter.unit ()
 

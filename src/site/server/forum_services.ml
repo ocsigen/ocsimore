@@ -124,11 +124,11 @@ let register_services () =
 let path_edit_forum = [!Ocsimore_config.admin_dir;"edit_forum"]
 let path_create_forum = [!Ocsimore_config.admin_dir;"create_forum"]
 
-let edit_forum = Eliom_service.Appl.service
+let edit_forum = Eliom_service.App.service
   ~path:path_edit_forum
   ~get_params:(Forum.eliom_forum "forum") ()
 
-let create_forum = Eliom_service.Appl.service
+let create_forum = Eliom_service.App.service
   ~path:path_create_forum
   ~get_params:Eliom_parameter.unit ()
 

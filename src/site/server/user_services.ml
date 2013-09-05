@@ -173,35 +173,35 @@ and action_remove_user_from_group =
       )
 *)
 
-and service_view_group = Eliom_service.Appl.service
+and service_view_group = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir; "view_group"]
   ~get_params:(Eliom_parameter.string "group") ()
 
-and service_view_groups = Eliom_service.Appl.service
+and service_view_groups = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir; "view_groups"]
   ~get_params:(Eliom_parameter.unit) ()
 
-and service_view_users = Eliom_service.Appl.service
+and service_view_users = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir; "view_users"]
   ~get_params:(Eliom_parameter.unit) ()
 
-and service_view_roles = Eliom_service.Appl.service
+and service_view_roles = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir; "view_roles"]
   ~get_params:(Eliom_parameter.unit) ()
 
-and service_login = Eliom_service.Appl.service
+and service_login = Eliom_service.App.service
   ~https:force_secure
   ~path:[!Ocsimore_config.admin_dir; "login"]
   ~get_params:Eliom_parameter.unit
   ()
 
 and service_create_new_group =
-  Eliom_service.Appl.service
+  Eliom_service.App.service
     ~path:([!Ocsimore_config.admin_dir; "create_group"])
     ~get_params:unit ()
 
 let action_create_new_group =
-  Eliom_service.Appl.post_coservice
+  Eliom_service.App.post_coservice
     ~fallback:service_create_new_group
     ~post_params:(string "usr" ** string "descr") ()
 
@@ -211,24 +211,24 @@ let action_create_new_group =
    To be done when Ocaml has first-class modules, by returning a module
    option *)
 
-let service_create_new_user = Eliom_service.Appl.service
+let service_create_new_user = Eliom_service.App.service
   ~path:([!Ocsimore_config.admin_dir; "create_user"])
   ~get_params:unit ()
 
 let action_create_new_user =
-  Eliom_service.Appl.post_coservice
+  Eliom_service.App.post_coservice
     ~fallback:service_create_new_user
     ~https:force_secure
     ~post_params:(string "usr" ** (string "descr" **
                                      (string "email" **
                                         string "pass1" ** string "pass2"))) ()
 
-let service_users_settings = Eliom_service.Appl.service
+let service_users_settings = Eliom_service.App.service
   ~path: [!Ocsimore_config.admin_dir; "users_settings"]
   ~get_params: unit ()
 
 let action_users_settings =
-  Eliom_service.Appl.post_coservice
+  Eliom_service.App.post_coservice
     ~fallback:service_users_settings
     ~post_params:((bool "enable") **
                     (string "mail_from") **
@@ -300,7 +300,7 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
             | None -> User_data.generate_password ()
             | Some pwd -> pwd
           in
-          let service = Eliom_service.Appl.coservice ~max_use:1
+          let service = Eliom_service.App.coservice ~max_use:1
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameter.unit ()
           in

@@ -570,7 +570,7 @@ and action_send_css_options = Eliom_registration.Any.register_post_coservice'
                   ~newwb:newwb ~media ~rank)
   )
 
-and edit_wiki = Eliom_service.Appl.service
+and edit_wiki = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir;"edit_wiki"]
   ~get_params:eliom_wiki_args ()
 
@@ -581,15 +581,15 @@ and view_wikis = Eliom_service.Http.service
 let view_wikis_preapplyed =
   Eliom_service.preapply ~service:view_wikis false
 
-and view_boxes = Eliom_service.Appl.service
+and view_boxes = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir;"view_boxes"]
   ~get_params:eliom_wiki_args ()
 
-and view_box = Eliom_service.Appl.service
+and view_box = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir;"view_boxes"]
   ~get_params:(eliom_wikibox_args ** Eliom_parameter.(opt (int32 "version"))) ()
 
-and batch_edit_boxes = Eliom_service.Appl.service
+and batch_edit_boxes = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir; "batch_edit_boxes"]
   ~get_params:Eliom_parameter.unit ()
 
@@ -624,7 +624,7 @@ and action_send_wiki_metadata = Eliom_registration.Any.register_post_coservice'
        (fun () -> Wiki_data.update_wiki ~rights ~container ~descr wiki)
   )
 
-and edit_wiki_permissions_admin = Eliom_service.Appl.service
+and edit_wiki_permissions_admin = Eliom_service.App.service
   ~path:[!Ocsimore_config.admin_dir;"edit_wikis_permissions"]
   ~get_params:eliom_wiki_args ()
 
@@ -700,13 +700,13 @@ module Ui = struct
       let open Eliom_parameter in
       wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
     in
-    Eliom_service.Appl.post_coservice'
+    Eliom_service.App.post_coservice'
       ~name:"preview_service"
       ~post_params
       ()
 
   let edit_service =
-    Eliom_service.Appl.coservice'
+    Eliom_service.App.coservice'
       ~name:"edit_service"
       ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
       ()
