@@ -544,7 +544,7 @@ let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
 module type Exec = sig
   val name : string
-  val dep : string
+  val main_file : string
   val package : string
 end
 
@@ -624,43 +624,25 @@ end) = struct
           Pathname.define_context dir [path; server_dir];
         )
     in
-    let tag_byte_file () =
+    let js_rule () =
       match Client.exec with
         | None -> ()
         | Some client ->
             let module Client = (val client : Exec) in
-            let file = Pathname.update_extension "ml" Client.dep in
-            tag_file
-              Client.dep
-              (Tags.elements (tags_of_pathname file));
-            tag_file Client.dep ["-thread"]
+            tag_file Client.package (Tags.elements (tags_of_pathname Client.main_file));
+            flag ["file:" ^ Client.package] (A "-linkall");
+            rule "js_of_eliom: .cma -> .js" ~dep:Client.package ~prod:Client.name
+              (fun env _ ->
+                 Cmd (S [A "js_of_eliom"; A Client.package; A "-o"; A Client.name])
+              );
     in
-    let () =
+    let modify_targets () =
       match Client.exec with
         | None -> ()
         | Some client ->
             let module Client = (val client : Exec) in
-            dep ["file:" ^ Client.package] [Client.name];
-                rule "js_of_ocaml: .byte -> .js" ~dep:Client.dep ~prod:Client.name
-                  (fun env _ ->
-                     let get_js pkg =
-                       Pathname.concat
-                         (Pack.Findlib.query pkg).Pack.Findlib.location
-                     in
-                     let eliom_client_js =
-                       get_js "eliom.client" "eliom_client.js"
-                     in
-                     let weak_js =
-                       get_js "js_of_ocaml" "weak.js"
-                     in
-                     let pkgs =
-                       P eliom_client_js
-                       :: if Pathname.exists weak_js then [P weak_js] else []
-                     in
-                     Cmd (S ([A "js_of_ocaml"; A "-pretty"; A "-noinline"]
-                             @ pkgs
-                             @ [A Client.dep; A "-o"; A Client.name]))
-                  );
+            let f x = if x = Client.package then Client.name else x in
+            Options.targets @:= List.map f !Options.targets;
     in
     flag ["ocaml"; "infer_interface"; "thread"] (A "-thread");
     flag ["ocaml"; "compile"] (S [A "-thread"; A "-syntax"; A "camlp4o"]);
@@ -670,8 +652,10 @@ end) = struct
       (fun hook ->
         Client.dispatch_default hook;
         (match hook with
+          | After_options ->
+              modify_targets ();
           | After_rules ->
-              tag_byte_file ();
+              js_rule ();
               copy_rule_server "*.eliom -> **/_server/*.ml"
                 ~deps:["%(path)/" ^ Client.type_dir ^ "/%(file).inferred.mli"]
                 "%(path)/%(file).eliom" ("%(path)/" ^ Client.server_dir ^ "/%(file:<*>).ml");
@@ -710,7 +694,7 @@ module M = Ocamlbuild_eliom(struct
   let exec =
     let module Res = struct
       let name = "src/site/client/ocsimore.js"
-      let dep  = "src/site/client/ocsimore.byte"
+      let main_file = "src/site/client/ocsimore.ml"
       let package = "src/site/wiki_site.cma"
     end in
     Some (module Res : Exec)
