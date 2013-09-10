@@ -37,8 +37,11 @@ setup.data:
 
 # OASIS_STOP
 
-run: install-data
-	CAML_LD_LIBRARY_PATH=_build/src/core ocsigenserver -c local/etc/ocsigen/ocsimore.conf -v
+LOG_DIR = ./local/var/log
+LIB_DIR = ./local/var/lib
+
+run: install-data $(LOG_DIR) $(LIB_DIR)
+	CAML_LD_LIBRARY_PATH="${CAML_LD_LIBRARY_PATH}:_build/src/core" ocsigenserver -c local/etc/ocsigen/ocsimore.conf -v
 
 restart: install-data
 	echo restart > /tmp/cpipe
@@ -50,4 +53,10 @@ install-data: ${STATIC_DIR}
 	cp ./_build/src/site/client/ocsimore.js $<
 
 ${STATIC_DIR}:
+	mkdir -p $@
+
+${LOG_DIR}:
+	mkdir -p $@
+
+${LIB_DIR}:
 	mkdir -p $@

@@ -2,3 +2,7 @@ _build
 setup.data
 setup.log
 api.docdir
+
+local/var/lib/
+local/var/log/
+local/var/www/static/ocsimore.js
