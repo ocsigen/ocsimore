@@ -99,7 +99,7 @@ let () =
 
 (** We register the service that lists all the wikis *)
 let () =
-  Eliom_registration.Html5.register ~service:Wiki_services.view_wikis
+  Ocsimore_appl.register ~service:Wiki_services.view_wikis
     (Page_site.admin_body_content_with_permission_handler
        ~title:(fun _ ()-> Lwt.return "View wikis")
        ~permissions:(fun _ () -> Page_site.userid_permissions (Lwt.return -| (=) User.admin))
@@ -366,7 +366,7 @@ let create_wiki =
   let path = [!Ocsimore_config.admin_dir;"create_wiki"] in
   let create_wiki = Eliom_service.Http.service ~path
       ~get_params:Eliom_parameter.unit () in
-  Eliom_registration.Html5.register ~service:create_wiki
+  Ocsimore_appl.register ~service:create_wiki
     (fun () () ->
        wiki_rights#can_create_wiki () >>= function
          | true ->

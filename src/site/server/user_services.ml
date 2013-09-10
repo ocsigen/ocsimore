@@ -300,11 +300,11 @@ let create_user ~name ~fullname ~email ?pwd ~options () =
             | None -> User_data.generate_password ()
             | Some pwd -> pwd
           in
-          let service = Eliom_service.App.coservice ~max_use:1
+          let service = Eliom_service.Http.coservice ~max_use:1
             ~fallback:service_create_new_user
             ~get_params:Eliom_parameter.unit ()
           in
-          Ocsimore_appl.register ~service
+          Eliom_registration.Html5.register ~service
             (Page_site.admin_body_content_with_permission_handler
                ~title:(fun () () -> Lwt.return "Ocsimore - User creation")
                ~permissions:(fun () () -> Lwt.return true)
