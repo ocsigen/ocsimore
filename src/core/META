@@ -1,8 +1,8 @@
 # OASIS_START
-# DO NOT EDIT (digest: 65ae75417d11d90880b67de4fc8597c1)
+# DO NOT EDIT (digest: 2ba87ac9d6843f6e559089bc578f6115)
 version = "0.5"
 description = "Core Ocsimore"
-requires = "macaque eliom.server safepass threads"
+requires = "macaque_lwt eliom.server safepass threads"
 archive(byte) = "ocsimore.cma"
 archive(byte, plugin) = "ocsimore.cma"
 archive(native) = "ocsimore.cmxa"
