@@ -66,12 +66,13 @@ Library "ocsimore"
   BuildDepends:
     lwt.syntax (>= 2.4),
     macaque (>= 0.6.1),
+    macaque_lwt (>= 0.1),
     safepass (>= 1.2),
     eliom.server (>= 3.0),
     threads,
     js_of_ocaml.deriving.syntax
   XMETARequires:
-    macaque,
+    macaque_lwt,
     eliom.server,
     safepass,
     threads
