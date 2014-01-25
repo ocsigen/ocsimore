@@ -50,7 +50,7 @@ type ('a,'b, 'kind, 'suff, 'reg, 'service) wiki_service =
      [< Eliom_service.suff] as 'suff,
      'b, unit,
      [< Eliom_service.registrable] as 'reg,
-     [< Eliom_registration.non_caml_service] as 'service) Eliom_service.service
+     [< Eliom_registration.non_ocaml_service] as 'service) Eliom_service.service
 
 (* should be abstract... *)
 type service_href = Wiki_syntax_types.service_href

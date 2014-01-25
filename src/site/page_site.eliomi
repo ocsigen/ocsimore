@@ -26,7 +26,7 @@ open Eliom_content
 type menu_link_service =
     (Eliom_service.get_service_kind,
      [ `Unregistrable | `Registrable ],
-     Eliom_registration.non_caml_service)
+     Eliom_registration.non_ocaml_service)
     Eliom_tools_common.one_page
 
 

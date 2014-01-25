@@ -308,7 +308,7 @@ object (self)
             then %User_services.action_remove_user_from_group
             else %User_services.action_add_user_from_group
           in
-          Eliom_client.call_caml_service ~service () (%group, %user)
+          Eliom_client.call_ocaml_service ~service () (%group, %user)
           >>= fun new_remove ->
           let button_value = if new_remove then "Remove" else "Add" in
           remove := new_remove;
@@ -940,7 +940,7 @@ end
 
 
 (* The [services] argument should be changed from a tuple into a first-class
-   module as soon as this is available in Caml *)
+   module as soon as this is available in OCaml *)
 class user_widget_user_creation user_creation_options : user_widget_user_creation_class =
 object (self)
 

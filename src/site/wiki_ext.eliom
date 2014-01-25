@@ -85,7 +85,7 @@ let register_wikibox_syntax_extensions
                (Html5.F.div
                   ~a:[Html5.F.a_onload {{ fun _ ->
                     ignore (
-                      match_lwt Eliom_client.call_caml_service ~keep_get_na_params:true
+                      match_lwt Eliom_client.call_ocaml_service ~keep_get_na_params:true
                         ~service:%Wiki_services.wikibox_contents
                         (%box, %page, %override) () with
                         | None ->

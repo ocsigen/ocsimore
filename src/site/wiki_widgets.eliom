@@ -323,7 +323,7 @@ object (self)
                   edit_window##close ();
                   Lwt.ignore_result
                     (lwt _version =
-                       Eliom_client.call_caml_service
+                       Eliom_client.call_ocaml_service
                          ~service: %Wiki_services.API.set_wikibox_content
                          () (%wiki_page, ((%wb, Js.to_string textarea##value), %old_version))
                      in

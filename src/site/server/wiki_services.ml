@@ -633,7 +633,7 @@ and wikibox_contents =
   Eliom_registration.Ocaml.register_coservice'
     ~name:("wikibox_contents")
     ~get_params:(Eliom_parameter.(
-      caml "override" Json.t< wikibox *
+      ocaml "override" Json.t< wikibox *
 	(wiki * string list option) *
 	(wikibox * wikibox_override) option>))
     (fun (wb,page,override) () ->
@@ -672,7 +672,7 @@ let add_wiki_css_header () =
 
 let wiki_page_args =
   let open Eliom_parameter in
-  (caml "wiki" Json.t<wiki> ** caml "path" Json.t<string list option>)
+  (ocaml "wiki" Json.t<wiki> ** ocaml "path" Json.t<string list option>)
 
 (* This is initalized in wiki_site.ml *)
 let (get_wikisyntax_helper, set_wikisyntax_helper) =
@@ -698,7 +698,7 @@ module Ui = struct
   let preview_service =
     let post_params =
       let open Eliom_parameter in
-      wiki_page_args ** (caml "wikibox" Json.t<wikibox> ** string "content")
+      wiki_page_args ** (ocaml "wikibox" Json.t<wikibox> ** string "content")
     in
     Eliom_service.App.post_coservice'
       ~name:"preview_service"
@@ -708,13 +708,13 @@ module Ui = struct
   let edit_service =
     Eliom_service.App.coservice'
       ~name:"edit_service"
-      ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
+      ~get_params:Eliom_parameter.(ocaml "wikibox" Json.t<wikibox>)
       ()
 
   let edit_css_service =
     Ocsimore_appl.register_coservice'
       ~name:"edit_css_service"
-      ~get_params:Eliom_parameter.(caml "wikibox" Json.t<wikibox>)
+      ~get_params:Eliom_parameter.(ocaml "wikibox" Json.t<wikibox>)
       (fun _ () ->
          Lwt.fail (Failure "Not implemented"))
 
@@ -728,7 +728,7 @@ module API = struct
     let post_params =
       Eliom_parameter.(
         wiki_page_args
-        ** (caml "wb" Json.t<wikibox>
+        ** (ocaml "wb" Json.t<wikibox>
             ** string "content"
         )
         ** int32 "old_version"

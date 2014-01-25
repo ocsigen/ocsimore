@@ -37,7 +37,7 @@ val build_tree :
           string list ->
           (Eliom_service.get_service_kind,
            Eliom_service.registrable,
-           Eliom_registration.non_caml_service)
+           Eliom_registration.non_ocaml_service)
             Eliom_tools.one_page) ->
     menu ->
     menu_item list
@@ -49,7 +49,7 @@ val build_tree_from_string :
           string list ->
           (Eliom_service.get_service_kind,
            Eliom_service.registrable,
-           Eliom_registration.non_caml_service)
+           Eliom_registration.non_ocaml_service)
             Eliom_tools.one_page) ->
     contents:string ->
     menu_item list Lwt.t
@@ -61,7 +61,7 @@ val build_tree_from_file :
           string list ->
           (Eliom_service.get_service_kind,
            Eliom_service.registrable,
-           Eliom_registration.non_caml_service)
+           Eliom_registration.non_ocaml_service)
             Eliom_tools.one_page) ->
     file:Ocsigen_local_files.resolved ->
     menu_item list Lwt.t
@@ -74,5 +74,5 @@ val create_wiki_page_service:
         string list ->
           (Eliom_service.get_service_kind,
            Eliom_service.registrable,
-           Eliom_registration.non_caml_service)
+           Eliom_registration.non_ocaml_service)
             Eliom_tools.one_page

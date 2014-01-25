@@ -29,7 +29,7 @@ open Eliom_lib.Lwt_ops
 type menu_link_service =
     (Eliom_service.get_service_kind,
      [ `Unregistrable | `Registrable ],
-    Eliom_registration.non_caml_service)
+    Eliom_registration.non_ocaml_service)
     Eliom_tools.one_page
 
 let admin_staticdir =
