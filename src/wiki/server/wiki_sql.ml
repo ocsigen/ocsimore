@@ -54,7 +54,7 @@ let wikiboxescontent = <:table< wikiboxescontent (
   comment text NOT NULL DEFAULT(""),
   author integer NOT NULL,
   content text,
-  datetime timestamp NOT NULL DEFAULT(current_timestamp),
+  datetime timestamp NOT NULL DEFAULT(localtimestamp ()),
   content_type text NOT NULL DEFAULT("wikicreole"),
   wikibox integer NOT NULL,
   ip text

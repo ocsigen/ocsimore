@@ -123,7 +123,7 @@ let forums_messages_id_seq = (<:sequence< serial "forums_messages_id_seq" >>)
 let forums_messages = (<:table< forums_messages (
   id integer NOT NULL DEFAULT(nextval $forums_messages_id_seq$),
   creator_id integer NOT NULL,
-  datetime timestamp NOT NULL DEFAULT(current_timestamp),
+  datetime timestamp NOT NULL DEFAULT(localtimestamp ()),
   parent_id integer,
   root_id integer NOT NULL,
   forum_id integer NOT NULL,
