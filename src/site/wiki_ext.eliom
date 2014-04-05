@@ -92,7 +92,9 @@ let register_wikibox_syntax_extensions
                           Eliom_lib.debug "box not allowed for display";
                           Lwt.return ()
                         | Some box_content ->
-                          Eliom_content.Html5.Manip.Named.replaceAllChild %box_replacer_id box_content;
+                          Eliom_content.Html5.Manip.Named.replaceAllChild
+                            %((box_replacer_id : Html5_types.flow5 Html5.Id.id))
+                            box_content;
                           Lwt.return ())
                   }}]
                   [Html5.F.pcdata "loading"]) in

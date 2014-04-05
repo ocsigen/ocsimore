@@ -345,7 +345,14 @@ object (self)
       (** This hack (for having opera works) needs a non-standard method :( *)
       Js.Unsafe.set Dom_html.window (Js.string opera_hack) onload;
     }} in
-    let delete_service = preapply
+    let delete_service :
+      (unit, unit,
+       [> `Attached of (Eliom_service.attached_service_kind, Eliom_service.getpost) Eliom_service.a_s
+       | `Nonattached of [> `Get ] Eliom_service.na_s ],
+       [ `WithoutSuffix ], unit, unit,
+       [< Eliom_service.registrable > `Unregistrable ],
+       Eliom_service.non_ocaml_service)
+        Eliom_service.service = preapply
       ~service:Wiki_services.action_delete_wikibox
       (wb, old_version)
     in
