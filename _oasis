@@ -2,8 +2,8 @@
 # | Package parameters                                                |
 # +-------------------------------------------------------------------+
 
-OASISFormat: 0.3
-OCamlVersion: >= 3.12
+OASISFormat: 0.4
+OCamlVersion: >= 3.12.1
 Name: ocsimore
 Version: 0.5
 LicenseFile: COPYING
@@ -13,6 +13,7 @@ Authors:
 Homepage: http://ocsigen.org/ocsimore
 BuildTools: ocamlbuild
 Plugins: DevFiles (0.3), META (0.3)
+AlphaFeatures: compiled_setup_ml
 Synopsis: Ocsimore lib for eliom
 Description:
   A nice description
@@ -102,7 +103,7 @@ Library "user"
     ocsimore
 
 Library "ocsimore-nis"
-  Path: src/user
+  Path: src/user/nis
   Build$: flag(nis)
   FindlibName: nis
   FindlibParent: user
@@ -115,7 +116,7 @@ Library "ocsimore-nis"
     ocsimore.user
 
 Library "ocsimore-pam"
-  Path: src/user
+  Path: src/user/pam
   Build$: flag(pam)
   FindlibName: pam
   FindlibParent: user
@@ -129,7 +130,7 @@ Library "ocsimore-pam"
     pam
 
 Library "ocsimore-ldap"
-  Path: src/user
+  Path: src/user/ldap
   Build$: flag(ldap)
   FindlibName: ldap
   FindlibParent: user
@@ -224,10 +225,8 @@ Library "core_site_client"
     Wiki_widgets,
     Forum_widgets,
     User_widgets,
-    Jquery,
-    Ocsimore
+    Jquery
   DataFiles:
-    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static),
     ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
@@ -237,6 +236,15 @@ Library "core_site_client"
   XMETARequires:
     ocsimore_client.wiki_client,
     eliom.client
+
+Executable "client_exe"
+  Path: src/site/client
+  CompiledObject: byte
+  MainIs: ocsimore.ml
+  DataFiles:
+    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
+  BuildDepends:
+    ocsimore_client.site
 
 Library "user_site"
   Path: src/site

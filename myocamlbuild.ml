@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 68b54295c0b4dca76dc42298795fa631) *)
+(* DO NOT EDIT (digest: 62f93a9a368f4f600433e7aad1ef03d6) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -259,6 +259,31 @@ module MyOCamlbuildFindlib = struct
     Ocamlbuild_pack.Lexers.blank_sep_strings
 
 
+  let exec_from_conf exec =
+    let exec =
+      let env_filename = Pathname.basename BaseEnvLight.default_filename in
+      let env = BaseEnvLight.load ~filename:env_filename ~allow_empty:true () in
+      try
+        BaseEnvLight.var_get exec env
+      with Not_found ->
+        Printf.eprintf "W: Cannot get variable %s\n" exec;
+        exec
+    in
+    let fix_win32 str =
+      if Sys.os_type = "Win32" then begin
+        let buff = Buffer.create (String.length str) in
+        (* Adapt for windowsi, ocamlbuild + win32 has a hard time to handle '\\'.
+         *)
+        String.iter
+          (fun c -> Buffer.add_char buff (if c = '\\' then '/' else c))
+          str;
+        Buffer.contents buff
+      end else begin
+        str
+      end
+    in
+      fix_win32 exec
+
   let split s ch =
     let buf = Buffer.create 13 in
     let x = ref [] in
@@ -286,17 +311,7 @@ module MyOCamlbuildFindlib = struct
     with Not_found -> s
 
   (* ocamlfind command *)
-  let ocamlfind x =
-    let ocamlfind_prog =
-      let env_filename = Pathname.basename BaseEnvLight.default_filename in
-      let env = BaseEnvLight.load ~filename:env_filename ~allow_empty:true () in
-      try
-        BaseEnvLight.var_get "ocamlfind" env
-      with Not_found ->
-        Printf.eprintf "W: Cannot get variable ocamlfind";
-        "ocamlfind"
-    in
-      S[Sh ocamlfind_prog; x]
+  let ocamlfind x = S[Sh (exec_from_conf "ocamlfind"); x]
 
   (* This lists all supported packages. *)
   let find_packages () =
@@ -325,7 +340,7 @@ module MyOCamlbuildFindlib = struct
 
   let dispatch =
     function
-      | Before_options ->
+      | After_options ->
           (* By using Before_options one let command line options have an higher
            * priority on the contrary using After_options will guarantee to have
            * the higher priority override default commands by ocamlfind ones *)
@@ -476,7 +491,7 @@ module MyOCamlbuildBase = struct
                    try
                      opt := no_trailing_dot (BaseEnvLight.var_get var env)
                    with Not_found ->
-                     Printf.eprintf "W: Cannot get variable %s" var)
+                     Printf.eprintf "W: Cannot get variable %s\n" var)
                 [
                   Options.ext_obj, "ext_obj";
                   Options.ext_lib, "ext_lib";
@@ -576,7 +591,7 @@ module MyOCamlbuildBase = struct
 end
 
 
-# 579 "myocamlbuild.ml"
+# 594 "myocamlbuild.ml"
 open Ocamlbuild_plugin;;
 let package_default =
   {
@@ -585,9 +600,9 @@ let package_default =
           ("ocsimore", ["src/core"; "src/core/server"], []);
           ("ocsimore_client", ["src/core/client"], []);
           ("user", ["src/user"], []);
-          ("ocsimore-nis", ["src/user"], []);
-          ("ocsimore-pam", ["src/user"], []);
-          ("ocsimore-ldap", ["src/user"], []);
+          ("ocsimore-nis", ["src/user/nis"], []);
+          ("ocsimore-pam", ["src/user/pam"], []);
+          ("ocsimore-ldap", ["src/user/ldap"], []);
           ("wiki", ["src/wiki"; "src/wiki/server"], []);
           ("wiki_client", ["src/wiki/client"], []);
           ("forum", ["src/forum"], []);
@@ -611,6 +626,9 @@ let package_default =
           ("src/wiki/server", ["src/user"; "src/wiki"]);
           ("src/wiki/client", ["src/core/client"]);
           ("src/wiki", ["src/user"; "src/wiki/server"]);
+          ("src/user/pam", ["src/user"]);
+          ("src/user/nis", ["src/user"]);
+          ("src/user/ldap", ["src/user"]);
           ("src/user", ["src/core"; "src/core/server"]);
           ("src/site/server",
             [
@@ -640,21 +658,83 @@ let package_default =
 
 let dispatch_default = MyOCamlbuildBase.dispatch_default package_default;;
 
-# 644 "myocamlbuild.ml"
+# 662 "myocamlbuild.ml"
 (* OASIS_STOP *)
 
 (*Ocamlbuild_pack.Log.classic_display := true;;*)
 
-module Ocamlbuild_eliom (Client : sig
-  val client_exec : string option
-  val dispatch_default : Ocamlbuild_plugin.hook -> unit
+module Ocamlbuild_js_of_ocaml = struct
+open Ocamlbuild_plugin
+module Pack = Ocamlbuild_pack
+
+let fold f =
+  let l = ref [] in
+  (try while true do l @:= [f ()] done with _ -> ());
+  !l
+
+let fold_pflag scan =
+  List.fold_left
+    (fun acc x -> try scan x (fun x -> x) :: acc with _ -> acc)
+    []
+
+let ocamlfind cmd f =
+  let p = Printf.sprintf in
+  let cmd = List.map (p "\"%s\"") cmd in
+  let cmd = p "ocamlfind query %s" (String.concat " " cmd) in
+  Pack.My_unix.run_and_open cmd (fun ic -> fold (fun () -> f ic))
+
+let link_opts prod =
+  let (all_pkgs, predicates) =
+    let tags = Tags.elements (tags_of_pathname prod) in
+    let pkgs = fold_pflag (fun x -> Scanf.sscanf x "package(%[^)])") tags in
+    let predicates = fold_pflag (fun x -> Scanf.sscanf x "predicate(%[^)])") tags in
+    ("js_of_ocaml" :: pkgs, predicates)
+  in
+
+  (* Findlib usualy set pkg_* predicate for all selected packages *)
+  (* It doesn't do it with 'query' command, we have to it manualy. *)
+  let cmd = "-format" :: "pkg_%p" :: "-r" :: all_pkgs in
+  let predicates_pkgs = ocamlfind cmd (fun ic -> input_line ic) in
+
+  let all_predicates = String.concat "," ("javascript" :: predicates @ predicates_pkgs) in
+
+  (* query findlib for linking option *)
+  let cmd = "-o-format" :: "-r" :: "-predicates" :: all_predicates :: all_pkgs in
+  ocamlfind cmd (fun ic -> A (input_line ic))
+
+let init () =
+  let dep = "%.byte" in
+  let prod = "%.js" in
+  let f env _ =
+    let dep = env dep in
+    let prod = env prod in
+    let link_opts = link_opts prod in
+    let tags = tags_of_pathname prod ++ "js_of_ocaml" in
+    Cmd (S [A "js_of_ocaml"; A "-noruntime"; T tags; S link_opts; P dep; A "-o"; Px prod])
+  in
+  rule "js_of_ocaml: .byte -> .js" ~dep ~prod f;
+  flag ["js_of_ocaml"; "debug"] (S [A "-pretty"; A "-debuginfo"]);
+  flag ["js_of_ocaml"; "pretty"] (A "-pretty");
+  flag ["js_of_ocaml"; "debuginfo"] (A "-debuginfo");
+  flag ["js_of_ocaml"; "noinline"] (A "-noinline");
+  pflag ["js_of_ocaml"] "opt" (fun n -> S [A "-opt"; A n])
+
+let dispatcher = function
+  | After_rules -> init ()
+  | _ -> ()
+end;;
+
+module Ocamlbuild_eliom_core = struct
+open Ocamlbuild_plugin
+module Pack = Ocamlbuild_pack
+
+module type ELIOM = sig
   val server_dir : string
   val type_dir : string
   val client_dir : string
-end) = struct
-  open Ocamlbuild_plugin
-  module Pack = Ocamlbuild_pack
+end
 
+module Make (Eliom : ELIOM) = struct
   let copy_with_header src prod =
     let contents = Pathname.read src in
     let header = "# 1 \"" ^ src ^ "\"\n" in
@@ -670,7 +750,12 @@ end) = struct
          copy_with_header src prod
       )
 
-  let flag_infer file type_inferred =
+  let flag_infer ~file ~name ~path =
+    let type_inferred =
+      Pathname.concat
+        (Pathname.concat path Eliom.type_dir)
+        (Pathname.update_extension "inferred.mli" name)
+    in
     let file_tag = "file:" ^ file in
     let tags =
       [["ocaml"; "ocamldep"; file_tag];
@@ -688,16 +773,13 @@ end) = struct
     copy_rule_with_header
       (fun env dir name file ->
          let path = env "%(path)" in
-         let type_inferred =
-           Pathname.concat
-             (Pathname.concat path Client.type_dir)
-             (Pathname.update_extension "inferred.mli" name)
-         in
          tag_file file
-           [ "pkg_eliom.server"; "pkg_eliom.syntax.server"; "thread";
-             "syntax_camlp4o";
+           [ "package(eliom.server)"; "package(eliom.syntax.server)"; "thread";
+             "syntax(camlp4o)";
            ];
-         flag_infer file type_inferred;
+         (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
+         Pack.Param_tags.init ();
+         flag_infer ~file ~name ~path;
          Pathname.define_context dir [path];
          Pathname.define_context path [dir];
       )
@@ -706,16 +788,13 @@ end) = struct
     copy_rule_with_header
       (fun env dir name file ->
          let path = env "%(path)" in
-         let type_inferred =
-           Pathname.concat
-             (Pathname.concat path Client.type_dir)
-             (Pathname.update_extension "inferred.mli" name)
-         in
          tag_file file
-           [ "pkg_eliom.client"; "pkg_eliom.syntax.client"; "thread";
-             "syntax_camlp4o";
+           [ "package(eliom.client)"; "package(eliom.syntax.client)"; "thread";
+             "syntax(camlp4o)";
            ];
-         flag_infer file type_inferred;
+         (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
+         Pack.Param_tags.init ();
+         flag_infer ~file ~name ~path;
          Pathname.define_context dir [path];
       )
 
@@ -723,93 +802,87 @@ end) = struct
     copy_rule_with_header
       (fun env dir name file ->
          let path = env "%(path)" in
-         let server_dir = Pathname.concat path Client.server_dir in
+         let server_dir = Pathname.concat path Eliom.server_dir in
          let server_file = Pathname.concat server_dir name in
          tag_file file
-           ( "pkg_eliom.syntax.type" :: "thread" :: "syntax_camlp4o"
+           ( "package(eliom.syntax.type)" :: "thread" :: "syntax(camlp4o)"
              :: Tags.elements (tags_of_pathname server_file)
            );
+         (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
+         Pack.Param_tags.init ();
          Pathname.define_context dir [path; server_dir];
       )
 
-  let js_rule () =
-    let linker tags deps out =
-      Cmd (S [A "js_of_eliom"; T tags;
-              Command.atomize_paths deps; A "-o"; Px out])
-    in
-    rule "js_of_eliom: .cmo -> .js" ~dep:"%.cmo" ~prod:"%.js"
-      (fun env ->
-         Pack.Ocaml_compiler.link_gen
-           "cmo" "cma" "cma" ["cmo"; "cmi"] linker
-           (fun tags ->
-              Tags.union
-                (tags_of_pathname (env "%.ml"))
-                (tags++"ocaml"++"link"++"byte"++"jslink"++"js_of_eliom")
-           )
-           "%.cmo" "%.js"
-           env
-      )
+  let dispatcher = function
+    | After_rules ->
+        copy_rule_server "*.eliom -> **/_server/*.ml"
+          ~deps:["%(path)/" ^ Eliom.type_dir ^ "/%(file).inferred.mli"]
+          "%(path)/%(file).eliom"
+          ("%(path)/" ^ Eliom.server_dir ^ "/%(file:<*>).ml");
+        copy_rule_server "*.eliomi -> **/_server/*.mli"
+          "%(path)/%(file).eliomi"
+          ("%(path)/" ^ Eliom.server_dir ^ "/%(file:<*>).mli");
+        copy_rule_type "*.eliom -> **/_type/*.ml"
+          "%(path)/%(file).eliom"
+          ("%(path)/" ^ Eliom.type_dir ^ "/%(file:<*>).ml");
+        copy_rule_client "*.eliom -> **/_client/*.ml"
+          ~deps:["%(path)/" ^ Eliom.type_dir ^ "/%(file).inferred.mli"]
+          "%(path)/%(file).eliom"
+          ("%(path)/" ^ Eliom.client_dir ^ "/%(file:<*>).ml");
+        copy_rule_client "*.eliomi -> **/_client/*.mli"
+          "%(path)/%(file).eliomi"
+          ("%(path)/" ^ Eliom.client_dir ^ "/%(file:<*>).mli");
 
-  let add_to_targets () =
-    match Client.client_exec with
-      | None -> ()
-      | Some x -> Options.targets @:= [x]
-
-  let dispatch_default hook =
-    Client.dispatch_default hook;
-    match hook with
-      | After_options ->
-          add_to_targets ();
-      | After_rules ->
-          js_rule ();
-
-          copy_rule_server "*.eliom -> **/_server/*.ml"
-            ~deps:["%(path)/" ^ Client.type_dir ^ "/%(file).inferred.mli"]
-            "%(path)/%(file).eliom"
-            ("%(path)/" ^ Client.server_dir ^ "/%(file:<*>).ml");
-          copy_rule_server "*.eliomi -> **/_server/*.mli"
-            "%(path)/%(file).eliomi"
-            ("%(path)/" ^ Client.server_dir ^ "/%(file:<*>).mli");
-          copy_rule_type "*.eliom -> **/_type/*.ml"
-            "%(path)/%(file).eliom"
-            ("%(path)/" ^ Client.type_dir ^ "/%(file:<*>).ml");
-          copy_rule_type "*.eliomi -> **/_type/*.mli"
-            "%(path)/%(file).eliomi"
-            ("%(path)/" ^ Client.type_dir ^ "/%(file:<*>).mli");
-          copy_rule_client "*.eliom -> **/_client/*.ml"
-            ~deps:["%(path)/" ^ Client.type_dir ^ "/%(file).inferred.mli"]
-            "%(path)/%(file).eliom"
-            ("%(path)/" ^ Client.client_dir ^ "/%(file:<*>).ml");
-          copy_rule_client "*.eliomi -> **/_client/*.mli"
-            "%(path)/%(file).eliomi"
-            ("%(path)/" ^ Client.client_dir ^ "/%(file:<*>).mli");
-
-          copy_rule_server "*.eliom -> _server/*.ml"
-            ~deps:[Client.type_dir ^ "/%(file).inferred.mli"]
-            "%(file).eliom" (Client.server_dir ^ "/%(file:<*>).ml");
-          copy_rule_server "*.eliomi -> _server/*.mli"
-            "%(file).eliomi" (Client.server_dir ^ "/%(file:<*>).mli");
-          copy_rule_type "*.eliom -> _type/*.ml"
-            "%(file).eliom" (Client.type_dir ^ "/%(file:<*>).ml");
-          copy_rule_type "*.eliomi -> _type/*.mli"
-            "%(file).eliomi" (Client.type_dir ^ "/%(file:<*>).mli");
-          copy_rule_client "*.eliom -> _client/*.ml"
-            ~deps:[Client.type_dir ^ "/%(file).inferred.mli"]
-            "%(file).eliom" (Client.client_dir ^ "/%(file:<*>).ml");
-          copy_rule_client "*.eliomi -> _client/*.mli"
-            "%(file).eliomi" (Client.client_dir ^ "/%(file:<*>).mli");
-      | _ -> ()
+        copy_rule_server "*.eliom -> _server/*.ml"
+          ~deps:[Eliom.type_dir ^ "/%(file).inferred.mli"]
+          "%(file).eliom" (Eliom.server_dir ^ "/%(file:<*>).ml");
+        copy_rule_server "*.eliomi -> _server/*.mli"
+          "%(file).eliomi" (Eliom.server_dir ^ "/%(file:<*>).mli");
+        copy_rule_type "*.eliom -> _type/*.ml"
+          "%(file).eliom" (Eliom.type_dir ^ "/%(file:<*>).ml");
+        copy_rule_client "*.eliom -> _client/*.ml"
+          ~deps:[Eliom.type_dir ^ "/%(file).inferred.mli"]
+          "%(file).eliom" (Eliom.client_dir ^ "/%(file:<*>).ml");
+        copy_rule_client "*.eliomi -> _client/*.mli"
+          "%(file).eliomi" (Eliom.client_dir ^ "/%(file:<*>).mli");
+    | _ -> ()
+end
 end;;
 
-module M = Ocamlbuild_eliom(struct
-  let client_exec = Some "src/site/client/ocsimore.js"
-  let dispatch_default = dispatch_default
+module Ocamlbuild_eliom = struct
+open Ocamlbuild_plugin
+module Pack = Ocamlbuild_pack
+
+module Make (Eliom : Ocamlbuild_eliom_core.ELIOM) = struct
+  module M = Ocamlbuild_eliom_core.Make(Eliom)
+
+  let dispatcher hook =
+    Ocamlbuild_js_of_ocaml.dispatcher hook;
+    M.dispatcher hook
+end
+end;;
+
+module M = Ocamlbuild_eliom.Make(struct
   let client_dir = "client"
   let server_dir = "server"
   let type_dir = "type"
 end);;
 
-Ocamlbuild_plugin.dispatch M.dispatch_default;;
+let () =
+  dispatch
+    (fun hook ->
+       dispatch_default hook;
+       M.dispatcher hook;
+       match hook with
+         | After_options ->
+             let f = function
+               | "src/site/client/ocsimore.byte" -> "src/site/client/ocsimore.js"
+               | x -> x
+             in
+             Options.targets := List.map f !Options.targets
+         | _ -> ()
+    )
+;;
 
 (* Use an introduction page with categories *)
 tag_file "api.docdir/index.html" ["apiref"];;
