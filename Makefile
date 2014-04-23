@@ -45,6 +45,9 @@ setup.exe: setup.ml
 
 # OASIS_STOP
 
+wiki-api: doc
+	$(SETUP) -build api.wikidocdir/index.wiki
+
 LOG_DIR = ./local/var/log
 LIB_DIR = ./local/var/lib
 
