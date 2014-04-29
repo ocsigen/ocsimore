@@ -51,7 +51,7 @@ let late_content server_function param =
       (fun () ->
         %server_function %param
         >>= fun content ->
-        Eliom_content.Html5.Manip.replaceAllChild %div content;
+        Eliom_content.Html5.Manip.replaceChildren %div content;
         Lwt.return ()
       )
   }};
