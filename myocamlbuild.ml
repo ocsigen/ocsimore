@@ -774,7 +774,7 @@ module Make (Eliom : ELIOM) = struct
       (fun env dir name file ->
          let path = env "%(path)" in
          tag_file file
-           [ "package(eliom.server)"; "package(eliom.syntax.server)"; "thread";
+           [ "package(eliom.server)"; "package(eliom.server.syntax)"; "thread";
              "syntax(camlp4o)";
            ];
          (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
@@ -789,7 +789,7 @@ module Make (Eliom : ELIOM) = struct
       (fun env dir name file ->
          let path = env "%(path)" in
          tag_file file
-           [ "package(eliom.client)"; "package(eliom.syntax.client)"; "thread";
+           [ "package(eliom.client)"; "package(eliom.client.syntax)"; "thread";
              "syntax(camlp4o)";
            ];
          (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
@@ -805,7 +805,7 @@ module Make (Eliom : ELIOM) = struct
          let server_dir = Pathname.concat path Eliom.server_dir in
          let server_file = Pathname.concat server_dir name in
          tag_file file
-           ( "package(eliom.syntax.type)" :: "thread" :: "syntax(camlp4o)"
+           ( "package(eliom.type.syntax)" :: "thread" :: "syntax(camlp4o)"
              :: Tags.elements (tags_of_pathname server_file)
            );
          (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
