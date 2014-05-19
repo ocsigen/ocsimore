@@ -184,5 +184,7 @@
 "src/user": -include
 "src/core": -include
 
+<**/*.eliom{,i}>: package(deriving.syntax), package(js_of_ocaml.deriving.syntax)
+
 # build ocsimore.js
 "src/site/client/ocsimore.js": package(eliom.client)
