@@ -70,7 +70,6 @@ Library "ocsimore"
     safepass (>= 1.2),
     eliom.server (>= 3.0),
     threads,
-    deriving.syntax,
     js_of_ocaml.deriving.syntax
   XMETARequires:
     macaque,
