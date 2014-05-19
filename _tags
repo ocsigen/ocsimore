@@ -1,16 +1,5 @@
-# -*- conf -*-
-
-<**/*>: debug
-<src/wiki/server/wikicreole.ml*>: -syntax(camlp4o), -package(camlp4), -package(lwt.syntax)
-<src/site/type/*>: thread, use_ocsimore, use_wiki, package(macaque)
-<src/wiki/type/*>: thread, use_ocsimore, package(macaque)
-<src/core/type/*>: thread, use_ocsimore, package(macaque)
-
-<src/**/*_sql.ml>: package(macaque.syntax)
-"src/forum/forum_sql0.ml": package(macaque.syntax)
-
 # OASIS_START
-# DO NOT EDIT (digest: f65d2882c519c468e20457ca23e9d87e)
+# DO NOT EDIT (digest: 64b39171ebb1d18213512b4e37089a54)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -33,32 +22,27 @@
 "src/core/dllocsimore_stubs.so": oasis_library_ocsimore_cclib
 <src/core/ocsimore.{cma,cmxa}>: use_libocsimore_stubs
 <src/core/*.ml{,i}>: package(eliom.server)
-<src/core/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/core/*.ml{,i}>: package(lwt.syntax)
+<src/core/*.ml{,i}>: package(lwt)
 <src/core/*.ml{,i}>: package(macaque)
 <src/core/*.ml{,i}>: package(safepass)
 <src/core/*.ml{,i}>: package(threads)
 <src/core/server/*.ml{,i}>: package(eliom.server)
-<src/core/server/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/core/server/*.ml{,i}>: package(lwt.syntax)
+<src/core/server/*.ml{,i}>: package(lwt)
 <src/core/server/*.ml{,i}>: package(macaque)
 <src/core/server/*.ml{,i}>: package(safepass)
 <src/core/server/*.ml{,i}>: package(threads)
 "src/core/crypt_stubs.c": package(eliom.server)
-"src/core/crypt_stubs.c": package(js_of_ocaml.deriving.syntax)
-"src/core/crypt_stubs.c": package(lwt.syntax)
+"src/core/crypt_stubs.c": package(lwt)
 "src/core/crypt_stubs.c": package(macaque)
 "src/core/crypt_stubs.c": package(safepass)
 "src/core/crypt_stubs.c": package(threads)
 # Library ocsimore_client
 "src/core/client/ocsimore_client.cmxs": use_ocsimore_client
 <src/core/client/*.ml{,i}>: package(eliom.client)
-<src/core/client/*.ml{,i}>: package(eliom.syntax)
 # Library user
 "src/user/user.cmxs": use_user
 <src/user/*.ml{,i}>: package(eliom.server)
-<src/user/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/user/*.ml{,i}>: package(lwt.syntax)
+<src/user/*.ml{,i}>: package(lwt)
 <src/user/*.ml{,i}>: package(macaque)
 <src/user/*.ml{,i}>: package(safepass)
 <src/user/*.ml{,i}>: package(threads)
@@ -66,8 +50,7 @@
 # Library ocsimore-nis
 "src/user/nis/ocsimore-nis.cmxs": use_ocsimore-nis
 <src/user/nis/*.ml{,i}>: package(eliom.server)
-<src/user/nis/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/user/nis/*.ml{,i}>: package(lwt.syntax)
+<src/user/nis/*.ml{,i}>: package(lwt)
 <src/user/nis/*.ml{,i}>: package(macaque)
 <src/user/nis/*.ml{,i}>: package(safepass)
 <src/user/nis/*.ml{,i}>: package(threads)
@@ -76,8 +59,7 @@
 # Library ocsimore-pam
 "src/user/pam/ocsimore-pam.cmxs": use_ocsimore-pam
 <src/user/pam/*.ml{,i}>: package(eliom.server)
-<src/user/pam/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/user/pam/*.ml{,i}>: package(lwt.syntax)
+<src/user/pam/*.ml{,i}>: package(lwt)
 <src/user/pam/*.ml{,i}>: package(macaque)
 <src/user/pam/*.ml{,i}>: package(pam)
 <src/user/pam/*.ml{,i}>: package(safepass)
@@ -87,9 +69,8 @@
 # Library ocsimore-ldap
 "src/user/ldap/ocsimore-ldap.cmxs": use_ocsimore-ldap
 <src/user/ldap/*.ml{,i}>: package(eliom.server)
-<src/user/ldap/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
 <src/user/ldap/*.ml{,i}>: package(ldap)
-<src/user/ldap/*.ml{,i}>: package(lwt.syntax)
+<src/user/ldap/*.ml{,i}>: package(lwt)
 <src/user/ldap/*.ml{,i}>: package(macaque)
 <src/user/ldap/*.ml{,i}>: package(safepass)
 <src/user/ldap/*.ml{,i}>: package(threads)
@@ -98,16 +79,14 @@
 # Library wiki
 "src/wiki/wiki.cmxs": use_wiki
 <src/wiki/*.ml{,i}>: package(eliom.server)
-<src/wiki/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/wiki/*.ml{,i}>: package(lwt.syntax)
+<src/wiki/*.ml{,i}>: package(lwt)
 <src/wiki/*.ml{,i}>: package(macaque)
 <src/wiki/*.ml{,i}>: package(safepass)
 <src/wiki/*.ml{,i}>: package(threads)
 <src/wiki/*.ml{,i}>: use_ocsimore
 <src/wiki/*.ml{,i}>: use_user
 <src/wiki/server/*.ml{,i}>: package(eliom.server)
-<src/wiki/server/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/wiki/server/*.ml{,i}>: package(lwt.syntax)
+<src/wiki/server/*.ml{,i}>: package(lwt)
 <src/wiki/server/*.ml{,i}>: package(macaque)
 <src/wiki/server/*.ml{,i}>: package(safepass)
 <src/wiki/server/*.ml{,i}>: package(threads)
@@ -116,13 +95,11 @@
 # Library wiki_client
 "src/wiki/client/wiki_client.cmxs": use_wiki_client
 <src/wiki/client/*.ml{,i}>: package(eliom.client)
-<src/wiki/client/*.ml{,i}>: package(eliom.syntax)
 <src/wiki/client/*.ml{,i}>: use_ocsimore_client
 # Library forum
 "src/forum/forum.cmxs": use_forum
 <src/forum/*.ml{,i}>: package(eliom.server)
-<src/forum/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/forum/*.ml{,i}>: package(lwt.syntax)
+<src/forum/*.ml{,i}>: package(lwt)
 <src/forum/*.ml{,i}>: package(macaque)
 <src/forum/*.ml{,i}>: package(safepass)
 <src/forum/*.ml{,i}>: package(threads)
@@ -135,12 +112,10 @@
 "src/site/client/core_site_client.cmxs": use_core_site_client
 # Executable client_exe
 "src/site/client/ocsimore.byte": package(eliom.client)
-"src/site/client/ocsimore.byte": package(eliom.syntax)
 "src/site/client/ocsimore.byte": use_core_site_client
 "src/site/client/ocsimore.byte": use_ocsimore_client
 "src/site/client/ocsimore.byte": use_wiki_client
 <src/site/client/*.ml{,i}>: package(eliom.client)
-<src/site/client/*.ml{,i}>: package(eliom.syntax)
 <src/site/client/*.ml{,i}>: use_core_site_client
 <src/site/client/*.ml{,i}>: use_ocsimore_client
 <src/site/client/*.ml{,i}>: use_wiki_client
@@ -155,8 +130,7 @@
 # Library wiki_perso
 "src/site/wiki_perso.cmxs": use_wiki_perso
 <src/site/*.ml{,i}>: package(eliom.server)
-<src/site/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/site/*.ml{,i}>: package(lwt.syntax)
+<src/site/*.ml{,i}>: package(lwt)
 <src/site/*.ml{,i}>: package(macaque)
 <src/site/*.ml{,i}>: package(safepass)
 <src/site/*.ml{,i}>: package(threads)
@@ -165,8 +139,7 @@
 <src/site/*.ml{,i}>: use_user
 <src/site/*.ml{,i}>: use_wiki
 <src/site/server/*.ml{,i}>: package(eliom.server)
-<src/site/server/*.ml{,i}>: package(js_of_ocaml.deriving.syntax)
-<src/site/server/*.ml{,i}>: package(lwt.syntax)
+<src/site/server/*.ml{,i}>: package(lwt)
 <src/site/server/*.ml{,i}>: package(macaque)
 <src/site/server/*.ml{,i}>: package(safepass)
 <src/site/server/*.ml{,i}>: package(threads)
@@ -175,13 +148,10 @@
 <src/site/server/*.ml{,i}>: use_user
 <src/site/server/*.ml{,i}>: use_wiki
 # OASIS_STOP
-"src/site": -include
-"src/site/server": -include
-"src/site/client": -include
-"src/wiki": -include
-"src/forum": -include
-"src/user": -include
-"src/core": -include
+
+<**/*.ml>: package(lwt.syntax), package(js_of_ocaml.deriving.syntax)
+<**/*_sql*.ml>: package(macaque.syntax)
+<**/client/*.ml>: package(js_of_ocaml.syntax)
 
 <**/*.eliom{,i}>: package(deriving.syntax), package(js_of_ocaml.deriving.syntax)
 

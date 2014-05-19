@@ -65,16 +65,10 @@ Library "ocsimore"
     ../../INSTALL,
     ../files/ocsimore.conf
   BuildDepends:
-    lwt.syntax (>= 2.4),
+    lwt (>= 2.4),
     macaque (>= 0.6.1),
     safepass (>= 1.2),
     eliom.server (>= 3.0),
-    threads,
-    js_of_ocaml.deriving.syntax
-  XMETARequires:
-    macaque,
-    eliom.server,
-    safepass,
     threads
 
 Library "ocsimore_client"
@@ -84,9 +78,6 @@ Library "ocsimore_client"
     Opaque
   XMETADescription: Core Ocsimore client part
   BuildDepends:
-    eliom.client,
-    eliom.syntax
-  XMETARequires:
     eliom.client
 
 Library "user"
@@ -99,8 +90,6 @@ Library "user"
   XMETADescription: User stuffs
   BuildDepends:
     ocsimore
-  XMETARequires:
-    ocsimore
 
 Library "ocsimore-nis"
   Path: src/user/nis
@@ -112,8 +101,6 @@ Library "ocsimore-nis"
     Ocsimore_nis
   BuildDepends:
     ocsimore.user
-  XMETARequires:
-    ocsimore.user
 
 Library "ocsimore-pam"
   Path: src/user/pam
@@ -123,9 +110,6 @@ Library "ocsimore-pam"
   Modules:
     Ocsimore_pam
   BuildDepends:
-    ocsimore.user,
-    pam
-  XMETARequires:
     ocsimore.user,
     pam
 
@@ -139,9 +123,6 @@ Library "ocsimore-ldap"
   BuildDepends:
     ocsimore.user,
     ldap (>= 2.2)
-  XMETARequires:
-    ocsimore.user,
-    ldap
 
 Library "wiki"
   Path: src/wiki
@@ -163,8 +144,6 @@ Library "wiki"
     ../../local/var/www/static/*.png ($datadir/$pkg_name/static)
   BuildDepends:
     ocsimore.user
-  XMETARequires:
-    ocsimore.user
 
 Library "wiki_client"
   Path: src/wiki/client
@@ -176,10 +155,6 @@ Library "wiki_client"
     Wiki_widgets_interface
   XMETADescription: Wiki stuffs client side part
   BuildDepends:
-    ocsimore_client,
-    eliom.client,
-    eliom.syntax
-  XMETARequires:
     ocsimore_client,
     eliom.client
 
@@ -196,8 +171,6 @@ Library "forum"
   XMETADescription: forum extension
   BuildDepends:
     ocsimore.wiki
-  XMETARequires:
-    ocsimore.wiki
 
 Library "core_site"
   Path: src/site
@@ -209,8 +182,6 @@ Library "core_site"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore,
-    ocsimore.wiki
-  XMETARequires:
     ocsimore.wiki
 
 Library "core_site_client"
@@ -230,10 +201,6 @@ Library "core_site_client"
     ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
-    ocsimore_client.wiki_client,
-    eliom.client,
-    eliom.syntax
-  XMETARequires:
     ocsimore_client.wiki_client,
     eliom.client
 
@@ -258,7 +225,6 @@ Library "user_site"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site
-  XMETARequires:
 
 Library "wiki_site"
   Path: src/site
@@ -275,7 +241,6 @@ Library "wiki_site"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site
-  XMETARequires:
 
 Library "forum_site"
   Path: src/site
@@ -290,8 +255,6 @@ Library "forum_site"
   BuildDepends:
     ocsimore.site,
     ocsimore.forum
-  XMETARequires:
-    ocsimore.forum
 
 Library "wiki_perso"
   Path: src/site
@@ -302,7 +265,6 @@ Library "wiki_perso"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site
-  XMETARequires:
 
 
 Test "all"
