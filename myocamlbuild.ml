@@ -727,25 +727,37 @@ let init () =
     Cmd (S [A "js_of_ocaml"; A "-noruntime"; T tags; S link_opts; P dep; A "-o"; Px prod])
   in
   rule "js_of_ocaml: .byte -> .js" ~dep ~prod f;
-  flag ["js_of_ocaml"; "debug"] (S [A "-pretty"; A "-debuginfo"]);
+  flag ["js_of_ocaml"; "debug"] (S [A "-pretty"; A "-debuginfo"; A "-sourcemap"]);
   flag ["js_of_ocaml"; "pretty"] (A "-pretty");
   flag ["js_of_ocaml"; "debuginfo"] (A "-debuginfo");
   flag ["js_of_ocaml"; "noinline"] (A "-noinline");
+  flag ["js_of_ocaml"; "sourcemap"] (A "-sourcemap");
+  pflag ["js_of_ocaml"] "tailcall" (fun x -> S [A "-tc"; A x]);
   pflag ["js_of_ocaml"] "opt" (fun n -> S [A "-opt"; A n])
 
-let dispatcher = function
+let oasis_support ~executables =
+  let aux x =
+    if List.mem x executables then
+      Pathname.update_extension "js" x
+    else
+      x
+  in
+  Options.targets := List.map aux !Options.targets
+
+let dispatcher ?(oasis_executables=[]) = function
   | After_rules -> init ()
+  | After_options -> oasis_support ~executables:oasis_executables
   | _ -> ()
 end;;
 
-module Ocamlbuild_eliom_core = struct
+module Ocamlbuild_eliom = struct
 open Ocamlbuild_plugin
 module Pack = Ocamlbuild_pack
 
 module type ELIOM = sig
-  val server_dir : string
-  val type_dir : string
-  val client_dir : string
+  val server_dir : Ocamlbuild_plugin.Pathname.t
+  val type_dir : Ocamlbuild_plugin.Pathname.t
+  val client_dir : Ocamlbuild_plugin.Pathname.t
 end
 
 module Make (Eliom : ELIOM) = struct
@@ -760,7 +772,7 @@ module Make (Eliom : ELIOM) = struct
       (fun env _ ->
          let prod = env prod in
          let src = env src in
-         f env (Pathname.dirname prod) (Pathname.basename prod) prod;
+         f env (Pathname.dirname prod) (Pathname.basename prod) src prod;
          copy_with_header src prod
       )
 
@@ -783,16 +795,33 @@ module Make (Eliom : ELIOM) = struct
     List.iter f tags;
     flag ["ocaml"; "doc"; file_tag] (S [A "-ppopt"; A "-notype"])
 
+  let syntaxes = ["package(eliom.syntax.predef)"]
+
+  let no_extra_syntaxes = "no_extra_syntaxes"
+
+  let tag_file_inside_rule file tags =
+    tag_file file tags;
+    (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
+    Pack.Param_tags.init ()
+
+  let use_all_syntaxes src =
+    if Filename.check_suffix src ".eliomi" then
+      false
+    else
+      not (Tags.mem no_extra_syntaxes (tags_of_pathname src))
+
   let copy_rule_server =
     copy_rule_with_header
-      (fun env dir name file ->
+      (fun env dir name src file ->
          let path = env "%(path)" in
-         tag_file file
-           [ "package(eliom.server)"; "package(eliom.syntax.server)"; "thread";
-             "syntax(camlp4o)";
-           ];
-         (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
-         Pack.Param_tags.init ();
+         tag_file_inside_rule file
+           ( "package(eliom.server)"
+             :: "package(eliom.syntax.server)"
+             :: "thread"
+             :: "syntax(camlp4o)"
+             :: (if use_all_syntaxes src then syntaxes else [])
+             @ Tags.elements (tags_of_pathname src)
+           );
          flag_infer ~file ~name ~path;
          Pathname.define_context dir [path];
          Pathname.define_context path [dir];
@@ -800,34 +829,38 @@ module Make (Eliom : ELIOM) = struct
 
   let copy_rule_client =
     copy_rule_with_header
-      (fun env dir name file ->
+      (fun env dir name src file ->
          let path = env "%(path)" in
-         tag_file file
-           [ "package(eliom.client)"; "package(eliom.syntax.client)"; "thread";
-             "syntax(camlp4o)";
-           ];
-         (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
-         Pack.Param_tags.init ();
+         tag_file_inside_rule file
+           ( "package(eliom.client)"
+             :: "package(eliom.syntax.client)"
+             :: "thread"
+             :: "syntax(camlp4o)"
+             :: (if use_all_syntaxes src then syntaxes else [])
+             @ Tags.elements (tags_of_pathname src)
+           );
          flag_infer ~file ~name ~path;
          Pathname.define_context dir [path];
       )
 
   let copy_rule_type =
     copy_rule_with_header
-      (fun env dir name file ->
+      (fun env dir name src file ->
          let path = env "%(path)" in
          let server_dir = Pathname.concat path Eliom.server_dir in
          let server_file = Pathname.concat server_dir name in
-         tag_file file
-           ( "package(eliom.syntax.type)" :: "thread" :: "syntax(camlp4o)"
-             :: Tags.elements (tags_of_pathname server_file)
+         tag_file_inside_rule file
+           ( "package(eliom.syntax.type)"
+             :: "thread"
+             :: "syntax(camlp4o)"
+             :: (if use_all_syntaxes src then syntaxes else [])
+             @ Tags.elements (tags_of_pathname src)
+             @ Tags.elements (tags_of_pathname server_file)
            );
-         (* Workaround. See: http://caml.inria.fr/mantis/view.php?id=6186 *)
-         Pack.Param_tags.init ();
          Pathname.define_context dir [path; server_dir];
       )
 
-  let dispatcher = function
+  let init = function
     | After_rules ->
         copy_rule_server "*.eliom -> **/_server/*.ml"
           ~deps:["%(path)/" ^ Eliom.type_dir ^ "/%(file).inferred.mli"]
@@ -860,19 +893,10 @@ module Make (Eliom : ELIOM) = struct
         copy_rule_client "*.eliomi -> _client/*.mli"
           "%(file).eliomi" (Eliom.client_dir ^ "/%(file:<*>).mli");
     | _ -> ()
-end
-end;;
 
-module Ocamlbuild_eliom = struct
-open Ocamlbuild_plugin
-module Pack = Ocamlbuild_pack
-
-module Make (Eliom : Ocamlbuild_eliom_core.ELIOM) = struct
-  module M = Ocamlbuild_eliom_core.Make(Eliom)
-
-  let dispatcher hook =
-    Ocamlbuild_js_of_ocaml.dispatcher hook;
-    M.dispatcher hook
+  let dispatcher ?oasis_executables hook =
+    Ocamlbuild_js_of_ocaml.dispatcher ?oasis_executables hook;
+    init hook
 end
 end;;
 
@@ -886,15 +910,7 @@ let () =
   dispatch
     (fun hook ->
        dispatch_default hook;
-       M.dispatcher hook;
-       match hook with
-         | After_options ->
-             let f = function
-               | "src/site/client/ocsimore.byte" -> "src/site/client/ocsimore.js"
-               | x -> x
-             in
-             Options.targets := List.map f !Options.targets
-         | _ -> ()
+       M.dispatcher ~oasis_executables:["src/site/client/ocsimore.byte"] hook;
     )
 ;;
 
