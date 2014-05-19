@@ -1,7 +1,6 @@
 # -*- conf -*-
 
 <**/*>: debug
-<src/**/*.ml{,i}>: syntax(camlp4o)
 <src/wiki/server/wikicreole.ml*>: -syntax(camlp4o), -package(camlp4), -package(lwt.syntax)
 <src/site/type/*>: thread, use_ocsimore, use_wiki, package(macaque)
 <src/wiki/type/*>: thread, use_ocsimore, package(macaque)
