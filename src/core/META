@@ -11,7 +11,6 @@ exists_if = "ocsimore.cma"
 package "wiki_site" (
  version = "0.5"
  description = "some extensions"
- requires = "ocsimore.site"
  archive(byte) = "wiki_site.cma"
  archive(byte, plugin) = "wiki_site.cma"
  archive(native) = "wiki_site.cmxa"
@@ -22,7 +21,6 @@ package "wiki_site" (
 package "wiki_perso" (
  version = "0.5"
  description = "some extensions"
- requires = "ocsimore.site"
  archive(byte) = "wiki_perso.cma"
  archive(byte, plugin) = "wiki_perso.cma"
  archive(native) = "wiki_perso.cmxa"
@@ -44,7 +42,6 @@ package "wiki" (
 package "user_site" (
  version = "0.5"
  description = "some extensions"
- requires = "ocsimore.site"
  archive(byte) = "user_site.cma"
  archive(byte, plugin) = "user_site.cma"
  archive(native) = "user_site.cmxa"
@@ -109,7 +106,6 @@ package "site" (
 package "forum_site" (
  version = "0.5"
  description = "some extensions"
- requires = "ocsimore.site ocsimore.forum"
  archive(byte) = "forum_site.cma"
  archive(byte, plugin) = "forum_site.cma"
  archive(native) = "forum_site.cmxa"
