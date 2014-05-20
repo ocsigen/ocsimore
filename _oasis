@@ -225,6 +225,8 @@ Library "user_site"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site
+  XMETARequires:
+    # See discussion at: https://github.com/ocsigen/ocsimore/commit/821005f
 
 Library "wiki_site"
   Path: src/site
@@ -241,6 +243,8 @@ Library "wiki_site"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site
+  XMETARequires:
+    # See discussion at: https://github.com/ocsigen/ocsimore/commit/821005f
 
 Library "forum_site"
   Path: src/site
@@ -255,6 +259,8 @@ Library "forum_site"
   BuildDepends:
     ocsimore.site,
     ocsimore.forum
+  XMETARequires:
+    # See discussion at: https://github.com/ocsigen/ocsimore/commit/821005f
 
 Library "wiki_perso"
   Path: src/site
@@ -265,6 +271,8 @@ Library "wiki_perso"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore.site
+  XMETARequires:
+    # See discussion at: https://github.com/ocsigen/ocsimore/commit/821005f
 
 
 Test "all"

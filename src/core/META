@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: ed4f3a353c80030c48534f197c359111)
+# DO NOT EDIT (digest: df2d4016de23dfe387a944cbee6fbacf)
 version = "0.5"
 description = "Core Ocsimore"
 requires = "lwt macaque safepass eliom.server threads"
