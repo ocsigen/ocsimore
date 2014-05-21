@@ -196,7 +196,8 @@ Library "core_site_client"
     Wiki_widgets,
     Forum_widgets,
     User_widgets,
-    Jquery
+    Jquery,
+    Ocsimore
   DataFiles:
     ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
