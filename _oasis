@@ -203,6 +203,7 @@ Library "core_site_client"
   XMETADescription: some extensions
   BuildDepends:
     ocsimore_client.wiki_client,
+    ocsimore_client,
     eliom.client
 
 Executable "client_exe"
