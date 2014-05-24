@@ -1,5 +1,5 @@
 (* OASIS_START *)
-(* DO NOT EDIT (digest: 284ace084661259dd17ab764c8b8fa70) *)
+(* DO NOT EDIT (digest: 85a9e1201570d2512fb7f4eaa6d06396) *)
 module OASISGettext = struct
 (* # 22 "src/oasis/OASISGettext.ml" *)
 
@@ -651,7 +651,7 @@ let package_default =
                "src/wiki";
                "src/wiki/server"
             ]);
-          ("src/site/client", ["src/core/client"; "src/wiki/client"]);
+          ("src/site/client", ["src/wiki/client"]);
           ("src/site",
             [
                "src/core";

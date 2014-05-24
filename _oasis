@@ -199,11 +199,11 @@ Library "core_site_client"
     Jquery,
     Ocsimore
   DataFiles:
-    ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static)
+    ../../../local/var/www/static/jquery.js ($datadir/$pkg_name/static),
+    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
   XMETADescription: some extensions
   BuildDepends:
     ocsimore_client.wiki_client,
-    ocsimore_client,
     eliom.client
 
 Executable "client_exe"
@@ -211,8 +211,6 @@ Executable "client_exe"
   CompiledObject: byte
   Install: false
   MainIs: ocsimore.ml
-  DataFiles:
-    ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
   BuildDepends:
     eliom.client
 
