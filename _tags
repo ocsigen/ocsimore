@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: 64b39171ebb1d18213512b4e37089a54)
+# DO NOT EDIT (digest: e9c3b2457339deb2172a56999ea3670f)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -110,15 +110,11 @@
 "src/site/core_site.cmxs": use_core_site
 # Library core_site_client
 "src/site/client/core_site_client.cmxs": use_core_site_client
-# Executable client_exe
-"src/site/client/ocsimore.byte": package(eliom.client)
-"src/site/client/ocsimore.byte": use_core_site_client
-"src/site/client/ocsimore.byte": use_ocsimore_client
-"src/site/client/ocsimore.byte": use_wiki_client
-<src/site/client/*.ml{,i}>: package(eliom.client)
-<src/site/client/*.ml{,i}>: use_core_site_client
 <src/site/client/*.ml{,i}>: use_ocsimore_client
 <src/site/client/*.ml{,i}>: use_wiki_client
+# Executable client_exe
+"src/site/client/ocsimore.byte": package(eliom.client)
+<src/site/client/*.ml{,i}>: package(eliom.client)
 # Library user_site
 "src/site/user_site.cmxs": use_user_site
 # Library wiki_site

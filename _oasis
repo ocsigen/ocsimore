@@ -209,11 +209,12 @@ Library "core_site_client"
 Executable "client_exe"
   Path: src/site/client
   CompiledObject: byte
+  Install: false
   MainIs: ocsimore.ml
   DataFiles:
     ../../../_build/src/site/client/ocsimore.js ($datadir/$pkg_name/static)
   BuildDepends:
-    ocsimore_client.site
+    eliom.client
 
 Library "user_site"
   Path: src/site
