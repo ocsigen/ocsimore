@@ -1,18 +1,18 @@
 opam-version: "1"
 maintainer: "dev@ocsigen.org"
 build: [
-  [ "sh" "./configure" "--prefix" prefix ]
-  [ make ]
-  [ make "install" ]
+  ["./configure" "--prefix" prefix "--enable-ldap" "--enable-nis"]
+  [make]
+  [make "install"]
 ]
 remove: [
-  [ "ocamlfind" "remove" "ocsimore" ]
-  [ "ocamlfind" "remove" "ocsimore_client" ]
+  ["ocamlfind" "remove" "ocsimore"]
+  ["ocamlfind" "remove" "ocsimore_client"]
 ]
 depends: [
-  "eliom" {>= "4"}
-  "lwt"
-  "macaque"
-  "safepass"
-  "ocamldap"
+  "ocamlfind"
+  "eliom" {>= "dev"}
+  "macaque" {>= "dev"}
+  "safepass" {>= "1.2"}
+  "ocamldap" {>= "2.2"}
 ]
