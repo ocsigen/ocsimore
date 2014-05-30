@@ -11,7 +11,7 @@ remove: [
 ]
 depends: [
   "ocamlfind"
-  "eliom" {>= "dev"}
+  "eliom" {>= "4.0"}
   "macaque" {>= "dev"}
   "safepass" {>= "1.2"}
   "ocamldap" {>= "2.2"}
