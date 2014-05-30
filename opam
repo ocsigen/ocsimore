@@ -1,0 +1,18 @@
+opam-version: "1"
+maintainer: "dev@ocsigen.org"
+build: [
+  [ "sh" "./configure" "--prefix" prefix ]
+  [ make ]
+  [ make "install" ]
+]
+remove: [
+  [ "ocamlfind" "remove" "ocsimore" ]
+  [ "ocamlfind" "remove" "ocsimore_client" ]
+]
+depends: [
+  "eliom"
+  "lwt"
+  "macaque"
+  "safepass"
+  "ocamldap"
+]
