@@ -471,7 +471,7 @@ end) = struct
 
 
   let table rows =
-    wrap (function row :: rows -> [Html5.F.table row rows] | [] -> []) rows
+    wrap (function [] -> [] | rows -> [Html5.F.table rows]) rows
 
   let tr cells =
     wrap (fun cells -> [Html5.F.tr cells]) cells

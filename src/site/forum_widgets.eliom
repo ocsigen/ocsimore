@@ -537,8 +537,7 @@ object (_)
               Html5.F.th [Html5.F.pcdata "Description"];
               Html5.F.th [];
              ]
-          )
-          l;
+          :: l)
        ]
 
 end

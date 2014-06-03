@@ -202,15 +202,14 @@ object (self)
     self#users_edit_table ~text [
       if not is_user then
         Html5.F.table
-          (self#users_title "Users")
-          (users_table
-           @ [self#users_title "Groups"]
-           @ group_table
+          (self#users_title "Users" ::
+           users_table @
+           [self#users_title "Groups"] @
+           group_table
           )
       else
         Html5.F.table
-          (self#users_title "Groups")
-          (group_table)
+          (self#users_title "Groups" :: group_table)
     ]
 
   method form_edit_user ~user ~text () =
@@ -246,10 +245,10 @@ object (self)
     >>= fun group_table ->
     self#users_edit_table ~text [
       Html5.F.table
-        (self#users_title "Groups")
-        (group_table
-         @ [self#users_title "Roles"]
-         @ roles
+        (self#users_title "Groups" ::
+         group_table @
+         [self#users_title "Roles"] @
+         roles
         )
     ]
 
@@ -338,17 +337,24 @@ object (self)
         let user_input_id = fresh_id () in
         let password_input_id = fresh_id () in
         [div ~a:[a_class ["login_box"]]
-           (table
-             (tr
-                [td [label ~a:[Raw.a_for user_input_id] [pcdata user_prompt]];
-                 td [str_input ~a:[a_id user_input_id] usr]])
-             ([tr [td [label ~a:[Raw.a_for password_input_id] [pcdata pwd_prompt]];
-                   td [passwd_input ~a:[a_id password_input_id] pwd]];
-               tr [td [];
-                   td [submit_input "Login"]]])
+           (table [
+               tr [
+                 td [label ~a:[Raw.a_for user_input_id] [pcdata user_prompt]];
+                 td [str_input ~a:[a_id user_input_id] usr]
+               ];
+               tr [
+                 td [label ~a:[Raw.a_for password_input_id] [pcdata pwd_prompt]];
+                 td [passwd_input ~a:[a_id password_input_id] pwd]
+               ];
+               tr [
+                 td [];
+                 td [submit_input "Login"]
+               ]
+             ]
             :: ext
             @ (if error then [pcdata auth_error] else [])
-           )]
+           )
+        ]
       )
     end
     else
@@ -470,7 +476,7 @@ object (self)
         >>= fun f1 ->
         Lwt.return
           [Html5.F.div ~a:[Html5.F.a_class ["user_block"]]
-             [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] f1 []]
+             [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] [f1]]
           ]
       in
       let server_function = server_function Json.t<unit> content in
@@ -491,7 +497,7 @@ object (self)
         >>= fun f2 ->
         Lwt.return
           [Html5.F.div ~a:[Html5.F.a_class ["user_block"]]
-             [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] f2 []]
+             [Html5.F.table ~a:[Html5.F.a_class ["users_in_group"]] [f2]]
           ]
       in
       let server_function = server_function Json.t<unit> content in
@@ -509,10 +515,10 @@ object (self)
            (fun (nuserid, (pwd, (pwd2, (desc, email)))) ->
               let open Html5.F in
               [table
-                 (let id = fresh_id () in
-                  tr [td [label ~a:[Raw.a_for id] [pcdata gtypedescr]];
-                      td [str_input ~a:[a_id id] ~value:g.user_fullname desc]])
                  [(let id = fresh_id () in
+                   tr [td [label ~a:[Raw.a_for id] [pcdata gtypedescr]];
+                       td [str_input ~a:[a_id id] ~value:g.user_fullname desc]]);
+                  (let id = fresh_id () in
                    tr [td [label ~a:[Raw.a_for id] [pcdata "e-mail adress"]];
                        td [str_input ~a:[a_id id] ~value:(unopt_str g.user_email) email]]);
                   (let id = fresh_id () in
@@ -547,90 +553,89 @@ object (self)
         Html5.F.post_form
           ~service: User_services.action_users_settings
           (fun (enable, (mail_from, (mail_addr, (mail_subject, (groups, non_admin))))) -> [
-            Html5.F.table
-              (Html5.F.tr [
-                Html5.F.td [
-                  Html5.F.label [
-                    Html5.F.pcdata "Enable users creation:"
-                  ]
-                ];
-                Html5.F.td [
-                  Html5.F.bool_checkbox
-                    ~checked: users_settings.User_sql.basicusercreation
-                    ~name: enable ()
-                ]
+               Html5.F.table [
+                 Html5.F.tr [
+                   Html5.F.td [
+                     Html5.F.label [
+                       Html5.F.pcdata "Enable users creation:"
+                     ]
+                   ];
+                   Html5.F.td [
+                     Html5.F.bool_checkbox
+                       ~checked: users_settings.User_sql.basicusercreation
+                       ~name: enable ()
+                   ]
+                 ];
+                 Html5.F.tr [
+                   Html5.F.td [
+                     Html5.F.label [
+                       Html5.F.pcdata "Registration mail from:"
+                     ]
+                   ];
+                   Html5.F.td [
+                     str_input
+                       ~value: users_settings.User_sql.registration_mail_from
+                       mail_from
+                   ]
+                 ];
+                 Html5.F.tr [
+                   Html5.F.td [
+                     Html5.F.label [
+                       Html5.F.pcdata "Registration mail address:"
+                     ]
+                   ];
+                   Html5.F.td [
+                     str_input
+                       ~value: users_settings.User_sql.registration_mail_addr
+                       mail_addr
+                   ]
+                 ];
+                 Html5.F.tr [
+                   Html5.F.td [
+                     Html5.F.label [
+                       Html5.F.pcdata "Registration mail subject:"
+                     ]
+                   ];
+                   Html5.F.td [
+                     str_input
+                       ~value: users_settings.User_sql.registration_mail_subject
+                       mail_subject
+                   ]
+                 ];
+                 Html5.F.tr [
+                   Html5.F.td [
+                     Html5.F.label [
+                       Html5.F.pcdata "Groups:"
+                     ]
+                   ];
+                   Html5.F.td [
+                     str_input
+                       ~value: users_settings.User_sql.groups
+                       groups
+                   ]
+                 ];
+                 Html5.F.tr [
+                   Html5.F.td [
+                     Html5.F.label [
+                       Html5.F.pcdata "Non-admin can create user:"
+                     ]
+                   ];
+                   Html5.F.td [
+                     Html5.F.bool_checkbox
+                       ~checked: users_settings.User_sql.non_admin_can_create
+                       ~name: non_admin ()
+                   ]
+                 ];
+                 Html5.F.tr [
+                   Html5.F.td [
+                     submit_input "Send"
+                   ]
+                 ]
                ]
-              ) [
-                Html5.F.tr [
-                  Html5.F.td [
-                    Html5.F.label [
-                      Html5.F.pcdata "Registration mail from:"
-                    ]
-                  ];
-                  Html5.F.td [
-                    str_input
-                      ~value: users_settings.User_sql.registration_mail_from
-                      mail_from
-                  ]
-                ];
-                Html5.F.tr [
-                  Html5.F.td [
-                    Html5.F.label [
-                      Html5.F.pcdata "Registration mail address:"
-                    ]
-                  ];
-                  Html5.F.td [
-                    str_input
-                      ~value: users_settings.User_sql.registration_mail_addr
-                      mail_addr
-                  ]
-                ];
-                Html5.F.tr [
-                  Html5.F.td [
-                    Html5.F.label [
-                      Html5.F.pcdata "Registration mail subject:"
-                    ]
-                  ];
-                  Html5.F.td [
-                    str_input
-                      ~value: users_settings.User_sql.registration_mail_subject
-                      mail_subject
-                  ]
-                ];
-                Html5.F.tr [
-                  Html5.F.td [
-                    Html5.F.label [
-                      Html5.F.pcdata "Groups:"
-                    ]
-                  ];
-                  Html5.F.td [
-                    str_input
-                      ~value: users_settings.User_sql.groups
-                      groups
-                  ]
-                ];
-                Html5.F.tr [
-                  Html5.F.td [
-                    Html5.F.label [
-                      Html5.F.pcdata "Non-admin can create user:"
-                    ]
-                  ];
-                  Html5.F.td [
-                    Html5.F.bool_checkbox
-                      ~checked: users_settings.User_sql.non_admin_can_create
-                      ~name: non_admin ()
-                  ]
-                ];
-                Html5.F.tr [
-                  Html5.F.td [
-                    submit_input "Send"
-                  ]
-                ]
-              ]
-           ]
+             ]
           ) ()
       ]
-    )
+      )
 
   method display_users_settings_done () (basicusercreation,
                                          (registration_mail_from,
@@ -694,11 +699,11 @@ object (self)
     ) hashtbl [] in
     match l with
       | [] -> Lwt.return []
-      | x::xs ->
+      | xs ->
         Lwt.return [
           Html5.F.table
             ~a:[Html5.F.a_class ["table_admin"]]
-            x xs
+            xs
         ]
 
   method private get_roles_table ?td_content () =
@@ -863,16 +868,16 @@ object (self)
     in
     let l = List.rev (List.fold_left (fun s arg -> line arg :: s) [] l) in
     Lwt.return Html5.F.(
-      table ~a:[a_class ["table_admin"]]
-        (tr
-           (  th [pcdata "Login"];
-            :: th [pcdata (match utype with | `User -> "Name" | `Group -> "Description")]
-            :: (if show_auth
-                then [th [pcdata "Authentication"]]
-                else [])
-            ))
-         l
-    )
+      table ~a:[a_class ["table_admin"]] (
+        tr (
+          th [pcdata "Login"];
+          :: th [pcdata (match utype with | `User -> "Name" | `Group -> "Description")]
+          :: (if show_auth
+              then [th [pcdata "Authentication"]]
+              else [])
+        ) ::
+        l)
+      )
 
 
   method status_text =
@@ -902,12 +907,17 @@ object (self)
         Html5.F.post_form
           ~service:User_services.action_create_new_group
           (fun (usr, desc) ->
-             [table
-                (tr [td [pcdata "group name (letters and digits only)"];
-                     td [str_input usr]])
-                [tr [td [pcdata "description"];
-                     td [str_input desc]];
-                 tr [td [submit_input "Create"]]]
+             [table [
+                 tr [
+                   td [pcdata "group name (letters and digits only)"];
+                   td [str_input usr]
+                 ];
+                 tr [
+                   td [pcdata "description"];
+                   td [str_input desc]
+                 ];
+                 tr [td [submit_input "Create"]]
+               ]
              ])
           ();
         p [strong [pcdata err]]
@@ -983,13 +993,13 @@ object (self)
            Html5.D.post_form
              ~service:User_services.action_create_new_user
              (fun (usr,(desc,(email, (pass1, pass2)))) ->
-                [table
-                   (let id = fresh_id () in
-                    tr [td [label ~a:[Raw.a_for id] [pcdata "Login name"]];
-                        td [str_input ~a:[a_id id] usr];
-                        td ~a:[a_class ["description"]]
-                          [pcdata "letters and digits only"] ])
-                   [(let id = fresh_id () in
+                [table [
+                    (let id = fresh_id () in
+                     tr [td [label ~a:[Raw.a_for id] [pcdata "Login name"]];
+                         td [str_input ~a:[a_id id] usr];
+                         td ~a:[a_class ["description"]]
+                           [pcdata "letters and digits only"] ]);
+                    (let id = fresh_id () in
                      tr [td [label ~a:[Raw.a_for id] [pcdata "Real name:"]];
                          td [str_input ~a:[a_id id] desc]]);
                     (let id = fresh_id () in

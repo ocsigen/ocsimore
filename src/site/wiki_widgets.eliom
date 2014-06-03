@@ -782,11 +782,12 @@ object (self)
           msg2;
           Html5.F.table
             ~a:[Html5.F.a_class ["table_admin"]]
-            (Html5.F.tr
-              [Html5.F.th [Html5.F.pcdata "Role"];
-               Html5.F.th [Html5.F.pcdata "Current users in this role"]]
-            )
-            (formedit_hd :: formedit_tl)
+            (
+              Html5.F.tr [
+                Html5.F.th [Html5.F.pcdata "Role"];
+                Html5.F.th [Html5.F.pcdata "Current users in this role"]
+              ] ::
+              (formedit_hd :: formedit_tl))
          ]
         )
 
@@ -878,12 +879,13 @@ object (self)
          [Html5.F.em [Html5.F.pcdata "(inherited permissions are not shown)"]];
        Html5.F.table
          ~a:[Html5.F.a_class ["table_admin"]]
-         (Html5.F.tr
-            [Html5.F.th [Html5.F.pcdata "Role"];
-             Html5.F.th [Html5.F.pcdata "Current users in the group"]]
-         )
-         (   f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f8 :: f9 :: f10 :: f11 :: f12
-             :: f7_hd :: f7_tl
+         (
+           Html5.F.tr [
+             Html5.F.th [Html5.F.pcdata "Role"];
+             Html5.F.th [Html5.F.pcdata "Current users in the group"]
+           ]
+           :: f1 :: f2 :: f3 :: f4 :: f5 :: f6 :: f8 :: f9 :: f10 :: f11 :: f12
+           :: f7_hd :: f7_tl
          )
       ]
     in
@@ -2034,19 +2036,18 @@ object (self)
          ]
      in
      Lwt.return
-       (Html5.F.table ~a:[Html5.F.a_class ["table_admin"]]
-          (Html5.F.tr
-             [Html5.F.th [Html5.F.pcdata "Id"];
-              Html5.F.th [Html5.F.pcdata "Wiki"];
-              Html5.F.th [Html5.F.pcdata "Description"];
-              Html5.F.th [Html5.F.pcdata ""];
-              Html5.F.th [Html5.F.pcdata ""];
-              Html5.F.th [Html5.F.pcdata ""];
-              Html5.F.th [Html5.F.pcdata ""];
-             ]
-          )
-          l
-        :: [link_deleted]
+       (Html5.F.table ~a:[Html5.F.a_class ["table_admin"]] (
+           Html5.F.tr [
+             Html5.F.th [Html5.F.pcdata "Id"];
+             Html5.F.th [Html5.F.pcdata "Wiki"];
+             Html5.F.th [Html5.F.pcdata "Description"];
+             Html5.F.th [Html5.F.pcdata ""];
+             Html5.F.th [Html5.F.pcdata ""];
+             Html5.F.th [Html5.F.pcdata ""];
+             Html5.F.th [Html5.F.pcdata ""];
+           ] ::
+           l)
+           :: [ link_deleted ]
        )
 
 end

@@ -532,8 +532,8 @@ let () =
       Page_site.admin_page
         ~title
         [table ~a:[a_class ["table_admin"]]
-          (tr (List.map render_header_row headers))
-          (List.map render_wikibox_row wikiboxes)])
+           (tr (List.map render_header_row headers)
+            :: (List.map render_wikibox_row wikiboxes))])
 
 let () =
   let render_version_link wikibox version' sql_data =
@@ -565,15 +565,16 @@ let () =
              ~title
              Html5.F.([
                ul (List.map (render_version_link wikibox version) history);
-               table
-                 (tr [td [pcdata "wikibox"];
-                      td [pcdata (Wiki_types.string_of_wikibox wikibox)]])
-                 [tr [td [pcdata "version"];
-                      td [pcdata (Int32.to_string version)]];
-                  tr [td [pcdata "content_type"];
-                      td [pcdata (Wiki_types.string_of_content_type content_type)]];
-                  tr [td [pcdata "content"];
-                  td (match content with Some c -> [pre [pcdata c]] | None -> [])]]
+               table [
+                 tr [td [pcdata "wikibox"];
+                     td [pcdata (Wiki_types.string_of_wikibox wikibox)]];
+                 tr [td [pcdata "version"];
+                     td [pcdata (Int32.to_string version)]];
+                 tr [td [pcdata "content_type"];
+                     td [pcdata (Wiki_types.string_of_content_type content_type)]];
+                 tr [td [pcdata "content"];
+                     td (match content with Some c -> [pre [pcdata c]] | None -> [])]
+               ]
              ])
        | None -> Lwt.fail Eliom_common.Eliom_404)
 
@@ -673,7 +674,7 @@ let () =
                 div [
                   h4 [pcdata wiki_info.Wiki_types.wiki_title];
                   table
-                    (tr [th [pcdata "wikibox"]; th [pcdata "changes"]])
+                    (tr [th [pcdata "wikibox"]; th [pcdata "changes"]] ::
                     (List.map_filter
                        (fun (wikibox, opt_contents) ->
                          match opt_contents with
@@ -684,7 +685,7 @@ let () =
                                  td [pcdata s]
                                ])
                            | None -> None)
-                       wikiboxes)
+                       wikiboxes))
                 ]))
             wikiboxes_by_wikis)
         else

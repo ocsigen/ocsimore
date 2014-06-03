@@ -215,44 +215,17 @@ let ddt_builder
   lwt d = element d in
   Lwt.return
     (if istitle
-     then `Dt (Html5.F.dt ?a ((List.flatten d :> Html5_types.dt_content_fun Html5.F.elt list)))
-     else `Dd (Html5.F.dd ?a ((List.flatten  d
+     then Html5.F.dt ?a ((List.flatten d :> Html5_types.dt_content_fun Html5.F.elt list))
+     else Html5.F.dd ?a ((List.flatten  d
                                  : Html5_types.phrasing Eliom_content.Html5.F.elt list
-                               :> Html5_types.dd_content_fun Html5.F.elt list))))
+                               :> Html5_types.dd_content_fun Html5.F.elt list)))
 
 let ddt_builder =
   (ddt_builder (* opening types *)
      : (_ * Html5_types.phrasing Html5.F.elt list Lwt.t list * _ -> _)
      :> (_ * [< Html5_types.phrasing ] Html5.F.elt list Lwt.t list * _ -> _))
 
-let descr_builder l =
-  let rec list_dt acc = function
-    | [] -> None
-    | (`Dd _)::_ as l ->
-      let rest, dd = list_dd [] l in
-      Some ((List.rev acc, dd),rest)
-    | (`Dt v)::q -> list_dt (v::acc) q
-  and list_dd acc = function
-    | []
-    | (`Dt _)::_ as l -> l,List.rev acc
-    | (`Dd v)::q -> list_dd (v::acc) q
-  in
-  let rec combine acc l =
-    match list_dt [] l with
-      | None -> List.rev acc
-      | Some ((dt,dd),rest) ->
-        let dt = match dt with
-          | [] -> Html5.F.dt [], []
-          | x::xs -> x,xs
-        in
-        let dd = match dd with
-          | [] -> Html5.F.dd [], []
-          | x::xs -> x,xs
-        in
-        combine ((dt,dd)::acc) rest
-  in
-  lwt l = Lwt_list.map_s ddt_builder l in
-  Lwt.return (combine [] l)
+let descr_builder l = Lwt_list.map_s ddt_builder l
 
 type ('a,'b, 'kind, 'suff, 'reg, 'service) wiki_service =
     ('a, unit,
@@ -1623,11 +1596,10 @@ module FlowBuilder = struct
   let table_elem attribs l =
     let a = opt_list (parse_table_attribs attribs) in
     match l with
-      | [] -> Lwt.return [Html5.F.table ?a (Html5.F.tr [Html5.F.td []]) []]
-      | row::rows ->
-        lwt row = tr_builder row in
+      | [] -> Lwt.return [Html5.F.table ?a [Html5.F.tr [Html5.F.td []]]]
+      | rows ->
         lwt rows = Lwt_list.map_s tr_builder rows in
-        Lwt.return [(Html5.F.table ?a row rows : [>`Table] Html5.F.elt)]
+        Lwt.return [(Html5.F.table ?a rows : [>`Table] Html5.F.elt)]
 
   let error =
     (fun (s : string) ->
