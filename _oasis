@@ -69,6 +69,7 @@ Library "ocsimore"
     macaque (>= 0.6.1),
     safepass (>= 1.2),
     eliom.server (>= 3.0),
+    eliom.server.ext,
     threads
 
 Library "ocsimore_client"

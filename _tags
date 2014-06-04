@@ -1,5 +1,5 @@
 # OASIS_START
-# DO NOT EDIT (digest: e9c3b2457339deb2172a56999ea3670f)
+# DO NOT EDIT (digest: 58acab985915a137ec09d8232ac33979)
 # Ignore VCS directories, you can use the same kind of rule outside
 # OASIS_START/STOP if you want to exclude directories that contains
 # useless stuff for the build process
@@ -22,16 +22,19 @@
 "src/core/dllocsimore_stubs.so": oasis_library_ocsimore_cclib
 <src/core/ocsimore.{cma,cmxa}>: use_libocsimore_stubs
 <src/core/*.ml{,i}>: package(eliom.server)
+<src/core/*.ml{,i}>: package(eliom.server.ext)
 <src/core/*.ml{,i}>: package(lwt)
 <src/core/*.ml{,i}>: package(macaque)
 <src/core/*.ml{,i}>: package(safepass)
 <src/core/*.ml{,i}>: package(threads)
 <src/core/server/*.ml{,i}>: package(eliom.server)
+<src/core/server/*.ml{,i}>: package(eliom.server.ext)
 <src/core/server/*.ml{,i}>: package(lwt)
 <src/core/server/*.ml{,i}>: package(macaque)
 <src/core/server/*.ml{,i}>: package(safepass)
 <src/core/server/*.ml{,i}>: package(threads)
 "src/core/crypt_stubs.c": package(eliom.server)
+"src/core/crypt_stubs.c": package(eliom.server.ext)
 "src/core/crypt_stubs.c": package(lwt)
 "src/core/crypt_stubs.c": package(macaque)
 "src/core/crypt_stubs.c": package(safepass)
@@ -42,6 +45,7 @@
 # Library user
 "src/user/user.cmxs": use_user
 <src/user/*.ml{,i}>: package(eliom.server)
+<src/user/*.ml{,i}>: package(eliom.server.ext)
 <src/user/*.ml{,i}>: package(lwt)
 <src/user/*.ml{,i}>: package(macaque)
 <src/user/*.ml{,i}>: package(safepass)
@@ -50,6 +54,7 @@
 # Library ocsimore-nis
 "src/user/nis/ocsimore-nis.cmxs": use_ocsimore-nis
 <src/user/nis/*.ml{,i}>: package(eliom.server)
+<src/user/nis/*.ml{,i}>: package(eliom.server.ext)
 <src/user/nis/*.ml{,i}>: package(lwt)
 <src/user/nis/*.ml{,i}>: package(macaque)
 <src/user/nis/*.ml{,i}>: package(safepass)
@@ -59,6 +64,7 @@
 # Library ocsimore-pam
 "src/user/pam/ocsimore-pam.cmxs": use_ocsimore-pam
 <src/user/pam/*.ml{,i}>: package(eliom.server)
+<src/user/pam/*.ml{,i}>: package(eliom.server.ext)
 <src/user/pam/*.ml{,i}>: package(lwt)
 <src/user/pam/*.ml{,i}>: package(macaque)
 <src/user/pam/*.ml{,i}>: package(pam)
@@ -69,6 +75,7 @@
 # Library ocsimore-ldap
 "src/user/ldap/ocsimore-ldap.cmxs": use_ocsimore-ldap
 <src/user/ldap/*.ml{,i}>: package(eliom.server)
+<src/user/ldap/*.ml{,i}>: package(eliom.server.ext)
 <src/user/ldap/*.ml{,i}>: package(ldap)
 <src/user/ldap/*.ml{,i}>: package(lwt)
 <src/user/ldap/*.ml{,i}>: package(macaque)
@@ -79,6 +86,7 @@
 # Library wiki
 "src/wiki/wiki.cmxs": use_wiki
 <src/wiki/*.ml{,i}>: package(eliom.server)
+<src/wiki/*.ml{,i}>: package(eliom.server.ext)
 <src/wiki/*.ml{,i}>: package(lwt)
 <src/wiki/*.ml{,i}>: package(macaque)
 <src/wiki/*.ml{,i}>: package(safepass)
@@ -86,6 +94,7 @@
 <src/wiki/*.ml{,i}>: use_ocsimore
 <src/wiki/*.ml{,i}>: use_user
 <src/wiki/server/*.ml{,i}>: package(eliom.server)
+<src/wiki/server/*.ml{,i}>: package(eliom.server.ext)
 <src/wiki/server/*.ml{,i}>: package(lwt)
 <src/wiki/server/*.ml{,i}>: package(macaque)
 <src/wiki/server/*.ml{,i}>: package(safepass)
@@ -99,6 +108,7 @@
 # Library forum
 "src/forum/forum.cmxs": use_forum
 <src/forum/*.ml{,i}>: package(eliom.server)
+<src/forum/*.ml{,i}>: package(eliom.server.ext)
 <src/forum/*.ml{,i}>: package(lwt)
 <src/forum/*.ml{,i}>: package(macaque)
 <src/forum/*.ml{,i}>: package(safepass)
@@ -126,6 +136,7 @@
 # Library wiki_perso
 "src/site/wiki_perso.cmxs": use_wiki_perso
 <src/site/*.ml{,i}>: package(eliom.server)
+<src/site/*.ml{,i}>: package(eliom.server.ext)
 <src/site/*.ml{,i}>: package(lwt)
 <src/site/*.ml{,i}>: package(macaque)
 <src/site/*.ml{,i}>: package(safepass)
@@ -135,6 +146,7 @@
 <src/site/*.ml{,i}>: use_user
 <src/site/*.ml{,i}>: use_wiki
 <src/site/server/*.ml{,i}>: package(eliom.server)
+<src/site/server/*.ml{,i}>: package(eliom.server.ext)
 <src/site/server/*.ml{,i}>: package(lwt)
 <src/site/server/*.ml{,i}>: package(macaque)
 <src/site/server/*.ml{,i}>: package(safepass)
