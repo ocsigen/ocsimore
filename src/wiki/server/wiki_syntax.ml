@@ -227,9 +227,11 @@ let ddt_builder =
 
 let descr_builder l = Lwt_list.map_s ddt_builder l
 
-type ('a,'b, 'kind, 'suff, 'reg, 'service) wiki_service =
+type ('a,'b, 'meth,'attach,'kind, 'suff, 'reg, 'service) wiki_service =
     ('a, unit,
-     [< Eliom_service.get_service_kind] as 'kind,
+     ([< Eliom_service.get_service_kind] as 'meth),
+     'attach,
+     'kind,
      [< Eliom_service.suff] as 'suff,
      'b, unit,
      [< Eliom_service.registrable] as 'reg,

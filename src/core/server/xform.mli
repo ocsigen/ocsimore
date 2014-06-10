@@ -123,9 +123,9 @@ module type Xform = sig
     fallback:(
       'a,
       unit,
-      [ `Attached of
-          ([`Internal of [< `Coservice | `Service ]], [ `Get ])
-            Eliom_service.a_s ],
+      [` Get],
+      Eliom_service.attached_kind,
+      [< `AttachedCoservice | `Service ],
       [< Eliom_service.suff ],
       'b,
       unit,
