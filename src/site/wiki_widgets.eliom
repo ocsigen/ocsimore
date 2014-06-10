@@ -347,8 +347,9 @@ object (self)
     }} in
     let delete_service :
       (unit, unit,
-       [> `Attached of (Eliom_service.attached_service_kind, Eliom_service.getpost) Eliom_service.a_s
-       | `Nonattached of [> `Get ] Eliom_service.na_s ],
+       [> `Get],
+       Eliom_service.attached,
+       Eliom_service.service_kind,
        [ `WithoutSuffix ], unit, unit,
        [< Eliom_service.registrable > `Unregistrable ],
        Eliom_service.non_ocaml_service)

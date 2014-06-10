@@ -680,6 +680,8 @@ let (get_wikisyntax_helper, set_wikisyntax_helper) =
       (unit,
        unit,
        Eliom_service.get_service_kind,
+       Eliom_service.attached,
+       Eliom_service.service_kind,
        [ `WithoutSuffix ],
        unit,
        unit,

@@ -45,7 +45,9 @@ module Servpages =
 let naservpages :
     (string,
      unit,
-     [ `Nonattached of [ `Get ] Eliom_service.na_s ],
+     [ `Get],
+     Eliom_service.non_attached_kind,
+     [ `NonattachedCoservice ],
      [ `WithoutSuffix ],
      [ `One of string ] Eliom_parameter.param_name,
      unit,
@@ -56,6 +58,8 @@ let servpages :
     (string list,
      unit,
      Eliom_service.get_service_kind,
+     Eliom_service.attached,
+     Eliom_service.service_kind,
      [ `WithSuffix ],
      [ `One of string list ] Eliom_parameter.param_name,
      unit,
@@ -65,9 +69,9 @@ let servpages :
 let servwikicss :
     ((Wiki_types.wikibox * int32 option) list,
      unit,
-     [ `Attached of
-         ([ `Internal of [ `Service | `Coservice ] | `External ],
-          [`Get]) Eliom_service.a_s ],
+     Eliom_service.get_service_kind,
+     Eliom_service.attached_kind,
+     [ `Service | `AttachedCoservice ],
      [ `WithoutSuffix ],
      ([ `One of Wiki_types.wikibox ] Eliom_parameter.param_name *
       [ `One of int32 ] Eliom_parameter.param_name) Eliom_parameter.listnames,

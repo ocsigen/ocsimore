@@ -121,10 +121,7 @@ module type Xform = sig
     ([>Html5_types.fieldset] Html5.F.elt, 'b) t
 
   val form:
-    fallback:('a, unit,
-              [ `Attached of
-                  ([ `Internal of [< `Coservice | `Service ]], [ `Get ])
-                    Eliom_service.a_s ],
+    fallback:('a, unit, [`Get], Eliom_service.attached_kind,[< `AttachedCoservice | `Service ],
               [< Eliom_service.suff ], 'b, unit, [< `Registrable ], Eliom_registration.Html5.return)
     Eliom_service.service ->
     get_args:'a ->

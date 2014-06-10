@@ -33,7 +33,7 @@ type menu_link_service =
 
 (** The service that answers for Ocsimore static files. *)
 val static_service :
-  ((string list, unit, Eliom_service.get_service_kind, [ `WithSuffix ],
+  ((string list, unit, Eliom_service.get_service_kind, Eliom_service.attached, Eliom_service.service_kind, [ `WithSuffix ],
     [ `One of string list ] Eliom_parameter.param_name, unit,
     [ `Registrable ], Eliom_registration.http_service)
    Eliom_service.service)

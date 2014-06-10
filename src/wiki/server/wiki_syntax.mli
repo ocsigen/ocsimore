@@ -44,9 +44,11 @@ val cast_wp : ('a, 'b, 'c) ext_wikicreole_parser -> 'a wikicreole_parser
 val cast_niwp : ('a, 'b, 'c) ext_wikicreole_parser -> 'b wikicreole_parser
 
 
-type ('a,'b, 'kind, 'suff, 'reg, 'service) wiki_service =
+type ('a,'b, 'meth,'attach, 'kind, 'suff, 'reg, 'service) wiki_service =
     ('a, unit,
-     [< Eliom_service.get_service_kind] as 'kind,
+     ([< Eliom_service.get_service_kind] as 'meth),
+     'attach,
+     'kind,
      [< Eliom_service.suff] as 'suff,
      'b, unit,
      [< Eliom_service.registrable] as 'reg,
@@ -59,7 +61,7 @@ type href = Wiki_syntax_types.href =
   | String_href of string
   | Service_href of service_href
 
-val service_href : ?fragment:string -> ?https:bool -> ('a,'b,'c,'d,'e,'f) wiki_service -> 'a -> service_href
+val service_href : ?fragment:string -> ?https:bool -> ('a,'b,'meth,'att,'c,'d,'e,'f) wiki_service -> 'a -> service_href
 
 val a_link_of_href : service_href ->
   ?a:Html5_types.a_attrib Html5.F.attrib list ->
