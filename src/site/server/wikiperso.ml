@@ -241,7 +241,7 @@ let wikiperso_model =
 let gen () =
   let ri = Eliom_request_info.get_ri () in
   (* We check that the url corresponds to a wiki *)
-  match extract_user_name ri.ri_sub_path_string with
+  match extract_user_name (Ocsigen_request_info.sub_path_string ri) with
     | Some user ->
         (* If this is the case, we try to find the id of the corresponding
            ocsimore user. *)
