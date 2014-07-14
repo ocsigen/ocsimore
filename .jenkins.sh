@@ -9,8 +9,8 @@ opam install --verbose ocsimore
 do_build_doc () {
   rm -rf _build/api.wikidocdir
   make wiki-api
-  cp -Rf _build/api.wikidocdir/*.wiki $(API_DIR)/
-  cp -Rf doc/manual-wiki/*.wiki $(MANUAL_SRC_DIR)/
+  cp -Rf _build/api.wikidocdir/*.wiki ${API_DIR}/
+  cp -Rf doc/manual-wiki/*.wiki ${MANUAL_SRC_DIR}/
 }
 
 do_remove () {
