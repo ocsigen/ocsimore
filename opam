@@ -12,7 +12,7 @@ remove: [
 ]
 depends: [
   "ocamlfind"
-  "eliom" {>= "4.0"}
+  "eliom" {>= "dev"}
   "pgocaml" {>= "1.7.1"}
   "macaque" {>= "dev"}
   "safepass" {>= "1.2"}
