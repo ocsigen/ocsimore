@@ -18,3 +18,6 @@ depends: [
   "safepass" {>= "1.2"}
   "ocamldap" {>= "2.2"}
 ]
+conflicts: [
+  "batteries" {="2.3.0"}
+]
