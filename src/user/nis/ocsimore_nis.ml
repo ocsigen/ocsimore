@@ -20,6 +20,8 @@
    @author Vincent Balat
 *)
 
+open Ocsimore_lib
+
 let (>>=) = Lwt.bind
 
 let nis_auth ~name ~pwd =

@@ -19,7 +19,7 @@
 (**
    @author Vincent Balat
 *)
-
+open Ocsimore_lib
 module Ldap = Ldap_funclient
 
 let (>>=) = Lwt.(>>=)
