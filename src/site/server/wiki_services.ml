@@ -2,7 +2,7 @@
  * http://www.ocsigen.org
  * Copyright (C) 2005-2009
  * Piero Furiesi - Jaap Boender - Vincent Balat - Boris Yakobowski -
- * CNRS - Université Paris Diderot Paris 7
+ * CNRS - UniversitÃ© Paris Diderot Paris 7
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

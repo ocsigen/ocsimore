@@ -1,7 +1,7 @@
 {
 (* Ocsimore
  * Copyright (C) 2008
- * Laboratoire PPS - Université Paris Diderot - CNRS
+ * Laboratoire PPS - UniversitÃ© Paris Diderot - CNRS
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *)
 (**
    Parser for Wikicreole
-   @author Jérôme Vouillon
+   @author JÃ©rÃ´me Vouillon
    @author Vincent Balat
 *)
 
