@@ -27,6 +27,7 @@
 open Eliom_content
 open Wiki_widgets_interface
 open Wiki_types
+open Ocsimore_lib
 
 (**/**)
 
@@ -128,9 +129,9 @@ let send_wikibox
 (** Register the services for the wiki [wiki] *)
 let register_wiki ~rights ?sp ~path ~wiki ~siteids () =
   if fst siteids = snd siteids then (
-  Ocsigen_messages.debug
-    (fun () -> Printf.sprintf "Registering wiki %s (at path '%s')"
-       (string_of_wiki wiki) (String.concat "/"  path));
+  Lwt_log.ign_debug_f ~section
+    "Registering wiki %s (at path '%s')"
+       (string_of_wiki wiki) (String.concat "/"  path);
 
   Wiki_self_services.insert_into_registered_wikis_tree wiki path;
 
@@ -498,11 +499,8 @@ and action_upload_file =
                        | Unix.Unix_error (Unix.EEXIST, _, _) ->
                            Lwt.return ()
                        | exn ->
-                           Ocsigen_messages.debug
-                             (fun () ->
-                               Printf.sprintf
-                                 "Could not create the directory %s" dir
-                             );
+                           Lwt_log.ign_debug_f ~section
+                             "Could not create the directory %s" dir ;
                            Lwt.fail exn
                     )
                     >>= fun () ->

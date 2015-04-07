@@ -21,6 +21,7 @@
 open Eliom_content
 open Eliom_lib
 open Lwt_ops
+open Ocsimore_lib
 
 (* let (>>=) = Lwt.bind *)
 (* let (>|=) m f = Lwt.map f m *)
@@ -163,7 +164,7 @@ let create_wiki_page_service bi ?(wiki = bi.Wiki_widgets_interface.bi_wiki) page
     | Some s -> s
     | None ->
         let wiki = Wiki_types.string_of_wiki wiki in
-        Printf.ksprintf Ocsigen_messages.warning
+        Lwt_log.ign_warning_f ~section
           "Wiki_menu: Can't find service for wiki id %s." wiki;
         raise (Error (Printf.sprintf "Oups ! service not found for id %s." wiki))
   in

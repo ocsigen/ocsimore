@@ -235,3 +235,5 @@ end = struct
       (fun acc x -> acc @ [List.last ~default:(fun () -> empty) acc @ [x]])
       []
 end
+
+let section = Lwt_log.Section.make "ocsimore"

@@ -120,7 +120,7 @@ let change_user_data ~userid ~pwd:(pwd, pwd2) ~fullname ~email =
           Lwt.fail (Failure "ERROR: Passwords don't match!")
         else
           lwt user = User_sql.get_basicuser_data userid in
-          Ocsigen_messages.debug2 (Printf.sprintf "Updating user '%s'"fullname);
+          Lwt_log.ign_debug_f ~section "Updating user '%s'" fullname;
           let pwd =
             match user.user_pwd with
               | Connect_forbidden (* Should never happen, the user cannot

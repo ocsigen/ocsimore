@@ -23,7 +23,7 @@
    @author Vincent Balat
 *)
 
-
+open Ocsimore_lib
 exception Eof
 exception Unrecognized_char
 
@@ -842,8 +842,8 @@ and parse_rem c =
       parse_rem c lexbuf
     }
   | _ {
-     Ocsigen_messages.warning
-       ("Wikicreole: Unrecognized char "^(Lexing.lexeme lexbuf)^".");
+     Lwt_log.ign_warning_f ~section
+       "Wikicreole: Unrecognized char %s." (Lexing.lexeme lexbuf) ;
      raise Unrecognized_char
   }
   | eof {
@@ -1072,9 +1072,9 @@ and parse_extension_content_wiki start rec_plugin lev beg c =
           parse_extension_content_wiki start rec_plugin lev (beg^s) c lexbuf
         }
       | _ {
-          Ocsigen_messages.warning
-            ("Wikicreole: Unrecognized char in extension: "^
-               (Lexing.lexeme lexbuf)^".");
+          Lwt_log.ign_warning_f ~section
+            "Wikicreole: Unrecognized char in extension: %s."
+            (Lexing.lexeme lexbuf) ;
           raise Unrecognized_char
         }
 
@@ -1096,9 +1096,9 @@ and parse_extension_content_nowiki start unquote beg c =
           parse_extension_content_nowiki start unquote (beg^s) c lexbuf
         }
       | _ {
-          Ocsigen_messages.warning
-            ("Wikicreole: Unrecognized char in extension "^
-               (Lexing.lexeme lexbuf)^".");
+          Lwt_log.ign_warning_f ~section
+            "Wikicreole: Unrecognized char in extension %s."
+            (Lexing.lexeme lexbuf) ;
           raise Unrecognized_char
         }
 

@@ -22,10 +22,10 @@
 *)
 
 open Eliom_lib
+open Ocsimore_lib
 open Opaque
 open Lwt
 open Ocsi_sql
-
 
 open Wiki_types
 
@@ -887,7 +887,8 @@ let update_wikiboxes ?db f =
                 } | w.wikibox = $int32:data#!wikibox$;
                     w.version = $int32:data#!version$ >>)
          ) l
-         >>= fun () -> Ocsigen_messages.console2 "Done updating wikiboxes";
+         >>= fun () ->
+         Lwt_log.ign_info ~section "Done updating wikiboxes";
          cache_wb_content#clear ();
          Lwt.return ()
     )
@@ -912,7 +913,7 @@ let rewrite_wikipages ?db ~oldwiki ~newwiki ~path =
                     } | w.uid = $int32:data#!uid$ >>)
            ) l >>= fun () ->
            cache_wp#clear ();
-           Ocsigen_messages.console2 "Done updating wikipages";
+           Lwt_log.ign_info ~section "Done updating wikipages";
            Lwt.return ()
     )
 

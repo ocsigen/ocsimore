@@ -41,11 +41,10 @@ let ldap_auth base uri ~name ~pwd =
              | Ldap_types.LDAP_Failure (`INVALID_CREDENTIALS, _, _) ->
                Ldap.unbind conn;
                raise User.BadPassword
-             | e ->
+             | exn ->
                Ldap.unbind conn;
-               Ocsigen_messages.debug (fun () -> "Ocsimore_ldap: "^
-                 Printexc.to_string e);
-               raise e
+               Lwt_log.ign_debug ~section ~exn "Ocsimore_ldap" ;
+               raise exn
          )
          ()
 (*    )

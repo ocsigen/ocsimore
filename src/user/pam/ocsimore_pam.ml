@@ -35,14 +35,12 @@ let pam_auth ?(service = "") ~name ~pwd =
               Pam.pam_authenticate pam [] ~silent:true;
               ignore (Pam.pam_end pam);
               Lwt.return ()
-            with (Pam.Pam_Error _) as e ->
-              Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
-                                        Printexc.to_string e);
+            with (Pam.Pam_Error _) as exn ->
+              Lwt_log.ign_debug ~section ~exn "Ocsimore_pam" ;
               Lwt.fail User.BadPassword
-              | e ->
-                  Ocsigen_messages.debug (fun () -> "Ocsimore_pam: "^
-                                            Printexc.to_string e);
-                  Lwt.fail e
+              | exn ->
+                  Lwt_log.ign_debug ~section ~exn "Ocsimore_pam" ;
+                  Lwt.fail exn
 (*
          )
          ()
@@ -63,7 +61,7 @@ let parse_config conf =
   User_external_auth.add_external_auth {
     User_external_auth.ext_auth_authenticate = pam_auth ?service;
     ext_user_exists = (fun _ ->
-      Ocsigen_messages.warning
+      Lwt_log.ign_warning
         "PAM authentification not supported by wikiperso";
       Lwt.return false
     );

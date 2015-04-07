@@ -52,7 +52,7 @@ let admin_staticdir =
   match admin_staticdir with
     | Some s -> s
     | None ->
-        Ocsigen_messages.errlog
+        Lwt_log.ign_error ~section
          "Page_site: please supply the local path for Ocsimore's static files\n\
           Syntax: <admin staticdir=\"path\" />";
         raise No_admin_staticdir

@@ -321,7 +321,7 @@ let in_group_ ~user ~group () =
   and aux u g =
 (*    User_sql.user_to_string u >>= fun su ->
     User_sql.user_to_string g >>= fun sg ->
-    Ocsigen_messages.errlog (Printf.sprintf "Is %s in %s?" su sg); *)
+    Lwt_log.ign_error_f ~section "Is %s in %s?" su sg; *)
     try Lwt.return (get_in_cache (u, g))
     with Not_found ->
       lwt gl = User_sql.groups_of_user ~user:u in
@@ -371,16 +371,16 @@ let add_to_group ~(user:user) ~(group:user) =
   then
     lwt us = User_sql.user_to_string user in
     lwt gs = User_sql.user_to_string group in
-    Ocsigen_messages.warning
-      ("Not possible to insert user "^ us ^
-         " in group "^ gs ^
-         ". This group is dynamic (risk of loops). (ignoring)");
+    Lwt_log.ign_warning_f ~section
+      "Not possible to insert user %s in group %s.\
+       This group is dynamic (risk of loops). (ignoring)"
+      us gs ;
     Lwt.return ()
   else
     if (user = nobody') || (group = nobody')
     then begin
-      Ocsigen_messages.warning
-        ("Not possible to insert user nobody into a group, or insert someone in group nobody. (ignoring)");
+    Lwt_log.ign_warning ~section
+      "Not possible to insert user nobody into a group, or insert someone in group nobody. (ignoring)";
       Lwt.return ()
     end
     else
@@ -388,9 +388,10 @@ let add_to_group ~(user:user) ~(group:user) =
         | true ->
             lwt us = User_sql.user_to_string user in
             lwt gs = User_sql.user_to_string group in
-            Ocsigen_messages.warning
-              ("Circular group when inserting user "^ us ^ " in group "^ gs ^
-                 ". (ignoring)");
+            Lwt_log.ign_warning_f ~section
+              "Circular group when inserting user %s in group %s. (ignoring)"
+              us gs
+            ;
             Lwt.return ()
         | false ->
             User_sql.add_to_group ~user ~group

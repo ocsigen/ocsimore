@@ -30,11 +30,9 @@ let nis_auth ~name ~pwd =
   with
     | User.BadPassword ->
       Lwt.fail User.BadPassword
-    | e ->
-      Ocsigen_messages.debug (fun () ->
-        "Ocsimore_nis: " ^ Printexc.to_string e
-      );
-      Lwt.fail e
+    | exn ->
+      Lwt_log.ign_debug_f ~section ~exn "Ocsimore_nis" ;
+      Lwt.fail exn
 
 let () =
   User_external_auth.add_external_auth {
