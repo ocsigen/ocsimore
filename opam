@@ -14,7 +14,7 @@ depends: [
   "ocamlfind"
   "eliom" {>= "4.1"}
   "pgocaml" {>= "1.7.1"}
-  "macaque" {>= "dev"}
+  "macaque" {>= "0.7.2"}
   "safepass" {>= "1.2"}
   "ocamldap" {>= "2.2"}
 ]
