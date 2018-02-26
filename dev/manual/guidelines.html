@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Ocsigen</title><meta charset="utf8"/><meta content="width=device-width, initial-scale=1" name="viewport"/><link rel="stylesheet" href="/css/style.css"/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/themes/prism.min.css"/><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-core.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-ocaml.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-clike.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-reason.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-javascript.min.js"></script><script src="/js/client.js"></script></head><body class="ocsimore dev"><div class="project-page"><div class="page-header"><p class="logo-ocsigen"><a href="/" class="ocsimore_phrasing_link"><img src="/img/ocsigen-white.svg" alt="Ocsigen"/></a>
+</p><ul class="mainmenu"><li><a href="/" class="ocsimore_phrasing_link">Home</a>
+</li><li><a href="/eliom/6.2/manual/intro" class="ocsimore_phrasing_link">Eliom</a>
+</li><li><a href="/js_of_ocaml/2.8.4/manual/overview" class="ocsimore_phrasing_link">Js_of_ocaml</a>
+</li><li><a href="/lwt/3.1.0/manual/manual" class="ocsimore_phrasing_link">Lwt</a>
+</li><li><a href="/tyxml/4.1.0/manual/intro" class="ocsimore_phrasing_link">Tyxml</a>
+</li><li><a href="/ocsigen-start/1.0/manual/intro" class="ocsimore_phrasing_link">Start</a>
+</li></ul><div class="how-drawer"><input id="how-drawer-toggle" type="checkbox"/><label for="how-drawer-toggle" id="how-drawer-label"><span class="how-drawer-icon"></span></label><nav class="how-drawer-content"><ul class="drawermainmenu"><li><a href="/" class="ocsimore_phrasing_link">Home</a>
+</li><li><a href="/eliom/6.2/manual/intro" class="ocsimore_phrasing_link">Eliom</a>
+</li><li><a href="/js_of_ocaml/2.8.4/manual/overview" class="ocsimore_phrasing_link">Js_of_ocaml</a>
+</li><li><a href="/ocsigenserver/2.8/manual/quickstart" class="ocsimore_phrasing_link">Server</a>
+</li><li><a href="/lwt/3.1.0/manual/manual" class="ocsimore_phrasing_link">Lwt</a>
+</li><li><a href="/tyxml/4.1.0/manual/intro" class="ocsimore_phrasing_link">Tyxml</a>
+</li><li><a href="/ocsigen-toolkit/1.0/manual/intro" class="ocsimore_phrasing_link">Toolkit</a>
+</li><li><a href="/ocsigen-start/1.0/manual/intro" class="ocsimore_phrasing_link">Start</a>
+</li><li><a href="/projects" class="ocsimore_phrasing_link">Other projects</a>
+</li></ul><div class="how-doctree"><h1>Ocsimore Manual</h1><h2><a href="/ocsimore/dev/manual/intro" class="ocsimore_phrasing_link">Introduction</a></h2><h2><a href="/ocsimore/dev/manual/wiki" class="ocsimore_phrasing_link">Wiki</a></h2><h2><a href="/ocsimore/dev/manual/forum" class="ocsimore_phrasing_link">Forum</a></h2><h2><a href="/ocsimore/dev/manual/user" class="ocsimore_phrasing_link">Users and groups</a></h2><h2><a href="/ocsimore/dev/manual/misc" class="ocsimore_phrasing_link">Misc</a></h2><h2><a href="/ocsimore/dev/manual/guidelines" class="ocsimore_phrasing_link">Writing extensions for Ocsimore</a></h2><h2><a href="/ocsimore/dev/manual/config" class="ocsimore_phrasing_link">Configuration options</a></h2><h2><a href="/ocsimore/dev/manual/admin-interface" class="ocsimore_phrasing_link">Administration interface</a></h2></div></nav></div></div><button id="reason">Switch to </button><div class="twocols"><div class="leftcol"><div class="how-versions"><input id="how-versions-toggle" type="checkbox"/><label for="how-versions-toggle" class="how-versions-current">Version dev</label><div class="how-versions-all"><span class="how-versions-all-current">dev</span></div></div><form id="search"><input name="q" id="q" placeholder="search ..."/><button>Search</button></form><div class="how-doctree"><h1>Ocsimore Manual</h1><h2><a href="/ocsimore/dev/manual/intro" class="ocsimore_phrasing_link">Introduction</a></h2><h2><a href="/ocsimore/dev/manual/wiki" class="ocsimore_phrasing_link">Wiki</a></h2><h2><a href="/ocsimore/dev/manual/forum" class="ocsimore_phrasing_link">Forum</a></h2><h2><a href="/ocsimore/dev/manual/user" class="ocsimore_phrasing_link">Users and groups</a></h2><h2><a href="/ocsimore/dev/manual/misc" class="ocsimore_phrasing_link">Misc</a></h2><h2><a href="/ocsimore/dev/manual/guidelines" class="ocsimore_phrasing_link">Writing extensions for Ocsimore</a></h2><h2><a href="/ocsimore/dev/manual/config" class="ocsimore_phrasing_link">Configuration options</a></h2><h2><a href="/ocsimore/dev/manual/admin-interface" class="ocsimore_phrasing_link">Administration interface</a></h2></div></div><div class="rightcol"><h3>Guidelines and implementation notes</h3><p>(work in progress)
+</p><p>If you want to contribute to Ocsimore and/or write your own
+extensions, we recommend to follow these guidelines. Have a look at
+the forum code for an example.
+</p><h4> Generic advices: </h4><ul><li> Try to make things as generic and configurable as possible.
+</li></ul><ul><li> The use of classes allows to extend widgets or modify their behaviour.
+Decompose each of them into several methods, one for each subtask to perform
+(retrieve data, display ...) and for each widget kind.
+</li></ul><p>The instantiation of classes must be done in a separate module, that
+can be rewritten by programmers who want to redefine some methods.
+</p><ul><li> The creation and registration of services is also done in this
+separate module that can be loaded several times inside the
+<span class="teletype">&lt;host&gt;</span> section of the configuration file. 
+<ul><li>??<strong>
+</strong></li></ul></li></ul><p>Usually, widgets depend on services, and service handlers depend on
+widgets. This means that there is an instance of classes for each
+site. For example, create services, then give them as parameters to
+the class constructor to create the object, then register services.
+</p><ul><li> Use as much as possible the same naming scheme for methods.
+For example:
+<ul><li> <span class="teletype">private retrieve_data</span> or <span class="teletype">retrieve_</span>...
+</li><li> <span class="teletype">private display</span> or <span class="teletype">display_...</span>
+for displaying the widget from retrieved data
+</li></ul></li></ul><ul><li> Use as much as possible the same names for labels.
+</li></ul><h4> More specific instructions </h4><h5> Decomposing your extension </h5><p>Decompose your extension <span class="teletype">X</span> in 8 parts
+</p><dl><dt> <span class="teletype">X_createdb.sql</span>
+</dt><dd> SQL creation of the tables related to your extension.
+</dd><dt> <span class="teletype">X_sql.ml</span>
+</dt><dd> database requests, using lwt-pgocaml.
+</dd><dt> <span class="teletype">X_cache.ml</span>
+</dt><dd> Cache on database requests, using the Cache module.
+For all cached SQL-related functions<sub> we use a name ending with <span class="teletype">_</span> in
+<span class="teletype">X_sql.ml</span> and without the <span class="teletype">_</span> in <span class="teletype">X_cache.ml</span>, to remember that
+we must not call the functions from <span class="teletype">X_sql.ml</span> directly.
+(The SQL and Cache modules are merged for <span class="teletype">Wiki</span> and <span class="teletype">User</span>. However,
+the convention on the name of functions above is followed.)
+</sub></dd></dl><dl><dt> <span class="teletype">X.ml</span>
+</dt><dd> Higher level functions needed by the module. Also, creation of the
+groups specific to the extension, using the module <span class="teletype">Users</span>, and of the
+inclusions between those groups.
+</dd><dt> <span class="teletype">X_data.ml</span>
+</dt><dd> database access with cache and verification of permissions.
+It has almost the same interface as <span class="teletype">X_sql.ml</span> and <span class="teletype">X_cache.ml</span>, 
+calls the cached function if authorized,
+then filters the result  to remove forbidden content (if needed).
+They may fail with exception <span class="teletype">Ocsimore_common.Permission_denied</span>.
+</dd><dt> <span class="teletype">X_services.ml</span>
+</dt><dd> definition of the services needed by the extension. They
+may not be registered, as the content they send may depend on what
+is returned by <span class="teletype">X_widgets</span> (see below).
+</dd><dt> <span class="teletype">X_widgets.ml</span>
+</dt><dd> Widgets for generating the parts of the HTML-page defined by the extension.
+Those may call the services of the previous module for buttons and links.
+We typically use classes for this module.
+Each widget takes an optional <span class="teletype">?classe</span> label of type string list for the
+<span class="teletype">class</span> HTML5 attribute. Each widget has its own attribute names.
+</dd><dt> <span class="teletype">X_wikiext.ml</span>
+</dt><dd> The wiki syntax extensions you define for your module
+</dd><dt> <span class="teletype">X_site.ml</span>
+</dt><dd> A separate module (not linked in ocsimore.cma) to be loaded
+dynamically from configuration file inside the <span class="teletype">&lt;host&gt;</span> section.
+It will instantiate the widget classes, register the services
+and register the wiki extensions.
+</dd></dl><h5> Data </h5><p>Data is stored in Eliom references of a matching scope:
+<strong> (Persistent) session data is stored in (persistent) references of scope <span class="teletype">Eliom_common.session</span>
+</strong> If you need a per-request cache for a certain function, you may use the module <span class="teletype">Ocsimore_lib.Request_cache</span>
+</p><p>&gt;
+</p><h5> Catching exceptions </h5><p>To be sure that all exceptions occurring during a DB request are catched
+and result in an error message in the box, I use the method
+<span class="teletype">Widget.widget_with_error_box#bind_or_display_error</span>
+</p><h5> Creating new extensions for wikicreole </h5><p>If you create a new box, you probably want to have a syntax to place it
+inside a wikibox. To so that, use the function
+<span class="teletype">Wiki_syntax.add_extension</span>.
+If you want a preparsing (i.e. do some action before saving the wikibox in
+the database, like creating a new wikibox for <span class="teletype">~&lt;&lt;wikibox box='new'&gt;&gt;</span>),
+use the function <span class="teletype">Wiki_syntax.add_preparser_extension</span>.
+See examples in <span class="teletype">Wiki_syntaxl</span> and <span class="teletype">Wiki_widgets</span>
+</p><h5> Groups </h5><p>Groups and users are the same notion. The only difference is that users have
+a password. A user can belong to a group that belongs to another group, etc.
+It is recommended to create groups for each task you want. For example
+readers and writers of wiki. Users are added to groups accordingly.
+</p><p>Predefined users/groups:
+- admin: a special user who belongs to all groups
+- anonymous: non authenticated user
+- users: group of authenticated users
+- nobody: a special user with no right at all 
+(for example when the user does not exist)
+</p><p>You can also create generic groups, that are parameterized by an
+abstracted integer, using <span class="teletype">User_sql.new_parametrized_group</span>.  For
+example, there exists the group of the administrators of the wiki 3.  Then
+you can add generic inclusions between generic groups, using
+<span class="teletype">User_sql.add_generic_inclusion</span>. As an example the administrators of a
+given wiki are also readers of this wiki.
+</p><p>You may want to compute the permission for one user at the beginning of
+the request.  To do that, you may create a record with boolean fields for each
+possible action (for one forum, one box in a wiki, one wiki, etc.).  The
+function that will compute this can be memorised in a session cache to
+avoid to compute several times the same thing.  See module <span class="teletype">Forum</span> for an
+example.
+Notice however that group inclusion calls are automatically cached. Thus
+you may not need your own caching mechanism if you only do simple requests.
+</p><p>Warning: Even if two groups are equal, it is often more convenient to
+create both in order to avoid errors. For example if you have three possible
+actions : read, write, set permissions, and you want an &quot;admin&quot; group,
+meaning all three. And if you want the following generic inclusions:
+admin &gt; set-perm &gt; write &gt; read
+Here, admin = set-perm, as admin is in no other group.
+But it is convenient to have both of them.
+Thus, you will not need to remember the group hierarchy when you want to test
+rights.
+If you want to test if a user has right to set permissions, just test whether
+he is in the group set-perm.
+If you want to give all rights to an user, put it in group admin.
+It is also more tolerant to changes in group hierarchy.
+</p></div></div></div></body></html>

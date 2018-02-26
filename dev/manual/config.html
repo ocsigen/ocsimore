@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title> Configuring Ocsimore </title><meta charset="utf8"/><meta content="width=device-width, initial-scale=1" name="viewport"/><link rel="stylesheet" href="/css/style.css"/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/themes/prism.min.css"/><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-core.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-ocaml.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-clike.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-reason.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-javascript.min.js"></script><script src="/js/client.js"></script></head><body class="ocsimore dev"><div class="project-page"><div class="page-header"><p class="logo-ocsigen"><a href="/" class="ocsimore_phrasing_link"><img src="/img/ocsigen-white.svg" alt="Ocsigen"/></a>
+</p><ul class="mainmenu"><li><a href="/" class="ocsimore_phrasing_link">Home</a>
+</li><li><a href="/eliom/6.2/manual/intro" class="ocsimore_phrasing_link">Eliom</a>
+</li><li><a href="/js_of_ocaml/2.8.4/manual/overview" class="ocsimore_phrasing_link">Js_of_ocaml</a>
+</li><li><a href="/lwt/3.1.0/manual/manual" class="ocsimore_phrasing_link">Lwt</a>
+</li><li><a href="/tyxml/4.1.0/manual/intro" class="ocsimore_phrasing_link">Tyxml</a>
+</li><li><a href="/ocsigen-start/1.0/manual/intro" class="ocsimore_phrasing_link">Start</a>
+</li></ul><div class="how-drawer"><input id="how-drawer-toggle" type="checkbox"/><label for="how-drawer-toggle" id="how-drawer-label"><span class="how-drawer-icon"></span></label><nav class="how-drawer-content"><ul class="drawermainmenu"><li><a href="/" class="ocsimore_phrasing_link">Home</a>
+</li><li><a href="/eliom/6.2/manual/intro" class="ocsimore_phrasing_link">Eliom</a>
+</li><li><a href="/js_of_ocaml/2.8.4/manual/overview" class="ocsimore_phrasing_link">Js_of_ocaml</a>
+</li><li><a href="/ocsigenserver/2.8/manual/quickstart" class="ocsimore_phrasing_link">Server</a>
+</li><li><a href="/lwt/3.1.0/manual/manual" class="ocsimore_phrasing_link">Lwt</a>
+</li><li><a href="/tyxml/4.1.0/manual/intro" class="ocsimore_phrasing_link">Tyxml</a>
+</li><li><a href="/ocsigen-toolkit/1.0/manual/intro" class="ocsimore_phrasing_link">Toolkit</a>
+</li><li><a href="/ocsigen-start/1.0/manual/intro" class="ocsimore_phrasing_link">Start</a>
+</li><li><a href="/projects" class="ocsimore_phrasing_link">Other projects</a>
+</li></ul><div class="how-doctree"><h1>Ocsimore Manual</h1><h2><a href="/ocsimore/dev/manual/intro" class="ocsimore_phrasing_link">Introduction</a></h2><h2><a href="/ocsimore/dev/manual/wiki" class="ocsimore_phrasing_link">Wiki</a></h2><h2><a href="/ocsimore/dev/manual/forum" class="ocsimore_phrasing_link">Forum</a></h2><h2><a href="/ocsimore/dev/manual/user" class="ocsimore_phrasing_link">Users and groups</a></h2><h2><a href="/ocsimore/dev/manual/misc" class="ocsimore_phrasing_link">Misc</a></h2><h2><a href="/ocsimore/dev/manual/guidelines" class="ocsimore_phrasing_link">Writing extensions for Ocsimore</a></h2><h2><a href="/ocsimore/dev/manual/config" class="ocsimore_phrasing_link">Configuration options</a></h2><h2><a href="/ocsimore/dev/manual/admin-interface" class="ocsimore_phrasing_link">Administration interface</a></h2></div></nav></div></div><button id="reason">Switch to </button><div class="twocols"><div class="leftcol"><div class="how-versions"><input id="how-versions-toggle" type="checkbox"/><label for="how-versions-toggle" class="how-versions-current">Version dev</label><div class="how-versions-all"><span class="how-versions-all-current">dev</span></div></div><form id="search"><input name="q" id="q" placeholder="search ..."/><button>Search</button></form><div class="how-doctree"><h1>Ocsimore Manual</h1><h2><a href="/ocsimore/dev/manual/intro" class="ocsimore_phrasing_link">Introduction</a></h2><h2><a href="/ocsimore/dev/manual/wiki" class="ocsimore_phrasing_link">Wiki</a></h2><h2><a href="/ocsimore/dev/manual/forum" class="ocsimore_phrasing_link">Forum</a></h2><h2><a href="/ocsimore/dev/manual/user" class="ocsimore_phrasing_link">Users and groups</a></h2><h2><a href="/ocsimore/dev/manual/misc" class="ocsimore_phrasing_link">Misc</a></h2><h2><a href="/ocsimore/dev/manual/guidelines" class="ocsimore_phrasing_link">Writing extensions for Ocsimore</a></h2><h2><a href="/ocsimore/dev/manual/config" class="ocsimore_phrasing_link">Configuration options</a></h2><h2><a href="/ocsimore/dev/manual/admin-interface" class="ocsimore_phrasing_link">Administration interface</a></h2></div></div><div class="rightcol"><h1> Configuring Ocsimore </h1><p>Ocsimore can be configured by providing tags to the extension of Ocsigenserver which loads Ocsimore:
+</p><pre>    &lt;extension findlib-package=&quot;ocsimore&quot;&gt;
+      ...
+    &lt;/extension&gt;
+</pre><h2> The Database </h2><p>The database connection of Ocsimore (PSQL) is configured by the <span class="monospace">database</span>-tag
+which allows the following optional attributes:
+</p><pre>    &lt;extension findlib-package=&quot;ocsimore&quot;&gt;
+      &lt;database
+        name=&quot;...&quot;
+        user=&quot;...&quot;
+        host=&quot;...&quot;
+        port=&quot;...&quot;
+        socket-dir=&quot;...&quot;
+        password-file=&quot;...&quot; /&gt;
+      ...
+    &lt;/extension&gt;
+</pre><p>Default is:
+</p><pre>    &lt;extension findlib-package=&quot;ocsimore&quot;&gt;
+      &lt;database
+        name=&quot;ocsimore&quot;
+        user=&quot;ocsimore&quot;
+        host=&quot;localhost&quot; /&gt;
+    &lt;/extension&gt;
+</pre><h2> The Wiki </h2><p>The Wiki is configured by the <span class="monospace">wiki</span>-tag. It allows the following attributes:
+</p><ul><li> <span class="monospace">headings-backref=&quot;yes|no&quot;</span>: If <span class="monospace">yes</span>, for all headings which have
+an <span class="monospace">id</span>- attribute, a ¶-symbol is appended to all headings (<span class="monospace">h1</span>,
+..., <span class="monospace">h6</span>) which have an <span class="monospace">id</span>-attribute. The symbol acts as a link to the
+heading.
+</li></ul><pre>  &lt;wiki headings-backref=&quot;yes|no&quot; /&gt;
+</pre><h2> The Administration Interface </h2><p>Ocsimore's administration interface is configured by the content of
+the <span class="monospace">administration</span>-tag. It allows the following attributes:
+</p><ul><li> <span class="monospace">path</span>: The URL-path where the administration interface is registered to
+Ocsigen.
+</li></ul><pre>  &lt;extension findlib-package=&quot;ocsimore&quot;&gt;
+    &lt;administration
+      path=&quot;...&quot;
+      /&gt;
+  &lt;/extension&gt;
+</pre><h2> The <span class="monospace">mailer</span>-tag </h2><p>The <span class="monospace">mailer</span>-tag allows to configure the program to send email (during user
+creation). The program is provided by the <span class="monospace">bin</span>-attribute:
+</p><pre>  &lt;extension findlib-package=&quot;ocsimore&quot;&gt;
+    &lt;mailer bin=&quot;...&quot;/&gt;
+    ...
+  &lt;/extension&gt;
+</pre><h2> The <span class="monospace">internationalization</span>-tag </h2><p>This tag allowes to configure the internationalization of Ocsimore. The language
+of Ocsimore messages is set through the attribute <span class="monospace">language</span>.  Currently
+<strong>&quot;english&quot;<span class="monospace"> or </span>&quot;francais&quot;<span class="monospace"> are allowed.
+</span></strong></p><pre>  &lt;extension findlib-package=&quot;ocsimore&quot;&gt;
+    &lt;internationalization language=&quot;...&quot;/&gt;
+    ...
+  &lt;/extension&gt;
+</pre><h2> The <span class="monospace">internals</span>-tag </h2><p>Attributes:
+</p><ul><li> <span class="monospace">aggregate-css=&quot;yes&quot;|&quot;no&quot;</span>: Allows you to prevent Ocsimore from aggregating
+the CSS files of a wiki into a single request.  The default <span class="monospace">&quot;yes&quot;</span>.
+(Optional)
+</li><li> <span class="monospace">application-name=&lt;name&gt;</span>: Specifies the name of the Eliom-application.
+The default is <span class="monospace">&quot;ocsimore&quot;</span>. (Optional)
+</li></ul><p>Undocumented sub-tags:
+</p><ul><li> <span class="monospace">group</span>
+</li></ul><pre>    &lt;extension module=&quot;ocsimore.cma&quot;&gt;
+      &lt;internals
+        application-name=&quot;...&quot;
+        aggregate-css=&quot;...&quot;
+       /&gt;
+    &lt;/extension&gt;
+</pre><h1> The user module </h1></div></div></div></body></html>
