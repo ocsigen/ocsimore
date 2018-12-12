@@ -1,0 +1,1 @@
+<<code language="ocaml" | Eliom_registration.APPL_PARAMS >>

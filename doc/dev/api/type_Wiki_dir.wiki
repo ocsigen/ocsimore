@@ -1,0 +1,29 @@
+<<code language="ocaml" | sig
+  type 'a resolver = 'a -> Ocsigen_local_files.resolved
+  exception Undefined
+  val resolve_file_in_dir :
+    ?default:string ->
+    ?suffix:string ->
+    string -> string list -> unit -> Ocsigen_local_files.resolved
+  val process_wikifile :
+    wiki:Wiki_types.wiki ->
+    ?sectioning:bool ->
+    ?menu_style:Wiki_widgets_interface.menu_style ->
+    template:string ->
+    wb404:Wiki_types.wikibox ->
+    wb403:Wiki_types.wikibox ->
+    ('a -> Ocsigen_local_files.resolved) ->
+    'a -> Html5_types.html Eliom_content.Html5.F.elt Lwt.t
+  val process_auxfile :
+    wiki:Wiki_types.wiki ->
+    ?options:Eliom_registration.File.options ->
+    ?sectioning:bool ->
+    ?menu_style:Wiki_widgets_interface.menu_style ->
+    template:string ->
+    wb404:Wiki_types.wikibox ->
+    wb403:Wiki_types.wikibox ->
+    ('a -> Ocsigen_local_files.resolved) ->
+    'a ->
+    Ocsimore_appl.appl Eliom_registration.application_content
+    Eliom_registration.kind Lwt.t
+end >>

@@ -1,0 +1,5 @@
+<<code language="ocaml" | sig
+  val make_css_wikibox_1 :
+    (module Deriving_Json.Json with type a = Wiki_widgets_interface.css_wikibox)
+    lazy_t
+end >>

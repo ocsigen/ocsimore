@@ -1,0 +1,24 @@
+=Index of class types=
+
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="frozen_wikibox"| class type Wiki_widgets_interface.frozen_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~A widget displaying wikiboxes with which the user cannot interact
+>>
+|
+|@@ @style="tet-align: left;"@@\\I|
+|@@class="odocwiki_index"@ @@<<a_api text="interactive_wikibox"| class type Wiki_widgets_interface.interactive_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~A wikibox with which the user can interact
+>>
+|
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_div_widget_t"| class type Widget.parametrized_div_widget_t >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_unit_div_widget_t"| class type Widget.parametrized_unit_div_widget_t >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_unit_widget_t"| class type Widget.parametrized_unit_widget_t >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_widget_t"| class type Widget.parametrized_widget_t >> ~[<<a_api | module Widget >>~]||
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="user_widget_class"| class type User_widgets.user_widget_class >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_widget_user_creation_class"| class type User_widgets.user_widget_user_creation_class >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_rights"| class type Wiki_types.wiki_rights >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_aux"| class type Wiki_widgets_interface.wikibox_aux >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~A class containing a few auxiliary methods related to wikis
+>>
+|
+\\

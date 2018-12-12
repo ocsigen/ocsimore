@@ -1,0 +1,4 @@
+<<code language="ocaml" | object
+  method virtual apply : data:'param_type -> 'result_type
+  method private virtual retrieve_data : 'param_type -> 'data_type Lwt.t
+end >>

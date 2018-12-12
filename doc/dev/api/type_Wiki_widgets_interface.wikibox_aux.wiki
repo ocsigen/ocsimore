@@ -1,0 +1,24 @@
+<<code language="ocaml" | object
+  method display_basic_box :
+    Wiki_widgets_interface.classes *
+    [< Html5_types.div_content_fun ] Eliom_content.Html5.F.elt list ->
+    [> Html5_types.div ] Eliom_content.Html5.F.elt Lwt.t
+  method display_raw_wikiboxcontent :
+    classes:Wiki_widgets_interface.classes ->
+    'a Eliom_content.Html5.F.elt list Wiki_types.wikibox_content ->
+    (Wiki_widgets_interface.classes *
+     [> `Em | `Pre ] Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method display_wikiboxcontent :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:Wiki_widgets_interface.classes ->
+    [< Html5_types.flow5 ] Eliom_content.Html5.F.elt list
+    Wiki_types.wikibox_content ->
+    (Wiki_widgets_interface.classes *
+     [> Html5_types.flow5 ] Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method wrap_error :
+    wb:Wiki_types.wikibox ->
+    ([< Html5_types.flow5 > `Div ] as 'b) Eliom_content.Html5.F.elt list ->
+    'b Eliom_content.Html5.F.elt list Lwt.t
+end >>

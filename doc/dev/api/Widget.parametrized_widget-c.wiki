@@ -1,0 +1,12 @@
+=Class virtual <<a_api_type | class Widget.parametrized_widget >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span name="TYPEparametrized_widget"|<<span class="ocsforge_color_keyword"|class>> <<span class="ocsforge_color_keyword"|virtual>> <<span class="odocwiki_type"|[\\['param_type, 'data_type, 'result_type]]>> <<span class="ocsforge_color_name"|parametrized_widget>>>> <<span class="ocsforge_color_delimiter"|~:>>  <<span class="ocsforge_color_keyword"|object>><<a_api text=".." | class Widget.parametrized_widget >><<span class="ocsforge_color_keyword"|end>>>>**~Inherits**
+* <<a_api | class Widget.widget >>
+
+----
+<<pre class="ocsforge_color odocwiki_code"|<<span id="METHODretrieve_data"|<<span class="ocsforge_color_keyword"|method>> <<span class="ocsforge_color_keyword"|private>> <<span class="ocsforge_color_keyword"|virtual>> <<span class="odocwiki_name"|retrieve_data>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|'param_type <<span class="ocsforge_color_delimiter"| -> >> 'data_type <<span class="ocsforge_color_uid"|Lwt>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|t>>>>>><<div class="odocwiki_info"|~This method retrieves the parametrized~_widget~'s data~,
+     for example from an ~S~Q~L database~.
+     ~It is normally called by the parametrized~_widget~'s <<span class="odocwiki_inlinecode"|display>> method~,
+     and can be
+     overridden in order to use another type of storage~.
+>>
+<<pre class="ocsforge_color odocwiki_code"|<<span id="METHODapply"|<<span class="ocsforge_color_keyword"|method>> <<span class="ocsforge_color_keyword"|virtual>> <<span class="odocwiki_name"|apply>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|<<span class="ocsforge_color_label"| data: >>'param_type <<span class="ocsforge_color_delimiter"| -> >> 'result_type>>>>

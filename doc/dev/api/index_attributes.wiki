@@ -1,0 +1,47 @@
+=Index of class attributes=
+
+|@@ @style="tet-align: left;"@@\\A|
+|@@class="odocwiki_index"@ @@<<a_api text="add_msg_class"| attr Forum_widgets.add_message_widget#add_msg_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\B|
+|@@class="odocwiki_index"@ @@<<a_api text="box_title_class"| attr Wiki_widgets.dynamic_wikibox#box_title_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\C|
+|@@class="odocwiki_index"@ @@<<a_api text="comment_button_class"| attr Forum_widgets.thread_widget#comment_button_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="comment_class"| attr Forum_widgets.thread_widget#comment_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="comments_class"| attr Forum_widgets.thread_widget#comments_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="css_class"| attr Wiki_widgets.dynamic_wikibox#css_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="css_history_class"| attr Wiki_widgets.dynamic_wikibox#css_history_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\E|
+|@@class="odocwiki_index"@ @@<<a_api text="editform_class"| attr Wiki_widgets.dynamic_wikibox#editform_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="frozen_wb_class"| attr Wiki_widgets.frozen_wikibox#frozen_wb_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="frozen_wb_class"| attr Wiki_widgets_interface.frozen_wikibox#frozen_wb_class >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Css class for noneditable wikiboxes
+>>
+|
+|@@ @style="tet-align: left;"@@\\H|
+|@@class="odocwiki_index"@ @@<<a_api text="history_class"| attr Wiki_widgets.dynamic_wikibox#history_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\I|
+|@@class="odocwiki_index"@ @@<<a_api text="info_class"| attr Forum_widgets.message_widget#info_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="interactive_class"| attr Wiki_widgets.dynamic_wikibox#interactive_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\M|
+|@@class="odocwiki_index"@ @@<<a_api text="main_msg_class"| attr Forum_widgets.thread_widget#main_msg_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="ml_class"| attr Forum_widgets.message_list_widget#ml_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="msg_class"| attr Forum_widgets.message_widget#msg_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\N|
+|@@class="odocwiki_index"@ @@<<a_api text="not_moderated_class"| attr Forum_widgets.message_widget#not_moderated_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\O|
+|@@class="odocwiki_index"@ @@<<a_api text="oldwikibox_class"| attr Wiki_widgets.dynamic_wikibox#oldwikibox_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="preview_class"| attr Wiki_widgets.dynamic_wikibox#preview_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\S|
+|@@class="odocwiki_index"@ @@<<a_api text="srcwikibox_class"| attr Wiki_widgets.dynamic_wikibox#srcwikibox_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\T|
+|@@class="odocwiki_index"@ @@<<a_api text="thr_class"| attr Forum_widgets.thread_widget#thr_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="thr_msg_class"| attr Forum_widgets.thread_widget#thr_msg_class >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\V|
+|@@class="odocwiki_index"@ @@<<a_api text="view_class"| attr Wiki_widgets.dynamic_wikibox#view_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_class"| attr Wiki_widgets.dynamic_wikibox#wikibox_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikipage_properties_class"| attr Wiki_widgets.dynamic_wikibox#wikipage_properties_class >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\X|
+|@@class="odocwiki_index"@ @@<<a_api text="xhtml_class"| attr User_widgets.user_widget#xhtml_class >> ~[<<a_api | module User_widgets >>~]||
+\\

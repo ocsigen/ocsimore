@@ -1,0 +1,1119 @@
+=Index of values=
+
+|@@ @style="tet-align: left;"@@\\|
+|@@class="odocwiki_index"@ @@<<a_api text="( ** )"| value Forum_services.( ** ) >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="( ** )"| value User_site.( ** ) >> ~[<<a_api | module User_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="( **> )"| value Ocsimore_lib.( **> ) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(!!)"| value Forum_widgets.(!!) >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="($)"| value Forum_site.($) >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="($)"| value User_sql.Types.($) >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(%)"| value Ocsimore_lib.(%) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(+@)"| value Xform.Xform.Ops.(+@) >> ~[<<a_api | module Xform.Xform.Ops >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(-|)"| value Ocsimore_lib.(-|) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value Forum_widgets.(>>=) >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value Forum_services.(>>=) >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value User_services.(>>=) >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value User_ext.(>>=) >> ~[<<a_api | module User_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value Wiki.(>>=) >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value User_external_auth.(>>=) >> ~[<<a_api | module User_external_auth >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>>=)"| value Updatedb_sql.(>>=) >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>|=)"| value Forum_widgets.(>|=) >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>|=)"| value User_ext.(>|=) >> ~[<<a_api | module User_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>|=)"| value Wiki_ext.(>|=) >> ~[<<a_api | module Wiki_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(>|=)"| value Updatedb_sql.(>|=) >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(@+)"| value Xform.Xform.Ops.(@+) >> ~[<<a_api | module Xform.Xform.Ops >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(@@)"| value Xform.Xform.Ops.(@@) >> ~[<<a_api | module Xform.Xform.Ops >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(^:)"| value Ocsimore_lib.(^:) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(^?)"| value Ocsimore_lib.(^?) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(|-)"| value Ocsimore_lib.(|-) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(|>)"| value Xform.Xform.Ops.(|>) >> ~[<<a_api | module Xform.Xform.Ops >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(|>)"| value Ocsimore_lib.(|>) >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="(||>)"| value Xform.Xform.Ops.(||>) >> ~[<<a_api | module Xform.Xform.Ops >>~]||
+|@@ @style="tet-align: left;"@@\\A|
+|@@class="odocwiki_index"@ @@<<a_api text="a_elem_flow"| value Wikicreole.RawBuilder.a_elem_flow >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="a_elem_phrasing"| value Wikicreole.RawBuilder.a_elem_phrasing >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="a_link_of_href"| value Wiki_syntax.a_link_of_href >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="accept_charset_utf8"| value Ocsimore_lib.accept_charset_utf8 >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_add_user_from_group"| value User_services.action_add_user_from_group >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_create_css"| value Wiki_services.action_create_css >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_create_new_group"| value User_services.action_create_new_group >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_create_new_user"| value User_services.action_create_new_user >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_create_page"| value Wiki_services.action_create_page >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_css_history"| value Wiki_services.action_css_history >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_css_permissions"| value Wiki_services.action_css_permissions >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_delete_wikibox"| value Wiki_services.action_delete_wikibox >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_css"| value Wiki_services.action_edit_css >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_css_list"| value Wiki_services.action_edit_css_list >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_user_data"| value User_services.action_edit_user_data >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_wiki_options"| value Wiki_services.action_edit_wiki_options >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_wikibox"| value Wiki_services.action_edit_wikibox >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_wikibox_permissions"| value Wiki_services.action_edit_wikibox_permissions >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_edit_wikipage_properties"| value Wiki_services.action_edit_wikipage_properties >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_login"| value User_services.action_login >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_logout"| value User_services.action_logout >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_logout_get"| value User_services.action_logout_get >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_old_wikibox"| value Wiki_services.action_old_wikibox >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_old_wikiboxcss"| value Wiki_services.action_old_wikiboxcss >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_remove_user_from_group"| value User_services.action_remove_user_from_group >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_send_css"| value Wiki_services.action_send_css >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_send_css_options"| value Wiki_services.action_send_css_options >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_send_wiki_metadata"| value Wiki_services.action_send_wiki_metadata >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_send_wikiboxtext"| value Wiki_services.action_send_wikiboxtext >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_send_wikipage_properties"| value Wiki_services.action_send_wikipage_properties >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_set_wikibox_special_permissions"| value Wiki_services.action_set_wikibox_special_permissions >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_src_wikibox"| value Wiki_services.action_src_wikibox >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_upload_file"| value Wiki_services.action_upload_file >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_users_settings"| value User_services.action_users_settings >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="action_wikibox_history"| value Wiki_services.action_wikibox_history >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add"| value Opaque.add >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add"| value Ocsimore_lib.DefaultMap.add >> ~[<<a_api | module Ocsimore_lib.DefaultMap >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_admin_pages_header"| value Page_site.add_admin_pages_header >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Function to be called on admin pages~, and which add the
+    relevant css ~(including for the admin menu~)
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_ancestor"| value Wiki_widgets_interface.Ancestors.add_ancestor >> ~[<<a_api | module Wiki_widgets_interface.Ancestors >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_ancestor_bi"| value Wiki_widgets_interface.add_ancestor_bi >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_css"| value Wiki_data.add_css >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_css_aux"| value Wiki_sql.add_css_aux >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Add a new ~C~S~S to a wikipage or a wiki~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_forum_css_header"| value Forum_widgets.add_forum_css_header >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_generic_inclusion"| value User_sql.add_generic_inclusion >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_list_to_group"| value User.add_list_to_group >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_login_error"| value User_data.add_login_error >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_naservpage"| value Wiki_self_services.add_naservpage >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_onload_function"| value Page_site.add_onload_function >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Registers the string passed as argument so that it is called
+    when the onload event on the body tag of the page fires~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_remove_to_string"| value Wiki_services.add_remove_to_string >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_remove_user_from_group"| value User_data.add_remove_user_from_group >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_servpage"| value Wiki_self_services.add_servpage >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_servwikicss"| value Wiki_self_services.add_servwikicss >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_status_function"| value Page_site.add_status_function >> ~[<<a_api | module Page_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_to_admin_menu"| value Page_site.add_to_admin_menu >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Adds an entire subsection~, labelled by <<span class="odocwiki_inlinecode"|name>> to the admin menu~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_to_group"| value User_sql.add_to_group >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_to_group"| value User.add_to_group >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Atomic change in one group
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_to_group_generic"| value User_sql.add_to_group_generic >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Same as <<span class="odocwiki_inlinecode"|add~_generic~_inclusion>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_to_groups"| value User.add_to_groups >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Multiple operations on groups
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="add_user_from_group"| value User_data.add_user_from_group >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="add_wiki_css_header"| value Wiki_services.add_wiki_css_header >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin"| value User.admin >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~A user that belongs to all groups
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="admin_body_content_with_permission_handler"| value Page_site.admin_body_content_with_permission_handler >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Display a <<span class="odocwiki_inlinecode"|widget~#display>> as a <<span class="odocwiki_inlinecode"|admin~_page>> under certain <<span class="odocwiki_inlinecode"|permissions>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="admin_dir"| value Ocsimore_config.admin_dir >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin_login"| value User.admin_login >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin_page"| value Page_site.admin_page >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Displays a complete admin page~, with the admin menu and the status bar~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="admin_staticdir"| value Page_site.admin_staticdir >> ~[<<a_api | module Page_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin_writer_reader_aux"| value Wiki.admin_writer_reader_aux >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin_writer_reader_groups"| value User.GenericRights.admin_writer_reader_groups >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="aggregate_css"| value Ocsimore_config.aggregate_css >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="all_users"| value User_sql.all_users >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Returns a list of all the existing users and groups~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="alter"| value Updatedb_sql.alter >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="anonymous"| value User.anonymous >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Non authenticated users
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="anonymous_login"| value User.anonymous_login >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="any_int"| value Opaque.any_int >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|int~_t>>~, <<span class="odocwiki_inlinecode"|t~_int>> and <<span class="odocwiki_inlinecode"|any~_int>> are type conversion functions~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="any_int32"| value Opaque.any_int32 >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|int~_t>>~, <<span class="odocwiki_inlinecode"|t~_int>> and <<span class="odocwiki_inlinecode"|any~_int>> are type conversion functions~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="any_string"| value Opaque.any_string >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|int~_string>>~, <<span class="odocwiki_inlinecode"|t~_string>> and <<span class="odocwiki_inlinecode"|any~_string>> are type conversion functions~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="application_name"| value Ocsimore_appl.Default_param.application_name >> ~[<<a_api | module Ocsimore_appl.Default_param >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="application_name"| value Ocsimore_config.application_name >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="apply_parameterized_group"| value User_sql.Types.apply_parameterized_group >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="authenticate"| value User.authenticate >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="authenticated_users"| value User.authenticated_users >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~A group containing all authenticated users ~(not groups~)
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="aux"| value Dyngroups.aux >> ~[<<a_api | module Dyngroups >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="aux_group"| value Wiki.aux_group >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="aux_grp"| value Wiki.aux_grp >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="aux_grp_wiki"| value Wiki.aux_grp_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@ @style="tet-align: left;"@@\\B|
+|@@class="odocwiki_index"@ @@<<a_api text="basic_user"| value User_sql.Types.basic_user >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="basicusercreation"| value User_services.basicusercreation >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="batch_edit_boxes"| value Wiki_services.batch_edit_boxes >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="bind_opt"| value Ocsimore_lib.bind_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="body_to_div"| value Wiki_site.body_to_div >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="body_to_div"| value Page_site.body_to_div >> ~[<<a_api | module Page_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="bool_checkbox"| value Xform.Xform.bool_checkbox >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="bounded_int_input"| value Xform.Xform.bounded_int_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="br_elem"| value Wikicreole.RawBuilder.br_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="build_tree"| value Wiki_menu.build_tree >> ~[<<a_api | module Wiki_menu >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="build_tree_from_file"| value Wiki_menu.build_tree_from_file >> ~[<<a_api | module Wiki_menu >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="build_tree_from_string"| value Wiki_menu.build_tree_from_string >> ~[<<a_api | module Wiki_menu >>~]||
+|@@ @style="tet-align: left;"@@\\C|
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_users"| value User_data.can_admin_users >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_change_user_data_by_user"| value User_data.can_change_user_data_by_user >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_change_user_data_by_userid"| value User_data.can_change_user_data_by_userid >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_group"| value User_data.can_create_group >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_user"| value User_data.can_create_user >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_have_wikiperso"| value Wikiperso.can_have_wikiperso >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_sthg_wikibox"| value Wiki.can_sthg_wikibox >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_groups"| value User_data.can_view_groups >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_roles"| value User_data.can_view_roles >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_users"| value User_data.can_view_users >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="cannot_have_wikiperso"| value Wikiperso.cannot_have_wikiperso >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="cast_niwp"| value Wiki_syntax.cast_niwp >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Cast an extensible parser to the associated non~_interactive parser
+    to be used with <<span class="odocwiki_inlinecode"|xml~_of~_wiki>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="cast_service"| value Wiki_site.cast_service >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="cast_wp"| value Wiki_syntax.cast_wp >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Cast an extensible parser to a raw parser to be used with
+    <<span class="odocwiki_inlinecode"|xml~_of~_wiki>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="catch_action_failure"| value Ocsimore_common.catch_action_failure >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="change_user_data"| value User_data.change_user_data >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="chars"| value Wikicreole.RawBuilder.chars >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="check"| value Xform.Xform.check >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="check_passwd"| value Crypt.check_passwd >> ~[<<a_api | module Crypt >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|check~_passwd passwd hash>> checks whether <<span class="odocwiki_inlinecode"|hash>> is correct for <<span class="odocwiki_inlinecode"|passwd>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="class_wikibox"| value Wiki_syntax.class_wikibox >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The class to use to denote the fact that the content comes
+    from the specified wikibox
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="concat"| value Opaque.concat >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="concat_list"| value Opaque.concat_list >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|concat>> and <<span class="odocwiki_inlinecode"|concat~_list>> are equivalents of <<span class="odocwiki_inlinecode"|~( ~^ ~)>>
+and <<span class="odocwiki_inlinecode"|~String~.concat>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="concat_list_opt"| value Ocsimore_lib.concat_list_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="cons"| value Ocsimore_lib.cons >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="content_type_input"| value Forum_site.content_type_input >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="content_type_of_string"| value Wiki_types.content_type_of_string >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="convert"| value Xform.Xform.convert >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create"| value Ocsimore_lib.Abstract_url.create >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_admin_writer_reader"| value User.GenericRights.create_admin_writer_reader >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_external_user"| value User.create_external_user >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Same as create~_user~, but only for external users
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_forum"| value Forum_services.create_forum >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_forum"| value Forum_site.create_forum >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_forum"| value Forum.create_forum >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~Creates a new forum or returns its id without modification
+    if it already exists~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_forum_form"| value Forum_site.create_forum_form >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_fresh_user"| value User.create_fresh_user >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Same as above~, except that the function will raise <<span class="odocwiki_inlinecode"|~Bad~User>> if
+    the user already exists
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_group"| value User_data.create_group >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_header"| value Page_site.Header.create_header >> ~[<<a_api | module Page_site.Header >>~]|<<div class="odocwiki_info"|~Define a new header
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_user"| value User_services.create_user >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_user"| value User.create_user >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Creates a new user or group with given parameters~,
+    or returns the existing user without modification
+    if <<span class="odocwiki_inlinecode"|name>> is already present~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_wiki"| value Wiki_site.create_wiki >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_wiki"| value Wiki.create_wiki >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|~Creation of a wiki
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_wiki"| value Wiki_data.create_wiki >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Creates the specified wiki if the user has enough permissions~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_wiki_form"| value Wiki_site.create_wiki_form >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_wiki_page_service"| value Wiki_menu.create_wiki_page_service >> ~[<<a_api | module Wiki_menu >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_wikipage"| value Wiki_sql.create_wikipage >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Links the wikibox <<span class="odocwiki_inlinecode"|wb>> to the page <<span class="odocwiki_inlinecode"|page>> of wiki <<span class="odocwiki_inlinecode"|wiki>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="create_wikipage"| value Wiki_data.create_wikipage >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="create_wikiperso"| value Wikiperso.create_wikiperso >> ~[<<a_api | module Wikiperso >>~]|<<div class="odocwiki_info"|~The function that creates the wikiperso when needed
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="creators"| value Forum.creators >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="creators_notmod"| value Forum.creators_notmod >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="crypt_passwd"| value Crypt.crypt_passwd >> ~[<<a_api | module Crypt >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|crypt~_passwd passwd>> encrypts <<span class="odocwiki_inlinecode"|passwd>> using the crypt~(~3~) function~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="css_content_type"| value Wiki_models.css_content_type >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="current_version"| value Updatedb_sql.current_version >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="current_wikibox_version"| value Wiki_sql.current_wikibox_version >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Current revision number of a wikibox
+>>
+|
+|@@ @style="tet-align: left;"@@\\D|
+|@@class="odocwiki_index"@ @@<<a_api text="date_input"| value Xform.Xform.date_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="day_input"| value Xform.Xform.day_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="db_host"| value Ocsimore_config.db_host >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="db_name"| value Ocsimore_config.db_name >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="db_password"| value Ocsimore_config.db_password >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="db_port"| value Ocsimore_config.db_port >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="db_unix_domain_socket_dir"| value Ocsimore_config.db_unix_domain_socket_dir >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="db_user"| value Ocsimore_config.db_user >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="default_bi"| value Wiki.default_bi >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="default_container_page"| value Wiki.default_container_page >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|~A text suitable as the default text for a container page
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="default_data"| value User_services.default_data >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="default_welcome_page"| value Wikiperso.default_welcome_page >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="default_wikicss"| value Wikiperso.default_wikicss >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="delete_css"| value Wiki_data.delete_css >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="delete_user"| value User_sql.delete_user >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="delete_wiki"| value Wiki_services.delete_wiki >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="delete_wiki"| value Wiki_sql.delete_wiki >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Delete or undelete the wiki~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="deletors"| value Forum.deletors >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="deletors_if_creator"| value Forum.deletors_if_creator >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="desugar_string"| value Wiki_models.desugar_string >> ~[<<a_api | module Wiki_models >>~]|<<div class="odocwiki_info"|~See <<span class="odocwiki_inlinecode"|~Wiki~_syntax~_types~.~Preprocessor~.desugar~_string>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="div"| value Opaque.div >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="dl_elem"| value Wikicreole.RawBuilder.dl_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="dyngroupstobecreated"| value Ocsimore_config.dyngroupstobecreated >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@ @style="tet-align: left;"@@\\E|
+|@@class="odocwiki_index"@ @@<<a_api text="edit_css_service"| value Wiki_services.Ui.edit_css_service >> ~[<<a_api | module Wiki_services.Ui >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_forum"| value Forum_services.edit_forum >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_forum"| value Forum_site.edit_forum >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_forum_form"| value Forum_site.edit_forum_form >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_service"| value Wiki_services.Ui.edit_service >> ~[<<a_api | module Wiki_services.Ui >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_wiki"| value Wiki_services.edit_wiki >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_wiki"| value Wiki_site.edit_wiki >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_wiki_form"| value Wiki_site.edit_wiki_form >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="edit_wiki_permissions_admin"| value Wiki_services.edit_wiki_permissions_admin >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_add_remove"| value Wiki_services.eliom_add_remove >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_bool"| value Ocsimore_lib.eliom_bool >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_forum"| value Forum.eliom_forum >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~Eliom parameter type for forums
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_forum_input"| value Forum.eliom_forum_input >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~Eliom input field for forums
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_inline_class"| value Ocsimore_lib.eliom_inline_class >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_message"| value Forum.eliom_message >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~Eliom parameter type for messages
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_message_button"| value Forum.eliom_message_button >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~Eliom button for messages
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_message_input"| value Forum.eliom_message_input >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~Eliom input field for messages
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_opaque_int32"| value Ocsimore_common.eliom_opaque_int32 >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_opaque_int32_opt"| value Ocsimore_common.eliom_opaque_int32_opt >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="em_elem"| value Wikicreole.RawBuilder.em_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="emdash"| value Wikicreole.RawBuilder.emdash >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="empty"| value Ocsimore_lib.Abstract_url.empty >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="empty"| value Ocsimore_lib.DefaultMap.empty >> ~[<<a_api | module Ocsimore_lib.DefaultMap >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="endash"| value Wikicreole.RawBuilder.endash >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="eref_modify"| value Ocsimore_lib.eref_modify >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="error"| value Wikicreole.RawBuilder.error >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="error_box"| value Wiki_site.error_box >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="error_handler_wb"| value Wiki_services.error_handler_wb >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="error_handler_wb_opt"| value Wiki_services.error_handler_wb_opt >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="extensible_list"| value Xform.Xform.extensible_list >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="external_user"| value Wikiperso.external_user >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="extract"| value Wiki_ext.extract >> ~[<<a_api | module Wiki_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="extract_https"| value Wiki_ext.extract_https >> ~[<<a_api | module Wiki_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="extract_user_name"| value Wikiperso.extract_user_name >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="extract_wiki_id"| value Wiki_ext.extract_wiki_id >> ~[<<a_api | module Wiki_ext >>~]||
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="f_can_have_wikiperso"| value Wikiperso.f_can_have_wikiperso >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="fieldset"| value Xform.Xform.fieldset >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="filter_raw"| value Wiki_ext.filter_raw >> ~[<<a_api | module Wiki_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="find"| value Ocsimore_lib.DefaultMap.find >> ~[<<a_api | module Ocsimore_lib.DefaultMap >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="find_naservpage"| value Wiki_self_services.find_naservpage >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="find_opt"| value Ocsimore_lib.find_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="find_servpage"| value Wiki_self_services.find_servpage >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="find_servwikicss"| value Wiki_self_services.find_servwikicss >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="find_user"| value Wikiperso.find_user >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="flip"| value Ocsimore_lib.flip >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="flow"| value Wikicreole.RawBuilder.flow >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="force_secure"| value User_services.force_secure >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="form"| value Xform.Xform.form >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_action_eref"| value Forum_services.forum_action_eref >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_admin"| value Forum.forum_admin >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_creators"| value Forum.forum_creators >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_css_header"| value Forum_widgets.forum_css_header >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_exists"| value Forum_sql.forum_exists >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|~Return if a forum title is already used
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="forum_of_sql"| value Forum_types.forum_of_sql >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_of_sql_option"| value Forum_types.forum_of_sql_option >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_of_string"| value Forum_types.forum_of_string >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_root"| value Forum_site.forum_root >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_visible"| value Forum.forum_visible >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_wiki_rights"| value Forum_site.forum_wiki_rights >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forums_messages"| value Forum_sql0.forums_messages >> ~[<<a_api | module Forum_sql0 >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="fresh_id"| value Ocsimore_lib.fresh_id >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="from_string"| value Wiki_widgets_interface.Json_css_wikibox.from_string >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="from_string"| value Wikicreole.from_string >> ~[<<a_api | module Wikicreole >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="full_transaction_block"| value Ocsi_sql.full_transaction_block >> ~[<<a_api | module Ocsi_sql >>~]|<<div class="odocwiki_info"|~Same as <<span class="odocwiki_inlinecode"|transaction~_block>> but takes a db connection in the pool~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\G|
+|@@class="odocwiki_index"@ @@<<a_api text="gen"| value Wikiperso.gen >> ~[<<a_api | module Wikiperso >>~]|<<div class="odocwiki_info"|~The function that answers for the extension~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="generate_headers"| value Page_site.Header.generate_headers >> ~[<<a_api | module Page_site.Header >>~]|<<div class="odocwiki_info"|~This function is called to generate the headers for one page~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="generate_password"| value User_data.generate_password >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_action_failure"| value Ocsimore_common.get_action_failure >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_admin_wiki"| value Wiki.get_admin_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_basicuser_by_login"| value User_sql.get_basicuser_by_login >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_basicuser_by_login"| value User.get_basicuser_by_login >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Information about a user~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_basicuser_data"| value User_sql.get_basicuser_data >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_childs"| value Forum_sql.get_childs >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns a list of all the direct childs of messages <<span class="odocwiki_inlinecode"|~~message~_id>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_childs"| value Forum_data.get_childs >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|returns a list of all the direct childs of messages <<span class="odocwiki_inlinecode"|~~message~_id>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_css_for_wiki"| value Wiki_sql.get_css_for_wiki >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_css_for_wikipage"| value Wiki_sql.get_css_for_wikipage >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|returns the lists of css associated to a wikipage or a wiki~, together
+    with the content of the wikibox and the version ~(as last arguments~)
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_css_wikibox_for_wiki"| value Wiki_sql.get_css_wikibox_for_wiki >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|returns the wikibox for the global css of a wiki~, or <<span class="odocwiki_inlinecode"|~None>> if the wiki
+    has no such css
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_css_wikibox_for_wikipage"| value Wiki_sql.get_css_wikibox_for_wikipage >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|returns the wikibox for the css of a page or <<span class="odocwiki_inlinecode"|~None>> if the page has no css
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_default_content_type"| value Wiki_models.get_default_content_type >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_default_wiki_parser"| value Wiki_models.get_default_wiki_parser >> ~[<<a_api | module Wiki_models >>~]|<<div class="odocwiki_info"|default wikiparser for one wiki model
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_default_wiki_preprocessor"| value Wiki_models.get_default_wiki_preprocessor >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_flows_wiki_parser"| value Wiki_models.get_flows_wiki_parser >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_flows_wiki_parser'"| value Wiki_models.get_flows_wiki_parser' >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_flows_wiki_preprocessor"| value Wiki_models.get_flows_wiki_preprocessor >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_flows_wiki_preprocessor'"| value Wiki_models.get_flows_wiki_preprocessor' >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_forum"| value Forum_sql.get_forum >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|~Get forum information~, given its id or title~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_forum"| value Forum_data.get_forum >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|~Get forum information~, given its id or title~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_forum_info"| value Forum_types.get_forum_info >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_forum_messages_id"| value Forum_sql.get_forum_messages_id >> ~[<<a_api | module Forum_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_forums_id"| value Forum_sql.get_forums_id >> ~[<<a_api | module Forum_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_forums_list"| value Forum_sql.get_forums_list >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns the list of forums
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_forums_list"| value Forum_data.get_forums_list >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|returns the list of forums visible to the user~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_forums_wiki_id"| value Forum_sql.get_forums_wiki_id >> ~[<<a_api | module Forum_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_login_error"| value User_data.get_login_error >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_message"| value Forum_sql.get_message >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns a message
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_message"| value Forum_data.get_message >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|returns id~, subject~, author~, datetime~, parent id~, root id~, forum id~, text~,
+    and moderated~, deleted status of a message~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_message_info"| value Forum_types.get_message_info >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_message_list"| value Forum_sql.get_message_list >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns the list of messages ~(without comments~) in a forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_message_list"| value Forum_data.get_message_list >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|returns the list of messages ~(without comments~) in a forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_message_raw"| value Forum_sql0.get_message_raw >> ~[<<a_api | module Forum_sql0 >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_models"| value Wiki_models.get_models >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_opt"| value Ocsimore_lib.get_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_parameterized_user_data"| value User_sql.get_parameterized_user_data >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_phrasings_wiki_parser"| value Wiki_models.get_phrasings_wiki_parser >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_phrasings_wiki_preprocessor"| value Wiki_models.get_phrasings_wiki_preprocessor >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_rights"| value Wiki_models.get_rights >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_role"| value Forum.get_role >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_thread"| value Forum_sql.get_thread >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns a list of messages containing the message of id <<span class="odocwiki_inlinecode"|~~message~_id>>
+    and all its children~, ordered according depth first traversal of the tree~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_thread"| value Forum_data.get_thread >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|returns a list of messages containing the message of id <<span class="odocwiki_inlinecode"|~~message~_id>>
+    and all its children~, ordered according depth first traversal of the tree~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_user_by_name"| value User_sql.get_user_by_name >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Returns the user that corresponds to a given string
+    ~(inverse of the function <<span class="odocwiki_inlinecode"|user~_to~_string>>~, or raises
+    <<span class="odocwiki_inlinecode"|~Not~_found>> if the user does not exists
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_user_by_name"| value User.get_user_by_name >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Returns the user that corresponds to a given string
+    ~(inverse of the function <<span class="odocwiki_inlinecode"|~User~_sql~.user~_to~_string>>~,
+    or nobody if the user does not exists
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_user_data"| value User_sql.get_user_data >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_user_data"| value User.get_user_data >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_user_id"| value User.get_user_id >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_user_name"| value User.get_user_name >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_users_login"| value User_sql.get_users_login >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_users_settings"| value User_sql.get_users_settings >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_widgets"| value Wiki_models.get_widgets >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wiki_info_by_id"| value Wiki_sql.get_wiki_info_by_id >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Find wiki information for a wiki~, given its id
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wiki_info_by_name"| value Wiki_sql.get_wiki_info_by_name >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Find wiki information for a wiki~, given its name
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wiki_info_by_pages"| value Wiki_sql.get_wiki_info_by_pages >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Find wiki information for a wiki~, given its pages
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikibox_content"| value Wiki_sql.get_wikibox_content >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|looks for a wikibox and returns <<span class="odocwiki_inlinecode"|~Some ~(comment~, author~, content~, datetime~,
+    content~_type~, version~)>>~, or <<span class="odocwiki_inlinecode"|~None>> if the page doesn~'t exist~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikibox_creator"| value Forum_sql.get_wikibox_creator >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns the creator of a wikibox containing a forum message
+    or forum message title~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikibox_history"| value Wiki_sql.get_wikibox_history >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|return the history of a wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikibox_info"| value Wiki_sql.get_wikibox_info >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikiboxes_by_wiki"| value Wiki_sql.get_wikiboxes_by_wiki >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikiboxes_id"| value Wiki_sql.get_wikiboxes_id >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikipage_info"| value Wiki_sql.get_wikipage_info >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|return the information for a wikipage
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikipages_id"| value Wiki_sql.get_wikipages_id >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikipages_of_a_wiki"| value Wiki_sql.get_wikipages_of_a_wiki >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikis"| value Wiki_sql.get_wikis >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_wikis_id"| value Wiki_sql.get_wikis_id >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="group_can_admin_group"| value User.group_can_admin_group >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~The group of users that can add or remove people in the given user~/group
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="group_can_admin_users"| value User.group_can_admin_users >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~The groups of users that can modify the users settings
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="group_can_create_groups"| value User.group_can_create_groups >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~The groups of users that can create new groups
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="group_can_create_users"| value User.group_can_create_users >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Same thing with users
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="grouped_by_media"| value Wiki_widgets.grouped_by_media >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="groups_of_user"| value User_sql.groups_of_user >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Returns the groups in which a user is directly included
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="grp_admin"| value User.GenericRights.grp_admin >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="grp_read"| value User.GenericRights.grp_read >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="grp_write"| value User.GenericRights.grp_write >> ~[<<a_api | module User.GenericRights >>~]||
+|@@ @style="tet-align: left;"@@\\H|
+|@@class="odocwiki_index"@ @@<<a_api text="h1_elem"| value Wikicreole.RawBuilder.h1_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="h2_elem"| value Wikicreole.RawBuilder.h2_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="h3_elem"| value Wikicreole.RawBuilder.h3_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="h4_elem"| value Wikicreole.RawBuilder.h4_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="h5_elem"| value Wikicreole.RawBuilder.h5_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="h6_elem"| value Wikicreole.RawBuilder.h6_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="hidden_bool_input"| value Ocsimore_lib.hidden_bool_input >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="hidden_page_inputs"| value Wiki_widgets.hidden_page_inputs >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="hour_input"| value Xform.Xform.hour_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="hr_elem"| value Wikicreole.RawBuilder.hr_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="href_action"| value Wikicreole.Builder.href_action >> ~[<<a_api | module Wikicreole.Builder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="html_page"| value Page_site.html_page >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Generic headers for an html page~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\I|
+|@@class="odocwiki_index"@ @@<<a_api text="icon"| value Page_site.icon >> ~[<<a_api | module Page_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="id"| value Xform.Xform.id >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="identity_preprocessor"| value Wiki_models.identity_preprocessor >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="img_elem"| value Wikicreole.RawBuilder.img_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="in_ancestors"| value Wiki_widgets_interface.Ancestors.in_ancestors >> ~[<<a_api | module Wiki_widgets_interface.Ancestors >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="in_group"| value User.in_group >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="increment"| value Opaque.increment >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|successor>>~, <<span class="odocwiki_inlinecode"|predecessor>> and <<span class="odocwiki_inlinecode"|increment>> are the equivalents
+  of <<span class="odocwiki_inlinecode"|~( ~+ ~)>>~, <<span class="odocwiki_inlinecode"|~( ~- ~)>>~, <<span class="odocwiki_inlinecode"|~( ~* ~)>>~, <<span class="odocwiki_inlinecode"|~( ~/ ~)>> and <<span class="odocwiki_inlinecode"|~( ~~~- ~)>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="input_opaque_int32"| value Ocsimore_common.input_opaque_int32 >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="input_opaque_int32_opt"| value Ocsimore_common.input_opaque_int32_opt >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_input_aux_xform"| value Opaque.int32_input_aux_xform >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|~Xform inputs
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="int32_input_opt_aux_xform"| value Opaque.int32_input_opt_aux_xform >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_input_opt_xform"| value Opaque.int32_input_opt_xform >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_input_xform"| value Opaque.int32_input_xform >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_t"| value Opaque.int32_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_t_list"| value Opaque.int32_t_list >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_t_option"| value Opaque.int32_t_option >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int32_t_to_string"| value Opaque.int32_t_to_string >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int_input"| value Xform.Xform.int_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int_of_string_opt"| value Ocsimore_lib.int_of_string_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int_t"| value Opaque.int_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int_t_option"| value Opaque.int_t_option >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="is_basic_user"| value User_sql.Types.is_basic_user >> ~[<<a_api | module User_sql.Types >>~]|<<div class="odocwiki_info"|~Converts an user back into an userid~, if possible
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="is_logged_on"| value User.is_logged_on >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="iter_awr_lwt"| value User.GenericRights.iter_awr_lwt >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="iter_external_auths"| value User_external_auth.iter_external_auths >> ~[<<a_api | module User_external_auth >>~]|<<div class="odocwiki_info"|~Function which iter on external auths~,
+    call the function f for each method while there is a method
+    and raises <<span class="odocwiki_inlinecode"|~Bad~User>> if no method matches
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="iter_option"| value Ocsimore_lib.iter_option >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="iter_wikis"| value Wiki_sql.iter_wikis >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Iterator on all the wikis
+>>
+|
+|@@ @style="tet-align: left;"@@\\J|
+|@@class="odocwiki_index"@ @@<<a_api text="join"| value Ocsimore_lib.Abstract_url.join >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@ @style="tet-align: left;"@@\\L|
+|@@class="odocwiki_index"@ @@<<a_api text="label_input_tr"| value Xform.Xform.label_input_tr >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="last"| value Ocsimore_lib.Abstract_url.last >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="last"| value Ocsimore_lib.List.last >> ~[<<a_api | module Ocsimore_lib.List >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="last_msg_date"| value Forum_widgets.last_msg_date >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="late_content"| value User_widgets.late_content >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="length"| value Ocsimore_lib.Abstract_url.length >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="linethrough_elem"| value Wikicreole.RawBuilder.linethrough_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="link_action"| value Wikicreole.Builder.link_action >> ~[<<a_api | module Wikicreole.Builder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="link_kind"| value Wiki_syntax.link_kind >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list"| value Wikicreole.RawBuilder.list >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list"| value Xform.Xform.list >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list'"| value Xform.Xform.list' >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list_assoc_default"| value Ocsimore_lib.list_assoc_default >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list_assoc_exn"| value Ocsimore_lib.list_assoc_exn >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list_assoc_opt"| value Ocsimore_lib.list_assoc_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="list_singleton"| value Ocsimore_lib.list_singleton >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="login"| value User_data.login >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="login_error_eref"| value User_data.login_error_eref >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="logout"| value User_data.logout >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_bind_opt"| value Ocsimore_lib.lwt_bind_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_filter"| value Ocsimore_lib.lwt_filter >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_flatten"| value Ocsimore_lib.lwt_flatten >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_forest_flatten"| value Ocsimore_lib.lwt_forest_flatten >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_forest_map"| value Ocsimore_lib.lwt_forest_map >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_sequence"| value Ocsimore_lib.lwt_sequence >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_tree_flatten"| value Ocsimore_lib.lwt_tree_flatten >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="lwt_tree_map"| value Ocsimore_lib.lwt_tree_map >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@ @style="tet-align: left;"@@\\M|
+|@@class="odocwiki_index"@ @@<<a_api text="mail_user_creation"| value User_services.mail_user_creation >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="mailer"| value Ocsimore_config.mailer >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="make_css_wikibox_1"| value Wiki_widgets_interface.Json_aDwzxSOSrIrfn2FCbUuL55_pRGWd0cb8.make_css_wikibox_1 >> ~[<<a_api | module Wiki_widgets_interface.Json_aDwzxSOSrIrfn2FCbUuL55_pRGWd0cb8 >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="make_href"| value Wiki_syntax.make_href >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="make_href"| value Wikicreole.RawBuilder.make_href >> ~[<<a_api | module Wikicreole.RawBuilder >>~]|<<div class="odocwiki_info"|the string option is the fragment part of the ~U~R~L ~(~#~.~.~.~)
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="map_awr"| value User.GenericRights.map_awr >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="map_awr_lwt"| value User.GenericRights.map_awr_lwt >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="match_variant"| value Wiki_widgets_interface.Json_css_wikibox.match_variant >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="media_type_elem_of_string"| value Wiki_types.media_type_elem_of_string >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="media_type_of_string"| value Wiki_types.media_type_of_string >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_parser"| value Wiki_syntax.menu_parser >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Parser for menu
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="message_creators"| value Forum.message_creators >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_creators_notmod"| value Forum.message_creators_notmod >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_deletors"| value Forum.message_deletors >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_deletors_if_creator"| value Forum.message_deletors_if_creator >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_info_of_raw_message"| value Forum_data.message_info_of_raw_message >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|translate <<span class="odocwiki_inlinecode"|raw~_message>> to <<span class="odocwiki_inlinecode"|~Forum~_types~.forum~_info>>~,
+    verifying special rights if needed ~(only for first messages~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="message_moderators"| value Forum.message_moderators >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_modifiers"| value Forum.message_modifiers >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_modifiers_if_creator"| value Forum.message_modifiers_if_creator >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_of_sql"| value Forum_types.message_of_sql >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_of_sql_option"| value Forum_types.message_of_sql_option >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_of_string"| value Forum_types.message_of_string >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_readers_evennotmoderated"| value Forum.message_readers_evennotmoderated >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="messages"| value Language.messages >> ~[<<a_api | module Language >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="messages_english"| value Language.messages_english >> ~[<<a_api | module Language >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="messages_french"| value Language.messages_french >> ~[<<a_api | module Language >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="model_input"| value Wiki_site.model_input >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="moderated_message_readers"| value Forum.moderated_message_readers >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="moderated_readers"| value Forum.moderated_readers >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="moderators"| value Forum.moderators >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="modified_wikibox"| value Wiki.modified_wikibox >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|modified~_wikibox box version>> returns <<span class="odocwiki_inlinecode"|~Some curversion>> iff the current
+    version <<span class="odocwiki_inlinecode"|curversion>> of <<span class="odocwiki_inlinecode"|box>> is greater than <<span class="odocwiki_inlinecode"|version>>~, <<span class="odocwiki_inlinecode"|~None>>
+    otherwise
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="modifiers"| value Forum.modifiers >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="modifiers_if_creator"| value Forum.modifiers_if_creator >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="monospace_elem"| value Wikicreole.RawBuilder.monospace_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="mul"| value Opaque.mul >> ~[<<a_api | module Opaque >>~]||
+|@@ @style="tet-align: left;"@@\\N|
+|@@class="odocwiki_index"@ @@<<a_api text="naservpages"| value Wiki_self_services.naservpages >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="nbsp"| value Wikicreole.RawBuilder.nbsp >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="neg"| value Opaque.neg >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|add>>~, <<span class="odocwiki_inlinecode"|sub>>~, <<span class="odocwiki_inlinecode"|mul>>~, <<span class="odocwiki_inlinecode"|div>> and <<span class="odocwiki_inlinecode"|neg>> are the equivalents
+  of <<span class="odocwiki_inlinecode"|~( ~+ ~)>>~, <<span class="odocwiki_inlinecode"|~( ~- ~)>>~, <<span class="odocwiki_inlinecode"|~( ~* ~)>>~, <<span class="odocwiki_inlinecode"|~( ~/ ~)>> and <<span class="odocwiki_inlinecode"|~( ~~~- ~)>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_forum"| value Forum_sql.new_forum >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|create a new forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_forum"| value Forum_data.new_forum >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|create a new forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_message"| value Forum_sql.new_message >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|inserts a message in a forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_message"| value Forum_data.new_message >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|inserts a message in a forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_nonparameterized_group"| value User_sql.new_nonparameterized_group >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="new_parameterized_group"| value User_sql.new_parameterized_group >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="new_user"| value User_sql.new_user >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Creates a user~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_wiki"| value Wiki_sql.new_wiki >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|inserts a new wiki~, creating on the fly the container wikibox
+    ~(which is returned along the index of the new wiki~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_wikibox"| value Wiki_sql.new_wikibox >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Inserts a new wikibox in an existing wiki and return the id of the
+    wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="new_wikitextbox"| value Wiki_data.new_wikitextbox >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="no_ancestors"| value Wiki_widgets_interface.Ancestors.no_ancestors >> ~[<<a_api | module Wiki_widgets_interface.Ancestors >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="no_permission"| value Page_site.no_permission >> ~[<<a_api | module Page_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="nobody"| value User.nobody >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~A user~/group that does not belong to any group~,  and in which nobody
+    can be~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="nobody_login"| value User.nobody_login >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="non_parameterized_group"| value User_sql.Types.non_parameterized_group >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="normalize_old_page_link"| value Wiki_site.normalize_old_page_link >> ~[<<a_api | module Wiki_site >>~]||
+|@@ @style="tet-align: left;"@@\\O|
+|@@class="odocwiki_index"@ @@<<a_api text="ok"| value Wiki.ok >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="ol_elem"| value Wikicreole.RawBuilder.ol_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="opt"| value Ocsimore_config.opt >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="opt_input"| value Xform.Xform.opt_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="opt_list"| value Wiki_ext.opt_list >> ~[<<a_api | module Wiki_ext >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="options"| value Updatedb_sql.options >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="p"| value Xform.Xform.p >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="p_elem"| value Wikicreole.RawBuilder.p_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="page_displayable_eref"| value Wiki_widgets_interface.page_displayable_eref >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="pagecss_service"| value Wiki_services.pagecss_service >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="param_wiki"| value Wiki.param_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="param_wikibox"| value Wiki.param_wikibox >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="param_wikipage"| value Wiki.param_wikipage >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parameterized_group_from_userid"| value User_sql.Types.parameterized_group_from_userid >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parse_common_attribs"| value Wiki_syntax.parse_common_attribs >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|parses common attributes ~(<<span class="odocwiki_inlinecode"|class>>~, <<span class="odocwiki_inlinecode"|id>>~, <<span class="odocwiki_inlinecode"|style>>~)
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="parse_config"| value Parse_config.parse_config >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parse_yesno"| value Parse_config.parse_yesno >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="passwd_input"| value User_widgets.passwd_input >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="path_create_forum"| value Forum_services.path_create_forum >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="path_edit_forum"| value Forum_services.path_edit_forum >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="path_input"| value Wiki_site.path_input >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="phrasing"| value Wikicreole.RawBuilder.phrasing >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="phrasing_wikicreole_parser"| value Wiki_syntax.phrasing_wikicreole_parser >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Parser for phrasing wikicreole~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="plugin"| value Wikicreole.Builder.plugin >> ~[<<a_api | module Wikicreole.Builder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="plugin_action"| value Wikicreole.Builder.plugin_action >> ~[<<a_api | module Wikicreole.Builder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="pool"| value Ocsi_sql.pool >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="pre_elem"| value Wikicreole.RawBuilder.pre_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="predecessor"| value Opaque.predecessor >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="prefix"| value Wiki.prefix >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="preparse_string"| value Wiki_models.preparse_string >> ~[<<a_api | module Wiki_models >>~]|<<div class="odocwiki_info"|~See <<span class="odocwiki_inlinecode"|~Wiki~_syntax~_types~.~Preprocessor~.preparse~_string>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="preprocess_extension"| value Wiki_syntax.preprocess_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="preview_service"| value Wiki_services.Ui.preview_service >> ~[<<a_api | module Wiki_services.Ui >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="preview_wikibox_content"| value Wiki_widgets.preview_wikibox_content >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="print_int32_t"| value Opaque.print_int32_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="print_int_t"| value Opaque.print_int_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="print_string_t"| value Opaque.print_string_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="process_auxfile"| value Wiki_dir.process_auxfile >> ~[<<a_api | module Wiki_dir >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="process_wikifile"| value Wiki_dir.process_wikifile >> ~[<<a_api | module Wiki_dir >>~]||
+|@@ @style="tet-align: left;"@@\\Q|
+|@@class="odocwiki_index"@ @@<<a_api text="query"| value Ocsi_sql.query >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@ @style="tet-align: left;"@@\\R|
+|@@class="odocwiki_index"@ @@<<a_api text="rawtext_content_type"| value Wiki_syntax.rawtext_content_type >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|the content type for raw text boxes~:
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="read"| value Wiki_widgets_interface.Json_css_wikibox.read >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="read_variant"| value Wiki_widgets_interface.Json_css_wikibox.read_variant >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="readers"| value Forum.readers >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_content_type0"| value Wiki_syntax.reduced_wikicreole_content_type0 >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|the content type for reduced~_wikicreole~_parser~0~:
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_content_type1"| value Wiki_syntax.reduced_wikicreole_content_type1 >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|the content type for reduced~_wikicreole~_parser~1~:
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_content_type2"| value Wiki_syntax.reduced_wikicreole_content_type2 >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|the content type for reduced~_wikicreole~_parser~2~:
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_parser0"| value Wiki_syntax.reduced_wikicreole_parser0 >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The same~, without subwikiboxes and containers ~(content~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_parser1"| value Wiki_syntax.reduced_wikicreole_parser1 >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The same~, without images~, objects~, subwikiboxes and containers ~(content~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_parser2"| value Wiki_syntax.reduced_wikicreole_parser2 >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The same~, without images~, objects~, titles~, tables~, lists~,
+    subwikiboxes and containers ~(content~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="reduced_wikicreole_parser_button_content"| value Wiki_syntax.reduced_wikicreole_parser_button_content >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~For button content~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="register_flows_wiki_parser"| value Wiki_models.register_flows_wiki_parser >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_flows_wiki_parser'"| value Wiki_models.register_flows_wiki_parser' >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_interactive_simple_flow_extension"| value Wiki_syntax.register_interactive_simple_flow_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_interactive_simple_phrasing_extension"| value Wiki_syntax.register_interactive_simple_phrasing_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_interactive_wiki_flow_extension"| value Wiki_syntax.register_interactive_wiki_flow_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_interactive_wiki_phrasing_extension"| value Wiki_syntax.register_interactive_wiki_phrasing_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_link_extension"| value Wiki_syntax.register_link_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_link_flow_extension"| value Wiki_syntax.register_link_flow_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_link_phrasing_extension"| value Wiki_syntax.register_link_phrasing_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_link_simple_flow_extension"| value Wiki_syntax.register_link_simple_flow_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_link_simple_phrasing_extension"| value Wiki_syntax.register_link_simple_phrasing_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_named_wikibox"| value Wiki_site.register_named_wikibox >> ~[<<a_api | module Wiki_site >>~]|<<div class="odocwiki_info"|~This function registers a page inside the administration wiki if it does not
+    exists~, and returns a function giving the current value of the
+    corresponding wikibox
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="register_phrasings_wiki_parser"| value Wiki_models.register_phrasings_wiki_parser >> ~[<<a_api | module Wiki_models >>~]|<<div class="odocwiki_info"|will also register a flows parser by adding a ~<div~> around the result
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="register_raw_wiki_extension"| value Wiki_syntax.register_raw_wiki_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_services"| value Forum_services.register_services >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_simple_extension"| value Wiki_syntax.register_simple_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_simple_flow_extension"| value Wiki_syntax.register_simple_flow_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_simple_phrasing_extension"| value Wiki_syntax.register_simple_phrasing_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_user_extensions"| value User_ext.register_user_extensions >> ~[<<a_api | module User_ext >>~]|<<div class="odocwiki_info"|~Registers the following wiki creole extensions <<span class="odocwiki_inlinecode"|~<~<username~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<loginbox~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<logoutbutton~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<logoutlink~>~>>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="register_wiki"| value Wiki_services.register_wiki >> ~[<<a_api | module Wiki_services >>~]|<<div class="odocwiki_info"|~Register the services for the wiki <<span class="odocwiki_inlinecode"|wiki>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="register_wiki_extension"| value Wiki_syntax.register_wiki_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_wiki_flow_extension"| value Wiki_syntax.register_wiki_flow_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_wiki_model"| value Wiki_models.register_wiki_model >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_wiki_phrasing_extension"| value Wiki_syntax.register_wiki_phrasing_extension >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="register_wikibox_syntax_extensions"| value Wiki_ext.register_wikibox_syntax_extensions >> ~[<<a_api | module Wiki_ext >>~]|<<div class="odocwiki_info"|~This function registers the following wiki extensions~: <<span class="odocwiki_inlinecode"|~<~<wikibox~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<link~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<link~-inline~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~-inline~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<cancellink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<cancellink~-inline~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<object~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<img~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<switchmenu~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<outline~>~>>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="register_wikiext"| value Forum_wikiext.register_wikiext >> ~[<<a_api | module Forum_wikiext >>~]|<<div class="odocwiki_info"|~This function registers the following wiki extensions~: <<span class="odocwiki_inlinecode"|~<~<forum~_message~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<forum~_thread~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<forum~_message~_list~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<forum~_threads~_list~>~>>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="remove_begin_slash"| value Ocsimore_lib.remove_begin_slash >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_css_wiki"| value Wiki_sql.remove_css_wiki >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_css_wikipage"| value Wiki_sql.remove_css_wikipage >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_from_group"| value User_sql.remove_from_group >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_from_group"| value User.remove_from_group >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_list_from_group"| value User.remove_list_from_group >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_prefix"| value Ocsimore_lib.remove_prefix >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_re"| value Ocsimore_lib.remove_re >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_spaces"| value Ocsimore_lib.remove_spaces >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="remove_user_from_group"| value User_data.remove_user_from_group >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="replace_links"| value Wiki_site.replace_links >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="require_header"| value Page_site.Header.require_header >> ~[<<a_api | module Page_site.Header >>~]|<<div class="odocwiki_info"|~Call this function every time you need a header to be included
+        in the page~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="resolve_file_in_dir"| value Wiki_dir.resolve_file_in_dir >> ~[<<a_api | module Wiki_dir >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="rewrite_wikipages"| value Wiki_sql.rewrite_wikipages >> ~[<<a_api | module Wiki_sql >>~]||
+|@@ @style="tet-align: left;"@@\\S|
+|@@class="odocwiki_index"@ @@<<a_api text="save_then_redirect"| value Wiki_services.save_then_redirect >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="save_wikicssbox"| value Wiki_data.save_wikicssbox >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="save_wikipage_properties"| value Wiki_data.save_wikipage_properties >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="save_wikipagecssbox"| value Wiki_data.save_wikipagecssbox >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="save_wikitextbox"| value Wiki_data.save_wikitextbox >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~The next three functions save a wikibox and returns the new version id of
+    this wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="section"| value Ocsimore_lib.section >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="section_elem"| value Wikicreole.RawBuilder.section_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="select_single"| value Xform.Xform.select_single >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="send_wikibox"| value Wiki_services.send_wikibox >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="send_wikipage"| value Wiki_services.send_wikipage >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_create_new_group"| value User_services.service_create_new_group >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_create_new_user"| value User_services.service_create_new_user >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_edit_wikibox"| value Wiki_site.service_edit_wikibox >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_href"| value Wiki_syntax.service_href >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_login"| value User_services.service_login >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_users_settings"| value User_services.service_users_settings >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_view_group"| value User_services.service_view_group >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_view_groups"| value User_services.service_view_groups >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_view_roles"| value User_services.service_view_roles >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="service_view_users"| value User_services.service_view_users >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="servpages"| value Wiki_self_services.servpages >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="servwikicss"| value Wiki_self_services.servwikicss >> ~[<<a_api | module Wiki_self_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_action_failure"| value Ocsimore_common.set_action_failure >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_forum_action"| value Forum_services.set_forum_action >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_menu_resolver"| value Wiki_menu.set_menu_resolver >> ~[<<a_api | module Wiki_menu >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_moderated"| value Forum_sql.set_moderated >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|set or unset moderated flag on a message
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="set_moderated"| value Forum_data.set_moderated >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|set or unset moderated flag on a message~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="set_session_data"| value User.set_session_data >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_users_settings"| value User_sql.set_users_settings >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_wikibox_content"| value Wiki_services.API.set_wikibox_content >> ~[<<a_api | module Wiki_services.API >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_wikibox_special_rights"| value Wiki_sql.set_wikibox_special_rights >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Does the wikibox have special permission rights
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="set_wikibox_special_rights"| value Wiki_data.set_wikibox_special_rights >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="set_wikipage_properties"| value Wiki_sql.set_wikipage_properties >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Sets the info for a wikipage~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="siteid"| value Wiki_site.siteid >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="siteid_input"| value Wiki_site.siteid_input >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="some"| value Ocsimore_lib.some >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="split"| value Ocsimore_lib.Abstract_url.split >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_from_userid"| value User_sql.Types.sql_from_userid >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_of_forum"| value Forum_types.sql_of_forum >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_of_forum_option"| value Forum_types.sql_of_forum_option >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_of_message"| value Forum_types.sql_of_message >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_of_message_option"| value Forum_types.sql_of_message_option >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_of_wiki"| value Wiki_types.sql_of_wiki >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sql_of_wikibox"| value Wiki_types.sql_of_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="static_file_uri"| value Page_site.static_file_uri >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Path to a static file~, suitable for inclusion in a ~<a~> tag
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="static_service"| value Page_site.static_service >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~The service that answers for ~Ocsimore static files~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="staticdir_input"| value Wiki_site.staticdir_input >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="str_input"| value User_widgets.str_input >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_from_userid"| value User_sql.Types.string_from_userid >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_input"| value Xform.Xform.string_input >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_content_type"| value Wiki_types.string_of_content_type >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_extension"| value Wiki_syntax.string_of_extension >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Returns the wiki syntax for an extension box
+    from its name~, arguments and content~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_forum"| value Forum_types.string_of_forum >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_href"| value Wikicreole.RawBuilder.string_of_href >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_media_type"| value Wiki_types.string_of_media_type >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_media_type_elem"| value Wiki_types.string_of_media_type_elem >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_message"| value Forum_types.string_of_message >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_string_opt"| value Ocsimore_lib.string_of_string_opt >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_wiki"| value Wiki_types.string_of_wiki >> ~[<<a_api | module Wiki_types >>~]|<<div class="odocwiki_info"|~Conversions from a wiki index
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_wiki_model"| value Wiki_types.string_of_wiki_model >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_of_wikibox"| value Wiki_types.string_of_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_opt_input"| value Xform.Xform.string_opt_input >> ~[<<a_api | module Xform.Xform >>~]|<<div class="odocwiki_info"|~Maps the empty list to ~None~, and all the others lists to ~Some
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="string_t"| value Opaque.string_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="string_t_option"| value Opaque.string_t_option >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="strong"| value Xform.Xform.strong >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="strong_elem"| value Wikicreole.RawBuilder.strong_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="sub"| value Opaque.sub >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="submit_button"| value Xform.Xform.submit_button >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="submit_input"| value User_widgets.submit_input >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="subscripted_elem"| value Wikicreole.RawBuilder.subscripted_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="successor"| value Opaque.successor >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="superscripted_elem"| value Wikicreole.RawBuilder.superscripted_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@ @style="tet-align: left;"@@\\T|
+|@@class="odocwiki_index"@ @@<<a_api text="t"| value Wiki_widgets_interface.Json_css_wikibox.t >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_int"| value Opaque.t_int >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_int32"| value Opaque.t_int32 >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_int32_list"| value Opaque.t_int32_list >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_int32_option"| value Opaque.t_int32_option >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_int_option"| value Opaque.t_int_option >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_string"| value Opaque.t_string >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t_string_option"| value Opaque.t_string_option >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="table"| value Xform.Xform.table >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="table_elem"| value Wikicreole.RawBuilder.table_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="td"| value Xform.Xform.td >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="template_container"| value Wikiperso.template_container >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="template_container_pagename"| value Wikiperso.template_container_pagename >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="template_css_pagename"| value Wikiperso.template_css_pagename >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="template_wiki_css"| value Wikiperso.template_wiki_css >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="text"| value Xform.Xform.text >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="text_area"| value Xform.Xform.text_area >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="th_ip"| value User_data.th_ip >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="th_login"| value User_data.th_login >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="thread_comments_creators"| value Forum.thread_comments_creators >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="thread_comments_creators_notmod"| value Forum.thread_comments_creators_notmod >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="thread_moderated_readers"| value Forum.thread_moderated_readers >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="thread_readers_evennotmoderated"| value Forum.thread_readers_evennotmoderated >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="title_syntax"| value Forum_site.title_syntax >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="to_list"| value Ocsimore_lib.Abstract_url.to_list >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="to_string"| value Wiki_widgets_interface.Json_css_wikibox.to_string >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="to_string"| value Ocsimore_lib.Abstract_url.to_string >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="tr"| value Xform.Xform.tr >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="transaction_block"| value Ocsi_sql.transaction_block >> ~[<<a_api | module Ocsi_sql >>~]|<<div class="odocwiki_info"|~Perform an atomic transaction ~(using ~B~E~G~I~N and ~C~O~M~M~I~T~/~R~O~L~L~B~A~C~K
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="tt_elem"| value Wikicreole.RawBuilder.tt_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="ul_elem"| value Wikicreole.RawBuilder.ul_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="underlined_elem"| value Wikicreole.RawBuilder.underlined_elem >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="unexpected_attribute"| value Parse_config.unexpected_attribute >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="unexpected_content"| value Parse_config.unexpected_content >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="unexpected_pcdata"| value Parse_config.unexpected_pcdata >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="unexpected_tag"| value Parse_config.unexpected_tag >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="unexpected_value"| value Parse_config.unexpected_value >> ~[<<a_api | module Parse_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="unopt_str"| value Ocsimore_lib.unopt_str >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="update"| value Updatedb_sql.update >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="update_css"| value Wiki_data.update_css >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="update_css_wikibox_aux"| value Wiki_sql.update_css_wikibox_aux >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="update_data"| value User_sql.update_data >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="update_forum"| value Forum_sql.update_forum >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|~Update the information of a forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="update_forum"| value Forum_data.update_forum >> ~[<<a_api | module Forum_data >>~]|<<div class="odocwiki_info"|~Update the information of a forum~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="update_version"| value Updatedb_sql.update_version >> ~[<<a_api | module Updatedb_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="update_wiki"| value Wiki_sql.update_wiki >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Update the information of a wiki~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="update_wiki"| value Wiki_data.update_wiki >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Same as <<span class="odocwiki_inlinecode"|~Wiki~_sql~.update~_wiki>>~, except that this function fails
+    with <<span class="odocwiki_inlinecode"|~Permission~_denied>> if the user has not enough rights to edit a wiki
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="update_wikibox"| value Wiki_sql.update_wikibox >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Inserts a new version of an existing wikibox in a wiki
+    and return its version number~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="update_wikiboxes"| value Wiki_sql.update_wikiboxes >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~This function updates the content of all the wikiboxes stored in
+    the database ~(including the old versions~) according to the function
+    passed as argument~, which must return the updated content~, or ~None
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="uri_of_href"| value Wiki_syntax.uri_of_href >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_from_userlogin_xform"| value User.user_from_userlogin_xform >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_is_applied_parameterized_group"| value User_sql.Types.user_is_applied_parameterized_group >> ~[<<a_api | module User_sql.Types >>~]|<<div class="odocwiki_info"|~Returns <<span class="odocwiki_inlinecode"|~Some v>> is <<span class="odocwiki_inlinecode"|user>> is <<span class="odocwiki_inlinecode"|group ~$ v>>~, or <<span class="odocwiki_inlinecode"|~None>> otherwise
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="user_list_of_string"| value User.user_list_of_string >> ~[<<a_api | module User >>~]|<<div class="odocwiki_info"|~Convert a list of string representation of users into the
+    corresponding users~, according to <<span class="odocwiki_inlinecode"|get~_user~_by~_name>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="user_to_string"| value User_sql.user_to_string >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Converts an user to a string~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="user_type"| value User_sql.user_type >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_widget"| value User_site.user_widget >> ~[<<a_api | module User_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="userid_from_sql"| value User_sql.Types.userid_from_sql >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="userid_from_user"| value User_sql.Types.userid_from_user >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="userid_permissions"| value Page_site.userid_permissions >> ~[<<a_api | module Page_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="userid_to_string"| value User_sql.userid_to_string >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Converts an <<span class="odocwiki_inlinecode"|userid>> to a string~, by giving the corresponding
+    login field~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="users_in_group"| value User_sql.users_in_group >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Returns the users or groups inside a group~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="users_root"| value Wikiperso.users_root >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="users_root"| value User_site.users_root >> ~[<<a_api | module User_site >>~]||
+|@@ @style="tet-align: left;"@@\\V|
+|@@class="odocwiki_index"@ @@<<a_api text="valid_emailaddr"| value User_data.valid_emailaddr >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="valid_username"| value User_data.valid_username >> ~[<<a_api | module User_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="value"| value Ocsi_sql.value >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view"| value Ocsi_sql.view >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_box"| value Wiki_services.view_box >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_boxes"| value Wiki_services.view_boxes >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_forums"| value Forum_services.view_forums >> ~[<<a_api | module Forum_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_one"| value Ocsi_sql.view_one >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_opt"| value Ocsi_sql.view_opt >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_wikis"| value Wiki_services.view_wikis >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="view_wikis_preapplyed"| value Wiki_services.view_wikis_preapplyed >> ~[<<a_api | module Wiki_services >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_admin"| value Wiki_site.wiki_admin >> ~[<<a_api | module Wiki_site >>~]|<<div class="odocwiki_info"|~(~We create the wiki containing the administration boxes
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_admin_id"| value Wiki_site.wiki_admin_id >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_admin_name"| value Wiki.wiki_admin_name >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|~Name of the administration wiki~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_admin_page_link"| value Wiki.wiki_admin_page_link >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_admin_servpage"| value Wiki.wiki_admin_servpage >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_admins"| value Wiki.wiki_admins >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_css_boxes_with_content"| value Wiki_data.wiki_css_boxes_with_content >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Returns the css for the specified wiki or the wikipage~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_css_creators"| value Wiki.wiki_css_creators >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_css_header"| value Wiki_services.wiki_css_header >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_files_readers"| value Wiki.wiki_files_readers >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_files_uploaders"| value Wiki.wiki_files_uploaders >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_headings_backref"| value Ocsimore_config.wiki_headings_backref >> ~[<<a_api | module Ocsimore_config >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_metadata_editors"| value Wiki.wiki_metadata_editors >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_model_of_string"| value Wiki_types.wiki_model_of_string >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_naming"| value Wiki_site.wiki_naming >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_of_sql"| value Wiki_types.wiki_of_sql >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_of_string"| value Wiki_types.wiki_of_string >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_page_args"| value Wiki_services.wiki_page_args >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_path"| value Wikiperso.wiki_path >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_rights"| value Wiki_site.wiki_rights >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_root"| value Wiki_site.wiki_root >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_subwikiboxes_creators"| value Wiki.wiki_subwikiboxes_creators >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_wikiboxes_creators"| value Wiki.wiki_wikiboxes_creators >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_wikiboxes_deletors"| value Wiki.wiki_wikiboxes_deletors >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_wikiboxes_grps"| value Wiki.wiki_wikiboxes_grps >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_wikiboxes_oldversion_viewers"| value Wiki.wiki_wikiboxes_oldversion_viewers >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_wikiboxes_src_viewers"| value Wiki.wiki_wikiboxes_src_viewers >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_wikipages_creators"| value Wiki.wiki_wikipages_creators >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_content"| value Wiki_data.wikibox_content >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Returns the content of the wikibox if the user has enough rights~,
+    possibly for the given revision
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_content'"| value Wiki_data.wikibox_content' >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_contents"| value Wiki_services.wikibox_contents >> ~[<<a_api | module Wiki_services >>~]|<<div class="odocwiki_info"|a service serving the content of wikiboxes~:
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_grps"| value Wiki.wikibox_grps >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|~The following groups take a wikibox as argument~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_history"| value Wiki_data.wikibox_history >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_is_moderated"| value Forum_sql.wikibox_is_moderated >> ~[<<a_api | module Forum_sql >>~]|<<div class="odocwiki_info"|returns whether the message has been moderated or not~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_of_sql"| value Wiki_types.wikibox_of_sql >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_widget"| value Wiki_site.wikibox_widget >> ~[<<a_api | module Wiki_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_wiki"| value Wiki_sql.wikibox_wiki >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Wiki in which the wikibox currently resides
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_content_type"| value Wiki_syntax.wikicreole_content_type >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|the content type for wikicreole boxes~:
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_forum_model"| value Forum_site.wikicreole_forum_model >> ~[<<a_api | module Forum_site >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_model"| value Wiki_site.wikicreole_model >> ~[<<a_api | module Wiki_site >>~]|<<div class="odocwiki_info"|~We create the default wiki model~, called "wikicreole"
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_parser"| value Wiki_syntax.wikicreole_parser >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_parser_without_header_footer"| value Wiki_syntax.wikicreole_parser_without_header_footer >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The same parser as <<span class="odocwiki_inlinecode"|wikicreole~_parser>> but with a more precise type~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_phrasing_content_type"| value Wiki_syntax.wikicreole_phrasing_content_type >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|the content type for wikicreole phrasing content~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikipage_css_boxes_with_content"| value Wiki_data.wikipage_css_boxes_with_content >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Same thing for a wikipage
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikiperso_model"| value Wikiperso.wikiperso_model >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikiperso_rights"| value Wikiperso.wikiperso_rights >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikis"| value Wiki_sql.wikis >> ~[<<a_api | module Wiki_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikis_creator"| value Wiki.wikis_creator >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikis_deletor"| value Wiki.wikis_deletor >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikisyntax_help_name"| value Wiki_widgets_interface.wikisyntax_help_name >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wrap"| value Xform.Xform.wrap >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="write"| value Wiki_widgets_interface.Json_css_wikibox.write >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@ @style="tet-align: left;"@@\\X|
+|@@class="odocwiki_index"@ @@<<a_api text="xml_of_wiki"| value Wiki_syntax.xml_of_wiki >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Returns the ~H~T~M~L~5 corresponding to a wiki page
+>>
+|
+\\

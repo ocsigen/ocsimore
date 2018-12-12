@@ -1,0 +1,44 @@
+<<code language="ocaml" | sig
+  type menu =
+      [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ] Eliom_content.Html5.F.elt list
+  type menu_item =
+      Html5_types.a_content Eliom_content.Html5.F.elt list *
+      (Eliom_service.get_service_kind, Eliom_service.registrable,
+       Html5_types.a_content Eliom_content.Html5.F.elt list)
+      Eliom_tools.hierarchical_site_item
+  val build_tree :
+    create_service:(?wiki:Wiki_types.wiki ->
+                    string list ->
+                    (Eliom_service.get_service_kind,
+                     Eliom_service.registrable,
+                     Eliom_registration.non_ocaml_service)
+                    Eliom_tools.one_page) ->
+    Wiki_menu.menu -> Wiki_menu.menu_item list
+  val build_tree_from_string :
+    Wiki_widgets_interface.box_info ->
+    create_service:(?wiki:Wiki_types.wiki ->
+                    string list ->
+                    (Eliom_service.get_service_kind,
+                     Eliom_service.registrable,
+                     Eliom_registration.non_ocaml_service)
+                    Eliom_tools.one_page) ->
+    contents:string -> Wiki_menu.menu_item list Lwt.t
+  val build_tree_from_file :
+    Wiki_widgets_interface.box_info ->
+    create_service:(?wiki:Wiki_types.wiki ->
+                    string list ->
+                    (Eliom_service.get_service_kind,
+                     Eliom_service.registrable,
+                     Eliom_registration.non_ocaml_service)
+                    Eliom_tools.one_page) ->
+    file:Ocsigen_local_files.resolved -> Wiki_menu.menu_item list Lwt.t
+  val set_menu_resolver :
+    (string list -> Ocsigen_local_files.resolved) -> unit Lwt.t
+  val create_wiki_page_service :
+    Wiki_widgets_interface.box_info ->
+    ?wiki:Wiki_types.wiki ->
+    string list ->
+    (Eliom_service.get_service_kind, Eliom_service.registrable,
+     Eliom_registration.non_ocaml_service)
+    Eliom_tools.one_page
+end >>

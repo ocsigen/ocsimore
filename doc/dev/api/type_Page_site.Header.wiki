@@ -1,0 +1,9 @@
+<<code language="ocaml" | sig
+  type header
+  val create_header :
+    (unit -> Html5_types.head_content_fun Eliom_content.Html5.F.elt list) ->
+    Page_site.Header.header
+  val require_header : Page_site.Header.header -> unit Lwt.t
+  val generate_headers :
+    unit -> Html5_types.head_content_fun Eliom_content.Html5.F.elt list Lwt.t
+end >>

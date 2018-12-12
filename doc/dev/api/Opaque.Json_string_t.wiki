@@ -1,0 +1,8 @@
+=Functor <<a_api_type | module Opaque.Json_string_t >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|module>> <<span class="ocsforge_color_uid"|<<span class="ocsforge_color_uid"|Json_string_t>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_sig_block"|<<span class="ocsforge_color_keyword"|functor>> <<span class="ocsforge_color_delimiter"|(>>M_a <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|<<span class="ocsforge_color_uid"|Deriving_Json.Json>>>><<span class="ocsforge_color_delimiter"|)>> <<span class="ocsforge_color_delimiter"|-~>>> \\  <<span class="odocwiki_type"|<<span class="ocsforge_color_uid"|Deriving_Json.Json>>>><<span class="odocwiki_type"|>>>>>>data of type <<span class="odocwiki_inlinecode"|~'a string~_t>> has the same internal representation
+   as type <<span class="odocwiki_inlinecode"|string>>~.
+<<div class="odocwiki_module_param_list" | <<span class="odocwiki_param_title" |Parameters :>><<div|
+|@@class="odocwiki_paramstable"@ @class="centertop fifteen code"@@{{{M_a}}}|@@class="centertop"@@:|<<span class="odocwiki_type"|Deriving_Json.Json>>|
+>>>>
+
+----

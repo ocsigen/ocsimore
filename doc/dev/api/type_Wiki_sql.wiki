@@ -1,0 +1,166 @@
+<<code language="ocaml" | sig
+  exception Unknown_Css of Wiki_types.wikibox
+  val wikis :
+    (< boxrights : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+                   Sql.t;
+       container : < get : unit; nul : Sql.nullable; t : Sql.int32_t > Sql.t;
+       deleted : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+       descr : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+       id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+       model : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+       pages : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+       siteid : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+       staticdir : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+       title : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t >,
+     < deleted : < nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+       descr : < nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+       id : < nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+       model : < nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+       title : < nul : Sql.non_nullable; t : Sql.string_t > Sql.t >
+     Sql.writable)
+    Sql.view
+  val new_wiki :
+    ?db:Ocsi_sql.db_t ->
+    title:string ->
+    descr:string ->
+    pages:string option ->
+    boxrights:bool ->
+    staticdir:string option ->
+    ?container_text:string ->
+    author:User_sql.Types.userid ->
+    model:Wiki_types.wiki_model ->
+    unit -> (Wiki_types.wiki * Wiki_types.wikibox option) Lwt.t
+  val delete_wiki : ?delete:bool -> Wiki_types.wiki -> unit Lwt.t
+  val new_wikibox :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki ->
+    author:User_sql.Types.userid ->
+    comment:string ->
+    content:string ->
+    content_type:'a Wiki_types.content_type ->
+    unit -> Wiki_types.wikibox Lwt.t
+  val get_wikibox_history :
+    wb:Wiki_types.wikibox ->
+    < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+                Sql.t;
+      datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t >
+                 Sql.t;
+      version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+    list Lwt.t
+  val get_wikiboxes_by_wiki :
+    Wiki_types.wiki -> Wiki_types.wikibox list Lwt.t
+  val create_wikipage :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki ->
+    page:string -> wb:Wiki_types.wikibox -> unit Lwt.t
+  val get_wikipage_info :
+    wiki:Wiki_types.wiki -> page:string -> Wiki_types.wikipage_info Lwt.t
+  val set_wikipage_properties :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki ->
+    page:string ->
+    ?title:string ->
+    ?newpage:string -> ?wb:Wiki_types.wikibox option -> unit -> unit Lwt.t
+  val get_css_for_wikipage :
+    wiki:Wiki_types.wiki ->
+    page:string -> (Wiki_types.css_wikibox * (string * int32)) list Lwt.t
+  val get_css_for_wiki :
+    wiki:Wiki_types.wiki ->
+    (Wiki_types.css_wikibox * (string * int32)) list Lwt.t
+  val add_css_aux :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki ->
+    page:string option ->
+    author:User_sql.Types.userid ->
+    media:Wiki_types.media_type ->
+    ?wbcss:Wiki_types.wikibox -> unit -> Wiki_types.wikibox Lwt.t
+  val remove_css_wiki :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki -> Wiki_types.wikibox -> unit Lwt.t
+  val remove_css_wikipage :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki -> page:string -> Wiki_types.wikibox -> unit Lwt.t
+  val get_css_wikibox_for_wikipage :
+    wiki:Wiki_types.wiki -> page:string -> Wiki_types.css_wikibox list Lwt.t
+  val get_css_wikibox_for_wiki :
+    wiki:Wiki_types.wiki -> Wiki_types.css_wikibox list Lwt.t
+  val update_css_wikibox_aux :
+    ?db:Ocsi_sql.db_t ->
+    wiki:Wiki_types.wiki ->
+    page:string option ->
+    oldwb:Wiki_types.wikibox ->
+    newwb:Wiki_types.wikibox ->
+    media:Wiki_types.media_type -> rank:int32 -> unit -> unit Lwt.t
+  val get_wiki_info_by_id : id:Wiki_types.wiki -> Wiki_types.wiki_info Lwt.t
+  val get_wiki_info_by_name : name:string -> Wiki_types.wiki_info Lwt.t
+  val get_wiki_info_by_pages : pages:string -> Wiki_types.wiki_info Lwt.t
+  val get_wikibox_content :
+    ?version:int32 ->
+    Wiki_types.wikibox ->
+    (string * User_sql.Types.userid * string option *
+     CalendarLib.Calendar.t * 'a Wiki_types.content_type * int32)
+    option Lwt.t
+  val get_wikis : unit -> Wiki_types.wiki list Lwt.t
+  val set_wikibox_special_rights :
+    ?db:Ocsi_sql.db_t -> wb:Wiki_types.wikibox -> bool -> unit Lwt.t
+  val wikibox_wiki : Wiki_types.wikibox -> Wiki_types.wiki Lwt.t
+  val current_wikibox_version : Wiki_types.wikibox -> Int32.t option Lwt.t
+  val update_wikibox :
+    ?db:Ocsi_sql.db_t ->
+    old_version:int32 ->
+    author:User_sql.Types.userid ->
+    comment:string ->
+    content:string option ->
+    content_type:'a Wiki_types.content_type ->
+    ?ip:string -> Wiki_types.wikibox -> int32 Lwt.t
+  val update_wiki :
+    ?db:Ocsi_sql.db_t ->
+    ?container:Wiki_types.wikibox option ->
+    ?staticdir:string option ->
+    ?path:string option ->
+    ?descr:string ->
+    ?boxrights:bool ->
+    ?model:Wiki_types.wiki_model ->
+    ?siteid:string option -> Wiki_types.wiki -> unit Lwt.t
+  val iter_wikis :
+    ?db:Ocsi_sql.db_t ->
+    ?deleted:bool -> (Wiki_types.wiki_info -> unit Lwt.t) -> unit Lwt.t
+  val get_wikibox_info : Wiki_types.wikibox -> Wiki_types.wikibox_info Lwt.t
+  val update_wikiboxes :
+    ?db:Ocsi_sql.db_t ->
+    (wikibox:Wiki_types.wikibox ->
+     version:int32 ->
+     content:string option ->
+     content_type:'a Wiki_types.content_type -> string option Lwt.t) ->
+    unit Lwt.t
+  val rewrite_wikipages :
+    ?db:Ocsi_sql.db_t ->
+    oldwiki:Wiki_types.wiki ->
+    newwiki:Wiki_types.wiki -> path:string -> unit Lwt.t
+  val get_wikipages_of_a_wiki :
+    wiki:Wiki_types.wiki ->
+    unit ->
+    < pagename : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+                 Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t;
+      uid : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      wikibox : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+    list Lwt.t
+  val get_wikis_id :
+    unit ->
+    < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+    list Lwt.t
+  val get_wikiboxes_id :
+    unit ->
+    < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+    list Lwt.t
+  val get_wikipages_id :
+    unit ->
+    < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+    list Lwt.t
+end >>

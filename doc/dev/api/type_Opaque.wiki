@@ -1,0 +1,95 @@
+<<code language="ocaml" | sig
+  type 'a int_t
+  module Json_int_t :
+    functor (M_a : Deriving_Json.Json) ->
+      sig
+        type a = M_a.a int_t
+        val t : a Deriving_Json.t
+        val write : Buffer.t -> a -> unit
+        val read : Deriving_Json_lexer.lexbuf -> a
+        val to_string : a -> string
+        val from_string : string -> a
+        val match_variant : [ `Cst of int | `NCst of int ] -> bool
+        val read_variant :
+          Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+      end
+  val int_t : int -> 'a Opaque.int_t
+  val t_int : 'a Opaque.int_t -> int
+  val int_t_option : int option -> 'a Opaque.int_t option
+  val t_int_option : 'a Opaque.int_t option -> int option
+  val any_int : 'a Opaque.int_t -> 'b Opaque.int_t
+  val add : 'a Opaque.int_t -> 'a Opaque.int_t -> 'a Opaque.int_t
+  val sub : 'a Opaque.int_t -> 'a Opaque.int_t -> 'a Opaque.int_t
+  val mul : 'a Opaque.int_t -> 'a Opaque.int_t -> 'a Opaque.int_t
+  val div : 'a Opaque.int_t -> 'a Opaque.int_t -> 'a Opaque.int_t
+  val neg : 'a Opaque.int_t -> 'a Opaque.int_t
+  val successor : 'a Opaque.int_t -> 'a Opaque.int_t
+  val predecessor : 'a Opaque.int_t -> 'a Opaque.int_t
+  val increment : 'a Opaque.int_t Pervasives.ref -> unit
+  val print_int_t : 'a Opaque.int_t -> unit
+  type 'a int32_t
+  module Json_int32_t :
+    functor (M_a : Deriving_Json.Json) ->
+      sig
+        type a = M_a.a int32_t
+        val t : a Deriving_Json.t
+        val write : Buffer.t -> a -> unit
+        val read : Deriving_Json_lexer.lexbuf -> a
+        val to_string : a -> string
+        val from_string : string -> a
+        val match_variant : [ `Cst of int | `NCst of int ] -> bool
+        val read_variant :
+          Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+      end
+  val int32_t : int32 -> 'a Opaque.int32_t
+  val t_int32 : 'a Opaque.int32_t -> int32
+  val int32_t_option : int32 option -> 'a Opaque.int32_t option
+  val t_int32_option : 'a Opaque.int32_t option -> int32 option
+  val any_int32 : 'a Opaque.int32_t -> 'b Opaque.int32_t
+  val int32_t_list : int32 list -> 'a Opaque.int32_t list
+  val t_int32_list : 'a Opaque.int32_t list -> int32 list
+  val print_int32_t : 'a Opaque.int32_t -> unit
+  val int32_t_to_string : 'a Opaque.int32_t -> string
+  type 'a string_t
+  module Json_string_t :
+    functor (M_a : Deriving_Json.Json) ->
+      sig
+        type a = M_a.a string_t
+        val t : a Deriving_Json.t
+        val write : Buffer.t -> a -> unit
+        val read : Deriving_Json_lexer.lexbuf -> a
+        val to_string : a -> string
+        val from_string : string -> a
+        val match_variant : [ `Cst of int | `NCst of int ] -> bool
+        val read_variant :
+          Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+      end
+  val string_t : string -> 'a Opaque.string_t
+  val t_string : 'a Opaque.string_t -> string
+  val string_t_option : string option -> 'a Opaque.string_t option
+  val t_string_option : 'a Opaque.string_t option -> string option
+  val any_string : 'a Opaque.string_t -> 'b Opaque.string_t
+  val concat : 'a Opaque.string_t -> 'a Opaque.string_t -> 'a Opaque.string_t
+  val concat_list : string -> 'a Opaque.string_t list -> 'a Opaque.string_t
+  val print_string_t : 'a Opaque.string_t -> unit
+  val int32_input_aux_xform :
+    ?a:Html5_types.input_attrib Eliom_content.Html5.F.attrib list ->
+    string ->
+    ([> `Input | `Span ] Eliom_content.Html5.F.elt, 'a Opaque.int32_t)
+    Xform.XformLwt.t
+  val int32_input_xform :
+    ?a:Html5_types.input_attrib Eliom_content.Html5.F.attrib list ->
+    'a Opaque.int32_t ->
+    ([> `Input | `Span ] Eliom_content.Html5.F.elt, 'a Opaque.int32_t)
+    Xform.XformLwt.t
+  val int32_input_opt_aux_xform :
+    ?a:Html5_types.input_attrib Eliom_content.Html5.F.attrib list ->
+    string ->
+    ([> `Input | `Span ] Eliom_content.Html5.F.elt, 'a Opaque.int32_t option)
+    Xform.XformLwt.t
+  val int32_input_opt_xform :
+    ?a:Html5_types.input_attrib Eliom_content.Html5.F.attrib list ->
+    'a Opaque.int32_t option ->
+    ([> `Input | `Span ] Eliom_content.Html5.F.elt, 'a Opaque.int32_t option)
+    Xform.XformLwt.t
+end >>

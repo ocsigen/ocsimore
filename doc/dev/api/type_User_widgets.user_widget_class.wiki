@@ -1,0 +1,54 @@
+<<code language="ocaml" | object
+  method display_group :
+    User_sql.Types.user -> Eliom_registration.Flow5.page Lwt.t
+  method display_group_creation :
+    ?err:string -> unit -> Eliom_registration.Flow5.page Lwt.t
+  method display_group_creation_done :
+    unit -> string * string -> Eliom_registration.Flow5.page Lwt.t
+  method display_groups : Eliom_registration.Flow5.page Lwt.t
+  method display_login_widget :
+    ?user_prompt:string ->
+    ?pwd_prompt:string ->
+    ?auth_error:string ->
+    ?switchtohttps:string ->
+    ?show_ext:bool ->
+    unit -> Html5_types.div Eliom_content.Html5.F.elt list Lwt.t
+  method private display_logout_box :
+    User_sql.Types.userdata ->
+    Html5_types.form_content Eliom_content.Html5.F.elt list Lwt.t
+  method display_logout_button :
+    Html5_types.button_content Eliom_content.Html5.F.elt list ->
+    [> Html5_types.form ] Eliom_content.Html5.F.elt Lwt.t
+  method display_roles : Eliom_registration.Flow5.page Lwt.t
+  method display_users : Eliom_registration.Flow5.page Lwt.t
+  method display_users_settings : Eliom_registration.Flow5.page Lwt.t
+  method display_users_settings_done :
+    unit ->
+    bool * (string * (string * (string * (string * bool)))) ->
+    Eliom_registration.Flow5.page Lwt.t
+  method form_edit_awr :
+    text_prefix:string ->
+    grps:'a User_sql.Types.admin_writer_reader ->
+    arg:'a Opaque.int32_t ->
+    ?defaults:string * string * string ->
+    unit ->
+    (Html5_types.tbody_content Eliom_content.Html5.F.elt *
+     Html5_types.tbody_content Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method form_edit_group :
+    ?is_user:bool ->
+    group:User_sql.Types.user ->
+    text:Html5_types.flow5 Eliom_content.Html5.F.elt list ->
+    unit -> Html5_types.tbody_content Eliom_content.Html5.F.elt Lwt.t
+  method form_edit_user :
+    user:User_sql.Types.user ->
+    text:Html5_types.flow5 Eliom_content.Html5.F.elt list ->
+    unit -> Html5_types.tbody_content Eliom_content.Html5.F.elt Lwt.t
+  method login_box_extension :
+    Html5_types.div_content_fun Eliom_content.Html5.F.elt list Lwt.t
+  method logout_uri : Wiki_syntax.href
+  method status_text : Html5_types.div Eliom_content.Html5.F.elt list Lwt.t
+  method user_link :
+    string ->
+    [ `A of Html5_types.a_content | `Form ] Eliom_content.Html5.F.elt
+end >>

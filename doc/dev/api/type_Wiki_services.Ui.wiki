@@ -1,0 +1,39 @@
+<<code language="ocaml" | sig
+  val preview_service :
+    (unit,
+     (Wiki_types.wiki * string list option) * (Wiki_types.wikibox * string),
+     [< Eliom_service.service_method > `Post ],
+     [< Eliom_service.attached > `Nonattached ],
+     [< Eliom_service.service_kind > `NonattachedCoservice ],
+     [ `WithoutSuffix ], unit,
+     ([ `One of Wiki_types.wiki Eliom_parameter.ocaml ]
+      Eliom_parameter.param_name *
+      [ `One of string list option Eliom_parameter.ocaml ]
+      Eliom_parameter.param_name) *
+     ([ `One of Wiki_types.wikibox Eliom_parameter.ocaml ]
+      Eliom_parameter.param_name *
+      [ `One of string ] Eliom_parameter.param_name),
+     [< Eliom_service.registrable > `Registrable ],
+     [> Eliom_service.appl_service ])
+    Eliom_service.service
+  val edit_service :
+    (Wiki_types.wikibox, unit, [< Eliom_service.service_method > `Get ],
+     [< Eliom_service.attached > `Nonattached ],
+     [< Eliom_service.service_kind > `NonattachedCoservice ],
+     [ `WithoutSuffix ],
+     [ `One of Wiki_types.wikibox Eliom_parameter.ocaml ]
+     Eliom_parameter.param_name, unit,
+     [< Eliom_service.registrable > `Registrable ],
+     [> Eliom_service.appl_service ])
+    Eliom_service.service
+  val edit_css_service :
+    (Wiki_types.wikibox, unit, [< Eliom_service.service_method > `Get ],
+     [< Eliom_service.attached > `Nonattached ],
+     [< Eliom_service.service_kind > `NonattachedCoservice ],
+     [ `WithoutSuffix ],
+     [ `One of Wiki_types.wikibox Eliom_parameter.ocaml ]
+     Eliom_parameter.param_name, unit,
+     [< Eliom_service.registrable > `Registrable ],
+     [> Eliom_service.appl_service ])
+    Eliom_service.service
+end >>

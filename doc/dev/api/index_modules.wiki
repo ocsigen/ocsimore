@@ -1,0 +1,181 @@
+=Index of modules=
+
+|@@ @style="tet-align: left;"@@\\A|
+|@@class="odocwiki_index"@ @@<<a_api text="API"| module Wiki_services.API >> ~[<<a_api | module Wiki_services >>~]|<<div class="odocwiki_info"|~This module exports methods of <<span class="odocwiki_inlinecode"|~[~Wiki~_data~]>> et al~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Abstract_url"| module Ocsimore_lib.Abstract_url >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Ancestors"| module Wiki_widgets_interface.Ancestors >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@ @style="tet-align: left;"@@\\C|
+|@@class="odocwiki_index"@ @@<<a_api text="Crypt"| module Crypt >> |<<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|crypt~_passwd passwd>> encrypts <<span class="odocwiki_inlinecode"|passwd>> using the crypt~(~3~) function~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\D|
+|@@class="odocwiki_index"@ @@<<a_api text="DefaultMap"| module Ocsimore_lib.DefaultMap >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Default_param"| module Ocsimore_appl.Default_param >> ~[<<a_api | module Ocsimore_appl >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Dyngroups"| module Dyngroups >> |<<div class="odocwiki_info"|~Creating dynamic groups if needed
+>>
+|
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum"| module Forum >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_data"| module Forum_data >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_services"| module Forum_services >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_site"| module Forum_site >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_sql"| module Forum_sql >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_sql0"| module Forum_sql0 >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_types"| module Forum_types >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_widgets"| module Forum_widgets >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Forum_wikiext"| module Forum_wikiext >> |<<div class="odocwiki_info"|~Provides a function to register the wikicreole extensions for forums~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\G|
+|@@class="odocwiki_index"@ @@<<a_api text="GenericRights"| module User.GenericRights >> ~[<<a_api | module User >>~]||
+|@@ @style="tet-align: left;"@@\\H|
+|@@class="odocwiki_index"@ @@<<a_api text="HTML5outliner"| module HTML5outliner >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="Header"| module Page_site.Header >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~Allows to add ~H~T~M~L headers required by page components
+>>
+|
+|@@ @style="tet-align: left;"@@\\J|
+|@@class="odocwiki_index"@ @@<<a_api text="Json_aDwzxSOSrIrfn2FCbUuL55_pRGWd0cb8"| module Wiki_widgets_interface.Json_aDwzxSOSrIrfn2FCbUuL55_pRGWd0cb8 >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_css_wikibox"| module Wiki_widgets_interface.Json_css_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_int32_t"| module Opaque.Json_int32_t >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|data of type <<span class="odocwiki_inlinecode"|~'a int~2~1~_t>> has the same internal representation
+   as type <<span class="odocwiki_inlinecode"|int~3~2>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Json_int_t"| module Opaque.Json_int_t >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|data of type <<span class="odocwiki_inlinecode"|~'a int~_t>> has the same internal representation
+   as type <<span class="odocwiki_inlinecode"|int>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Json_special_box"| module Wiki_widgets_interface.Json_special_box >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_string_t"| module Opaque.Json_string_t >> ~[<<a_api | module Opaque >>~]|<<div class="odocwiki_info"|data of type <<span class="odocwiki_inlinecode"|~'a string~_t>> has the same internal representation
+   as type <<span class="odocwiki_inlinecode"|string>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wiki"| module Wiki_types.Json_wiki >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wiki_arg"| module Wiki_types.Json_wiki_arg >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wikibox"| module Wiki_types.Json_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wikibox_arg"| module Wiki_types.Json_wikibox_arg >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wikibox_override"| module Wiki_widgets_interface.Json_wikibox_override >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wikipage"| module Wiki_types.Json_wikipage >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wikipage_arg"| module Wiki_types.Json_wikipage_arg >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Json_wikipage_uid"| module Wiki_types.Json_wikipage_uid >> ~[<<a_api | module Wiki_types >>~]||
+|@@ @style="tet-align: left;"@@\\L|
+|@@class="odocwiki_index"@ @@<<a_api text="Language"| module Language >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="List"| module Ocsimore_lib.List >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Lwt_PGOCaml"| module Ocsi_sql.Lwt_PGOCaml >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Lwt_Query"| module Ocsi_sql.Lwt_Query >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@ @style="tet-align: left;"@@\\O|
+|@@class="odocwiki_index"@ @@<<a_api text="Ocsi_sql"| module Ocsi_sql >> |<<div class="odocwiki_info"|~Database interface to the ~Ocsimore database~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Ocsimore_appl"| module Ocsimore_appl >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="Ocsimore_common"| module Ocsimore_common >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Ocsimore_config"| module Ocsimore_config >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="Ocsimore_lib"| module Ocsimore_lib >> |<<div class="odocwiki_info"|~Association maps with default values ~(which thus never raise <<span class="odocwiki_inlinecode"|~Not~_found>>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Opaque"| module Opaque >> |<<div class="odocwiki_info"|~Opaque types for <<span class="odocwiki_inlinecode"|int>> and <<span class="odocwiki_inlinecode"|string>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Ops"| module Xform.Xform.Ops >> ~[<<a_api | module Xform.Xform >>~]||
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="Page_site"| module Page_site >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Parse_config"| module Parse_config >> |<<div class="odocwiki_info"|~Parsing the global ~Ocsimore configuration
+>>
+|
+|@@ @style="tet-align: left;"@@\\S|
+|@@class="odocwiki_index"@ @@<<a_api text="Servpages"| module Wiki_self_services.Servpages >> ~[<<a_api | module Wiki_self_services >>~]|<<div class="odocwiki_info"|~This file define some tables that contain the services that are
+    dynamically associated to a given wiki~: the service that answers for a page of the wiki ~(two services~:
+    attached and non~-attached~)~.~, the service that answers for the css of the wiki
+    ~The other services for wikis take the wiki as argument~, and
+    are defined in <<span class="odocwiki_inlinecode"|~Wiki~_services>>~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\T|
+|@@class="odocwiki_index"@ @@<<a_api text="Types"| module User_sql.Types >> ~[<<a_api | module User_sql >>~]||
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="Ui"| module Wiki_services.Ui >> ~[<<a_api | module Wiki_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Updatedb_sql"| module Updatedb_sql >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="User"| module User >> |<<div class="odocwiki_info"|~Module ~Users~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_data"| module User_data >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_ext"| module User_ext >> |<<div class="odocwiki_info"|~Provides a function to register the wikicreole extensions for user management
+   ~(i~.e~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_external_auth"| module User_external_auth >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_services"| module User_services >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_site"| module User_site >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_sql"| module User_sql >> |<<div class="odocwiki_info"|~The abstract type of user ids
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="User_widgets"| module User_widgets >> |<<div class="odocwiki_info"|>>
+|
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="Widget"| module Widget >> |<<div class="odocwiki_info"|~This module contains general~-use widgets for ~Ocsimore~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki"| module Wiki >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_data"| module Wiki_data >> |<<div class="odocwiki_info"|~This is the wiki component of ~Ocsimore~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_dir"| module Wiki_dir >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_ext"| module Wiki_ext >> |<<div class="odocwiki_info"|~Provides a function to register the wikicreole extensions for wikis~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_menu"| module Wiki_menu >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_models"| module Wiki_models >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_self_services"| module Wiki_self_services >> |<<div class="odocwiki_info"|~This file define some tables that contain the services that are
+    dynamically associated to a given wiki~: the service that answers for a page of the wiki ~(two services~:
+    attached and non~-attached~)~.~, the service that answers for the css of the wiki
+    ~The other services for wikis take the wiki as argument~, and
+    are defined in <<span class="odocwiki_inlinecode"|~Wiki~_services>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_services"| module Wiki_services >> |<<div class="odocwiki_info"|~These are all the services related to wikis
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_site"| module Wiki_site >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_sql"| module Wiki_sql >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_syntax"| module Wiki_syntax >> |<<div class="odocwiki_info"|~Pretty print wiki to ~H~T~M~L~5 using ~Eliom~'s ~Ty~X~M~L
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_types"| module Wiki_types >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_widgets"| module Wiki_widgets >> |<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_widgets_interface"| module Wiki_widgets_interface >> |<<div class="odocwiki_info"|~This module declares the interface for the widget that is used
+    to display wikiboxes~, as well a few related types and functions~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wikicreole"| module Wikicreole >> |<<div class="odocwiki_info"|~Parser for ~Wikicreole
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wikiperso"| module Wikiperso >> |<<div class="odocwiki_info"|>>
+|
+|@@ @style="tet-align: left;"@@\\X|
+|@@class="odocwiki_index"@ @@<<a_api text="Xform"| module Xform.Xform >> ||
+|@@class="odocwiki_index"@ @@<<a_api text="Xform"| module Xform >> |<<div class="odocwiki_info"|~Maps the empty list to ~None~, and all the others lists to ~Some
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="XformLwt"| module Xform.XformLwt >> ~[<<a_api | module Xform >>~]||
+\\

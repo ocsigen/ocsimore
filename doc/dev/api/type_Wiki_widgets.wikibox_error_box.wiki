@@ -1,0 +1,13 @@
+<<code language="ocaml" | object
+  method bind_or_display_error :
+    'data Lwt.t ->
+    ('data ->
+     (Html5_types.nmtoken list *
+      ([> Html5_types.p ] as 'a) Eliom_content.Html5.F.elt list)
+     Lwt.t) ->
+    (Html5_types.nmtoken list * 'a Eliom_content.Html5.F.elt list) Lwt.t
+  method display_error_box :
+    ?classes:string list ->
+    ?message:string -> ?exc:exn -> unit -> [> `P ] Eliom_content.Html5.F.elt
+  method error_class : string
+end >>

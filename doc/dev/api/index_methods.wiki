@@ -1,0 +1,299 @@
+=Index of class methods=
+
+|@@ @style="tet-align: left;"@@\\A|
+|@@class="odocwiki_index"@ @@<<a_api text="a_level"| method Forum_widgets.message_widget#a_level >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="apply"| method Widget.parametrized_widget_t#apply >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="apply"| method Widget.parametrized_widget#apply >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="atom_childs"| method Forum_widgets.message_widget#atom_childs >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="atom_entries"| method Forum_widgets.message_widget#atom_entries >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="atom_entry"| method Forum_widgets.message_widget#atom_entry >> ~[<<a_api | module Forum_widgets >>~]|<<div class="odocwiki_info"|atom feed generation
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="atom_message_list"| method Forum_widgets.message_list_widget#atom_message_list >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\B|
+|@@class="odocwiki_index"@ @@<<a_api text="bind_or_display_error"| method Widget.widget_with_error_box#bind_or_display_error >> ~[<<a_api | module Widget >>~]|<<div class="odocwiki_info"|~Takes a thread that gets data ~(e~.g~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="box_menu"| method Wiki_widgets.dynamic_wikibox#box_menu >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="bt_remove_user_from_group"| method User_widgets.user_widget#bt_remove_user_from_group >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\C|
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wiki"| method Wikiperso.wikiperso_rights#can_admin_wiki >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wiki"| method Wiki.wiki_rights#can_admin_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wiki"| method Wiki_types.wiki_rights#can_admin_wiki >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wikibox"| method Wikiperso.wikiperso_rights#can_admin_wikibox >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wikibox"| method Wiki.wiki_rights#can_admin_wikibox >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wikibox"| method Wiki_types.wiki_rights#can_admin_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wikipage"| method Wikiperso.wikiperso_rights#can_admin_wikipage >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wikipage"| method Wiki.wiki_rights#can_admin_wikipage >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_admin_wikipage"| method Wiki_types.wiki_rights#can_admin_wikipage >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_subwikiboxes"| method Wikiperso.wikiperso_rights#can_create_subwikiboxes >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_subwikiboxes"| method Wiki.wiki_rights#can_create_subwikiboxes >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_subwikiboxes"| method Wiki_types.wiki_rights#can_create_subwikiboxes >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wiki"| method Wikiperso.wikiperso_rights#can_create_wiki >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wiki"| method Wiki.wiki_rights#can_create_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wiki"| method Wiki_types.wiki_rights#can_create_wiki >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikiboxes"| method Wikiperso.wikiperso_rights#can_create_wikiboxes >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikiboxes"| method Wiki.wiki_rights#can_create_wikiboxes >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikiboxes"| method Wiki_types.wiki_rights#can_create_wikiboxes >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikicss"| method Wikiperso.wikiperso_rights#can_create_wikicss >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikicss"| method Wiki.wiki_rights#can_create_wikicss >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikicss"| method Wiki_types.wiki_rights#can_create_wikicss >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikipagecss"| method Wikiperso.wikiperso_rights#can_create_wikipagecss >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikipagecss"| method Wiki.wiki_rights#can_create_wikipagecss >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikipagecss"| method Wiki_types.wiki_rights#can_create_wikipagecss >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikipages"| method Wikiperso.wikiperso_rights#can_create_wikipages >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikipages"| method Wiki.wiki_rights#can_create_wikipages >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_create_wikipages"| method Wiki_types.wiki_rights#can_create_wikipages >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_delete_wiki"| method Wiki.wiki_rights#can_delete_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_delete_wiki"| method Wiki_types.wiki_rights#can_delete_wiki >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_delete_wikiboxes"| method Wikiperso.wikiperso_rights#can_delete_wikiboxes >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_delete_wikiboxes"| method Wiki.wiki_rights#can_delete_wikiboxes >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_delete_wikiboxes"| method Wiki_types.wiki_rights#can_delete_wikiboxes >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_edit_metadata"| method Wikiperso.wikiperso_rights#can_edit_metadata >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_edit_metadata"| method Wiki.wiki_rights#can_edit_metadata >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_edit_metadata"| method Wiki_types.wiki_rights#can_edit_metadata >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_read_wikibox"| method Wiki.wiki_rights#can_read_wikibox >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_read_wikibox"| method Wiki_types.wiki_rights#can_read_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_set_wiki_permissions"| method Wiki.wiki_rights#can_set_wiki_permissions >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_set_wiki_permissions"| method Wiki_types.wiki_rights#can_set_wiki_permissions >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_set_wikibox_specific_permissions"| method Wikiperso.wikiperso_rights#can_set_wikibox_specific_permissions >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_set_wikibox_specific_permissions"| method Wiki.wiki_rights#can_set_wikibox_specific_permissions >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_set_wikibox_specific_permissions"| method Wiki_types.wiki_rights#can_set_wikibox_specific_permissions >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_upload_files"| method Wiki.wiki_rights#can_upload_files >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_upload_files"| method Wiki_types.wiki_rights#can_upload_files >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_history"| method Wiki.wiki_rights#can_view_history >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_history"| method Wiki_types.wiki_rights#can_view_history >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_oldversions"| method Wiki.wiki_rights#can_view_oldversions >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_oldversions"| method Wiki_types.wiki_rights#can_view_oldversions >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_oldversions_src"| method Wiki.wiki_rights#can_view_oldversions_src >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_oldversions_src"| method Wiki_types.wiki_rights#can_view_oldversions_src >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_src"| method Wiki.wiki_rights#can_view_src >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_src"| method Wiki_types.wiki_rights#can_view_src >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_static_files"| method Wiki.wiki_rights#can_view_static_files >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_view_static_files"| method Wiki_types.wiki_rights#can_view_static_files >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_write_wikibox"| method Wikiperso.wikiperso_rights#can_write_wikibox >> ~[<<a_api | module Wikiperso >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_write_wikibox"| method Wiki.wiki_rights#can_write_wikibox >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="can_write_wikibox"| method Wiki_types.wiki_rights#can_write_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="css_header"| method Wiki_widgets.dynamic_wikibox#css_header >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="css_header"| method Wiki_widgets_interface.interactive_wikibox#css_header >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Returns the css headers for one wiki and optionally one page~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="css_wikibox_text"| method Wiki_widgets.dynamic_wikibox#css_wikibox_text >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\D|
+|@@class="odocwiki_index"@ @@<<a_api text="display"| method Forum_widgets.message_list_widget#display >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display"| method Forum_widgets.thread_widget#display >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display"| method Forum_widgets.message_widget#display >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display"| method Forum_widgets.add_message_widget#display >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_admin_line"| method Forum_widgets.message_widget#display_admin_line >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_all_forums"| method Forum_widgets.forum_widget#display_all_forums >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_all_wikis"| method Wiki_widgets.dynamic_wikibox#display_all_wikis >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_all_wikis"| method Wiki_widgets_interface.interactive_wikibox#display_all_wikis >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display of the list of all the wikis~, as well as of some links to edit
+        their properties
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_basic_box"| method Wiki_widgets.wikibox_aux#display_basic_box >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_basic_box"| method Wiki_widgets_interface.wikibox_aux#display_basic_box >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Displays some xhtml elements inside a ~<div~>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_comment_line"| method Forum_widgets.thread_widget#display_comment_line >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_container"| method Wiki_widgets.dynamic_wikibox#display_container >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_container"| method Wiki_widgets_interface.interactive_wikibox#display_container >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Adds the container of the wiki around some content~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_css_edit_form"| method Wiki_widgets.dynamic_wikibox#display_css_edit_form >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_css_edit_form"| method Wiki_widgets_interface.interactive_wikibox#display_css_edit_form >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Displays the edition form for the wikibox <<span class="odocwiki_inlinecode"|wbcss>>~, which is supposed
+       to contain a ~C~S~S~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_css_history"| method Wiki_widgets.dynamic_wikibox#display_css_history >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_css_history"| method Wiki_widgets_interface.interactive_wikibox#display_css_history >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display the history of the wikibox <<span class="odocwiki_inlinecode"|wb>>~, which is supposed to contain
+       a ~C~S~S~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_css_list"| method Wiki_widgets.dynamic_wikibox#display_edit_css_list >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wiki_metadata"| method Wiki_widgets.dynamic_wikibox#display_edit_wiki_metadata >> ~[<<a_api | module Wiki_widgets >>~]|<<div class="odocwiki_info"|~Form to edit the description and container of a wiki
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wiki_option_form"| method Wiki_widgets.dynamic_wikibox#display_edit_wiki_option_form >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wiki_perm_form"| method Wiki_widgets.dynamic_wikibox#display_edit_wiki_perm_form >> ~[<<a_api | module Wiki_widgets >>~]|<<div class="odocwiki_info"|~Form for the permissions of a wiki~; ~The <<span class="odocwiki_inlinecode"|wb>> argument is the wikibox
+      which will be overridden with an error message if the save fails
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wiki_perm_form"| method Wiki_widgets_interface.interactive_wikibox#display_edit_wiki_perm_form >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display a form permitting to edit the permissions of the given wiki~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wikibox_perm_form"| method Wiki_widgets.dynamic_wikibox#display_edit_wikibox_perm_form >> ~[<<a_api | module Wiki_widgets >>~]|<<div class="odocwiki_info"|~As usual~, the function supposes that the user has enough rights
+      to change the permissions~, as this will be checked by the service
+      ~(and the user should not have access to the page otherwise~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wikibox_perm_form"| method Wiki_widgets_interface.interactive_wikibox#display_edit_wikibox_perm_form >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display a form to edit the permissions of the given wikibox
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_edit_wikipage_properties"| method Wiki_widgets.dynamic_wikibox#display_edit_wikipage_properties >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_error_box"| method Wiki_widgets.wikibox_error_box#display_error_box >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_error_box"| method Widget.widget_with_error_box#display_error_box >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_frozen_wikibox"| method Wiki_widgets.frozen_wikibox#display_frozen_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_frozen_wikibox"| method Wiki_widgets_interface.frozen_wikibox#display_frozen_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_group"| method User_widgets.user_widget_class#display_group >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_group"| method User_widgets.user_widget#display_group >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_group_creation"| method User_widgets.user_widget_class#display_group_creation >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_group_creation"| method User_widgets.user_widget#display_group_creation >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_group_creation_done"| method User_widgets.user_widget_class#display_group_creation_done >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_group_creation_done"| method User_widgets.user_widget#display_group_creation_done >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_groups"| method User_widgets.user_widget_class#display_groups >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_groups"| method User_widgets.user_widget#display_groups >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_interactive_wikibox"| method Wiki_widgets.dynamic_wikibox#display_interactive_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_interactive_wikibox"| method Wiki_widgets_interface.interactive_wikibox#display_interactive_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Same as <<span class="odocwiki_inlinecode"|interactive~_wikibox~_aux>>~, except that the http error
+        code is not returned~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_interactive_wikibox_aux"| method Wiki_widgets.dynamic_wikibox#display_interactive_wikibox_aux >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_interactive_wikibox_aux"| method Wiki_widgets_interface.interactive_wikibox#display_interactive_wikibox_aux >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display the wikibox <<span class="odocwiki_inlinecode"|wb>> as an interactive wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_login_widget"| method User_widgets.user_widget_class#display_login_widget >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_login_widget"| method User_widgets.user_widget#display_login_widget >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_logout_box"| method User_widgets.user_widget_class#display_logout_box >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_logout_box"| method User_widgets.user_widget#display_logout_box >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_logout_button"| method User_widgets.user_widget_class#display_logout_button >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_logout_button"| method User_widgets.user_widget#display_logout_button >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_menu_box"| method Wiki_widgets.dynamic_wikibox#display_menu_box >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_menu_box"| method Wiki_widgets_interface.interactive_wikibox#display_menu_box >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Adds an interactive menu and a title on top of <<span class="odocwiki_inlinecode"|content>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_message"| method Forum_widgets.message_widget#display_message >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_message_list"| method Forum_widgets.message_list_widget#display_message_list >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_overriden_interactive_wikibox"| method Wiki_widgets.dynamic_wikibox#display_overriden_interactive_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_overriden_interactive_wikibox"| method Wiki_widgets_interface.interactive_wikibox#display_overriden_interactive_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display the wikibox <<span class="odocwiki_inlinecode"|wb~_loc>>~, but entirely overrides the content
+        according to the argument <<span class="odocwiki_inlinecode"|override>>~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_raw_wikiboxcontent"| method Wiki_widgets.wikibox_aux#display_raw_wikiboxcontent >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_raw_wikiboxcontent"| method Wiki_widgets_interface.wikibox_aux#display_raw_wikiboxcontent >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display a wikibox without pretty~-printing
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_roles"| method User_widgets.user_widget_class#display_roles >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_roles"| method User_widgets.user_widget#display_roles >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_splitted"| method Forum_widgets.thread_widget#display_splitted >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_thread"| method Forum_widgets.thread_widget#display_thread >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_thread_splitted"| method Forum_widgets.thread_widget#display_thread_splitted >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_user_creation"| method User_widgets.user_widget_user_creation_class#display_user_creation >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_user_creation"| method User_widgets.user_widget_user_creation#display_user_creation >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_user_creation_done"| method User_widgets.user_widget_user_creation_class#display_user_creation_done >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_user_creation_done"| method User_widgets.user_widget_user_creation#display_user_creation_done >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users"| method User_widgets.user_widget_class#display_users >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users"| method User_widgets.user_widget#display_users >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users_groups"| method User_widgets.user_widget#display_users_groups >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users_settings"| method User_widgets.user_widget_class#display_users_settings >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users_settings"| method User_widgets.user_widget#display_users_settings >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users_settings_done"| method User_widgets.user_widget_class#display_users_settings_done >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_users_settings_done"| method User_widgets.user_widget#display_users_settings_done >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikibox"| method Wiki_widgets.dynamic_wikibox#display_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikibox"| method Wiki_widgets_interface.interactive_wikibox#display_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikiboxcontent"| method Wiki_widgets.wikibox_aux#display_wikiboxcontent >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikiboxcontent"| method Wiki_widgets_interface.wikibox_aux#display_wikiboxcontent >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Pretty~-print the content of a wikibox
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikifile"| method Wiki_widgets.dynamic_wikibox#display_wikifile >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikifile"| method Wiki_widgets_interface.interactive_wikibox#display_wikifile >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Displaying of the content of an template wikipage~, with <<span class="odocwiki_inlinecode"|file>>
+        as subbox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikipage"| method Wiki_widgets.dynamic_wikibox#display_wikipage >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikipage"| method Wiki_widgets_interface.interactive_wikibox#display_wikipage >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Displaying of the content of an entire wikipage~, ie~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikipage_wikibox"| method Wiki_widgets.dynamic_wikibox#display_wikipage_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_edit_form"| method Wiki_widgets.dynamic_wikibox#display_wikitext_edit_form >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_edit_form"| method Wiki_widgets_interface.interactive_wikibox#display_wikitext_edit_form >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Displays the edition form for a wikibox <<span class="odocwiki_inlinecode"|wb>> containing wikitext~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_edit_form_help"| method Wiki_widgets.phrasing_wikibox#display_wikitext_edit_form_help >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_edit_form_help"| method Wiki_widgets.dynamic_wikibox#display_wikitext_edit_form_help >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_edit_form_help"| method Wiki_widgets_interface.interactive_wikibox#display_wikitext_edit_form_help >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Same as <<span class="odocwiki_inlinecode"|display~_wikitext~_edit~_form>>~, but with an help for the
+       syntax of the wiki
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_history"| method Wiki_widgets.dynamic_wikibox#display_wikitext_history >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="display_wikitext_history"| method Wiki_widgets_interface.interactive_wikibox#display_wikitext_history >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display the history of the wikibox <<span class="odocwiki_inlinecode"|wb>>~, which is supposed to contain
+       wikitext
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="draw_edit_form"| method Wiki_widgets.phrasing_wikibox#draw_edit_form >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="draw_edit_form"| method Wiki_widgets.dynamic_wikibox#draw_edit_form >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="draw_edit_form"| method Wiki_widgets_interface.interactive_wikibox#draw_edit_form >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Display edit form
+>>
+|
+|@@ @style="tet-align: left;"@@\\E|
+|@@class="odocwiki_index"@ @@<<a_api text="error_class"| method Widget.widget_with_error_box#error_class >> ~[<<a_api | module Widget >>~]||
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="form_edit_awr"| method User_widgets.user_widget_class#form_edit_awr >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="form_edit_awr"| method User_widgets.user_widget#form_edit_awr >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="form_edit_group"| method User_widgets.user_widget_class#form_edit_group >> ~[<<a_api | module User_widgets >>~]|<<div class="odocwiki_info"|~Form to add users to a group
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="form_edit_group"| method User_widgets.user_widget#form_edit_group >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="form_edit_user"| method User_widgets.user_widget_class#form_edit_user >> ~[<<a_api | module User_widgets >>~]|<<div class="odocwiki_info"|~Form to add an user to a group
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="form_edit_user"| method User_widgets.user_widget#form_edit_user >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\G|
+|@@class="odocwiki_index"@ @@<<a_api text="get_html_from_list"| method Forum_widgets.threads_list_widget#get_html_from_list >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_html_from_list"| method Forum_widgets.message_list_widget#get_html_from_list >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_message"| method Forum_widgets.message_widget#get_message >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_message_list"| method Forum_widgets.message_list_widget#get_message_list >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_roles_table"| method User_widgets.user_widget#get_roles_table >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="get_thread"| method Forum_widgets.thread_widget#get_thread >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\L|
+|@@class="odocwiki_index"@ @@<<a_api text="login_box_aux"| method User_widgets.user_widget#login_box_aux >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="login_box_extension"| method User_widgets.user_widget_user_creation_class#login_box_extension >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="login_box_extension"| method User_widgets.user_widget_class#login_box_extension >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="login_box_extension"| method User_widgets.user_widget_user_creation#login_box_extension >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="login_box_extension"| method User_widgets.user_widget#login_box_extension >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="logout_uri"| method User_widgets.user_widget_class#logout_uri >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="logout_uri"| method User_widgets.user_widget#logout_uri >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\M|
+|@@class="odocwiki_index"@ @@<<a_api text="menu_box_aux"| method Wiki_widgets.dynamic_wikibox#menu_box_aux >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_css_history"| method Wiki_widgets.dynamic_wikibox#menu_css_history >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_css"| method Wiki_widgets.dynamic_wikibox#menu_edit_css >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_css_list"| method Wiki_widgets.dynamic_wikibox#menu_edit_css_list >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_css_perms"| method Wiki_widgets.dynamic_wikibox#menu_edit_css_perms >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_wiki_options"| method Wiki_widgets.dynamic_wikibox#menu_edit_wiki_options >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_wikibox_perms"| method Wiki_widgets.dynamic_wikibox#menu_edit_wikibox_perms >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_wikipage_properties"| method Wiki_widgets.dynamic_wikibox#menu_edit_wikipage_properties >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_edit_wikitext"| method Wiki_widgets.dynamic_wikibox#menu_edit_wikitext >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_old_css"| method Wiki_widgets.dynamic_wikibox#menu_old_css >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_old_wikitext"| method Wiki_widgets.dynamic_wikibox#menu_old_wikitext >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_src_wikitext"| method Wiki_widgets.dynamic_wikibox#menu_src_wikitext >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_view"| method Wiki_widgets.dynamic_wikibox#menu_view >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_wikitext_history"| method Wiki_widgets.dynamic_wikibox#menu_wikitext_history >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="pretty_print_message"| method Forum_widgets.message_widget#pretty_print_message >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="pretty_print_message_list"| method Forum_widgets.message_list_widget#pretty_print_message_list >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="pretty_print_thread"| method Forum_widgets.thread_widget#pretty_print_thread >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\R|
+|@@class="odocwiki_index"@ @@<<a_api text="retrieve_data"| method Widget.parametrized_widget_t#retrieve_data >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="retrieve_data"| method Widget.parametrized_unit_div_widget#retrieve_data >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="retrieve_data"| method Widget.parametrized_unit_widget#retrieve_data >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="retrieve_data"| method Widget.parametrized_widget#retrieve_data >> ~[<<a_api | module Widget >>~]|<<div class="odocwiki_info"|~This method retrieves the parametrized~_widget~'s data~,
+     for example from an ~S~Q~L database~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\S|
+|@@class="odocwiki_index"@ @@<<a_api text="status_text"| method User_widgets.user_widget_class#status_text >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="status_text"| method User_widgets.user_widget#status_text >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="user_link"| method User_widgets.user_widget_class#user_link >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_link"| method User_widgets.user_widget#user_link >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="users_edit_table"| method User_widgets.user_widget#users_edit_table >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="users_title"| method User_widgets.user_widget#users_title >> ~[<<a_api | module User_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="users_to_html"| method User_widgets.user_widget#users_to_html >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="wrap_error"| method Wiki_widgets.wikibox_aux#wrap_error >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wrap_error"| method Wiki_widgets_interface.wikibox_aux#wrap_error >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~If error has is supposed to be displayed for the wikibox <<span class="odocwiki_inlinecode"|wb>>~,
+      displays this error and wraps it together with the xml argument in a
+      div tag~.
+>>
+|
+\\

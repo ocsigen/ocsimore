@@ -1,0 +1,6 @@
+=Module <<a_api_type | module Dyngroups >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|module>> <<span class="ocsforge_color_uid"|<<span class="ocsforge_color_uid"|Dyngroups>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="ocsforge_color_keyword"|sig>><<a_api text=".." | module Dyngroups >><<span class="ocsforge_color_keyword"|end>>>>~Creating dynamic groups if needed
+**Author(s):** Vincent Balat\\
+
+----
+<<pre id="VALaux" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|aux>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|<<span class="ocsforge_color_delimiter"| ( >>string * <<span class="ocsforge_color_uid"|Simplexmlparser>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|xml>><<span class="ocsforge_color_delimiter"| ) >> list <<span class="ocsforge_color_delimiter"| -> >> unit <<span class="ocsforge_color_uid"|Lwt>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|t>>>>>>

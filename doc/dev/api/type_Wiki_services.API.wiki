@@ -1,0 +1,21 @@
+<<code language="ocaml" | sig
+  val set_wikibox_content :
+    (unit,
+     (Wiki_types.wiki * string list option) *
+     ((Wiki_types.wikibox * string) * int32),
+     [< Eliom_service.service_method > `Post ],
+     [< Eliom_service.attached > `Nonattached ],
+     [< Eliom_service.service_kind > `NonattachedCoservice ],
+     [ `WithoutSuffix ], unit,
+     ([ `One of Wiki_types.wiki Eliom_parameter.ocaml ]
+      Eliom_parameter.param_name *
+      [ `One of string list option Eliom_parameter.ocaml ]
+      Eliom_parameter.param_name) *
+     (([ `One of Wiki_types.wikibox Eliom_parameter.ocaml ]
+       Eliom_parameter.param_name *
+       [ `One of string ] Eliom_parameter.param_name) *
+      [ `One of int32 ] Eliom_parameter.param_name),
+     [< Eliom_service.registrable > `Registrable ],
+     int32 Eliom_service.ocaml_service)
+    Eliom_service.service
+end >>

@@ -1,0 +1,28 @@
+<<code language="ocaml" | sig
+  exception Ok
+  exception Permission_denied
+  val get_action_failure : unit -> exn option Lwt.t
+  val set_action_failure : exn -> unit Lwt.t
+  val catch_action_failure :
+    ?f_exc:(exn -> exn) -> (unit -> unit Lwt.t) -> unit Lwt.t
+  exception Incorrect_argument
+  type 'a eliom_usertype =
+      ('a, [ `WithoutSuffix ], [ `One of 'a ] Eliom_parameter.param_name)
+      Eliom_parameter.params_type
+  val eliom_opaque_int32 :
+    string -> 'a Opaque.int32_t Ocsimore_common.eliom_usertype
+  val eliom_opaque_int32_opt :
+    string -> 'a Opaque.int32_t option Ocsimore_common.eliom_usertype
+  val input_opaque_int32 :
+    ?value:'a Opaque.int32_t ->
+    ?hidden:bool ->
+    [< 'a Opaque.int32_t Eliom_parameter.setoneradio ]
+    Eliom_parameter.param_name ->
+    [> Html5_types.input ] Eliom_content.Html5.F.elt
+  val input_opaque_int32_opt :
+    ?value:'a Opaque.int32_t option ->
+    ?hidden:bool ->
+    [< 'a Opaque.int32_t option Eliom_parameter.setoneradio ]
+    Eliom_parameter.param_name ->
+    [> Html5_types.input ] Eliom_content.Html5.F.elt
+end >>

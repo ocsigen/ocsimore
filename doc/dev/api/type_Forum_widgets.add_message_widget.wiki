@@ -1,0 +1,23 @@
+<<code language="ocaml" | ((unit, 'a, [< Eliom_service.post_service_kind ],
+  [< Eliom_service.attached ], [< Eliom_service.service_kind ],
+  [< Eliom_service.suff ], 'b,
+  [< string Eliom_parameter.setone ] Eliom_parameter.param_name *
+  (([< Forum_types.message Eliom_parameter.setoneradio ]
+    Eliom_parameter.param_name *
+    [< Forum_types.forum Eliom_parameter.setoneradio ]
+    Eliom_parameter.param_name) *
+   ([< string Eliom_parameter.setoneradio ] Eliom_parameter.param_name *
+    [< string Eliom_parameter.setoneradio ] Eliom_parameter.param_name)),
+  [< Eliom_service.registrable ], [< Eliom_service.non_ocaml_service ])
+ Eliom_service.service, 'c, 'd, 'e)
+Forum_types.forum_services ->
+object
+  val add_msg_class : string
+  method display :
+    ?forum:Forum_types.forum ->
+    ?parent:Forum_types.message ->
+    ?title:bool ->
+    ?rows:int ->
+    ?cols:int ->
+    unit -> [> Html5_types.form ] Eliom_content.Html5.F.elt Lwt.t
+end >>

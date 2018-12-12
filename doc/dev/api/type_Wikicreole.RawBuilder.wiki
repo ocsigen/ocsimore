@@ -1,0 +1,131 @@
+<<code language="ocaml" | sig
+  type href
+  type param
+  type phrasing_without_interactive
+  type phrasing
+  type flow
+  type flow_without_interactive
+  type uo_list
+  val chars : string -> Wikicreole.RawBuilder.phrasing_without_interactive
+  val strong_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val em_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val br_elem :
+    Wikicreole.attribs -> Wikicreole.RawBuilder.phrasing_without_interactive
+  val img_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.href ->
+    string -> Wikicreole.RawBuilder.phrasing_without_interactive
+  val tt_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val monospace_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val underlined_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val linethrough_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val subscripted_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val superscripted_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.phrasing_without_interactive
+  val nbsp : Wikicreole.RawBuilder.phrasing_without_interactive
+  val endash : Wikicreole.RawBuilder.phrasing_without_interactive
+  val emdash : Wikicreole.RawBuilder.phrasing_without_interactive
+  val a_elem_phrasing :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.href ->
+    Wikicreole.RawBuilder.phrasing_without_interactive list ->
+    Wikicreole.RawBuilder.phrasing
+  val a_elem_flow :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.href ->
+    Wikicreole.RawBuilder.flow_without_interactive list ->
+    Wikicreole.RawBuilder.flow
+  val make_href :
+    Wikicreole.RawBuilder.param ->
+    string -> string option -> Wikicreole.RawBuilder.href
+  val string_of_href : Wikicreole.RawBuilder.href -> string
+  val p_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val pre_elem :
+    Wikicreole.attribs ->
+    string list -> Wikicreole.RawBuilder.flow_without_interactive
+  val h1_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val h2_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val h3_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val h4_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val h5_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val h6_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.phrasing list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val section_elem :
+    Wikicreole.attribs ->
+    Wikicreole.RawBuilder.flow list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val ul_elem :
+    Wikicreole.attribs ->
+    (Wikicreole.RawBuilder.phrasing list *
+     Wikicreole.RawBuilder.uo_list option * Wikicreole.attribs)
+    list -> Wikicreole.RawBuilder.uo_list
+  val ol_elem :
+    Wikicreole.attribs ->
+    (Wikicreole.RawBuilder.phrasing list *
+     Wikicreole.RawBuilder.uo_list option * Wikicreole.attribs)
+    list -> Wikicreole.RawBuilder.uo_list
+  val dl_elem :
+    Wikicreole.attribs ->
+    (bool * Wikicreole.RawBuilder.phrasing list * Wikicreole.attribs) list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val hr_elem :
+    Wikicreole.attribs -> Wikicreole.RawBuilder.flow_without_interactive
+  val table_elem :
+    Wikicreole.attribs ->
+    ((bool * Wikicreole.attribs * Wikicreole.RawBuilder.phrasing list) list *
+     Wikicreole.attribs)
+    list -> Wikicreole.RawBuilder.flow_without_interactive
+  val phrasing :
+    Wikicreole.RawBuilder.phrasing_without_interactive ->
+    Wikicreole.RawBuilder.phrasing
+  val flow :
+    Wikicreole.RawBuilder.flow_without_interactive ->
+    Wikicreole.RawBuilder.flow
+  val list :
+    Wikicreole.RawBuilder.uo_list ->
+    Wikicreole.RawBuilder.flow_without_interactive
+  val error : string -> Wikicreole.RawBuilder.phrasing_without_interactive
+end >>

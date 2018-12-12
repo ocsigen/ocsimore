@@ -1,0 +1,85 @@
+<<code language="ocaml" | sig
+  type forum_arg = [ `Forum ]
+  type forum = Forum_types.forum_arg Opaque.int32_t
+  type message_arg = [ `Message ]
+  type message = Forum_types.message_arg Opaque.int32_t
+  val sql_of_message_option : Forum_types.message option -> int32 option
+  val message_of_sql_option : int32 option -> Forum_types.message option
+  val sql_of_message : Forum_types.message -> int32
+  val message_of_sql : int32 -> Forum_types.message
+  val sql_of_forum : Forum_types.forum -> int32
+  val forum_of_sql : int32 -> Forum_types.forum
+  val sql_of_forum_option : Forum_types.forum option -> int32 option
+  val forum_of_sql_option : int32 option -> Forum_types.forum option
+  val string_of_forum : Forum_types.forum -> string
+  val forum_of_string : string -> Forum_types.forum
+  val string_of_message : Forum_types.message -> string
+  val message_of_string : string -> Forum_types.message
+  type forum_info = {
+    f_id : Forum_types.forum;
+    f_title : string;
+    f_descr : string;
+    f_arborescent : bool;
+    f_deleted : bool;
+    f_title_syntax :
+      Html5_types.phrasing Eliom_content.Html5.F.elt list
+      Wiki_types.content_type;
+    f_messages_wiki : Wiki_types.wiki;
+    f_comments_wiki : Wiki_types.wiki;
+  }
+  type message_info = {
+    m_id : Forum_types.message;
+    m_creator_id : User_sql.Types.userid;
+    m_datetime : CalendarLib.Calendar.t;
+    m_parent_id : Forum_types.message option;
+    m_root_id : Forum_types.message;
+    m_forum : Forum_types.forum;
+    m_subject : Wiki_types.wikibox option;
+    m_wikibox : Wiki_types.wikibox;
+    m_moderated : bool;
+    m_has_special_rights : bool Lwt.t Lazy.t;
+    m_tree_min : int32;
+    m_tree_max : int32;
+  }
+  val get_forum_info :
+    < arborescent : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+                    Sql.t;
+      comments_wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                      Sql.t;
+      deleted : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t > Sql.t;
+      descr : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+      id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      messages_wiki : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                      Sql.t;
+      title : < get : unit; nul : Sql.non_nullable; t : Sql.string_t > Sql.t;
+      title_syntax : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+                     Sql.t > ->
+    Forum_types.forum_info
+  val get_message_info :
+    < creator_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                   Sql.t;
+      datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t >
+                 Sql.t;
+      forum_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                 Sql.t;
+      id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      moderated : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+                  Sql.t;
+      parent_id : < get : unit; nul : Sql.nullable; t : Sql.int32_t > Sql.t;
+      root_id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      special_rights : < get : unit; nul : Sql.non_nullable; t : Sql.bool_t >
+                       Sql.t;
+      subject : < get : unit; nul : Sql.nullable; t : Sql.int32_t > Sql.t;
+      tree_max : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                 Sql.t;
+      tree_min : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                 Sql.t;
+      wikibox : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t > ->
+    Forum_types.message_info
+  type ('a, 'b, 'c, 'd) forum_services = {
+    add_message_service : 'a;
+    moderate_message_service : 'b;
+    thread_feed_service : 'c;
+    forum_feed_service : 'd;
+  }
+end >>

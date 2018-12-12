@@ -1,0 +1,62 @@
+=Module <<a_api_type | module Wiki_ext >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|module>> <<span class="ocsforge_color_uid"|<<span class="ocsforge_color_uid"|Wiki_ext>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="ocsforge_color_keyword"|sig>><<a_api text=".." | module Wiki_ext >><<span class="ocsforge_color_keyword"|end>>>>~Provides a function to register the wikicreole extensions for wikis~.
+**Author(s):** Vincent Balat, Boris Yakobowski\\
+
+----
+
+~Provides a function to register the wikicreole extensions for wikis~.
+
+~Provides a function to register the wikicreole extensions for wikis~.
+
+~Provides a function to register the wikicreole extensions for wikis~.
+
+~Provides a function to register the wikicreole extensions for wikis~.
+
+~Provides a function to register the wikicreole extensions for wikis~.
+<<pre id="VAL(>|=)" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|~(~>~|~=~)>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|'a <<span class="ocsforge_color_uid"|Lwt>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|t>> <<span class="ocsforge_color_delimiter"| -> >> <<span class="ocsforge_color_delimiter"| ( >>'a <<span class="ocsforge_color_delimiter"| -> >> 'b<<span class="ocsforge_color_delimiter"| ) >> <<span class="ocsforge_color_delimiter"| -> >> 'b <<span class="ocsforge_color_uid"|Lwt>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|t>>>>>>
+~Provides a function to register the wikicreole extensions for wikis~.
+<<pre id="VALextract" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|extract>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|<<span class="ocsforge_color_delimiter"| ( >>'a * 'b<<span class="ocsforge_color_delimiter"| ) >> list <<span class="ocsforge_color_delimiter"| -> >> 'a <<span class="ocsforge_color_delimiter"| -> >> 'b <<span class="ocsforge_color_delimiter"| -> >> 'b>>>>
+~Provides a function to register the wikicreole extensions for wikis~.
+<<pre id="VALopt_list" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|opt~_list>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|'a list <<span class="ocsforge_color_delimiter"| -> >> 'a list option>>>>
+~Provides a function to register the wikicreole extensions for wikis~.
+<<pre id="VALfilter_raw" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|filter~_raw>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|'a option list <<span class="ocsforge_color_delimiter"| -> >> 'a list>>>>
+~Provides a function to register the wikicreole extensions for wikis~.
+<<pre id="VALextract_wiki_id" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|extract~_wiki~_id>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|\\  <<span class="ocsforge_color_delimiter"| ( >>string * string<<span class="ocsforge_color_delimiter"| ) >> list <<span class="ocsforge_color_delimiter"| -> >> <<a_api text="Wiki_types.wiki" | type Wiki_types.wiki >> <<span class="ocsforge_color_delimiter"| -> >> <<a_api text="Wiki_types.wiki" | type Wiki_types.wiki >>>>>><<pre id="VALextract_https" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|extract~_https>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|<<span class="ocsforge_color_delimiter"| ( >>string * string<<span class="ocsforge_color_delimiter"| ) >> list <<span class="ocsforge_color_delimiter"| -> >> bool option>>>>
+~Provides a function to register the wikicreole extensions for wikis~.
+<<pre id="VALregister_wikibox_syntax_extensions" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|register~_wikibox~_syntax~_extensions>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|\\  <<a_api text="Widget.widget_with_error_box" | class type Widget.widget_with_error_box >> <<span class="ocsforge_color_delimiter"| -> >> unit>>>><<div class="odocwiki_info"|~This function registers the following wiki extensions~:
+* <<span class="odocwiki_inlinecode"|~<~<wikibox~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<link~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<link~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<cancellink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<cancellink~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<object~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<img~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<switchmenu~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<outline~>~>>>
+
+>>
+
+~Provides a function to register the wikicreole extensions for wikis~.
+
+~This function registers the following wiki extensions~:
+* <<span class="odocwiki_inlinecode"|~<~<wikibox~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<link~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<link~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<cancellink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<cancellink~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<object~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<img~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<switchmenu~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<outline~>~>>>
+
+
+~Provides a function to register the wikicreole extensions for wikis~.
+
+~This function registers the following wiki extensions~:
+* <<span class="odocwiki_inlinecode"|~<~<wikibox~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<link~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<link~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<nonattachedlink~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<cancellink~>~>>>~, <<span class="odocwiki_inlinecode"|~<~<cancellink~-inline~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<object~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<img~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<switchmenu~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<outline~>~>>>
+

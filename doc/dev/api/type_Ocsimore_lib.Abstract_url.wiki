@@ -1,0 +1,11 @@
+<<code language="ocaml" | sig
+  type t
+  val create : string -> Ocsimore_lib.??.t
+  val empty : Ocsimore_lib.??.t
+  val to_list : Ocsimore_lib.??.t -> string list
+  val to_string : Ocsimore_lib.??.t -> string
+  val join : Ocsimore_lib.??.t -> Ocsimore_lib.??.t -> Ocsimore_lib.??.t
+  val length : Ocsimore_lib.??.t -> int
+  val last : Ocsimore_lib.??.t -> string
+  val split : Ocsimore_lib.??.t -> Ocsimore_lib.??.t list
+end >>

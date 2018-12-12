@@ -1,0 +1,66 @@
+<<code language="ocaml" | sig
+  type menu_link_service =
+      (Eliom_service.get_service_kind, Eliom_service.registrable,
+       Eliom_registration.non_ocaml_service)
+      Eliom_tools_common.one_page
+  val static_service :
+    (string list, unit, Eliom_service.get_service_kind,
+     Eliom_service.attached, Eliom_service.service_kind, [ `WithSuffix ],
+     [ `One of string list ] Eliom_parameter.param_name, unit,
+     [ `Registrable ], Eliom_registration.http_service)
+    Eliom_service.service
+  val static_file_uri : path:string list -> Eliom_content.Html5.F.uri
+  val admin_staticdir : string
+  module Header :
+    sig
+      type header
+      val create_header :
+        (unit -> Html5_types.head_content_fun Eliom_content.Html5.F.elt list) ->
+        Page_site.Header.header
+      val require_header : Page_site.Header.header -> unit Lwt.t
+      val generate_headers :
+        unit ->
+        Html5_types.head_content_fun Eliom_content.Html5.F.elt list Lwt.t
+    end
+  val add_admin_pages_header : unit -> unit Lwt.t
+  val add_onload_function : string -> unit Lwt.t
+  val html_page :
+    ?body_classes:Html5_types.nmtokens ->
+    ?css:Html5_types.link Eliom_content.Html5.F.elt list ->
+    ?title:string ->
+    ?heading:string ->
+    Html5_types.body_content Eliom_content.Html5.F.elt list ->
+    Eliom_content.Html5.F.html Lwt.t
+  val add_to_admin_menu :
+    name:string ->
+    links:(string * Page_site.menu_link_service * (unit -> bool Lwt.t)) list ->
+    root:Page_site.menu_link_service -> unit
+  val admin_page :
+    ?service:Page_site.menu_link_service ->
+    ?body_classes:string list ->
+    ?css:Html5_types.link Eliom_content.Html5.F.elt list ->
+    title:string ->
+    Html5_types.flow5 Eliom_content.Html5.F.elt list ->
+    Eliom_content.Html5.F.html Lwt.t
+  val body_to_div :
+    Html5_types.body_content Eliom_content.Html5.F.elt list ->
+    Html5_types.flow5 Eliom_content.Html5.F.elt list
+  val userid_permissions :
+    (User_sql.Types.userid -> bool Lwt.t) -> bool Lwt.t
+  val no_permission :
+    unit -> Html5_types.body_content Eliom_content.Html5.F.elt list Lwt.t
+  val admin_body_content_with_permission_handler :
+    title:('get_params -> 'post_params -> string Lwt.t) ->
+    ?service:('get_params ->
+              'post_params -> Page_site.menu_link_service Lwt.t) ->
+    permissions:('get_params -> 'post_params -> bool Lwt.t) ->
+    display:('get_params ->
+             'post_params ->
+             [< Html5_types.body_content ] Eliom_content.Html5.F.elt list
+             Lwt.t) ->
+    'get_params -> 'post_params -> Eliom_content.Html5.F.html Lwt.t
+  val icon :
+    path:string -> text:string -> [> `Img ] Eliom_content.Html5.F.elt
+  val add_status_function :
+    (unit -> Html5_types.flow5 Eliom_content.Html5.F.elt Lwt.t) -> unit
+end >>

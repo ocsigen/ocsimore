@@ -1,0 +1,11 @@
+<<code language="ocaml" | sig
+  type key
+  type 'a t
+  val empty :
+    (Ocsimore_lib.DefaultMap.key -> 'a) -> 'a Ocsimore_lib.DefaultMap.t
+  val find :
+    Ocsimore_lib.DefaultMap.key -> 'a Ocsimore_lib.DefaultMap.t -> 'a
+  val add :
+    Ocsimore_lib.DefaultMap.key ->
+    'a -> 'a Ocsimore_lib.DefaultMap.t -> 'a Ocsimore_lib.DefaultMap.t
+end >>

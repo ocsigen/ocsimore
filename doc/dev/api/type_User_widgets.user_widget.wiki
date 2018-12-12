@@ -1,0 +1,1 @@
+<<code language="ocaml" | User_widgets.user_widget_class >>

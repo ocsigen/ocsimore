@@ -1,0 +1,11 @@
+<<code language="ocaml" | object
+  method display_user_creation :
+    ?err:string -> unit -> Eliom_registration.Flow5.page Lwt.t
+  method display_user_creation_done :
+    name:string ->
+    fullname:string ->
+    email:string ->
+    pwd:string * string -> Eliom_registration.Flow5.page Lwt.t
+  method login_box_extension :
+    Html5_types.div_content_fun Eliom_content.Html5.F.elt list Lwt.t
+end >>

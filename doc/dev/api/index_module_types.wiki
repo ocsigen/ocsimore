@@ -1,0 +1,13 @@
+=Index of module types=
+
+|@@ @style="tet-align: left;"@@\\B|
+|@@class="odocwiki_index"@ @@<<a_api text="Builder"| module type Wikicreole.Builder >> ~[<<a_api | module Wikicreole >>~]||
+|@@ @style="tet-align: left;"@@\\D|
+|@@class="odocwiki_index"@ @@<<a_api text="DefaultMap"| module type Ocsimore_lib.DefaultMap >> ~[<<a_api | module Ocsimore_lib >>~]|<<div class="odocwiki_info"|~Association maps with default values ~(which thus never raise <<span class="odocwiki_inlinecode"|~Not~_found>>
+>>
+|
+|@@ @style="tet-align: left;"@@\\R|
+|@@class="odocwiki_index"@ @@<<a_api text="RawBuilder"| module type Wikicreole.RawBuilder >> ~[<<a_api | module Wikicreole >>~]||
+|@@ @style="tet-align: left;"@@\\X|
+|@@class="odocwiki_index"@ @@<<a_api text="Xform"| module type Xform.Xform >> ||
+\\

@@ -1,0 +1,177 @@
+=Index of types=
+
+|@@ @style="tet-align: left;"@@\\A|
+|@@class="odocwiki_index"@ @@<<a_api text="a"| type Wiki_widgets_interface.Json_css_wikibox.a >> ~[<<a_api | module Wiki_widgets_interface.Json_css_wikibox >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin_writer_reader"| type User_sql.Types.admin_writer_reader >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="admin_writer_reader_access"| type User.GenericRights.admin_writer_reader_access >> ~[<<a_api | module User.GenericRights >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="ancestors"| type Wiki_widgets_interface.Ancestors.ancestors >> ~[<<a_api | module Wiki_widgets_interface.Ancestors >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="attribs"| type Wikicreole.attribs >> ~[<<a_api | module Wikicreole >>~]|<<div class="odocwiki_info"|~Xml~-like attributes for the extension ~(eg val~=~'foo~'~)
+>>
+|
+|@@ @style="tet-align: left;"@@\\B|
+|@@class="odocwiki_index"@ @@<<a_api text="box_info"| type Wiki_widgets_interface.box_info >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="builder"| type Wikicreole.builder >> ~[<<a_api | module Wikicreole >>~]||
+|@@ @style="tet-align: left;"@@\\C|
+|@@class="odocwiki_index"@ @@<<a_api text="classes"| type Wiki_widgets_interface.classes >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="content_type"| type Wiki_types.content_type >> ~[<<a_api | module Wiki_types >>~]|<<div class="odocwiki_info"|~The parameter is the type of the content~,
+                         once translated to xhtml
+                         ~(usually flows or inlines~)
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="convert"| type Xform.convert >> ~[<<a_api | module Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="css_wikibox"| type Wiki_widgets_interface.css_wikibox >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="css_wikibox"| type Wiki_types.css_wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@ @style="tet-align: left;"@@\\D|
+|@@class="odocwiki_index"@ @@<<a_api text="db_t"| type Ocsi_sql.db_t >> ~[<<a_api | module Ocsi_sql >>~]||
+|@@ @style="tet-align: left;"@@\\E|
+|@@class="odocwiki_index"@ @@<<a_api text="eliom_usertype"| type Ocsimore_common.eliom_usertype >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="error"| type Xform.error >> ~[<<a_api | module Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="ext_wikicreole_parser"| type Wiki_syntax.ext_wikicreole_parser >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The abstract type for extensible parser~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="external_auth"| type User_external_auth.external_auth >> ~[<<a_api | module User_external_auth >>~]||
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="find_param"| type User_sql.Types.find_param >> ~[<<a_api | module User_sql.Types >>~]|<<div class="odocwiki_info"|~Description of the parameter of a paramaterized group
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="flow"| type Wikicreole.RawBuilder.flow >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="flow_without_interactive"| type Wikicreole.RawBuilder.flow_without_interactive >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="force_https"| type Wiki_syntax.force_https >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum"| type Forum_types.forum >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_action_info"| type Forum.forum_action_info >> ~[<<a_api | module Forum >>~]|<<div class="odocwiki_info"|~.~.~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="forum_arg"| type Forum_types.forum_arg >> ~[<<a_api | module Forum_types >>~]|<<div class="odocwiki_info"|~Semi~-abstract type for a forum
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="forum_info"| type Forum_types.forum_info >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="forum_services"| type Forum_types.forum_services >> ~[<<a_api | module Forum_types >>~]||
+|@@ @style="tet-align: left;"@@\\H|
+|@@class="odocwiki_index"@ @@<<a_api text="header"| type Page_site.Header.header >> ~[<<a_api | module Page_site.Header >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="href"| type Wiki_syntax.href >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="href"| type Wikicreole.RawBuilder.href >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@ @style="tet-align: left;"@@\\I|
+|@@class="odocwiki_index"@ @@<<a_api text="int32_t"| type Opaque.int32_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="int_t"| type Opaque.int_t >> ~[<<a_api | module Opaque >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="interactive_simple_plugin"| type Wiki_syntax.interactive_simple_plugin >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The type of extension that can be registred into both the
+    interactive and non~_interactive variant and of a parser~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="interactive_wiki_flow_pplugin"| type Wiki_syntax.interactive_wiki_flow_pplugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@ @style="tet-align: left;"@@\\K|
+|@@class="odocwiki_index"@ @@<<a_api text="key"| type Ocsimore_lib.DefaultMap.key >> ~[<<a_api | module Ocsimore_lib.DefaultMap >>~]||
+|@@ @style="tet-align: left;"@@\\L|
+|@@class="odocwiki_index"@ @@<<a_api text="link_kind"| type Wiki_syntax.link_kind >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~Type of wiki link~: <<span class="odocwiki_inlinecode"|~Wiki~_page ~(~None~, path~, ~_~)>> means the page of the currently display wiki at the given path~.~, <<span class="odocwiki_inlinecode"|~Wiki~_page ~(~Some wiki~, path~, ~_~)>> means a page in the providede wiki at the given path~.~, <<span class="odocwiki_inlinecode"|~Href path>> means a link relative to the the domain if starting with a ~'~/~' or relative to the current ~U~R~L
+      otherwise~.~, <<span class="odocwiki_inlinecode"|~Site path>> means a link relative the ~Ocsigen application site~.~, <<span class="odocwiki_inlinecode"|~Absolute>> means an absolute ~U~R~L ~(<<span class="odocwiki_inlinecode"|~<otherscheme~>~:href>>~)~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="link_plugin"| type Wiki_syntax.link_plugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="link_plugin_content"| type Wiki_syntax.link_plugin_content >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="link_simple_plugin"| type Wiki_syntax.link_simple_plugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="link_wiki_flow_pplugin"| type Wiki_syntax.link_wiki_flow_pplugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="link_wiki_phrasing_pplugin"| type Wiki_syntax.link_wiki_phrasing_pplugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@ @style="tet-align: left;"@@\\M|
+|@@class="odocwiki_index"@ @@<<a_api text="media_type"| type Wiki_types.media_type >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="media_type_elem"| type Wiki_types.media_type_elem >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu"| type Wiki_menu.menu >> ~[<<a_api | module Wiki_menu >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_item"| type Wiki_menu.menu_item >> ~[<<a_api | module Wiki_menu >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="menu_item"| type Wiki_widgets_interface.menu_item >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~The various tabs on top of an interactive wikibox
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="menu_link_service"| type Page_site.menu_link_service >> ~[<<a_api | module Page_site >>~]|<<div class="odocwiki_info"|~An alias for the services that are accepted in the admin menu~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="menu_style"| type Wiki_widgets_interface.menu_style >> ~[<<a_api | module Wiki_widgets_interface >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message"| type Forum_types.message >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_arg"| type Forum_types.message_arg >> ~[<<a_api | module Forum_types >>~]|<<div class="odocwiki_info"|~Semi~-abstract type for a message or comment
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="message_info"| type Forum_types.message_info >> ~[<<a_api | module Forum_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="messages"| type Language.messages >> ~[<<a_api | module Language >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="monad"| type Xform.Xform.monad >> ~[<<a_api | module Xform.Xform >>~]||
+|@@ @style="tet-align: left;"@@\\N|
+|@@class="odocwiki_index"@ @@<<a_api text="ni_plugin_content"| type Wiki_syntax.ni_plugin_content >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="non_interactive_simple_plugin"| type Wiki_syntax.non_interactive_simple_plugin >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The type of extension that can be registred into the interactive
+    variant of a parser~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="page_displayable"| type Wiki_widgets_interface.page_displayable >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Return code~, used for conditions of the form ~<~<cond http~_code~= ~>~>
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="param"| type Wikicreole.RawBuilder.param >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parameterized_group"| type User_sql.Types.parameterized_group >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="phrasing"| type Wikicreole.RawBuilder.phrasing >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="phrasing_without_interactive"| type Wikicreole.RawBuilder.phrasing_without_interactive >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="plugin"| type Wikicreole.plugin >> ~[<<a_api | module Wikicreole >>~]|<<div class="odocwiki_info"|>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="plugin_content"| type Wiki_syntax.plugin_content >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="plugin_content"| type Wikicreole.Builder.plugin_content >> ~[<<a_api | module Wikicreole.Builder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="plugin_resolver"| type Wikicreole.plugin_resolver >> ~[<<a_api | module Wikicreole >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="preparser"| type Wiki_syntax.preparser >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="pwd"| type User_sql.Types.pwd >> ~[<<a_api | module User_sql.Types >>~]||
+|@@ @style="tet-align: left;"@@\\R|
+|@@class="odocwiki_index"@ @@<<a_api text="raw_message"| type Forum_data.raw_message >> ~[<<a_api | module Forum_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="resolver"| type Wiki_dir.resolver >> ~[<<a_api | module Wiki_dir >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="rights"| type Wiki_data.rights >> ~[<<a_api | module Wiki_data >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="rights_aux"| type Wiki_types.rights_aux >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="role"| type Forum.role >> ~[<<a_api | module Forum >>~]||
+|@@ @style="tet-align: left;"@@\\S|
+|@@class="odocwiki_index"@ @@<<a_api text="service_href"| type Wiki_syntax.service_href >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="special_box"| type Wiki_widgets_interface.special_box >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Argument passed to the function building the interactive menu on top
+    of a wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="string_t"| type Opaque.string_t >> ~[<<a_api | module Opaque >>~]||
+|@@ @style="tet-align: left;"@@\\T|
+|@@class="odocwiki_index"@ @@<<a_api text="t"| type Xform.Xform.t >> ~[<<a_api | module Xform.Xform >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t"| type Ocsimore_lib.Abstract_url.t >> ~[<<a_api | module Ocsimore_lib.Abstract_url >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="t"| type Ocsimore_lib.DefaultMap.t >> ~[<<a_api | module Ocsimore_lib.DefaultMap >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="tree"| type Ocsimore_lib.tree >> ~[<<a_api | module Ocsimore_lib >>~]||
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="uo_list"| type Wikicreole.RawBuilder.uo_list >> ~[<<a_api | module Wikicreole.RawBuilder >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user"| type User_sql.Types.user >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_creation"| type User_services.user_creation >> ~[<<a_api | module User_services >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="user_creation"| type User_data.user_creation >> ~[<<a_api | module User_data >>~]|<<div class="odocwiki_info"|~Options for the creation of a new user
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="user_settings"| type User_sql.user_settings >> ~[<<a_api | module User_sql >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="userdata"| type User_sql.Types.userdata >> ~[<<a_api | module User_sql.Types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="userid"| type User_sql.Types.userid >> ~[<<a_api | module User_sql.Types >>~]|<<div class="odocwiki_info"|~The abstract type of user ids
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="users"| type User_sql.Types.users >> ~[<<a_api | module User_sql.Types >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki"| type Wiki_types.wiki >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_arg"| type Wiki_types.wiki_arg >> ~[<<a_api | module Wiki_types >>~]|<<div class="odocwiki_info"|~Semi~-abstract type for a wiki
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_flow_pplugin"| type Wiki_syntax.wiki_flow_pplugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_info"| type Wiki_types.wiki_info >> ~[<<a_api | module Wiki_types >>~]|<<div class="odocwiki_info"|~Fields for a wiki
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_model"| type Wiki_types.wiki_model >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_parser"| type Wiki_models.wiki_parser >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_phrasing_pplugin"| type Wiki_syntax.wiki_phrasing_pplugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_plugin"| type Wiki_syntax.wiki_plugin >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_preprocessor"| type Wiki_models.wiki_preprocessor >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_service"| type Wiki_syntax.wiki_service >> ~[<<a_api | module Wiki_syntax >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox"| type Wiki_types.wikibox >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_arg"| type Wiki_types.wikibox_arg >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_content"| type Wiki_types.wikibox_content >> ~[<<a_api | module Wiki_types >>~]|<<div class="odocwiki_info"|~Content of a wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_info"| type Wiki_types.wikibox_info >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_override"| type Wiki_widgets_interface.wikibox_override >> ~[<<a_api | module Wiki_widgets_interface >>~]|<<div class="odocwiki_info"|~Inductive type used by services to specify a special way to display a
+   wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikicreole_parser"| type Wiki_syntax.wikicreole_parser >> ~[<<a_api | module Wiki_syntax >>~]|<<div class="odocwiki_info"|~The abstract type of the objects able to parse wiki creole syntax~,
+    possibly with extensions~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="wikipage"| type Wiki_types.wikipage >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikipage_arg"| type Wiki_types.wikipage_arg >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikipage_info"| type Wiki_types.wikipage_info >> ~[<<a_api | module Wiki_types >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikipage_uid"| type Wiki_types.wikipage_uid >> ~[<<a_api | module Wiki_types >>~]||
+\\

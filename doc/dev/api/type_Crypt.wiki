@@ -1,0 +1,4 @@
+<<code language="ocaml" | sig
+  val crypt_passwd : string -> string Lwt.t
+  val check_passwd : passwd:string -> hash:string -> bool Lwt.t
+end >>
