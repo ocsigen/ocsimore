@@ -1,0 +1,37 @@
+=Index of classes=
+
+|@@ @style="tet-align: left;"@@\\A|
+|@@class="odocwiki_index"@ @@<<a_api text="add_message_widget"| class Forum_widgets.add_message_widget >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\D|
+|@@class="odocwiki_index"@ @@<<a_api text="dynamic_wikibox"| class Wiki_widgets.dynamic_wikibox >> ~[<<a_api | module Wiki_widgets >>~]|<<div class="odocwiki_info"|~Displaying of a wikibox with viewing and~/or editing rights~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\F|
+|@@class="odocwiki_index"@ @@<<a_api text="forum_widget"| class Forum_widgets.forum_widget >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="frozen_wikibox"| class Wiki_widgets.frozen_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\M|
+|@@class="odocwiki_index"@ @@<<a_api text="message_list_widget"| class Forum_widgets.message_list_widget >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="message_widget"| class Forum_widgets.message_widget >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_div_widget"| class Widget.parametrized_div_widget >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_unit_div_widget"| class Widget.parametrized_unit_div_widget >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_unit_widget"| class Widget.parametrized_unit_widget >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="parametrized_widget"| class Widget.parametrized_widget >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="phrasing_wikibox"| class Wiki_widgets.phrasing_wikibox >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\T|
+|@@class="odocwiki_index"@ @@<<a_api text="thread_widget"| class Forum_widgets.thread_widget >> ~[<<a_api | module Forum_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="threads_list_widget"| class Forum_widgets.threads_list_widget >> ~[<<a_api | module Forum_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="user_widget"| class User_widgets.user_widget >> ~[<<a_api | module User_widgets >>~]|<<div class="odocwiki_info"|~Widget for user login~/logout~/edition without addition of new users
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="user_widget_user_creation"| class User_widgets.user_widget_user_creation >> ~[<<a_api | module User_widgets >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="widget"| class Widget.widget >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="widget_with_error_box"| class Widget.widget_with_error_box >> ~[<<a_api | module Widget >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_rights"| class Forum.wiki_rights >> ~[<<a_api | module Forum >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wiki_rights"| class Wiki.wiki_rights >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_aux"| class Wiki_widgets.wikibox_aux >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikibox_error_box"| class Wiki_widgets.wikibox_error_box >> ~[<<a_api | module Wiki_widgets >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="wikiperso_rights"| class Wikiperso.wikiperso_rights >> ~[<<a_api | module Wikiperso >>~]||
+\\

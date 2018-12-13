@@ -1,0 +1,30 @@
+<<code language="ocaml" | sig
+  type admin_writer_reader_access = {
+    field :
+      'a.
+        'a User_sql.Types.admin_writer_reader ->
+        'a User_sql.Types.parameterized_group;
+  }
+  val grp_admin : User.GenericRights.admin_writer_reader_access
+  val grp_write : User.GenericRights.admin_writer_reader_access
+  val grp_read : User.GenericRights.admin_writer_reader_access
+  val map_awr :
+    (User.GenericRights.admin_writer_reader_access -> 'a) -> 'a * 'a * 'a
+  val map_awr_lwt :
+    (User.GenericRights.admin_writer_reader_access -> 'a Lwt.t) ->
+    ('a * 'a * 'a) Lwt.t
+  val iter_awr_lwt :
+    (User.GenericRights.admin_writer_reader_access -> unit Lwt.t) ->
+    unit Lwt.t
+  val create_admin_writer_reader :
+    prefix:string ->
+    name:string ->
+    descr:string ->
+    find_param:User_sql.Types.find_param ->
+    'a User_sql.Types.admin_writer_reader
+  val admin_writer_reader_groups :
+    'a User_sql.Types.admin_writer_reader ->
+    ('a Opaque.int32_t -> User_sql.Types.user) *
+    ('a Opaque.int32_t -> User_sql.Types.user) *
+    ('a Opaque.int32_t -> User_sql.Types.user)
+end >>

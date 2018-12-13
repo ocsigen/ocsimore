@@ -1,0 +1,2 @@
+<<code language="ocaml" | Widget.widget_with_error_box ->
+User_widgets.user_widget_class -> Wiki_widgets_interface.interactive_wikibox >>

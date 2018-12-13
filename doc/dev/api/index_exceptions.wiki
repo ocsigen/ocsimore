@@ -1,0 +1,51 @@
+=Index of exceptions=
+
+|@@ @style="tet-align: left;"@@\\B|
+|@@class="odocwiki_index"@ @@<<a_api text="BadPassword"| exception User.BadPassword >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="BadUser"| exception User.BadUser >> ~[<<a_api | module User >>~]||
+|@@ @style="tet-align: left;"@@\\C|
+|@@class="odocwiki_index"@ @@<<a_api text="ConnectionRefused"| exception User.ConnectionRefused >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Content_type_does_not_exist"| exception Wiki_models.Content_type_does_not_exist >> ~[<<a_api | module Wiki_models >>~]|<<div class="odocwiki_info"|~Table of wiki syntaxes~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Css_already_exists"| exception Wiki_data.Css_already_exists >> ~[<<a_api | module Wiki_data >>~]||
+|@@ @style="tet-align: left;"@@\\I|
+|@@class="odocwiki_index"@ @@<<a_api text="Incorrect_argument"| exception Ocsimore_common.Incorrect_argument >> ~[<<a_api | module Ocsimore_common >>~]|<<div class="odocwiki_info"|~Exception raised when a service is called with incorrect or
+    incoherent arguments
+>>
+|
+|@@ @style="tet-align: left;"@@\\N|
+|@@class="odocwiki_index"@ @@<<a_api text="No_admin_wiki"| exception Wiki.No_admin_wiki >> ~[<<a_api | module Wiki >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="NotAnUser"| exception User_sql.NotAnUser >> ~[<<a_api | module User_sql >>~]|<<div class="odocwiki_info"|~Exception raised when a string cannot be translated into a real user
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="NotBasicUser"| exception User_sql.NotBasicUser >> ~[<<a_api | module User_sql >>~]||
+|@@ @style="tet-align: left;"@@\\O|
+|@@class="odocwiki_index"@ @@<<a_api text="Ok"| exception Ocsimore_common.Ok >> ~[<<a_api | module Ocsimore_common >>~]||
+|@@ @style="tet-align: left;"@@\\P|
+|@@class="odocwiki_index"@ @@<<a_api text="Page_already_exists"| exception Wiki_data.Page_already_exists >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Exception raised when a wikipage already exists~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Permission_denied"| exception Ocsimore_common.Permission_denied >> ~[<<a_api | module Ocsimore_common >>~]|<<div class="odocwiki_info"|~Exception raised by modules when a function tries to read or write
+    data in the database without permission~.
+>>
+|
+|@@ @style="tet-align: left;"@@\\U|
+|@@class="odocwiki_index"@ @@<<a_api text="Undefined"| exception Wiki_dir.Undefined >> ~[<<a_api | module Wiki_dir >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="UnknownUser"| exception User.UnknownUser >> ~[<<a_api | module User >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Unknown_Css"| exception Wiki_sql.Unknown_Css >> ~[<<a_api | module Wiki_sql >>~]|<<div class="odocwiki_info"|~Exception raised when a ~C~S~S does not exists
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Unknown_box"| exception Wiki_data.Unknown_box >> ~[<<a_api | module Wiki_data >>~]|<<div class="odocwiki_info"|~Raised in case of a non~-existing wikibox~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="UseAuth"| exception User.UseAuth >> ~[<<a_api | module User >>~]||
+|@@ @style="tet-align: left;"@@\\W|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_already_registered_at_path"| exception Wiki.Wiki_already_registered_at_path >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|~An exception raised when we register two wikis at the same path~.
+>>
+|
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_model_does_not_exist"| exception Wiki_models.Wiki_model_does_not_exist >> ~[<<a_api | module Wiki_models >>~]||
+|@@class="odocwiki_index"@ @@<<a_api text="Wiki_with_same_title"| exception Wiki.Wiki_with_same_title >> ~[<<a_api | module Wiki >>~]|<<div class="odocwiki_info"|~Same thing with two wikis of the same name~.
+>>
+|
+\\

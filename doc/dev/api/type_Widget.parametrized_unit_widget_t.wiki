@@ -1,0 +1,1 @@
+<<code language="ocaml" | ['param_type, unit, 'result_type] Widget.parametrized_widget_t >>

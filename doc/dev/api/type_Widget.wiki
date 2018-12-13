@@ -1,0 +1,53 @@
+<<code language="ocaml" | sig
+  class widget : object  end
+  class widget_with_error_box :
+    object
+      method bind_or_display_error :
+        'data Lwt.t ->
+        ('data ->
+         (Html5_types.nmtoken list *
+          ([> Html5_types.p ] as 'a) Eliom_content.Html5.F.elt list)
+         Lwt.t) ->
+        (Html5_types.nmtoken list * 'a Eliom_content.Html5.F.elt list) Lwt.t
+      method display_error_box :
+        ?classes:string list ->
+        ?message:string ->
+        ?exc:exn -> unit -> [> `P ] Eliom_content.Html5.F.elt
+      method error_class : string
+    end
+  class type ['param_type, 'data_type, 'result_type] parametrized_widget_t =
+    object
+      method apply : data:'param_type -> 'result_type
+      method private retrieve_data : 'param_type -> 'data_type Lwt.t
+    end
+  class virtual ['param_type, 'data_type, 'result_type] parametrized_widget :
+    object
+      method virtual apply : data:'param_type -> 'result_type
+      method private virtual retrieve_data : 'param_type -> 'data_type Lwt.t
+    end
+  class virtual ['param_type, 'data_type] parametrized_div_widget :
+    object
+      method virtual apply :
+        data:'param_type -> [ `Div ] Eliom_content.Html5.F.elt Lwt.t
+      method private virtual retrieve_data : 'param_type -> 'data_type Lwt.t
+    end
+  class type ['param_type, 'data_type] parametrized_div_widget_t =
+    ['param_type, 'data_type, [ `Div ] Eliom_content.Html5.F.elt Lwt.t]
+    parametrized_widget_t
+  class virtual ['param_type, 'result_type] parametrized_unit_widget :
+    object
+      method virtual apply : data:'param_type -> 'result_type
+      method private retrieve_data : 'param_type -> unit Lwt.t
+    end
+  class type ['param_type, 'result_type] parametrized_unit_widget_t =
+    ['param_type, unit, 'result_type] parametrized_widget_t
+  class virtual ['param_type] parametrized_unit_div_widget :
+    object
+      method virtual apply :
+        data:'param_type -> [ `Div ] Eliom_content.Html5.F.elt Lwt.t
+      method private retrieve_data : 'param_type -> unit Lwt.t
+    end
+  class type ['param_type] parametrized_unit_div_widget_t =
+    ['param_type, unit, [ `Div ] Eliom_content.Html5.F.elt Lwt.t]
+    parametrized_widget_t
+end >>

@@ -1,0 +1,62 @@
+<<code language="ocaml" | sig
+  type userid = [ `User ] Opaque.int32_t
+  val userid_from_sql : int32 -> User_sql.Types.userid
+  val sql_from_userid : User_sql.Types.userid -> int32
+  val string_from_userid : User_sql.Types.userid -> string
+  type pwd =
+      Connect_forbidden
+    | Ocsimore_user_plain of string
+    | Ocsimore_user_crypt of string
+    | Ocsimore_user_safe of Bcrypt.hash_t
+    | External_Auth
+  type find_param = {
+    param_description : string;
+    param_get :
+      unit ->
+      < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+        title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+      list Lwt.t;
+    param_display : (int32 -> string Lwt.t) option;
+    find_param_functions :
+      ((string -> int32 Lwt.t) * (int32 -> string Lwt.t)) option;
+  }
+  type userdata = {
+    user_id : User_sql.Types.userid;
+    user_login : string;
+    user_pwd : User_sql.Types.pwd;
+    user_fullname : string;
+    user_email : string option;
+    user_dyn : bool;
+    user_kind :
+      [ `BasicUser
+      | `NonParameterizedGroup
+      | `ParameterizedGroup of User_sql.Types.find_param option ];
+  }
+  type 'a parameterized_group
+  val parameterized_group_from_userid :
+    User_sql.Types.userid -> 'a User_sql.Types.parameterized_group
+  type user
+  val apply_parameterized_group :
+    'a User_sql.Types.parameterized_group ->
+    'a Opaque.int32_t -> User_sql.Types.user
+  val ( $ ) :
+    'a User_sql.Types.parameterized_group ->
+    'a Opaque.int32_t -> User_sql.Types.user
+  val basic_user : User_sql.Types.userid -> User_sql.Types.user
+  val non_parameterized_group : User_sql.Types.userid -> User_sql.Types.user
+  val userid_from_user : User_sql.Types.user -> User_sql.Types.userid
+  val is_basic_user : User_sql.Types.user -> User_sql.Types.userid option
+  val user_is_applied_parameterized_group :
+    user:User_sql.Types.user ->
+    pgroup:'a User_sql.Types.parameterized_group -> 'a Opaque.int32_t option
+  type 'a admin_writer_reader = {
+    grp_admin : 'a User_sql.Types.parameterized_group;
+    grp_writer : 'a User_sql.Types.parameterized_group;
+    grp_reader : 'a User_sql.Types.parameterized_group;
+  }
+  type users = {
+    users : User_sql.Types.userdata list Lazy.t;
+    groups : User_sql.Types.userdata list Lazy.t;
+    roles : User_sql.Types.userdata list Lazy.t;
+  }
+end >>

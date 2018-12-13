@@ -1,0 +1,12 @@
+<<code language="ocaml" | sig
+  val ( @@ ) :
+    ('elt, 'o1) Xform.Xform.t ->
+    ('elt, 'o2) Xform.Xform.t -> ('elt, 'o1 * 'o2) Xform.Xform.t
+  val ( +@ ) : ('a, 'b) Xform.Xform.t -> 'a list -> ('a, 'b) Xform.Xform.t
+  val ( @+ ) : 'a list -> ('a, 'b) Xform.Xform.t -> ('a, 'b) Xform.Xform.t
+  val ( |> ) :
+    ('html, 'o1) Xform.Xform.t -> ('o1 -> 'o2) -> ('html, 'o2) Xform.Xform.t
+  val ( ||> ) :
+    ('html, 'o1) Xform.Xform.t ->
+    ('o1 -> 'o2 Xform.Xform.monad) -> ('html, 'o2) Xform.Xform.t
+end >>

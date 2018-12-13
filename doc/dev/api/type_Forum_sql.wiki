@@ -1,0 +1,63 @@
+<<code language="ocaml" | sig
+  val new_forum :
+    title:string ->
+    descr:string ->
+    ?arborescent:bool ->
+    title_syntax:'res Wiki_types.content_type ->
+    messages_wiki:Wiki_types.wiki ->
+    comments_wiki:Wiki_types.wiki -> unit -> Forum_types.forum Lwt.t
+  val update_forum :
+    ?title:string ->
+    ?descr:string ->
+    ?arborescent:bool ->
+    ?title_syntax:'res Wiki_types.content_type ->
+    ?messages_wiki:Wiki_types.wiki ->
+    ?comments_wiki:Wiki_types.wiki -> Forum_types.forum -> unit Lwt.t
+  val new_message :
+    forum:Forum_types.forum ->
+    wiki:Wiki_types.wiki ->
+    creator_id:User_sql.Types.userid ->
+    title_syntax:'res Wiki_types.content_type ->
+    ?subject:string ->
+    ?parent_id:Forum_types.message ->
+    ?moderated:bool -> text:string -> Forum_types.message Lwt.t
+  val set_moderated :
+    message_id:Forum_types.message -> moderated:bool -> unit Lwt.t
+  val get_forum :
+    ?not_deleted_only:bool ->
+    forum:Forum_types.forum -> unit -> Forum_types.forum_info Lwt.t
+  val forum_exists : title:string -> unit -> bool Lwt.t
+  val get_forums_list :
+    ?not_deleted_only:bool -> unit -> Forum_types.forum_info list Lwt.t
+  val get_message :
+    message_id:Forum_types.message -> unit -> Forum_types.message_info Lwt.t
+  val get_thread :
+    message_id:Forum_types.message ->
+    unit -> Forum_types.message_info list Lwt.t
+  val get_childs :
+    message_id:Forum_types.message ->
+    unit -> Forum_types.message_info list Lwt.t
+  val get_message_list :
+    forum:Forum_types.forum ->
+    first:int64 ->
+    number:int64 ->
+    moderated_only:bool -> unit -> Forum_types.message_info list Lwt.t
+  val get_wikibox_creator :
+    wb:Wiki_types.wikibox -> User_sql.Types.userid option Lwt.t
+  val wikibox_is_moderated : wb:Wiki_types.wikibox -> bool Lwt.t
+  val get_forums_id :
+    unit ->
+    < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+    list Lwt.t
+  val get_forums_wiki_id :
+    unit ->
+    < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+    list Lwt.t
+  val get_forum_messages_id :
+    unit ->
+    < id : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      title : < get : unit; nul : Sql.nullable; t : Sql.string_t > Sql.t >
+    list Lwt.t
+end >>

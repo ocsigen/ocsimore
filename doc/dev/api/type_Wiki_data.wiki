@@ -1,0 +1,106 @@
+<<code language="ocaml" | sig
+  exception Page_already_exists of Wiki_types.wikibox
+  exception Css_already_exists
+  type 'a rights = rights:Wiki_types.wiki_rights -> 'a
+  val create_wiki :
+    (title:string ->
+     descr:string ->
+     ?path:string list ->
+     ?staticdir:string ->
+     ?boxrights:bool ->
+     admins:User_sql.Types.user list ->
+     readers:User_sql.Types.user list ->
+     ?container_text:string ->
+     model:Wiki_types.wiki_model -> unit -> Wiki_types.wiki Lwt.t)
+    Wiki_data.rights
+  val new_wikitextbox :
+    ?db:Ocsi_sql.db_t ->
+    ?have_rights:bool ->
+    (content_type:'res Wiki_types.content_type ->
+     wiki:Wiki_types.wiki ->
+     author:User_sql.Types.userid ->
+     comment:string -> content:string -> unit -> Wiki_types.wikibox Lwt.t)
+    Wiki_data.rights
+  val save_wikitextbox :
+    old_version:int32 ->
+    (content_type:'res Wiki_types.content_type ->
+     wb:Wiki_types.wikibox -> content:string option -> int32 Lwt.t)
+    Wiki_data.rights
+  val save_wikicssbox :
+    old_version:int32 ->
+    (wiki:Wiki_types.wiki ->
+     content:string option -> wb:Wiki_types.wikibox -> int32 Lwt.t)
+    Wiki_data.rights
+  val save_wikipagecssbox :
+    old_version:int32 ->
+    (wiki:Wiki_types.wiki ->
+     page:string ->
+     content:string option -> wb:Wiki_types.wikibox -> int32 Lwt.t)
+    Wiki_data.rights
+  val set_wikibox_special_rights :
+    (wb:Wiki_types.wikibox -> special_rights:bool -> unit Lwt.t)
+    Wiki_data.rights
+  val create_wikipage :
+    (wiki:Wiki_types.wiki -> page:string -> unit Lwt.t) Wiki_data.rights
+  val add_css :
+    (wiki:Wiki_types.wiki ->
+     page:string option ->
+     media:Wiki_types.media_type ->
+     ?wbcss:Wiki_types.wikibox -> unit -> Wiki_types.wikibox Lwt.t)
+    Wiki_data.rights
+  val delete_css :
+    (wiki:Wiki_types.wiki ->
+     page:string option -> wb:Wiki_types.wikibox -> unit Lwt.t)
+    Wiki_data.rights
+  val update_css :
+    (wiki:Wiki_types.wiki ->
+     page:string option ->
+     oldwb:Wiki_types.wikibox ->
+     newwb:Wiki_types.wikibox ->
+     media:Wiki_types.media_type -> rank:int32 -> unit Lwt.t)
+    Wiki_data.rights
+  exception Unknown_box of Wiki_types.wikibox * int32 option
+  val wikibox_content :
+    (?version:int32 ->
+     Wiki_types.wikibox -> 'res Wiki_types.wikibox_content Lwt.t)
+    Wiki_data.rights
+  val wikibox_content' :
+    (?version:int32 -> Wiki_types.wikibox -> (string option * int32) Lwt.t)
+    Wiki_data.rights
+  val wikibox_history :
+    (wb:Wiki_types.wikibox ->
+     < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+       comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+                 Sql.t;
+       datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t >
+                  Sql.t;
+       version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t >
+                 Sql.t >
+     list Lwt.t)
+    Wiki_data.rights
+  val wiki_css_boxes_with_content :
+    (wiki:Wiki_types.wiki ->
+     (Wiki_types.wikibox * int32) list ->
+     (Wiki_types.wikibox * string) list Lwt.t)
+    Wiki_data.rights
+  val wikipage_css_boxes_with_content :
+    (wiki:Wiki_types.wiki ->
+     page:string ->
+     (Wiki_types.wikibox * int32) list ->
+     (Wiki_types.wikibox * string) list Lwt.t)
+    Wiki_data.rights
+  val update_wiki :
+    (?container:Wiki_types.wikibox option ->
+     ?staticdir:string option ->
+     ?path:string option ->
+     ?descr:string ->
+     ?boxrights:bool ->
+     ?model:Wiki_types.wiki_model ->
+     ?siteid:string option -> Wiki_types.wiki -> unit Lwt.t)
+    Wiki_data.rights
+  val save_wikipage_properties :
+    (?title:string ->
+     ?wb:Wiki_types.wikibox option ->
+     ?newpage:string -> Wiki_types.wikipage -> unit Lwt.t)
+    Wiki_data.rights
+end >>

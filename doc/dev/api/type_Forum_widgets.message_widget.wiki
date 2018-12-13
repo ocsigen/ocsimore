@@ -1,0 +1,47 @@
+<<code language="ocaml" | Widget.widget_with_error_box ->
+Wiki_widgets_interface.interactive_wikibox ->
+Wiki_widgets_interface.interactive_wikibox ->
+('a,
+ (unit, 'b, [< Eliom_service.post_service_kind ],
+  [< Eliom_service.attached ], [< Eliom_service.service_kind ],
+  [< Eliom_service.suff ], 'c,
+  [< Forum_types.message Eliom_parameter.setone ] Eliom_parameter.param_name,
+  [< Eliom_service.registrable ], [< Eliom_service.non_ocaml_service ])
+ Eliom_service.service, 'd, 'e)
+Forum_types.forum_services ->
+object
+  val info_class : string
+  val msg_class : Html5_types.nmtoken
+  val not_moderated_class : Html5_types.nmtoken
+  method a_level :
+    int ->
+    [< Html5_types.div_attrib > `Class `Style_Attr ]
+    Eliom_content.Html5.F.attrib
+  method atom_childs : message:Forum_types.message -> Atom_feed.feed Lwt.t
+  method atom_entries :
+    Forum_types.message_info list -> Atom_feed.entry list Lwt.t
+  method atom_entry : Forum_types.message_info -> Atom_feed.entry Lwt.t
+  method display :
+    ?classes:Html5_types.nmtoken list ->
+    data:Forum_types.message ->
+    unit -> [> Html5_types.div ] Eliom_content.Html5.F.elt Lwt.t
+  method display_admin_line :
+    role:Forum.role ->
+    Forum_types.message_info ->
+    Html5_types.flow5_without_header_footer Eliom_content.Html5.F.elt list
+    Lwt.t
+  method display_message :
+    ?level:int ->
+    classes:Html5_types.nmtoken list ->
+    Html5_types.flow5 Eliom_content.Html5.F.elt
+    Eliom_content.Html5.F.list_wrap ->
+    [> Html5_types.div ] Eliom_content.Html5.F.elt Lwt.t
+  method get_message :
+    message_id:Forum_types.message -> Forum_types.message_info Lwt.t
+  method pretty_print_message :
+    classes:Html5_types.nmtoken list ->
+    Forum_types.message_info ->
+    (Html5_types.nmtoken list *
+     Html5_types.flow5_without_header_footer Eliom_content.Html5.F.elt list)
+    Lwt.t
+end >>

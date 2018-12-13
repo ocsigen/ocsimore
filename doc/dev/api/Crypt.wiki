@@ -1,0 +1,10 @@
+=Module <<a_api_type | module Crypt >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|module>> <<span class="ocsforge_color_uid"|<<span class="ocsforge_color_uid"|Crypt>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="ocsforge_color_keyword"|sig>><<a_api text=".." | module Crypt >><<span class="ocsforge_color_keyword"|end>>>><<span class="odocwiki_inlinecode"|crypt~_passwd passwd>> encrypts <<span class="odocwiki_inlinecode"|passwd>> using the crypt~(~3~) function~.
+    ~The salt is automatically randomly chosen
+
+----
+<<pre id="VALcrypt_passwd" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|crypt~_passwd>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|string <<span class="ocsforge_color_delimiter"| -> >> string <<span class="ocsforge_color_uid"|Lwt>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|t>>>>>><<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|crypt~_passwd passwd>> encrypts <<span class="odocwiki_inlinecode"|passwd>> using the crypt~(~3~) function~.
+    ~The salt is automatically randomly chosen
+>>
+<<pre id="VALcheck_passwd" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|check~_passwd>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|<<span class="ocsforge_color_label"| passwd: >>string <<span class="ocsforge_color_delimiter"| -> >> <<span class="ocsforge_color_label"| hash: >>string <<span class="ocsforge_color_delimiter"| -> >> bool <<span class="ocsforge_color_uid"|Lwt>><<span class="ocsforge_color_delimiter"| . >><<span class="ocsforge_color_lid"|t>>>>>><<div class="odocwiki_info"|<<span class="odocwiki_inlinecode"|check~_passwd passwd hash>> checks whether <<span class="odocwiki_inlinecode"|hash>> is correct for <<span class="odocwiki_inlinecode"|passwd>>
+>>

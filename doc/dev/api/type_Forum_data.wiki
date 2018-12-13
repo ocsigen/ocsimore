@@ -1,0 +1,40 @@
+<<code language="ocaml" | sig
+  val new_forum :
+    title:string ->
+    descr:string ->
+    ?arborescent:bool ->
+    title_syntax:Html5_types.phrasing Eliom_content.Html5.F.elt list
+                 Wiki_types.content_type ->
+    messages_wiki:Wiki_types.wiki ->
+    comments_wiki:Wiki_types.wiki -> unit -> Forum_types.forum Lwt.t
+  val update_forum :
+    ?title:string ->
+    ?descr:string ->
+    ?arborescent:bool ->
+    ?title_syntax:'res Wiki_types.content_type ->
+    ?messages_wiki:Wiki_types.wiki ->
+    ?comments_wiki:Wiki_types.wiki -> Forum_types.forum -> unit Lwt.t
+  val new_message :
+    forum:Forum_types.forum ->
+    creator_id:User_sql.Types.userid ->
+    ?subject:string ->
+    ?parent_id:Forum_types.message ->
+    text:string -> unit -> Forum_types.message Lwt.t
+  val set_moderated :
+    message_id:Forum_types.message -> moderated:bool -> unit Lwt.t
+  val get_forum :
+    forum:Forum_types.forum -> unit -> Forum_types.forum_info Lwt.t
+  val get_forums_list : unit -> Forum_types.forum_info list Lwt.t
+  val get_message :
+    message_id:Forum_types.message -> Forum_types.message_info Lwt.t
+  val get_thread :
+    message_id:Forum_types.message -> Forum_types.message_info list Lwt.t
+  val get_childs :
+    message_id:Forum_types.message -> Forum_types.message_info list Lwt.t
+  type raw_message
+  val get_message_list :
+    forum:Forum_types.forum ->
+    first:int64 -> number:int64 -> unit -> Forum_data.raw_message list Lwt.t
+  val message_info_of_raw_message :
+    Forum_data.raw_message -> Forum_types.message_info Lwt.t
+end >>

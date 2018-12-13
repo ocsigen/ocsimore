@@ -1,0 +1,10 @@
+<<code language="ocaml" | sig
+  type ancestors
+  val no_ancestors : Wiki_widgets_interface.??.ancestors
+  val in_ancestors :
+    Wiki_types.wikibox -> Wiki_widgets_interface.??.ancestors -> bool
+  val add_ancestor :
+    Wiki_types.wikibox ->
+    Wiki_widgets_interface.??.ancestors ->
+    Wiki_widgets_interface.??.ancestors
+end >>

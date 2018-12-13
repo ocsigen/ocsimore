@@ -1,0 +1,3 @@
+=Module <<a_api_type | module HTML5outliner >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|module>> <<span class="ocsforge_color_uid"|<<span class="ocsforge_color_uid"|HTML5outliner>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="ocsforge_color_keyword"|sig>><<a_api text=".." | module HTML5outliner >><<span class="ocsforge_color_keyword"|end>>>>
+----

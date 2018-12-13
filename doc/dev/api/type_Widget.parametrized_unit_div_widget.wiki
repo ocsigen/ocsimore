@@ -1,0 +1,5 @@
+<<code language="ocaml" | object
+  method virtual apply :
+    data:'param_type -> [ `Div ] Eliom_content.Html5.F.elt Lwt.t
+  method private retrieve_data : 'param_type -> unit Lwt.t
+end >>

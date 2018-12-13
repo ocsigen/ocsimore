@@ -1,0 +1,198 @@
+<<code language="ocaml" | sig
+  type wiki_arg = [ `Wiki ]
+  module Json_wiki_arg :
+    sig
+      type a = wiki_arg
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  type wiki = Wiki_types.wiki_arg Opaque.int32_t
+  module Json_wiki :
+    sig
+      type a = wiki_arg Opaque.int32_t
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  val string_of_wiki : Wiki_types.wiki -> string
+  val wiki_of_string : string -> Wiki_types.wiki
+  val sql_of_wiki : Wiki_types.wiki -> int32
+  val wiki_of_sql : int32 -> Wiki_types.wiki
+  type wikibox_arg = [ `Wikibox ]
+  module Json_wikibox_arg :
+    sig
+      type a = wikibox_arg
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  type wikibox = Wiki_types.wikibox_arg Opaque.int32_t
+  module Json_wikibox :
+    sig
+      type a = wikibox_arg Opaque.int32_t
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  val sql_of_wikibox : Wiki_types.wikibox -> int32
+  val wikibox_of_sql : int32 -> Wiki_types.wikibox
+  val string_of_wikibox : Wiki_types.wikibox -> string
+  type wikipage = Wiki_types.wiki * string
+  module Json_wikipage :
+    sig
+      type a = wiki * string
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  type wikipage_arg = [ `Wikipage ]
+  module Json_wikipage_arg :
+    sig
+      type a = wikipage_arg
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  type wikipage_uid = Wiki_types.wikipage_arg Opaque.int32_t
+  module Json_wikipage_uid :
+    sig
+      type a = wikipage_arg Opaque.int32_t
+      val t : a Deriving_Json.t
+      val write : Buffer.t -> a -> unit
+      val read : Deriving_Json_lexer.lexbuf -> a
+      val to_string : a -> string
+      val from_string : string -> a
+      val match_variant : [ `Cst of int | `NCst of int ] -> bool
+      val read_variant :
+        Deriving_Json_lexer.lexbuf -> [ `Cst of int | `NCst of int ] -> a
+    end
+  type wiki_model
+  type +'a content_type
+  val string_of_wiki_model : Wiki_types.wiki_model -> string
+  val wiki_model_of_string : string -> Wiki_types.wiki_model
+  val string_of_content_type : 'a Wiki_types.content_type -> string
+  val content_type_of_string : string -> 'a Wiki_types.content_type
+  type wiki_info = {
+    wiki_id : Wiki_types.wiki;
+    wiki_title : string;
+    wiki_descr : string;
+    wiki_pages : string option;
+    wiki_boxrights : bool;
+    wiki_container : Wiki_types.wikibox option;
+    wiki_staticdir : string option;
+    wiki_model : Wiki_types.wiki_model;
+    wiki_siteid : string option;
+    wiki_deleted : bool;
+  }
+  type wikipage_info = {
+    wikipage_wiki : Wiki_types.wiki;
+    wikipage_wikibox : Wiki_types.wikibox;
+    wikipage_page : string;
+    wikipage_title : string option;
+    wikipage_uid : Wiki_types.wikipage_uid;
+  }
+  type wikibox_info = {
+    wikibox_wiki : Wiki_types.wiki;
+    wikibox_comment : string option;
+    wikibox_special_rights : bool;
+    wikibox_id : Wiki_types.wikibox;
+  }
+  type media_type_elem =
+      [ `All
+      | `Aural
+      | `Braille
+      | `Embossed
+      | `Handheld
+      | `Print
+      | `Projection
+      | `Screen
+      | `Speech
+      | `TTY
+      | `TV ]
+  type media_type = Wiki_types.media_type_elem list
+  val media_type_elem_of_string : string -> Wiki_types.media_type_elem option
+  val string_of_media_type_elem : Wiki_types.media_type_elem -> string
+  val media_type_of_string : string -> Wiki_types.media_type
+  val string_of_media_type : Wiki_types.media_type -> string
+  type css_wikibox = {
+    wikibox : Wiki_types.wikibox;
+    media : Wiki_types.media_type;
+    rank : int32;
+  }
+  type 'a rights_aux = 'a -> bool Lwt.t
+  class type wiki_rights =
+    object
+      method can_admin_wiki : Wiki_types.wiki Wiki_types.rights_aux
+      method can_admin_wikibox : Wiki_types.wikibox Wiki_types.rights_aux
+      method can_admin_wikipage : Wiki_types.wikipage Wiki_types.rights_aux
+      method can_create_subwikiboxes : Wiki_types.wiki Wiki_types.rights_aux
+      method can_create_wiki : unit Wiki_types.rights_aux
+      method can_create_wikiboxes : Wiki_types.wiki Wiki_types.rights_aux
+      method can_create_wikicss : Wiki_types.wiki Wiki_types.rights_aux
+      method can_create_wikipagecss :
+        Wiki_types.wikipage Wiki_types.rights_aux
+      method can_create_wikipages : Wiki_types.wiki Wiki_types.rights_aux
+      method can_delete_wiki : Wiki_types.wiki Wiki_types.rights_aux
+      method can_delete_wikiboxes : Wiki_types.wiki Wiki_types.rights_aux
+      method can_edit_metadata : Wiki_types.wiki Wiki_types.rights_aux
+      method can_read_wikibox : Wiki_types.wikibox Wiki_types.rights_aux
+      method can_set_wiki_permissions : Wiki_types.wiki Wiki_types.rights_aux
+      method can_set_wikibox_specific_permissions :
+        Wiki_types.wikibox Wiki_types.rights_aux
+      method can_upload_files : Wiki_types.wiki Wiki_types.rights_aux
+      method can_view_history : Wiki_types.wikibox Wiki_types.rights_aux
+      method can_view_oldversions : Wiki_types.wikibox Wiki_types.rights_aux
+      method can_view_oldversions_src :
+        Wiki_types.wikibox Wiki_types.rights_aux
+      method can_view_src : Wiki_types.wikibox Wiki_types.rights_aux
+      method can_view_static_files : Wiki_types.wiki Wiki_types.rights_aux
+      method can_write_wikibox : Wiki_types.wikibox Wiki_types.rights_aux
+    end
+  type 'a wikibox_content =
+      'a Wiki_types.content_type * string option * int32
+  val wikibox_data_of_raw :
+    (string * User_sql.Types.userid * string option *
+     CalendarLib.Calendar.t * string * int32)
+    option Lwt.t ->
+    (string * User_sql.Types.userid * string option *
+     CalendarLib.Calendar.t * 'a Wiki_types.content_type * int32)
+    option Lwt.t
+  val raw_of_wikibox_data :
+    (string * User_sql.Types.userid * string option *
+     CalendarLib.Calendar.t * 'a Wiki_types.content_type * int32)
+    option Lwt.t ->
+    (string * User_sql.Types.userid * string option *
+     CalendarLib.Calendar.t * string * int32)
+    option Lwt.t
+end >>

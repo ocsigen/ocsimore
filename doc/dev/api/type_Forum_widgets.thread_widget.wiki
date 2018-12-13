@@ -1,0 +1,63 @@
+<<code language="ocaml" | Widget.widget_with_error_box ->
+Forum_widgets.message_widget ->
+Forum_widgets.add_message_widget ->
+'a ->
+object
+  val comment_button_class : Html5_types.nmtoken
+  val comment_class : Html5_types.nmtoken
+  val comments_class : Html5_types.nmtoken
+  val main_msg_class : Html5_types.nmtoken
+  val thr_class : Html5_types.nmtoken
+  val thr_msg_class : string
+  method display :
+    ?commentable:bool ->
+    ?rows:int ->
+    ?cols:int ->
+    ?classes:string list ->
+    data:Forum_types.message ->
+    unit -> [> Html5_types.div ] Eliom_content.Html5.F.elt Lwt.t
+  method display_comment_line :
+    ?level:int ->
+    role:Forum.role ->
+    ?rows:int ->
+    ?cols:int ->
+    Forum_types.message_info ->
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Lwt.t
+  method display_splitted :
+    ?commentable:bool ->
+    ?rows:int ->
+    ?cols:int ->
+    ?classes:string list ->
+    data:Forum_types.message ->
+    unit ->
+    (Html5_types.div Eliom_content.Html5.F.elt *
+     Html5_types.div Eliom_content.Html5.F.elt)
+    Lwt.t
+  method display_thread :
+    classes:Html5_types.nmtoken list ->
+    Html5_types.flow5 Eliom_content.Html5.F.elt list *
+    Html5_types.flow5 Eliom_content.Html5.F.elt
+    Eliom_content.Html5.F.list_wrap ->
+    [> Html5_types.div ] Eliom_content.Html5.F.elt Lwt.t
+  method display_thread_splitted :
+    classes:Html5_types.nmtoken list ->
+    Html5_types.flow5 Eliom_content.Html5.F.elt list *
+    Html5_types.flow5 Eliom_content.Html5.F.elt
+    Eliom_content.Html5.F.list_wrap ->
+    (Html5_types.div Eliom_content.Html5.F.elt *
+     Html5_types.div Eliom_content.Html5.F.elt)
+    Lwt.t
+  method get_thread :
+    message_id:Forum_types.message -> Forum_types.message_info list Lwt.t
+  method pretty_print_thread :
+    classes:string list ->
+    commentable:bool ->
+    ?rows:int ->
+    ?cols:int ->
+    Forum_types.message_info list ->
+    (Html5_types.nmtoken list *
+     (Html5_types.flow5 Eliom_content.Html5.F.elt list *
+      Html5_types.flow5 Eliom_content.Html5.F.elt
+      Eliom_content.Html5.F.list_wrap))
+    Lwt.t
+end >>

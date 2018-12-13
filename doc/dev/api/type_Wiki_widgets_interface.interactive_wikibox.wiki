@@ -1,0 +1,279 @@
+<<code language="ocaml" | object
+  val frozen_wb_class : string
+  method css_header :
+    ?page:string ->
+    Wiki_types.wiki ->
+    [> Html5_types.link ] Eliom_content.Html5.F.elt list Lwt.t
+  method display_all_wikis :
+    deleted:bool ->
+    unit -> Html5_types.flow5 Eliom_content.Html5.F.elt list Lwt.t
+  method display_basic_box :
+    classes * [< Html5_types.div_content_fun ] Eliom_content.Html5.F.elt list ->
+    [> Html5_types.div ] Eliom_content.Html5.F.elt Lwt.t
+  method display_container :
+    wiki:Wiki_types.wiki ->
+    sectioning:bool ->
+    menu_style:Wiki_widgets_interface.menu_style ->
+    page:string * string list ->
+    gen_box:(sectioning:bool ->
+             Wiki_widgets_interface.menu_style ->
+             (Wiki_types.wikibox option *
+              [< Html5_types.flow5 ] Eliom_content.Html5.F.elt list *
+              Wiki_widgets_interface.page_displayable * string option)
+             Lwt.t) ->
+    (Html5_types.html Eliom_content.Html5.F.elt * int) Lwt.t
+  method display_css_edit_form :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    ?rows:int ->
+    ?cols:int ->
+    wb:Wiki_types.wikibox ->
+    wbcss:Wiki_types.wikibox ->
+    wikipage:Wiki_types.wiki * string option ->
+    string option * int32 ->
+    (Wiki_widgets_interface.classes *
+     [> Html5_types.form ] Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method display_css_history :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    wb:Wiki_types.wikibox ->
+    wbcss:Wiki_types.wikibox ->
+    wikipage:Wiki_types.wiki * string option ->
+    < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+                Sql.t;
+      datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t >
+                 Sql.t;
+      version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+    list ->
+    (Wiki_widgets_interface.classes *
+     [> `A of [> Html5_types.pcdata ] | `Br | `Em | `PCDATA ]
+     Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method display_edit_wiki_perm_form :
+    classes:string list ->
+    ?wb:Wiki_types.wikibox ->
+    Wiki_types.wiki ->
+    (Wiki_widgets_interface.classes *
+     [> `H2 | `P | `Table ] Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method display_edit_wikibox_perm_form :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    Wiki_types.wikibox ->
+    (Wiki_widgets_interface.classes *
+     [> `Form | `P | `PCDATA | `Table ] Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method display_frozen_wikibox :
+    bi:box_info ->
+    ?classes:string list ->
+    Wiki_types.wikibox ->
+    [> `A of Html5_types.flow5_without_interactive
+     | `Abbr
+     | `Address
+     | `Article
+     | `Aside
+     | `Audio of Html5_types.flow5_without_media
+     | `Audio_interactive of Html5_types.flow5_without_media
+     | `B
+     | `Bdo
+     | `Blockquote
+     | `Br
+     | `Button
+     | `Canvas of Html5_types.flow5
+     | `Cite
+     | `Code
+     | `Command
+     | `Datalist
+     | `Del of Html5_types.flow5
+     | `Details
+     | `Dfn
+     | `Div
+     | `Dl
+     | `Em
+     | `Embed
+     | `Fieldset
+     | `Figure
+     | `Footer
+     | `Form
+     | `H1
+     | `H2
+     | `H3
+     | `H4
+     | `H5
+     | `H6
+     | `Header
+     | `Hgroup
+     | `Hr
+     | `I
+     | `Iframe
+     | `Img
+     | `Img_interactive
+     | `Input
+     | `Ins of Html5_types.flow5
+     | `Kbd
+     | `Keygen
+     | `Label
+     | `Map of Html5_types.flow5
+     | `Mark
+     | `Menu
+     | `Meter
+     | `Nav
+     | `Noscript of Html5_types.flow5_without_noscript
+     | `Object of Html5_types.flow5
+     | `Object_interactive of Html5_types.flow5
+     | `Ol
+     | `Output
+     | `P
+     | `PCDATA
+     | `Pre
+     | `Progress
+     | `Q
+     | `Ruby
+     | `Samp
+     | `Script
+     | `Section
+     | `Select
+     | `Small
+     | `Span
+     | `Strong
+     | `Style
+     | `Sub
+     | `Sup
+     | `Svg
+     | `Table
+     | `Textarea
+     | `Time
+     | `U
+     | `Ul
+     | `Var
+     | `Video of Html5_types.flow5_without_media
+     | `Video_interactive of Html5_types.flow5_without_media
+     | `Wbr ]
+    Eliom_content.Html5.F.elt list Lwt.t
+  method display_interactive_wikibox :
+    bi:Wiki_widgets_interface.box_info ->
+    ?classes:string list ->
+    ?rows:int ->
+    ?cols:int ->
+    ?special_box:Wiki_widgets_interface.special_box ->
+    Wiki_types.wikibox ->
+    [> Html5_types.div ] Eliom_content.Html5.F.elt list Lwt.t
+  method display_interactive_wikibox_aux :
+    bi:Wiki_widgets_interface.box_info ->
+    ?classes:string list ->
+    ?rows:int ->
+    ?cols:int ->
+    ?special_box:Wiki_widgets_interface.special_box ->
+    Wiki_types.wikibox ->
+    ([> Html5_types.div ] Eliom_content.Html5.F.elt list * bool) Lwt.t
+  method display_menu_box :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    ?active_item:Wiki_widgets_interface.menu_item ->
+    ?special_box:Wiki_widgets_interface.special_box ->
+    ?title:string ->
+    wb:Wiki_types.wikibox ->
+    ([< Html5_types.div_content_fun > `Div ] as 'a) Eliom_content.Html5.F.elt
+    list -> 'a Eliom_content.Html5.F.elt list Lwt.t
+  method display_overriden_interactive_wikibox :
+    bi:Wiki_widgets_interface.box_info ->
+    ?classes:string list ->
+    ?rows:int ->
+    ?cols:int ->
+    ?special_box:Wiki_widgets_interface.special_box ->
+    wb_loc:Wiki_types.wikibox ->
+    override:Wiki_widgets_interface.wikibox_override ->
+    unit -> ([> `Div | `P ] Eliom_content.Html5.F.elt list * bool) Lwt.t
+  method display_raw_wikiboxcontent :
+    classes:classes ->
+    'a Eliom_content.Html5.F.elt list Wiki_types.wikibox_content ->
+    (classes * [> `Em | `Pre ] Eliom_content.Html5.F.elt list) Lwt.t
+  method display_wikibox :
+    wiki:Wiki_types.wiki ->
+    sectioning:bool ->
+    menu_style:Wiki_widgets_interface.menu_style ->
+    template:string ->
+    wb:Wiki_types.wikibox ->
+    (Html5_types.html Eliom_content.Html5.F.elt * int) Lwt.t
+  method display_wikiboxcontent :
+    bi:box_info ->
+    classes:classes ->
+    [< Html5_types.flow5 ] Eliom_content.Html5.F.elt list
+    Wiki_types.wikibox_content ->
+    (classes * [> Html5_types.flow5 ] Eliom_content.Html5.F.elt list) Lwt.t
+  method display_wikifile :
+    wiki:Wiki_types.wiki ->
+    sectioning:bool ->
+    menu_style:Wiki_widgets_interface.menu_style ->
+    template:string ->
+    file:Ocsigen_local_files.resolved ->
+    (Html5_types.html Eliom_content.Html5.F.elt * int) Lwt.t
+  method display_wikipage :
+    wiki:Wiki_types.wiki ->
+    sectioning:bool ->
+    menu_style:Wiki_widgets_interface.menu_style ->
+    page:string * string list ->
+    (Html5_types.html Eliom_content.Html5.F.elt * int) Lwt.t
+  method display_wikitext_edit_form :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    ?rows:int ->
+    ?cols:int ->
+    previewonly:bool ->
+    wb:Wiki_types.wikibox ->
+    string option * int32 ->
+    (Wiki_widgets_interface.classes *
+     [> Html5_types.form ] Eliom_content.Html5.F.elt)
+    Lwt.t
+  method display_wikitext_edit_form_help :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    ?rows:int ->
+    ?cols:int ->
+    previewonly:bool ->
+    wb:Wiki_types.wikibox ->
+    string option * int32 ->
+    (Wiki_widgets_interface.classes *
+     [> `Div | `Form ] Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method display_wikitext_history :
+    bi:Wiki_widgets_interface.box_info ->
+    classes:string list ->
+    wb:Wiki_types.wikibox ->
+    < author : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t;
+      comment : < get : unit; nul : Sql.non_nullable; t : Sql.string_t >
+                Sql.t;
+      datetime : < get : unit; nul : Sql.non_nullable; t : Sql.timestamp_t >
+                 Sql.t;
+      version : < get : unit; nul : Sql.non_nullable; t : Sql.int32_t > Sql.t >
+    list ->
+    (Wiki_widgets_interface.classes *
+     [> `A of [> Html5_types.pcdata ] | `Br | `Em | `PCDATA ]
+     Eliom_content.Html5.F.elt list)
+    Lwt.t
+  method draw_edit_form :
+    page:Wiki_types.wiki * string list option ->
+    rows:int ->
+    cols:int ->
+    Wiki_types.wikibox ->
+    Html5_types.phrasing Eliom_content.Html5.F.elt list ->
+    Html5_types.phrasing Eliom_content.Html5.F.elt list ->
+    Int32.t ->
+    string ->
+    bool ->
+    [ `One of string ] Eliom_parameter.param_name *
+    (([ `One of Wiki_types.wiki ] Eliom_parameter.param_name *
+      ([ `One of unit ] Eliom_parameter.param_name *
+       [ `One of string ] Eliom_parameter.param_name
+       Eliom_parameter.listnames)) *
+     (([ `One of Wiki_types.wikibox ] Eliom_parameter.param_name *
+       [ `One of int32 ] Eliom_parameter.param_name) *
+      [ `One of string ] Eliom_parameter.param_name)) ->
+    Html5_types.form_content Eliom_content.Html5.F.elt list
+  method wrap_error :
+    wb:Wiki_types.wikibox ->
+    ([< Html5_types.flow5 > `Div ] as 'b) Eliom_content.Html5.F.elt list ->
+    'b Eliom_content.Html5.F.elt list Lwt.t
+end >>

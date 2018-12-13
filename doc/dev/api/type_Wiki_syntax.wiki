@@ -1,0 +1,482 @@
+<<code language="ocaml" | sig
+  type 'res wikicreole_parser
+  type ('res, 'res_without_interactive, 'content_link) ext_wikicreole_parser
+  val cast_wp :
+    ('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser ->
+    'a Wiki_syntax.wikicreole_parser
+  val cast_niwp :
+    ('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser ->
+    'b Wiki_syntax.wikicreole_parser
+  type ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'service) wiki_service =
+      ('a, unit, 'c, 'd, 'e, 'f, 'b, unit, 'g, 'service)
+      Eliom_service.service
+    constraint 'c = [< Eliom_service.get_service_kind ]
+    constraint 'd = [< Eliom_service.attached ]
+    constraint 'e = [< Eliom_service.service_kind ]
+    constraint 'f = [< Eliom_service.suff ]
+    constraint 'g = [< Eliom_service.registrable ]
+    constraint 'service = [< Eliom_registration.non_ocaml_service ]
+  type service_href = Wiki_syntax_types.service_href
+  type href =
+    Wiki_syntax_types.href =
+      String_href of string
+    | Service_href of Wiki_syntax.service_href
+  val service_href :
+    ?fragment:string ->
+    ?https:bool ->
+    ('a, 'b, [< Eliom_service.get_service_kind ],
+     [< Eliom_service.attached ], [< Eliom_service.service_kind ],
+     [< Eliom_service.suff ], [< Eliom_service.registrable ],
+     [< Eliom_registration.non_ocaml_service ])
+    Wiki_syntax.wiki_service -> 'a -> Wiki_syntax.service_href
+  val a_link_of_href :
+    Wiki_syntax.service_href ->
+    ?a:Html5_types.a_attrib Eliom_content.Html5.F.attrib list ->
+    'a Eliom_content.Html5.F.elt list ->
+    [> 'a Html5_types.a ] Eliom_content.Html5.F.elt
+  val uri_of_href : Wiki_syntax.href -> Eliom_content.Html5.F.uri
+  type ('flow, 'flow_without_interactive, 'phrasing_without_interactive)
+       plugin_content =
+      [ `Flow5 of 'flow Eliom_content.Html5.F.elt list Lwt.t
+      | `Flow5_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'flow_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_without_interactive of
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t ]
+  type ('flow_without_interactive, 'phrasing_without_interactive)
+       ni_plugin_content =
+      [ `Flow5 of
+          'flow_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_without_interactive of
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t ]
+  type ('flow_without_interactive, 'phrasing_without_interactive)
+       link_plugin_content =
+      [ `Flow5_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'flow_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t ]
+  type ('flow, 'flow_without_interactive, 'phrasing_without_interactive)
+       interactive_simple_plugin =
+      (Wiki_widgets_interface.box_info,
+       ('flow, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.plugin_content)
+      Wikicreole.plugin
+  type ('flow_without_interactive, 'phrasing_without_interactive)
+       non_interactive_simple_plugin =
+      (Wiki_widgets_interface.box_info,
+       ('flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ni_plugin_content)
+      Wikicreole.plugin
+  type preparser =
+      Wiki_types.wikibox ->
+      Wikicreole.attribs -> string option -> string option Lwt.t
+  val register_simple_extension :
+    wp:('res, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ext_wikicreole_parser ->
+    name:string ->
+    ?preparser:Wiki_syntax.preparser ->
+    ?ni_plugin:('flow_without_interactive, 'phrasing_without_interactive)
+               Wiki_syntax.non_interactive_simple_plugin ->
+    ('res, 'flow_without_interactive, 'phrasing_without_interactive)
+    Wiki_syntax.interactive_simple_plugin -> unit
+  type ('content, 'flow_without_interactive, 'phrasing_without_interactive)
+       wiki_plugin =
+      Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      'content Eliom_content.Html5.F.elt list Lwt.t option ->
+      ('flow_without_interactive, 'phrasing_without_interactive)
+      Wiki_syntax.ni_plugin_content
+  val register_wiki_extension :
+    wp:('res, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ext_wikicreole_parser ->
+    name:string ->
+    wp_rec:('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser ->
+    ?preparser:Wiki_syntax.preparser ->
+    ?context:(Wiki_widgets_interface.box_info ->
+              Wikicreole.attribs -> Wiki_widgets_interface.box_info) ->
+    ?ni_plugin:('b, 'flow_without_interactive, 'phrasing_without_interactive)
+               Wiki_syntax.wiki_plugin ->
+    ('a, 'res, 'phrasing_without_interactive) Wiki_syntax.wiki_plugin -> unit
+  type ('content, 'flow_without_interactive, 'phrasing_without_interactive)
+       link_plugin =
+      Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      'content Eliom_content.Html5.F.elt list Lwt.t option ->
+      ('flow_without_interactive, 'phrasing_without_interactive)
+      Wiki_syntax.link_plugin_content
+  val register_link_extension :
+    wp:('res, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ext_wikicreole_parser ->
+    name:string ->
+    wp_rec:('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser ->
+    ?preparser:(Wiki_types.wikibox ->
+                Wikicreole.attribs -> string option -> string option Lwt.t) ->
+    ?context:(Wiki_widgets_interface.box_info ->
+              Wikicreole.attribs -> Wiki_widgets_interface.box_info) ->
+    ('b, 'flow_without_interactive, 'phrasing_without_interactive)
+    Wiki_syntax.link_plugin -> unit
+  val register_raw_wiki_extension :
+    wp:('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser ->
+    name:string ->
+    wp_rec:('d, 'e, 'f) Wiki_syntax.ext_wikicreole_parser ->
+    ?preparser:Wiki_syntax.preparser ->
+    ?ni_plugin:('e Wiki_syntax.wikicreole_parser ->
+                Wiki_widgets_interface.box_info ->
+                Wikicreole.attribs ->
+                string option -> ('b, 'c) Wiki_syntax.ni_plugin_content) ->
+    ('d Wiki_syntax.wikicreole_parser ->
+     Wiki_widgets_interface.box_info ->
+     Wikicreole.attribs ->
+     string option -> ('a, 'b, 'c) Wiki_syntax.plugin_content) ->
+    unit
+  val register_simple_flow_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    ([< Html5_types.flow5_without_interactive_header_footer ],
+     [< Html5_types.phrasing_without_interactive ])
+    Wiki_syntax.non_interactive_simple_plugin -> unit
+  val register_interactive_simple_flow_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    ([< Html5_types.flow5_without_header_footer ],
+     [< Html5_types.flow5_without_interactive_header_footer ],
+     [< Html5_types.phrasing_without_interactive ])
+    Wiki_syntax.interactive_simple_plugin -> unit
+  type 'without_interactive link_simple_plugin =
+      (Wiki_widgets_interface.box_info,
+       Wiki_syntax.href * Wikicreole.attribs *
+       'without_interactive Eliom_content.Html5.F.elt list Lwt.t)
+      Wikicreole.plugin
+  val register_link_simple_flow_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    [< Html5_types.flow5_without_interactive_header_footer ]
+    Wiki_syntax.link_simple_plugin -> unit
+  type wiki_flow_pplugin = {
+    fpp :
+      'a.
+        (([< Html5_types.flow5
+           > `Abbr `Address `Article `Aside `Audio `B `Bdo `Blockquote `Br
+             `Button `Canvas `Cite `Code `Command `Datalist `Del `Dfn `Div
+             `Dl `Em `Fieldset `Figure `Form `H1 `H2 `H3 `H4 `H5 `H6 `Hgroup
+             `Hr `I `Img `Input `Ins `Kbd `Keygen `Label `Map `Mark `Menu
+             `Meter `Nav `Noscript `Object `Ol `Output `P `PCDATA `Pre
+             `Progress `Q `Ruby `Samp `Script `Section `Select `Small `Span
+             `Strong `Style `Sub `Sup `Svg `Table `Textarea `Time `U `Ul `Var
+             `Video `Wbr ]
+          as 'a)
+         Html5_types.between_flow5_and_flow5_without_interactive_header_footer,
+         'a, Html5_types.phrasing_without_interactive)
+        Wiki_syntax.wiki_plugin;
+  }
+  val register_wiki_flow_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser -> Wiki_syntax.wiki_flow_pplugin -> unit
+  type interactive_wiki_flow_pplugin = {
+    ifpp :
+      'a 'b.
+        (([< `A of [< Html5_types.flow5_without_interactive ] as 'b
+           | `Abbr
+           | `Address
+           | `Article
+           | `Aside
+           | `Audio of Html5_types.flow5_without_media
+           | `Audio_interactive of Html5_types.flow5_without_media
+           | `B
+           | `Bdo
+           | `Blockquote
+           | `Br
+           | `Button
+           | `Canvas of 'a
+           | `Cite
+           | `Code
+           | `Command
+           | `Datalist
+           | `Del of 'a
+           | `Details
+           | `Dfn
+           | `Div
+           | `Dl
+           | `Em
+           | `Embed
+           | `Fieldset
+           | `Figure
+           | `Footer
+           | `Form
+           | `H1
+           | `H2
+           | `H3
+           | `H4
+           | `H5
+           | `H6
+           | `Header
+           | `Hgroup
+           | `Hr
+           | `I
+           | `Iframe
+           | `Img
+           | `Img_interactive
+           | `Input
+           | `Ins of 'a
+           | `Kbd
+           | `Keygen
+           | `Label
+           | `Map of 'a
+           | `Mark
+           | `Menu
+           | `Meter
+           | `Nav
+           | `Noscript of Html5_types.flow5_without_noscript
+           | `Object of 'a
+           | `Object_interactive of 'a
+           | `Ol
+           | `Output
+           | `P
+           | `PCDATA
+           | `Pre
+           | `Progress
+           | `Q
+           | `Ruby
+           | `Samp
+           | `Script
+           | `Section
+           | `Select
+           | `Small
+           | `Span
+           | `Strong
+           | `Style
+           | `Sub
+           | `Sup
+           | `Svg
+           | `Table
+           | `Textarea
+           | `Time
+           | `U
+           | `Ul
+           | `Var
+           | `Video of Html5_types.flow5_without_media
+           | `Video_interactive of Html5_types.flow5_without_media
+           | `Wbr
+           > `A `Abbr `Address `Article `Aside `Audio `Audio_interactive `B
+             `Bdo `Blockquote `Br `Button `Canvas `Cite `Code `Command
+             `Datalist `Del `Details `Dfn `Div `Dl `Em `Embed `Fieldset
+             `Figure `Form `H1 `H2 `H3 `H4 `H5 `H6 `Hgroup `Hr `I `Iframe
+             `Img `Img_interactive `Input `Ins `Kbd `Keygen `Label `Map `Mark
+             `Menu `Meter `Nav `Noscript `Object `Object_interactive `Ol
+             `Output `P `PCDATA `Pre `Progress `Q `Ruby `Samp `Script
+             `Section `Select `Small `Span `Strong `Style `Sub `Sup `Svg
+             `Table `Textarea `Time `U `Ul `Var `Video `Video_interactive
+             `Wbr ]
+          as 'a, 'b)
+         Html5_types.between_flow5_and_flow5_without_header_footer, 'a,
+         Html5_types.phrasing_without_interactive)
+        Wiki_syntax.wiki_plugin;
+  }
+  val register_interactive_wiki_flow_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    Wiki_syntax.interactive_wiki_flow_pplugin -> unit
+  type link_wiki_flow_pplugin = {
+    lfpp :
+      'a.
+        Wiki_widgets_interface.box_info ->
+        Wikicreole.attribs ->
+        ([> Html5_types.flow5_without_interactive_header_footer ] as 'a)
+        Eliom_content.Html5.F.elt list Lwt.t option ->
+        Wiki_syntax.href * Wikicreole.attribs *
+        'a Eliom_content.Html5.F.elt list Lwt.t;
+  }
+  val register_link_flow_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    Wiki_syntax.link_wiki_flow_pplugin -> unit
+  val register_simple_phrasing_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    ([< Html5_types.phrasing_without_interactive ],
+     [< Html5_types.phrasing_without_interactive ])
+    Wiki_syntax.non_interactive_simple_plugin -> unit
+  val register_interactive_simple_phrasing_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    (Html5_types.phrasing, Html5_types.phrasing_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.interactive_simple_plugin -> unit
+  val register_link_simple_phrasing_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    [< Html5_types.phrasing_without_interactive ]
+    Wiki_syntax.link_simple_plugin -> unit
+  type wiki_phrasing_pplugin = {
+    ppp :
+      'a 'b.
+        (([< `A of [< Html5_types.phrasing_without_interactive ] as 'b
+           | `Abbr
+           | `Audio of Html5_types.phrasing_without_media
+           | `Audio_interactive of Html5_types.phrasing_without_media
+           | `B
+           | `Bdo
+           | `Br
+           | `Button
+           | `Canvas of Html5_types.phrasing
+           | `Cite
+           | `Code
+           | `Command
+           | `Datalist
+           | `Del of Html5_types.phrasing
+           | `Dfn
+           | `Em
+           | `Embed
+           | `I
+           | `Iframe
+           | `Img
+           | `Img_interactive
+           | `Input
+           | `Ins of Html5_types.phrasing
+           | `Kbd
+           | `Keygen
+           | `Label
+           | `Map of Html5_types.phrasing
+           | `Mark
+           | `Meter
+           | `Noscript of Html5_types.phrasing_without_noscript
+           | `Object of Html5_types.phrasing
+           | `Object_interactive of Html5_types.phrasing
+           | `Output
+           | `PCDATA
+           | `Progress
+           | `Q
+           | `Ruby
+           | `Samp
+           | `Script
+           | `Select
+           | `Small
+           | `Span
+           | `Strong
+           | `Sub
+           | `Sup
+           | `Svg
+           | `Textarea
+           | `Time
+           | `U
+           | `Var
+           | `Video of Html5_types.phrasing_without_media
+           | `Video_interactive of Html5_types.phrasing_without_media
+           | `Wbr
+           > `Abbr `B `Bdo `Br `Canvas `Cite `Code `Command `Datalist `Del
+             `Dfn `Em `I `Img `Ins `Kbd `Map `Mark `Meter `Noscript `Object
+             `PCDATA `Progress `Q `Ruby `Samp `Script `Small `Span `Strong
+             `Sub `Sup `Svg `Time `U `Var `Wbr ]
+          as 'a, 'b)
+         Html5_types.between_phrasing_and_phrasing_without_interactive, 'a,
+         Html5_types.phrasing_without_interactive)
+        Wiki_syntax.wiki_plugin;
+  }
+  val register_wiki_phrasing_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    Wiki_syntax.wiki_phrasing_pplugin -> unit
+  val register_interactive_wiki_phrasing_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    Wiki_syntax.wiki_phrasing_pplugin -> unit
+  type link_wiki_phrasing_pplugin =
+      Wiki_widgets_interface.box_info ->
+      Wikicreole.attribs ->
+      Html5_types.phrasing_without_interactive Eliom_content.Html5.F.elt list
+      Lwt.t option ->
+      Wiki_syntax.href * Wikicreole.attribs *
+      Html5_types.phrasing_without_interactive Eliom_content.Html5.F.elt list
+      Lwt.t
+  val register_link_phrasing_extension :
+    name:string ->
+    ?reduced:bool ->
+    ?preparser:Wiki_syntax.preparser ->
+    Wiki_syntax.link_wiki_phrasing_pplugin -> unit
+  val wikicreole_parser :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val wikicreole_parser_without_header_footer :
+    (Html5_types.flow5_without_header_footer,
+     Html5_types.flow5_without_interactive_header_footer,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser0 :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser1 :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser2 :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser_button_content :
+    (Html5_types.button_content, Html5_types.button_content,
+     Html5_types.button_content)
+    Wiki_syntax.ext_wikicreole_parser
+  val phrasing_wikicreole_parser :
+    (Html5_types.phrasing, Html5_types.phrasing_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val menu_parser :
+    ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ],
+     [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ],
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val wikicreole_content_type :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val reduced_wikicreole_content_type0 :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val reduced_wikicreole_content_type1 :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val reduced_wikicreole_content_type2 :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val rawtext_content_type :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val wikicreole_phrasing_content_type :
+    Html5_types.phrasing Eliom_content.Html5.F.elt list
+    Wiki_types.content_type
+  val preprocess_extension :
+    'res Wiki_syntax.wikicreole_parser -> Wiki_models.wiki_preprocessor
+  val xml_of_wiki :
+    'res Wiki_syntax.wikicreole_parser ->
+    Wiki_widgets_interface.box_info ->
+    string -> 'res Eliom_content.Html5.F.elt list Lwt.t
+  val string_of_extension :
+    string -> (string * string) list -> string option -> string
+  val parse_common_attribs :
+    ?classes:Html5_types.nmtokens ->
+    Wikicreole.attribs ->
+    [> Html5_types.common ] Eliom_content.Html5.F.attrib list
+  type force_https = bool option
+  type link_kind =
+      Wiki_page of Wiki_types.wiki option * string * Wiki_syntax.force_https
+    | Href of string * Wiki_syntax.force_https
+    | Site of string * Wiki_syntax.force_https
+    | Absolute of string
+  val link_kind : string -> Wiki_syntax.link_kind
+  val make_href :
+    Wiki_widgets_interface.box_info ->
+    Wiki_syntax.link_kind -> string option -> Wiki_syntax.href
+  val class_wikibox : Wiki_types.wikibox -> string
+end >>

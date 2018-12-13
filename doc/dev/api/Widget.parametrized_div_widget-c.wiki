@@ -1,0 +1,5 @@
+=Class virtual <<a_api_type | class Widget.parametrized_div_widget >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span name="TYPEparametrized_div_widget"|<<span class="ocsforge_color_keyword"|class>> <<span class="ocsforge_color_keyword"|virtual>> <<span class="odocwiki_type"|[['param_type, 'data_type]]>> <<span class="ocsforge_color_name"|parametrized_div_widget>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|\\>> <<span class="ocsforge_color_keyword"|object>><<a_api text=".." | class Widget.parametrized_div_widget >><<span class="ocsforge_color_keyword"|end>>>>**~Inherits**
+* <<a_api | class Widget.parametrized_widget >>
+
+----

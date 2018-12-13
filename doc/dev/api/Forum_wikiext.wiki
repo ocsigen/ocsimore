@@ -1,0 +1,12 @@
+=Module <<a_api_type | module Forum_wikiext >> =
+<<pre class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|module>> <<span class="ocsforge_color_uid"|<<span class="ocsforge_color_uid"|Forum_wikiext>>>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="ocsforge_color_keyword"|sig>><<a_api text=".." | module Forum_wikiext >><<span class="ocsforge_color_keyword"|end>>>>~Provides a function to register the wikicreole extensions for forums~.
+**Author(s):** Vincent Balat, Boris Yakobowski\\
+
+----
+<<pre id="VALregister_wikiext" class="ocsforge_color odocwiki_code"|<<span class="ocsforge_color_keyword"|val>> <<span class="odocwiki_name"|register~_wikiext>> <<span class="ocsforge_color_delimiter"|~:>> <<span class="odocwiki_type"|\\  <<a_api text="Forum_widgets.message_widget" | class type Forum_widgets.message_widget >> * <<a_api text="Forum_widgets.thread_widget" | class type Forum_widgets.thread_widget >> *\\  <<a_api text="Forum_widgets.message_list_widget" | class type Forum_widgets.message_list_widget >> * <<a_api text="Forum_widgets.threads_list_widget" | class type Forum_widgets.threads_list_widget >> <<span class="ocsforge_color_delimiter"| -> >>\\  unit>>>><<div class="odocwiki_info"|~This function registers the following wiki extensions~:
+* <<span class="odocwiki_inlinecode"|~<~<forum~_message~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<forum~_thread~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<forum~_message~_list~>~>>>
+* <<span class="odocwiki_inlinecode"|~<~<forum~_threads~_list~>~>>>
+
+>>

@@ -1,0 +1,1 @@
+<<code language="ocaml" | Wiki_types.wiki_rights >>
