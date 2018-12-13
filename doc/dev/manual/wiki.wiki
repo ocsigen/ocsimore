@@ -8,8 +8,6 @@ allows to give different rights for subdirectories of the site.
 The wiki is using [[http://www.wikicreole.org|Wikicreole]]'s syntax (but it is possible to plug another
 syntax). 
 
-{{wiki(1):creole_cheat_sheet.png|Base wikicreole syntax}}
-
 It supports extensions with the following syntax:
 
 {{{<<extensionname arg1='value1' arg2='value2' >>}}}
