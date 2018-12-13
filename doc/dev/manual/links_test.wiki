@@ -12,7 +12,6 @@ Site map
 == Test link kinds
 
 |= target               |= link           |= href on /ocsimore/test/a/b/c  |= href on /ocsimore/other/a/b/c  |
-| {{{[[wiki(4):xyz]]}}} | [[wiki(4):xyz]] | {{{/ocsimore/test/xyz}}}       |                                 |
 | {{{[[wiki:xyz]]}}}    | [[wiki:xyz]]    | {{{/ocsimore/test/xyz}}}       | {{{/ocsimore/other/xyz}}}       |
 | {{{[[href:xyz]]}}}    | [[href:xyz]]    | {{{/ocsimore/test/a/b/xyz}}}   | {{{/ocsimore/other/a/b/xyz}}}   |
 | {{{[[href:/xyz]]}}}   | [[href:/xyz]]   | {{{/xyz}}}                     |                                 |

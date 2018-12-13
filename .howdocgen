@@ -31,7 +31,7 @@ cat >$f <<EOF
     "images": "manual/files"
 }
 EOF
-DEBUG=t quickdop -f doc _doc -t json -c $f -viu
+quickdop -f doc _doc -t json -c $f -viu
 
 # TODO Also remove that line.
 mv tmp _doc
