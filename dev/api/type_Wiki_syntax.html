@@ -1,0 +1,525 @@
+<html><head><title></title><meta charset="utf8"/><link rel="stylesheet" href="https://ocsigen.org/ocsimore/tmp/style.css"/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/themes/prism.min.css"/><script type="text/javascript" src="https://ocsigen.org/js/client.js">
+//<![CDATA[
+
+//]]>
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-core.min.js">
+//<![CDATA[
+
+//]]>
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-ocaml.min.js">
+//<![CDATA[
+
+//]]>
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-clike.min.js">
+//<![CDATA[
+
+//]]>
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-reason.min.js">
+//<![CDATA[
+
+//]]>
+</script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.9.0/components/prism-javascript.min.js">
+//<![CDATA[
+
+//]]>
+</script></head><body><div class="project-page"><div class="page-header"><p class="logo-ocsigen"><a href=".././../../" class="ocsimore_phrasing_link"><img src=".././../../img/ocsigen-white.svg" alt="Ocsigen"/></a>
+</p><p class="logo-subproject">Ocsimore</p><div class="mainmenu"><p><span class="mainmenu-home"><a href=".././../../" class="ocsimore_phrasing_link">Home</a></span>
+<span class="mainmenu-doc"><a href=".././../../tuto/" class="ocsimore_phrasing_link">Doc</a></span>
+</p><p><a href=".././../../eliom/" class="ocsimore_phrasing_link">Eliom</a></p><p><a href=".././../../js_of_ocaml/" class="ocsimore_phrasing_link">Js_of_ocaml</a></p><p><a href=".././../../lwt/" class="ocsimore_phrasing_link">Lwt</a></p><p><a href=".././../../tyxml/" class="ocsimore_phrasing_link">Tyxml</a></p><p><a href=".././../../ocsigen-start/" class="ocsimore_phrasing_link">Start</a></p></div><form id="googlesearch" action="https://google.com/search"><input name="q" id="gsearch-box" placeholder="Search using Google"/><label for="gsearch-box"><img src="https://ocsigen.org/ocsimore/tmp/search.svg" alt="" id="gsearch-icon"/></label><input type="submit" id="gsearch-submit" onclick="document.getElementById('gsearch-box').value += ' site:ocsigen.org';"/></form><aside class="how-drawer"><input id="how-drawer-toggle" type="checkbox"/><label for="how-drawer-toggle" id="how-drawer-label"><span class="how-drawer-icon"></span></label><nav class="how-drawer-content"><ul class="drawermainmenu"><li class="drawermainmenu-home"><a href=".././../../" class="ocsimore_phrasing_link">Home</a>
+</li><li class="drawermainmenu-doc"><a href=".././../../tuto/" class="ocsimore_phrasing_link">Doc</a>
+</li><li class="drawermainmenu-project"><a href=".././../../eliom/" class="ocsimore_phrasing_link">Eliom</a>
+</li><li class="drawermainmenu-project"><a href=".././../../js_of_ocaml/" class="ocsimore_phrasing_link">Js_of_ocaml</a>
+</li><li class="drawermainmenu-project"><a href=".././../../ocsigenserver/" class="ocsimore_phrasing_link">Server</a>
+</li><li class="drawermainmenu-project"><a href=".././../../lwt/" class="ocsimore_phrasing_link">Lwt</a>
+</li><li class="drawermainmenu-project"><a href=".././../../tyxml/" class="ocsimore_phrasing_link">Tyxml</a>
+</li><li class="drawermainmenu-project"><a href=".././../../ocsigen-toolkit/" class="ocsimore_phrasing_link">Toolkit</a>
+</li><li class="drawermainmenu-project"><a href=".././../../ocsigen-start/" class="ocsimore_phrasing_link">Start</a>
+</li><li class="drawermainmenu-page"><a href=".././../../projects" class="ocsimore_phrasing_link">Other projects</a>
+</li><li class="drawermainmenu-page"><a href=".././../../papers" class="ocsimore_phrasing_link">Research papers</a>
+</li><li class="drawermainmenu-page"><a href=".././../../credits" class="ocsimore_phrasing_link">Who does Ocsigen?</a>
+</li><li class="drawermainmenu-page"><a href=".././../../blog" class="ocsimore_phrasing_link">Blog</a>
+</li><li class="drawermainmenu-page"><a href="https://github.com/ocsigen" class="ocsimore_phrasing_link">Source code</a>
+</li></ul><nav class="how-doctree"><h1>Ocsimore Manual</h1><h2><a href=".././manual/intro" class="ocsimore_phrasing_link">Introduction</a></h2><h2><a href=".././manual/wiki" class="ocsimore_phrasing_link">Wiki</a></h2><h2><a href=".././manual/forum" class="ocsimore_phrasing_link">Forum</a></h2><h2><a href=".././manual/user" class="ocsimore_phrasing_link">Users and groups</a></h2><h2><a href=".././manual/misc" class="ocsimore_phrasing_link">Misc</a></h2><h2><a href=".././manual/guidelines" class="ocsimore_phrasing_link">Writing extensions for Ocsimore</a></h2><h2><a href=".././manual/config" class="ocsimore_phrasing_link">Configuration options</a></h2><h2><a href=".././manual/admin-interface" class="ocsimore_phrasing_link">Administration interface</a></h2><h1>API</h1><h2>Core </h2><h3><a href=".././api/Crypt" class="ocsimore_phrasing_link">Crypt</a></h3><h3><a href=".././api/Language" class="ocsimore_phrasing_link">Language</a></h3><h3><a href=".././api/Dyngroups" class="ocsimore_phrasing_link">Dyngroups</a></h3><h3><a href=".././api/Ocsimore_common" class="ocsimore_phrasing_link">Ocsimore_common</a></h3><h3><a href=".././api/Ocsimore_config" class="ocsimore_phrasing_link">Ocsimore_config</a></h3><h3><a href=".././api/Ocsimore_lib" class="ocsimore_phrasing_link">Ocsimore_lib</a></h3><h3><a href=".././api/Opaque" class="ocsimore_phrasing_link">Opaque</a></h3><h3><a href=".././api/Ocsi_sql" class="ocsimore_phrasing_link">Ocsi_sql</a></h3><h3><a href=".././api/User" class="ocsimore_phrasing_link">User</a></h3><h3><a href=".././api/User_sql" class="ocsimore_phrasing_link">User_sql</a></h3><h3><a href=".././api/Widget" class="ocsimore_phrasing_link">Widget</a></h3><h3><a href=".././api/Xform" class="ocsimore_phrasing_link">Xform</a></h3><h2>User </h2><h3><a href=".././api/User_data" class="ocsimore_phrasing_link">User_data</a></h3><h3><a href=".././api/User_external_auth" class="ocsimore_phrasing_link">User_external_auth</a></h3><h2>Wiki </h2><h3><a href=".././api/Wikicreole" class="ocsimore_phrasing_link">Wikicreole</a></h3><h3><a href=".././api/Wiki_data" class="ocsimore_phrasing_link">Wiki_data</a></h3><h3><a href=".././api/Wiki_models" class="ocsimore_phrasing_link">Wiki_models</a></h3><h3><a href=".././api/Wiki_self_services" class="ocsimore_phrasing_link">Wiki_self_services</a></h3><h3><a href=".././api/Wiki_sql" class="ocsimore_phrasing_link">Wiki_sql</a></h3><h3><a href=".././api/Wiki_syntax" class="ocsimore_phrasing_link">Wiki_syntax</a></h3><h3><a href=".././api/Wiki_types" class="ocsimore_phrasing_link">Wiki_types</a></h3><h3><a href=".././api/Wiki_widgets_interface" class="ocsimore_phrasing_link">Wiki_widgets_interface</a></h3><h3><a href=".././api/Wiki" class="ocsimore_phrasing_link">Wiki</a></h3><h2>Forum </h2><h3><a href=".././api/Forum_sql0" class="ocsimore_phrasing_link">Forum_sql0</a></h3><h3><a href=".././api/Forum_data" class="ocsimore_phrasing_link">Forum_data</a></h3><h3><a href=".././api/Forum" class="ocsimore_phrasing_link">Forum</a></h3><h3><a href=".././api/Forum_sql" class="ocsimore_phrasing_link">Forum_sql</a></h3><h3><a href=".././api/Forum_types" class="ocsimore_phrasing_link">Forum_types</a></h3><h2>Core site </h2><h3><a href=".././api/Ocsimore_appl" class="ocsimore_phrasing_link">Ocsimore_appl</a></h3><h3><a href=".././api/Page_site" class="ocsimore_phrasing_link">Page_site</a></h3><h2>User site </h2><h3><a href=".././api/User_site" class="ocsimore_phrasing_link">User_site</a></h3><h3><a href=".././api/User_ext" class="ocsimore_phrasing_link">User_ext</a></h3><h3><a href=".././api/User_services" class="ocsimore_phrasing_link">User_services</a></h3><h3><a href=".././api/User_widgets" class="ocsimore_phrasing_link">User_widgets</a></h3><h2>Wiki site </h2><h3><a href=".././api/Wiki_site" class="ocsimore_phrasing_link">Wiki_site</a></h3><h3><a href=".././api/HTML5outliner" class="ocsimore_phrasing_link">HTML5outliner</a></h3><h3><a href=".././api/Wiki_ext" class="ocsimore_phrasing_link">Wiki_ext</a></h3><h3><a href=".././api/Wiki_services" class="ocsimore_phrasing_link">Wiki_services</a></h3><h3><a href=".././api/Wiki_widgets" class="ocsimore_phrasing_link">Wiki_widgets</a></h3><h3><a href=".././api/Wiki_menu" class="ocsimore_phrasing_link">Wiki_menu</a></h3><h3><a href=".././api/Wiki_dir" class="ocsimore_phrasing_link">Wiki_dir</a></h3><h2>Forum site </h2><h3><a href=".././api/Forum_site" class="ocsimore_phrasing_link">Forum_site</a></h3><h3><a href=".././api/Forum_wikiext" class="ocsimore_phrasing_link">Forum_wikiext</a></h3><h3><a href=".././api/Forum_services" class="ocsimore_phrasing_link">Forum_services</a></h3><h3><a href=".././api/Forum_widgets" class="ocsimore_phrasing_link">Forum_widgets</a></h3><h2>Wikiperso </h2><h3><a href=".././api/Wikiperso" class="ocsimore_phrasing_link">Wikiperso</a></h3><h2>Index</h2><h3> <span><a href=".././api/index_types">Index of types</a></span></h3><h3> <span><a href=".././api/index_exceptions">Index of exceptions</a></span></h3><h3> <span><a href=".././api/index_values">Index of values</a></span></h3><h3> <span><a href=".././api/index_attributes">Index of class attributes</a></span></h3><h3> <span><a href=".././api/index_methods">Index of class methods</a></span></h3><h3> <span><a href=".././api/index_classes">Index of classes</a></span></h3><h3> <span><a href=".././api/index_class_types">Index of class types</a></span></h3><h3> <span><a href=".././api/index_modules">Index of modules</a></span></h3><h3> <span><a href=".././api/index_module_types">Index of module types</a></span></h3></nav></nav></aside></div><p class="reasonwarning">Warning: Reason support is experimental.
+We are looking for beta-tester and contributors.
+</p><button id="reason">Switch to </button><div class="twocols"><nav class="leftcol">Version <select class="how-versions" onchange="location = this.value;"><option value=".././../dev/api/type_Wiki_syntax" selected="selected">dev</option></select><nav class="how-doctree"><h1>Ocsimore Manual</h1><h2><a href=".././manual/intro" class="ocsimore_phrasing_link">Introduction</a></h2><h2><a href=".././manual/wiki" class="ocsimore_phrasing_link">Wiki</a></h2><h2><a href=".././manual/forum" class="ocsimore_phrasing_link">Forum</a></h2><h2><a href=".././manual/user" class="ocsimore_phrasing_link">Users and groups</a></h2><h2><a href=".././manual/misc" class="ocsimore_phrasing_link">Misc</a></h2><h2><a href=".././manual/guidelines" class="ocsimore_phrasing_link">Writing extensions for Ocsimore</a></h2><h2><a href=".././manual/config" class="ocsimore_phrasing_link">Configuration options</a></h2><h2><a href=".././manual/admin-interface" class="ocsimore_phrasing_link">Administration interface</a></h2><h1>API</h1><h2>Core </h2><h3><a href=".././api/Crypt" class="ocsimore_phrasing_link">Crypt</a></h3><h3><a href=".././api/Language" class="ocsimore_phrasing_link">Language</a></h3><h3><a href=".././api/Dyngroups" class="ocsimore_phrasing_link">Dyngroups</a></h3><h3><a href=".././api/Ocsimore_common" class="ocsimore_phrasing_link">Ocsimore_common</a></h3><h3><a href=".././api/Ocsimore_config" class="ocsimore_phrasing_link">Ocsimore_config</a></h3><h3><a href=".././api/Ocsimore_lib" class="ocsimore_phrasing_link">Ocsimore_lib</a></h3><h3><a href=".././api/Opaque" class="ocsimore_phrasing_link">Opaque</a></h3><h3><a href=".././api/Ocsi_sql" class="ocsimore_phrasing_link">Ocsi_sql</a></h3><h3><a href=".././api/User" class="ocsimore_phrasing_link">User</a></h3><h3><a href=".././api/User_sql" class="ocsimore_phrasing_link">User_sql</a></h3><h3><a href=".././api/Widget" class="ocsimore_phrasing_link">Widget</a></h3><h3><a href=".././api/Xform" class="ocsimore_phrasing_link">Xform</a></h3><h2>User </h2><h3><a href=".././api/User_data" class="ocsimore_phrasing_link">User_data</a></h3><h3><a href=".././api/User_external_auth" class="ocsimore_phrasing_link">User_external_auth</a></h3><h2>Wiki </h2><h3><a href=".././api/Wikicreole" class="ocsimore_phrasing_link">Wikicreole</a></h3><h3><a href=".././api/Wiki_data" class="ocsimore_phrasing_link">Wiki_data</a></h3><h3><a href=".././api/Wiki_models" class="ocsimore_phrasing_link">Wiki_models</a></h3><h3><a href=".././api/Wiki_self_services" class="ocsimore_phrasing_link">Wiki_self_services</a></h3><h3><a href=".././api/Wiki_sql" class="ocsimore_phrasing_link">Wiki_sql</a></h3><h3><a href=".././api/Wiki_syntax" class="ocsimore_phrasing_link">Wiki_syntax</a></h3><h3><a href=".././api/Wiki_types" class="ocsimore_phrasing_link">Wiki_types</a></h3><h3><a href=".././api/Wiki_widgets_interface" class="ocsimore_phrasing_link">Wiki_widgets_interface</a></h3><h3><a href=".././api/Wiki" class="ocsimore_phrasing_link">Wiki</a></h3><h2>Forum </h2><h3><a href=".././api/Forum_sql0" class="ocsimore_phrasing_link">Forum_sql0</a></h3><h3><a href=".././api/Forum_data" class="ocsimore_phrasing_link">Forum_data</a></h3><h3><a href=".././api/Forum" class="ocsimore_phrasing_link">Forum</a></h3><h3><a href=".././api/Forum_sql" class="ocsimore_phrasing_link">Forum_sql</a></h3><h3><a href=".././api/Forum_types" class="ocsimore_phrasing_link">Forum_types</a></h3><h2>Core site </h2><h3><a href=".././api/Ocsimore_appl" class="ocsimore_phrasing_link">Ocsimore_appl</a></h3><h3><a href=".././api/Page_site" class="ocsimore_phrasing_link">Page_site</a></h3><h2>User site </h2><h3><a href=".././api/User_site" class="ocsimore_phrasing_link">User_site</a></h3><h3><a href=".././api/User_ext" class="ocsimore_phrasing_link">User_ext</a></h3><h3><a href=".././api/User_services" class="ocsimore_phrasing_link">User_services</a></h3><h3><a href=".././api/User_widgets" class="ocsimore_phrasing_link">User_widgets</a></h3><h2>Wiki site </h2><h3><a href=".././api/Wiki_site" class="ocsimore_phrasing_link">Wiki_site</a></h3><h3><a href=".././api/HTML5outliner" class="ocsimore_phrasing_link">HTML5outliner</a></h3><h3><a href=".././api/Wiki_ext" class="ocsimore_phrasing_link">Wiki_ext</a></h3><h3><a href=".././api/Wiki_services" class="ocsimore_phrasing_link">Wiki_services</a></h3><h3><a href=".././api/Wiki_widgets" class="ocsimore_phrasing_link">Wiki_widgets</a></h3><h3><a href=".././api/Wiki_menu" class="ocsimore_phrasing_link">Wiki_menu</a></h3><h3><a href=".././api/Wiki_dir" class="ocsimore_phrasing_link">Wiki_dir</a></h3><h2>Forum site </h2><h3><a href=".././api/Forum_site" class="ocsimore_phrasing_link">Forum_site</a></h3><h3><a href=".././api/Forum_wikiext" class="ocsimore_phrasing_link">Forum_wikiext</a></h3><h3><a href=".././api/Forum_services" class="ocsimore_phrasing_link">Forum_services</a></h3><h3><a href=".././api/Forum_widgets" class="ocsimore_phrasing_link">Forum_widgets</a></h3><h2>Wikiperso </h2><h3><a href=".././api/Wikiperso" class="ocsimore_phrasing_link">Wikiperso</a></h3><h2>Index</h2><h3> <span><a href=".././api/index_types">Index of types</a></span></h3><h3> <span><a href=".././api/index_exceptions">Index of exceptions</a></span></h3><h3> <span><a href=".././api/index_values">Index of values</a></span></h3><h3> <span><a href=".././api/index_attributes">Index of class attributes</a></span></h3><h3> <span><a href=".././api/index_methods">Index of class methods</a></span></h3><h3> <span><a href=".././api/index_classes">Index of classes</a></span></h3><h3> <span><a href=".././api/index_class_types">Index of class types</a></span></h3><h3> <span><a href=".././api/index_modules">Index of modules</a></span></h3><h3> <span><a href=".././api/index_module_types">Index of module types</a></span></h3></nav></nav><article class="rightcol"><pre class=""><code class="language-ocaml translatable">sig
+  type 'res wikicreole_parser
+  type ('res, 'res_without_interactive, 'content_link) ext_wikicreole_parser
+  val cast_wp :
+    ('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser -&gt;
+    'a Wiki_syntax.wikicreole_parser
+  val cast_niwp :
+    ('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser -&gt;
+    'b Wiki_syntax.wikicreole_parser
+  type ('a, 'b, 'c, 'd, 'e, 'f, 'g, 'service) wiki_service =
+      ('a, unit, 'c, 'd, 'e, 'f, 'b, unit, 'g, 'service)
+      Eliom_service.service
+    constraint 'c = [&lt; Eliom_service.get_service_kind ]
+    constraint 'd = [&lt; Eliom_service.attached ]
+    constraint 'e = [&lt; Eliom_service.service_kind ]
+    constraint 'f = [&lt; Eliom_service.suff ]
+    constraint 'g = [&lt; Eliom_service.registrable ]
+    constraint 'service = [&lt; Eliom_registration.non_ocaml_service ]
+  type service_href = Wiki_syntax_types.service_href
+  type href =
+    Wiki_syntax_types.href =
+      String_href of string
+    | Service_href of Wiki_syntax.service_href
+  val service_href :
+    ?fragment:string -&gt;
+    ?https:bool -&gt;
+    ('a, 'b, [&lt; Eliom_service.get_service_kind ],
+     [&lt; Eliom_service.attached ], [&lt; Eliom_service.service_kind ],
+     [&lt; Eliom_service.suff ], [&lt; Eliom_service.registrable ],
+     [&lt; Eliom_registration.non_ocaml_service ])
+    Wiki_syntax.wiki_service -&gt; 'a -&gt; Wiki_syntax.service_href
+  val a_link_of_href :
+    Wiki_syntax.service_href -&gt;
+    ?a:Html5_types.a_attrib Eliom_content.Html5.F.attrib list -&gt;
+    'a Eliom_content.Html5.F.elt list -&gt;
+    [&gt; 'a Html5_types.a ] Eliom_content.Html5.F.elt
+  val uri_of_href : Wiki_syntax.href -&gt; Eliom_content.Html5.F.uri
+  type ('flow, 'flow_without_interactive, 'phrasing_without_interactive)
+       plugin_content =
+      [ `Flow5 of 'flow Eliom_content.Html5.F.elt list Lwt.t
+      | `Flow5_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'flow_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_without_interactive of
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t ]
+  type ('flow_without_interactive, 'phrasing_without_interactive)
+       ni_plugin_content =
+      [ `Flow5 of
+          'flow_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_without_interactive of
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t ]
+  type ('flow_without_interactive, 'phrasing_without_interactive)
+       link_plugin_content =
+      [ `Flow5_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'flow_without_interactive Eliom_content.Html5.F.elt list Lwt.t
+      | `Phrasing_link of
+          Wiki_syntax.href * Wikicreole.attribs *
+          'phrasing_without_interactive Eliom_content.Html5.F.elt list Lwt.t ]
+  type ('flow, 'flow_without_interactive, 'phrasing_without_interactive)
+       interactive_simple_plugin =
+      (Wiki_widgets_interface.box_info,
+       ('flow, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.plugin_content)
+      Wikicreole.plugin
+  type ('flow_without_interactive, 'phrasing_without_interactive)
+       non_interactive_simple_plugin =
+      (Wiki_widgets_interface.box_info,
+       ('flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ni_plugin_content)
+      Wikicreole.plugin
+  type preparser =
+      Wiki_types.wikibox -&gt;
+      Wikicreole.attribs -&gt; string option -&gt; string option Lwt.t
+  val register_simple_extension :
+    wp:('res, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ext_wikicreole_parser -&gt;
+    name:string -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    ?ni_plugin:('flow_without_interactive, 'phrasing_without_interactive)
+               Wiki_syntax.non_interactive_simple_plugin -&gt;
+    ('res, 'flow_without_interactive, 'phrasing_without_interactive)
+    Wiki_syntax.interactive_simple_plugin -&gt; unit
+  type ('content, 'flow_without_interactive, 'phrasing_without_interactive)
+       wiki_plugin =
+      Wiki_widgets_interface.box_info -&gt;
+      Wikicreole.attribs -&gt;
+      'content Eliom_content.Html5.F.elt list Lwt.t option -&gt;
+      ('flow_without_interactive, 'phrasing_without_interactive)
+      Wiki_syntax.ni_plugin_content
+  val register_wiki_extension :
+    wp:('res, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ext_wikicreole_parser -&gt;
+    name:string -&gt;
+    wp_rec:('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    ?context:(Wiki_widgets_interface.box_info -&gt;
+              Wikicreole.attribs -&gt; Wiki_widgets_interface.box_info) -&gt;
+    ?ni_plugin:('b, 'flow_without_interactive, 'phrasing_without_interactive)
+               Wiki_syntax.wiki_plugin -&gt;
+    ('a, 'res, 'phrasing_without_interactive) Wiki_syntax.wiki_plugin -&gt; unit
+  type ('content, 'flow_without_interactive, 'phrasing_without_interactive)
+       link_plugin =
+      Wiki_widgets_interface.box_info -&gt;
+      Wikicreole.attribs -&gt;
+      'content Eliom_content.Html5.F.elt list Lwt.t option -&gt;
+      ('flow_without_interactive, 'phrasing_without_interactive)
+      Wiki_syntax.link_plugin_content
+  val register_link_extension :
+    wp:('res, 'flow_without_interactive, 'phrasing_without_interactive)
+       Wiki_syntax.ext_wikicreole_parser -&gt;
+    name:string -&gt;
+    wp_rec:('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser -&gt;
+    ?preparser:(Wiki_types.wikibox -&gt;
+                Wikicreole.attribs -&gt; string option -&gt; string option Lwt.t) -&gt;
+    ?context:(Wiki_widgets_interface.box_info -&gt;
+              Wikicreole.attribs -&gt; Wiki_widgets_interface.box_info) -&gt;
+    ('b, 'flow_without_interactive, 'phrasing_without_interactive)
+    Wiki_syntax.link_plugin -&gt; unit
+  val register_raw_wiki_extension :
+    wp:('a, 'b, 'c) Wiki_syntax.ext_wikicreole_parser -&gt;
+    name:string -&gt;
+    wp_rec:('d, 'e, 'f) Wiki_syntax.ext_wikicreole_parser -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    ?ni_plugin:('e Wiki_syntax.wikicreole_parser -&gt;
+                Wiki_widgets_interface.box_info -&gt;
+                Wikicreole.attribs -&gt;
+                string option -&gt; ('b, 'c) Wiki_syntax.ni_plugin_content) -&gt;
+    ('d Wiki_syntax.wikicreole_parser -&gt;
+     Wiki_widgets_interface.box_info -&gt;
+     Wikicreole.attribs -&gt;
+     string option -&gt; ('a, 'b, 'c) Wiki_syntax.plugin_content) -&gt;
+    unit
+  val register_simple_flow_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    ([&lt; Html5_types.flow5_without_interactive_header_footer ],
+     [&lt; Html5_types.phrasing_without_interactive ])
+    Wiki_syntax.non_interactive_simple_plugin -&gt; unit
+  val register_interactive_simple_flow_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    ([&lt; Html5_types.flow5_without_header_footer ],
+     [&lt; Html5_types.flow5_without_interactive_header_footer ],
+     [&lt; Html5_types.phrasing_without_interactive ])
+    Wiki_syntax.interactive_simple_plugin -&gt; unit
+  type 'without_interactive link_simple_plugin =
+      (Wiki_widgets_interface.box_info,
+       Wiki_syntax.href * Wikicreole.attribs *
+       'without_interactive Eliom_content.Html5.F.elt list Lwt.t)
+      Wikicreole.plugin
+  val register_link_simple_flow_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    [&lt; Html5_types.flow5_without_interactive_header_footer ]
+    Wiki_syntax.link_simple_plugin -&gt; unit
+  type wiki_flow_pplugin = {
+    fpp :
+      'a.
+        (([&lt; Html5_types.flow5
+           &gt; `Abbr `Address `Article `Aside `Audio `B `Bdo `Blockquote `Br
+             `Button `Canvas `Cite `Code `Command `Datalist `Del `Dfn `Div
+             `Dl `Em `Fieldset `Figure `Form `H1 `H2 `H3 `H4 `H5 `H6 `Hgroup
+             `Hr `I `Img `Input `Ins `Kbd `Keygen `Label `Map `Mark `Menu
+             `Meter `Nav `Noscript `Object `Ol `Output `P `PCDATA `Pre
+             `Progress `Q `Ruby `Samp `Script `Section `Select `Small `Span
+             `Strong `Style `Sub `Sup `Svg `Table `Textarea `Time `U `Ul `Var
+             `Video `Wbr ]
+          as 'a)
+         Html5_types.between_flow5_and_flow5_without_interactive_header_footer,
+         'a, Html5_types.phrasing_without_interactive)
+        Wiki_syntax.wiki_plugin;
+  }
+  val register_wiki_flow_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt; Wiki_syntax.wiki_flow_pplugin -&gt; unit
+  type interactive_wiki_flow_pplugin = {
+    ifpp :
+      'a 'b.
+        (([&lt; `A of [&lt; Html5_types.flow5_without_interactive ] as 'b
+           | `Abbr
+           | `Address
+           | `Article
+           | `Aside
+           | `Audio of Html5_types.flow5_without_media
+           | `Audio_interactive of Html5_types.flow5_without_media
+           | `B
+           | `Bdo
+           | `Blockquote
+           | `Br
+           | `Button
+           | `Canvas of 'a
+           | `Cite
+           | `Code
+           | `Command
+           | `Datalist
+           | `Del of 'a
+           | `Details
+           | `Dfn
+           | `Div
+           | `Dl
+           | `Em
+           | `Embed
+           | `Fieldset
+           | `Figure
+           | `Footer
+           | `Form
+           | `H1
+           | `H2
+           | `H3
+           | `H4
+           | `H5
+           | `H6
+           | `Header
+           | `Hgroup
+           | `Hr
+           | `I
+           | `Iframe
+           | `Img
+           | `Img_interactive
+           | `Input
+           | `Ins of 'a
+           | `Kbd
+           | `Keygen
+           | `Label
+           | `Map of 'a
+           | `Mark
+           | `Menu
+           | `Meter
+           | `Nav
+           | `Noscript of Html5_types.flow5_without_noscript
+           | `Object of 'a
+           | `Object_interactive of 'a
+           | `Ol
+           | `Output
+           | `P
+           | `PCDATA
+           | `Pre
+           | `Progress
+           | `Q
+           | `Ruby
+           | `Samp
+           | `Script
+           | `Section
+           | `Select
+           | `Small
+           | `Span
+           | `Strong
+           | `Style
+           | `Sub
+           | `Sup
+           | `Svg
+           | `Table
+           | `Textarea
+           | `Time
+           | `U
+           | `Ul
+           | `Var
+           | `Video of Html5_types.flow5_without_media
+           | `Video_interactive of Html5_types.flow5_without_media
+           | `Wbr
+           &gt; `A `Abbr `Address `Article `Aside `Audio `Audio_interactive `B
+             `Bdo `Blockquote `Br `Button `Canvas `Cite `Code `Command
+             `Datalist `Del `Details `Dfn `Div `Dl `Em `Embed `Fieldset
+             `Figure `Form `H1 `H2 `H3 `H4 `H5 `H6 `Hgroup `Hr `I `Iframe
+             `Img `Img_interactive `Input `Ins `Kbd `Keygen `Label `Map `Mark
+             `Menu `Meter `Nav `Noscript `Object `Object_interactive `Ol
+             `Output `P `PCDATA `Pre `Progress `Q `Ruby `Samp `Script
+             `Section `Select `Small `Span `Strong `Style `Sub `Sup `Svg
+             `Table `Textarea `Time `U `Ul `Var `Video `Video_interactive
+             `Wbr ]
+          as 'a, 'b)
+         Html5_types.between_flow5_and_flow5_without_header_footer, 'a,
+         Html5_types.phrasing_without_interactive)
+        Wiki_syntax.wiki_plugin;
+  }
+  val register_interactive_wiki_flow_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    Wiki_syntax.interactive_wiki_flow_pplugin -&gt; unit
+  type link_wiki_flow_pplugin = {
+    lfpp :
+      'a.
+        Wiki_widgets_interface.box_info -&gt;
+        Wikicreole.attribs -&gt;
+        ([&gt; Html5_types.flow5_without_interactive_header_footer ] as 'a)
+        Eliom_content.Html5.F.elt list Lwt.t option -&gt;
+        Wiki_syntax.href * Wikicreole.attribs *
+        'a Eliom_content.Html5.F.elt list Lwt.t;
+  }
+  val register_link_flow_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    Wiki_syntax.link_wiki_flow_pplugin -&gt; unit
+  val register_simple_phrasing_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    ([&lt; Html5_types.phrasing_without_interactive ],
+     [&lt; Html5_types.phrasing_without_interactive ])
+    Wiki_syntax.non_interactive_simple_plugin -&gt; unit
+  val register_interactive_simple_phrasing_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    (Html5_types.phrasing, Html5_types.phrasing_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.interactive_simple_plugin -&gt; unit
+  val register_link_simple_phrasing_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    [&lt; Html5_types.phrasing_without_interactive ]
+    Wiki_syntax.link_simple_plugin -&gt; unit
+  type wiki_phrasing_pplugin = {
+    ppp :
+      'a 'b.
+        (([&lt; `A of [&lt; Html5_types.phrasing_without_interactive ] as 'b
+           | `Abbr
+           | `Audio of Html5_types.phrasing_without_media
+           | `Audio_interactive of Html5_types.phrasing_without_media
+           | `B
+           | `Bdo
+           | `Br
+           | `Button
+           | `Canvas of Html5_types.phrasing
+           | `Cite
+           | `Code
+           | `Command
+           | `Datalist
+           | `Del of Html5_types.phrasing
+           | `Dfn
+           | `Em
+           | `Embed
+           | `I
+           | `Iframe
+           | `Img
+           | `Img_interactive
+           | `Input
+           | `Ins of Html5_types.phrasing
+           | `Kbd
+           | `Keygen
+           | `Label
+           | `Map of Html5_types.phrasing
+           | `Mark
+           | `Meter
+           | `Noscript of Html5_types.phrasing_without_noscript
+           | `Object of Html5_types.phrasing
+           | `Object_interactive of Html5_types.phrasing
+           | `Output
+           | `PCDATA
+           | `Progress
+           | `Q
+           | `Ruby
+           | `Samp
+           | `Script
+           | `Select
+           | `Small
+           | `Span
+           | `Strong
+           | `Sub
+           | `Sup
+           | `Svg
+           | `Textarea
+           | `Time
+           | `U
+           | `Var
+           | `Video of Html5_types.phrasing_without_media
+           | `Video_interactive of Html5_types.phrasing_without_media
+           | `Wbr
+           &gt; `Abbr `B `Bdo `Br `Canvas `Cite `Code `Command `Datalist `Del
+             `Dfn `Em `I `Img `Ins `Kbd `Map `Mark `Meter `Noscript `Object
+             `PCDATA `Progress `Q `Ruby `Samp `Script `Small `Span `Strong
+             `Sub `Sup `Svg `Time `U `Var `Wbr ]
+          as 'a, 'b)
+         Html5_types.between_phrasing_and_phrasing_without_interactive, 'a,
+         Html5_types.phrasing_without_interactive)
+        Wiki_syntax.wiki_plugin;
+  }
+  val register_wiki_phrasing_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    Wiki_syntax.wiki_phrasing_pplugin -&gt; unit
+  val register_interactive_wiki_phrasing_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    Wiki_syntax.wiki_phrasing_pplugin -&gt; unit
+  type link_wiki_phrasing_pplugin =
+      Wiki_widgets_interface.box_info -&gt;
+      Wikicreole.attribs -&gt;
+      Html5_types.phrasing_without_interactive Eliom_content.Html5.F.elt list
+      Lwt.t option -&gt;
+      Wiki_syntax.href * Wikicreole.attribs *
+      Html5_types.phrasing_without_interactive Eliom_content.Html5.F.elt list
+      Lwt.t
+  val register_link_phrasing_extension :
+    name:string -&gt;
+    ?reduced:bool -&gt;
+    ?preparser:Wiki_syntax.preparser -&gt;
+    Wiki_syntax.link_wiki_phrasing_pplugin -&gt; unit
+  val wikicreole_parser :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val wikicreole_parser_without_header_footer :
+    (Html5_types.flow5_without_header_footer,
+     Html5_types.flow5_without_interactive_header_footer,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser0 :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser1 :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser2 :
+    (Html5_types.flow5, Html5_types.flow5_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val reduced_wikicreole_parser_button_content :
+    (Html5_types.button_content, Html5_types.button_content,
+     Html5_types.button_content)
+    Wiki_syntax.ext_wikicreole_parser
+  val phrasing_wikicreole_parser :
+    (Html5_types.phrasing, Html5_types.phrasing_without_interactive,
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val menu_parser :
+    ([ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ],
+     [ `H1 | `H2 | `H3 | `H4 | `H5 | `H6 ],
+     Html5_types.phrasing_without_interactive)
+    Wiki_syntax.ext_wikicreole_parser
+  val wikicreole_content_type :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val reduced_wikicreole_content_type0 :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val reduced_wikicreole_content_type1 :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val reduced_wikicreole_content_type2 :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val rawtext_content_type :
+    Html5_types.flow5 Eliom_content.Html5.F.elt list Wiki_types.content_type
+  val wikicreole_phrasing_content_type :
+    Html5_types.phrasing Eliom_content.Html5.F.elt list
+    Wiki_types.content_type
+  val preprocess_extension :
+    'res Wiki_syntax.wikicreole_parser -&gt; Wiki_models.wiki_preprocessor
+  val xml_of_wiki :
+    'res Wiki_syntax.wikicreole_parser -&gt;
+    Wiki_widgets_interface.box_info -&gt;
+    string -&gt; 'res Eliom_content.Html5.F.elt list Lwt.t
+  val string_of_extension :
+    string -&gt; (string * string) list -&gt; string option -&gt; string
+  val parse_common_attribs :
+    ?classes:Html5_types.nmtokens -&gt;
+    Wikicreole.attribs -&gt;
+    [&gt; Html5_types.common ] Eliom_content.Html5.F.attrib list
+  type force_https = bool option
+  type link_kind =
+      Wiki_page of Wiki_types.wiki option * string * Wiki_syntax.force_https
+    | Href of string * Wiki_syntax.force_https
+    | Site of string * Wiki_syntax.force_https
+    | Absolute of string
+  val link_kind : string -&gt; Wiki_syntax.link_kind
+  val make_href :
+    Wiki_widgets_interface.box_info -&gt;
+    Wiki_syntax.link_kind -&gt; string option -&gt; Wiki_syntax.href
+  val class_wikibox : Wiki_types.wikibox -&gt; string
+end</code></pre></article></div></div></body></html>
