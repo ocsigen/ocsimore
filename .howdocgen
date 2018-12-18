@@ -1,10 +1,9 @@
 #!/bin/bash
 set -x
 
-wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
 export OCAML_VERSION=4.06
+wget https://raw.githubusercontent.com/ocaml/ocaml-travisci-skeleton/master/.travis-ocaml.sh
 bash -ex .travis-ocaml.sh
-
 eval $(opam env)
 
 git clone https://github.com/ocsigen/html_of_wiki.git
