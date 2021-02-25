@@ -44,6 +44,8 @@ jobs:
           export HOW_DOC=doc
           export HOW_CONFIG=how.json
           export HOW_OUT=_doc
+          ls
+          git checkout wikidoc
           eval $(opam env)
           quickdop -f $HOW_DOC $HOW_OUT -t json -c $HOW_CONFIG -viu
           
