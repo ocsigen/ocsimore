@@ -38,8 +38,7 @@ jobs:
         run: |
           opam pin add -y html_of_wiki https://github.com/ocsigen/html_of_wiki.git
           git clone --depth 1 https://github.com/ocsigen/ocsigen.github.io.git __ocsigen.github.io
-          mv __ocsigen.github.io/template __ocsigen.github.io/how_template
-          mv __ocsigen.github.io/how_template .
+          mv __ocsigen.github.io/template how_template
 
       - name: Generate doc
         run: |
@@ -47,6 +46,9 @@ jobs:
           export HOW_CONFIG=how.json
           export HOW_OUT=_doc
           eval $(opam env)
+          ls
+          echo ______how_template
+          ls how_template
           quickdop -f $HOW_DOC $HOW_OUT -t json -c $HOW_CONFIG -viu
           
       - name: Deploy 🚀
