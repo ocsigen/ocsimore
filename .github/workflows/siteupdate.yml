@@ -35,6 +35,7 @@ jobs:
       - name: Install HOW 
         run: |
           opam pin add -y html_of_wiki https://github.com/ocsigen/html_of_wiki.git
+          eval $(opam env)
           git clone --depth 1 https://github.com/ocsigen/ocsigen.github.io.git __ocsigen.github.io
           mv __ocsigen.github.io/template __ocsigen.github.io/how_template
           mv __ocsigen.github.io/how_template .
