@@ -38,16 +38,17 @@ jobs:
           git clone --depth 1 https://github.com/ocsigen/ocsigen.github.io.git __ocsigen.github.io
           mv __ocsigen.github.io/template __ocsigen.github.io/how_template
           mv __ocsigen.github.io/how_template .
-          HOW_LATEST=$(find $HOW_DOC -maxdepth 1 -type d -not -name $HOW_DOC -not -name dev -exec basename {} \; | sort -nr | head -n 1)
-          export HOW_LATEST
 
       - name: Generate doc
         run: |
           export HOW_DOC=doc
           export HOW_CONFIG=how.json
           export HOW_OUT=_doc
-          if ! quickdop -f $HOW_DOC $HOW_OUT -t json -c $HOW_CONFIG -viu; then
-            HOW_STATUS=1
-          fi
-          export HOW_STATUS
+          quickdop -f $HOW_DOC $HOW_OUT -t json -c $HOW_CONFIG -viu
+          
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@4.0.0
+        with:
+          branch: gh-pages # The branch the action should deploy to.
+          folder: _doc # The folder the action should deploy.
 
