@@ -1,0 +1,8 @@
+{
+    "project": "ocsimore",
+    "api": "api",
+    "menu": true,
+    "csw": true,
+    "templates": ["how_template/template.wiki"],
+    "manual": "manual"
+}
