@@ -1,6 +1,6 @@
-# This is a basic workflow to help you get started with Actions
+# Update ocsigen.org using Github Actions
 
-name: CI
+name: Update Web site
 
 # Controls when the action will run. 
 on:
@@ -24,22 +24,30 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout code
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
- #     - name: Run a one-line script
- #       run: echo Hello, world!
+      - name: Install OCaml
+        uses: avsm/setup-ocaml@v1
+        with:
+          ocaml-version: 4.11.0
 
-      # Runs a set of commands using the runners shell
-      - name: Generate and install doc
-        run: |
+      - name: Install HOW 
+      - run: |
+          opam pin add -y html_of_wiki https://github.com/ocsigen/html_of_wiki.git
+          git clone --depth 1 https://github.com/ocsigen/ocsigen.github.io.git __ocsigen.github.io
+          mv __ocsigen.github.io/template __ocsigen.github.io/how_template
+          mv __ocsigen.github.io/how_template .
+          HOW_LATEST=$(find $HOW_DOC -maxdepth 1 -type d -not -name $HOW_DOC -not -name dev -exec basename {} \; | sort -nr | head -n 1)
+          export HOW_LATEST
+
+      - name: Generate doc
+      - run: |
           export HOW_DOC=doc
           export HOW_CONFIG=how.json
           export HOW_OUT=_doc
-          wget https://ocsigen.org/how-gha.sh
-          . how.sh
-          how-install
-          how-generate
-          how-redirect "$HOW_LATEST/manual/intro" $HOW_OUT/index.html
-          how-redirect-manual $HOW_LATEST latest clientserver
+          if ! quickdop -f $HOW_DOC $HOW_OUT -t json -c $HOW_CONFIG -viu; then
+            HOW_STATUS=1
+          fi
+          export HOW_STATUS
 
