@@ -1,0 +1,525 @@
+# Ocsimore
+
+> Ocsimore is a content management system written using Eliom. It contains a wiki and a news/forums/blog system, and was historically used to run the ocsigen.org website. This is an archived copy of its documentation.
+
+
+---
+
+# User creation
+
+Users cannot be created by default. To allow the creation, go to "Users \-\> Users settings" page, check "Enable users creation" and fill in the "Registration mail" witch is used to send the confirmation email.
+
+
+### Note on the wiki deletion
+
+You can delete a wiki with the web interface in: "Wiki \-\> View all wikis"
+
+Please, enable Javascript.
+
+If you click on "Delete", a confirmation window will appears. If you click on "Ok", the wiki will be deleted (see the following "Note")
+
+Note: The deletion will just put your wiki in a "deleted state". It means that your wikiboxes contained in the wiki will be available if you are linked it in an other wiki, and all wikipages attached to your wiki will be marked as deleted (cannot access to them).
+
+Note also, that you can "undelete" a wiki.
+
+
+---
+
+# Configuring Ocsimore
+
+Ocsimore can be configured by providing tags to the extension of Ocsigenserver which loads Ocsimore:
+
+```
+    <extension findlib-package="ocsimore">
+      ...
+    </extension>
+```
+
+## The Database
+
+The database connection of Ocsimore (PSQL) is configured by the `database`\-tag which allows the following optional attributes:
+
+```
+    <extension findlib-package="ocsimore">
+      <database
+        name="..."
+        user="..."
+        host="..."
+        port="..."
+        socket-dir="..."
+        password-file="..." />
+      ...
+    </extension>
+```
+Default is:
+
+```
+    <extension findlib-package="ocsimore">
+      <database
+        name="ocsimore"
+        user="ocsimore"
+        host="localhost" />
+    </extension>
+```
+
+## The Wiki
+
+The Wiki is configured by the `wiki`\-tag. It allows the following attributes:
+
+- `headings-backref="yes|no"`: If `yes`, for all headings which have an `id`\- attribute, a ¶-symbol is appended to all headings (`h1`, ..., `h6`) which have an `id`\-attribute. The symbol acts as a link to the heading.
+```
+  <wiki headings-backref="yes|no" />
+```
+
+## The Administration Interface
+
+Ocsimore's administration interface is configured by the content of the `administration`\-tag. It allows the following attributes:
+
+- `path`: The URL-path where the administration interface is registered to Ocsigen.
+```
+  <extension findlib-package="ocsimore">
+    <administration
+      path="..."
+      />
+  </extension>
+```
+
+## The `mailer`\-tag
+
+The `mailer`\-tag allows to configure the program to send email (during user creation). The program is provided by the `bin`\-attribute:
+
+```
+  <extension findlib-package="ocsimore">
+    <mailer bin="..."/>
+    ...
+  </extension>
+```
+
+## The `internationalization`\-tag
+
+This tag allowes to configure the internationalization of Ocsimore. The language of Ocsimore messages is set through the attribute `language`. Currently `"english"` or `"francais"` are allowed.
+
+```
+  <extension findlib-package="ocsimore">
+    <internationalization language="..."/>
+    ...
+  </extension>
+```
+
+## The `internals`\-tag
+
+Attributes:
+
+- `aggregate-css="yes"|"no"`: Allows you to prevent Ocsimore from aggregating the CSS files of a wiki into a single request. The default `"yes"`. (Optional)
+- `application-name=<name>`: Specifies the name of the Eliom-application. The default is `"ocsimore"`. (Optional)
+Undocumented sub-tags:
+
+- `group`
+```
+    <extension module="ocsimore.cma">
+      <internals
+        application-name="..."
+        aggregate-css="..."
+       />
+    </extension>
+```
+
+## The user module
+
+
+---
+
+# Ocsimore's forum extension
+
+
+### Wiki syntax
+
+`<<forum_threads_list forum="1">>`
+
+`<<forum_message_list forum="1">>`
+
+`<<forum_thread message="1">>`
+
+`<<forum_message message="1">>`
+
+
+### Group hierarchy
+
+
+#### For all forums
+
+```
+   forum_creators
+```
+
+#### For each forum
+
+```
+                                                   \     /
+                                               moderated_readers                
+                                   __________/        |
+                            \  /  /                \  |  /
+        \     /            readers                _creators            \   /
+  deletors_if_creators        |                       |         modifiers_if_creator
+         \ | /              \ | /                  \  |  /             \ | /
+       _deletors         _moderators      _creators_not_moderated     _modifiers
+               \________________\_______________      |      ____________/
+                                                 forum_admin
+
+                                                    admin
+
+
+```
+
+#### For each forum wiki (messages or comments)
+
+```
+                                                        forum_visible
+                                                              |
+                                                 _readersifmessagemoderated
+                         _______________________/         /   |            \
+                        /                                /    |             \
+ deletors_if_creator   /                                /     |              \      modifiers_if_creator
+          |           /                                /      |               \          |
+_deletors = wikiboxdel  _readersnotmod = wikiboxreaders   _creators      modifiers = wikiboxwriters
+                                       |               \      |
+                                 _moderators  _creators_notmod = wikiboxcreators
+
+                                                  admin
+```
+
+#### For threads with special rights
+
+```
+
+                     moderated_readers
+                    /         |
+                   /          |
+  comments_creators    readers_notmod
+          |
+comments_creators_notmod
+```
+
+
+---
+
+# Guidelines and implementation notes
+
+(work in progress)
+
+If you want to contribute to Ocsimore and/or write your own extensions, we recommend to follow these guidelines. Have a look at the forum code for an example.
+
+
+#### Generic advices:
+
+- Try to make things as generic and configurable as possible.
+- The use of classes allows to extend widgets or modify their behaviour. Decompose each of them into several methods, one for each subtask to perform (retrieve data, display ...) and for each widget kind.
+  
+  The instantiation of classes must be done in a separate module, that can be rewritten by programmers who want to redefine some methods.
+  
+- The creation and registration of services is also done in this separate module that can be loaded several times inside the `<host>` section of the configuration file. **??**
+  
+  Usually, widgets depend on services, and service handlers depend on widgets. This means that there is an instance of classes for each site. For example, create services, then give them as parameters to the class constructor to create the object, then register services.
+  
+- Use as much as possible the same naming scheme for methods. For example:
+  
+  - `private retrieve_data` or `retrieve_`...
+  - `private display` or `display_...`
+  for displaying the widget from retrieved data
+  
+- Use as much as possible the same names for labels.
+
+#### More specific instructions
+
+
+##### Decomposing your extension
+
+Decompose your extension `X` in 8 parts ; `X_createdb.sql` : SQL creation of the tables related to your extension. ; `X_sql.ml` : database requests, using lwt-pgocaml. ; `X_cache.ml` : Cache on database requests, using the Cache module. For all cached SQL-related functions,, we use a name ending with `_` in `X_sql.ml` and without the `_` in `X_cache.ml`, to remember that we must not call the functions from `X_sql.ml` directly. (The SQL and Cache modules are merged for `Wiki` and `User`. However, the convention on the name of functions above is followed.) ; `X.ml` : Higher level functions needed by the module. Also, creation of the groups specific to the extension, using the module `Users`, and of the inclusions between those groups. ; `X_data.ml` : database access with cache and verification of permissions. It has almost the same interface as `X_sql.ml` and `X_cache.ml`, calls the cached function if authorized, then filters the result to remove forbidden content (if needed). They may fail with exception `Ocsimore_common.Permission_denied`. ; `X_services.ml` : definition of the services needed by the extension. They may not be registered, as the content they send may depend on what is returned by `X_widgets` (see below). ; `X_widgets.ml` : Widgets for generating the parts of the HTML-page defined by the extension. Those may call the services of the previous module for buttons and links. We typically use classes for this module. Each widget takes an optional `?classe` label of type string list for the `class` HTML5 attribute. Each widget has its own attribute names. ; `X_wikiext.ml` : The wiki syntax extensions you define for your module ; `X_site.ml` : A separate module (not linked in ocsimore.cma) to be loaded dynamically from configuration file inside the `<host>` section. It will instantiate the widget classes, register the services and register the wiki extensions.
+
+
+##### Data
+
+Data is stored in Eliom references of a matching scope:
+
+- (Persistent) session data is stored in (persistent) references of scope `Eliom_common.session`
+- If you need a per-request cache for a certain function, you may use the module `Ocsimore_lib.Request_cache` \>
+
+##### Catching exceptions
+
+To be sure that all exceptions occurring during a DB request are catched and result in an error message in the box, I use the method `Widget.widget_with_error_box#bind_or_display_error`
+
+
+##### Creating new extensions for wikicreole
+
+If you create a new box, you probably want to have a syntax to place it inside a wikibox. To so that, use the function `Wiki_syntax.add_extension`. If you want a preparsing (i.e. do some action before saving the wikibox in the database, like creating a new wikibox for `~<<wikibox box='new'>>`), use the function `Wiki_syntax.add_preparser_extension`. See examples in `Wiki_syntaxl` and `Wiki_widgets`
+
+
+##### Groups
+
+Groups and users are the same notion. The only difference is that users have a password. A user can belong to a group that belongs to another group, etc. It is recommended to create groups for each task you want. For example readers and writers of wiki. Users are added to groups accordingly.
+
+Predefined users/groups:
+
+- admin: a special user who belongs to all groups
+- anonymous: non authenticated user
+- users: group of authenticated users
+- nobody: a special user with no right at all (for example when the user does not exist)
+You can also create generic groups, that are parameterized by an abstracted integer, using `User_sql.new_parametrized_group`. For example, there exists the group of the administrators of the wiki 3\. Then you can add generic inclusions between generic groups, using `User_sql.add_generic_inclusion`. As an example the administrators of a given wiki are also readers of this wiki.
+
+You may want to compute the permission for one user at the beginning of the request. To do that, you may create a record with boolean fields for each possible action (for one forum, one box in a wiki, one wiki, etc.). The function that will compute this can be memorised in a session cache to avoid to compute several times the same thing. See module `Forum` for an example. Notice however that group inclusion calls are automatically cached. Thus you may not need your own caching mechanism if you only do simple requests.
+
+Warning: Even if two groups are equal, it is often more convenient to create both in order to avoid errors. For example if you have three possible actions : read, write, set permissions, and you want an "admin" group, meaning all three. And if you want the following generic inclusions: admin \> set-perm \> write \> read Here, admin \= set-perm, as admin is in no other group. But it is convenient to have both of them. Thus, you will not need to remember the group hierarchy when you want to test rights. If you want to test if a user has right to set permissions, just test whether he is in the group set-perm. If you want to give all rights to an user, put it in group admin. It is also more tolerant to changes in group hierarchy.
+
+
+---
+
+# Ocsimore
+
+Ocsimore is a content management system written using Eliom. It contains a wiki and a news/forums/blog system, and was historically used to run the ocsigen.org website. This is an archived copy of its documentation.
+
+
+## Manual
+
+- [Introduction](intro.html)
+- [Wiki](wiki.html)
+- [Forum](forum.html)
+- [Users and groups](user.html)
+- [Misc](misc.html)
+- [Writing extensions for Ocsimore](guidelines.html)
+- [Configuration options](config.html)
+- [Administration interface](admin-interface.html)
+
+## API
+
+- [API reference](api/index.html)
+
+
+---
+
+# Introduction
+
+Ocsimore is a content management system written using Eliom. It contains a wiki, and a news/forums/blog system. Ocsimore was used on ocsigen.org and [http://www.pps.jussieu.fr](http://www.pps.jussieu.fr).
+
+[Source code on GitHub](https://github.com/ocsigen/ocsimore).
+
+
+---
+
+# Predefined services
+
+`ocsimoreadmin/login` a connection box (useful for example if you removed by mistake the login box from all pages)
+
+`ocsimoreadmin/wiki_edit?wikiid=n&boxid=m` to edit a wikibox
+
+
+### Clear the cache
+
+Use the `ocsimore:clearcache` command to clear the database cache. Example:
+
+```
+echo "ocsimore:clearcache" > /var/run/ocsigen_command
+```
+
+
+---
+
+# authentication using external services
+
+*Any contributions appreciated for other authentication methods\!*
+
+
+#### NIS authentication:
+
+Configuration file example:
+
+```
+      <extension findlib-package="ocsimore.user.nis"/>
+```
+
+#### LDAP authentication:
+
+Configuration file example:
+
+```
+      <extension findlib-package="ldap"/>
+      <extension findlib-package="ocsimore.user.ldap">
+        <ldap base="ou=blah,ou=users,dc=blih,dc=plop,dc=fr" uri="ldaps://my-ldap-server.com:636/" />
+      </extension>
+```
+
+#### PAM authentication:
+
+Configuration file example:
+
+```
+      <extension findlib-package="pam"/>
+      <extension findlib-package="ocsimore.user.pam">
+        <pam service="ocsimore" />
+      </extension>
+```
+Here the service name must correspond to a file in `/etc/pam.d`.
+
+*Warning:* It is not possible (for now) to use authentication based on `/etc/shadow` (using pam\_unix), because Ocsigen does not have read access to this file (would be dangerous to give access to that file to a web server).
+
+*Warning:* The PAM authentication relies on ocamlpam binding, which is known to be buggy. It causes crashes (at least in version 1\.1).
+
+
+---
+
+# Ocsimore's wiki extension
+
+Creating several wikis (associated to several paths) allows to give different rights for subdirectories of the site.
+
+
+### Wiki syntax
+
+The wiki is using [Wikicreole](http://www.wikicreole.org)'s syntax (but it is possible to plug another syntax).
+
+![creole\_cheat\_sheet.png](creole_cheat_sheet.png)
+It supports extensions with the following syntax:
+
+`<<extensionname arg1='value1' arg2='value2' >>` or `<<extensionname arg1='value1' arg2='value2' |data>>`
+
+See below for predefined extensions.
+
+It also supports attributes with the following syntax: `@@name="value"; name= "value"@@` Put attribute just after the openning tag. For example: `//@@class="important"@@some text//`
+
+For now, attributes `class` and `id` are defined for each tag, and the semantics is the one of xhtml class and id attributes.
+
+Sometimes it is possible to put several sets of attributes (tables, rows, list items). Examples:
+
+`|@@...attributes for full table...@...attributes for row...@...attributes for cell...@@ first cell| ... |`
+
+`*@@...attributes for full list...@...attributes for item...@@ text`
+
+
+#### Links
+
+Links are created with the syntax `[[target]]` or `[[target|content]]` where `target` is the target of the link and `content` is the optional content of the link.
+
+There are five kinds for the target of a link which might occur in the database.
+
+- `[[wiki(id):page]]`: A link to a certain `page` in a given wiki with `id` (see below for abbreviations).
+- `[[wiki:page]]`: A link to a certain `page` of the currently displayed wiki
+- `[[site:href]]`: A link relative to the root of the full site, for example towards a page that is not in a wiki (where `href` may contain characters like `?` or `&`)
+- `[[href:path]]`: You can also create links by a simple href, i.e. `[[href:path]]` is displayed as `<a href="path">...</a>`. The `href` may also contain GET-parameters.
+The targets of all those links may be prefixed with `http+` or `htpps+` to enforce a specific HTTP-protocol.
+
+Additionally, you can create an absolute link towards web site by putting the whole URL in double brackets, for example: `[[http://server/page|...]]` *Warning: it is recommended to use absolute URLs only for external links\!*
+
+
+##### Abbreviations for links
+
+Additionally, there are abbreviation for easily creating (relative) links. Those are replaced by the above forms *when creating the preview of wikibox* or before saving. Possible problems with relative links are shown in the preview.
+
+This replacement usually depends on the wiki page (i.e. a page wiki and a page path) where the wikibox is edited. NB that the page wiki may be different to the wiki of the edited wikibox.
+
+The examples for the following rules for resolving relative links are given for wiki page `/wiki25/a/b/c`, i.e. the page wiki `wiki(25)` and the page path `a/b/c`.
+
+1. An empty path refers to the current url:
+   
+   - `[[]]` \=\> `[[wiki(25):a/b/c]]`
+   - `[[#anchor]]` \=\> `[[wiki(25):a/b/c#anchor]]`
+2. Relative paths are interpreted like in hrefs in `a`\-elements in HTML:
+   
+   - `[[.]]` \=\> `[[wiki(25):/a/b]]`
+   - `[[xyz]]`, `[[./xyz]]` \=\> `[[wiki(25):a/b/xyz]]`
+   - `[[..]]` \=\> `[[wiki(25):a]]`
+   - `[[../xyz]]` \=\> `[[wiki(25):a/xyz]]`
+   - `[[c/xyz]]` \=\> `[[wiki(25):a/b/c/xyz]]`
+   NB that, for example, `[[xyz]]` was resolved to `[[wiki(25):a/b/c/xyz]]` if the page path was `a/b/c/` (note the trailing slash).
+   
+3. Moreover, for absolute paths and relative paths applied to the current page path `addr`, it is always attempted to refer to the wiki page `e/f` of the wiki with the longest path `wikipath` such that `addr == wikipath/e/f`. E.g. if there was `wiki(42)` registered on `a/b/sub`:
+   
+   - `[[sub/xyz]]` \=\> `[[wiki(42):a/b/c/xyz]]`
+4. We will provide basic support for resolving complete paths to a wiki and a path, like:
+   
+   - `[[/a/b/c]]` \=\> `[[wiki(ix):e/f]]`
+   such that prefix/e/f \= /a/b/c where prefix is the URL of wiki(ix). Currently only for prefix \= a \|\| prefix \= /a (this not consistent in the DB).
+   
+5. Other wikis can be referred to by their title:
+   
+   - `[[wiki("title"):path]]` \=\> `[[wiki(ix):path]]`
+   where `"title"` is the title of the wiki with index `ix`.
+   
+
+#### Additions
+
+| Syntax | Result |
+| --- | --- |
+| `--` | en dash (–) |
+| `---` | em dash (—) |
+| `##Monospace##` | monospace |
+| `^^Superscript^^` | superscript |
+| `,,Subscripted,,` | subscript |
+| `__Underline__` | underline |
+| `/-Line-through-/` | line-through |
+| `;title : definition` | definition list |
+
+#### Predefined extensions
+
+`<<div class='...' id='...' |data>>` creates a \<div\> box.
+
+`<<span class='...' id='...' |data>>` creates a \<span\> box.
+
+`<<wikibox box='j' >>` displays the wikibox number j from current wiki. Other optional arguments are possible:
+
+- `wiki='i'` to display a box from another wiki
+- `cols='i'` (number of columns of the edition window)
+- `rows='i'` (number of rows of the edition window)
+- `class='...'` (class xml attribute to use for the box)
+- `delayed=''` to delay the loading of the wikibox content
+If you want to create a new wikibox, do not put the box argument. A wikibox may be a container. Just put `<<content>>` inside it. To use a container, use the syntax: `<<wikibox box='j' | put here the content >>`
+
+`<<|...>>` comment (will not be displayed)
+
+`<<menu item='link|text of the item' item='...' ... >>` displays a menu
+
+`<<loginbox>>` displays a login box Optional parameters:
+
+- `user_prompt='login:'`
+- `pwd_prompt='pwd:'`
+- `auth_error='Wrong login or password'`
+`<<logoutlink>>` `<<logoutbutton>>` display a logout link or button
+
+`<<raw arg1='value1' arg2='value2' | data >>` displays the string `"<<arg1='value1' arg2='value2' | data >>"` (for debugging purpose).
+
+Conditional display w.r.t. groups: (EXPERIMENTAL)
+
+- `<<cond ingroup='users'|data>>`
+- `<<cond notingroup='users'|data>>`
+- `<<cond error='autherror'|data>>` (wrong user or password)
+`<<username>>` displays the name of the user.
+
+`<<nonattachedlink wiki='...' page='...'|...>>` is like `[[...|...]]` for links, but instead of using a link towards another page, it uses a non-attached service (i.e. the path in the URL won't change, only parameters). Use this if you do not want to go to another URL. The wiki argument is optional. other optional arguments: protocol='https' or protocol='http' (will create absolute links) fragment="..." to create a link containing a \# (link to a portion of page with an id attribute) class, id
+
+`<<object wiki='...' data='...' type='...'>>` allows to include an objet in the page (see `<object>` xhtml tag). The wiki argument is optional. other optional arguments: protocol="https" or protocol="http" (will create absolute links) fragment="..." to create a link containing a \# (link to a portion of page with an id attribute) class, id
+
+`<<cancellink|...>>` is a link towards the same page without special parameters. Use it if you want to cancel the edition of a page for example. The text after the vertical bar is the text of the link.
+
+`<<link wiki='...' page='...'|...>>` is like `[[...|...]]` for links, but for block level links. The wiki argument is optional. other optional arguments: protocol="https" or protocol="http" (will create absolute links) fragment="..." to create a link containing a \# (link to a portion of page with an id attribute) class, id
+
+*deprecated\! now use the extended syntax for links* `<<img wiki='...' name='...' |...>>` is like `{{...|...}}` for images, but allows links towards images from other wikis (will compute the URL from the URL of the wiki). The wiki argument is optional. other optional arguments: protocol="https" or protocol="http" (will create absolute links) class, id
+
+
+### Groups hierarchy
+
+For each wiki:
+
+```
+       -------- WikiAdmin(w)------------------------------------------------------------------------
+      /                 |                 \             \                \         \                \
+WikiboxesAdmins(w)   FilesAdmins(w)  SubWikiboxes    Wikipages    CssCreators(w)  Wikiboxes    FilesUploaders(w)
+     |                  |             Creators(w)    Creators(w)                 Deletors(w)
+WikiboxesWriters(w)  FilesWriters(w)          \       /
+     |                  |                   GenWikiboxes
+WikiboxesReaders(w)  FilesReaders(w)         Creators(w)
+
+
+WikiboxAdmin(wb)
+   |
+WikiboxWriter(wb)
+   |
+WikiboxReader(wb)
+```
+The generic permissions of the wiki can be overridden on a per-wikibox basis, using the groups Wikibox\*

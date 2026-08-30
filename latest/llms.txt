@@ -1,0 +1,14 @@
+# Ocsimore
+
+> Ocsimore is a content management system written using Eliom. It contains a wiki and a news/forums/blog system, and was historically used to run the ocsigen.org website. This is an archived copy of its documentation.
+
+## Manual
+- [User creation](admin-interface.md)
+- [Configuring Ocsimore](config.md)
+- [Ocsimore's forum extension](forum.md)
+- [Guidelines and implementation notes](guidelines.md)
+- [Ocsimore](index.md)
+- [Introduction](intro.md)
+- [Predefined services](misc.md)
+- [authentication using external services](user.md)
+- [Ocsimore's wiki extension](wiki.md)

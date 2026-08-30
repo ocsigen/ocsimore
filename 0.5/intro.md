@@ -1,0 +1,6 @@
+
+# Introduction
+
+Ocsimore is a content management system written using Eliom. It contains a wiki, and a news/forums/blog system. Ocsimore was used on ocsigen.org and [http://www.pps.jussieu.fr](http://www.pps.jussieu.fr).
+
+[Source code on GitHub](https://github.com/ocsigen/ocsimore).
